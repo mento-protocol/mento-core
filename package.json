@@ -24,7 +24,7 @@
   ],
   "private": true,
   "scripts": {
-    "lint": "yarn solhint && yarn prettier:check",
+    "lint": "yarn prettier && yarn solhint",
     "lint:check": "yarn prettier:check && yarn solhint:check",
     "postinstall": "husky install",
     "prettier": "prettier --config \"./.prettierrc.yml\" --write \"**/*.{json,md,sol,yml}\"",
