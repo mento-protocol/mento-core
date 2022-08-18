@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity >=0.8.4;
+pragma solidity 0.8.16;
 
 import { Cheats } from "forge-std/Cheats.sol";
 import { console } from "forge-std/console.sol";
