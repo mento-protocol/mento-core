@@ -1,6 +1,7 @@
 ![Seaport](img/Mento-banner.png)
 
 [![Foundry][foundry-badge]][foundry]
+[![Mento Core CI][ci-badge]][ci-link]
 
 # Mento Core
 
@@ -37,5 +38,7 @@ forge build
 forge test
 ```
 
+[ci-link]: https://github.com/mento-protocol/mento-core/actions/workflows/ci.yml
+[ci-badge]: https://github.com/mento-protocol/mento-core/actions/workflows/ci.yml/badge.svg
 [foundry]: https://getfoundry.sh/
 [foundry-badge]: https://img.shields.io/badge/Built%20with-Foundry-FFDB1C.svg
