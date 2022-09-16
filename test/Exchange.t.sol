@@ -321,7 +321,8 @@ contract ExchangeTest_stableActivated is ExchangeTest {
 contract ExchangeTest_stableBucket_hasBeenCapped is ExchangeTest {
     function setUp() public {
         super.setUp();
-        sortedOracles.setMedianRate(address(stableToken), SafeMath.mul(2e24, 2000)); // bump the price by 2000, leaving with 4K CELO per dollar
+        // bump the price by 2000, leaving with 4K CELO per dollar
+        sortedOracles.setMedianRate(address(stableToken), SafeMath.mul(2e24, 2000));
         exchange.activateStable();
     }
 

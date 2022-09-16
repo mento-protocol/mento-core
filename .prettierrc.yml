@@ -9,5 +9,5 @@ trailingComma: "all"
 overrides:
   - files: ["*.sol"]
     options:
-      compiler: "0.8.16"
+      compiler: ">=0.5.13"
       tabWidth: 4
