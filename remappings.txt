@@ -1,2 +1,4 @@
-@prb/test/=lib/prb-test/src/
-forge-std/=lib/forge-std/src/
+openzeppelin-solidity/=lib/openzeppelin-contracts/
+celo-foundry/=lib/celo-foundry/src/
+forge-std/=lib/celo-foundry/lib/forge-std/src/
+ds-test/=lib/celo-foundry/lib/forge-std/lib/ds-test/src/

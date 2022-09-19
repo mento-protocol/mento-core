@@ -1,8 +1,6 @@
-[submodule "lib/forge-std"]
-	branch = v0.3
-	path = lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "lib/prb-test"]
-  branch = "0.1.2"
-	path = lib/prb-test
-	url = https://github.com/paulrberg/prb-test
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lib/celo-foundry"]
+	path = lib/celo-foundry
+	url = https://github.com/bowd/celo-foundry
