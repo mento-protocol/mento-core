@@ -30,7 +30,7 @@ contract StableTokenTest is Test, WithRegistry {
 
   function setUp() public {
     deployer = actor("deployer");
-    notDeployer = actor("deployer");
+    notDeployer = actor("notDeployer");
 
     changePrank(deployer);
 
@@ -101,5 +101,88 @@ contract StableTokenTest_initilizerAndSetters is StableTokenTest {
       balances,
       "Exchange"
     );
+  }
+
+  function test_setRegistry_shouldSetRegistryAddress() public {
+    address newRegistry = actor("newRegistry");
+    testee.setRegistry(newRegistry);
+    assertEq(address(testee.registry()), newRegistry);
+  }
+
+  function test_setRegistry_whenNotCalledByOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    address newRegistry = actor("newRegistry");
+    vm.expectRevert("Ownable: caller is not the owner");
+    testee.setRegistry(newRegistry);
+  }
+}
+
+contract StableTokenTest_mint is StableTokenTest {
+  address exchange;
+  address validators;
+  address grandaMento;
+
+  uint256 mintAmount = 100 * 10**18;
+
+  function setUp() public {
+    super.setUp();
+
+    exchange = actor("exchange");
+    validators = actor("validators");
+    grandaMento = actor("grandaMento");
+
+    registry.setAddressFor("Exchange", exchange);
+    registry.setAddressFor("Validators", validators);
+    registry.setAddressFor("GrandaMento", grandaMento);
+  }
+
+  function mintAndAssert(address to, uint256 value) public {
+    changePrank(to);
+    testee.mint(to, value);
+    assertEq(testee.balanceOf(to), value);
+    assertEq(testee.totalSupply(), value);
+  }
+
+  function test_mint_whenCalledByExchange_shouldMintTokens() public {
+    mintAndAssert(exchange, mintAmount);
+  }
+
+  function test_mint_whenCalledByValidators_shouldMintTokens() public {
+    mintAndAssert(validators, mintAmount);
+  }
+
+  function test_mint_whenCalledByGrandaMento_shouldMintTokens() public {
+    mintAndAssert(grandaMento, mintAmount);
+  }
+
+  function test_mint_whenValueIsZero_shouldAllowMint() public {
+    mintAndAssert(validators, 0);
+  }
+
+  function test_mint_whenSenderIsNotAuthorized_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Sender not authorized to mint");
+    testee.mint(notDeployer, 10000);
+  }
+}
+
+contract StableTokenTest_transferWithComment is StableTokenTest {
+  address sender;
+  address receiver;
+  string comment;
+
+  function setUp() public {
+    super.setUp();
+
+    sender = actor("sender");
+    receiver = actor("receiver");
+    comment = "pineapples belong on pizza";
+
+    registry.setAddressFor("Exchange", sender);
+    registry.setAddressFor("Validators", sender);
+    registry.setAddressFor("GrandaMento", sender);
+
+    changePrank(sender);
+    testee.mint(sender, 100 * 10**18);
   }
 }
