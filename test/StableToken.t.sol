@@ -5,6 +5,8 @@ import { Test } from "celo-foundry/Test.sol";
 
 import { WithRegistry } from "./utils/WithRegistry.sol";
 
+import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+
 import { StableToken } from "contracts/StableToken.sol";
 import { Freezer } from "contracts/common/Freezer.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
@@ -37,6 +39,9 @@ contract StableTokenTest is Test, WithRegistry {
     // Init dependencies
     freezer = new Freezer(true);
     testee = new StableToken(true);
+
+    // Setup registry
+    registry.setAddressFor("Freezer", address(freezer));
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
@@ -171,6 +176,8 @@ contract StableTokenTest_transferWithComment is StableTokenTest {
   address receiver;
   string comment;
 
+  uint256 inflationRate = 0.995 * 10**24;
+
   function setUp() public {
     super.setUp();
 
@@ -184,5 +191,100 @@ contract StableTokenTest_transferWithComment is StableTokenTest {
 
     changePrank(sender);
     testee.mint(sender, 100 * 10**18);
+  }
+
+  function setUpInflation() public {
+    testee.setInflationParameters(inflationRate, 1 weeks);
+    skip(1 weeks);
+    vm.roll(block.number + 1);
+  }
+
+  function test_transferWithComment_whenToAddressIsNull_shouldRevert() public {
+    vm.expectRevert("transfer attempted to reserved address 0x0");
+    testee.transferWithComment(address(0), 1, comment);
+  }
+
+  function test_transferWithComment_whenValueGtBalance_shouldRevert() public {
+    uint256 value = IERC20(testee).balanceOf(sender) + 1;
+    vm.expectRevert("transfer value exceeded balance of sender");
+    testee.transferWithComment(receiver, value, comment);
+  }
+
+  function test_transferWithComment_shouldTransferBalance() public {
+    uint256 senderBalanceBefore = IERC20(testee).balanceOf(sender);
+    uint256 receiverBalanceBefore = IERC20(testee).balanceOf(receiver);
+
+    vm.expectEmit(true, true, false, false);
+    emit Transfer(sender, receiver, 5);
+
+    vm.expectEmit(false, false, false, true);
+    emit TransferComment(comment);
+
+    testee.transferWithComment(receiver, 5, comment);
+
+    uint256 senderBalanceAfter = IERC20(testee).balanceOf(sender);
+    uint256 receiverBalanceAfter = IERC20(testee).balanceOf(receiver);
+
+    assertEq(senderBalanceAfter, senderBalanceBefore - 5);
+    assertEq(receiverBalanceAfter, receiverBalanceBefore + 5);
+  }
+
+  // TODO: Fraction mul precompile throws error.
+  // function test_transferWithComment_whenInflationFactorIsOutdated_shouldUpdateFactor() public {
+  //   // changePrank(deployer);
+  //   // setUpInflation();
+  //   // changePrank(sender);
+  //   // testee.transferWithComment(receiver, 5, comment);
+  //   // (uint256 rate, uint256 factor, uint256 updatePeriod, uint256 factorLastUpdated) = testee.getInflationParameters();
+  //   // assertEq(factor, inflationRate);
+  // }
+
+  // function test_transferWithComment_whenInflationFactorIsOutdated_shouldEmit() public {
+  //   changePrank(deployer);
+  //   setUpInflation();
+
+  //   changePrank(sender);
+
+  //   vm.expectEmit(false, false, false, true);
+  //   emit InflationParametersUpdated(inflationRate, 1 weeks + initTime, now);
+  //   testee.transferWithComment(receiver, 5, comment);
+  // }
+
+  function test_setInflationParameters_shouldUpdateParameters() public {
+    uint256 newInflationRate = 2.1428571429 * 10**24;
+    uint256 newUpdatePeriod = 1 weeks + 5;
+
+    changePrank(deployer);
+    testee.setInflationParameters(newInflationRate, newUpdatePeriod);
+    (uint256 rate, , uint256 updatePeriod, uint256 lastUpdated) = testee.getInflationParameters();
+
+    assertEq(rate, newInflationRate);
+    assertEq(updatePeriod, newUpdatePeriod);
+    assertEq(lastUpdated, initTime);
+  }
+
+  function test_setInflationParameters_shouldEmitEvent() public {
+    uint256 newUpdatePeriod = 1 weeks + 5;
+
+    changePrank(deployer);
+    vm.expectEmit(false, false, false, true);
+    emit InflationParametersUpdated(inflationRate, newUpdatePeriod, now);
+    testee.setInflationParameters(inflationRate, newUpdatePeriod);
+  }
+
+  function skip_setInflationParameters_whenFactorIsOutOfDate_shouldUpdateFactor() public {
+    uint256 initialRate = 1.5 * 10**24;
+    uint256 expectedFactoe = 1.5 * 10**24;
+    uint256 newRate = 1 * 10**24;
+
+    changePrank(deployer);
+
+    testee.setInflationParameters(initialRate, 1 weeks);
+    skip(1 weeks);
+    vm.roll(block.number + 1);
+
+    // vm.expectEmit(false, false, false, true);
+    // emit InflationParametersUpdated(newRate, newUpdatePeriod, now);
+    testee.setInflationParameters(newRate, 1 weeks);
   }
 }
