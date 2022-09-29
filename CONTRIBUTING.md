@@ -13,7 +13,6 @@ The following is a set of guidelines for contributing to the Mento protocol. Rea
 [Styleguides](#styleguides)
 
 * [Git Commit Messages](#git-commit-messages)
-* [Solidity Styleguide](#solidity-styleguide)
 
 ## How To Contribute
 
