@@ -188,28 +188,28 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   /**
    * @notice Set the ratio of reserve for a given collateral asset
    * that is spendable per day.
-   * @param collateralAssets Collection of the addresses of collateral assets
+   * @param _collateralAssets Collection of the addresses of collateral assets
    * we're setting a limit for.
    * @param collateralAssetDailySpendingRatios Collection of the relative daily spending limits
    * of collateral assets.
    */
   function setDailySpendingRatioForCollateralAssets(
-    address[] memory collateralAssets,
+    address[] memory _collateralAssets,
     uint256[] memory collateralAssetDailySpendingRatios
   ) public onlyOwner {
     require(
-      collateralAssets.length == collateralAssetDailySpendingRatios.length,
+      _collateralAssets.length == collateralAssetDailySpendingRatios.length,
       "token addresses and spending ratio lengths have to be the same"
     );
-    for (uint256 i = 0; i < collateralAssets.length; i++) {
-      if (collateralAssets[i] != address(0) && collateralAssetDailySpendingRatios[i] != 0) {
-        require(checkIsCollateralAsset(collateralAssets[i]), "the address specified is not a reserve collateral asset");
+    for (uint256 i = 0; i < _collateralAssets.length; i++) {
+      if (_collateralAssets[i] != address(0) && collateralAssetDailySpendingRatios[i] != 0) {
+        require(checkIsCollateralAsset(_collateralAssets[i]), "the address specified is not a reserve collateral asset");
         require(
           FixidityLib.wrap(collateralAssetDailySpendingRatios[i]).lte(FixidityLib.fixed1()),
           "spending ratio cannot be larger than 1"
         );
-        collateralAssetDailySpendingRatio[collateralAssets[i]] = FixidityLib.wrap(collateralAssetDailySpendingRatios[i]);
-        emit DailySpendingRatioForCollateralAssetSet(collateralAssets[i], collateralAssetDailySpendingRatios[i]);
+        collateralAssetDailySpendingRatio[_collateralAssets[i]] = FixidityLib.wrap(collateralAssetDailySpendingRatios[i]);
+        emit DailySpendingRatioForCollateralAssetSet(_collateralAssets[i], collateralAssetDailySpendingRatios[i]);
       }
     }
   }
