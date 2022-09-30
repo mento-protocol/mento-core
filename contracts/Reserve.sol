@@ -143,6 +143,9 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     setAssetAllocations(_assetAllocationSymbols, _assetAllocationWeights);
     setTobinTax(_tobinTax);
     setTobinTaxReserveRatio(_tobinTaxReserveRatio);
+    for (uint256 i = 0; i < _collateralAssets.length; i++) {
+      addCollateralAsset(_collateralAssets[i]);
+    }
     setDailySpendingRatioForCollateralAssets(_collateralAssets, _collateralAssetDailySpendingRatios);
   }
 
@@ -616,7 +619,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param collateralAsset The address of the token being added.
    * @return Returns true if the transaction succeeds.
    */
-  function addCollateralAsset(address collateralAsset) external onlyOwner returns (bool) {
+  function addCollateralAsset(address collateralAsset) public onlyOwner returns (bool) {
     require(!checkIsCollateralAsset(collateralAsset), "specified address is already added as a collateral asset");
     require(collateralAsset != address(0), "can't be a zero address");
     isCollateralAsset[collateralAsset] = true;
