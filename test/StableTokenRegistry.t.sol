@@ -13,42 +13,13 @@ contract StableTokenRegistryTest is Test {
   bytes fiatTickerUSD = bytes("USD");
   bytes stableTokenContractUSD = bytes("StableToken");
 
-  //  console.log(stableTokenRegistry.fiatTickers(0));
-
-  //   function assertSTContractNames(
-  //     bytes concatenatedContracts,
-  //     uint256[] lengths,
-  //     bytes[] expectedContracts
-  //   ) public {
-  //     assertEq(lengths.length, expectedContracts.length);
-  //     uint256 currentIndex = 0;
-  //     for (uint256 i = 0; i < expectedContracts.length; i++) {
-  //         uint256 nimver = currentIndex + lengths[i];
-  //       bytes contractt = abi.decode(concatenatedContracts[currentIndex:nimver]);
-  //       currentIndex += lengths[i];
-  //       assertEq(contractt, expectedContracts[i]);
-  //     }
-  //     assertEq(concatenatedContracts.length, currentIndex);
-  //   }
-
-  function getSlice(
-    uint256 begin,
-    uint256 end,
-    string memory text
-  ) public pure returns (string memory) {
-    bytes memory a = new bytes(end - begin + 1);
-    for (uint256 i = 0; i <= end - begin; i++) {
-      a[i] = bytes(text)[i + begin - 1];
-    }
-    return string(a);
-  }
-
   function setUp() public {
     notDeployer = actor("notDeployer");
     deployer = actor("deployer");
     changePrank(deployer);
     stableTokenRegistry = new StableTokenRegistry(true);
     stableTokenRegistry.initialize(bytes("GEL"), bytes("StableTokenGEL"));
+    abi.encodePacked(bytes("USD"), " ", bytes("EUR"));
   }
 }
 
@@ -94,6 +65,16 @@ contract StableTokenRegistryTest_initializerAndSetters is StableTokenRegistryTes
     stableTokenRegistry.removeStableToken(fiatTickerUSD, 1);
   }
 
+  function test_removeStableToken_whenSenderIsOwner_shouldUpdate() public {
+    stableTokenRegistry.removeStableToken(fiatTickerUSD, 0);
+    assertEq(stableTokenRegistry.fiatTickers(0), bytes("GEL"));
+    assertEq(stableTokenRegistry.fiatTickers(1), bytes("EUR"));
+    assertEq(stableTokenRegistry.fiatTickers(2), bytes("BRL"));
+    (bytes memory updatedContracts, uint256[] memory lengths) = stableTokenRegistry.getContractInstances();
+    assertEq(updatedContracts, abi.encodePacked(bytes("StableTokenGEL"), bytes("StableTokenEUR"), bytes("StableTokenBRL")));
+    assertEq(stableTokenRegistry.queryStableTokenContractNames((fiatTickerUSD)), "");
+  }
+
   function test_addStableToken_whenSenderIsNotOwner_shouldRevert() public {
     changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
@@ -113,5 +94,26 @@ contract StableTokenRegistryTest_initializerAndSetters is StableTokenRegistryTes
   function test_addStableToken_whenAlreadyAdded_shouldRevert() public {
     vm.expectRevert("This registry already exists");
     stableTokenRegistry.addNewStableToken(fiatTickerUSD, stableTokenContractUSD);
+  }
+
+  function test_addStableToken_whenSenderIsOwner_shouldUpdate() public {
+    stableTokenRegistry.addNewStableToken(bytes("GBP"), bytes("StableTokenGBP"));
+    assertEq(stableTokenRegistry.fiatTickers(0), fiatTickerUSD);
+    assertEq(stableTokenRegistry.fiatTickers(1), bytes("EUR"));
+    assertEq(stableTokenRegistry.fiatTickers(2), bytes("BRL"));
+    assertEq(stableTokenRegistry.fiatTickers(3), bytes("GEL"));
+    assertEq(stableTokenRegistry.fiatTickers(4), bytes("GBP"));
+    (bytes memory updatedContracts, uint256[] memory lengths) = stableTokenRegistry.getContractInstances();
+    assertEq(
+      updatedContracts,
+      abi.encodePacked(
+        bytes("StableToken"),
+        bytes("StableTokenEUR"),
+        bytes("StableTokenBRL"),
+        bytes("StableTokenGEL"),
+        bytes("StableTokenGBP")
+      )
+    );
+    assertEq(stableTokenRegistry.queryStableTokenContractNames((bytes("GBP"))), bytes("StableTokenGBP"));
   }
 }
