@@ -71,7 +71,7 @@ contract StableTokenRegistryTest_initializerAndSetters is StableTokenRegistryTes
     assertEq(stableTokenRegistry.fiatTickers(1), bytes("EUR"));
     assertEq(stableTokenRegistry.fiatTickers(2), bytes("BRL"));
     (bytes memory updatedContracts, uint256[] memory lengths) = stableTokenRegistry.getContractInstances();
-        assertEq(
+    assertEq(
       updatedContracts,
       abi.encodePacked(
         bytes("StableTokenGEL"),
