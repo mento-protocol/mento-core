@@ -1,7 +1,7 @@
 pragma solidity ^0.5.13;
 
 pragma experimental ABIEncoderV2;
-import { Test, console2 as console } from "celo-foundry/Test.sol";
+import { Test } from "celo-foundry/Test.sol";
 
 import { StableTokenRegistry } from "contracts/StableTokenRegistry.sol";
 
@@ -71,7 +71,14 @@ contract StableTokenRegistryTest_initializerAndSetters is StableTokenRegistryTes
     assertEq(stableTokenRegistry.fiatTickers(1), bytes("EUR"));
     assertEq(stableTokenRegistry.fiatTickers(2), bytes("BRL"));
     (bytes memory updatedContracts, uint256[] memory lengths) = stableTokenRegistry.getContractInstances();
-    assertEq(updatedContracts, abi.encodePacked(bytes("StableTokenGEL"), bytes("StableTokenEUR"), bytes("StableTokenBRL")));
+        assertEq(
+      updatedContracts,
+      abi.encodePacked(
+        bytes("StableTokenGEL"),
+        bytes("StableTokenEUR"),
+        bytes("StableTokenBRL")
+      )
+    );
     assertEq(stableTokenRegistry.queryStableTokenContractNames((fiatTickerUSD)), "");
   }
 
