@@ -11,4 +11,4 @@ overrides:
     options:
       compiler: ">=0.5.13"
       tabWidth: 2
-      printWidth: 130
+      printWidth: 120
