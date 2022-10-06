@@ -33,7 +33,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   // Address of the broker contract.
   address public broker;
 
-  // Maps a exchange id to the corresponding PoolExchange struct.
+  // Maps an exchange id to the corresponding PoolExchange struct.
   // exchangeId is in the format "asset0Symbol:asset1Symbol:pricingModuleName"
   mapping(bytes32 => PoolExchange) public exchanges;
   bytes32[] public exchangeIds;

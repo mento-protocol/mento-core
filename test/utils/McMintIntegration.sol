@@ -37,7 +37,7 @@ contract McMintIntegration is Test, WithRegistry {
   Reserve reserve;
   IPricingModule constantProduct;
 
-  MockSortedOracles sortedOracles;
+  MockSortedOracles sortedOracles; // TODO
 
   Token celoToken;
   Token usdcToken;
@@ -112,7 +112,7 @@ contract McMintIntegration is Test, WithRegistry {
     asse1s[0] = address(celoToken);
     asse1DailySpendingRatios[0] = 100000000000000000000000;
     asse1s[1] = address(usdcToken);
-    asse1DailySpendingRatios[0] = 100000000000000000000000;
+    asse1DailySpendingRatios[1] = 100000000000000000000000;
 
     reserve = new Reserve(true);
     reserve.initialize(
@@ -144,12 +144,16 @@ contract McMintIntegration is Test, WithRegistry {
 
     sortedOracles.setMedianRate(cUSD_CELO_oracleReportTarget, 5e23);
     sortedOracles.setNumRates(cUSD_CELO_oracleReportTarget, 10);
+
     sortedOracles.setMedianRate(cEUR_CELO_oracleReportTarget, 5e23);
     sortedOracles.setNumRates(cEUR_CELO_oracleReportTarget, 10);
+
     sortedOracles.setMedianRate(cUSD_USDCet_oracleReportTarget, 1.02 * 1e24);
     sortedOracles.setNumRates(cUSD_USDCet_oracleReportTarget, 10);
+
     sortedOracles.setMedianRate(cEUR_USDCet_oracleReportTarget, 0.9 * 1e24);
     sortedOracles.setNumRates(cEUR_USDCet_oracleReportTarget, 10);
+
     sortedOracles.setMedianRate(cUSD_cEUR_oracleReportTarget, 1.1 * 1e24);
     sortedOracles.setNumRates(cUSD_cEUR_oracleReportTarget, 10);
 
@@ -157,7 +161,6 @@ contract McMintIntegration is Test, WithRegistry {
 
     constantProduct = IPricingModule(new ConstantProductPricingModule(true));
     biPoolManager = new BiPoolManager(true);
-    // biPoolManager = new PairManager(true);
     broker = new Broker(true);
 
     biPoolManager.initialize(address(broker), IReserve(reserve), ISortedOracles(address(sortedOracles)));
@@ -167,6 +170,7 @@ contract McMintIntegration is Test, WithRegistry {
     broker.initialize(exchangeProviders, address(reserve));
     registry.setAddressFor("Broker", address(broker));
     reserve.addExchangeSpender(address(broker));
+    reserve.addSpender(address(broker));
 
     /* ====== Create pairs for all asset combinations ======= */
 
