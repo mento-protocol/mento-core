@@ -32,6 +32,8 @@ contract McMintIntegration is Test, WithRegistry {
   uint256 tobinTax = FixidityLib.newFixedFraction(5, 1000).unwrap();
   uint256 tobinTaxReserveRatio = FixidityLib.newFixedFraction(2, 1).unwrap();
 
+  event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
+
   Broker broker;
   BiPoolManager biPoolManager;
   Reserve reserve;

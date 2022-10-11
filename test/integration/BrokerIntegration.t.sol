@@ -34,31 +34,7 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     deal(address(celoToken), address(reserve), 10**24); // Gift 1Mil to reserve
     deal(address(usdcToken), address(reserve), 10**24); // Gift 1Mil to reserve
   }
-}
 
-contract BrokerIntegrationTest_discovery is BrokerIntegrationTest {
-  function test_getExchangeProviders_shouldReturnProviderWithCorrectExchanges() public {
-    // Verify this function returns the BiPoolManager with valid poolExchanges as configured.
-    address[] memory exchangeProviders = broker.getExchangeProviders();
-    assertEq(exchangeProviders.length, 1);
-
-    IExchangeProvider.Exchange[] memory exchanges = IExchangeProvider(exchangeProviders[0]).getExchanges();
-    assertEq(exchanges.length, 5);
-
-    IExchangeProvider.Exchange memory exchange;
-    for (uint256 i = 0; i < exchanges.length; i++) {
-      exchange = exchanges[i];
-      assert(exchange.assets[0] == address(cUSDToken) || exchange.assets[0] == address(cEURToken));
-      assert(
-        exchange.assets[1] == address(cEURToken) ||
-          exchange.assets[1] == address(celoToken) ||
-          exchange.assets[1] == address(usdcToken)
-      );
-    }
-  }
-}
-
-contract BrokerIntegrationTest_swap is BrokerIntegrationTest {
   /**
    * @notice Test helper function to do swap in
    */
@@ -95,6 +71,43 @@ contract BrokerIntegrationTest_swap is BrokerIntegrationTest {
 
     // Execute swap
     actualOut = broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, 1000 * 10**18, 0);
+  }
+
+  function test_swap_whenBucketTriggerConditionsAreMet_shouldTriggerBucketUpdate() public {
+    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(pair_cUSD_USDCet_ID);
+
+    // FF by bucket update frequency time
+    vm.warp(pool.config.bucketUpdateFrequency + pool.lastBucketUpdate);
+
+    // Median report recent == true
+    sortedOracles.setMedianTimestampToNow(pool.config.oracleReportTarget);
+
+    changePrank(trader);
+    IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
+
+    vm.expectEmit(false, false, false, false);
+    emit BucketsUpdated(pair_cUSD_USDCet_ID, 0, 0);
+
+    broker.swapIn(address(biPoolManager), pair_cUSD_USDCet_ID, address(cUSDToken), address(usdcToken), 1, 0);
+  }
+
+  function test_getExchangeProviders_shouldReturnProviderWithCorrectExchanges() public {
+    address[] memory exchangeProviders = broker.getExchangeProviders();
+    assertEq(exchangeProviders.length, 1);
+
+    IExchangeProvider.Exchange[] memory exchanges = IExchangeProvider(exchangeProviders[0]).getExchanges();
+    assertEq(exchanges.length, 5);
+
+    IExchangeProvider.Exchange memory exchange;
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      exchange = exchanges[i];
+      assert(exchange.assets[0] == address(cUSDToken) || exchange.assets[0] == address(cEURToken));
+      assert(
+        exchange.assets[1] == address(cEURToken) ||
+          exchange.assets[1] == address(celoToken) ||
+          exchange.assets[1] == address(usdcToken)
+      );
+    }
   }
 
   function test_swapIn_cUSDToUSDCet() public {
