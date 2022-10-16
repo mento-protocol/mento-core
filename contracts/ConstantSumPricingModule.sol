@@ -38,13 +38,12 @@ contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
     ) external view returns (uint256 amountOut) {
     if (amountIn == 0) return 0;
 
-    require(spread < FixidityLib.fixed1().value, "prevent substraction underflow");
-
     FixidityLib.Fraction memory spreadFraction = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
-
     amountOut = spreadFraction.multiply(FixidityLib.newFixed(amountIn)).unwrap();
+    amountOut = amountOut.div(FixidityLib.fixed1().unwrap());
     require(amountOut <= FixidityLib.newFixed(tokenOutBucketSize).unwrap(), 
       "amountOut cant be greater then the tokenOutPool size");
+    return amountOut;
   }
 
   // amountIn = amountOut / (1 - spread)
@@ -55,14 +54,16 @@ contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
     uint256 amountOut
     ) external view returns (uint256 amountIn){
     require(amountOut <= tokenOutBucketSize, "amountOut cant be greater then the tokenOutPool size");
-    require(spread < FixidityLib.fixed1().value, "prevent substraction underflow");
     if (amountOut == 0) return 0;
 
-    FixidityLib.Fraction memory spreadFraction = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
+    FixidityLib.Fraction memory denominator = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
     FixidityLib.Fraction memory numerator = FixidityLib.newFixed(amountOut);
 
-    if(numerator.value < FixidityLib.maxNewFixed()) amountIn = numerator.divide(spreadFraction).unwrap();
-    else amountIn = FixidityLib.multiply(numerator, FixidityLib.reciprocal(spreadFraction)).unwrap();
+    // Can't use FixidityLib.divide because numerator can be greater
+    // than maxFixedDivisor.
+    // Fortunately, we expect an integer result, so integer division gives us as
+    // much precision as we could hope for.
+    return numerator.unwrap().div(denominator.unwrap());
   }
 
   function name()external view returns (string memory) {

@@ -45,7 +45,7 @@ contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable 
     FixidityLib.Fraction memory numerator = netAmountIn.multiply(FixidityLib.newFixed(tokenOutBucketSize));
     FixidityLib.Fraction memory denominator = FixidityLib.newFixed(tokenInBucketSize).add(netAmountIn);
 
-    // Can't use FixidityLib.divide because denominator can easily be greater
+    // Can't use FixidityLib.divide because numerator can easily be greater
     // than maxFixedDivisor.
     // Fortunately, we expect an integer result, so integer division gives us as
     // much precision as we could hope for.
