@@ -410,11 +410,11 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   function shouldUpdateBuckets(PoolExchange memory exchange) internal view returns (bool) {
     (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.oracleReportTarget);
     // solhint-disable-next-line not-rely-on-time
-    bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.bucketUpdateFrequency);
+    bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
     bool enoughReports = (sortedOracles.numRates(exchange.config.oracleReportTarget) >= exchange.config.minimumReports);
     // solhint-disable-next-line not-rely-on-time
     bool medianReportRecent = sortedOracles.medianTimestamp(exchange.config.oracleReportTarget) >
-      now.sub(exchange.config.bucketUpdateFrequency);
+      now.sub(exchange.config.referenceRateResetFrequency);
     return timePassed && enoughReports && medianReportRecent && !isReportExpired;
   }
 
@@ -426,7 +426,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    */
   function getUpdatedBuckets(PoolExchange memory exchange) internal view returns (uint256 bucket0, uint256 bucket1) {
     // TODO: Take max fraction/min supply in account when setting the bucket size
-    bucket0 = exchange.config.bucket0TargetSize;
+    bucket0 = exchange.config.stablePoolResetSize;
     uint256 exchangeRateNumerator;
     uint256 exchangeRateDenominator;
     (exchangeRateNumerator, exchangeRateDenominator) = getOracleExchangeRate(exchange.config.oracleReportTarget);
@@ -460,10 +460,6 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
       reserve.isStableAsset(exchange.asset1) || reserve.isCollateralAsset(exchange.asset1),
       "asset1 must be a stable or collateral registered with the reserve"
     );
-
-    require(exchange.config.bucket0MaxFraction.unwrap() > 0, "bucket0MaxFraction must be greater than 0");
-
-    require(exchange.config.bucket0MaxFraction.lt(FixidityLib.fixed1()), "bucket0MaxFraction must be smaller than 1");
 
     require(FixidityLib.lte(exchange.config.spread, FixidityLib.fixed1()), "Spread must be less than or equal to 1");
 
