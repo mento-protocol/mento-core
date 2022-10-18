@@ -8,6 +8,11 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { Initializable } from "./common/Initializable.sol";
 import { FixidityLib } from "./common/FixidityLib.sol";
 
+/**
+ * @title ConstantSumPricingModule
+ * @notice The ConstantSumPricingModule calculates the amount in and the amount out for a constant sum AMM.
+ */
+
 contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
@@ -28,8 +33,15 @@ contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
   }
 
   /* ==================== View Functions ==================== */
-
-    // amountOut = (1 - spread) * amountIn
+  /** 
+  * @notice Calculates the amount of tokens that should be received based on the given parameters
+  * @dev amountOut = (1 - spread) * amountIn
+  * @param tokenInBucketSize The bucket size of the token swapt in. 
+  * @param tokenOutBucketSize The bucket size of the token swapt out. 
+  * @param spread The spread that is applied to a swap.
+  * @param amountIn The amount of tokens in wei that is swapt in. 
+  * @return amountOut The amount of tokens in wei that should be received. 
+  */
   function getAmountOut(
     uint256 tokenInBucketSize, 
     uint256 tokenOutBucketSize, 
@@ -46,7 +58,15 @@ contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
     return amountOut;
   }
 
-  // amountIn = amountOut / (1 - spread)
+  /** 
+  * @notice Calculates the amount of tokens that should be provided in order to receive the desired amount out.
+  * @dev amountIn = amountOut / (1 - spread)
+  * @param tokenInBucketSize The bucket size of the token swapt in. 
+  * @param tokenOutBucketSize The bucket size of the token swapt out. 
+  * @param spread The spread that is applied to a swap.
+  * @param amountOut The amount of tokens in wei that should be swapt out. 
+  * @return amountIn The amount of tokens in wei that should be provided. 
+  */
   function getAmountIn(
     uint256 tokenInBucketSize, 
     uint256 tokenOutBucketSize, 
@@ -66,6 +86,10 @@ contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
     return numerator.unwrap().div(denominator.unwrap());
   }
 
+  /** 
+  * @notice Returns the AMM that the IPricingModule implements   
+  * @return Constant Sum. 
+  */
   function name()external view returns (string memory) {
     return "ConstantSum";
   }

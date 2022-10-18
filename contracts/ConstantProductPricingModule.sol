@@ -8,6 +8,10 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { Initializable } from "./common/Initializable.sol";
 import { FixidityLib } from "./common/FixidityLib.sol";
 
+/**
+ * @title ConstantProductPricingModule
+ * @notice The ConstantProductPricingModule calculates the amount in and the amount out for a constant product AMM.
+ */
 contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
@@ -28,7 +32,15 @@ contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable 
   }
 
   /* ==================== View Functions ==================== */
-
+  /** 
+  * @notice Calculates the amount of tokens that should be received based on the given parameters
+  * @dev amountOut = (tokenOutBucketSize * (1-spread) * amountIn ) / (tokenInBucketSize + amountIn * (1-spread))
+  * @param tokenInBucketSize The bucket size of the token swapt in. 
+  * @param tokenOutBucketSize The bucket size of the token swapt out. 
+  * @param spread The spread that is applied to a swap.
+  * @param amountIn The amount of tokens in wei that is swapt in. 
+  * @return amountOut The amount of tokens in wei that should be received. 
+  */
   function getAmountOut(
     uint256 tokenInBucketSize,
     uint256 tokenOutBucketSize,
@@ -51,7 +63,15 @@ contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable 
     // much precision as we could hope for.
     return numerator.unwrap().div(denominator.unwrap());
   }
-
+  /** 
+  * @notice Calculates the amount of tokens that should be provided in order to receive the desired amount out.
+  * @dev amountIn = (amountOut * tokenInBucketSize) / (Y-dy) ) * (1-spread)
+  * @param tokenInBucketSize The bucket size of the token swapt in. 
+  * @param tokenOutBucketSize The bucket size of the token swapt out. 
+  * @param spread The spread that is applied to a swap.
+  * @param amountOut The amount of tokens in wei that should be swapt out. 
+  * @return amountIn The amount of tokens in wei that should be provided. 
+  */
   function getAmountIn(
     uint256 tokenInBucketSize,
     uint256 tokenOutBucketSize,
@@ -69,6 +89,10 @@ contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable 
     return numerator.unwrap().div(denominator.unwrap());
   }
 
+  /** 
+  * @notice Returns the AMM that the IPricingModule implements   
+  * @return Constant Product. 
+  */
   function name() external view returns (string memory) {
     return "ConstantProduct";
   }
