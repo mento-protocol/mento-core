@@ -9,10 +9,11 @@ import { Initializable } from "./common/Initializable.sol";
 import { FixidityLib } from "./common/FixidityLib.sol";
 
 /**
- * @title ConstantProductPricingModule
- * @notice The ConstantProductPricingModule calculates the amount in and the amount out for a constant product AMM.
+ * @title ConstantSumPricingModule
+ * @notice The ConstantSumPricingModule calculates the amount in and the amount out for a constant sum AMM.
  */
-contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable {
+
+contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
 
@@ -34,7 +35,7 @@ contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable 
   /* ==================== View Functions ==================== */
   /** 
   * @notice Calculates the amount of tokens that should be received based on the given parameters
-  * @dev amountOut = (tokenOutBucketSize * (1-spread) * amountIn ) / (tokenInBucketSize + amountIn * (1-spread))
+  * @dev amountOut = (1 - spread) * amountIn
   * @param tokenInBucketSize The bucket size of the token swapt in. 
   * @param tokenOutBucketSize The bucket size of the token swapt out. 
   * @param spread The spread that is applied to a swap.
@@ -42,30 +43,24 @@ contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable 
   * @return amountOut The amount of tokens in wei that should be received. 
   */
   function getAmountOut(
-    uint256 tokenInBucketSize,
-    uint256 tokenOutBucketSize,
-    uint256 spread,
+    uint256 tokenInBucketSize, 
+    uint256 tokenOutBucketSize, 
+    uint256 spread, 
     uint256 amountIn
-  ) external view returns (uint256) {
+    ) external view returns (uint256 amountOut) {
     if (amountIn == 0) return 0;
 
-    FixidityLib.Fraction memory spreadFraction = FixidityLib.wrap(spread);
-    FixidityLib.Fraction memory netAmountIn = FixidityLib.fixed1().subtract(spreadFraction).multiply(
-      FixidityLib.newFixed(amountIn)
-    );
-
-    FixidityLib.Fraction memory numerator = netAmountIn.multiply(FixidityLib.newFixed(tokenOutBucketSize));
-    FixidityLib.Fraction memory denominator = FixidityLib.newFixed(tokenInBucketSize).add(netAmountIn);
-
-    // Can't use FixidityLib.divide because numerator can easily be greater
-    // than maxFixedDivisor.
-    // Fortunately, we expect an integer result, so integer division gives us as
-    // much precision as we could hope for.
-    return numerator.unwrap().div(denominator.unwrap());
+    FixidityLib.Fraction memory spreadFraction = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
+    amountOut = spreadFraction.multiply(FixidityLib.newFixed(amountIn)).unwrap();
+    amountOut = amountOut.div(FixidityLib.fixed1().unwrap());
+    require(amountOut <= FixidityLib.newFixed(tokenOutBucketSize).unwrap(), 
+      "amountOut cant be greater then the tokenOutPool size");
+    return amountOut;
   }
+
   /** 
   * @notice Calculates the amount of tokens that should be provided in order to receive the desired amount out.
-  * @dev amountIn = (amountOut * tokenInBucketSize) / (Y-dy) ) * (1-spread)
+  * @dev amountIn = amountOut / (1 - spread)
   * @param tokenInBucketSize The bucket size of the token swapt in. 
   * @param tokenOutBucketSize The bucket size of the token swapt out. 
   * @param spread The spread that is applied to a swap.
@@ -73,27 +68,30 @@ contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable 
   * @return amountIn The amount of tokens in wei that should be provided. 
   */
   function getAmountIn(
-    uint256 tokenInBucketSize,
-    uint256 tokenOutBucketSize,
-    uint256 spread,
+    uint256 tokenInBucketSize, 
+    uint256 tokenOutBucketSize, 
+    uint256 spread, 
     uint256 amountOut
-  ) external view returns (uint256) {
-    FixidityLib.Fraction memory spreadFraction = FixidityLib.wrap(spread);
+    ) external view returns (uint256 amountIn){
+    require(amountOut <= tokenOutBucketSize, "amountOut cant be greater then the tokenOutPool size");
+    if (amountOut == 0) return 0;
 
-    FixidityLib.Fraction memory numerator = FixidityLib.newFixed(amountOut.mul(tokenInBucketSize));
-    FixidityLib.Fraction memory denominator = FixidityLib.newFixed(tokenOutBucketSize.sub(amountOut)).multiply(
-      FixidityLib.fixed1().subtract(spreadFraction)
-    );
+    FixidityLib.Fraction memory denominator = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
+    FixidityLib.Fraction memory numerator = FixidityLib.newFixed(amountOut);
 
-    // See comment in getAmountOut.
+    // Can't use FixidityLib.divide because numerator can be greater
+    // than maxFixedDivisor.
+    // Fortunately, we expect an integer result, so integer division gives us as
+    // much precision as we could hope for.
     return numerator.unwrap().div(denominator.unwrap());
   }
 
   /** 
   * @notice Returns the AMM that the IPricingModule implements   
-  * @return Constant Product. 
+  * @return Constant Sum. 
   */
-  function name() external view returns (string memory) {
-    return "ConstantProduct";
+  function name()external view returns (string memory) {
+    return "ConstantSum";
   }
+
 }
