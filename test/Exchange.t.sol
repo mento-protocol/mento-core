@@ -42,7 +42,7 @@ contract ExchangeTest is Test, WithRegistry, TokenHelpers {
     MockReserve reserve;
     MockSortedOracles sortedOracles;
 
-    uint256 constant bucketUpdateFrequency = 60 * 60;
+    uint256 constant referenceRateResetFrequency = 60 * 60;
     uint256 constant initialReserveBalance = 10000000000000000000000;
     FixidityLib.Fraction reserveFraction = FixidityLib.newFixedFraction(5, 100);
     uint256 initialCeloBucket = FixidityLib.newFixed(initialReserveBalance).multiply(reserveFraction).fromFixed();
@@ -102,7 +102,7 @@ contract ExchangeTest is Test, WithRegistry, TokenHelpers {
             "StableToken",
             FixidityLib.unwrap(spread),
             FixidityLib.unwrap(reserveFraction),
-            bucketUpdateFrequency,
+            referenceRateResetFrequency,
             2,
             minSupplyForStableBucketCap,
             stableBucketMaxFraction
@@ -376,7 +376,7 @@ contract ExchangeTest_buyAndSellValues is ExchangeTest_stableActivated {
 
     function test_getBuyAndSellBuckets_afterReserveChange_updatesIfTimeHasPassed() public {
         mint(celoToken, address(reserve), initialReserveBalance);
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setMedianTimestampToNow(address(stableToken));
 
         (uint256 buyBucketSize, uint256 sellBucketSize) = exchange.getBuyAndSellBuckets(true);
@@ -393,7 +393,7 @@ contract ExchangeTest_buyAndSellValues is ExchangeTest_stableActivated {
 
     function test_getBuyAndSellBuckets_afterOracelUpdate_updatesIfTimeHasPassed() public {
         sortedOracles.setMedianRate(address(stableToken), celoAmountForRate.mul(4));
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setMedianTimestampToNow(address(stableToken));
 
         (uint256 buyBucketSize, uint256 sellBucketSize) = exchange.getBuyAndSellBuckets(true);
@@ -495,7 +495,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
     function test_sellCelo_whenBucketsStaleandReportFresh_updatesBuckets() public {
         uint256 amount = 1000;
         mint(celoToken, address(reserve), initialReserveBalance);
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setMedianTimestampToNow(address(stableToken));
 
         uint256 updatedCeloBucket = initialCeloBucket.mul(2);
@@ -513,7 +513,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
     function test_sellCelo_whenBucketsStaleandReportStale_doesNotUpdateBuckets() public {
         uint256 amount = 1000;
         mint(celoToken, address(reserve), initialReserveBalance);
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setOldestReportExpired(address(stableToken));
 
         (uint256 expected, ) = approveAndSell(amount, true);
@@ -562,7 +562,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
     function test_sellStable_whenBucketsStaleandReportFresh_updatesBuckets() public {
         uint256 amount = 1000;
         mint(celoToken, address(reserve), initialReserveBalance);
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setMedianTimestampToNow(address(stableToken));
 
         uint256 updatedCeloBucket = initialCeloBucket.mul(2);
@@ -580,7 +580,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
     function test_sellStable_whenBucketsStaleandReportStale_doesNotUpdateBuckets() public {
         uint256 amount = 1000;
         mint(celoToken, address(reserve), initialReserveBalance);
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setOldestReportExpired(address(stableToken));
 
         (uint256 expected, ) = approveAndSell(amount, false);
@@ -674,7 +674,7 @@ contract ExchangeTest_buy is ExchangeTest_stableActivated {
     function test_buyCelo_whenBucketsStaleAndReportFresh_updatesBuckets() public {
         uint256 amount = 1000;
         mint(celoToken, address(reserve), initialReserveBalance);
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setMedianTimestampToNow(address(stableToken));
 
         uint256 updatedCeloBucket = initialCeloBucket.mul(2);
@@ -692,7 +692,7 @@ contract ExchangeTest_buy is ExchangeTest_stableActivated {
     function test_buyCelo_whenBucketsStaleAndReportStale_doesNotUpdateBuckets() public {
         uint256 amount = 1000;
         mint(celoToken, address(reserve), initialReserveBalance);
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setOldestReportExpired(address(stableToken));
 
         (uint256 expected, ) = approveAndBuy(amount, true);
@@ -741,7 +741,7 @@ contract ExchangeTest_buy is ExchangeTest_stableActivated {
     function test_buyStable_whenBucketsStaleAndReportFresh_updatesBuckets() public {
         uint256 amount = 1000;
         mint(celoToken, address(reserve), initialReserveBalance);
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setMedianTimestampToNow(address(stableToken));
 
         uint256 updatedCeloBucket = initialCeloBucket.mul(2);
@@ -759,7 +759,7 @@ contract ExchangeTest_buy is ExchangeTest_stableActivated {
     function test_buyStable_whenBucketsStaleandReportStale_doesNotUpdateBuckets() public {
         uint256 amount = 1000;
         mint(celoToken, address(reserve), initialReserveBalance);
-        vm.warp(block.timestamp + bucketUpdateFrequency);
+        vm.warp(block.timestamp + referenceRateResetFrequency);
         sortedOracles.setOldestReportExpired(address(stableToken));
 
         (uint256 expected, ) = approveAndBuy(amount, false);

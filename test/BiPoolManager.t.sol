@@ -112,8 +112,7 @@ contract BiPoolManagerTest is Test {
         pricingModule,
         oracleReportTarget,
         FixidityLib.wrap(0.1 * 1e24), // spread
-        1e26, // bucket0TargetSize
-        FixidityLib.wrap(0.2 * 1e24) // bucket0MaxFraction
+        1e26 // stablePoolResetSize
       );
   }
 
@@ -123,8 +122,7 @@ contract BiPoolManagerTest is Test {
     IPricingModule pricingModule,
     address oracleReportTarget,
     FixidityLib.Fraction memory spread,
-    uint256 bucket0TargetSize,
-    FixidityLib.Fraction memory bucket0MaxFraction
+    uint256 stablePoolResetSize
   ) internal returns (bytes32 exchangeId) {
     BiPoolManager.PoolExchange memory exchange;
     exchange.asset0 = address(asset0);
@@ -133,9 +131,8 @@ contract BiPoolManagerTest is Test {
 
     BiPoolManager.PoolConfig memory config;
     config.oracleReportTarget = oracleReportTarget;
-    config.bucket0TargetSize = bucket0TargetSize;
-    config.bucket0MaxFraction = bucket0MaxFraction;
-    config.bucketUpdateFrequency = 60 * 5; // 5 minutes
+    config.stablePoolResetSize = stablePoolResetSize;
+    config.referenceRateResetFrequency = 60 * 5; // 5 minutes
     config.minimumReports = 5;
     config.spread = spread;
 
@@ -342,32 +339,6 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
     createExchange(cUSD, nonReserveCollateral);
   }
 
-  function test_createExchange_whenBucket0MaxFractionIsZero_shouldRevert() public {
-    vm.expectRevert("bucket0MaxFraction must be greater than 0");
-    createExchange(
-      cUSD,
-      CELO,
-      constantProduct,
-      address(cUSD),
-      FixidityLib.wrap(0.1 * 1e24), // spread
-      1e24, // bucket0TargetSize
-      FixidityLib.wrap(0) // bucket0MaxFraction
-    );
-  }
-
-  function test_createExchange_whenBucket0MaxFractionIsOne_shouldRevert() public {
-    vm.expectRevert("bucket0MaxFraction must be smaller than 1");
-    createExchange(
-      cUSD,
-      CELO,
-      constantProduct,
-      address(cUSD),
-      FixidityLib.wrap(0.1 * 1e24), // spread
-      1e24, // bucket0TargetSize
-      FixidityLib.wrap(1 * 1e24) // bucket0MaxFraction
-    );
-  }
-
   function test_createExchange_whenMentoExchangeIsNotSet_shouldRevert() public {
     vm.expectRevert("pricingModule must be set");
     createExchange(cUSD, CELO, IPricingModule(address(0)));
@@ -396,8 +367,7 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
       constantProduct,
       address(cUSD),
       FixidityLib.wrap(2 * 1e24), // spread
-      1e26, // bucket0TargetSize
-      FixidityLib.wrap(0.1 * 1e24) // bucket0MaxFraction
+      1e26 // stablePoolResetSize
     );
   }
 
@@ -422,8 +392,7 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
       constantProduct,
       address(cUSD),
       FixidityLib.wrap(0.1 * 1e24), // spread
-      1e24, // bucket0TargetSize
-      FixidityLib.wrap(0.1 * 1e24) // bucket0MaxFraction
+      1e24 // stablePoolResetSize
     );
 
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(exchangeId);
@@ -714,16 +683,16 @@ contract BiPoolManagerTest_bucketUpdates is BiPoolManagerTest_withExchange {
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(exchangeId);
     swap(exchangeId, exchange.bucket0 / 2, exchange.bucket1 / 2); // debalance exchange
 
-    vm.warp(exchange.config.bucketUpdateFrequency + 1);
+    vm.warp(exchange.config.referenceRateResetFrequency + 1);
     sortedOracles.setNumRates(address(cUSD), 10);
     sortedOracles.setMedianTimestamp(address(cUSD), now);
 
     vm.expectEmit(true, true, true, true);
-    uint256 bucket0TargetSize = exchange.config.bucket0TargetSize;
+    uint256 stablePoolResetSize = exchange.config.stablePoolResetSize;
     emit BucketsUpdated(
       exchangeId,
-      bucket0TargetSize,
-      bucket0TargetSize / 2 // due to sortedOracles exchange rate 2:1
+      stablePoolResetSize,
+      stablePoolResetSize / 2 // due to sortedOracles exchange rate 2:1
     );
 
     uint256 amountIn = 1e24;
@@ -732,8 +701,8 @@ contract BiPoolManagerTest_bucketUpdates is BiPoolManagerTest_withExchange {
     // Refresh exchange
     exchange = biPoolManager.getPoolExchange(exchangeId);
 
-    assertEq(bucket0TargetSize + amountIn, exchange.bucket0);
-    assertEq((bucket0TargetSize / 2) - amountOut, exchange.bucket1);
+    assertEq(stablePoolResetSize + amountIn, exchange.bucket0);
+    assertEq((stablePoolResetSize / 2) - amountOut, exchange.bucket1);
   }
 
   function test_swapIn_whenBucketsAreNotStale_doesNotUpdateBuckets() public {
@@ -766,7 +735,7 @@ contract BiPoolManagerTest_bucketUpdates is BiPoolManagerTest_withExchange {
     uint256 bucket0BeforeSwap = exchange.bucket0;
     uint256 bucket1BeforeSwap = exchange.bucket1;
 
-    vm.warp(exchange.config.bucketUpdateFrequency + 1);
+    vm.warp(exchange.config.referenceRateResetFrequency + 1);
     sortedOracles.setNumRates(address(cUSD), 4);
     sortedOracles.setMedianTimestampToNow(address(cUSD));
 
@@ -786,7 +755,7 @@ contract BiPoolManagerTest_bucketUpdates is BiPoolManagerTest_withExchange {
     uint256 bucket0BeforeSwap = exchange.bucket0;
     uint256 bucket1BeforeSwap = exchange.bucket1;
 
-    vm.warp(exchange.config.bucketUpdateFrequency + 1);
+    vm.warp(exchange.config.referenceRateResetFrequency + 1);
     sortedOracles.setOldestReportExpired(address(cUSD));
     sortedOracles.setNumRates(address(cUSD), 10);
     sortedOracles.setMedianTimestampToNow(address(cUSD));
@@ -807,9 +776,9 @@ contract BiPoolManagerTest_bucketUpdates is BiPoolManagerTest_withExchange {
     uint256 bucket0BeforeSwap = exchange.bucket0;
     uint256 bucket1BeforeSwap = exchange.bucket1;
 
-    vm.warp(exchange.config.bucketUpdateFrequency + 1);
+    vm.warp(exchange.config.referenceRateResetFrequency + 1);
     sortedOracles.setNumRates(address(cUSD), 10);
-    sortedOracles.setMedianTimestamp(address(cUSD), now - exchange.config.bucketUpdateFrequency);
+    sortedOracles.setMedianTimestamp(address(cUSD), now - exchange.config.referenceRateResetFrequency);
 
     uint256 amountIn = 1e24;
     uint256 amountOut = biPoolManager.swapIn(exchangeId, exchange.asset0, exchange.asset1, 1e24);
