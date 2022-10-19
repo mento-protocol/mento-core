@@ -13,10 +13,6 @@ import { StableToken } from "contracts/StableToken.sol";
 import { Freezer } from "contracts/common/Freezer.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
-// TODO test when it's frozen it reverts
-// TODO update my setting inflationv logic since it will always be outdated in some cases
-// TODO unitToValue / valueToUnit conversion
-
 contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
@@ -61,6 +57,14 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
     testee.setInflationParameters(inflationRate, 1 weeks);
     skip(1 weeks);
     vm.roll(block.number + 1);
+  }
+
+  function mockFractionMul() public {
+    ph.mockReturn(
+      FRACTION_MUL,
+      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(1), uint256(18))),
+      abi.encode(uint256(100), uint256(12))
+    );
   }
 }
 
@@ -173,15 +177,16 @@ contract StableTokenTest_mint is StableTokenTest {
     testee.mint(notDeployer, 10000);
   }
 
-  // TODO same precompile error here
   function test_mint_whenInflationFactorIsOutdated_shouldUpdateAndEmit() public {
+    mockFractionMul();
+
     changePrank(deployer);
     setUpInflation(inflationRate);
 
     changePrank(exchange);
 
-    vm.expectEmit(true, false, false, true);
-    emit InflationParametersUpdated(inflationRate, 1 weeks + initTime, now);
+    vm.expectEmit(true, true, true, true);
+    emit InflationFactorUpdated(8333333333333333333333333, 1 weeks + initTime);
     testee.mint(exchange, mintAmount);
   }
 }
@@ -237,15 +242,15 @@ contract StableTokenTest_transferWithComment is StableTokenTest {
     assertEq(receiverBalanceAfter, receiverBalanceBefore + 5);
   }
 
-  // TODO same precompile error here
   function test_transferWithComment_whenInflationFactorIsOutdated_shouldUpdateAndEmit() public {
+    mockFractionMul();
     changePrank(deployer);
     setUpInflation(inflationRate);
 
     changePrank(sender);
 
-    // vm.expectEmit(true, false, false, true);
-    // emit InflationParametersUpdated(inflationRate, 1 weeks + initTime, now);
+    vm.expectEmit(true, true, true, true);
+    emit InflationFactorUpdated(8333333333333333333333333, 1 weeks + initTime);
     testee.transferWithComment(receiver, 5, comment);
   }
 
@@ -258,9 +263,10 @@ contract StableTokenTest_transferWithComment is StableTokenTest {
 }
 
 contract StableTokenTest_setInflationParameters is StableTokenTest {
+  uint256 newUpdatePeriod = 1 weeks + 5;
+
   function test_setInflationParameters_shouldUpdateParameters() public {
     uint256 newInflationRate = 2.1428571429 * 10**24;
-    uint256 newUpdatePeriod = 1 weeks + 5;
 
     changePrank(deployer);
     testee.setInflationParameters(newInflationRate, newUpdatePeriod);
@@ -280,21 +286,16 @@ contract StableTokenTest_setInflationParameters is StableTokenTest {
     testee.setInflationParameters(inflationRate, newUpdatePeriod);
   }
 
-  function skip_setInflationParameters_whenFactorIsOutdated_shouldUpdateFactor() public {
-    uint256 initialRate = 1.5 * 10**24;
-    uint256 expectedFactoe = 1.5 * 10**24;
-    uint256 newRate = 1 * 10**24;
-    uint256 newUpdatePeriod = 1 weeks + 5;
+  function test_setInflationParameters_whenInflationFactorIsOutdated_shouldUpdateFactor() public {
+    mockFractionMul();
 
     changePrank(deployer);
 
-    testee.setInflationParameters(initialRate, 1 weeks);
-    skip(1 weeks);
-    vm.roll(block.number + 1);
+    setUpInflation(inflationRate);
 
-    vm.expectEmit(false, false, false, true);
-    emit InflationParametersUpdated(newRate, newUpdatePeriod, now);
-    testee.setInflationParameters(newRate, 1 weeks);
+    vm.expectEmit(true, true, true, true);
+    emit InflationFactorUpdated(8333333333333333333333333, 1 weeks + initTime);
+    testee.setInflationParameters(2, newUpdatePeriod);
   }
 
   function test_setInflationParameters_whenRateIsZero_shouldRevert() public {
@@ -335,7 +336,6 @@ contract StableTokenTest_balanceOf is StableTokenTest {
   }
 }
 
-//TODO change the name and move other unit conversions here as well
 contract StableTokenTest_unitConversions is StableTokenTest {
   function setUp() public {
     super.setUp();
@@ -343,36 +343,16 @@ contract StableTokenTest_unitConversions is StableTokenTest {
     setUpInflation(inflationRate);
   }
 
-  // 0.005 depreciation
   function test_unitsToValue_withDepreciation_shouldConvert() public {
-    testee.setInflationParameters(1e24, 1 weeks);
+    mockFractionMul();
     uint256 value = testee.unitsToValue(1000);
-    assertEq(value, 995);
+    assertEq(value, 120);
   }
 
-  // 0.005 depreciation twice
-  function test_unitsToValue_withDepreciationTwice_shouldConvert() public {
-    // TODO check if there's additional need for time travel
-    skip(1 weeks);
-    vm.roll(block.timestamp + 1);
-    testee.setInflationParameters(1e24, 1 weeks);
-    uint256 value = testee.unitsToValue(1000);
-    assertEq(value, 990);
-  }
-
-  // 0.005 depreciation
   function test_valueToUnits_withDepreciation_shouldConvert() public {
-    testee.setInflationParameters(1e24, 1 weeks);
+    mockFractionMul();
     uint256 units = testee.valueToUnits(995);
-    assertEq(units, 999);
-  }
-
-  // 0.005 depreciation twice
-  function test_valueToUnits_withDepreciationTwice_shouldConvert() public {
-    // TODO check if there's additional need for time travel
-    testee.setInflationParameters(1e24, 1 weeks);
-    uint256 units = testee.valueToUnits(990);
-    assertEq(units, 999);
+    assertEq(units, 8291);
   }
 }
 
@@ -427,15 +407,16 @@ contract StableTokenTest_burn is StableTokenTest {
     testee.burn(burnAmount);
   }
 
-  // TODO same precompile error here
   function test_burn_whenInflationFactorIsOutdated_shouldUpdateAndEmit() public {
+    mockFractionMul();
+
     changePrank(deployer);
     setUpInflation(inflationRate);
 
+    vm.expectEmit(true, true, true, true);
+    emit InflationFactorUpdated(8333333333333333333333333, 1 weeks + initTime);
     changePrank(exchange);
-
-    vm.expectEmit(true, false, false, true);
-    emit InflationParametersUpdated(inflationRate, 1 weeks + initTime, now);
+    testee.mint(exchange, mintAmount);
     testee.burn(burnAmount);
   }
 }
@@ -466,7 +447,7 @@ contract StableTokenTest_getExchangeRegistryId is StableTokenTest {
 }
 
 contract StableTokenTest_erc20Functions is StableTokenTest {
-  address exchange = actor("exchange");
+  address sender = actor("sender");
   address receiver = actor("receiver");
   uint256 transferAmount = 1;
   uint256 amountToMint = 10;
@@ -474,9 +455,9 @@ contract StableTokenTest_erc20Functions is StableTokenTest {
   function setUp() public {
     super.setUp();
 
-    registry.setAddressFor("Exchange", exchange);
-    changePrank(exchange);
-    testee.mint(exchange, amountToMint);
+    registry.setAddressFor("Exchange", sender);
+    changePrank(sender);
+    testee.mint(sender, amountToMint);
   }
 
   function assertBalance(address spenderAddress, uint256 balance) public {
@@ -485,10 +466,10 @@ contract StableTokenTest_erc20Functions is StableTokenTest {
 
   function test_approve_whenSpenderIsNotZeroAddress_shouldUpdateAndEmit() public {
     vm.expectEmit(true, true, true, true);
-    emit Approval(exchange, receiver, transferAmount);
+    emit Approval(sender, receiver, transferAmount);
     bool res = testee.approve(receiver, transferAmount);
     assertEq(res, true);
-    assertEq(testee.allowance(exchange, receiver), transferAmount);
+    assertEq(testee.allowance(sender, receiver), transferAmount);
   }
 
   function test_approve_whenSpenderIsZeroAddress_shouldRevert() public {
@@ -496,24 +477,25 @@ contract StableTokenTest_erc20Functions is StableTokenTest {
     testee.approve(address(0), transferAmount);
   }
 
-  // TODO same precompile error here
   function test_approve_whenInflationFactorIsOutdated_shouldUpdateAndEmit() public {
+    mockFractionMul();
+
     changePrank(deployer);
     setUpInflation(inflationRate);
-    // TODO check sender mentions
-    changePrank(exchange);
 
-    vm.expectEmit(true, false, false, true);
-    emit InflationParametersUpdated(inflationRate, 1 weeks + initTime, now);
+    changePrank(sender);
+
+    vm.expectEmit(true, true, true, true);
+    emit InflationFactorUpdated(8333333333333333333333333, 1 weeks + initTime);
     testee.approve(receiver, transferAmount);
   }
 
   function test_increaseAllowance_whenSpenderIsNotZeroAddress_shouldUpdateAndEmit() public {
     vm.expectEmit(true, true, true, true);
-    emit Approval(exchange, receiver, 2);
+    emit Approval(sender, receiver, 2);
     bool res = testee.increaseAllowance(receiver, 2);
-    assertEq(testee.allowance(exchange, receiver), 2);
-    assertEq(testee.allowance(exchange, exchange), 0);
+    assertEq(testee.allowance(sender, receiver), 2);
+    assertEq(testee.allowance(sender, sender), 0);
   }
 
   function test_increaseAllowance_whenSpenderIsZeroAddress_shouldRevert() public {
@@ -521,48 +503,51 @@ contract StableTokenTest_erc20Functions is StableTokenTest {
     testee.increaseAllowance(address(0), transferAmount);
   }
 
-  // TODO same precompile error here
   function test_increaseAllowance_whenInflationFactorIsOutdated_shouldUpdateAndEmit() public {
+    mockFractionMul();
+
     changePrank(deployer);
     setUpInflation(inflationRate);
-    // TODO check sender mentions
-    changePrank(exchange);
+    changePrank(sender);
 
-    vm.expectEmit(true, false, false, true);
-    emit InflationParametersUpdated(inflationRate, 1 weeks + initTime, now);
+    vm.expectEmit(true, true, true, true);
+    emit InflationFactorUpdated(8333333333333333333333333, 1 weeks + initTime);
     testee.increaseAllowance(receiver, 2);
   }
 
   function test_decreaseAllowance_whenSpenderIsNotZeroAddress_shouldUpdateAndEmit() public {
     testee.approve(receiver, 2);
     vm.expectEmit(true, true, true, true);
-    emit Approval(exchange, receiver, transferAmount);
+    emit Approval(sender, receiver, transferAmount);
     bool res = testee.decreaseAllowance(receiver, transferAmount);
     assertEq(res, true);
-    assertEq(testee.allowance(exchange, receiver), transferAmount);
+    assertEq(testee.allowance(sender, receiver), transferAmount);
   }
 
-  // TODO same precompile error here
   function test_decreaseAllowance_whenInflationFactorIsOutdated_shouldUpdateAndEmit() public {
-    changePrank(deployer);
-    setUpInflation(inflationRate);
-    // TODO check sender mentions
-    changePrank(exchange);
+    testee.approve(receiver, 2);
 
-    vm.expectEmit(true, false, false, true);
-    emit InflationParametersUpdated(inflationRate, 1 weeks + initTime, now);
+    mockFractionMul();
+
+    changePrank(deployer);
+    testee.approve(receiver, 2);
+    setUpInflation(inflationRate);
+    changePrank(sender);
+
+    vm.expectEmit(true, true, true, true);
+    emit InflationFactorUpdated(8333333333333333333333333, 1 weeks + initTime);
     testee.decreaseAllowance(receiver, transferAmount);
   }
 
   function test_transfer_whenReceiverIsNotZeroAddress_shouldTransferAndEmit() public {
-    uint256 senderStartBalance = testee.balanceOf(exchange);
+    uint256 senderStartBalance = testee.balanceOf(sender);
     uint256 receiverStartBalance = testee.balanceOf(receiver);
 
     vm.expectEmit(true, true, true, true);
-    emit Transfer(exchange, receiver, transferAmount);
+    emit Transfer(sender, receiver, transferAmount);
     bool res = testee.transfer(receiver, transferAmount);
     assertEq(res, true);
-    assertBalance(exchange, senderStartBalance.sub(transferAmount));
+    assertBalance(sender, senderStartBalance.sub(transferAmount));
     assertBalance(receiver, receiverStartBalance.add(transferAmount));
   }
 
@@ -583,63 +568,67 @@ contract StableTokenTest_erc20Functions is StableTokenTest {
     testee.transfer(receiver, amountToMint + 1);
   }
 
-  // TODO same precompile error here
   function test_transfer_whenInflationFactorIsOutdated_shouldUpdateAndEmit() public {
+    mockFractionMul();
+
     changePrank(deployer);
     setUpInflation(inflationRate);
 
-    changePrank(exchange);
+    changePrank(sender);
 
-    vm.expectEmit(true, false, false, true);
-    emit InflationParametersUpdated(inflationRate, 1 weeks + initTime, now);
+    vm.expectEmit(true, true, true, true);
+    emit InflationFactorUpdated(8333333333333333333333333, 1 weeks + initTime);
     testee.transfer(receiver, transferAmount);
   }
 
   function test_transferFrom_whenSenderIsExchange_shouldTransferAndEmit() public {
-    testee.approve(exchange, transferAmount);
+    testee.approve(sender, transferAmount);
 
-    uint256 exchangeStartBalance = testee.balanceOf(exchange);
+    uint256 exchangeStartBalance = testee.balanceOf(sender);
     uint256 receiverStartBalance = testee.balanceOf(receiver);
 
     vm.expectEmit(true, true, true, true);
-    emit Transfer(exchange, receiver, transferAmount);
-    bool res = testee.transferFrom(exchange, receiver, transferAmount);
+    emit Transfer(sender, receiver, transferAmount);
+    bool res = testee.transferFrom(sender, receiver, transferAmount);
     assertEq(res, true);
-    assertBalance(exchange, exchangeStartBalance.sub(transferAmount));
+    assertBalance(sender, exchangeStartBalance.sub(transferAmount));
     assertBalance(receiver, receiverStartBalance.add(transferAmount));
   }
 
   function test_transferFrom_whenReceiverIsZeroAddress_shouldRevert() public {
     vm.expectRevert("transfer attempted to reserved address 0x0");
-    testee.transferFrom(exchange, address(0), transferAmount);
+    testee.transferFrom(sender, address(0), transferAmount);
   }
 
   function test_transferFrom_whenItExceedsSenderBalance_shouldRevert() public {
     vm.expectRevert("transfer value exceeded balance of sender");
-    testee.transferFrom(exchange, receiver, amountToMint + 1);
+    testee.transferFrom(sender, receiver, amountToMint + 1);
   }
 
   function test_transferFrom_whenItExceedsSpenderAllowence_shoulrRevert() public {
     vm.expectRevert("transfer value exceeded sender's allowance for recipient");
-    testee.transferFrom(exchange, receiver, transferAmount);
+    testee.transferFrom(sender, receiver, transferAmount);
   }
 
   function test_transferFrom_whenContractIsFrozen_shouldRevert() public {
     changePrank(deployer);
     freezer.freeze(address(testee));
     vm.expectRevert("can't call when contract is frozen");
-    testee.transferFrom(exchange, receiver, transferAmount);
+    testee.transferFrom(sender, receiver, transferAmount);
   }
 
-  // TODO same precompile error here
   function test_transferFrom_whenInflationFactorIsOutdated_shouldUpdateAndEmit() public {
+    testee.approve(sender, transferAmount);
+
+    mockFractionMul();
+
     changePrank(deployer);
     setUpInflation(inflationRate);
 
-    changePrank(exchange);
+    changePrank(sender);
 
-    vm.expectEmit(true, false, false, true);
-    emit InflationParametersUpdated(inflationRate, 1 weeks + initTime, now);
-    testee.transferFrom(exchange, receiver, transferAmount);
+    vm.expectEmit(true, true, true, true);
+    emit InflationFactorUpdated(8333333333333333333333333, 1 weeks + initTime);
+    testee.transferFrom(sender, receiver, transferAmount);
   }
 }
