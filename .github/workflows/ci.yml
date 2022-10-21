@@ -14,7 +14,17 @@ on:
       - "develop"
 
 jobs:
+  check_pull_requests:
+    runs-on: ubuntu-latest
+    name: Check linked issues
+    steps:
+      - uses: nearform/github-action-check-linked-issues@v1
+        id: check-linked-issues
+        with:
+          exclude-branches: "release/**, dependabot/**"
+
   ci:
+    name: Lint & Test
     runs-on: "ubuntu-latest"
     steps:
       - name: "Check out the repo"
