@@ -62,9 +62,7 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
       bucketOut = exchange.bucket0;
     }
 
-    // Get expected out.. ¯\_(ツ)_/¯
-    // Maybe use broker.getAmountOut
-    expectedOut = exchange.pricingModule.getAmountOut(bucketIn, bucketOut, exchange.config.spread.unwrap(), amountIn);
+    expectedOut = broker.getAmountOut(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn);
 
     changePrank(trader);
     IERC20(tokenIn).approve(address(broker), amountIn);
