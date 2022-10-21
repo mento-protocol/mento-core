@@ -53,6 +53,9 @@ jobs:
           forge --version
           forge build --sizes
 
+      - name: "Run Slither"
+        uses: crytic/slither-action@v0.2.0 
+
       - name: "Add test summary"
         run: |
           echo "## Tests" >> $GITHUB_STEP_SUMMARY
