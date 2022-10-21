@@ -86,7 +86,7 @@ interface IBiPoolManager {
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
 
   /**
-   * @notice Retrieves the pool with the specified poolId.
+   * @notice Retrieves the pool with the specified exchangeId.
    * @param exchangeId The id of the pool to be retrieved.
    * @return exchange The PoolExchange with that ID.
    */
