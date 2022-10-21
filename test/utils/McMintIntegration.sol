@@ -182,11 +182,10 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cUSD_CELO.pricingModule = constantProduct;
     pair_cUSD_CELO.lastBucketUpdate = now;
     pair_cUSD_CELO.config.spread = FixidityLib.newFixedFraction(5, 100);
-    pair_cUSD_CELO.config.bucketUpdateFrequency = 60 * 5;
+    pair_cUSD_CELO.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_CELO.config.minimumReports = 5;
     pair_cUSD_CELO.config.oracleReportTarget = cUSD_CELO_oracleReportTarget;
-    pair_cUSD_CELO.config.bucket0TargetSize = 1e24;
-    pair_cUSD_CELO.config.bucket0MaxFraction = FixidityLib.wrap(5e23);
+    pair_cUSD_CELO.config.stablePoolResetSize = 1e24;
 
     pair_cUSD_CELO_ID = biPoolManager.createExchange(pair_cUSD_CELO);
 
@@ -196,11 +195,10 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cEUR_CELO.pricingModule = constantProduct;
     pair_cEUR_CELO.lastBucketUpdate = now;
     pair_cEUR_CELO.config.spread = FixidityLib.newFixedFraction(5, 100);
-    pair_cEUR_CELO.config.bucketUpdateFrequency = 60 * 5;
+    pair_cEUR_CELO.config.referenceRateResetFrequency = 60 * 5;
     pair_cEUR_CELO.config.minimumReports = 5;
     pair_cEUR_CELO.config.oracleReportTarget = cEUR_CELO_oracleReportTarget;
-    pair_cEUR_CELO.config.bucket0TargetSize = 1e24;
-    pair_cEUR_CELO.config.bucket0MaxFraction = FixidityLib.wrap(5e23);
+    pair_cEUR_CELO.config.stablePoolResetSize = 1e24;
 
     pair_cEUR_CELO_ID = biPoolManager.createExchange(pair_cEUR_CELO);
 
@@ -210,11 +208,10 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cUSD_USDCet.pricingModule = constantProduct;
     pair_cUSD_USDCet.lastBucketUpdate = now;
     pair_cUSD_USDCet.config.spread = FixidityLib.newFixedFraction(5, 100);
-    pair_cUSD_USDCet.config.bucketUpdateFrequency = 60 * 5;
+    pair_cUSD_USDCet.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_USDCet.config.minimumReports = 5;
     pair_cUSD_USDCet.config.oracleReportTarget = cUSD_USDCet_oracleReportTarget;
-    pair_cUSD_USDCet.config.bucket0TargetSize = 1e24;
-    pair_cUSD_USDCet.config.bucket0MaxFraction = FixidityLib.wrap(5e23);
+    pair_cUSD_USDCet.config.stablePoolResetSize = 1e24;
 
     pair_cUSD_USDCet_ID = biPoolManager.createExchange(pair_cUSD_USDCet);
 
@@ -224,11 +221,10 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cEUR_USDCet.pricingModule = constantProduct;
     pair_cEUR_USDCet.lastBucketUpdate = now;
     pair_cEUR_USDCet.config.spread = FixidityLib.newFixedFraction(5, 100);
-    pair_cEUR_USDCet.config.bucketUpdateFrequency = 60 * 5;
+    pair_cEUR_USDCet.config.referenceRateResetFrequency = 60 * 5;
     pair_cEUR_USDCet.config.minimumReports = 5;
     pair_cEUR_USDCet.config.oracleReportTarget = cEUR_USDCet_oracleReportTarget;
-    pair_cEUR_USDCet.config.bucket0TargetSize = 1e24;
-    pair_cEUR_USDCet.config.bucket0MaxFraction = FixidityLib.wrap(5e23);
+    pair_cEUR_USDCet.config.stablePoolResetSize = 1e24;
 
     pair_cEUR_USDCet_ID = biPoolManager.createExchange(pair_cEUR_USDCet);
 
@@ -238,11 +234,10 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cUSD_cEUR.pricingModule = constantProduct;
     pair_cUSD_cEUR.lastBucketUpdate = now;
     pair_cUSD_cEUR.config.spread = FixidityLib.newFixedFraction(5, 100);
-    pair_cUSD_cEUR.config.bucketUpdateFrequency = 60 * 5;
+    pair_cUSD_cEUR.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_cEUR.config.minimumReports = 5;
     pair_cUSD_cEUR.config.oracleReportTarget = cUSD_cEUR_oracleReportTarget;
-    pair_cUSD_cEUR.config.bucket0TargetSize = 1e24;
-    pair_cUSD_cEUR.config.bucket0MaxFraction = FixidityLib.wrap(5e23);
+    pair_cUSD_cEUR.config.stablePoolResetSize = 1e24;
 
     pair_cUSD_cEUR_ID = biPoolManager.createExchange(pair_cUSD_cEUR);
 

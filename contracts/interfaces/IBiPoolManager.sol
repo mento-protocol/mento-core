@@ -38,7 +38,6 @@ interface IBiPoolManager {
     uint256 referenceRateResetFrequency;
     uint256 minimumReports;
     uint256 stablePoolResetSize;
-    uint256 minSupplyForBucket0Cap;
   }
 
   /**

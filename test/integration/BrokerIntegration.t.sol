@@ -75,7 +75,7 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(pair_cUSD_USDCet_ID);
 
     // FF by bucket update frequency time
-    vm.warp(pool.config.bucketUpdateFrequency + pool.lastBucketUpdate);
+    vm.warp(pool.config.referenceRateResetFrequency + pool.lastBucketUpdate);
 
     // Median report recent == true
     sortedOracles.setMedianTimestampToNow(pool.config.oracleReportTarget);
