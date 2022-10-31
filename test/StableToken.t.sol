@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.5.13;
 
-import { Test, console2 as console } from "celo-foundry/Test.sol";
+import { Test } from "celo-foundry/Test.sol";
 
 import { WithRegistry } from "./utils/WithRegistry.sol";
 
@@ -281,7 +281,7 @@ contract StableTokenTest_setInflationParameters is StableTokenTest {
     uint256 newUpdatePeriod = 1 weeks + 5;
 
     changePrank(deployer);
-    vm.expectEmit(false, false, false, true);
+    vm.expectEmit(true, true, true, true);
     emit InflationParametersUpdated(inflationRate, newUpdatePeriod, now);
     testee.setInflationParameters(inflationRate, newUpdatePeriod);
   }
@@ -330,9 +330,10 @@ contract StableTokenTest_balanceOf is StableTokenTest {
 
   function test_balanceOf_withInflation_shouldFetchCorrectBalance() public {
     changePrank(deployer);
-    testee.setInflationParameters(inflationRate, 1 weeks);
+    setUpInflation(inflationRate);
+    mockFractionMul();
     uint256 adjustedBalance = testee.balanceOf(sender);
-    assertEq(adjustedBalance, 1e20);
+    assertEq(adjustedBalance, 12e18);
   }
 }
 
@@ -340,17 +341,16 @@ contract StableTokenTest_unitConversions is StableTokenTest {
   function setUp() public {
     super.setUp();
     changePrank(deployer);
+    mockFractionMul();
     setUpInflation(inflationRate);
   }
 
   function test_unitsToValue_withDepreciation_shouldConvert() public {
-    mockFractionMul();
     uint256 value = testee.unitsToValue(1000);
     assertEq(value, 120);
   }
 
   function test_valueToUnits_withDepreciation_shouldConvert() public {
-    mockFractionMul();
     uint256 units = testee.valueToUnits(995);
     assertEq(units, 8291);
   }
@@ -462,6 +462,11 @@ contract StableTokenTest_erc20Functions is StableTokenTest {
 
   function assertBalance(address spenderAddress, uint256 balance) public {
     assertEq(testee.balanceOf(spenderAddress), balance);
+  }
+
+  function test_allowance_shouldReturnAllowance() public {
+    testee.approve(receiver, transferAmount);
+    assertEq(testee.allowance(sender, receiver), transferAmount);
   }
 
   function test_approve_whenSpenderIsNotZeroAddress_shouldUpdateAndEmit() public {
