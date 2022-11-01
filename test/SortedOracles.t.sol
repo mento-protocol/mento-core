@@ -125,11 +125,11 @@ contract SortedOracles_setTokenReportExpiry is SortedOraclesTest {
 
 contract SortedOracles_getTokenReportExpiry is SortedOraclesTest {
 
-    function test_getTokenReportExpirySeconds_whenNoTokeLevelExpiryIsSet_shouldReturnContractLevel() public{
+    function test_getTokenReportExpirySeconds_whenNoTokenLevelExpiryIsSet_shouldReturnContractLevel() public{
         assertEq(sortedOracles.getTokenReportExpirySeconds(token), aReportExpiry);
     }
 
-    function test_getTokenReportExpirySeconds_whenTokeLevelExpiryIsSet_shouldReturnTokenLevel() public{
+    function test_getTokenReportExpirySeconds_whenTokenLevelExpiryIsSet_shouldReturnTokenLevel() public{
         sortedOracles.setTokenReportExpiry(token, aReportExpiry+1);
         assertEq(sortedOracles.getTokenReportExpirySeconds(token), aReportExpiry+1);
     }
@@ -242,7 +242,7 @@ contract SortedOracles_RemoveOracles is SortedOraclesTest {
     function testFail_removeOracle_whenOneReportExists_shouldNotEmitTheOracleReportedAndMedianUpdatedEvent() public {
         /*
         testFail feals impricise here. 
-        ToDo: Better way of testing this case :)  
+        TODO: Better way of testing this case :)  
         */
         submitNReports(1);
         vm.expectEmit(true, true, true, true, address(sortedOracles));
@@ -259,19 +259,19 @@ contract SortedOracles_RemoveOracles is SortedOraclesTest {
         sortedOracles.removeOracle(token, oracle, 0);
     }
 
-    function test_removeOracle_shouldRevertWhenIdexIsWrong() public {
+    function test_removeOracle_whenIndexIsWrong_shouldRevert() public {
         submitNReports(1);
         vm.expectRevert("token addr null or oracle addr null or index of token oracle not mapped to oracle addr");
         sortedOracles.removeOracle(token, oracle, 1);
     }
 
-    function test_removeOracle_shouldRevertWhenAddressIsWrong() public {
+    function test_removeOracle_whenAddressIsWrong_shouldRevert() public {
         submitNReports(1);
         vm.expectRevert("token addr null or oracle addr null or index of token oracle not mapped to oracle addr");
         sortedOracles.removeOracle(token, address(15), 0);
     }
 
-    function test_removeOracle_shouldRevertWhenCalledByNonOwner() public {
+    function test_removeOracle_whenCalledByNonOwner_shouldRevert() public {
         submitNReports(1);
         vm.expectRevert("Ownable: caller is not the owner");
         changePrank(rando);
