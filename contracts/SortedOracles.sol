@@ -5,6 +5,8 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./interfaces/ISortedOracles.sol";
 import "./common/interfaces/ICeloVersionedContract.sol";
+import "./interfaces/IBreakerBox.sol";
+import "./interfaces/IStableToken.sol";
 
 import "./common/FixidityLib.sol";
 import "./common/Initializable.sol";
@@ -27,6 +29,7 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
     mapping(address => SortedLinkedListWithMedian.List) private timestamps;
     mapping(address => mapping(address => bool)) public isOracle;
     mapping(address => address[]) public oracles;
+    mapping(address => uint256) public previousMedianRate;
 
     // `reportExpirySeconds` is the fallback value used to determine reporting
     // frequency. Initially it was the _only_ value but we later introduced
@@ -36,6 +39,8 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
     uint256 public reportExpirySeconds;
     mapping(address => uint256) public tokenReportExpirySeconds;
 
+    IBreakerBox public breakerBox;
+
     event OracleAdded(address indexed token, address indexed oracleAddress);
     event OracleRemoved(address indexed token, address indexed oracleAddress);
     event OracleReported(address indexed token, address indexed oracle, uint256 timestamp, uint256 value);
@@ -43,6 +48,7 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
     event MedianUpdated(address indexed token, uint256 value);
     event ReportExpirySet(uint256 reportExpiry);
     event TokenReportExpirySet(address token, uint256 reportExpiry);
+    event BreakerBoxUpdated(address indexed newBreakerBox);
 
     modifier onlyOracle(address token) {
         require(isOracle[token][msg.sender], "sender was not an oracle for token addr");
@@ -106,6 +112,15 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
         tokenReportExpirySeconds[_token] = _reportExpirySeconds;
         emit TokenReportExpirySet(_token, _reportExpirySeconds);
     }
+
+      /**
+   * @notice Sets the address of the BreakerBox.
+   * @param newBreakerBox The new BreakerBox address.
+   */
+  function setBreakerBox(IBreakerBox newBreakerBox) public onlyOwner {
+    breakerBox = newBreakerBox;
+    emit BreakerBoxUpdated(address(newBreakerBox));
+  }
 
     /**
      * @notice Adds a new Oracle.
@@ -228,8 +243,10 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
         emit OracleReported(token, msg.sender, now, value);
         uint256 newMedian = rates[token].getMedianValue();
         if (newMedian != originalMedian) {
+            previousMedianRate[token] = originalMedian;
             emit MedianUpdated(token, newMedian);
         }
+        breakerBox.checkAndSetBreakers(IStableToken(token).getExchangeRegistryId());
     }
 
     /**
@@ -353,6 +370,7 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
         emit OracleReportRemoved(token, oracle);
         uint256 newMedian = rates[token].getMedianValue();
         if (newMedian != originalMedian) {
+            previousMedianRate[token] = newMedian;
             emit MedianUpdated(token, newMedian);
         }
     }

@@ -10,6 +10,7 @@ import "./utils/TokenHelpers.sol";
 
 import "./mocks/MockReserve.sol";
 import "./mocks/MockSortedOracles.sol";
+import "./mocks/MockBreakerBox.sol";
 
 import "contracts/Exchange.sol";
 import "contracts/StableToken.sol";
@@ -31,6 +32,7 @@ contract ExchangeTest is Test, WithRegistry, TokenHelpers {
     event BucketsUpdated(uint256 celoBucket, uint256 stableBucket);
     event StableBucketMaxFractionSet(uint256 stableBucketMaxFraction);
     event MinSupplyForStableBucketCapSet(uint256 minSupplyForStableBucketCap);
+    event BreakerBoxUpdated(address indexed newBreakerBox);
 
     address deployer;
     address rando;
@@ -41,6 +43,7 @@ contract ExchangeTest is Test, WithRegistry, TokenHelpers {
     GoldToken celoToken;
     MockReserve reserve;
     MockSortedOracles sortedOracles;
+    MockBreakerBox breakerBox;
 
     uint256 constant referenceRateResetFrequency = 60 * 60;
     uint256 constant initialReserveBalance = 10000000000000000000000;
@@ -65,6 +68,7 @@ contract ExchangeTest is Test, WithRegistry, TokenHelpers {
         exchange = new Exchange(true);
         stableToken = new StableToken(true);
         sortedOracles = new MockSortedOracles();
+        breakerBox = new MockBreakerBox();
 
         registry.setAddressFor("Freezer", address(freezer));
         registry.setAddressFor("GoldToken", address(celoToken));
@@ -308,6 +312,21 @@ contract Exchange_initializeAndSetters is ExchangeTest {
         changePrank(rando);
         vm.expectRevert("Ownable: caller is not the owner");
         exchange.setMinSupplyForStableBucketCap(0);
+    }
+
+    function test_setBreakerBox_isOnlyCallableByOwner() public {
+        changePrank(rando);
+        vm.expectRevert("Ownable: caller is not the owner");
+        exchange.setBreakerBox(breakerBox);
+    }
+
+    function test_setBreakerBox_shouldUpdateAndEmit() public {
+        assertTrue(address(exchange.breakerBox()) == address(0));
+        vm.expectEmit(true, false, false, false);
+        emit BreakerBoxUpdated(address(breakerBox));
+
+        exchange.setBreakerBox(breakerBox);
+        assertTrue(address(exchange.breakerBox()) == address(breakerBox));
     }
 }
 

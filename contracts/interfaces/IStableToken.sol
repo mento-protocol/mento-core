@@ -25,6 +25,8 @@ interface IStableToken {
             uint256
         );
 
+    function getExchangeRegistryId() external view returns (bytes32);
+
     // NOTE: duplicated with IERC20.sol, remove once interface inheritance is supported.
     function balanceOf(address) external view returns (uint256);
 }

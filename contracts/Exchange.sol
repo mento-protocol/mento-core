@@ -13,6 +13,7 @@ import "./common/Freezable.sol";
 import "./common/UsingRegistry.sol";
 import "./common/interfaces/ICeloVersionedContract.sol";
 import "./common/ReentrancyGuard.sol";
+import "./interfaces/IBreakerBox.sol";
 
 /**
  * @title Contract that allows to exchange StableToken for GoldToken and vice versa
@@ -39,6 +40,7 @@ contract Exchange is
     event ReserveFractionSet(uint256 reserveFraction);
     event BucketsUpdated(uint256 goldBucket, uint256 stableBucket);
     event MinSupplyForStableBucketCapSet(uint256 minSupplyForStableBucketCap);
+    event BreakerBoxUpdated(address indexed newBreakerBox);
 
     FixidityLib.Fraction public spread;
 
@@ -47,6 +49,7 @@ contract Exchange is
     FixidityLib.Fraction public reserveFraction;
 
     address public stable;
+    IBreakerBox public breakerBox;
 
     // Size of the Uniswap gold bucket
     uint256 public goldBucket;
@@ -62,9 +65,23 @@ contract Exchange is
     uint256 public minSupplyForStableBucketCap;
     FixidityLib.Fraction public stableBucketMaxFraction;
 
+    uint256 constant TRADING_MODE_BIDIRECTIONAL = 0;
+
     modifier updateBucketsIfNecessary() {
         _updateBucketsIfNecessary();
         _;
+    }
+
+    modifier checkTradingMode() {
+     if (address(breakerBox) != address(0)) {
+       require(
+         breakerBox.getTradingMode(address(this)) == TRADING_MODE_BIDIRECTIONAL,
+         "Trading is suspended for this exchange"
+       );
+       _;
+     } else {
+       _;
+     }
     }
 
     /**
@@ -333,6 +350,15 @@ contract Exchange is
         require(stableBucketMaxFraction.lt(FixidityLib.fixed1()), "Bucket fraction must be smaller than 1");
         require(newStableBucketMaxFraction > 0, "bucket fraction must be greather than 0");
         emit StableBucketMaxFractionSet(newStableBucketMaxFraction);
+    }
+
+    /**
+    * @notice Sets the address of the BreakerBox.
+    * @param newBreakerBox The new BreakerBox address.
+    */
+   function setBreakerBox(IBreakerBox newBreakerBox) public onlyOwner {
+        breakerBox = newBreakerBox;
+        emit BreakerBoxUpdated(address(newBreakerBox));
     }
 
     /**

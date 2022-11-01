@@ -14,3 +14,11 @@ solc = "0.5.17"
 [profile.ci]
 fuzz_runs = 1_000
 verbosity = 4
+
+[profile.integration]
+
+no_match_contract = "RandomTest"
+match_contract = "Integration"
+
+[rpc_endpoints]
+celo_mainnet="https://forno.celo.org"
