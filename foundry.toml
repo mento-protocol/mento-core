@@ -17,3 +17,4 @@ verbosity = 4
 
 [rpc_endpoints]
 celo_mainnet="${CELO_RPC_URL}"
+baklava="${BAKLAVA_RPC_URL}"

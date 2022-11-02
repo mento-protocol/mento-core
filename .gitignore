@@ -11,7 +11,6 @@
 
 # files
 *.env
-*.env.*
 *.log
 .DS_Store
 .pnp.*
