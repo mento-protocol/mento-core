@@ -14,3 +14,6 @@ solc = "0.5.17"
 [profile.ci]
 fuzz_runs = 1_000
 verbosity = 4
+
+[rpc_endpoints]
+celo_mainnet="${CELO_RPC_URL}"
