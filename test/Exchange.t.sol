@@ -387,7 +387,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
     }
 
     function test_sellCelo_revertsIfApprovalIsWrong(uint256 amount) public {
-        vm.assume(amount <= sellerCeloBalance);
+        vm.assume(amount < sellerCeloBalance);
         approveExchange(amount, true);
         uint256 expectedStableAmount = getBuyTokenAmount(amount, initialCeloBucket, initialStableBucket);
         vm.expectRevert("transfer value exceeded sender's allowance for recipient");
