@@ -19,7 +19,7 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { BiPoolManagerProxy } from "contracts/proxies/BiPoolManagerProxy.sol";
 import { BrokerProxy } from "contracts/proxies/BrokerProxy.sol";
 
-// ANVIL - forge script script/Deploy/0-DeployMcMint.sol --fork-url http://localhost:8545 --broadcast --private-key
+// ANVIL - forge script script/Deploy/0-DeployMcMint.sol --fork-url http://localhost:8545 --broadcast --legacy --private-key
 // Baklava - forge script script/Deploy/0-DeployMcMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy
 
 contract DeployMcMint is Script, ScriptHelper {

@@ -4,6 +4,8 @@ pragma experimental ABIEncoderV2;
 
 import { IScriptHelper } from "./IScriptHelper.sol";
 
+// TODO: Do better.
+
 contract ScriptHelper is IScriptHelper {
   uint256 constant NETWORK_ANVIL = 0;
   uint256 constant NETWORK_CELO = 42220;
@@ -17,18 +19,33 @@ contract ScriptHelper is IScriptHelper {
   function getNetworkProxies(uint256 network) internal pure returns (NetworkProxies memory proxies) {
     if (network == NETWORK_ANVIL) {
       proxies = NetworkProxies({
-        stableToken: 0x765DE816845861e75A25fCA122bb6898B8B1282a,
-        stableTokenBRL: 0xe8537a3d056DA446677B9E9d6c5dB704EaAb4787,
-        stableTokenEUR: 0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73,
-        broker: 0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43,
-        reserve: 0x9380fA34Fd9e4Fd14c06305fd7B6199089eD4eb9,
-        sortedOracles: 0xefB84935239dAcdecF7c5bA76d8dE40b077B7b33,
-        exchange: 0x67316300f17f063085Ca8bCa4bd3f7a5a3C66275,
-        exchangeBRL: 0x8f2cf9855C919AFAC8Bd2E7acEc0205ed568a4EA,
-        exchangeEUR: 0xE383394B913d7302c49F794C7d3243c429d53D1d,
-        biPoolManager: 0xdbC43Ba45381e02825b14322cDdd15eC4B3164E6,
-        celoGovernance: 0xD533Ca259b330c7A88f74E000a3FaEa2d63B7972,
-        celoToken: 0x471EcE3750Da237f93B8E339c536989b8978a438
+        stableToken: 0x62492A644A588FD904270BeD06ad52B9abfEA1aE,
+        stableTokenBRL: 0x6a0EEf2bed4C30Dc2CB42fe6c5f01F80f7EF16d1,
+        stableTokenEUR: 0xf9ecE301247aD2CE21894941830A2470f4E774ca,
+        broker: address(0),
+        reserve: 0x68Dd816611d3DE196FDeb87438B74A9c29fd649f,
+        sortedOracles: 0x88A187a876290E9843175027902B9f7f1B092c88,
+        exchange: 0x190480908c11Efca37EDEA4405f4cE1703b68b23,
+        exchangeBRL: 0x28e257d1E73018A116A7C68E9d07eba736D9Ec05,
+        exchangeEUR: 0xC200CD8ac71A63e38646C34b51ee3cBA159dB544,
+        biPoolManager: address(0),
+        celoGovernance: 0x28443b1d87db521320a6517A4F1B6Ead77F8C811,
+        celoToken: 0xdDc9bE57f553fe75752D61606B94CBD7e0264eF8
+      });
+    } else if (network == NETWORK_BAKLAVA) {
+      proxies = NetworkProxies({
+        stableToken: 0x62492A644A588FD904270BeD06ad52B9abfEA1aE,
+        stableTokenBRL: 0x6a0EEf2bed4C30Dc2CB42fe6c5f01F80f7EF16d1,
+        stableTokenEUR: 0xf9ecE301247aD2CE21894941830A2470f4E774ca,
+        broker: address(0),
+        reserve: 0x68Dd816611d3DE196FDeb87438B74A9c29fd649f,
+        sortedOracles: 0x88A187a876290E9843175027902B9f7f1B092c88,
+        exchange: 0x190480908c11Efca37EDEA4405f4cE1703b68b23,
+        exchangeBRL: 0x28e257d1E73018A116A7C68E9d07eba736D9Ec05,
+        exchangeEUR: 0xC200CD8ac71A63e38646C34b51ee3cBA159dB544,
+        biPoolManager: address(0),
+        celoGovernance: 0x28443b1d87db521320a6517A4F1B6Ead77F8C811,
+        celoToken: 0xdDc9bE57f553fe75752D61606B94CBD7e0264eF8
       });
     } else {
       revert("Unknown network");
@@ -41,21 +58,39 @@ contract ScriptHelper is IScriptHelper {
   function getNetworkImplementations(uint256 network) internal pure returns (NetworkImplementations memory implementations) {
     if (network == NETWORK_ANVIL) {
       implementations = NetworkImplementations({
-        stableToken: 0x0355B7B8cb128fA5692729Ab3AAa199C1753f726,
-        stableTokenBRL: 0x202CCe504e04bEd6fC0521238dDf04Bc9E8E15aB,
-        stableTokenEUR: 0xf4B146FbA71F41E0592668ffbF264F1D186b2Ca8,
-        broker: 0x2E2Ed0Cfd3AD2f1d34481277b3204d807Ca2F8c2,
-        reserve: 0x8198f5d8F8CfFE8f9C413d98a0A55aEB8ab9FbB7,
-        sortedOracles: 0xaf5D514bB94023C9Af979821F59A5Eecde0986EF,
-        exchange: 0x9A470D789BCd392ae4c8f22DB8425b5eF139906C,
-        exchangeBRL: 0x0d4a42B2fc30AfBF6b6e8f5CE49A659E38A2D112,
-        exchangeEUR: 0x32C2dcB7730eD6Fc1Eac0444a668F38Fd7B5dc8D,
-        biPoolManager: 0x1fA02b2d6A771842690194Cf62D91bdd92BfE28d,
-        constantProductPricingModule: 0x5081a39b8A5f0E35a8D959395a630b68B74Dd30f,
-        constantSumPricingModule: 0x922D6956C99E12DFeB3224DEA977D0939758A1Fe,
-        celoGovernance: 0xe6F77e6c1Df6Aea40923659C0415d82119F34882,
-        celoToken: 0x4DdeB8F7041aB3260c6ec5Afb6FEab0650F4ABB4,
-        usdcToken: 0x22a4aAF42A50bFA7238182460E32f15859c93dfe
+        stableToken: 0x26FEB5166381ddb92Ec36F1Fa718522356F99855,
+        stableTokenBRL: 0x190D7529728CBBE51aCAb0db0C547DC76a60fA77,
+        stableTokenEUR: 0xaA551fDE8de1dDa8f2c47daD90E0fd33efF2aAA3,
+        broker: 0x261D8c5e9742e6f7f1076Fa1F560894524e19cad,
+        reserve: 0x33421a33D8666eE603110F0F07d434981c023FcA,
+        sortedOracles: 0xce0B46A64b23c636D8ffFc63e362104945Bd4fE4,
+        exchange: 0x247c0533Bb47AeB3633336982Ed3478dab1Ea616,
+        exchangeBRL: 0x24c18EE6929e3D6524B4bD1313B8Aa9A27e1323D,
+        exchangeEUR: 0x495Aa3DA7Ae19a0c63c46c02Ed2Aa76a29c1154D,
+        biPoolManager: 0x057ef64E23666F000b34aE31332854aCBd1c8544,
+        constantProductPricingModule: address(0),
+        constantSumPricingModule: address(0),
+        celoGovernance: 0x175ffD14F36228d1479CFB8051A9e09Dc41CFC52,
+        celoToken: 0x0B26352b5e2019A39d23a8eea2A9Fe4B0489Bd47,
+        usdcToken: 0x22a4aAF42A50bFA7238182460E32f15859c93dfe // ??
+      });
+    } else if (network == NETWORK_BAKLAVA) {
+      implementations = NetworkImplementations({
+        stableToken: 0x26FEB5166381ddb92Ec36F1Fa718522356F99855,
+        stableTokenBRL: 0x190D7529728CBBE51aCAb0db0C547DC76a60fA77,
+        stableTokenEUR: 0xaA551fDE8de1dDa8f2c47daD90E0fd33efF2aAA3,
+        broker: 0x261D8c5e9742e6f7f1076Fa1F560894524e19cad,
+        reserve: 0x33421a33D8666eE603110F0F07d434981c023FcA,
+        sortedOracles: 0xce0B46A64b23c636D8ffFc63e362104945Bd4fE4,
+        exchange: 0x247c0533Bb47AeB3633336982Ed3478dab1Ea616,
+        exchangeBRL: 0x24c18EE6929e3D6524B4bD1313B8Aa9A27e1323D,
+        exchangeEUR: 0x495Aa3DA7Ae19a0c63c46c02Ed2Aa76a29c1154D,
+        biPoolManager: 0x057ef64E23666F000b34aE31332854aCBd1c8544,
+        constantProductPricingModule: address(0),
+        constantSumPricingModule: address(0),
+        celoGovernance: 0x175ffD14F36228d1479CFB8051A9e09Dc41CFC52,
+        celoToken: 0x0B26352b5e2019A39d23a8eea2A9Fe4B0489Bd47,
+        usdcToken: 0x22a4aAF42A50bFA7238182460E32f15859c93dfe // ??
       });
     } else {
       revert("Unknown network");

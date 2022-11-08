@@ -18,9 +18,10 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 
 import { BiPoolManagerProxy } from "contracts/proxies/BiPoolManagerProxy.sol";
 import { BrokerProxy } from "contracts/proxies/BrokerProxy.sol";
+import { ReserveProxy } from "contracts/proxies/ReserveProxy.sol";
 
-// ANVIL - forge script script/Deploy/0-DeployMcMint.sol --fork-url http://localhost:8545 --broadcast --private-key
-// Baklava - forge script script/Deploy/0-DeployMcMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy
+// ANVIL - forge script script/Deploy/0-DeployMcMint-Baklava.sol --fork-url http://localhost:8545 --broadcast --legacy --private-key
+// Baklava - forge script script/Deploy/0-DeployMcMint-Baklava.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --private-key
 
 contract DeployMcMint is Script, ScriptHelper {
   ConstantSumPricingModule csPricingModule;
@@ -34,45 +35,45 @@ contract DeployMcMint is Script, ScriptHelper {
 
   BrokerProxy brokerProxy;
   BiPoolManagerProxy biPoolManagerProxy;
+  ReserveProxy reserveProxy;
 
   function run() public {
-    NetworkProxies memory proxies = getNetworkProxies(vm.envUint("DEPLOY_NETWORK"));
+    NetworkProxies memory proxies = getNetworkProxies(0);
 
     vm.startBroadcast();
     {
-      // Deploy pricing modules
-      csPricingModule = new ConstantSumPricingModule();
-      cpPricingModule = new ConstantProductPricingModule();
-
-      // Deploy biPool manager
+      // Deploy new implementations
       biPoolManager = new BiPoolManager(true);
+      broker = new Broker(true);
+
+      // Deploy new proxies
       biPoolManagerProxy = new BiPoolManagerProxy();
+      brokerProxy = new BrokerProxy();
+
+      // Set implementations & transfer ownership
       biPoolManagerProxy._setImplementation(address(biPoolManager));
       biPoolManagerProxy._transferOwnership(proxies.celoGovernance);
       biPoolManager.transferOwnership(proxies.celoGovernance);
-
-      // Deploy broker
-      broker = new Broker(true);
-      brokerProxy = new BrokerProxy();
       brokerProxy._setImplementation(address(broker));
       brokerProxy._transferOwnership(proxies.celoGovernance);
       broker.transferOwnership(proxies.celoGovernance);
 
-      // Deploy reserve
-      reserve = new Reserve(true);
+      // Deploy stateless contracts
+      csPricingModule = new ConstantSumPricingModule();
+      cpPricingModule = new ConstantProductPricingModule();
 
-      // Deploy stableToken
+      // Deploy updated implementations
+      reserve = new Reserve(true);
       stableToken = new StableToken(true);
       stableTokenBRL = new StableTokenBRL(true);
       stableTokenEUR = new StableTokenEUR(true);
 
-      // Init biPoolManager
+      //Init biPoolManager
       BiPoolManager(address(biPoolManagerProxy)).initialize(
         address(brokerProxy),
         IReserve(proxies.reserve),
         ISortedOracles(proxies.sortedOracles)
       );
-
       address[] memory exchangeProviders = new address[](1);
       exchangeProviders[0] = address(biPoolManagerProxy);
 
