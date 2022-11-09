@@ -64,29 +64,31 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
     ph.mockReturn(
       FRACTION_MUL,
       keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(1), uint256(18))),
-      abi.encode(uint256(0.995*10**18), uint256(1e18))
+      abi.encode(uint256(0.995 * 10**18), uint256(1e18))
     );
   }
+
   function mockFractionMul0995Twice() public {
     ph.mockReturn(
       FRACTION_MUL,
       keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(2), uint256(18))),
-      abi.encode(uint256(0.990025*10**18), uint256(1e18))
+      abi.encode(uint256(0.990025 * 10**18), uint256(1e18))
     );
   }
 
   function mockFractionMul1005() public {
-  ph.mockReturn(
-    FRACTION_MUL,
-    keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005*10**24), uint256(1e24), uint256(1), uint256(18))),
-    abi.encode(uint256(1.005*10**18), uint256(1e18))
+    ph.mockReturn(
+      FRACTION_MUL,
+      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(1), uint256(18))),
+      abi.encode(uint256(1.005 * 10**18), uint256(1e18))
     );
   }
+
   function mockFractionMul1005Twice() public {
-  ph.mockReturn(
-    FRACTION_MUL,
-    keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005*10**24), uint256(1e24), uint256(2), uint256(18))),
-    abi.encode(uint256(1.010025*10**18), uint256(1e18))
+    ph.mockReturn(
+      FRACTION_MUL,
+      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(2), uint256(18))),
+      abi.encode(uint256(1.010025 * 10**18), uint256(1e18))
     );
   }
 }
@@ -156,7 +158,6 @@ contract StableTokenTest_mint is StableTokenTest {
   address exchange;
   address validators;
   address grandaMento;
-  address broker;
 
   uint256 mintAmount = 100 * 10**18;
 
@@ -166,12 +167,10 @@ contract StableTokenTest_mint is StableTokenTest {
     exchange = actor("exchange");
     validators = actor("validators");
     grandaMento = actor("grandaMento");
-    broker = actor("broker");
 
     registry.setAddressFor("Exchange", exchange);
     registry.setAddressFor("Validators", validators);
     registry.setAddressFor("GrandaMento", grandaMento);
-    registry.setAddressFor("Broker", broker);
   }
 
   function mintAndAssert(address to, uint256 value) public {
@@ -191,10 +190,6 @@ contract StableTokenTest_mint is StableTokenTest {
 
   function test_mint_whenCalledByGrandaMento_shouldMintTokens() public {
     mintAndAssert(grandaMento, mintAmount);
-  }
-
-  function test_mint_whenCalledByBroker_shouldMintTokens() public {
-    mintAndAssert(broker, mintAmount);
   }
 
   function test_mint_whenValueIsZero_shouldAllowMint() public {
@@ -376,7 +371,7 @@ contract StableTokenTest_balanceOf is StableTokenTest {
 }
 
 contract StableTokenTest_valueToUnits is StableTokenTest {
-  function test_valueToUnits_value1000AfterInflation_shouldCorrespondToRoughly995() public{
+  function test_valueToUnits_value1000AfterInflation_shouldCorrespondToRoughly995() public {
     changePrank(deployer);
     setUpInflation(inflationRate);
     mockFractionMul0995();
@@ -384,16 +379,16 @@ contract StableTokenTest_valueToUnits is StableTokenTest {
     assertEq(value, 995);
   }
 
-  function test_valueToUnits_value1000AfterInflationTwice_shouldCorrespondToRoughly990() public{
+  function test_valueToUnits_value1000AfterInflationTwice_shouldCorrespondToRoughly990() public {
     changePrank(deployer);
     setUpInflation(inflationRate);
     mockFractionMul0995Twice();
     skip(1 weeks);
     uint256 value = testee.valueToUnits(1000);
     assertEq(value, 990);
-  } 
+  }
 
-  function test_valueToUnits_value1000AfterInflation2_shouldCorrespondToRoughly1005() public{
+  function test_valueToUnits_value1000AfterInflation2_shouldCorrespondToRoughly1005() public {
     changePrank(deployer);
     setUpInflation(inflationRate2);
     mockFractionMul1005();
@@ -401,19 +396,18 @@ contract StableTokenTest_valueToUnits is StableTokenTest {
     assertEq(value, 1005);
   }
 
-  function test_valueToUnits_value1000AfterInflation2Twice_shouldCorrespondToRoughly1010() public{
+  function test_valueToUnits_value1000AfterInflation2Twice_shouldCorrespondToRoughly1010() public {
     changePrank(deployer);
     setUpInflation(inflationRate2);
     mockFractionMul1005Twice();
     skip(1 weeks);
     uint256 value = testee.valueToUnits(1000);
     assertEq(value, 1010);
-  } 
+  }
 }
 
 contract StableTokenTest_unitsToValue is StableTokenTest {
-
-  function test_unitsToValue_1000UnitsAfterInflation_shouldCorrespondToRoughly1005() public{
+  function test_unitsToValue_1000UnitsAfterInflation_shouldCorrespondToRoughly1005() public {
     changePrank(deployer);
     setUpInflation(inflationRate);
     mockFractionMul0995();
@@ -421,16 +415,16 @@ contract StableTokenTest_unitsToValue is StableTokenTest {
     assertEq(value, 1005);
   }
 
-  function  test_unitsToValue_1000UnitsAfterInflationTwice_shouldCorrespondToRoughly1010() public{
+  function test_unitsToValue_1000UnitsAfterInflationTwice_shouldCorrespondToRoughly1010() public {
     changePrank(deployer);
     setUpInflation(inflationRate);
     mockFractionMul0995Twice();
     skip(1 weeks);
     uint256 value = testee.unitsToValue(1000);
     assertEq(value, 1010);
-  } 
+  }
 
-  function test_unitsToValue_1000UnitsAfterInflation2_shouldCorrespondToRoughly995() public{
+  function test_unitsToValue_1000UnitsAfterInflation2_shouldCorrespondToRoughly995() public {
     changePrank(deployer);
     setUpInflation(inflationRate2);
     mockFractionMul1005();
@@ -438,20 +432,19 @@ contract StableTokenTest_unitsToValue is StableTokenTest {
     assertEq(value, 995);
   }
 
-  function test_unitsToValue_1000UnitsAfterInflation2Twice_shouldCorrespondToRoughly990() public{
+  function test_unitsToValue_1000UnitsAfterInflation2Twice_shouldCorrespondToRoughly990() public {
     changePrank(deployer);
     setUpInflation(inflationRate2);
     mockFractionMul1005Twice();
     skip(1 weeks);
     uint256 value = testee.unitsToValue(1000);
     assertEq(value, 990);
-  } 
+  }
 }
 
 contract StableTokenTest_burn is StableTokenTest {
   address exchange;
   address grandaMento;
-  address broker;
 
   uint256 mintAmount = 10;
   uint256 burnAmount = 5;
@@ -461,11 +454,9 @@ contract StableTokenTest_burn is StableTokenTest {
 
     exchange = actor("exchange");
     grandaMento = actor("grandaMento");
-    broker = actor("broker");
 
     registry.setAddressFor("Exchange", exchange);
     registry.setAddressFor("GrandaMento", grandaMento);
-    registry.setAddressFor("Broker", broker);
   }
 
   function burnAndAssert(address to, uint256 value) public {
@@ -489,12 +480,6 @@ contract StableTokenTest_burn is StableTokenTest {
     burnAndAssert(grandaMento, burnAmount);
   }
 
-  function test_burn_whenCalledByBroker_shouldBurnTokens() public {
-    changePrank(broker);
-    testee.mint(broker, mintAmount);
-    burnAndAssert(broker, burnAmount);
-  }
-
   function test_burn_whenValueExceedsBalance_shouldRevert() public {
     changePrank(grandaMento);
     testee.mint(grandaMento, mintAmount);
@@ -510,7 +495,6 @@ contract StableTokenTest_burn is StableTokenTest {
 
   function test_burn_whenInflationFactorIsOutdated_shouldUpdateAndEmit() public {
     mockFractionMul0995();
-
     changePrank(deployer);
     setUpInflation(inflationRate);
 

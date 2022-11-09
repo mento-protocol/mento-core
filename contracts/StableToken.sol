@@ -42,7 +42,6 @@ contract StableToken is
     event TransferComment(string comment);
 
     bytes32 constant GRANDA_MENTO_REGISTRY_ID = keccak256(abi.encodePacked("GrandaMento"));
-    bytes32 constant BROKER_REGISTRY_ID = keccak256(abi.encodePacked("Broker"));
 
     string internal name_;
     string internal symbol_;
@@ -234,8 +233,7 @@ contract StableToken is
         require(
             msg.sender == registry.getAddressForOrDie(getExchangeRegistryId()) ||
                 msg.sender == registry.getAddressFor(VALIDATORS_REGISTRY_ID) ||
-                msg.sender == registry.getAddressFor(GRANDA_MENTO_REGISTRY_ID)||
-                msg.sender == registry.getAddressFor(BROKER_REGISTRY_ID),
+                msg.sender == registry.getAddressFor(GRANDA_MENTO_REGISTRY_ID),
             "Sender not authorized to mint"
         );
         return _mint(to, value);
@@ -283,8 +281,7 @@ contract StableToken is
     function burn(uint256 value) external updateInflationFactor returns (bool) {
         require(
             msg.sender == registry.getAddressForOrDie(getExchangeRegistryId()) ||
-                msg.sender == registry.getAddressFor(GRANDA_MENTO_REGISTRY_ID)||
-                 msg.sender == registry.getAddressFor(BROKER_REGISTRY_ID),
+                msg.sender == registry.getAddressFor(GRANDA_MENTO_REGISTRY_ID),
             "Sender not authorized to burn"
         );
         uint256 units = _valueToUnits(inflationState.factor, value);
