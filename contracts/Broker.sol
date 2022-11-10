@@ -1,7 +1,6 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import { IExchangeProvider } from "./interfaces/IExchangeProvider.sol";
@@ -9,18 +8,22 @@ import { IBroker } from "./interfaces/IBroker.sol";
 import { IBrokerAdmin } from "./interfaces/IBrokerAdmin.sol";
 import { IReserve } from "./interfaces/IReserve.sol";
 import { IStableToken } from "./interfaces/IStableToken.sol";
+import { IERC20Metadata } from "./common/interfaces/IERC20Metadata.sol";
 
 import { Initializable } from "./common/Initializable.sol";
+import { TradingLimits } from "./common/TradingLimits.sol";
 
 /**
  * @title Broker
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
 contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
+  using TradingLimits for TradingLimits.Data;
   /* ==================== State Variables ==================== */
 
   address[] public exchangeProviders;
   mapping(address => bool) public isExchangeProvider;
+  mapping(bytes32 => TradingLimits.Data) tradingLimits;
 
   // Address of the reserve.
   IReserve public reserve;
@@ -68,7 +71,10 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
    * @param index The index of the exchange provider being removed.
    */
   function removeExchangeProvider(address exchangeProvider, uint256 index) public onlyOwner {
-    require(exchangeProviders[index] == exchangeProvider, "index into exchangeProviders list not mapped to an exchangeProvider");
+    require(
+      exchangeProviders[index] == exchangeProvider, 
+      "index into exchangeProviders list not mapped to an exchangeProvider"
+    );
     exchangeProviders[index] = exchangeProviders[exchangeProviders.length - 1];
     exchangeProviders.pop();
     delete isExchangeProvider[exchangeProvider];
@@ -146,6 +152,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
     amountOut = IExchangeProvider(exchangeProvider).swapIn(exchangeId, tokenIn, tokenOut, amountIn);
     require(amountOut >= amountOutMin, "amountOutMin not met");
+    guardTradingLimits(exchangeId, tokenIn, amountIn, tokenOut, amountOut);
     transferIn(msg.sender, tokenIn, amountIn);
     transferOut(msg.sender, tokenOut, amountOut);
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
@@ -172,6 +179,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
     amountIn = IExchangeProvider(exchangeProvider).swapOut(exchangeId, tokenIn, tokenOut, amountOut);
     require(amountIn <= amountInMax, "amountInMax exceeded");
+    guardTradingLimits(exchangeId, tokenIn, amountIn, tokenOut, amountOut);
     transferIn(msg.sender, tokenIn, amountIn);
     transferOut(msg.sender, tokenOut, amountOut);
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
@@ -215,12 +223,39 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     uint256 amount
   ) internal {
     if (reserve.isStableAsset(token)) {
-      IERC20(token).transferFrom(from, address(this), amount);
+      IERC20Metadata(token).transferFrom(from, address(this), amount);
       IStableToken(token).burn(amount);
     } else if (reserve.isCollateralAsset(token)) {
-      IERC20(token).transferFrom(from, address(reserve), amount);
+      IERC20Metadata(token).transferFrom(from, address(reserve), amount);
     } else {
       revert("Token must be stable or collateral assert");
+    }
+  }
+
+  function guardTradingLimits(
+    bytes32 exchangeId,
+    address _tokenIn,
+    uint256 amountIn,
+    address _tokenOut,
+    uint256 amountOut
+  ) internal {
+    bytes32 tokenIn = bytes32(uint256(uint160(_tokenIn)));
+    bytes32 tokenOut = bytes32(uint256(uint160(_tokenOut)));
+
+    bytes32 tradingLimitId = exchangeId ^ tokenIn;
+    TradingLimits.Data memory tradingLimit = tradingLimits[tradingLimitId];
+    if (tradingLimit.flags > 0) {
+      tradingLimit = tradingLimit.update(int256(amountIn), IERC20Metadata(_tokenIn).decimals());
+      tradingLimit.isValid();
+      tradingLimits[tradingLimitId] = tradingLimit;
+    }
+
+    tradingLimitId = exchangeId ^ tokenOut;
+    tradingLimit = tradingLimits[tradingLimitId];
+    if (tradingLimit.flags > 0) {
+      tradingLimit = tradingLimit.update(-1 * int256(amountOut), IERC20Metadata(_tokenOut).decimals());
+      tradingLimit.isValid();
+      tradingLimits[tradingLimitId] = tradingLimit;
     }
   }
 
