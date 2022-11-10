@@ -52,6 +52,7 @@ contract McMintIntegration is Test, WithRegistry {
   address cUSD_USDCet_oracleReportTarget;
   address cEUR_USDCet_oracleReportTarget;
   address cUSD_cEUR_oracleReportTarget;
+  address exchange;
 
   bytes32 pair_cUSD_CELO_ID;
   bytes32 pair_cEUR_CELO_ID;
@@ -67,6 +68,7 @@ contract McMintIntegration is Test, WithRegistry {
     changePrank(actor("deployer"));
     celoToken = new Token("Celo", "cGLD", 18);
     usdcToken = new Token("USDCet", "USDCet", 18);
+    exchange = address(21);
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
@@ -81,7 +83,7 @@ contract McMintIntegration is Test, WithRegistry {
       60 * 60 * 24 * 7,
       initialAddresses,
       initialBalances,
-      "Broker"
+      "Exchange"
     );
 
     cEURToken = new StableToken(true);
@@ -94,11 +96,12 @@ contract McMintIntegration is Test, WithRegistry {
       60 * 60 * 24 * 7,
       initialAddresses,
       initialBalances,
-      "Broker"
+      "Exchange"
     );
 
     vm.label(address(cUSDToken), "cUSD");
     vm.label(address(cEURToken), "cEUR");
+    registry.setAddressFor("Exchange", address(exchange));
 
     /* ===== Deploy reserve ===== */
 
