@@ -4,8 +4,6 @@ pragma experimental ABIEncoderV2;
 import { IPricingModule } from "./interfaces/IPricingModule.sol";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import { Initializable } from "./common/Initializable.sol";
 import { FixidityLib } from "./common/FixidityLib.sol";
 
 /**
