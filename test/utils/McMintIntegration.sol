@@ -161,7 +161,7 @@ contract McMintIntegration is Test, WithRegistry {
 
     /* ===== Deploy BiPoolManager & Broker ===== */
 
-    constantProduct = IPricingModule(new ConstantProductPricingModule(true));
+    constantProduct = new ConstantProductPricingModule();
     biPoolManager = new BiPoolManager(true);
     broker = new Broker(true);
 
