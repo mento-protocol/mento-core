@@ -18,12 +18,15 @@ import { TradingLimits } from "./common/TradingLimits.sol";
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
 contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
-  using TradingLimits for TradingLimits.Data;
+  using TradingLimits for TradingLimits.State;
+  using TradingLimits for TradingLimits.Config;
+
   /* ==================== State Variables ==================== */
 
   address[] public exchangeProviders;
   mapping(address => bool) public isExchangeProvider;
-  mapping(bytes32 => TradingLimits.Data) tradingLimits;
+  mapping(bytes32 => TradingLimits.State) tradingLimitsState;
+  mapping(bytes32 => TradingLimits.Config) tradingLimitsConfig;
 
   // Address of the reserve.
   IReserve public reserve;
@@ -185,6 +188,26 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
   }
 
+  /**
+   * @notice Explain to an end user what this does
+   * @dev Explain to a developer any extra details
+   * @return Documents the return variables of a contract’s function state variable
+   */
+  function configureTradingLimit(
+    bytes32 exchangeId, 
+    address _token, 
+    TradingLimits.Config memory config
+  ) public onlyOwner {
+    config.validate();
+
+    bytes32 token = bytes32(uint256(uint160(_token)));
+    bytes32 limitID = exchangeId ^ token;
+    tradingLimitsConfig[limitID] = config;
+
+    TradingLimits.State memory state;
+    tradingLimitsState[limitID] = state;
+  }
+
   /* ==================== Private Functions ==================== */
 
   /**
@@ -242,20 +265,29 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     bytes32 tokenIn = bytes32(uint256(uint160(_tokenIn)));
     bytes32 tokenOut = bytes32(uint256(uint160(_tokenOut)));
 
-    bytes32 tradingLimitId = exchangeId ^ tokenIn;
-    TradingLimits.Data memory tradingLimit = tradingLimits[tradingLimitId];
-    if (tradingLimit.flags > 0) {
-      tradingLimit = tradingLimit.update(int256(amountIn), IERC20Metadata(_tokenIn).decimals());
-      tradingLimit.isValid();
-      tradingLimits[tradingLimitId] = tradingLimit;
-    }
+    guardTradingLimit(
+      exchangeId ^ tokenIn,
+      int256(amountIn), 
+      _tokenIn
+    );
+    guardTradingLimit(
+      exchangeId ^ tokenOut,
+      -1 * int256(amountOut), 
+      _tokenOut
+    );
+  }
 
-    tradingLimitId = exchangeId ^ tokenOut;
-    tradingLimit = tradingLimits[tradingLimitId];
-    if (tradingLimit.flags > 0) {
-      tradingLimit = tradingLimit.update(-1 * int256(amountOut), IERC20Metadata(_tokenOut).decimals());
-      tradingLimit.isValid();
-      tradingLimits[tradingLimitId] = tradingLimit;
+  function guardTradingLimit(bytes32 tradingLimitId, int256 deltaFlow, address token) internal {
+    TradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
+    TradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
+    if (tradingLimitConfig.flags > 0) {
+      tradingLimitState = tradingLimitState.update(
+        tradingLimitConfig, 
+        deltaFlow, 
+        IERC20Metadata(token).decimals()
+      );
+      tradingLimitState.verify(tradingLimitConfig);
+      tradingLimitsState[tradingLimitId] = tradingLimitState;
     }
   }
 

@@ -7,272 +7,223 @@ import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
 // forge test --match-contract TradingLimits -vvv
 contract TradingLimitsTest is Test {
-    using TradingLimits for TradingLimits.Data;
+    using TradingLimits for TradingLimits.State;
+    using TradingLimits for TradingLimits.Config;
 
     uint8 private constant L0 = 1; // 0b001
     uint8 private constant L1 = 2; // 0b010
     uint8 private constant LG = 4; // 0b100
 
-    TradingLimits.Data private tradingLimit;
+    TradingLimits.State private state;
 
     function setUp() public {
-        TradingLimits.Data memory _tradingLimit;
-        tradingLimit = _tradingLimit;
+        TradingLimits.State memory _state;
+        state = _state;
     }
 
-    /* ==================== #configure ==================== */
+    function configEmpty() internal pure returns(TradingLimits.Config memory config) {}
 
-    function test_configure_whenNothingOn_withL0() public {
-        TradingLimits.Data memory config;
-        config.timestep0 = 100;
-        config.limit0 = 1000;
+    function configL0(
+        uint32 timestep0,
+        int48 limit0
+    ) internal pure returns (TradingLimits.Config memory config) {
+        config.timestep0 = timestep0;
+        config.limit0 = limit0;
         config.flags = L0;
-        
-        tradingLimit = tradingLimit.configure(config);
-
-        assertEq(uint256(tradingLimit.timestep0), 100);
-        assertEq(tradingLimit.limit0, 1000);
-        assertEq(tradingLimit.lastUpdated0, block.timestamp);
-
-        assertEq(uint256(tradingLimit.timestep1), 0);
-        assertEq(tradingLimit.limit1, 0);
-        assertEq(uint256(tradingLimit.lastUpdated1), 0);
-
-        assertEq(tradingLimit.limitGlobal, 0);
-        assertEq(uint256(tradingLimit.flags), uint256(L0));
     }
 
-    function test_configure_whenNothingOn_withL0L1() public {
-        TradingLimits.Data memory config;
-        config.timestep0 = 100;
-        config.limit0 = 1000;
-        config.timestep1 = 1000;
-        config.limit1 = 10000;
-        config.flags = L0 | L1;
-
-        tradingLimit = tradingLimit.configure(config);
-
-        assertEq(uint256(tradingLimit.timestep0), 100);
-        assertEq(tradingLimit.limit0, 1000);
-        assertEq(tradingLimit.lastUpdated0, block.timestamp);
-
-        assertEq(uint256(tradingLimit.timestep1), 1000);
-        assertEq(tradingLimit.limit1, 10000);
-        assertEq(tradingLimit.lastUpdated0, block.timestamp);
-
-        assertEq(tradingLimit.limitGlobal, 0);
-        assertEq(uint256(tradingLimit.flags), uint256(L0 | L1));
-    }
-
-    function test_configure_whenNothingOn_withL0L1LG() public {
-        TradingLimits.Data memory config;
-        config.timestep0 = 100;
-        config.limit0 = 1000;
-        config.timestep1 = 1000;
-        config.limit1 = 10000;
-        config.limitGlobal = 100000;
-        config.flags = L0 | L1 | LG;
-
-        tradingLimit = tradingLimit.configure(config);
-
-        assertEq(uint256(tradingLimit.timestep0), 100);
-        assertEq(tradingLimit.limit0, 1000);
-        assertEq(tradingLimit.lastUpdated0, block.timestamp);
-
-        assertEq(uint256(tradingLimit.timestep1), 1000);
-        assertEq(tradingLimit.limit1, 10000);
-        assertEq(tradingLimit.lastUpdated0, block.timestamp);
-
-        assertEq(tradingLimit.limitGlobal, 100000);
-        assertEq(uint256(tradingLimit.flags), uint256(L0 | L1 | LG));
-    }
-
-    function test_configure_whenL0On_withL0() public {
-        TradingLimits.Data memory config0;
-        config0.timestep0 = 500;
-        config0.limit0 = 1230;
-        config0.flags = L0;
-
-        tradingLimit = tradingLimit.configure(config0);
-
-        TradingLimits.Data memory config1;
-        config1.timestep0 = 100;
-        config1.limit0 = 1000;
-        config1.flags = L0;
-        
-        tradingLimit = tradingLimit.configure(config1);
-
-
-        assertEq(uint256(tradingLimit.timestep0), 100);
-        assertEq(tradingLimit.limit0, 1000);
-        assertEq(tradingLimit.lastUpdated0, block.timestamp);
-
-        assertEq(uint256(tradingLimit.timestep1), 0);
-        assertEq(tradingLimit.limit1, 0);
-        assertEq(uint256(tradingLimit.lastUpdated1), 0);
-
-        assertEq(tradingLimit.limitGlobal, 0);
-        assertEq(uint256(tradingLimit.flags), uint256(L0));
-    }
-
-    function test_configure_whenL0L1On_withL1LG() public {
-        TradingLimits.Data memory config0;
-        config0.timestep0 = 500;
-        config0.limit0 = 1230;
-        config0.timestep1 = 5000;
-        config0.limit1 = 1230;
-        config0.flags = L0 | L1;
-
-        tradingLimit = tradingLimit.configure(config0);
-
-        TradingLimits.Data memory config1;
-        config1.timestep1 = 100;
-        config1.limit1 = 1000;
-        config1.limitGlobal = 10000;
-        config1.flags = L1 | LG;
-        
-        tradingLimit = tradingLimit.configure(config1);
-
-
-        assertEq(uint256(tradingLimit.timestep0), 0);
-        assertEq(tradingLimit.limit0, 0);
-        assertEq(uint256(tradingLimit.lastUpdated0), 0);
-
-        assertEq(uint256(tradingLimit.timestep1), 100);
-        assertEq(tradingLimit.limit1, 1000);
-        assertEq(uint256(tradingLimit.lastUpdated1), block.timestamp);
-
-        assertEq(tradingLimit.limitGlobal, 10000);
-        assertEq(uint256(tradingLimit.flags), uint256(L1 | LG));
-    }
-
-    function test_configure_withNetflowOnL0_isLost() public {
-        TradingLimits.Data memory config;
-        config.timestep0 = 500;
-        config.limit0 = 1230;
-        config.flags = L0;
-
-        tradingLimit = tradingLimit.configure(config);
-        tradingLimit.netflow0 = 400;
-
-        tradingLimit = tradingLimit.configure(config);
-        assertEq(tradingLimit.netflow0, 0);
-    }
-
-    function test_configure_withNetflowOnL1_isLost() public {
-        TradingLimits.Data memory config;
-        config.timestep1 = 500;
-        config.limit1 = 1230;
+    function configL1(
+        uint32 timestep1,
+        int48 limit1
+    ) internal pure returns (TradingLimits.Config memory config) {
+        config.timestep1 = timestep1;
+        config.limit1 = limit1;
         config.flags = L1;
-
-        tradingLimit = tradingLimit.configure(config);
-        tradingLimit.netflow1 = 400;
-
-        tradingLimit = tradingLimit.configure(config);
-        assertEq(tradingLimit.netflow1, 0);
     }
 
-    function test_configure_withNetflowOnLG_isKept() public {
-        TradingLimits.Data memory config;
-        config.limitGlobal = 1230;
+    function configLG(
+        int48 limitGlobal
+    ) internal pure returns (TradingLimits.Config memory config) {
+        config.limitGlobal = limitGlobal;
         config.flags = LG;
-
-        tradingLimit = tradingLimit.configure(config);
-        tradingLimit.netflowGlobal = 400;
-
-        tradingLimit = tradingLimit.configure(config);
-        assertEq(tradingLimit.netflowGlobal, 400);
     }
 
-    /* ==================== #configure ==================== */
-
-    function test_isValid_whenNothingOn() public view {
-        assert(tradingLimit.isValid());
+    function configL0L1(
+        uint32 timestep0,
+        int48 limit0,
+        uint32 timestep1,
+        int48 limit1
+    ) internal pure returns (TradingLimits.Config memory config) {
+        config.timestep0 = timestep0;
+        config.limit0 = limit0;
+        config.timestep1 = timestep1;
+        config.limit1 = limit1;
+        config.flags = L0 | L1;
     }
 
-    function test_isValid_whenL0On_butNotMet() public {
-        TradingLimits.Data memory config;
-        config.timestep0 = 500;
-        config.limit0 = 1230;
-        config.flags = L0;
-
-        tradingLimit = tradingLimit.configure(config);
-        tradingLimit.netflow0 = 500;
-
-        assert(tradingLimit.isValid());
+    function configL0L1LG(
+        uint32 timestep0,
+        int48 limit0,
+        uint32 timestep1,
+        int48 limit1,
+        int48 limitGlobal
+    ) internal pure returns (TradingLimits.Config memory config) {
+        config.timestep0 = timestep0;
+        config.limit0 = limit0;
+        config.timestep1 = timestep1;
+        config.limit1 = limit1;
+        config.limitGlobal = limitGlobal;
+        config.flags = L0 | L1 | LG;
     }
 
-    function test_isValid_whenL0On_andMetPositively() public {
-        TradingLimits.Data memory config;
-        config.timestep0 = 500;
-        config.limit0 = 1230;
-        config.flags = L0;
+    function configL1LG(
+        uint32 timestep1,
+        int48 limit1,
+        int48 limitGlobal
+    ) internal pure returns (TradingLimits.Config memory config) {
+        config.timestep1 = timestep1;
+        config.limit1 = limit1;
+        config.limitGlobal = limitGlobal;
+        config.flags = L1 | LG;
+    }
 
-        tradingLimit = tradingLimit.configure(config);
-        tradingLimit.netflow0 = 1231;
+    function configL0LG(
+        uint32 timestep0,
+        int48 limit0,
+        int48 limitGlobal
+    ) internal pure returns (TradingLimits.Config memory config) {
+        config.timestep0 = timestep0;
+        config.limit0 = limit0;
+        config.limitGlobal = limitGlobal;
+        config.flags = L0 | LG;
+    }
 
+
+    /* ==================== Config#validate ==================== */
+
+    function test_validate_withL0_verify() public {
+        TradingLimits.Config memory config = configL0(100, 1000);
+        assertEq(config.validate(), true);
+    }
+
+    function test_validate_withL0_withoutTimestep_isNotValid() public {
+        TradingLimits.Config memory config = configL0(0, 1000);
+        vm.expectRevert(bytes("timestep0 can't be zero if active"));
+        config.validate();
+    }
+
+    function test_validate_withL0L1_isValid() public {
+        TradingLimits.Config memory config = configL0L1(100, 1000, 1000, 10000);
+        assertEq(config.validate(), true);
+    }
+
+    function test_validate_withL0L1_withoutTimestape_isNotValid() public {
+        TradingLimits.Config memory config = configL0L1(0, 1000, 1000, 10000);
+        vm.expectRevert(bytes("timestep0 can't be zero if active"));
+        config.validate();
+    }
+
+    function test_validate_withL0L1LG_isValid() public {
+        TradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 100000);
+        assertEq(config.validate(), true);
+    }
+
+    function test_configure_withL1LG_isNotValid() public {
+        TradingLimits.Config memory config = configL1LG(1000, 10000, 100000);
+        vm.expectRevert(bytes("L1 without L0 not allowed"));
+        config.validate();
+    }
+
+    /* ==================== State#verify ==================== */
+
+    function test_verify_withNothingOn() public view {
+        TradingLimits.Config memory config;
+        assert(state.verify(config));
+    }
+
+    function test_verify_withL0_butNotMet() public {
+        state.netflow0 = 500;
+        assert(state.verify(configL0(500, 1230)));
+    }
+
+    function test_verify_withL0_andMetPositively() public {
+        state.netflow0 = 1231;
         vm.expectRevert(bytes("L0 Exceeded"));
-        tradingLimit.isValid();
+        state.verify(configL0(500, 1230));
     }
 
-    function test_isValid_whenL0On_andMetNegatively() public {
-        TradingLimits.Data memory config;
-        config.timestep0 = 500;
-        config.limit0 = 1230;
-        config.flags = L0;
-
-        tradingLimit = tradingLimit.configure(config);
-        tradingLimit.netflow0 = -1231;
-
+    function test_verify_withL0_andMetNegatively() public {
+        state.netflow0 = -1231;
         vm.expectRevert(bytes("L0 Exceeded"));
-        tradingLimit.isValid();
+        state.verify(configL0(500, 1230));
     }
 
-    function test_isValid_whenL1On_butNotMet() public {
-        TradingLimits.Data memory config;
-        config.timestep0 = 500;
-        config.limit0 = 1230;
-        config.flags = L0;
-
-        tradingLimit = tradingLimit.configure(config);
-        tradingLimit.netflow0 = 500;
-
-        assert(tradingLimit.isValid());
+    function test_verify_withL0L1_butNoneMet() public {
+        state.netflow1 = 500;
+        assert(state.verify(configL0L1(50, 100, 500, 1230)));
     }
 
-    function test_isValid_whenL1On_andMetPositively() public {
-        TradingLimits.Data memory config;
-        config.timestep1 = 500;
-        config.limit1 = 1230;
-        config.flags = L1;
-
-        tradingLimit = tradingLimit.configure(config);
-        tradingLimit.netflow1 = 1231;
-
+    function test_verify_withL0L1_andL1MetPositively() public {
+        state.netflow1 = 1231;
         vm.expectRevert(bytes("L1 Exceeded"));
-        tradingLimit.isValid();
+        state.verify(configL0L1(50, 100, 500, 1230));
     }
 
-    function test_isValid_whenL1On_andMetNegatively() public {
-        TradingLimits.Data memory config;
-        config.timestep1 = 500;
-        config.limit1 = 1230;
-        config.flags = L1;
-
-        tradingLimit = tradingLimit.configure(config);
-        tradingLimit.netflow1 = -1231;
-
+    function test_verify_withL0L1_andL1MetNegatively() public {
+        state.netflow1 = -1231;
         vm.expectRevert(bytes("L1 Exceeded"));
-        tradingLimit.isValid();
+        state.verify(configL0L1(50, 100, 500, 1230));
     }
 
-
-
-    function test_whenAllLimitsAreOff_update_doesntUpdateAnything() public {
-        tradingLimit = tradingLimit.update(100 * 1e18, 18);
-        assertEq(tradingLimit.netflow0, 0);
-        assertEq(tradingLimit.netflow1, 0);
-        assertEq(tradingLimit.netflowGlobal, 0);
+    function test_verify_withLG_butNoneMet() public {
+        state.netflowGlobal = 500;
+        assert(state.verify(configLG(1230)));
     }
 
+    function test_verify_withLG_andMetPositively() public {
+        state.netflowGlobal = 1231;
+        vm.expectRevert(bytes("LG Exceeded"));
+        state.verify(configLG(1230));
+    }
+
+    function test_verify_withLG_andMetNegatively() public {
+        state.netflowGlobal = -1231;
+        vm.expectRevert(bytes("LG Exceeded"));
+        state.verify(configLG(1230));
+    }
+
+    /* ==================== #update ==================== */
+
+    function test_update_withNoLimit_updatesOnlyGlobal() public {
+        state = state.update(configEmpty(), 100 * 1e18, 18);
+        assertEq(state.netflow0, 0);
+        assertEq(state.netflow1, 0);
+        assertEq(state.netflowGlobal, 0);
+    }
+
+    function test_update_withL0_updatesActive() public {
+        state = state.update(configL0(500, 1000), 100 * 1e18, 18);
+        assertEq(state.netflow0, 100);
+        assertEq(state.netflowGlobal, 0);
+    }
+    function test_update_withL0L1_updatesActive() public {
+        state = state.update(configL0L1(500, 1000, 5000, 500000), 100 * 1e18, 18);
+        assertEq(state.netflow0, 100);
+        assertEq(state.netflow1, 100);
+        assertEq(state.netflowGlobal, 0);
+    }
+
+    function test_update_withL0LG_updatesActive() public {
+        state = state.update(configL0LG(500, 1000, 500000), 100 * 1e18, 18);
+        assertEq(state.netflow0, 100);
+        assertEq(state.netflow1, 0);
+        assertEq(state.netflowGlobal, 100);
+    }
+
+    function test_update_withLG_updatesActive() public {
+        state = state.update(configLG(500000), 100 * 1e18, 18);
+        assertEq(state.netflow0, 0);
+        assertEq(state.netflow1, 0);
+        assertEq(state.netflowGlobal, 100);
+    }
 }

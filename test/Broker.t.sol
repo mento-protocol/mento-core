@@ -8,13 +8,17 @@ import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IStableToken } from "contracts/interfaces/IStableToken.sol";
 import { MockStableToken } from "./mocks/MockStableToken.sol";
+import { MockExchangeProvider } from "./mocks/MockExchangeProvider.sol";
 import { MockReserve } from "./mocks/MockReserve.sol";
 import { DummyERC20 } from "./utils/DummyErc20.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
+import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
 // forge test --match-contract Broker -vvv
 contract BrokerTest is Test {
+  using FixidityLib for FixidityLib.Fraction;
+
   event Swap(
     address exchangeProvider,
     bytes32 indexed exchangeId,
@@ -40,7 +44,7 @@ contract BrokerTest is Test {
 
   Broker broker;
 
-  IExchangeProvider exchangeProvider;
+  MockExchangeProvider exchangeProvider;
   address exchangeProvider1 = actor("exchangeProvider1");
   address exchangeProvider2 = actor("exchangeProvider2");
 
@@ -49,11 +53,11 @@ contract BrokerTest is Test {
   function setUp() public {
     /* Dependencies and actors */
     reserve = new MockReserve();
-    collateralAsset = new DummyERC20();
+    collateralAsset = new DummyERC20("Collateral", "CL", 18);
     stableAsset = new MockStableToken();
     randomAsset = actor("randomAsset");
     broker = new Broker(true);
-    exchangeProvider = IExchangeProvider(actor("exchangeProvider"));
+    exchangeProvider = new MockExchangeProvider();
 
     reserve.addToken(address(stableAsset));
     reserve.addCollateralAsset(address(collateralAsset));
@@ -165,36 +169,31 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
 contract BrokerTest_getAmounts is BrokerTest {
   bytes32 exchangeId = keccak256(abi.encode("exhcangeId"));
 
+  function setUp() public {
+    super.setUp();
+    exchangeProvider.setRate(
+      exchangeId, 
+      address(stableAsset),
+      address(collateralAsset),
+      FixidityLib.newFixedFraction(25, 10).unwrap()
+    );
+  }
+
   function test_getAmountIn_whenExchangeProviderWasNotSet_shouldRevert() public {
     vm.expectRevert("ExchangeProvider does not exist");
     broker.getAmountIn(randomExchangeProvider, exchangeId, address(stableAsset), address(collateralAsset), 1e24);
   }
 
   function test_getAmountIn_whenExchangeProviderIsSet_shouldReceiveCall() public {
-    uint256 amountOut = 1e17;
-    uint256 mockAmountIn = 1e16;
-
-    vm.mockCall(
-      address(exchangeProvider),
-      abi.encodeWithSelector(
-        exchangeProvider.getAmountIn.selector,
-        exchangeId,
-        address(stableAsset),
-        address(collateralAsset),
-        amountOut
-      ),
-      abi.encode(mockAmountIn)
-    );
-
     uint256 amountIn = broker.getAmountIn(
       address(exchangeProvider),
       exchangeId,
       address(stableAsset),
       address(collateralAsset),
-      amountOut
+      1e18
     );
 
-    assertEq(amountIn, mockAmountIn);
+    assertEq(amountIn, 25e17);
   }
 
   function test_getAmountOut_whenExchangeProviderWasNotSet_shouldRevert() public {
@@ -203,19 +202,15 @@ contract BrokerTest_getAmounts is BrokerTest {
   }
 
   function test_getAmountOut_whenExchangeProviderIsSet_shouldReceiveCall() public {
-    uint256 amountIn = 1e17;
-    uint256 mockAmountOut = 1e16;
-
-    vm.mockCall(
+    vm.expectCall(
       address(exchangeProvider),
       abi.encodeWithSelector(
         exchangeProvider.getAmountOut.selector,
         exchangeId,
         address(stableAsset),
         address(collateralAsset),
-        amountIn
-      ),
-      abi.encode(mockAmountOut)
+        1e18
+      )
     );
 
     uint256 amountOut = broker.getAmountOut(
@@ -223,160 +218,159 @@ contract BrokerTest_getAmounts is BrokerTest {
       exchangeId,
       address(stableAsset),
       address(collateralAsset),
-      amountIn
+      1e18
     );
-
-    assertEq(amountOut, mockAmountOut);
+    assertEq(amountOut, 4e17);
   }
 }
 
 contract BrokerTest_swap is BrokerTest {
-  bytes32 exchangeId = keccak256(abi.encode("exhcangeId"));
-
-  function test_swapIn_whenAmoutOutMinNotMet_shouldRevert() public {
-    uint256 amountIn = 1e16;
-    uint256 mockAmountOut = 1e16;
-
-    vm.mockCall(
-      address(exchangeProvider),
-      abi.encodeWithSelector(
-        exchangeProvider.swapIn.selector,
-        exchangeId,
-        address(stableAsset),
-        address(collateralAsset),
-        amountIn
-      ),
-      abi.encode(mockAmountOut)
-    );
-
-    vm.expectRevert("amountOutMin not met");
-    broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), amountIn, 1e17);
+  struct AccountBalanceSnapshot {
+    uint256 stable;
+    uint256 collateral;
   }
 
-  function test_swapOut_whenAmoutInMaxExceeded_shouldRevert() public {
+  struct BalanceSnapshot {
+    AccountBalanceSnapshot trader;
+    AccountBalanceSnapshot reserve;
+    AccountBalanceSnapshot broker;
+  }
+
+  bytes32 exchangeId = keccak256(abi.encode("exhcangeId"));
+
+  function setUp() public {
+    super.setUp();
+    exchangeProvider.setRate(
+      exchangeId, 
+      address(stableAsset),
+      address(collateralAsset),
+      FixidityLib.newFixedFraction(25, 10).unwrap()
+    );
+
+    deal(address(collateralAsset), address(reserve), 1e24);
+    deal(address(collateralAsset), trader, 1e24);
+    stableAsset.mint(trader, 1e22);
+  }
+
+  function makeBalanceSnapshot() internal view returns (BalanceSnapshot memory bs) {
+    bs.trader.stable = stableAsset.balanceOf(trader);
+    bs.trader.collateral = collateralAsset.balanceOf(trader);
+    bs.reserve.stable = stableAsset.balanceOf(address(reserve));
+    bs.reserve.collateral = collateralAsset.balanceOf(address(reserve));
+    bs.broker.stable = stableAsset.balanceOf(address(broker));
+    bs.broker.collateral = collateralAsset.balanceOf(address(broker));
+  }
+
+  function test_swapIn_whenAmountOutMinNotMet_shouldRevert() public {
+    uint256 amountIn = 1e16;
+
+    vm.expectRevert("amountOutMin not met");
+    broker.swapIn(
+      address(exchangeProvider), 
+      exchangeId, 
+      address(stableAsset), 
+      address(collateralAsset),
+      1e16,
+      1e20
+    );
+  }
+
+  function test_swapOut_whenAmountInMaxExceeded_shouldRevert() public {
     uint256 amountOut = 1e16;
     uint256 mockAmountIn = 1e16;
-
-    vm.mockCall(
-      address(exchangeProvider),
-      abi.encodeWithSelector(
-        exchangeProvider.swapOut.selector,
-        exchangeId,
-        address(stableAsset),
-        address(collateralAsset),
-        amountOut
-      ),
-      abi.encode(mockAmountIn)
-    );
 
     vm.expectRevert("amountInMax exceeded");
     broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), amountOut, 1e15);
   }
 
   function test_swapIn_whenTokenInStableAsset_shouldUpdateAndEmit() public {
-    deal(address(collateralAsset), address(reserve), 1e16);
-    deal(address(collateralAsset), trader, 1e16);
-    stableAsset.mint(address(broker), 1e16);
-    stableAsset.mint(address(trader), 1e16);
-
     changePrank(trader);
     uint256 amountIn = 1e16;
-    uint256 mockAmountOut = 1e16;
-
-    vm.mockCall(
-      address(exchangeProvider),
-      abi.encodeWithSelector(
-        exchangeProvider.swapIn.selector,
-        exchangeId,
-        address(stableAsset),
-        address(collateralAsset),
-        amountIn
-      ),
-      abi.encode(mockAmountOut)
+    uint256 expectedAmountOut = exchangeProvider.getAmountOut(
+      exchangeId, 
+      address(stableAsset), 
+      address(collateralAsset), 
+      amountIn
     );
 
+    BalanceSnapshot memory balBefore = makeBalanceSnapshot();
+
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(stableAsset), address(collateralAsset), amountIn, 1e16);
+    emit Swap(address(exchangeProvider), exchangeId, trader, address(stableAsset), address(collateralAsset), amountIn, expectedAmountOut);
     uint256 amountOut = broker.swapIn(
       address(exchangeProvider),
       exchangeId,
       address(stableAsset),
       address(collateralAsset),
       amountIn,
-      1e16
+      expectedAmountOut
     );
 
-    assertEq(1e16, amountOut);
-    assertEq(stableAsset.balanceOf(trader), 0);
-    assertEq(stableAsset.balanceOf(address(broker)), 1e16);
-    assertEq(IERC20(collateralAsset).balanceOf(trader), 2e16);
-    assertEq(IERC20(collateralAsset).balanceOf(address(reserve)), 0);
+    BalanceSnapshot memory balAfter = makeBalanceSnapshot();
+    assertEq(amountOut, expectedAmountOut);
+    assertEq(balAfter.trader.stable, balBefore.trader.stable - amountIn);
+    assertEq(balAfter.trader.collateral, balBefore.trader.collateral + expectedAmountOut);
+    assertEq(balAfter.reserve.collateral, balBefore.reserve.collateral - expectedAmountOut);
+    assertEq(balAfter.reserve.stable, 0);
+    assertEq(balAfter.broker.stable, 0);
+    assertEq(balAfter.broker.collateral, 0);
   }
 
   function test_swapIn_whenTokenInCollateralAsset_shouldUpdateAndEmit() public {
-    deal(address(collateralAsset), address(reserve), 1e16);
-    deal(address(collateralAsset), trader, 1e16);
-    stableAsset.mint(address(broker), 1e16);
-    stableAsset.mint(address(trader), 1e16);
-
     changePrank(trader);
-    IERC20(collateralAsset).approve(address(broker), 1e16);
     uint256 amountIn = 1e16;
-    uint256 mockAmountOut = 1e16;
-
-    vm.mockCall(
-      address(exchangeProvider),
-      abi.encodeWithSelector(
-        exchangeProvider.swapOut.selector,
-        exchangeId,
-        address(collateralAsset),
-        address(stableAsset),
-        amountIn
-      ),
-      abi.encode(mockAmountOut)
+    uint256 expectedAmountOut = exchangeProvider.getAmountOut(
+      exchangeId, 
+      address(collateralAsset), 
+      address(stableAsset), 
+      amountIn
     );
 
+    IERC20(collateralAsset).approve(address(broker), amountIn);
+    BalanceSnapshot memory balBefore = makeBalanceSnapshot();
+
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(collateralAsset), address(stableAsset), amountIn, 1e16);
-    uint256 amountOut = broker.swapOut(
+    emit Swap(
+      address(exchangeProvider), 
+      exchangeId, 
+      trader, 
+      address(collateralAsset), 
+      address(stableAsset), 
+      amountIn, 
+      expectedAmountOut
+    );
+    uint256 amountOut = broker.swapIn(
       address(exchangeProvider),
       exchangeId,
       address(collateralAsset),
       address(stableAsset),
       amountIn,
-      1e16
+      expectedAmountOut
     );
 
-    assertEq(1e16, amountOut);
-    assertEq(IERC20(collateralAsset).balanceOf(trader), 0);
-    assertEq(IERC20(collateralAsset).balanceOf(address(reserve)), 2e16);
-    assertEq(stableAsset.balanceOf(trader), 2e16);
+    BalanceSnapshot memory balAfter = makeBalanceSnapshot();
+    assertEq(amountOut, expectedAmountOut);
+    assertEq(balAfter.trader.collateral, balBefore.trader.collateral - amountIn);
+    assertEq(balAfter.reserve.collateral, balBefore.reserve.collateral + amountIn);
+    assertEq(balAfter.trader.stable, balBefore.trader.stable + expectedAmountOut);
+    assertEq(balAfter.reserve.stable, 0);
+    assertEq(balAfter.broker.stable, 0);
+    assertEq(balAfter.broker.collateral, 0);
   }
 
   function test_swapOut_whenTokenInStableAsset_shoulUpdateAndEmit() public {
-    deal(address(collateralAsset), address(reserve), 1e16);
-    deal(address(collateralAsset), trader, 1e16);
-    stableAsset.mint(address(broker), 1e16);
-    stableAsset.mint(address(trader), 1e16);
-
     changePrank(trader);
     uint256 amountOut = 1e16;
-    uint256 mockAmountIn = 1e16;
-
-    vm.mockCall(
-      address(exchangeProvider),
-      abi.encodeWithSelector(
-        exchangeProvider.swapOut.selector,
-        exchangeId,
-        address(stableAsset),
-        address(collateralAsset),
-        amountOut
-      ),
-      abi.encode(mockAmountIn)
+    uint256 expectedAmountIn = exchangeProvider.getAmountIn(
+      exchangeId, 
+      address(stableAsset), 
+      address(collateralAsset), 
+      amountOut
     );
 
+    BalanceSnapshot memory balBefore = makeBalanceSnapshot();
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(stableAsset), address(collateralAsset), amountOut, 1e16);
+    emit Swap(address(exchangeProvider), exchangeId, trader, address(stableAsset), address(collateralAsset), expectedAmountIn, amountOut);
 
     uint256 amountIn = broker.swapOut(
       address(exchangeProvider),
@@ -384,58 +378,95 @@ contract BrokerTest_swap is BrokerTest {
       address(stableAsset),
       address(collateralAsset),
       amountOut,
-      1e16
+      expectedAmountIn
     );
 
-    assertEq(1e16, amountIn);
-    assertEq(stableAsset.balanceOf(trader), 0);
-    assertEq(stableAsset.balanceOf(address(broker)), 1e16);
-    assertEq(IERC20(collateralAsset).balanceOf(trader), 2e16);
-    assertEq(IERC20(collateralAsset).balanceOf(address(reserve)), 0);
+    BalanceSnapshot memory balAfter = makeBalanceSnapshot();
+    assertEq(amountIn, expectedAmountIn);
+    assertEq(balAfter.trader.collateral, balBefore.trader.collateral + amountOut);
+    assertEq(balAfter.reserve.collateral, balBefore.reserve.collateral - amountOut);
+    assertEq(balAfter.trader.stable, balBefore.trader.stable - expectedAmountIn);
+    assertEq(balAfter.reserve.stable, 0);
+    assertEq(balAfter.broker.stable, 0);
+    assertEq(balAfter.broker.collateral, 0);
   }
 
   function test_swapOut_whenTokenInCollateralAsset_shouldUpdateAndEmit() public {
-    deal(address(collateralAsset), address(reserve), 1e16);
-    deal(address(collateralAsset), trader, 1e16);
-    stableAsset.mint(address(broker), 1e16);
-    stableAsset.mint(address(trader), 1e16);
-
     changePrank(trader);
-    IERC20(collateralAsset).approve(address(broker), 1e16);
     uint256 amountOut = 1e16;
-    uint256 mockAmountIn = 1e16;
-
-    vm.mockCall(
-      address(exchangeProvider),
-      abi.encodeWithSelector(
-        exchangeProvider.swapOut.selector,
-        exchangeId,
-        address(collateralAsset),
-        address(stableAsset),
-        amountOut
-      ),
-      abi.encode(mockAmountIn)
+    uint256 expectedAmountIn = exchangeProvider.getAmountIn(
+      exchangeId, 
+      address(collateralAsset), 
+      address(stableAsset), 
+      amountOut
     );
 
+    IERC20(collateralAsset).approve(address(broker), expectedAmountIn);
+    BalanceSnapshot memory balBefore = makeBalanceSnapshot();
+
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(collateralAsset), address(stableAsset), amountOut, 1e16);
+    emit Swap(address(exchangeProvider), exchangeId, trader, address(collateralAsset), address(stableAsset), expectedAmountIn, amountOut);
     uint256 amountIn = broker.swapOut(
       address(exchangeProvider),
       exchangeId,
       address(collateralAsset),
       address(stableAsset),
       amountOut,
-      1e16
+      expectedAmountIn
     );
 
-    assertEq(1e16, amountIn);
-    assertEq(IERC20(collateralAsset).balanceOf(trader), 0);
-    assertEq(IERC20(collateralAsset).balanceOf(address(reserve)), 2e16);
-    assertEq(stableAsset.balanceOf(trader), 2e16);
+    BalanceSnapshot memory balAfter = makeBalanceSnapshot();
+    assertEq(amountIn, expectedAmountIn);
+    assertEq(balAfter.trader.collateral, balBefore.trader.collateral - expectedAmountIn);
+    assertEq(balAfter.reserve.collateral, balBefore.reserve.collateral + expectedAmountIn);
+    assertEq(balAfter.trader.stable, balBefore.trader.stable + amountOut);
+    assertEq(balAfter.reserve.stable, 0);
+    assertEq(balAfter.broker.stable, 0);
+    assertEq(balAfter.broker.collateral, 0);
   }
 
   function test_swapOut_whenExchangeManagerWasNotSet_shouldRevert() public {
     vm.expectRevert("ExchangeProvider does not exist");
     broker.swapOut(randomExchangeProvider, exchangeId, randomAsset, randomAsset, 2e24, 1e24);
+  }
+
+  function test_swapIn_whenTradingLimitWasNotMet_shouldSwap() public {
+    TradingLimits.Config memory config;
+    config.flags = 1;
+    config.timestep0 = 10000;
+    config.limit0 = 1000;
+    changePrank(deployer);
+    broker.configureTradingLimit(exchangeId, address(stableAsset), config);
+    changePrank(trader);
+
+    IERC20(collateralAsset).approve(address(broker), 1e21);
+    uint256 amountOut = broker.swapIn(
+      address(exchangeProvider),
+      exchangeId,
+      address(collateralAsset),
+      address(stableAsset),
+      1e20,
+      1e16
+    );
+  }
+
+  function test_swapIn_whenTradingLimitWasMet_shouldNotSwap() public {
+    TradingLimits.Config memory config;
+    config.flags = 1;
+    config.timestep0 = 10000;
+    config.limit0 = 100;
+    changePrank(deployer);
+    broker.configureTradingLimit(exchangeId, address(stableAsset), config);
+    changePrank(trader);
+
+    vm.expectRevert(bytes("L0 Exceeded"));
+    uint256 amountOut = broker.swapIn(
+      address(exchangeProvider),
+      exchangeId,
+      address(stableAsset),
+      address(collateralAsset),
+      5e20,
+      0
+    );
   }
 }

@@ -49,8 +49,8 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
 
   Reserve reserve;
   MockSortedOracles sortedOracles;
-  DummyERC20 dummyToken1 = new DummyERC20();
-  DummyERC20 dummyToken2 = new DummyERC20();
+  DummyERC20 dummyToken1 = new DummyERC20("DummyToken1", "DT1", 18);
+  DummyERC20 dummyToken2 = new DummyERC20("DummyToken2", "DT2", 18);
 
   function setUp() public {
     rando = actor("rando");
