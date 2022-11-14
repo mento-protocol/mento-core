@@ -1,79 +1,70 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.5.13;
 
-import { Test } from "celo-foundry/Test.sol";
+import { Test, console2 as console } from "celo-foundry/Test.sol";
 
-import { MockReserve } from "./mocks/MockReserve.sol";
 import { MockBreaker } from "./mocks/MockBreaker.sol";
+import { MockSortedOracles } from "./mocks/MockSortedOracles.sol";
 
 import { WithRegistry } from "./utils/WithRegistry.sol";
 
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { BreakerBox } from "contracts/BreakerBox.sol";
 
 contract BreakerBoxTest is Test, WithRegistry {
   address deployer;
-  address exchangeA;
-  address exchangeB;
-  address exchangeC;
+  address referenceRateID1;
+  address referenceRateID2;
+  address referenceRateID3;
   address rando;
 
   MockBreaker mockBreakerA;
   MockBreaker mockBreakerB;
   MockBreaker mockBreakerC;
   MockBreaker mockBreakerD;
-  MockReserve mockReserve;
   BreakerBox breakerBox;
+  MockSortedOracles sortedOracles;
 
-  bytes32 constant EXCHANGE_ID = keccak256(abi.encodePacked("Exchange"));
-  bytes32 constant EXCHANGE_B_ID = keccak256(abi.encodePacked("ExchangeB"));
-  bytes32 constant EXCHANGE_C_ID = keccak256(abi.encodePacked("ExchangeC"));
 
   event BreakerAdded(address indexed breaker);
   event BreakerRemoved(address indexed breaker);
-  event BreakerTripped(address indexed breaker, address indexed exchange);
-  event ExchangeAdded(address indexed exchange);
-  event ExchangeRemoved(address indexed exchange);
-  event TradingModeUpdated(address indexed exchange, uint256 tradingMode);
-  event ResetSuccessful(address indexed exchange, address indexed breaker);
-  event ResetAttemptCriteriaFail(address indexed exchange, address indexed breaker);
-  event ResetAttemptNotCool(address indexed exchange, address indexed breaker);
+  event BreakerTripped(address indexed breaker, address indexed referenceRateID);
+  event TradingModeUpdated(address indexed referenceRateID, uint256 tradingMode);
+  event ResetSuccessful(address indexed referenceRateID, address indexed breaker);
+  event ResetAttemptCriteriaFail(address indexed referenceRateID, address indexed breaker);
+  event ResetAttemptNotCool(address indexed referenceRateID, address indexed breaker);
+  event ReferenceRateIDAdded(address indexed referenceRate);
+  event ReferenceRateIDRemoved(address indexed referenceRate);
 
   function setUp() public {
     deployer = actor("deployer");
-    exchangeA = actor("exchangeA");
-    exchangeB = actor("exchangeB");
-    exchangeC = actor("exchangeC");
+    referenceRateID1 = actor("referenceRatDID1");
+    referenceRateID2 = actor("referenceRateID2");
+    referenceRateID3 = actor("referenceRateID3");
     rando = actor("rando");
 
-    address[] memory testExchanges = new address[](2);
-    testExchanges[0] = exchangeA;
-    testExchanges[1] = exchangeB;
+    address[] memory testReferenceRateIDs = new address[](2);
+    testReferenceRateIDs[0] = referenceRateID1;
+    testReferenceRateIDs[1] = referenceRateID2;
 
     changePrank(deployer);
     mockBreakerA = new MockBreaker(0, false, false);
     mockBreakerB = new MockBreaker(0, false, false);
     mockBreakerC = new MockBreaker(0, false, false);
     mockBreakerD = new MockBreaker(0, false, false);
-    mockReserve = new MockReserve();
-
-    mockReserve.setReserveSpender(true);
-
-    registry.setAddressFor("Reserve", address(mockReserve));
-    registry.setAddressFor("Exchange", address(exchangeA));
-    registry.setAddressFor("ExchangeB", address(exchangeB));
-    registry.setAddressFor("ExchangeC", address(exchangeC));
-
+    sortedOracles = new MockSortedOracles();
     breakerBox = new BreakerBox(true);
-    breakerBox.initilize(testExchanges, address(registry));
+
+    // breakerBox.initilize(testReferenceRateIDs, ISortedOracles(address(sortedOracles)));
     breakerBox.addBreaker(address(mockBreakerA), 1);
   }
 
-  function isExchange(address exchange) public view returns (bool exchangeFound) {
-    address[] memory allExchanges = breakerBox.getExchanges();
-    for (uint256 i = 0; i < allExchanges.length; i++) {
-      if (allExchanges[i] == exchange) {
-        exchangeFound = true;
+  function isReferenceRateID(address referenceRateID) public view returns (bool referenceRateIDFound) {
+    address[] memory allreferenceRateIDs = breakerBox.getReferenceRateIDs();
+    for (uint256 i = 0; i < allreferenceRateIDs.length; i++) {
+      if (allreferenceRateIDs[i] == referenceRateID) {
+        referenceRateIDFound = true;
         break;
       }
     }
@@ -86,15 +77,15 @@ contract BreakerBoxTest is Test, WithRegistry {
    * @param cooldown The cooldown time of the breaker
    * @param reset Bool indicating the result of calling breaker.shouldReset()
    * @param trigger Bool indicating the result of calling breaker.shouldTrigger()
-   * @param exchange If exchange is set, switch exchange to the given trading mode
+   * @param referenceRateID If referenceRateID is set, switch referenceRateID to the given trading mode
    */
-  function setupBreakerAndExchange(
+  function setupBreakerAndReferenceRate(
     MockBreaker breaker,
     uint64 tradingMode,
     uint256 cooldown,
     bool reset,
     bool trigger,
-    address exchange
+    address referenceRateID
   ) public {
     vm.mockCall(
       address(breaker),
@@ -117,14 +108,23 @@ contract BreakerBoxTest is Test, WithRegistry {
     breakerBox.addBreaker(address(breaker), tradingMode);
     assertTrue(breakerBox.isBreaker(address(breaker)));
 
-    if (exchange != address(0)) {
-      breakerBox.addExchange(exchange);
-      assertTrue(isExchange(exchange));
+    if (referenceRateID != address(0)) {
+      setUpSortedOracles(referenceRateID, actor("oracleAddress"));
+      breakerBox.addReferenceRate(referenceRateID);
+      assertTrue(isReferenceRateID(referenceRateID));
 
-      breakerBox.setExchangeTradingMode(exchange, tradingMode);
-      (uint256 savedTradingMode, , ) = breakerBox.exchangeTradingModes(exchange);
+      breakerBox.setReferenceRateTradingMode(referenceRateID, tradingMode);
+      (uint256 savedTradingMode, , ) = breakerBox.referenceRateTradingModes(referenceRateID);
       assertEq(savedTradingMode, tradingMode);
     }
+  }
+
+  function setUpSortedOracles(address referenceRateID, address oracleAddress) public {
+    vm.mockCall(
+      address(sortedOracles),
+      abi.encodeWithSelector(sortedOracles.getOracles.selector),
+      abi.encode(referenceRateID, oracleAddress)
+    );
   }
 }
 
@@ -141,15 +141,19 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assert(breakerBox.isBreaker(address(mockBreakerA)));
   }
 
-  function test_initilize_shouldAddExchangesWithDefaultMode() public view {
+  // function test_initilize_shouldSetSortedOracles() public {
+  //   assertEq(address(breakerBox.sortedOracles()), ISortedOracles(address(sortedOracles)));
+  // }
+
+  function test_initilize_shouldAddReferenceRateIDsWithDefaultMode() public view {
     (uint256 tradingModeA, uint256 lastUpdatedA, uint256 lastUpdatedBlockA) = breakerBox
-      .exchangeTradingModes(exchangeA);
+      .referenceRateTradingModes(referenceRateID1);
     assert(tradingModeA == 0);
     assert(lastUpdatedA > 0);
     assert(lastUpdatedBlockA > 0);
 
     (uint256 tradingModeB, uint256 lastUpdatedB, uint256 lastUpdatedBlockB) = breakerBox
-      .exchangeTradingModes(exchangeB);
+      .referenceRateTradingModes(referenceRateID2);
     assert(tradingModeB == 0);
     assert(lastUpdatedB > 0);
     assert(lastUpdatedBlockB > 0);
@@ -196,15 +200,15 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 
   function test_removeBreaker_whenBreakerTradingModeInUse_shouldSetDefaultMode() public {
     breakerBox.addBreaker(address(mockBreakerC), 3);
-    breakerBox.addExchange(exchangeC);
-    breakerBox.setExchangeTradingMode(exchangeC, 3);
+    breakerBox.addReferenceRate(referenceRateID3);
+    breakerBox.setReferenceRateTradingMode(referenceRateID3, 3);
 
-    (uint256 tradingModeBefore, , ) = breakerBox.exchangeTradingModes(exchangeC);
+    (uint256 tradingModeBefore, , ) = breakerBox.referenceRateTradingModes(referenceRateID3);
     assertEq(tradingModeBefore, 3);
 
     breakerBox.removeBreaker(address(mockBreakerC));
 
-    (uint256 tradingModeAfter, , ) = breakerBox.exchangeTradingModes(exchangeC);
+    (uint256 tradingModeAfter, , ) = breakerBox.referenceRateTradingModes(referenceRateID3);
     assertEq(tradingModeAfter, 0);
   }
 
@@ -270,27 +274,28 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assert(breakerBox.breakerTradingMode(address(mockBreakerD)) == 4);
   }
 
-  /* ---------- Exchanges ---------- */
+  /* ---------- Reference Rate IDs ---------- */
 
-  function test_addExchange_whenExchangeHasAlreadyBeenAdded_shouldRevert() public {
-    vm.expectRevert("Exchange has already been added");
-    breakerBox.addExchange(exchangeA);
+  function test_addReferenceRate_whenAlreadyAdded_shouldRevert() public {
+    // setUpSortedOracles(referenceRateID1, oracleAddress);
+    vm.expectRevert("Reference rate ID has already been added");
+    breakerBox.addReferenceRate(referenceRateID1);
   }
 
-  function test_addExchange_whenExchangeIsNotReserveSpender_shouldRevert() public {
-    mockReserve.setReserveSpender(false);
+  function test_addReferenceRate_whenReferenceRateDoesNotExistInOracleList_shouldRevert() public {
+    setUpSortedOracles(referenceRateID3, address(0));
 
-    vm.expectRevert("Exchange is not a reserve spender");
-    breakerBox.addExchange(exchangeC);
+    vm.expectRevert("Reference rate does not exist in oracles list");
+    breakerBox.addReferenceRate(referenceRateID3);
   }
 
-  function test_addExchange_whenExchangeIsReserveSpender_shouldSetDefaultModeAndEmit() public {
-    mockReserve.setReserveSpender(true);
-    vm.expectEmit(true, false, false, false);
-    emit ExchangeAdded(exchangeC);
+  function test_addReferenceRate_whenReferenceRateExistsInOracleList_shouldSetDefaultModeAndEmit() public {
+    setUpSortedOracles(referenceRateID3, actor("oracleAddress"));
+    vm.expectEmit(true, true, true, true);
+    emit ReferenceRateIDAdded(referenceRateID3);
 
     (uint256 tradingModeBefore, uint256 lastUpdatedTimeBefore, uint256 lastUpdatedBlockBefore) = breakerBox
-      .exchangeTradingModes(exchangeC);
+      .referenceRateTradingModes(referenceRateID3);
 
     assert(tradingModeBefore == 0);
     assert(lastUpdatedTimeBefore == 0);
@@ -298,60 +303,60 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 
     skip(5);
     vm.roll(block.number + 1);
-    breakerBox.addExchange(exchangeC);
+    breakerBox.addReferenceRate(referenceRateID3);
 
     (uint256 tradingModeAfter, uint256 lastUpdatedTimeAfter, uint256 lastUpdatedBlockAfter) = breakerBox
-      .exchangeTradingModes(exchangeC);
+      .referenceRateTradingModes(referenceRateID3);
 
     assert(tradingModeAfter == 0);
     assert(lastUpdatedTimeAfter > lastUpdatedTimeBefore);
     assert(lastUpdatedBlockAfter > lastUpdatedBlockBefore);
   }
 
-  function test_removeExchange_whenExchangeHasNotBeenAdded_shouldRevert() public {
-    vm.expectRevert("Exchange has not been added");
-    breakerBox.removeExchange(exchangeC);
+  function test_removeReferenceRate_whenReferenceRateHasNotBeenAdded_shouldRevert() public {
+    vm.expectRevert("Reference rate ID has not been added");
+    breakerBox.removeReferenceRate(referenceRateID3);
   }
 
-  function test_removeExchange_shouldRemoveExchangeFromArray() public {
-    assertTrue(isExchange(exchangeA));
-    breakerBox.removeExchange(exchangeA);
-    assertFalse(isExchange(exchangeA));
+  function test_removeReferenceRate_shouldRemoveReferenceRateFromArray() public {
+    assertTrue(isReferenceRateID(referenceRateID1));
+    breakerBox.removeReferenceRate(referenceRateID1);
+    assertFalse(isReferenceRateID(referenceRateID1));
   }
 
-  function test_removeExchange_shouldResetTradingModeInfoAndEmit() public {
-    breakerBox.setExchangeTradingMode(exchangeA, 1);
-    vm.expectEmit(true, false, false, false);
-    emit ExchangeRemoved(exchangeA);
+  function test_removeReferenceRate_shouldResetTradingModeInfoAndEmit() public {
+    breakerBox.setReferenceRateTradingMode(referenceRateID1, 1);
+    vm.expectEmit(true, true, true, true);
+    emit ReferenceRateIDRemoved(referenceRateID1);
 
     (uint256 tradingModeBefore, uint256 lastUpdatedTimeBefore, uint256 lastUpdatedBlockBefore) = breakerBox
-      .exchangeTradingModes(exchangeA);
+      .referenceRateTradingModes(referenceRateID1);
     assert(tradingModeBefore == 1);
     assert(lastUpdatedTimeBefore > 0);
     assert(lastUpdatedBlockBefore > 0);
 
-    breakerBox.removeExchange(exchangeA);
+    breakerBox.removeReferenceRate(referenceRateID1);
 
     (uint256 tradingModeAfter, uint256 lastUpdatedTimeAfter, uint256 lastUpdatedBlockAfter) = breakerBox
-      .exchangeTradingModes(exchangeA);
+      .referenceRateTradingModes(referenceRateID1);
     assert(tradingModeAfter == 0);
     assert(lastUpdatedTimeAfter == 0);
     assert(lastUpdatedBlockAfter == 0);
   }
 
-  function test_setExchangeTradingMode_whenExchangeHasNotBeenAdded_ShouldRevert() public {
-    vm.expectRevert("Exchange has not been added");
-    breakerBox.setExchangeTradingMode(exchangeC, 1);
+  function test_setReferenceRateTradingMode_whenReferenceRateHasNotBeenAdded_ShouldRevert() public {
+    vm.expectRevert("Reference rate ID has not been added");
+    breakerBox.setReferenceRateTradingMode(referenceRateID3, 1);
   }
 
-  function test_setExchangeTradingMode_whenSpecifiedTradingModeHasNoBreaker_ShouldRevert() public {
+  function test_setReferenceRateTradingMode_whenSpecifiedTradingModeHasNoBreaker_ShouldRevert() public {
     vm.expectRevert("Trading mode must be default or have a breaker set");
-    breakerBox.setExchangeTradingMode(exchangeA, 9);
+    breakerBox.setReferenceRateTradingMode(referenceRateID1, 9);
   }
 
-  function test_setExchangeTradingMode_whenUsingDefaultTradingMode_ShouldUpdateAndEmit() public {
+  function test_setReferenceRateTradingMode_whenUsingDefaultTradingMode_ShouldUpdateAndEmit() public {
     (uint256 tradingModeBefore, uint256 lastUpdatedTimeBefore, uint256 lastUpdatedBlockBefore) = breakerBox
-      .exchangeTradingModes(exchangeA);
+      .referenceRateTradingModes(referenceRateID1);
     assert(tradingModeBefore == 0);
     assert(lastUpdatedTimeBefore > 0);
     assert(lastUpdatedBlockBefore > 0);
@@ -359,136 +364,136 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     //Fake time skip
     skip(5 * 60);
     vm.roll(5);
-    vm.expectEmit(true, false, false, true);
-    emit TradingModeUpdated(exchangeA, 1);
+    vm.expectEmit(true, true, true, true);
+    emit TradingModeUpdated(referenceRateID1, 1);
 
-    breakerBox.setExchangeTradingMode(exchangeA, 1);
+    breakerBox.setReferenceRateTradingMode(referenceRateID1, 1);
     (uint256 tradingModeAfter, uint256 lastUpdatedTimeAfter, uint256 lastUpdatedBlockAfter) = breakerBox
-      .exchangeTradingModes(exchangeA);
+      .referenceRateTradingModes(referenceRateID1);
     assert(tradingModeAfter == 1);
     assert(lastUpdatedTimeAfter > lastUpdatedTimeBefore);
     assert(lastUpdatedBlockAfter > lastUpdatedBlockBefore);
   }
 }
 
-contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
-  function test_checkAndSetBreakers_whenExchangeIsNotInDefaultModeAndCooldownNotPassed_shouldEmitNotCool()
-    public
-  {
-    setupBreakerAndExchange(mockBreakerC, 6, 3600, false, false, exchangeC);
+// contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
+//   function test_checkAndSetBreakers_whenExchangeIsNotInDefaultModeAndCooldownNotPassed_shouldEmitNotCool()
+//     public
+//   {
+//     setupBreakerAndExchange(mockBreakerC, 6, 3600, false, false, referenceRateID3);
 
-    skip(3599);
+//     skip(3599);
 
-    vm.expectCall(address(mockBreakerC), abi.encodeWithSelector(mockBreakerC.getCooldown.selector));
-    vm.expectEmit(true, true, false, false);
-    emit ResetAttemptNotCool(exchangeC, address(mockBreakerC));
+//     vm.expectCall(address(mockBreakerC), abi.encodeWithSelector(mockBreakerC.getCooldown.selector));
+//     vm.expectEmit(true, true, false, false);
+//     emit ResetAttemptNotCool(referenceRateID3, address(mockBreakerC));
 
-    breakerBox.checkAndSetBreakers(EXCHANGE_C_ID);
-    assertEq(breakerBox.getTradingMode(exchangeC), 6);
-  }
+//     breakerBox.checkAndSetBreakers(actor("oracleReportTarget"));
+//     assertEq(breakerBox.getTradingMode(referenceRateID3), 6);
+//   }
 
-  function test_checkAndSetBreakers_whenExchangeIsNotInDefaultModeAndCantReset_shouldEmitCriteriaFail()
-    public
-  {
-    setupBreakerAndExchange(mockBreakerC, 6, 3600, false, false, exchangeC);
+//   function test_checkAndSetBreakers_whenExchangeIsNotInDefaultModeAndCantReset_shouldEmitCriteriaFail()
+//     public
+//   {
+//     setupBreakerAndExchange(mockBreakerC, 6, 3600, false, false, referenceRateID3);
 
-    skip(3600);
-    vm.expectCall(address(mockBreakerC), abi.encodeWithSelector(mockBreakerC.getCooldown.selector));
-    vm.expectCall(
-      address(mockBreakerC),
-      abi.encodeWithSelector(mockBreakerC.shouldReset.selector, exchangeC)
-    );
-    vm.expectEmit(true, true, false, false);
-    emit ResetAttemptCriteriaFail(exchangeC, address(mockBreakerC));
+//     skip(3600);
+//     vm.expectCall(address(mockBreakerC), abi.encodeWithSelector(mockBreakerC.getCooldown.selector));
+//     vm.expectCall(
+//       address(mockBreakerC),
+//       abi.encodeWithSelector(mockBreakerC.shouldReset.selector, referenceRateID3)
+//     );
+//     vm.expectEmit(true, true, false, false);
+//     emit ResetAttemptCriteriaFail(referenceRateID3, address(mockBreakerC));
 
-    breakerBox.checkAndSetBreakers(EXCHANGE_C_ID);
-    assertEq(breakerBox.getTradingMode(exchangeC), 6);
-  }
+//     breakerBox.checkAndSetBreakers(actor("oracleReportTarget"));
+//     assertEq(breakerBox.getTradingMode(referenceRateID3), 6);
+//   }
 
-  function test_checkAndSetBreakers_whenExchangeIsNotInDefaultModeAndCanReset_shouldResetMode()
-    public
-  {
-    setupBreakerAndExchange(mockBreakerC, 6, 3600, true, false, exchangeC);
-    skip(3600);
+//   function test_checkAndSetBreakers_whenExchangeIsNotInDefaultModeAndCanReset_shouldResetMode()
+//     public
+//   {
+//     setupBreakerAndExchange(mockBreakerC, 6, 3600, true, false, referenceRateID3);
+//     skip(3600);
 
-    vm.expectCall(address(mockBreakerC), abi.encodeWithSelector(mockBreakerC.getCooldown.selector));
-    vm.expectCall(
-      address(mockBreakerC),
-      abi.encodeWithSelector(mockBreakerC.shouldReset.selector, exchangeC)
-    );
-    vm.expectEmit(true, true, false, false);
-    emit ResetSuccessful(exchangeC, address(mockBreakerC));
+//     vm.expectCall(address(mockBreakerC), abi.encodeWithSelector(mockBreakerC.getCooldown.selector));
+//     vm.expectCall(
+//       address(mockBreakerC),
+//       abi.encodeWithSelector(mockBreakerC.shouldReset.selector, referenceRateID3)
+//     );
+//     vm.expectEmit(true, true, false, false);
+//     emit ResetSuccessful(referenceRateID3, address(mockBreakerC));
 
-    breakerBox.checkAndSetBreakers(EXCHANGE_C_ID);
-    assertEq(breakerBox.getTradingMode(exchangeC), 0);
-  }
+//     breakerBox.checkAndSetBreakers(actor("oracleReportTarget"));
+//     assertEq(breakerBox.getTradingMode(referenceRateID3), 0);
+//   }
 
-  function test_checkAndSetBreakers_whenExchangeIsNotInDefaultModeAndNoBreakerCooldown_shouldReturnCorrectModeAndEmit()
-    public
-  {
-    setupBreakerAndExchange(mockBreakerC, 6, 0, true, false, exchangeC);
-    skip(3600);
+//   function test_checkAndSetBreakers_whenExchangeIsNotInDefaultModeAndNoBreakerCooldown_shouldReturnCorrectModeAndEmit()
+//     public
+//   {
+//     setupBreakerAndExchange(mockBreakerC, 6, 0, true, false, referenceRateID3);
+//     skip(3600);
 
-    vm.expectCall(address(mockBreakerC), abi.encodeWithSelector(mockBreakerC.getCooldown.selector));
-    vm.expectEmit(true, true, false, false);
-    emit ResetAttemptNotCool(exchangeC, address(mockBreakerC));
+//     vm.expectCall(address(mockBreakerC), abi.encodeWithSelector(mockBreakerC.getCooldown.selector));
+//     vm.expectEmit(true, true, false, false);
+//     emit ResetAttemptNotCool(referenceRateID3, address(mockBreakerC));
 
-    breakerBox.checkAndSetBreakers(EXCHANGE_C_ID);
-    assertEq(breakerBox.getTradingMode(exchangeC), 6);
-  }
+//     breakerBox.checkAndSetBreakers(actor("oracleReportTarget"));
+//     assertEq(breakerBox.getTradingMode(referenceRateID3), 6);
+//   }
 
-  function test_checkAndSetBreakers_whenNoBreakersAreTripped_shouldReturnDefaultMode() public {
-    setupBreakerAndExchange(mockBreakerC, 6, 3600, true, false, address(0));
-    breakerBox.addExchange(exchangeC);
-    assertTrue(isExchange(exchangeC));
+//   function test_checkAndSetBreakers_whenNoBreakersAreTripped_shouldReturnDefaultMode() public {
+//     setupBreakerAndExchange(mockBreakerC, 6, 3600, true, false, address(0));
+//     breakerBox.addReferenceRate(referenceRateID3);
+//     assertTrue(isReferenceRateID(referenceRateID3));
 
-    (uint256 tradingMode, , ) = breakerBox.exchangeTradingModes(exchangeC);
-    assertEq(tradingMode, 0);
+//     (uint256 tradingMode, , ) = breakerBox.referenceRateTradingModes(referenceRateID3);
+//     assertEq(tradingMode, 0);
 
-    vm.expectCall(
-      address(mockBreakerC),
-      abi.encodeWithSelector(mockBreakerC.shouldTrigger.selector, address(exchangeC))
-    );
-    vm.expectCall(
-      address(mockBreakerA),
-      abi.encodeWithSelector(mockBreakerA.shouldTrigger.selector, address(exchangeC))
-    );
+//     vm.expectCall(
+//       address(mockBreakerC),
+//       abi.encodeWithSelector(mockBreakerC.shouldTrigger.selector, address(referenceRateID3))
+//     );
+//     vm.expectCall(
+//       address(mockBreakerA),
+//       abi.encodeWithSelector(mockBreakerA.shouldTrigger.selector, address(referenceRateID3))
+//     );
 
-    breakerBox.checkAndSetBreakers(EXCHANGE_C_ID);
-    assertEq(breakerBox.getTradingMode(exchangeC), 0);
-  }
+//     breakerBox.checkAndSetBreakers(actor("oracleReportTarget"));
+//     assertEq(breakerBox.getTradingMode(referenceRateID3), 0);
+//   }
 
-  function test_checkAndSetBreakers_whenABreakerIsTripped_shouldSetModeAndEmit() public {
-    setupBreakerAndExchange(mockBreakerC, 6, 3600, true, true, address(0));
+//   function test_checkAndSetBreakers_whenABreakerIsTripped_shouldSetModeAndEmit() public {
+//     setupBreakerAndExchange(mockBreakerC, 6, 3600, true, true, address(0));
 
-    breakerBox.addExchange(exchangeC);
-    assertTrue(isExchange(exchangeC));
+//     breakerBox.addReferenceRate(referenceRateID3);
+//     assertTrue(isReferenceRateID(referenceRateID3));
 
-    (uint256 tradingMode, , ) = breakerBox.exchangeTradingModes(exchangeC);
-    assertEq(tradingMode, 0);
+//     (uint256 tradingMode, , ) = breakerBox.referenceRateTradingModes(referenceRateID3);
+//     assertEq(tradingMode, 0);
 
-    vm.expectCall(
-      address(mockBreakerA),
-      abi.encodeWithSelector(mockBreakerA.shouldTrigger.selector, address(exchangeC))
-    );
+//     vm.expectCall(
+//       address(mockBreakerA),
+//       abi.encodeWithSelector(mockBreakerA.shouldTrigger.selector, address(referenceRateID3))
+//     );
 
-    vm.expectCall(
-      address(mockBreakerC),
-      abi.encodeWithSelector(mockBreakerC.shouldTrigger.selector, address(exchangeC))
-    );
+//     vm.expectCall(
+//       address(mockBreakerC),
+//       abi.encodeWithSelector(mockBreakerC.shouldTrigger.selector, address(referenceRateID3))
+//     );
 
-    vm.expectEmit(true, true, false, false);
-    emit BreakerTripped(address(mockBreakerC), exchangeC);
+//     vm.expectEmit(true, true, false, false);
+//     emit BreakerTripped(address(mockBreakerC), referenceRateID3);
 
-    skip(3600);
-    vm.roll(5);
+//     skip(3600);
+//     vm.roll(5);
 
-    breakerBox.checkAndSetBreakers(EXCHANGE_C_ID);
+//     breakerBox.checkAndSetBreakers(actor("oracleReportTarget"));
 
-    (, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.exchangeTradingModes(
-      exchangeC
-    );
-    assertEq(lastUpdatedTime, 3601);
-    assertEq(lastUpdatedBlock, 5);
-  }
-}
+//     (, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.referenceRateTradingModes(
+//       referenceRateID3
+//     );
+//     assertEq(lastUpdatedTime, 3601);
+//     assertEq(lastUpdatedBlock, 5);
+//   }
+// }

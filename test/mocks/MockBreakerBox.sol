@@ -23,5 +23,5 @@ contract MockBreakerBox is IBreakerBox {
     return 0;
   }
 
-  function checkAndSetBreakers(bytes32) external {}
+  function checkAndSetBreakers(address) external {}
 }

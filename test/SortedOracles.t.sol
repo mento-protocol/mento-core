@@ -121,7 +121,8 @@ contract SortedOraclesTest_report is SortedOraclesTest {
 
     vm.expectCall(
       address(mockBreakerBox),
-      abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector, MOCK_EXCHANGE_ID)
+      // TODO take a second look at this since it was a hot fix
+      abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector, actor("oracleReportTarget"))
     );
 
     changePrank(oracleA);

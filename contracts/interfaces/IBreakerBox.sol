@@ -37,16 +37,16 @@ interface IBreakerBox {
   event BreakerTripped(address indexed breaker, address indexed exchange);
 
   /**
-   * @notice Emitted when a new exchange is added to the breaker box.
-   * @param exchange The address of the exchange that was added.
+   * @notice Emitted when a new referenceRate is added to the breaker box.
+   * @param referenceRateID The address of the referenceRate that was added.
    */
-  event ExchangeAdded(address indexed exchange);
+  event ReferenceRateIDAdded(address indexed referenceRateID);
 
   /**
-   * @notice Emitted when an exchange is removed from the breaker box.
-   * @param exchange The address of the exchange that was removed.
+   * @notice Emitted when a referenceRate is removed from the breaker box.
+   * @param referenceRateID The referenceRate of the exchange that was removed.
    */
-  event ExchangeRemoved(address indexed exchange);
+  event ReferenceRateIDRemoved(address indexed referenceRateID);
 
   /**
    * @notice Emitted when the trading mode for an exchange is updated
@@ -78,6 +78,12 @@ interface IBreakerBox {
   event ResetAttemptNotCool(address indexed exchange, address indexed breaker);
 
   /**
+   * @notice Emitted when the sortedOracles address is updated.
+   * @param newSortedOracles The address of the new sortedOracles.
+   */
+  event SortedOraclesUpdated(address indexed newSortedOracles);
+
+  /**
    * @notice Retrives an ordered array of all breaker addresses.
    */
   function getBreakers() external view returns (address[] memory);
@@ -93,9 +99,9 @@ interface IBreakerBox {
    * @notice Checks breakers for the exchange with the specified id 
              and sets correct trading mode if any breakers are tripped
              or need to be reset.
-   * @param  exchangeRegistryId The registryId of the exchange to run checks for.
+   * @param  referenceRate The registryId of the exchange to run checks for.
    */
-  function checkAndSetBreakers(bytes32 exchangeRegistryId) external;
+  function checkAndSetBreakers(address referenceRate) external;
 
   /**
    * @notice Gets the trading mode for the specified exchange.

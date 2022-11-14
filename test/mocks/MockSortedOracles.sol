@@ -9,6 +9,7 @@ contract MockSortedOracles {
     uint256 public constant DENOMINATOR = 1e24;
     mapping(address => uint256) public numerators;
     mapping(address => uint256) public medianTimestamp;
+    mapping(address => address[]) public oracles;
     mapping(address => uint256) public numRates;
     mapping(address => bool) public expired;
 
@@ -55,5 +56,10 @@ contract MockSortedOracles {
 
   function previousMedianRate(address) public pure returns (uint256) {
     return 0;
+  }
+
+  function getOracles(address referenceRateID, address oracleAddress) public returns (address[] memory) {
+       oracles[referenceRateID].push(oracleAddress);
+       return oracles[referenceRateID];
   }
 }

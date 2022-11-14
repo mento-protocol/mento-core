@@ -2,35 +2,37 @@ pragma solidity ^0.5.13;
 
 import { IBreakerBox } from "./interfaces/IBreakerBox.sol";
 import { IBreaker } from "./interfaces/IBreaker.sol";
-import { IReserve } from "./interfaces/IReserve.sol";
+import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
 
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { AddressLinkedList, LinkedList } from "./common/linkedlists/AddressLinkedList.sol";
-import { UsingRegistry } from "./common/UsingRegistry.sol";
 import { Initializable } from "./common/Initializable.sol";
-import { Exchange } from "./Exchange.sol";
 
 /**
  * @title   BreakerBox
  * @notice  The BreakerBox checks the criteria defined in separate breaker contracts
  *          to determine whether or not buying or selling should be allowed for a
- *          specified exchange. The contract stores references to all breakers
- *          that hold criteria to be checked, exchanges that
+ *          specified referenceRateIDs. The contract stores references to all breakers
+ *          that hold criteria to be checked, referenceRateIDs that
  *          can make use of the BreakerBox & their current trading.
  */
-contract BreakerBox is IBreakerBox, Initializable, UsingRegistry {
+contract BreakerBox is IBreakerBox, Initializable, Ownable {
   using AddressLinkedList for LinkedList.List;
 
   /* ==================== State Variables ==================== */
 
-  address[] public exchanges;
-  // Maps exchange address to its current trading mode info.
-  mapping(address => TradingModeInfo) public exchangeTradingModes;
+  address[] public referenceRateIDs;
+  // Maps reference rate to its current trading mode info.
+  mapping(address => TradingModeInfo) public referenceRateTradingModes;
   // Maps a trading mode to the associated breaker.
   mapping(uint64 => address) public tradingModeBreaker;
   // Maps a breaker to the associated trading mode.
   mapping(address => uint64) public breakerTradingMode;
   // Ordered list of breakers to be checked.
   LinkedList.List private breakers;
+
+  // Address of the Mento SortedOracles contract
+  ISortedOracles public sortedOracles;
 
   modifier onlyValidBreaker(address breaker, uint64 tradingMode) {
     require(!isBreaker(breaker), "This breaker has already been added");
@@ -48,13 +50,24 @@ contract BreakerBox is IBreakerBox, Initializable, UsingRegistry {
   constructor(bool test) public Initializable(test) {}
 
   /**
-   * @param _exchanges Exchanges to be added.
-   * @param registryAddress The address of the Celo registry contract.
+   * @param _referenceRates referenceRateIDs to be added.
+   * @param _sortedOracles The address of the Celo sorted oracles contract.
    */
-  function initilize(address[] calldata _exchanges, address registryAddress) external initializer {
+  function initilize(address[] calldata _referenceRates, ISortedOracles _sortedOracles) external initializer {
     _transferOwnership(msg.sender);
-    setRegistry(registryAddress);
-    addExchanges(_exchanges);
+    addReferenceRates(_referenceRates);
+    setSortedOracles(_sortedOracles);
+  }
+
+  /* ==================== Mutative Functions ==================== */
+  /**
+   * @notice Sets the address of the sortedOracles contract.
+   * @param _sortedOracles The new address of the sorted oracles contract.
+   */
+  function setSortedOracles(ISortedOracles _sortedOracles) public onlyOwner {
+    require(address(_sortedOracles) != address(0), "SortedOracles address must be set");
+    sortedOracles = _sortedOracles;
+    emit SortedOraclesUpdated(address(_sortedOracles));
   }
 
   /* ==================== Restricted Functions ==================== */
@@ -92,24 +105,25 @@ contract BreakerBox is IBreakerBox, Initializable, UsingRegistry {
     emit BreakerAdded(breaker);
   }
 
+  // changes trading mode for pairs that have this breaker because if its tripped and if we remove it its stuck
   /**
    * @notice Removes the specified breaker from the list of breakers.
    * @param breaker The address of the breaker to be removed.
-   * @dev Will set any exchange using this breakers trading mode to the default trading mode.
+   * @dev Will set any referenceRateID using this breakers trading mode to the default trading mode.
    */
   function removeBreaker(address breaker) external onlyOwner {
     require(isBreaker(breaker), "This breaker has not been added");
 
     uint64 tradingMode = breakerTradingMode[breaker];
 
-    // Set any exchanges using this breakers trading mode to the default mode.
-    address[] memory activeExchanges = exchanges;
+    // Set any refenceRateIDs using this breakers trading mode to the default mode.
+    address[] memory activeReferenceRates = referenceRateIDs;
     TradingModeInfo memory tradingModeInfo;
 
-    for (uint256 i = 0; i < activeExchanges.length; i++) {
-      tradingModeInfo = exchangeTradingModes[activeExchanges[i]];
+    for (uint256 i = 0; i < activeReferenceRates.length; i++) {
+      tradingModeInfo = referenceRateTradingModes[activeReferenceRates[i]];
       if (tradingModeInfo.tradingMode == tradingMode) {
-        setExchangeTradingMode(activeExchanges[i], 0);
+        setReferenceRateTradingMode(activeReferenceRates[i], 0);
       }
     }
 
@@ -120,87 +134,83 @@ contract BreakerBox is IBreakerBox, Initializable, UsingRegistry {
     emit BreakerRemoved(breaker);
   }
 
-  /* ---------- Exchanges ---------- */
+  /* ---------- referenceRateIDs ---------- */
 
   /**
-   * @notice Adds an exchange to the mapping of monitored exchanges.
-   * @param exchange The address of the exchange to be added.
+   * @notice Adds a referenceRateID to the mapping of monitored referenceRateIDs.
+   * @param referenceRateID The address of the referenceRateID to be added.
    */
-  function addExchange(address exchange) public onlyOwner {
-    TradingModeInfo memory info = exchangeTradingModes[exchange];
-    require(info.lastUpdatedTime == 0, "Exchange has already been added");
+  function addReferenceRate(address referenceRateID) public onlyOwner {
+    TradingModeInfo memory info = referenceRateTradingModes[referenceRateID];
+    require(info.lastUpdatedTime == 0, "Reference rate ID has already been added");
 
-    IReserve reserve = IReserve(registry.getAddressForOrDie(RESERVE_REGISTRY_ID));
-    require(
-      reserve.isExchangeSpender(exchange) || registry.getAddressForOrDie(EXCHANGE_REGISTRY_ID) == exchange,
-      "Exchange is not a reserve spender"
-    );
+    require(sortedOracles.getOracles(referenceRateID).length > 0, "Reference rate does not exist in oracles list");
 
     info.tradingMode = 0; // Default trading mode (Bi-directional).
     info.lastUpdatedTime = uint64(block.timestamp);
     info.lastUpdatedBlock = uint128(block.number);
-    exchangeTradingModes[exchange] = info;
-    exchanges.push(exchange);
+    referenceRateTradingModes[referenceRateID] = info;
+    referenceRateIDs.push(referenceRateID);
 
-    emit ExchangeAdded(exchange);
+    emit ReferenceRateIDAdded(referenceRateID);
   }
 
   /**
-   * @notice Adds the specified exchanges to the mapping of monitored exchanges.
-   * @param newExchanges The array of exchange addresses to be added.
+   * @notice Adds the specified referenceRateIDs to the mapping of monitored referenceRateIDs.
+   * @param newReferenceRates The array of referenceRateID addresses to be added.
    */
-  function addExchanges(address[] memory newExchanges) public onlyOwner {
-    for (uint256 i = 0; i < newExchanges.length; i++) {
-      addExchange(newExchanges[i]);
+  function addReferenceRates(address[] memory newReferenceRates) public onlyOwner {
+    for (uint256 i = 0; i < newReferenceRates.length; i++) {
+      addReferenceRate(newReferenceRates[i]);
     }
   }
 
   /**
-   * @notice Removes an exchange from the mapping of monitored exchanges.
-   * @param exchange The address of the exchange to be removed.
+   * @notice Removes a referenceRateID from the mapping of monitored referenceRateIDs.
+   * @param referenceRateID The address of the referenceRateID to be removed.
    */
-  function removeExchange(address exchange) external onlyOwner {
-    uint256 exchangeIndex;
-    for (uint256 i = 0; i < exchanges.length; i++) {
-      if (exchanges[i] == exchange) {
-        exchangeIndex = i;
+  function removeReferenceRate(address referenceRateID) external onlyOwner {
+    uint256 referenceRateIndex;
+    for (uint256 i = 0; i < referenceRateIDs.length; i++) {
+      if (referenceRateIDs[i] == referenceRateID) {
+        referenceRateIndex = i;
         break;
       }
     }
 
-    require(exchanges[exchangeIndex] == exchange, "Exchange has not been added");
+    require(referenceRateIDs[referenceRateIndex] == referenceRateID, "referenceRateID has not been added");
 
-    uint256 lastIndex = exchanges.length - 1;
-    if (exchangeIndex != lastIndex) {
-      exchanges[exchangeIndex] = exchanges[lastIndex];
+    uint256 lastIndex = referenceRateIDs.length - 1;
+    if (referenceRateIndex != lastIndex) {
+      referenceRateIDs[referenceRateIndex] = referenceRateIDs[lastIndex];
     }
 
-    exchanges.pop();
+    referenceRateIDs.pop();
 
-    delete exchangeTradingModes[exchange];
-    emit ExchangeRemoved(exchange);
+    delete referenceRateTradingModes[referenceRateID];
+    emit ReferenceRateIDRemoved(referenceRateID);
   }
 
   /**
-   * @notice Sets the trading mode for the specified exchange.
-   * @param exchange The address of the exchange.
+   * @notice Sets the trading mode for the specified referenceRateID.
+   * @param referenceRateID The address of the referenceRateID.
    * @param tradingMode The trading mode that should be set.
    */
-  function setExchangeTradingMode(address exchange, uint64 tradingMode) public onlyOwner {
+  function setReferenceRateTradingMode(address referenceRateID, uint64 tradingMode) public onlyOwner {
     require(
       tradingMode == 0 || tradingModeBreaker[tradingMode] != address(0),
       "Trading mode must be default or have a breaker set"
     );
 
-    TradingModeInfo memory info = exchangeTradingModes[exchange];
-    require(info.lastUpdatedTime > 0, "Exchange has not been added");
+    TradingModeInfo memory info = referenceRateTradingModes[referenceRateID];
+    require(info.lastUpdatedTime > 0, "Reference rate ID has not been added");
 
     info.tradingMode = tradingMode;
     info.lastUpdatedTime = uint64(block.timestamp);
     info.lastUpdatedBlock = uint128(block.number);
-    exchangeTradingModes[exchange] = info;
+    referenceRateTradingModes[referenceRateID] = info;
 
-    emit TradingModeUpdated(exchange, tradingMode);
+    emit TradingModeUpdated(referenceRateID, tradingMode);
   }
 
   /* ==================== View Functions ==================== */
@@ -221,34 +231,33 @@ contract BreakerBox is IBreakerBox, Initializable, UsingRegistry {
   }
 
   /**
-   * @notice Returns addresses of exchanges that have been added.
+   * @notice Returns addresses of referenceRateIDs that have been added.
    */
-  function getExchanges() external view returns (address[] memory) {
-    return exchanges;
+  function getReferenceRateIDs() external view returns (address[] memory) {
+    return referenceRateIDs;
   }
 
   /**
-   * @notice Returns the trading mode for the specified exchange.
-   * @param exchange The address of the exchange to retrieve the trading mode for.
+   * @notice Returns the trading mode for the specified referenceRateID.
+   * @param referenceRateID The address of the referenceRateID to retrieve the trading mode for.
    */
-  function getTradingMode(address exchange) external view returns (uint256 tradingMode) {
-    TradingModeInfo memory info = exchangeTradingModes[exchange];
+  function getTradingMode(address referenceRateID) external view returns (uint256 tradingMode) {
+    TradingModeInfo memory info = referenceRateTradingModes[referenceRateID];
     return info.tradingMode;
   }
 
   /* ==================== Check Breakers ==================== */
 
   /**
-   * @notice Checks breakers for the exchange with the specified id 
+   * @notice Checks breakers for the referenceRateID with the specified id 
              and sets correct trading mode if any breakers are tripped
              or need to be reset.
-   * @param exchangeRegistryId The registryId of the exchange to run checks for.
+   * @param referenceRateID The registryId of the referenceRateID to run checks for.
    */
-  function checkAndSetBreakers(bytes32 exchangeRegistryId) external {
-    address exchangeAddress = registry.getAddressForOrDie(exchangeRegistryId);
-    TradingModeInfo memory info = exchangeTradingModes[exchangeAddress];
+  function checkAndSetBreakers(address referenceRateID) external {
+    TradingModeInfo memory info = referenceRateTradingModes[referenceRateID];
 
-    // This exchange has not been added. So do nothing.
+    // This referenceRateID has not been added. So do nothing.
     if (info.lastUpdatedTime == 0) {
       return;
     }
@@ -261,18 +270,18 @@ contract BreakerBox is IBreakerBox, Initializable, UsingRegistry {
 
       // If the cooldown == 0, then a manual reset is required.
       if (((cooldown > 0) && (cooldown + info.lastUpdatedTime) <= block.timestamp)) {
-        if (breaker.shouldReset(exchangeAddress)) {
+        if (breaker.shouldReset(referenceRateID)) {
           info.tradingMode = 0;
           info.lastUpdatedTime = uint64(block.timestamp);
           info.lastUpdatedBlock = uint128(block.number);
-          exchangeTradingModes[exchangeAddress] = info;
-          emit ResetSuccessful(exchangeAddress, address(breaker));
+          referenceRateTradingModes[referenceRateID] = info;
+          emit ResetSuccessful(referenceRateID, address(breaker));
         } else {
-          emit ResetAttemptCriteriaFail(exchangeAddress, address(breaker));
+          emit ResetAttemptCriteriaFail(referenceRateID, address(breaker));
           return;
         }
       } else {
-        emit ResetAttemptNotCool(exchangeAddress, address(breaker));
+        emit ResetAttemptNotCool(referenceRateID, address(breaker));
         return;
       }
     }
@@ -282,13 +291,13 @@ contract BreakerBox is IBreakerBox, Initializable, UsingRegistry {
     // Check all breakers.
     for (uint256 i = 0; i < _breakers.length; i++) {
       IBreaker breaker = IBreaker(_breakers[i]);
-      bool tripBreaker = breaker.shouldTrigger(exchangeAddress);
+      bool tripBreaker = breaker.shouldTrigger(referenceRateID);
       if (tripBreaker) {
         info.tradingMode = breakerTradingMode[address(breaker)];
         info.lastUpdatedTime = uint64(block.timestamp);
         info.lastUpdatedBlock = uint128(block.number);
-        exchangeTradingModes[exchangeAddress] = info;
-        emit BreakerTripped(address(breaker), exchangeAddress);
+        referenceRateTradingModes[referenceRateID] = info;
+        emit BreakerTripped(address(breaker), referenceRateID);
       }
     }
   }

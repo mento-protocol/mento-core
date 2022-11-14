@@ -9,6 +9,7 @@ import { IBiPoolManager } from "./interfaces/IBiPoolManager.sol";
 import { IReserve } from "./interfaces/IReserve.sol";
 import { IPricingModule } from "./interfaces/IPricingModule.sol";
 import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
+import { IBreakerBox } from "./interfaces/IBreakerBox.sol";
 
 import { StableToken } from "./StableToken.sol";
 
@@ -38,10 +39,15 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   mapping(bytes32 => PoolExchange) public exchanges;
   bytes32[] public exchangeIds;
 
-  // Address of the Mento reserve contract
+  uint256 constant TRADING_MODE_BIDIRECTIONAL = 0;
+
+  // Address of the Mento Reserve contract
   IReserve public reserve;
 
-  // Address of the Mento reserve contract
+  //Address of the Mento BreakerBox contract
+  IBreakerBox public breakerBox;
+
+  // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
 
   /* ==================== Constructor ==================== */
@@ -145,6 +151,19 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     (amountIn, ) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);
   }
 
+ /**
+   * @notice Check trading mode for a particular oracle report target
+   * @param exchange The exchange i.e PoolExchange to use
+   */
+  function checkTradingMode(PoolExchange memory exchange)public view {
+    if (address(breakerBox) != address(0)) {
+      require(
+        breakerBox.getTradingMode(exchange.config.oracleReportTarget) == TRADING_MODE_BIDIRECTIONAL,
+        "Trading is suspended for this referenceRate"
+      );
+    }
+  }
+
   /* ==================== Mutative Functions ==================== */
 
   /**
@@ -165,6 +184,15 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     require(address(_reserve) != address(0), "Reserve address must be set");
     reserve = _reserve;
     emit ReserveUpdated(address(_reserve));
+  }
+
+  /**
+   * @notice Sets the address of the BreakerBox.
+   * @param newBreakerBox The new BreakerBox address.
+   */
+  function setBreakerBox(IBreakerBox newBreakerBox) public onlyOwner {
+    breakerBox = newBreakerBox;
+    emit BreakerBoxUpdated(address(newBreakerBox));
   }
 
   /**
@@ -244,6 +272,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountIn
   ) external onlyBroker returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
+    checkTradingMode(exchange);
     bool bucketsUpdated;
 
     (amountOut, bucketsUpdated) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn);
@@ -266,6 +295,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountOut
   ) external onlyBroker returns (uint256 amountIn) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
+    checkTradingMode(exchange);
     bool bucketsUpdated;
 
     (amountIn, bucketsUpdated) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);

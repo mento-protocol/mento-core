@@ -71,6 +71,12 @@ interface IBiPoolManager {
   event ReserveUpdated(address indexed newReserve);
 
   /**
+   * @notice Emitted when the breakerBox address is updated.
+   * @param newBreakerBox The address of the new breakerBox.
+   */
+  event BreakerBoxUpdated(address newBreakerBox);
+
+  /**
    * @notice Emitted when the sortedOracles address is updated.
    * @param newSortedOracles The address of the new sortedOracles.
    */

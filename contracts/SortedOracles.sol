@@ -6,7 +6,6 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./interfaces/ISortedOracles.sol";
 import "./common/interfaces/ICeloVersionedContract.sol";
 import "./interfaces/IBreakerBox.sol";
-import "./interfaces/IStableToken.sol";
 
 import "./common/FixidityLib.sol";
 import "./common/Initializable.sol";
@@ -246,7 +245,7 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
             previousMedianRate[token] = originalMedian;
             emit MedianUpdated(token, newMedian);
         }
-        breakerBox.checkAndSetBreakers(IStableToken(token).getExchangeRegistryId());
+        breakerBox.checkAndSetBreakers(token);
     }
 
     /**
