@@ -5,6 +5,7 @@ library TradingLimits {
     uint8 private constant L0 = 1; // 0b001 Limit0
     uint8 private constant L1 = 2; // 0b010 Limit1
     uint8 private constant LG = 4; // 0b100 LimitGlobal
+    int48 private constant MAX_INT48 = int48(uint48(-1) / 2);
 
     struct State {
         uint32 lastUpdated0;
@@ -62,25 +63,27 @@ library TradingLimits {
         int256 _deltaFlow, 
         uint8 decimals
     ) internal view returns (State memory) {
-        int48 deltaFlow = int48(_deltaFlow / int256((10 ** uint256(decimals))));
+        int256 _deltaFlowUnits = _deltaFlow / int256((10 ** uint256(decimals)));
+        require(_deltaFlowUnits <= MAX_INT48, "dFlow too large");
+        int48 deltaFlowUnits = _deltaFlowUnits == 0 ? 1 : int48(_deltaFlowUnits);
 
         if (config.flags & L0 > 0) {
             if (block.timestamp > self.lastUpdated0 + config.timestep0) {
                 self.netflow0 = 0;
                 self.lastUpdated0 = uint32(block.timestamp);
             }
-            self.netflow0 += deltaFlow;
+            self.netflow0 += deltaFlowUnits;
 
             if (config.flags & L1 > 0) {
                 if (block.timestamp > self.lastUpdated1 + config.timestep1) {
                     self.netflow1 = 0;
                     self.lastUpdated1 = uint32(block.timestamp);
                 }
-                self.netflow1 += deltaFlow;
+                self.netflow1 += deltaFlowUnits;
             }
         }
         if (config.flags & LG > 0) {
-            self.netflowGlobal +=  deltaFlow;
+            self.netflowGlobal +=  deltaFlowUnits;
         }
 
         return self;

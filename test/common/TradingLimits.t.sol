@@ -226,4 +226,13 @@ contract TradingLimitsTest is Test {
         assertEq(state.netflow1, 0);
         assertEq(state.netflowGlobal, 100);
     }
+
+    function test_update_withSubUnitAmounts_updatesAs1() public {
+        state = state.update(configLG(500000), 1e6, 18);
+        assertEq(state.netflowGlobal, 1);
+    }
+    function test_update_withTooLargeAmount_reverts() public {
+        vm.expectRevert(bytes("dFlow too large"));
+        state = state.update(configLG(500000), 3*10e32, 18);
+    }
 }
