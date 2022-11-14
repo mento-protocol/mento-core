@@ -31,6 +31,8 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
   // Address of the reserve.
   IReserve public reserve;
 
+  uint256 private constant MAX_INT256 = uint256(-1) / 2;
+
   /* ==================== Constructor ==================== */
 
   /**
@@ -264,6 +266,9 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
   ) internal {
     bytes32 tokenIn = bytes32(uint256(uint160(_tokenIn)));
     bytes32 tokenOut = bytes32(uint256(uint160(_tokenOut)));
+    require(amountIn <= uint256(MAX_INT256), "amountIn too large");
+    require(amountOut <= uint256(MAX_INT256), "amountOut too large");
+
 
     guardTradingLimit(
       exchangeId ^ tokenIn,
