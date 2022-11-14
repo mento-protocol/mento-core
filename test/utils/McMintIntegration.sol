@@ -5,10 +5,12 @@ pragma experimental ABIEncoderV2;
 import { Test } from "celo-foundry/Test.sol";
 
 import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
+import { MockBreakerBox } from "../mocks/MockBreakerBox.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 
 import { BiPoolManager } from "contracts/BiPoolManager.sol";
@@ -40,6 +42,7 @@ contract McMintIntegration is Test, WithRegistry {
   IPricingModule constantProduct;
 
   MockSortedOracles sortedOracles; // TODO
+  MockBreakerBox breaker;
 
   Token celoToken;
   Token usdcToken;
@@ -137,6 +140,7 @@ contract McMintIntegration is Test, WithRegistry {
     /* ===== Deploy SortedOracles ===== */
 
     sortedOracles = new MockSortedOracles();
+    breaker = new MockBreakerBox();
 
     cUSD_CELO_oracleReportTarget = address(cUSDToken);
     cEUR_CELO_oracleReportTarget = address(cEURToken);
@@ -165,7 +169,7 @@ contract McMintIntegration is Test, WithRegistry {
     biPoolManager = new BiPoolManager(true);
     broker = new Broker(true);
 
-    biPoolManager.initialize(address(broker), IReserve(reserve), ISortedOracles(address(sortedOracles)));
+    biPoolManager.initialize(address(broker), IReserve(reserve), ISortedOracles(address(sortedOracles)), IBreakerBox(address(breaker)));
     address[] memory exchangeProviders = new address[](1);
     exchangeProviders[0] = address(biPoolManager);
 

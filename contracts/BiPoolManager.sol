@@ -66,12 +66,14 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   function initialize(
     address _broker,
     IReserve _reserve,
-    ISortedOracles _sortedOracles
+    ISortedOracles _sortedOracles,
+    IBreakerBox _breakerBox
   ) external initializer {
     _transferOwnership(msg.sender);
     setBroker(_broker);
     setReserve(_reserve);
     setSortedOracles(_sortedOracles);
+    setBreakerBox(_breakerBox);
   }
 
   /* ==================== Modifiers ==================== */
@@ -188,11 +190,12 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
 
   /**
    * @notice Sets the address of the BreakerBox.
-   * @param newBreakerBox The new BreakerBox address.
+   * @param _breakerBox The new BreakerBox address.
    */
-  function setBreakerBox(IBreakerBox newBreakerBox) public onlyOwner {
-    breakerBox = newBreakerBox;
-    emit BreakerBoxUpdated(address(newBreakerBox));
+  function setBreakerBox(IBreakerBox _breakerBox) public onlyOwner {
+    require(address(_breakerBox) != address(0), "BreakerBox address must be set");
+    breakerBox = _breakerBox;
+    emit BreakerBoxUpdated(address(_breakerBox));
   }
 
   /**

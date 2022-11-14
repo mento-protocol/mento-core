@@ -7,11 +7,13 @@ import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
 import { MockReserve } from "./mocks/MockReserve.sol";
+import { MockBreakerBox } from "./mocks/MockBreakerBox.sol";
 import { MockERC20 } from "./mocks/MockERC20.sol";
 import { MockPricingModule } from "./mocks/MockPricingModule.sol";
 import { MockSortedOracles } from "./mocks/MockSortedOracles.sol";
@@ -30,6 +32,8 @@ contract BiPoolManagerTest is Test {
   event ReserveUpdated(address indexed newReserve);
   event SortedOraclesUpdated(address indexed newSortedOracles);
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
+  event BreakerBoxUpdated(address newBreakerBox);
+
 
   /* ------------------------------------------- */
 
@@ -47,6 +51,7 @@ contract BiPoolManagerTest is Test {
 
   MockReserve reserve;
   BiPoolManager biPoolManager;
+  MockBreakerBox breaker;
 
   function newMockERC20(string memory name, string memory symbol) internal returns (MockERC20 token) {
     token = new MockERC20(name, symbol);
@@ -69,6 +74,7 @@ contract BiPoolManagerTest is Test {
 
     reserve = new MockReserve();
     biPoolManager = new BiPoolManager(true);
+    breaker = new MockBreakerBox();
 
     vm.mockCall(address(reserve), abi.encodeWithSelector(reserve.isStableAsset.selector, address(cUSD)), abi.encode(true));
 
@@ -80,7 +86,7 @@ contract BiPoolManagerTest is Test {
 
     changePrank(deployer);
 
-    biPoolManager.initialize(broker, IReserve(address(reserve)), ISortedOracles(address(sortedOracles)));
+    biPoolManager.initialize(broker, IReserve(address(reserve)), ISortedOracles(address(sortedOracles)), IBreakerBox(address(breaker)));
   }
 
   function mockOracleRate(address target, uint256 rateNumerator) internal {
@@ -223,6 +229,10 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     assertEq(address(biPoolManager.sortedOracles()), address(sortedOracles));
   }
 
+  function test_initialize_shouldSetBreakerBox() public {
+    assertEq(address(biPoolManager.breakerBox()), address(breaker));
+  }
+
   /* ---------- Setters ---------- */
 
   function test_setBroker_whenSenderIsNotOwner_shouldRevert() public {
@@ -286,6 +296,27 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     biPoolManager.setSortedOracles(ISortedOracles(newSortedOracles));
 
     assertEq(address(biPoolManager.sortedOracles()), newSortedOracles);
+  }
+
+   function test_setBreakerBox_whenSenderIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    biPoolManager.setBreakerBox(IBreakerBox(address(0)));
+  }
+
+  function test_setBreakerBox_whenAddressIsZero_shouldRevert() public {
+    vm.expectRevert("BreakerBox address must be set");
+    biPoolManager.setBreakerBox(IBreakerBox(address(0)));
+  }
+
+   function test_setBreakerBox_whenSenderIsOwner_shouldUpdateAndEmit() public {
+    address newBreakerBox = actor("newBreakerBox");
+    vm.expectEmit(true, true, true, true);
+    emit BreakerBoxUpdated(newBreakerBox);
+
+    biPoolManager.setBreakerBox(IBreakerBox(newBreakerBox));
+
+    assertEq(address(biPoolManager.breakerBox()), newBreakerBox);
   }
 
   /* ---------- Getters ---------- */
