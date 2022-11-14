@@ -262,8 +262,6 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapIn_whenAmountOutMinNotMet_shouldRevert() public {
-    uint256 amountIn = 1e16;
-
     vm.expectRevert("amountOutMin not met");
     broker.swapIn(
       address(exchangeProvider), 
@@ -276,11 +274,8 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapOut_whenAmountInMaxExceeded_shouldRevert() public {
-    uint256 amountOut = 1e16;
-    uint256 mockAmountIn = 1e16;
-
     vm.expectRevert("amountInMax exceeded");
-    broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), amountOut, 1e15);
+    broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e16, 1e15);
   }
 
   function test_swapIn_whenTokenInStableAsset_shouldUpdateAndEmit() public {
@@ -440,7 +435,7 @@ contract BrokerTest_swap is BrokerTest {
     changePrank(trader);
 
     IERC20(collateralAsset).approve(address(broker), 1e21);
-    uint256 amountOut = broker.swapIn(
+    broker.swapIn(
       address(exchangeProvider),
       exchangeId,
       address(collateralAsset),
@@ -460,7 +455,7 @@ contract BrokerTest_swap is BrokerTest {
     changePrank(trader);
 
     vm.expectRevert(bytes("L0 Exceeded"));
-    uint256 amountOut = broker.swapIn(
+    broker.swapIn(
       address(exchangeProvider),
       exchangeId,
       address(stableAsset),

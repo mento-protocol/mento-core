@@ -283,9 +283,9 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
   }
 
   function guardTradingLimit(bytes32 tradingLimitId, int256 deltaFlow, address token) internal {
-    TradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
     TradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
+      TradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
       tradingLimitState = tradingLimitState.update(
         tradingLimitConfig, 
         deltaFlow, 

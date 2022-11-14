@@ -24,7 +24,7 @@ library TradingLimits {
         uint8 flags;
     }
 
-    function validate(Config memory self) internal view returns (bool) {
+    function validate(Config memory self) internal pure returns (bool) {
         require(
            self.flags & L1 == 0 || self.flags & L0 != 0,
            "L1 without L0 not allowed"
