@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable var-name-mixedcase
 pragma solidity >=0.5.13 <0.9.0;
 
 library GetCode {

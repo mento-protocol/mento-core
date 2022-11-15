@@ -24,14 +24,12 @@
   ],
   "private": true,
   "scripts": {
-    "lint": "yarn prettier && yarn solhint:src && solhint:test",
-    "lint:check": "yarn prettier:check && yarn solhint:src:check && yarn solhint:test:check",
+    "lint": "yarn prettier && yarn solhint",
+    "lint:check": "yarn prettier:check && yarn solhint:check",
     "postinstall": "husky install",
     "prettier": "prettier --config \"./.prettierrc.yml\" --write \"**/*.{json,md,sol,yml}\"",
     "prettier:check": "prettier --config \"./.prettierrc.yml\" --check \"**/*.{json,md,sol,yml}\"",
-    "solhint:src": "solhint --config \"./.solhint.json\" \"contracts/**/*.sol\"",
-    "solhint:test": "solhint --config \"./.solhint.test.json\" \"test/**/*.sol\"",
-    "solhint:src:check": "solhint --config \"./.solhint.json\" \"contracts/**/*.sol\" -q",
-    "solhint:test:check": "solhint --config \"./.solhint.test.json\" \"test/**/*.sol\" -q"
+    "solhint": "solhint --config \"./.solhint.json\" \"{contracts,test}/**/*.sol\"",
+    "solhint:check": "solhint --config \"./.solhint.json\" \"{contracts,test}/**/*.sol\" -q"
   }
 }
