@@ -6,9 +6,14 @@ import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
 contract MockExchangeProvider is IExchangeProvider {
   using FixidityLib for FixidityLib.Fraction;
-  mapping(bytes32 => uint256) exchangeRate;
+  mapping(bytes32 => uint256) private exchangeRate;
 
-  function setRate(bytes32 exchangeId, address base, address quote, uint256 rate) external {
+  function setRate(
+    bytes32 exchangeId,
+    address base,
+    address quote,
+    uint256 rate
+  ) external {
     bytes32 rateId = keccak256(abi.encodePacked(exchangeId, base, quote));
     exchangeRate[rateId] = rate;
     rateId = keccak256(abi.encodePacked(exchangeId, quote, base));

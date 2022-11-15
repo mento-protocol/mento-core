@@ -174,7 +174,7 @@ contract BrokerTest_getAmounts is BrokerTest {
   function setUp() public {
     super.setUp();
     exchangeProvider.setRate(
-      exchangeId, 
+      exchangeId,
       address(stableAsset),
       address(collateralAsset),
       FixidityLib.newFixedFraction(25, 10).unwrap()
@@ -243,7 +243,7 @@ contract BrokerTest_swap is BrokerTest {
   function setUp() public {
     super.setUp();
     exchangeProvider.setRate(
-      exchangeId, 
+      exchangeId,
       address(stableAsset),
       address(collateralAsset),
       FixidityLib.newFixedFraction(25, 10).unwrap()
@@ -265,14 +265,7 @@ contract BrokerTest_swap is BrokerTest {
 
   function test_swapIn_whenAmountOutMinNotMet_shouldRevert() public {
     vm.expectRevert("amountOutMin not met");
-    broker.swapIn(
-      address(exchangeProvider), 
-      exchangeId, 
-      address(stableAsset), 
-      address(collateralAsset),
-      1e16,
-      1e20
-    );
+    broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e16, 1e20);
   }
 
   function test_swapOut_whenAmountInMaxExceeded_shouldRevert() public {
@@ -284,16 +277,24 @@ contract BrokerTest_swap is BrokerTest {
     changePrank(trader);
     uint256 amountIn = 1e16;
     uint256 expectedAmountOut = exchangeProvider.getAmountOut(
-      exchangeId, 
-      address(stableAsset), 
-      address(collateralAsset), 
+      exchangeId,
+      address(stableAsset),
+      address(collateralAsset),
       amountIn
     );
 
     BalanceSnapshot memory balBefore = makeBalanceSnapshot();
 
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(stableAsset), address(collateralAsset), amountIn, expectedAmountOut);
+    emit Swap(
+      address(exchangeProvider),
+      exchangeId,
+      trader,
+      address(stableAsset),
+      address(collateralAsset),
+      amountIn,
+      expectedAmountOut
+    );
     uint256 amountOut = broker.swapIn(
       address(exchangeProvider),
       exchangeId,
@@ -317,9 +318,9 @@ contract BrokerTest_swap is BrokerTest {
     changePrank(trader);
     uint256 amountIn = 1e16;
     uint256 expectedAmountOut = exchangeProvider.getAmountOut(
-      exchangeId, 
-      address(collateralAsset), 
-      address(stableAsset), 
+      exchangeId,
+      address(collateralAsset),
+      address(stableAsset),
       amountIn
     );
 
@@ -328,12 +329,12 @@ contract BrokerTest_swap is BrokerTest {
 
     vm.expectEmit(true, true, true, true);
     emit Swap(
-      address(exchangeProvider), 
-      exchangeId, 
-      trader, 
-      address(collateralAsset), 
-      address(stableAsset), 
-      amountIn, 
+      address(exchangeProvider),
+      exchangeId,
+      trader,
+      address(collateralAsset),
+      address(stableAsset),
+      amountIn,
       expectedAmountOut
     );
     uint256 amountOut = broker.swapIn(
@@ -359,15 +360,23 @@ contract BrokerTest_swap is BrokerTest {
     changePrank(trader);
     uint256 amountOut = 1e16;
     uint256 expectedAmountIn = exchangeProvider.getAmountIn(
-      exchangeId, 
-      address(stableAsset), 
-      address(collateralAsset), 
+      exchangeId,
+      address(stableAsset),
+      address(collateralAsset),
       amountOut
     );
 
     BalanceSnapshot memory balBefore = makeBalanceSnapshot();
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(stableAsset), address(collateralAsset), expectedAmountIn, amountOut);
+    emit Swap(
+      address(exchangeProvider),
+      exchangeId,
+      trader,
+      address(stableAsset),
+      address(collateralAsset),
+      expectedAmountIn,
+      amountOut
+    );
 
     uint256 amountIn = broker.swapOut(
       address(exchangeProvider),
@@ -392,9 +401,9 @@ contract BrokerTest_swap is BrokerTest {
     changePrank(trader);
     uint256 amountOut = 1e16;
     uint256 expectedAmountIn = exchangeProvider.getAmountIn(
-      exchangeId, 
-      address(collateralAsset), 
-      address(stableAsset), 
+      exchangeId,
+      address(collateralAsset),
+      address(stableAsset),
       amountOut
     );
 
@@ -402,7 +411,15 @@ contract BrokerTest_swap is BrokerTest {
     BalanceSnapshot memory balBefore = makeBalanceSnapshot();
 
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(collateralAsset), address(stableAsset), expectedAmountIn, amountOut);
+    emit Swap(
+      address(exchangeProvider),
+      exchangeId,
+      trader,
+      address(collateralAsset),
+      address(stableAsset),
+      expectedAmountIn,
+      amountOut
+    );
     uint256 amountIn = broker.swapOut(
       address(exchangeProvider),
       exchangeId,
@@ -437,14 +454,7 @@ contract BrokerTest_swap is BrokerTest {
     changePrank(trader);
 
     IERC20(collateralAsset).approve(address(broker), 1e21);
-    broker.swapIn(
-      address(exchangeProvider),
-      exchangeId,
-      address(collateralAsset),
-      address(stableAsset),
-      1e20,
-      1e16
-    );
+    broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 1e20, 1e16);
   }
 
   function test_swapIn_whenTradingLimitWasMet_shouldNotSwap() public {
@@ -457,13 +467,6 @@ contract BrokerTest_swap is BrokerTest {
     changePrank(trader);
 
     vm.expectRevert(bytes("L0 Exceeded"));
-    broker.swapIn(
-      address(exchangeProvider),
-      exchangeId,
-      address(stableAsset),
-      address(collateralAsset),
-      5e20,
-      0
-    );
+    broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 5e20, 0);
   }
 }

@@ -25,8 +25,8 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
 
   address[] public exchangeProviders;
   mapping(address => bool) public isExchangeProvider;
-  mapping(bytes32 => TradingLimits.State) tradingLimitsState;
-  mapping(bytes32 => TradingLimits.Config) tradingLimitsConfig;
+  mapping(bytes32 => TradingLimits.State) public tradingLimitsState;
+  mapping(bytes32 => TradingLimits.Config) public tradingLimitsConfig;
 
   // Address of the reserve.
   IReserve public reserve;
@@ -190,7 +190,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
   /**
    * @notice Configure trading limits for an (exchangeId, token) touple.
    * @dev Will revert if the configuration is not valid according to the
-   * TradingLimits library. 
+   * TradingLimits library.
    * Resets existing state according to the TradingLimits library logic.
    * Can only be called by owner.
    * @param exchangeId the exchangeId to target.
@@ -198,8 +198,8 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
    * @param config the new trading limits config.
    */
   function configureTradingLimit(
-    bytes32 exchangeId, 
-    address token, 
+    bytes32 exchangeId,
+    address token,
     TradingLimits.Config memory config
   ) public onlyOwner {
     config.validate();
@@ -277,17 +277,8 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     require(amountIn <= uint256(MAX_INT256), "amountIn too large");
     require(amountOut <= uint256(MAX_INT256), "amountOut too large");
 
-
-    guardTradingLimit(
-      exchangeId ^ tokenIn,
-      int256(amountIn), 
-      _tokenIn
-    );
-    guardTradingLimit(
-      exchangeId ^ tokenOut,
-      -1 * int256(amountOut), 
-      _tokenOut
-    );
+    guardTradingLimit(exchangeId ^ tokenIn, int256(amountIn), _tokenIn);
+    guardTradingLimit(exchangeId ^ tokenOut, -1 * int256(amountOut), _tokenOut);
   }
 
   /**
@@ -297,15 +288,15 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
    * @param deltaFlow the deltaflow of this token, negative for outflow, positive for inflow.
    * @param token the address of the token, used to lookup decimals.
    */
-  function guardTradingLimit(bytes32 tradingLimitId, int256 deltaFlow, address token) internal {
+  function guardTradingLimit(
+    bytes32 tradingLimitId,
+    int256 deltaFlow,
+    address token
+  ) internal {
     TradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
       TradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
-      tradingLimitState = tradingLimitState.update(
-        tradingLimitConfig, 
-        deltaFlow, 
-        IERC20Metadata(token).decimals()
-      );
+      tradingLimitState = tradingLimitState.update(tradingLimitConfig, deltaFlow, IERC20Metadata(token).decimals());
       tradingLimitState.verify(tradingLimitConfig);
       tradingLimitsState[tradingLimitId] = tradingLimitState;
     }
