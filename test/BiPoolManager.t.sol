@@ -24,8 +24,18 @@ contract BiPoolManagerTest is Test {
 
   /* ------- Events from IBiPoolManager ------- */
 
-  event ExchangeCreated(bytes32 indexed exchangeId, address indexed asset0, address indexed asset1, address pricingModule);
-  event ExchangeDestroyed(bytes32 indexed exchangeId, address indexed asset0, address indexed asset1, address pricingModule);
+  event ExchangeCreated(
+    bytes32 indexed exchangeId,
+    address indexed asset0,
+    address indexed asset1,
+    address pricingModule
+  );
+  event ExchangeDestroyed(
+    bytes32 indexed exchangeId,
+    address indexed asset0,
+    address indexed asset1,
+    address pricingModule
+  );
   event BrokerUpdated(address indexed newBroker);
   event ReserveUpdated(address indexed newReserve);
   event SortedOraclesUpdated(address indexed newSortedOracles);
@@ -70,13 +80,29 @@ contract BiPoolManagerTest is Test {
     reserve = new MockReserve();
     biPoolManager = new BiPoolManager(true);
 
-    vm.mockCall(address(reserve), abi.encodeWithSelector(reserve.isStableAsset.selector, address(cUSD)), abi.encode(true));
+    vm.mockCall(
+      address(reserve),
+      abi.encodeWithSelector(reserve.isStableAsset.selector, address(cUSD)),
+      abi.encode(true)
+    );
 
-    vm.mockCall(address(reserve), abi.encodeWithSelector(reserve.isStableAsset.selector, address(cEUR)), abi.encode(true));
+    vm.mockCall(
+      address(reserve),
+      abi.encodeWithSelector(reserve.isStableAsset.selector, address(cEUR)),
+      abi.encode(true)
+    );
 
-    vm.mockCall(address(reserve), abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(USDCet)), abi.encode(true));
+    vm.mockCall(
+      address(reserve),
+      abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(USDCet)),
+      abi.encode(true)
+    );
 
-    vm.mockCall(address(reserve), abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(CELO)), abi.encode(true));
+    vm.mockCall(
+      address(reserve),
+      abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(CELO)),
+      abi.encode(true)
+    );
 
     changePrank(deployer);
 

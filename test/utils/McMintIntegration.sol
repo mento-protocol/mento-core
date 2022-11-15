@@ -61,7 +61,14 @@ contract McMintIntegration is Test, WithRegistry {
 
   function setUp_mcMint() public {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
+    setUp_assets();
+    setUp_reserve();
+    setUp_sortedOracles();
+    setUp_broker();
+    setUp_freezer();
+  }
 
+  function setUp_assets() internal {
     /* ===== Deploy collateral and stable assets ===== */
 
     changePrank(actor("deployer"));
@@ -99,7 +106,9 @@ contract McMintIntegration is Test, WithRegistry {
 
     vm.label(address(cUSDToken), "cUSD");
     vm.label(address(cEURToken), "cEUR");
+  }
 
+  function setUp_reserve() internal {
     /* ===== Deploy reserve ===== */
 
     bytes32[] memory initialAssetAllocationSymbols = new bytes32[](2);
@@ -133,7 +142,9 @@ contract McMintIntegration is Test, WithRegistry {
 
     reserve.addToken(address(cUSDToken));
     reserve.addToken(address(cEURToken));
+  }
 
+  function setUp_sortedOracles() internal {
     /* ===== Deploy SortedOracles ===== */
 
     sortedOracles = new MockSortedOracles();
@@ -158,7 +169,9 @@ contract McMintIntegration is Test, WithRegistry {
 
     sortedOracles.setMedianRate(cUSD_cEUR_oracleReportTarget, 1.1 * 1e24);
     sortedOracles.setNumRates(cUSD_cEUR_oracleReportTarget, 10);
+  }
 
+  function setUp_broker() internal {
     /* ===== Deploy BiPoolManager & Broker ===== */
 
     constantProduct = IPricingModule(new ConstantProductPricingModule(true));
@@ -240,8 +253,11 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cUSD_cEUR.config.stablePoolResetSize = 1e24;
 
     pair_cUSD_cEUR_ID = biPoolManager.createExchange(pair_cUSD_cEUR);
+  }
 
+  function setUp_freezer() internal {
     /* ========== Deploy Freezer =============== */
+
     freezer = new Freezer(true);
     registry.setAddressFor("Freezer", address(freezer));
   }

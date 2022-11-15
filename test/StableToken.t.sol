@@ -49,7 +49,17 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
-    testee.initialize("Celo Dollar", "cUSD", 18, address(registry), 1e24, 1 weeks, initialAddresses, initialBalances, "Exchange");
+    testee.initialize(
+      "Celo Dollar",
+      "cUSD",
+      18,
+      address(registry),
+      1e24,
+      1 weeks,
+      initialAddresses,
+      initialBalances,
+      "Exchange"
+    );
 
     initTime = block.timestamp;
   }
@@ -63,7 +73,9 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
   function mockFractionMul0995() public {
     ph.mockReturn(
       FRACTION_MUL,
-      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(1), uint256(18))),
+      keccak256(
+        abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(1), uint256(18))
+      ),
       abi.encode(uint256(0.995 * 10**18), uint256(1e18))
     );
   }
@@ -71,7 +83,9 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
   function mockFractionMul0995Twice() public {
     ph.mockReturn(
       FRACTION_MUL,
-      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(2), uint256(18))),
+      keccak256(
+        abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(2), uint256(18))
+      ),
       abi.encode(uint256(0.990025 * 10**18), uint256(1e18))
     );
   }
@@ -79,7 +93,9 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
   function mockFractionMul1005() public {
     ph.mockReturn(
       FRACTION_MUL,
-      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(1), uint256(18))),
+      keccak256(
+        abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(1), uint256(18))
+      ),
       abi.encode(uint256(1.005 * 10**18), uint256(1e18))
     );
   }
@@ -87,7 +103,9 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
   function mockFractionMul1005Twice() public {
     ph.mockReturn(
       FRACTION_MUL,
-      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(2), uint256(18))),
+      keccak256(
+        abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(2), uint256(18))
+      ),
       abi.encode(uint256(1.010025 * 10**18), uint256(1e18))
     );
   }
@@ -583,7 +601,7 @@ contract StableTokenTest_erc20Functions is StableTokenTest {
   function test_increaseAllowance_whenSpenderIsNotZeroAddress_shouldUpdateAndEmit() public {
     vm.expectEmit(true, true, true, true);
     emit Approval(sender, receiver, 2);
-    bool res = testee.increaseAllowance(receiver, 2);
+    testee.increaseAllowance(receiver, 2);
     assertEq(testee.allowance(sender, receiver), 2);
     assertEq(testee.allowance(sender, sender), 0);
   }

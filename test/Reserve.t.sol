@@ -65,7 +65,7 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
     bytes32[] memory initialAssetAllocationSymbols = new bytes32[](1);
     initialAssetAllocationSymbols[0] = bytes32("cGLD");
     uint256[] memory initialAssetAllocationWeights = new uint256[](1);
-    initialAssetAllocationWeights[0] = FixidityLib.newFixed(1).unwrap(); 
+    initialAssetAllocationWeights[0] = FixidityLib.newFixed(1).unwrap();
 
     address[] memory collateralAssets = new address[](1);
     uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);

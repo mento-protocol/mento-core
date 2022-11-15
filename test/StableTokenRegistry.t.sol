@@ -70,14 +70,10 @@ contract StableTokenRegistryTest_initializerAndSetters is StableTokenRegistryTes
     assertEq(stableTokenRegistry.fiatTickers(0), bytes("GEL"));
     assertEq(stableTokenRegistry.fiatTickers(1), bytes("EUR"));
     assertEq(stableTokenRegistry.fiatTickers(2), bytes("BRL"));
-    (bytes memory updatedContracts, uint256[] memory lengths) = stableTokenRegistry.getContractInstances();
+    (bytes memory updatedContracts, ) = stableTokenRegistry.getContractInstances();
     assertEq(
       updatedContracts,
-      abi.encodePacked(
-        bytes("StableTokenGEL"),
-        bytes("StableTokenEUR"),
-        bytes("StableTokenBRL")
-      )
+      abi.encodePacked(bytes("StableTokenGEL"), bytes("StableTokenEUR"), bytes("StableTokenBRL"))
     );
     assertEq(stableTokenRegistry.queryStableTokenContractNames((fiatTickerUSD)), "");
   }
@@ -110,7 +106,7 @@ contract StableTokenRegistryTest_initializerAndSetters is StableTokenRegistryTes
     assertEq(stableTokenRegistry.fiatTickers(2), bytes("BRL"));
     assertEq(stableTokenRegistry.fiatTickers(3), bytes("GEL"));
     assertEq(stableTokenRegistry.fiatTickers(4), bytes("GBP"));
-    (bytes memory updatedContracts, uint256[] memory lengths) = stableTokenRegistry.getContractInstances();
+    (bytes memory updatedContracts, ) = stableTokenRegistry.getContractInstances();
     assertEq(
       updatedContracts,
       abi.encodePacked(
