@@ -2,7 +2,8 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { Test, console2 as console } from "celo-foundry/Test.sol";
+import { Test } from "celo-foundry/Test.sol";
+import { console } from "forge-std/console.sol";
 import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
 // forge test --match-contract TradingLimits -vvv
@@ -101,9 +102,9 @@ contract TradingLimitsTest is Test {
 
     /* ==================== Config#validate ==================== */
 
-    function test_validate_withL0_verify() public {
+    function test_validate_withL0_isValid() public {
         TradingLimits.Config memory config = configL0(100, 1000);
-        assertEq(config.validate(), true);
+        config.validate();
     }
 
     function test_validate_withL0_withoutTimestep_isNotValid() public {
@@ -114,7 +115,7 @@ contract TradingLimitsTest is Test {
 
     function test_validate_withL0L1_isValid() public {
         TradingLimits.Config memory config = configL0L1(100, 1000, 1000, 10000);
-        assertEq(config.validate(), true);
+        config.validate();
     }
 
     function test_validate_withL0L1_withoutTimestape_isNotValid() public {
@@ -125,7 +126,7 @@ contract TradingLimitsTest is Test {
 
     function test_validate_withL0L1LG_isValid() public {
         TradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 100000);
-        assertEq(config.validate(), true);
+        config.validate();
     }
 
     function test_configure_withL1LG_isNotValid() public {
@@ -134,16 +135,47 @@ contract TradingLimitsTest is Test {
         config.validate();
     }
 
+    /* ==================== State#reset ==================== */
+    
+    function test_reset_clearsCheckpoints() public {
+        state.lastUpdated0 = 123412412;
+        state.lastUpdated1 = 123124412; 
+        state = state.reset(configL0(500, 1000));
+
+        assertEq(uint256(state.lastUpdated0), 0);
+        assertEq(uint256(state.lastUpdated1), 0);
+    }
+
+    function test_reset_resetsNetflowsOnDisabled() public {
+        state.netflow1 = 12312;
+        state.netflowGlobal = 12312;
+        state = state.reset(configL0(500, 1000));
+
+        assertEq(uint256(state.netflow1), 0);
+        assertEq(uint256(state.netflowGlobal), 0);
+    }
+
+    function test_reset_keepsNetflowsOnEnabled() public {
+        state.netflow0= 12312;
+        state.netflow1 = 12312;
+        state.netflowGlobal = 12312;
+        state = state.reset(configL0LG(500, 1000, 100000));
+
+        assertEq(uint256(state.netflow0), 12312);
+        assertEq(uint256(state.netflow1), 0);
+        assertEq(uint256(state.netflowGlobal), 12312);
+    }
+
     /* ==================== State#verify ==================== */
 
     function test_verify_withNothingOn() public view {
         TradingLimits.Config memory config;
-        assert(state.verify(config));
+        state.verify(config);
     }
 
     function test_verify_withL0_butNotMet() public {
         state.netflow0 = 500;
-        assert(state.verify(configL0(500, 1230)));
+        state.verify(configL0(500, 1230));
     }
 
     function test_verify_withL0_andMetPositively() public {
@@ -160,7 +192,7 @@ contract TradingLimitsTest is Test {
 
     function test_verify_withL0L1_butNoneMet() public {
         state.netflow1 = 500;
-        assert(state.verify(configL0L1(50, 100, 500, 1230)));
+        state.verify(configL0L1(50, 100, 500, 1230));
     }
 
     function test_verify_withL0L1_andL1MetPositively() public {
@@ -177,7 +209,7 @@ contract TradingLimitsTest is Test {
 
     function test_verify_withLG_butNoneMet() public {
         state.netflowGlobal = 500;
-        assert(state.verify(configLG(1230)));
+        state.verify(configLG(1230));
     }
 
     function test_verify_withLG_andMetPositively() public {
@@ -192,7 +224,7 @@ contract TradingLimitsTest is Test {
         state.verify(configLG(1230));
     }
 
-    /* ==================== #update ==================== */
+    /* ==================== State#update ==================== */
 
     function test_update_withNoLimit_updatesOnlyGlobal() public {
         state = state.update(configEmpty(), 100 * 1e18, 18);
@@ -234,5 +266,14 @@ contract TradingLimitsTest is Test {
     function test_update_withTooLargeAmount_reverts() public {
         vm.expectRevert(bytes("dFlow too large"));
         state = state.update(configLG(500000), 3*10e32, 18);
+    }
+
+    function test_update_withOverflowOnAdd_reverts() public {
+        TradingLimits.Config memory config = configLG(int48(2**47));
+        int256 maxFlow = int256(uint48(-1) / 2);
+
+        state = state.update(config, (maxFlow - 1000) * 1e18, 18);
+        vm.expectRevert(bytes("int48 addition overflow"));
+        state = state.update(config, 1002 * 10e18, 18);
     }
 }

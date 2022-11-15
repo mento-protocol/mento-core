@@ -191,23 +191,25 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
   }
 
   /**
-   * @notice Explain to an end user what this does
-   * @dev Explain to a developer any extra details
-   * @return Documents the return variables of a contract’s function state variable
+   * @notice Configure trading limits for an (exchangeId, token) touple.
+   * @dev Will revert if the configuration is not valid according to the
+   * TradingLimits library. 
+   * Resets existing state according to the TradingLimits library logic.
+   * Can only be called by owner.
+   * @param exchangeId the exchangeId to target.
+   * @param token the token to target.
+   * @param config the new trading limits config.
    */
   function configureTradingLimit(
     bytes32 exchangeId, 
-    address _token, 
+    address token, 
     TradingLimits.Config memory config
   ) public onlyOwner {
     config.validate();
 
-    bytes32 token = bytes32(uint256(uint160(_token)));
-    bytes32 limitID = exchangeId ^ token;
-    tradingLimitsConfig[limitID] = config;
-
-    TradingLimits.State memory state;
-    tradingLimitsState[limitID] = state;
+    bytes32 limitId = exchangeId ^ bytes32(uint256(uint160(token)));
+    tradingLimitsConfig[limitId] = config;
+    tradingLimitsState[limitId] = tradingLimitsState[limitId].reset(config);
   }
 
   /* ==================== Private Functions ==================== */
@@ -257,6 +259,15 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     }
   }
 
+  /**
+   * @notice Verify trading limits for a trade in both directions.
+   * @dev Reverts if the trading limits are met for outflow or inflow.
+   * @param exchangeId the ID of the exchange being used.
+   * @param _tokenIn the address of the token flowing in.
+   * @param amountIn the amount of token flowing in.
+   * @param _tokenOut the address of the token flowing out.
+   * @param amountOut  the amount of token flowing out.
+   */
   function guardTradingLimits(
     bytes32 exchangeId,
     address _tokenIn,
@@ -282,6 +293,13 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     );
   }
 
+  /**
+   * @notice Updates and verifies a trading limit if it's configured.
+   * @dev Will revert if the trading limit is exceeded by this trade.
+   * @param tradingLimitId the ID of the trading limit associated with the token
+   * @param deltaFlow the deltaflow of this token, negative for outflow, positive for inflow.
+   * @param token the address of the token, used to lookup decimals.
+   */
   function guardTradingLimit(bytes32 tradingLimitId, int256 deltaFlow, address token) internal {
     TradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
