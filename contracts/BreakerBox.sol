@@ -178,7 +178,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
       }
     }
 
-    require(referenceRateIDs[referenceRateIndex] == referenceRateID, "referenceRateID has not been added");
+    require(referenceRateIDs[referenceRateIndex] == referenceRateID, "Reference rate ID has not been added");
 
     uint256 lastIndex = referenceRateIDs.length - 1;
     if (referenceRateIndex != lastIndex) {

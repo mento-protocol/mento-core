@@ -307,8 +307,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_removeReferenceRate_whenReferenceRateHasNotBeenAdded_shouldRevert() public {
-    // TODO change this
-    vm.expectRevert("referenceRateID has not been added");
+    vm.expectRevert("Reference rate ID has not been added");
     breakerBox.removeReferenceRate(referenceRateID3);
   }
 
