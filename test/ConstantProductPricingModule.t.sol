@@ -26,7 +26,7 @@ contract LegacyExchangeWrapper {
 
   constructor() public {
     exchange = new Exchange(true);
-    exchange.initialize(registryAddress, "StableToken", 5 * 1e23, 5 * 1e23, 60 * 60, 2, 1e24, 5 * 1e23);
+    exchange.initialize(registryAddress, "StableToken", 5 * 1e23, 5 * 1e23, 60 * 60, 2);
   }
 
   function getAmountOut(

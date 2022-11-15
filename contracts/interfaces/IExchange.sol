@@ -26,6 +26,4 @@ interface IExchange {
     function getSellTokenAmount(uint256, bool) external view returns (uint256);
 
     function getBuyAndSellBuckets(bool) external view returns (uint256, uint256);
-
-    function getStableBucketCap() external view returns (uint256);
 }

@@ -14,10 +14,10 @@ on:
       - "main"
       - "develop"
 
-  workflow_dispatch:
-
 jobs:
+
   ci:
+    name: Lint & Test
     runs-on: "ubuntu-latest"
     steps:
       - name: "Check out the repo"
