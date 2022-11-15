@@ -21,7 +21,6 @@ contract StableTokenRegistryTest is Test {
     changePrank(deployer);
     stableTokenRegistry = new StableTokenRegistry(true);
     stableTokenRegistry.initialize(bytes("GEL"), bytes("StableTokenGEL"));
-    abi.encodePacked(bytes("USD"), " ", bytes("EUR"));
   }
 }
 

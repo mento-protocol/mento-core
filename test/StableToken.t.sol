@@ -66,8 +66,8 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
     initTime = block.timestamp;
   }
 
-  function setUpInflation(uint256 inflationRate) public {
-    testee.setInflationParameters(inflationRate, 1 weeks);
+  function setUpInflation(uint256 _inflationRate) public {
+    testee.setInflationParameters(_inflationRate, 1 weeks);
     skip(1 weeks);
     vm.roll(block.number + 1);
   }
@@ -122,15 +122,15 @@ contract StableTokenTest_initilizerAndSetters is StableTokenTest {
     assertEq(testee.symbol(), "cUSD");
   }
 
-  function test_initialize_shouldSetOwner() public {
+  function test_initialize_shouldSetOwner() public view {
     assert(testee.owner() == deployer);
   }
 
-  function test_initialize_shouldSetDecimals() public {
+  function test_initialize_shouldSetDecimals() public view {
     assert(testee.decimals() == 18);
   }
 
-  function test_initialize_shouldSetRegistry() public {
+  function test_initialize_shouldSetRegistry() public view {
     assert(address(testee.registry()) == address(registry));
   }
 
@@ -323,7 +323,7 @@ contract StableTokenTest_setInflationParameters is StableTokenTest {
   }
 
   function test_setInflationParameters_shouldEmitEvent() public {
-    uint256 newUpdatePeriod = 1 weeks + 5;
+    newUpdatePeriod = 1 weeks + 5;
 
     changePrank(deployer);
     vm.expectEmit(true, true, true, true);
