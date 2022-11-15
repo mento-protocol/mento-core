@@ -6,16 +6,17 @@ pragma experimental ABIEncoderV2;
  * @author Mento Team
  * @notice This library provides data structs and utility functions for
  * defining and verifying trading limits on the netflow of an asset.
- * There are three limits that can be defined:
- * - L0: A timewindow based limit, verifies that that:
- *       -1 * limit0 <= netflow0 <= limit0.
- *       for a netflow0 that resets every timespan0 seconds
- * - L1: A timewindow based limit, verifies that that:
- *       -1 * limit1 <= netflow1 <= limit1.
- *       for a netflow1 that resets every timespan0 second
+ * There are three limits that can be enabled:
+ * - L0: A timewindow based limit, verifies that:
+ *       -1 * limit0 <= netflow0 <= limit0,
+ *       for a netflow0 that resets every timespan0 seconds.
+ * - L1: A timewindow based limit, verifies that:
+ *       -1 * limit1 <= netflow1 <= limit1,
+ *       for a netflow1 that resets every timespan1 second.
  * - LG: A global (or lifetime) limit that ensures that:
  *       -1 * limitGlobal <= netflowGlobal <= limitGlobal,
- *       for a netflowGlobal that never resets.
+ *       for a netflowGlobal that doesn't reset until the
+ *       limit is disabled.
  * @dev All contained functions are pure or view and marked internal to
  * be inlined on consuming contracts at compile time for gas efficiency.
  * Both State and Config structs are designed to be packed in one
@@ -23,7 +24,7 @@ pragma experimental ABIEncoderV2;
  * In order to pack both the state and config into one slot each,
  * some assumptions are made:
  * 1. limit{0,1,Global} and netflow{0,1,Global} are recorded with
- *    ZERO decimals precision to fit in an int48 each.
+ *    ZERO decimals precision to fit in an int48.
  *    Any subunit delta in netflow will be rounded up to one unit.
  * 2. netflow{0,1,Global} have to fit in int48, thus have to fit in the range:
  *    -140_737_488_355_328 to 140_737_488_355_328, which can cover most
