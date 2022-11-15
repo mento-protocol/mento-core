@@ -47,7 +47,12 @@ interface IBiPoolManager {
    * @param asset1 The address of asset1
    * @param pricingModule the address of the pricingModule
    */
-  event ExchangeCreated(bytes32 indexed exchangeId, address indexed asset0, address indexed asset1, address pricingModule);
+  event ExchangeCreated(
+    bytes32 indexed exchangeId,
+    address indexed asset0,
+    address indexed asset1,
+    address pricingModule
+  );
 
   /**
    * @notice Emitted when a PoolExchange has been destroyed.
@@ -56,7 +61,12 @@ interface IBiPoolManager {
    * @param asset1 The address of asset1
    * @param pricingModule the address of the pricingModule
    */
-  event ExchangeDestroyed(bytes32 indexed exchangeId, address indexed asset0, address indexed asset1, address pricingModule);
+  event ExchangeDestroyed(
+    bytes32 indexed exchangeId,
+    address indexed asset0,
+    address indexed asset1,
+    address pricingModule
+  );
 
   /**
    * @notice Emitted when the broker address is updated.

@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
@@ -26,7 +28,7 @@ contract LegacyExchangeWrapper {
 
   constructor() public {
     exchange = new Exchange(true);
-    exchange.initialize(registryAddress, "StableToken", 5 * 1e23, 5 * 1e23, 60 * 60, 2, 1e24, 5 * 1e23);
+    exchange.initialize(registryAddress, "StableToken", 5 * 1e23, 5 * 1e23, 60 * 60, 2);
   }
 
   function getAmountOut(
