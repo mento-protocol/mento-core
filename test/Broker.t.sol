@@ -1,3 +1,5 @@
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
@@ -127,13 +129,13 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
 
   function test_removeExchangeProvider_whenAddressDoesNotExist_shouldRevert() public {
     changePrank(deployer);
-    vm.expectRevert("index into exchangeProviders list not mapped to an exchangeProvider");
+    vm.expectRevert("index doesn't match provider");
     broker.removeExchangeProvider(notDeployer, 1);
   }
 
   function test_removeExchangeProvider_whenIndexOutOfRange_shouldRevert() public {
     changePrank(deployer);
-    vm.expectRevert("index into exchangeProviders list not mapped to an exchangeProvider");
+    vm.expectRevert("index doesn't match provider");
     broker.removeExchangeProvider(exchangeProvider1, 1);
   }
 

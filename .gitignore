@@ -8,7 +8,7 @@
 **/cache
 **/node_modules
 **/out
-.vscode/
+.vscode
 
 # files
 *.env

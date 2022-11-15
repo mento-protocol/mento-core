@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
@@ -129,11 +130,16 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     uint256 reserveCollateralBalanceAfter = tokenOut.balanceOf(address(reserve));
     uint256 StableAssetSupplyAfter = tokenIn.totalSupply();
 
-    assertEq(expectedOut, actualOut); // ???
-    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn); // Trader token in balance decreased
-    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter); // Trader token out balance increased
-    assertEq(reserveCollateralBalanceBefore - expectedOut, reserveCollateralBalanceAfter); // Reserve collateral asset balance decreased
-    assertEq(StableAssetSupplyBefore - amountIn, StableAssetSupplyAfter); // Stable asset supply decrease from burn
+    // getAmountOut == swapOut
+    assertEq(expectedOut, actualOut);
+    // Trader token in balance decreased
+    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn);
+    // Trader token out balance increased
+    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter);
+    // Reserve collateral asset balance decreased
+    assertEq(reserveCollateralBalanceBefore - expectedOut, reserveCollateralBalanceAfter);
+    // Stable asset supply decrease from burn
+    assertEq(StableAssetSupplyBefore - amountIn, StableAssetSupplyAfter);
   }
 
   function test_swapIn_cEURToUSDCet() public {
@@ -157,11 +163,16 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     uint256 reserveCollateralBalanceAfter = tokenOut.balanceOf(address(reserve));
     uint256 StableAssetSupplyAfter = tokenIn.totalSupply();
 
-    assertEq(expectedOut, actualOut); // ???
-    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn); // Trader token in balance decreased
-    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter); // Trader token out balance increased
-    assertEq(reserveCollateralBalanceBefore - expectedOut, reserveCollateralBalanceAfter); // Reserve collateral asset balance decreased
-    assertEq(StableAssetSupplyBefore - amountIn, StableAssetSupplyAfter); // Stable asset supply decrease from burn
+    // getAmountOut == swapOut
+    assertEq(expectedOut, actualOut);
+    // Trader token in balance decreased
+    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn);
+    // Trader token out balance increased
+    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter);
+    // Reserve collateral asset balance decreased
+    assertEq(reserveCollateralBalanceBefore - expectedOut, reserveCollateralBalanceAfter);
+    // Stable asset supply decrease from burn
+    assertEq(StableAssetSupplyBefore - amountIn, StableAssetSupplyAfter);
   }
 
   function test_swapIn_cEURTocUSD() public {
@@ -187,12 +198,16 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     uint256 tokenInSupplyAfter = tokenIn.totalSupply();
     uint256 tokenOutSupplyAfter = tokenOut.totalSupply();
 
-    assertEq(expectedOut, actualOut); // ???
-    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn); // Trader token in balance decreased
-    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter); // Trader token out balance increased
-
-    assertEq(tokenOutSupplyBefore + expectedOut, tokenOutSupplyAfter); // Token out stable asset supply increase from mint
-    assertEq(tokenInSupplyBefore - amountIn, tokenInSupplyAfter); // Token in stable asset supply decrease from burn
+    // getAmountOut == swapOut
+    assertEq(expectedOut, actualOut);
+    // Trader token in balance decreased
+    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn);
+    // Trader token out balance increased
+    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter);
+    // Token out stable asset supply increase from mint
+    assertEq(tokenOutSupplyBefore + expectedOut, tokenOutSupplyAfter);
+    // Token in stable asset supply decrease from burn
+    assertEq(tokenInSupplyBefore - amountIn, tokenInSupplyAfter);
   }
 
   function test_swapIn_cUSDTocEUR() public {
@@ -218,12 +233,16 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     uint256 tokenInSupplyAfter = tokenIn.totalSupply();
     uint256 tokenOutSupplyAfter = tokenOut.totalSupply();
 
-    assertEq(expectedOut, actualOut); // ???
-    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn); // Trader token in balance decreased
-    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter); // Trader token out balance increased
-
-    assertEq(tokenOutSupplyBefore + expectedOut, tokenOutSupplyAfter); // Token out stable asset supply increase from mint
-    assertEq(tokenInSupplyBefore - amountIn, tokenInSupplyAfter); // Token in stable asset supply decrease from burn
+    // getAmountOut == swapOut
+    assertEq(expectedOut, actualOut);
+    // Trader token in balance decreased
+    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn);
+    // Trader token out balance increased
+    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter);
+    // Token out stable asset supply increase from mint
+    assertEq(tokenOutSupplyBefore + expectedOut, tokenOutSupplyAfter);
+    // Token in stable asset supply decrease from burn
+    assertEq(tokenInSupplyBefore - amountIn, tokenInSupplyAfter);
   }
 
   function test_swapIn_CELOTocEUR() public {
@@ -249,12 +268,16 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     uint256 reserveCollateralBalanceAfter = tokenIn.balanceOf(address(reserve));
     uint256 StableAssetSupplyAfter = tokenOut.totalSupply();
 
-    assertEq(expectedOut, actualOut); // ???
-    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn); // Trader token in balance decreased
-    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter); // Trader token out balance increased
-
-    assertEq(reserveCollateralBalanceBefore + amountIn, reserveCollateralBalanceAfter); // Reserve collateral asset balance increase
-    assertEq(StableAssetSupplyBefore + expectedOut, StableAssetSupplyAfter); // Stable asset supply increase from mint
+    // getAmountOut == swapOut
+    assertEq(expectedOut, actualOut);
+    // Trader token in balance decreased
+    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn);
+    // Trader token out balance increased
+    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter);
+    // Reserve collateral asset balance increase
+    assertEq(reserveCollateralBalanceBefore + amountIn, reserveCollateralBalanceAfter);
+    // Stable asset supply increase from mint
+    assertEq(StableAssetSupplyBefore + expectedOut, StableAssetSupplyAfter);
   }
 
   function test_swapIn_CELOTocUSD() public {
@@ -280,11 +303,15 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     uint256 reserveCollateralBalanceAfter = tokenIn.balanceOf(address(reserve));
     uint256 StableAssetSupplyAfter = tokenOut.totalSupply();
 
-    assertEq(expectedOut, actualOut); // ???
-    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn); // Trader token in balance decreased
-    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter); // Trader token out balance increased
-
-    assertEq(reserveCollateralBalanceBefore + amountIn, reserveCollateralBalanceAfter); // Reserve collateral asset balance increase
-    assertEq(StableAssetSupplyBefore + expectedOut, StableAssetSupplyAfter); // Stable asset supply increase from mint
+    // getAmountOut == swapOut
+    assertEq(expectedOut, actualOut);
+    // Trader token in balance decreased
+    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn);
+    // Trader token out balance increased
+    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter);
+    // Reserve collateral asset balance increase
+    assertEq(reserveCollateralBalanceBefore + amountIn, reserveCollateralBalanceAfter);
+    // Stable asset supply increase from mint
+    assertEq(StableAssetSupplyBefore + expectedOut, StableAssetSupplyAfter);
   }
 }

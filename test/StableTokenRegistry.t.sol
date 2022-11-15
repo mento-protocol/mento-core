@@ -1,3 +1,5 @@
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.5.13;
 
 pragma experimental ABIEncoderV2;
@@ -19,7 +21,6 @@ contract StableTokenRegistryTest is Test {
     changePrank(deployer);
     stableTokenRegistry = new StableTokenRegistry(true);
     stableTokenRegistry.initialize(bytes("GEL"), bytes("StableTokenGEL"));
-    abi.encodePacked(bytes("USD"), " ", bytes("EUR"));
   }
 }
 
@@ -70,14 +71,10 @@ contract StableTokenRegistryTest_initializerAndSetters is StableTokenRegistryTes
     assertEq(stableTokenRegistry.fiatTickers(0), bytes("GEL"));
     assertEq(stableTokenRegistry.fiatTickers(1), bytes("EUR"));
     assertEq(stableTokenRegistry.fiatTickers(2), bytes("BRL"));
-    (bytes memory updatedContracts, uint256[] memory lengths) = stableTokenRegistry.getContractInstances();
+    (bytes memory updatedContracts, ) = stableTokenRegistry.getContractInstances();
     assertEq(
       updatedContracts,
-      abi.encodePacked(
-        bytes("StableTokenGEL"),
-        bytes("StableTokenEUR"),
-        bytes("StableTokenBRL")
-      )
+      abi.encodePacked(bytes("StableTokenGEL"), bytes("StableTokenEUR"), bytes("StableTokenBRL"))
     );
     assertEq(stableTokenRegistry.queryStableTokenContractNames((fiatTickerUSD)), "");
   }
@@ -110,7 +107,7 @@ contract StableTokenRegistryTest_initializerAndSetters is StableTokenRegistryTes
     assertEq(stableTokenRegistry.fiatTickers(2), bytes("BRL"));
     assertEq(stableTokenRegistry.fiatTickers(3), bytes("GEL"));
     assertEq(stableTokenRegistry.fiatTickers(4), bytes("GBP"));
-    (bytes memory updatedContracts, uint256[] memory lengths) = stableTokenRegistry.getContractInstances();
+    (bytes memory updatedContracts, ) = stableTokenRegistry.getContractInstances();
     assertEq(
       updatedContracts,
       abi.encodePacked(
