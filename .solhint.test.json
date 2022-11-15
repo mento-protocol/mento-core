@@ -8,6 +8,12 @@
     "max-line-length": ["error", 120],
     "not-rely-on-time": "off",
     "function-max-lines": ["error", 120],
+    "max-states-count": "off",
+    "var-name-mixedcase": "off",
+    "func-name-mixedcase": "off",
+    "state-visibility": "off",
+    "const-name-snakecase": "off",
+    "contract-name-camelcase": "off",
     "no-empty-blocks": "off",
     "prettier/prettier": [
       "error",

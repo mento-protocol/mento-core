@@ -68,7 +68,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
    * @param index The index of the exchange provider being removed.
    */
   function removeExchangeProvider(address exchangeProvider, uint256 index) public onlyOwner {
-    require(exchangeProviders[index] == exchangeProvider, "index into exchangeProviders list not mapped to an exchangeProvider");
+    require(exchangeProviders[index] == exchangeProvider, "index doesn't match provider");
     exchangeProviders[index] = exchangeProviders[exchangeProviders.length - 1];
     exchangeProviders.pop();
     delete isExchangeProvider[exchangeProvider];

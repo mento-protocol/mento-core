@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
@@ -24,8 +26,18 @@ contract BiPoolManagerTest is Test {
 
   /* ------- Events from IBiPoolManager ------- */
 
-  event ExchangeCreated(bytes32 indexed exchangeId, address indexed asset0, address indexed asset1, address pricingModule);
-  event ExchangeDestroyed(bytes32 indexed exchangeId, address indexed asset0, address indexed asset1, address pricingModule);
+  event ExchangeCreated(
+    bytes32 indexed exchangeId,
+    address indexed asset0,
+    address indexed asset1,
+    address pricingModule
+  );
+  event ExchangeDestroyed(
+    bytes32 indexed exchangeId,
+    address indexed asset0,
+    address indexed asset1,
+    address pricingModule
+  );
   event BrokerUpdated(address indexed newBroker);
   event ReserveUpdated(address indexed newReserve);
   event SortedOraclesUpdated(address indexed newSortedOracles);
@@ -70,13 +82,29 @@ contract BiPoolManagerTest is Test {
     reserve = new MockReserve();
     biPoolManager = new BiPoolManager(true);
 
-    vm.mockCall(address(reserve), abi.encodeWithSelector(reserve.isStableAsset.selector, address(cUSD)), abi.encode(true));
+    vm.mockCall(
+      address(reserve),
+      abi.encodeWithSelector(reserve.isStableAsset.selector, address(cUSD)),
+      abi.encode(true)
+    );
 
-    vm.mockCall(address(reserve), abi.encodeWithSelector(reserve.isStableAsset.selector, address(cEUR)), abi.encode(true));
+    vm.mockCall(
+      address(reserve),
+      abi.encodeWithSelector(reserve.isStableAsset.selector, address(cEUR)),
+      abi.encode(true)
+    );
 
-    vm.mockCall(address(reserve), abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(USDCet)), abi.encode(true));
+    vm.mockCall(
+      address(reserve),
+      abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(USDCet)),
+      abi.encode(true)
+    );
 
-    vm.mockCall(address(reserve), abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(CELO)), abi.encode(true));
+    vm.mockCall(
+      address(reserve),
+      abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(CELO)),
+      abi.encode(true)
+    );
 
     changePrank(deployer);
 
@@ -336,7 +364,7 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
 
   function test_createExchange_whenAsset1IsNotRegistered_shouldRevert() public {
     MockERC20 nonReserveCollateral = newMockERC20("Non Reserve Collateral Asset", "NRCA");
-    vm.expectRevert("asset1 must be a stable or collateral registered with the reserve");
+    vm.expectRevert("asset1 must be a stable or collateral");
     createExchange(cUSD, nonReserveCollateral);
   }
 
@@ -361,7 +389,7 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
   }
 
   function test_createExchange_whenSpreadNotLTEOne_shouldRevert() public {
-    vm.expectRevert("Spread must be less than or equal to 1");
+    vm.expectRevert("spread must be less than or equal to 1");
     createExchange(
       cUSD,
       CELO,

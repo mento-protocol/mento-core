@@ -16,6 +16,7 @@ import "./common/ReentrancyGuard.sol";
 /**
  * @title Ensures price stability of StableTokens with respect to their pegs
  */
+// solhint-disable-next-line max-states-count
 contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, UsingRegistry, ReentrancyGuard {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
@@ -206,12 +207,17 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     );
     for (uint256 i = 0; i < _collateralAssets.length; i++) {
       if (_collateralAssets[i] != address(0) && collateralAssetDailySpendingRatios[i] != 0) {
-        require(checkIsCollateralAsset(_collateralAssets[i]), "the address specified is not a reserve collateral asset");
+        require(
+          checkIsCollateralAsset(_collateralAssets[i]),
+          "the address specified is not a reserve collateral asset"
+        );
         require(
           FixidityLib.wrap(collateralAssetDailySpendingRatios[i]).lte(FixidityLib.fixed1()),
           "spending ratio cannot be larger than 1"
         );
-        collateralAssetDailySpendingRatio[_collateralAssets[i]] = FixidityLib.wrap(collateralAssetDailySpendingRatios[i]);
+        collateralAssetDailySpendingRatio[_collateralAssets[i]] = FixidityLib.wrap(
+          collateralAssetDailySpendingRatios[i]
+        );
         emit DailySpendingRatioForCollateralAssetSet(_collateralAssets[i], collateralAssetDailySpendingRatios[i]);
       }
     }
@@ -505,7 +511,11 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of gold to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferExchangeGold(address payable to, uint256 value) external isAllowedToSpendExchange(msg.sender) returns (bool) {
+  function transferExchangeGold(address payable to, uint256 value)
+    external
+    isAllowedToSpendExchange(msg.sender)
+    returns (bool)
+  {
     return _transferGold(to, value);
   }
 
@@ -691,7 +701,11 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       }
     }
     return
-      FixidityLib.newFixed(reserveGoldBalance).divide(cgldWeight).divide(FixidityLib.newFixed(stableTokensValueInGold)).unwrap();
+      FixidityLib
+        .newFixed(reserveGoldBalance)
+        .divide(cgldWeight)
+        .divide(FixidityLib.newFixed(stableTokensValueInGold))
+        .unwrap();
   }
 
   /*
