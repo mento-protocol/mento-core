@@ -53,10 +53,10 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @param _referenceRates referenceRateIDs to be added.
    * @param _sortedOracles The address of the Celo sorted oracles contract.
    */
-  function initilize(address[] calldata _referenceRates, ISortedOracles _sortedOracles) external initializer {
+  function initialize(address[] calldata _referenceRates, ISortedOracles _sortedOracles) external initializer {
     _transferOwnership(msg.sender);
-    addReferenceRates(_referenceRates);
     setSortedOracles(_sortedOracles);
+    addReferenceRates(_referenceRates);
   }
 
   /* ==================== Mutative Functions ==================== */

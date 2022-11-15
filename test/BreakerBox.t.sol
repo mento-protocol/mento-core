@@ -56,8 +56,11 @@ contract BreakerBoxTest is Test, WithRegistry {
     sortedOracles = new MockSortedOracles();
     breakerBox = new BreakerBox(true);
 
-    // breakerBox.initilize(testReferenceRateIDs, ISortedOracles(address(sortedOracles)));
-    breakerBox.addBreaker(address(mockBreakerA), 1);
+    sortedOracles.addOracle(referenceRateID1, actor("oracleClient1"));
+    sortedOracles.addOracle(referenceRateID2, actor("oracleClient1"));
+
+    breakerBox.initialize(testReferenceRateIDs, ISortedOracles(address(sortedOracles)));
+    // breakerBox.addBreaker(address(mockBreakerA), 1);
   }
 
   function isReferenceRateID(address referenceRateID) public view returns (bool referenceRateIDFound) {
@@ -109,7 +112,6 @@ contract BreakerBoxTest is Test, WithRegistry {
     assertTrue(breakerBox.isBreaker(address(breaker)));
 
     if (referenceRateID != address(0)) {
-      setUpSortedOracles(referenceRateID, actor("oracleAddress"));
       breakerBox.addReferenceRate(referenceRateID);
       assertTrue(isReferenceRateID(referenceRateID));
 
@@ -117,14 +119,6 @@ contract BreakerBoxTest is Test, WithRegistry {
       (uint256 savedTradingMode, , ) = breakerBox.referenceRateTradingModes(referenceRateID);
       assertEq(savedTradingMode, tradingMode);
     }
-  }
-
-  function setUpSortedOracles(address referenceRateID, address oracleAddress) public {
-    vm.mockCall(
-      address(sortedOracles),
-      abi.encodeWithSelector(sortedOracles.getOracles.selector),
-      abi.encode(referenceRateID, oracleAddress)
-    );
   }
 }
 
@@ -277,20 +271,17 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   /* ---------- Reference Rate IDs ---------- */
 
   function test_addReferenceRate_whenAlreadyAdded_shouldRevert() public {
-    // setUpSortedOracles(referenceRateID1, oracleAddress);
     vm.expectRevert("Reference rate ID has already been added");
     breakerBox.addReferenceRate(referenceRateID1);
   }
 
   function test_addReferenceRate_whenReferenceRateDoesNotExistInOracleList_shouldRevert() public {
-    setUpSortedOracles(referenceRateID3, address(0));
-
     vm.expectRevert("Reference rate does not exist in oracles list");
     breakerBox.addReferenceRate(referenceRateID3);
   }
 
   function test_addReferenceRate_whenReferenceRateExistsInOracleList_shouldSetDefaultModeAndEmit() public {
-    setUpSortedOracles(referenceRateID3, actor("oracleAddress"));
+    sortedOracles.addOracle(referenceRateID3, actor("oracleAddress"));
     vm.expectEmit(true, true, true, true);
     emit ReferenceRateIDAdded(referenceRateID3);
 

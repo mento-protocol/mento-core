@@ -58,8 +58,11 @@ contract MockSortedOracles {
     return 0;
   }
 
-  function getOracles(address referenceRateID, address oracleAddress) public returns (address[] memory) {
-       oracles[referenceRateID].push(oracleAddress);
-       return oracles[referenceRateID];
+  function getOracles(address priceFeedId) public view returns (address[] memory ) {
+    return oracles[priceFeedId];
+  }
+
+  function addOracle(address priceFeedId, address oracleAddress) public {
+    oracles[priceFeedId].push(oracleAddress);
   }
 }
