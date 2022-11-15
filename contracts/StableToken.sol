@@ -41,8 +41,8 @@ contract StableToken is
 
   event TransferComment(string comment);
 
-    bytes32 constant GRANDA_MENTO_REGISTRY_ID = keccak256(abi.encodePacked("GrandaMento"));
-    bytes32 constant BROKER_REGISTRY_ID = keccak256(abi.encodePacked("Broker"));
+  bytes32 constant GRANDA_MENTO_REGISTRY_ID = keccak256(abi.encodePacked("GrandaMento"));
+  bytes32 constant BROKER_REGISTRY_ID = keccak256(abi.encodePacked("Broker"));
 
   string internal name_;
   string internal symbol_;
@@ -227,21 +227,21 @@ contract StableToken is
     return true;
   }
 
-    /**
-     * @notice Mints new StableToken and gives it to 'to'.
-     * @param to The account for which to mint tokens.
-     * @param value The amount of StableToken to mint.
-     */
-    function mint(address to, uint256 value) external updateInflationFactor returns (bool) {
-        require(
-            msg.sender == registry.getAddressForOrDie(getExchangeRegistryId()) ||
-                msg.sender == registry.getAddressFor(VALIDATORS_REGISTRY_ID) ||
-                msg.sender == registry.getAddressFor(GRANDA_MENTO_REGISTRY_ID)||
-                msg.sender == registry.getAddressFor(BROKER_REGISTRY_ID),
-            "Sender not authorized to mint"
-        );
-        return _mint(to, value);
-    }
+  /**
+   * @notice Mints new StableToken and gives it to 'to'.
+   * @param to The account for which to mint tokens.
+   * @param value The amount of StableToken to mint.
+   */
+  function mint(address to, uint256 value) external updateInflationFactor returns (bool) {
+    require(
+      msg.sender == registry.getAddressForOrDie(getExchangeRegistryId()) ||
+        msg.sender == registry.getAddressFor(VALIDATORS_REGISTRY_ID) ||
+        msg.sender == registry.getAddressFor(GRANDA_MENTO_REGISTRY_ID) ||
+        msg.sender == registry.getAddressFor(BROKER_REGISTRY_ID),
+      "Sender not authorized to mint"
+    );
+    return _mint(to, value);
+  }
 
   /**
    * @notice Mints new StableToken and gives it to 'to'.
@@ -278,24 +278,24 @@ contract StableToken is
     return succeeded;
   }
 
-    /**
-     * @notice Burns StableToken from the balance of msg.sender.
-     * @param value The amount of StableToken to burn.
-     */
-    function burn(uint256 value) external updateInflationFactor returns (bool) {
-        require(
-            msg.sender == registry.getAddressForOrDie(getExchangeRegistryId()) ||
-                msg.sender == registry.getAddressFor(GRANDA_MENTO_REGISTRY_ID)||
-                msg.sender == registry.getAddressFor(BROKER_REGISTRY_ID),
-            "Sender not authorized to burn"
-        );
-        uint256 units = _valueToUnits(inflationState.factor, value);
-        require(units <= balances[msg.sender], "value exceeded balance of sender");
-        totalSupply_ = totalSupply_.sub(units);
-        balances[msg.sender] = balances[msg.sender].sub(units);
-        emit Transfer(msg.sender, address(0), units);
-        return true;
-    }
+  /**
+   * @notice Burns StableToken from the balance of msg.sender.
+   * @param value The amount of StableToken to burn.
+   */
+  function burn(uint256 value) external updateInflationFactor returns (bool) {
+    require(
+      msg.sender == registry.getAddressForOrDie(getExchangeRegistryId()) ||
+        msg.sender == registry.getAddressFor(GRANDA_MENTO_REGISTRY_ID) ||
+        msg.sender == registry.getAddressFor(BROKER_REGISTRY_ID),
+      "Sender not authorized to burn"
+    );
+    uint256 units = _valueToUnits(inflationState.factor, value);
+    require(units <= balances[msg.sender], "value exceeded balance of sender");
+    totalSupply_ = totalSupply_.sub(units);
+    balances[msg.sender] = balances[msg.sender].sub(units);
+    emit Transfer(msg.sender, address(0), units);
+    return true;
+  }
 
   /**
    * @notice Transfers StableToken from one address to another on behalf of a user.
