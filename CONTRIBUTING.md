@@ -6,20 +6,20 @@ The following is a set of guidelines for contributing to the Mento protocol. Rea
 
 [How To Contribute](#how-to-contribute)
 
-* [Reporting Bugs](#reporting-bugs)
-* [Suggesting Features/Enhancements](#suggesting-features)
-* [Code Contributions](#code-contributions)
+- [Reporting Bugs](#reporting-bugs)
+- [Suggesting Features/Enhancements](#suggesting-features)
+- [Code Contributions](#code-contributions)
 
 [Styleguides](#styleguides)
 
-* [Git Commit Messages](#git-commit-messages)
+- [Git Commit Messages](#git-commit-messages)
 
 ## How To Contribute
 
 There are many ways you can contribute to the development of Mento. Contributions can be made to this repo via issues and pull requests. However, before contributing, you should have a good understanding of how Mento is intended to work and the different components that make up the core protocol. You can learn more about Mento by taking some time to read the following:
 
-* [Protocol Documentation](https://docs.mento.org/mento-protocol/core/overview)
-* [Stability Whitepaper](https://celo.org/papers/stability)
+- [Protocol Documentation](https://docs.mento.org/mento-protocol/core/overview)
+- [Stability Whitepaper](https://celo.org/papers/stability)
 
 ### Reporting Bugs
 
@@ -39,6 +39,6 @@ Code contributions can be made by creating a pull request that addresses an open
 
 Below are the guidelines for git commit messages:
 
-* Use the present tense ("Add feature" not "Added feature")
-* Follow [Semantic Commit Messages](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716)
-* Consider ending commit description using relevant emoji (e.g. test: verify token address is valid 🕵️)
+- Use the present tense ("Add feature" not "Added feature")
+- Follow [Semantic Commit Messages](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716)
+- Consider ending commit description using relevant emoji (e.g. test: verify token address is valid 🕵️)
