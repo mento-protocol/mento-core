@@ -32,8 +32,8 @@ contract ExchangeTest is Test, WithRegistry, TokenHelpers {
   event ReserveFractionSet(uint256 reserveFraction);
   event BucketsUpdated(uint256 celoBucket, uint256 stableBucket);
 
-  address private deployer;
-  address private rando;
+  address deployer;
+  address rando;
 
   Exchange exchange;
   Freezer freezer;

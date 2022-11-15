@@ -125,13 +125,13 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
 
   function test_removeExchangeProvider_whenAddressDoesNotExist_shouldRevert() public {
     changePrank(deployer);
-    vm.expectRevert("index into exchangeProviders list not mapped to an exchangeProvider");
+    vm.expectRevert("index doesn't match provider");
     broker.removeExchangeProvider(notDeployer, 1);
   }
 
   function test_removeExchangeProvider_whenIndexOutOfRange_shouldRevert() public {
     changePrank(deployer);
-    vm.expectRevert("index into exchangeProviders list not mapped to an exchangeProvider");
+    vm.expectRevert("index doesn't match provider");
     broker.removeExchangeProvider(exchangeProvider1, 1);
   }
 

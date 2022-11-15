@@ -35,7 +35,6 @@ contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
   /**
    * @notice Calculates the amount of tokens that should be received based on the given parameters
    * @dev amountOut = (1 - spread) * amountIn
-   * @param tokenInBucketSize The bucket size of the token swapt in.
    * @param tokenOutBucketSize The bucket size of the token swapt out.
    * @param spread The spread that is applied to a swap.
    * @param amountIn The amount of tokens in wei that is swapt in.
@@ -62,7 +61,6 @@ contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
   /**
    * @notice Calculates the amount of tokens that should be provided in order to receive the desired amount out.
    * @dev amountIn = amountOut / (1 - spread)
-   * @param tokenInBucketSize The bucket size of the token swapt in - not used but part of interface.
    * @param tokenOutBucketSize The bucket size of the token swapt out.
    * @param spread The spread that is applied to a swap.
    * @param amountOut The amount of tokens in wei that should be swapt out.

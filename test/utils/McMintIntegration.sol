@@ -84,7 +84,7 @@ contract McMintIntegration is Test, WithRegistry {
       "cUSD",
       "cUSD",
       18,
-      registryAddress,
+      REGISTRY_ADDRESS,
       FixidityLib.unwrap(FixidityLib.fixed1()),
       60 * 60 * 24 * 7,
       initialAddresses,
@@ -97,7 +97,7 @@ contract McMintIntegration is Test, WithRegistry {
       "cEUR",
       "cEUR",
       18,
-      registryAddress,
+      REGISTRY_ADDRESS,
       FixidityLib.unwrap(FixidityLib.fixed1()),
       60 * 60 * 24 * 7,
       initialAddresses,
@@ -128,7 +128,7 @@ contract McMintIntegration is Test, WithRegistry {
 
     reserve = new Reserve(true);
     reserve.initialize(
-      registryAddress,
+      REGISTRY_ADDRESS,
       tobinTaxStalenessThreshold,
       dailySpendingRatio,
       0,

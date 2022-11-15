@@ -1,6 +1,6 @@
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidit ^0.5.13;
+pragma solidity ^0.5.13;
 
 pragma experimental ABIEncoderV2;
 import { Test } from "celo-foundry/Test.sol";

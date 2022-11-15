@@ -364,7 +364,7 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
 
   function test_createExchange_whenAsset1IsNotRegistered_shouldRevert() public {
     MockERC20 nonReserveCollateral = newMockERC20("Non Reserve Collateral Asset", "NRCA");
-    vm.expectRevert("asset1 must be a stable or collateral registered with the reserve");
+    vm.expectRevert("asset1 must be a stable or collateral");
     createExchange(cUSD, nonReserveCollateral);
   }
 
@@ -389,7 +389,7 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
   }
 
   function test_createExchange_whenSpreadNotLTEOne_shouldRevert() public {
-    vm.expectRevert("Spread must be less than or equal to 1");
+    vm.expectRevert("spread must be less than or equal to 1");
     createExchange(
       cUSD,
       CELO,
