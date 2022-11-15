@@ -161,7 +161,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     if (address(breakerBox) != address(0)) {
       require(
         breakerBox.getTradingMode(exchange.config.oracleReportTarget) == TRADING_MODE_BIDIRECTIONAL,
-        "Trading is suspended for this referenceRate"
+        "Trading is suspended for this reference rate"
       );
     }
   }

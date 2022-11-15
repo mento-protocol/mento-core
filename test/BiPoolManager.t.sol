@@ -592,6 +592,16 @@ contract BiPoolManagerTest_swap is BiPoolManagerTest_withExchange {
     biPoolManager.swapIn(0x0, address(0), address(0), 1e24);
   }
 
+  function test_swapIn_whenExchangeIdDoesNotExist_shouldRevert() public {
+      vm.mockCall(
+      address(breaker),
+      abi.encodeWithSelector(breaker.getTradingMode.selector),
+      abi.encode(1)
+    );
+    vm.expectRevert("Trading is suspended for this reference rate");
+    biPoolManager.swapIn(exchangeId, address(cEUR), address(cUSD), 1e24);
+  }
+
   function test_swapIn_whenTokenInNotInexchange_itReverts() public {
     vm.expectRevert("tokenIn and tokenOut must match exchange");
     biPoolManager.swapIn(exchangeId, address(cEUR), address(cUSD), 1e24);

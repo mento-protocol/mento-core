@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.5.13;
 
-import { Test, console2 as console } from "celo-foundry/Test.sol";
+import { Test } from "celo-foundry/Test.sol";
 
 import { MockBreakerBox } from "./mocks/MockBreakerBox.sol";
 import { MockStableToken } from "./mocks/MockStableToken.sol";
@@ -121,8 +121,7 @@ contract SortedOraclesTest_report is SortedOraclesTest {
 
     vm.expectCall(
       address(mockBreakerBox),
-      // TODO take a second look at this since it was a hot fix
-      abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector, actor("oracleReportTarget"))
+      abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector)
     );
 
     changePrank(oracleA);
