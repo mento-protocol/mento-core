@@ -110,6 +110,7 @@ contract McMintIntegration is Test, WithRegistry {
     vm.label(address(cUSDToken), "cUSD");
     vm.label(address(cEURToken), "cEUR");
     registry.setAddressFor("Exchange", address(exchange));
+  }
 
   function setUp_reserve() internal {
     /* ===== Deploy reserve ===== */
