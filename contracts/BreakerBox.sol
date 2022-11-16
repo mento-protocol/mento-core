@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.5.13;
 
-
 import { IBreakerBox } from "./interfaces/IBreakerBox.sol";
 import { IBreaker } from "./interfaces/IBreaker.sol";
 import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
@@ -14,8 +13,8 @@ import { Initializable } from "./common/Initializable.sol";
  * @title   BreakerBox
  * @notice  The BreakerBox checks the criteria defined in separate breaker contracts
  *          to determine whether or not buying or selling should be allowed for a
- *          specified referenceRateIDs. The contract stores references to all breakers
- *          that hold criteria to be checked, referenceRateIDs that
+ *          specified rateFeedIDs. The contract stores rate feed IDs to all breakers
+ *          that hold criteria to be checked, rateFeedIDs that
  *          can make use of the BreakerBox & their current trading.
  */
 contract BreakerBox is IBreakerBox, Initializable, Ownable {
@@ -23,9 +22,9 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
 
   /* ==================== State Variables ==================== */
 
-  address[] public referenceRateIDs;
-  // Maps reference rate to its current trading mode info.
-  mapping(address => TradingModeInfo) public referenceRateTradingModes;
+  address[] public rateFeedIDs;
+  // Maps rate feed to its current trading mode info.
+  mapping(address => TradingModeInfo) public rateFeedTradingModes;
   // Maps a trading mode to the associated breaker.
   mapping(uint64 => address) public tradingModeBreaker;
   // Maps a breaker to the associated trading mode.
@@ -52,13 +51,13 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   constructor(bool test) public Initializable(test) {}
 
   /**
-   * @param _referenceRates referenceRateIDs to be added.
+   * @param _rateFeedIDs rateFeedIDs to be added.
    * @param _sortedOracles The address of the Celo sorted oracles contract.
    */
-  function initialize(address[] calldata _referenceRates, ISortedOracles _sortedOracles) external initializer {
+  function initialize(address[] calldata _rateFeedIDs, ISortedOracles _sortedOracles) external initializer {
     _transferOwnership(msg.sender);
     setSortedOracles(_sortedOracles);
-    addReferenceRates(_referenceRates);
+    addRateFeeds(_rateFeedIDs);
   }
 
   /* ==================== Mutative Functions ==================== */
@@ -111,7 +110,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   /**
    * @notice Removes the specified breaker from the list of breakers.
    * @param breaker The address of the breaker to be removed.
-   * @dev Will set any referenceRateID using this breakers trading mode to the default trading mode.
+   * @dev Will set any rateFeedID using this breakers trading mode to the default trading mode.
    */
   function removeBreaker(address breaker) external onlyOwner {
     require(isBreaker(breaker), "This breaker has not been added");
@@ -119,13 +118,13 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     uint64 tradingMode = breakerTradingMode[breaker];
 
     // Set any refenceRateIDs using this breakers trading mode to the default mode.
-    address[] memory activeReferenceRates = referenceRateIDs;
+    address[] memory activeRateFeeds = rateFeedIDs;
     TradingModeInfo memory tradingModeInfo;
 
-    for (uint256 i = 0; i < activeReferenceRates.length; i++) {
-      tradingModeInfo = referenceRateTradingModes[activeReferenceRates[i]];
+    for (uint256 i = 0; i < activeRateFeeds.length; i++) {
+      tradingModeInfo = rateFeedTradingModes[activeRateFeeds[i]];
       if (tradingModeInfo.tradingMode == tradingMode) {
-        setReferenceRateTradingMode(activeReferenceRates[i], 0);
+        setRateFeedTradingMode(activeRateFeeds[i], 0);
       }
     }
 
@@ -136,83 +135,83 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     emit BreakerRemoved(breaker);
   }
 
-  /* ---------- referenceRateIDs ---------- */
+  /* ---------- rateFeedIDs ---------- */
 
   /**
-   * @notice Adds a referenceRateID to the mapping of monitored referenceRateIDs.
-   * @param referenceRateID The address of the referenceRateID to be added.
+   * @notice Adds a rateFeedID to the mapping of monitored rateFeedIDs.
+   * @param rateFeedID The address of the rateFeedID to be added.
    */
-  function addReferenceRate(address referenceRateID) public onlyOwner {
-    TradingModeInfo memory info = referenceRateTradingModes[referenceRateID];
-    require(info.lastUpdatedTime == 0, "Reference rate ID has already been added");
+  function addRateFeed(address rateFeedID) public onlyOwner {
+    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
+    require(info.lastUpdatedTime == 0, "Rate feed ID has already been added");
 
-    require(sortedOracles.getOracles(referenceRateID).length > 0, "Reference rate does not exist in oracles list");
+    require(sortedOracles.getOracles(rateFeedID).length > 0, "Rate feed ID does not exist in oracles list");
 
     info.tradingMode = 0; // Default trading mode (Bi-directional).
     info.lastUpdatedTime = uint64(block.timestamp);
     info.lastUpdatedBlock = uint128(block.number);
-    referenceRateTradingModes[referenceRateID] = info;
-    referenceRateIDs.push(referenceRateID);
+    rateFeedTradingModes[rateFeedID] = info;
+    rateFeedIDs.push(rateFeedID);
 
-    emit ReferenceRateIDAdded(referenceRateID);
+    emit rateFeedIDAdded(rateFeedID);
   }
 
   /**
-   * @notice Adds the specified referenceRateIDs to the mapping of monitored referenceRateIDs.
-   * @param newReferenceRates The array of referenceRateID addresses to be added.
+   * @notice Adds the specified rateFeedIDs to the mapping of monitored rateFeedIDs.
+   * @param newRateFeedIDs The array of rateFeedID addresses to be added.
    */
-  function addReferenceRates(address[] memory newReferenceRates) public onlyOwner {
-    for (uint256 i = 0; i < newReferenceRates.length; i++) {
-      addReferenceRate(newReferenceRates[i]);
+  function addRateFeeds(address[] memory newRateFeedIDs) public onlyOwner {
+    for (uint256 i = 0; i < newRateFeedIDs.length; i++) {
+      addRateFeed(newRateFeedIDs[i]);
     }
   }
 
   /**
-   * @notice Removes a referenceRateID from the mapping of monitored referenceRateIDs.
-   * @param referenceRateID The address of the referenceRateID to be removed.
+   * @notice Removes a rateFeedID from the mapping of monitored rateFeedIDs.
+   * @param rateFeedID The address of the rateFeedID to be removed.
    */
-  function removeReferenceRate(address referenceRateID) external onlyOwner {
-    uint256 referenceRateIndex;
-    for (uint256 i = 0; i < referenceRateIDs.length; i++) {
-      if (referenceRateIDs[i] == referenceRateID) {
-        referenceRateIndex = i;
+  function removeRateFeed(address rateFeedID) external onlyOwner {
+    uint256 rateFeedIndex;
+    for (uint256 i = 0; i < rateFeedIDs.length; i++) {
+      if (rateFeedIDs[i] == rateFeedID) {
+        rateFeedIndex = i;
         break;
       }
     }
 
-    require(referenceRateIDs[referenceRateIndex] == referenceRateID, "Reference rate ID has not been added");
+    require(rateFeedIDs[rateFeedIndex] == rateFeedID, "Rate feed ID has not been added");
 
-    uint256 lastIndex = referenceRateIDs.length - 1;
-    if (referenceRateIndex != lastIndex) {
-      referenceRateIDs[referenceRateIndex] = referenceRateIDs[lastIndex];
+    uint256 lastIndex = rateFeedIDs.length - 1;
+    if (rateFeedIndex != lastIndex) {
+      rateFeedIDs[rateFeedIndex] = rateFeedIDs[lastIndex];
     }
 
-    referenceRateIDs.pop();
+    rateFeedIDs.pop();
 
-    delete referenceRateTradingModes[referenceRateID];
-    emit ReferenceRateIDRemoved(referenceRateID);
+    delete rateFeedTradingModes[rateFeedID];
+    emit rateFeedIDRemoved(rateFeedID);
   }
 
   /**
-   * @notice Sets the trading mode for the specified referenceRateID.
-   * @param referenceRateID The address of the referenceRateID.
+   * @notice Sets the trading mode for the specified rateFeedID.
+   * @param rateFeedID The address of the rateFeedID.
    * @param tradingMode The trading mode that should be set.
    */
-  function setReferenceRateTradingMode(address referenceRateID, uint64 tradingMode) public onlyOwner {
+  function setRateFeedTradingMode(address rateFeedID, uint64 tradingMode) public onlyOwner {
     require(
       tradingMode == 0 || tradingModeBreaker[tradingMode] != address(0),
       "Trading mode must be default or have a breaker set"
     );
 
-    TradingModeInfo memory info = referenceRateTradingModes[referenceRateID];
-    require(info.lastUpdatedTime > 0, "Reference rate ID has not been added");
+    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
+    require(info.lastUpdatedTime > 0, "Rate feed ID has not been added");
 
     info.tradingMode = tradingMode;
     info.lastUpdatedTime = uint64(block.timestamp);
     info.lastUpdatedBlock = uint128(block.number);
-    referenceRateTradingModes[referenceRateID] = info;
+    rateFeedTradingModes[rateFeedID] = info;
 
-    emit TradingModeUpdated(referenceRateID, tradingMode);
+    emit TradingModeUpdated(rateFeedID, tradingMode);
   }
 
   /* ==================== View Functions ==================== */
@@ -233,33 +232,33 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   }
 
   /**
-   * @notice Returns addresses of referenceRateIDs that have been added.
+   * @notice Returns addresses of rateFeedIDs that have been added.
    */
-  function getReferenceRateIDs() external view returns (address[] memory) {
-    return referenceRateIDs;
+  function getrateFeedIDs() external view returns (address[] memory) {
+    return rateFeedIDs;
   }
 
   /**
-   * @notice Returns the trading mode for the specified referenceRateID.
-   * @param referenceRateID The address of the referenceRateID to retrieve the trading mode for.
+   * @notice Returns the trading mode for the specified rateFeedID.
+   * @param rateFeedID The address of the rateFeedID to retrieve the trading mode for.
    */
-  function getTradingMode(address referenceRateID) external view returns (uint256 tradingMode) {
-    TradingModeInfo memory info = referenceRateTradingModes[referenceRateID];
+  function getTradingMode(address rateFeedID) external view returns (uint256 tradingMode) {
+    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
     return info.tradingMode;
   }
 
   /* ==================== Check Breakers ==================== */
 
   /**
-   * @notice Checks breakers for the referenceRateID with the specified id 
+   * @notice Checks breakers for the rateFeedID with the specified id 
              and sets correct trading mode if any breakers are tripped
              or need to be reset.
-   * @param referenceRateID The registryId of the referenceRateID to run checks for.
+   * @param rateFeedID The registryId of the rateFeedID to run checks for.
    */
-  function checkAndSetBreakers(address referenceRateID) external {
-    TradingModeInfo memory info = referenceRateTradingModes[referenceRateID];
+  function checkAndSetBreakers(address rateFeedID) external {
+    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
 
-    // This referenceRateID has not been added. So do nothing.
+    // This rateFeedID has not been added. So do nothing.
     if (info.lastUpdatedTime == 0) {
       return;
     }
@@ -272,18 +271,18 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
 
       // If the cooldown == 0, then a manual reset is required.
       if (((cooldown > 0) && (cooldown + info.lastUpdatedTime) <= block.timestamp)) {
-        if (breaker.shouldReset(referenceRateID)) {
+        if (breaker.shouldReset(rateFeedID)) {
           info.tradingMode = 0;
           info.lastUpdatedTime = uint64(block.timestamp);
           info.lastUpdatedBlock = uint128(block.number);
-          referenceRateTradingModes[referenceRateID] = info;
-          emit ResetSuccessful(referenceRateID, address(breaker));
+          rateFeedTradingModes[rateFeedID] = info;
+          emit ResetSuccessful(rateFeedID, address(breaker));
         } else {
-          emit ResetAttemptCriteriaFail(referenceRateID, address(breaker));
+          emit ResetAttemptCriteriaFail(rateFeedID, address(breaker));
           return;
         }
       } else {
-        emit ResetAttemptNotCool(referenceRateID, address(breaker));
+        emit ResetAttemptNotCool(rateFeedID, address(breaker));
         return;
       }
     }
@@ -293,13 +292,13 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     // Check all breakers.
     for (uint256 i = 0; i < _breakers.length; i++) {
       IBreaker breaker = IBreaker(_breakers[i]);
-      bool tripBreaker = breaker.shouldTrigger(referenceRateID);
+      bool tripBreaker = breaker.shouldTrigger(rateFeedID);
       if (tripBreaker) {
         info.tradingMode = breakerTradingMode[address(breaker)];
         info.lastUpdatedTime = uint64(block.timestamp);
         info.lastUpdatedBlock = uint128(block.number);
-        referenceRateTradingModes[referenceRateID] = info;
-        emit BreakerTripped(address(breaker), referenceRateID);
+        rateFeedTradingModes[rateFeedID] = info;
+        emit BreakerTripped(address(breaker), rateFeedID);
       }
     }
   }
