@@ -12,7 +12,7 @@ contract ConstantSumPricingModuleTest is Test {
   IPricingModule constantSum;
 
   function setUp() public {
-    constantSum = new ConstantSumPricingModule(true);
+    constantSum = new ConstantSumPricingModule();
   }
 
   //Testing concrete Case
@@ -24,9 +24,9 @@ contract ConstantSumPricingModuleTest is Test {
 
   //Fuzz testing
   //uint176 for bucket and amountIn,
-  //because the maximum value that can be converted to fix point in FixidityLib is uint177
-  //uint80 for spread, because the spread needs to be smaller than 1.
-  //This is also enforced by the Exchange contract when settin a spread
+  //because the maximum value that can be converted to fix point in FixidityLib is uint177.
+  //uint80 for spread, because the spread needs to be smaller than 1,
+  //this is also enforced by the Exchange contract when the spread is set.
   function test_getAmountOut_forRobustness(
     uint176 tokenInBucketSize,
     uint176 tokenOutBucketSize,
@@ -40,8 +40,8 @@ contract ConstantSumPricingModuleTest is Test {
   }
 
   //Testing concrete Case
-  //amountIn = amountOut/(1-spread) = 10^18 / (1 - 0.1) = 10^18 / (0.9) = 1111111111111111111.1111111111111111
-  //Wei = 1111111111111111111 Wei
+  //amountIn = amountOut/(1-spread) = 10^18 / (1 - 0.1) = 10^18 / (0.9)
+  // = 1111111111111111111.1111111111111111 Wei = 1111111111111111111 Wei
   function test_getAmountIn_forCorrectCalculation() public {
     uint256 amountOut = constantSum.getAmountIn(10**24, 10**24, 100000000000000000000000, 10**18);
     assertEq(amountOut, 1111111111111111111);
@@ -50,8 +50,8 @@ contract ConstantSumPricingModuleTest is Test {
   //Fuzz testing
   //uint176 for bucket and amountOut,
   //because the maximum value that can be converted to fix point in FixidityLib is uint177.
-  //uint80 for spread, because the spread needs to be smaller than 1.
-  //This is also enforced by the Exchange contract when setting the spread.
+  //uint80 for spread, because the spread needs to be smaller than 1,
+  //this is also enforced by the Exchange contract when the spread is set.
   function test_getAmountIn_forRobustness(
     uint176 tokenInBucketSize,
     uint176 tokenOutBucketSize,
