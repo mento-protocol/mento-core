@@ -175,7 +175,7 @@ contract McMintIntegration is Test, WithRegistry {
   function setUp_broker() internal {
     /* ===== Deploy BiPoolManager & Broker ===== */
 
-    constantProduct = IPricingModule(new ConstantProductPricingModule());
+    constantProduct = IPricingModule(new ConstantProductPricingModule(true));
     biPoolManager = new BiPoolManager(true);
     broker = new Broker(true);
 

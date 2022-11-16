@@ -16,6 +16,21 @@ contract ConstantSumPricingModule is IPricingModule, Initializable, Ownable {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
 
+  /* ==================== Constructor ==================== */
+
+  /**
+   * @notice Sets initialized == true on implementation contracts
+   * @param test Set to true to skip implementation initialization
+   */
+  constructor(bool test) public Initializable(test) {}
+
+  /**
+   * @notice Allows the contract to be upgradable via the proxy.
+   */
+  function initilize() external initializer {
+    _transferOwnership(msg.sender);
+  }
+
   /* ==================== View Functions ==================== */
   /**
    * @notice Calculates the amount of tokens that should be received based on the given parameters

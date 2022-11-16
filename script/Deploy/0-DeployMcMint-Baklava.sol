@@ -59,8 +59,8 @@ contract DeployMcMint is Script, ScriptHelper {
       broker.transferOwnership(proxies.celoGovernance);
 
       // Deploy stateless contracts
-      csPricingModule = new ConstantSumPricingModule();
-      cpPricingModule = new ConstantProductPricingModule();
+      csPricingModule = new ConstantSumPricingModule(true);
+      cpPricingModule = new ConstantProductPricingModule(true);
 
       // Deploy updated implementations
       reserve = new Reserve(true);

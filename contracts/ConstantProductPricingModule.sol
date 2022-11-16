@@ -2,7 +2,8 @@ pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
 import { IPricingModule } from "./interfaces/IPricingModule.sol";
-
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { Initializable } from "./common/Initializable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { FixidityLib } from "./common/FixidityLib.sol";
 
@@ -10,9 +11,24 @@ import { FixidityLib } from "./common/FixidityLib.sol";
  * @title ConstantProductPricingModule
  * @notice The ConstantProductPricingModule calculates the amount in and the amount out for a constant product AMM.
  */
-contract ConstantProductPricingModule is IPricingModule {
+contract ConstantProductPricingModule is IPricingModule, Initializable, Ownable {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
+
+  /* ==================== Constructor ==================== */
+
+  /**
+   * @notice Sets initialized == true on implementation contracts
+   * @param test Set to true to skip implementation initialization
+   */
+  constructor(bool test) public Initializable(test) {}
+
+  /**
+   * @notice Allows the contract to be upgradable via the proxy.
+   */
+  function initilize() external initializer {
+    _transferOwnership(msg.sender);
+  }
 
   /* ==================== View Functions ==================== */
   /**

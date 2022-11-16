@@ -41,8 +41,8 @@ contract DeployMcMint is Script, ScriptHelper {
     vm.startBroadcast();
     {
       // Deploy pricing modules
-      csPricingModule = new ConstantSumPricingModule();
-      cpPricingModule = new ConstantProductPricingModule();
+      csPricingModule = new ConstantSumPricingModule(true);
+      cpPricingModule = new ConstantProductPricingModule(true);
 
       // Deploy biPool manager
       biPoolManager = new BiPoolManager(true);
