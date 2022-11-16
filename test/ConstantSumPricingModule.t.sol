@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.5.13;
 
 import { Test, console2 as console } from "celo-foundry/Test.sol";
@@ -10,7 +12,7 @@ contract ConstantSumPricingModuleTest is Test {
   IPricingModule constantSum;
 
   function setUp() public {
-    constantSum = new ConstantSumPricingModule();
+    constantSum = new ConstantSumPricingModule(true);
   }
 
   //Testing concrete Case
@@ -34,7 +36,7 @@ contract ConstantSumPricingModuleTest is Test {
     vm.assume(spread < FixidityLib.fixed1().value);
     vm.assume(amountIn <= tokenOutBucketSize);
 
-    uint256 amountOut = constantSum.getAmountOut(tokenInBucketSize, tokenOutBucketSize, spread, amountIn);
+    constantSum.getAmountOut(tokenInBucketSize, tokenOutBucketSize, spread, amountIn);
   }
 
   //Testing concrete Case
@@ -58,6 +60,6 @@ contract ConstantSumPricingModuleTest is Test {
   ) public {
     vm.assume(spread < FixidityLib.fixed1().value);
     vm.assume(amountOut <= tokenOutBucketSize);
-    uint256 amountIn = constantSum.getAmountIn(tokenInBucketSize, tokenOutBucketSize, spread, amountOut);
+    constantSum.getAmountIn(tokenInBucketSize, tokenOutBucketSize, spread, amountOut);
   }
 }

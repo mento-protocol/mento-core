@@ -1,3 +1,5 @@
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
@@ -123,13 +125,13 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
 
   function test_removeExchangeProvider_whenAddressDoesNotExist_shouldRevert() public {
     changePrank(deployer);
-    vm.expectRevert("index into exchangeProviders list not mapped to an exchangeProvider");
+    vm.expectRevert("index doesn't match provider");
     broker.removeExchangeProvider(notDeployer, 1);
   }
 
   function test_removeExchangeProvider_whenIndexOutOfRange_shouldRevert() public {
     changePrank(deployer);
-    vm.expectRevert("index into exchangeProviders list not mapped to an exchangeProvider");
+    vm.expectRevert("index doesn't match provider");
     broker.removeExchangeProvider(exchangeProvider1, 1);
   }
 
@@ -250,7 +252,14 @@ contract BrokerTest_swap is BrokerTest {
     );
 
     vm.expectRevert("amountOutMin not met");
-    broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), amountIn, 1e17);
+    broker.swapIn(
+      address(exchangeProvider),
+      exchangeId,
+      address(stableAsset),
+      address(collateralAsset),
+      amountIn,
+      1e17
+    );
   }
 
   function test_swapOut_whenAmoutInMaxExceeded_shouldRevert() public {
@@ -270,7 +279,14 @@ contract BrokerTest_swap is BrokerTest {
     );
 
     vm.expectRevert("amountInMax exceeded");
-    broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), amountOut, 1e15);
+    broker.swapOut(
+      address(exchangeProvider),
+      exchangeId,
+      address(stableAsset),
+      address(collateralAsset),
+      amountOut,
+      1e15
+    );
   }
 
   function test_swapIn_whenTokenInStableAsset_shouldUpdateAndEmit() public {
@@ -296,7 +312,15 @@ contract BrokerTest_swap is BrokerTest {
     );
 
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(stableAsset), address(collateralAsset), amountIn, 1e16);
+    emit Swap(
+      address(exchangeProvider),
+      exchangeId,
+      trader,
+      address(stableAsset),
+      address(collateralAsset),
+      amountIn,
+      1e16
+    );
     uint256 amountOut = broker.swapIn(
       address(exchangeProvider),
       exchangeId,
@@ -337,7 +361,15 @@ contract BrokerTest_swap is BrokerTest {
     );
 
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(collateralAsset), address(stableAsset), amountIn, 1e16);
+    emit Swap(
+      address(exchangeProvider),
+      exchangeId,
+      trader,
+      address(collateralAsset),
+      address(stableAsset),
+      amountIn,
+      1e16
+    );
     uint256 amountOut = broker.swapOut(
       address(exchangeProvider),
       exchangeId,
@@ -376,7 +408,15 @@ contract BrokerTest_swap is BrokerTest {
     );
 
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(stableAsset), address(collateralAsset), amountOut, 1e16);
+    emit Swap(
+      address(exchangeProvider),
+      exchangeId,
+      trader,
+      address(stableAsset),
+      address(collateralAsset),
+      amountOut,
+      1e16
+    );
 
     uint256 amountIn = broker.swapOut(
       address(exchangeProvider),
@@ -418,7 +458,15 @@ contract BrokerTest_swap is BrokerTest {
     );
 
     vm.expectEmit(true, true, true, true);
-    emit Swap(address(exchangeProvider), exchangeId, trader, address(collateralAsset), address(stableAsset), amountOut, 1e16);
+    emit Swap(
+      address(exchangeProvider),
+      exchangeId,
+      trader,
+      address(collateralAsset),
+      address(stableAsset),
+      amountOut,
+      1e16
+    );
     uint256 amountIn = broker.swapOut(
       address(exchangeProvider),
       exchangeId,
