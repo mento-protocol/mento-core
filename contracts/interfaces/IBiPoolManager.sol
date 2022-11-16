@@ -34,7 +34,7 @@ interface IBiPoolManager {
    */
   struct PoolConfig {
     FixidityLib.Fraction spread;
-    address oracleReportTarget; // can be a stable address or custom
+    address referenceRateFeedID; // rateFeedID of the price that this pool follows (i.e. it's reference rate)
     uint256 referenceRateResetFrequency;
     uint256 minimumReports;
     uint256 stablePoolResetSize;
