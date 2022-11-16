@@ -41,8 +41,8 @@ contract StableToken is
 
   event TransferComment(string comment);
 
-  bytes32 constant GRANDA_MENTO_REGISTRY_ID = keccak256(abi.encodePacked("GrandaMento"));
-  bytes32 constant BROKER_REGISTRY_ID = keccak256(abi.encodePacked("Broker"));
+  bytes32 private constant GRANDA_MENTO_REGISTRY_ID = keccak256(abi.encodePacked("GrandaMento"));
+  bytes32 private constant BROKER_REGISTRY_ID = keccak256(abi.encodePacked("Broker"));
 
   string internal name_;
   string internal symbol_;
