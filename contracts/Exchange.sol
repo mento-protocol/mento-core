@@ -62,8 +62,6 @@ contract Exchange is
     uint256 public minSupplyForStableBucketCap;
     FixidityLib.Fraction public stableBucketMaxFraction;
 
-    uint256 constant TRADING_MODE_BIDIRECTIONAL = 0;
-
     modifier updateBucketsIfNecessary() {
         _updateBucketsIfNecessary();
         _;
