@@ -39,7 +39,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   mapping(bytes32 => PoolExchange) public exchanges;
   bytes32[] public exchangeIds;
 
-  uint256 constant TRADING_MODE_BIDIRECTIONAL = 0;
+  uint256 private constant TRADING_MODE_BIDIRECTIONAL = 0;
 
   // Address of the Mento Reserve contract
   IReserve public reserve;
