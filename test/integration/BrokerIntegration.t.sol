@@ -52,17 +52,6 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     // Get exchange from provider
     IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(exchangeProviders[0]).getPoolExchange(poolId);
 
-    uint256 bucketIn;
-    uint256 bucketOut;
-
-    if (tokenIn == exchange.asset0) {
-      bucketIn = exchange.bucket0;
-      bucketOut = exchange.bucket1;
-    } else {
-      bucketIn = exchange.bucket1;
-      bucketOut = exchange.bucket0;
-    }
-
     expectedOut = broker.getAmountOut(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn);
 
     changePrank(trader);
