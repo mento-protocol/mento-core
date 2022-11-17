@@ -60,10 +60,6 @@ jobs:
       - name: "Generate types"
         run: "yarn generatetypes"
 
-      - name: "Generate npm package"
-
-      - name: "publisch npm package"
-      
       - name: "Add test summary"
         run: |
           echo "## Tests" >> $GITHUB_STEP_SUMMARY
