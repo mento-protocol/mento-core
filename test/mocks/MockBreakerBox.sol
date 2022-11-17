@@ -19,7 +19,7 @@ contract MockBreakerBox is IBreakerBox {
     return true;
   }
 
-  function getTradingMode(address) external view returns (uint256) {
+  function getRateFeedTradingMode(address) external view returns (uint256) {
     return 0;
   }
 

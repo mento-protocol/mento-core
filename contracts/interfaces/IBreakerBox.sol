@@ -7,7 +7,7 @@ pragma solidity ^0.5.13;
 interface IBreakerBox {
   /**
    * @dev Used to track additional info about
-   *      the current trading mode an exchange is in.
+   *      the current trading mode a specific rate feed ID is in.
    *      LastUpdatedTime helps to check cooldown.
    *      LastUpdatedBlock helps to determine if check should be executed.
    */
@@ -30,52 +30,52 @@ interface IBreakerBox {
   event BreakerRemoved(address indexed breaker);
 
   /**
-   * @notice Emitted when a breaker is tripped by an exchange.
+   * @notice Emitted when a breaker is tripped by a rateFeedID.
    * @param breaker The address of the breaker that was tripped.
-   * @param exchange The address of the exchange.
+   * @param rateFeedID The address of the rateFeedID.
    */
-  event BreakerTripped(address indexed breaker, address indexed exchange);
+  event BreakerTripped(address indexed breaker, address indexed rateFeedID);
 
   /**
-   * @notice Emitted when a new referenceRate is added to the breaker box.
-   * @param referenceRateID The address of the referenceRate that was added.
+   * @notice Emitted when a new rateFeedID is added to the breaker box.
+   * @param rateFeedID The address of the rateFeedID that was added.
    */
-  event ReferenceRateIDAdded(address indexed referenceRateID);
+  event RateFeedAdded(address indexed rateFeedID);
 
   /**
-   * @notice Emitted when a referenceRate is removed from the breaker box.
-   * @param referenceRateID The referenceRate of the exchange that was removed.
+   * @notice Emitted when a rateFeedID is removed from the breaker box.
+   * @param rateFeedID The rateFeedID that was removed.
    */
-  event ReferenceRateIDRemoved(address indexed referenceRateID);
+  event RateFeedRemoved(address indexed rateFeedID);
 
   /**
-   * @notice Emitted when the trading mode for an exchange is updated
-   * @param exchange The address of the exchange.
-   * @param tradingMode The new trading mode of the exchange.
+   * @notice Emitted when the trading mode for a rateFeedID is updated
+   * @param rateFeedID The address of the rataFeedID.
+   * @param tradingMode The new trading mode of the rateFeedID.
    */
-  event TradingModeUpdated(address indexed exchange, uint256 tradingMode);
+  event TradingModeUpdated(address indexed rateFeedID, uint256 tradingMode);
 
   /**
    * @notice Emitted after a reset attempt is successful.
-   * @param exchange The address of the exchange.
+   * @param rateFeedID The address of the rateFeedID.
    * @param breaker The address of the breaker.
    */
-  event ResetSuccessful(address indexed exchange, address indexed breaker);
+  event ResetSuccessful(address indexed rateFeedID, address indexed breaker);
 
   /**
    * @notice  Emitted after a reset attempt fails when the
-   *          exchange fails the breakers reset criteria.
-   * @param exchange The address of the exchange.
+   *          rateFeedID fails the breakers reset criteria.
+   * @param rateFeedID The address of the rateFeedID.
    * @param breaker The address of the breaker.
    */
-  event ResetAttemptCriteriaFail(address indexed exchange, address indexed breaker);
+  event ResetAttemptCriteriaFail(address indexed rateFeedID, address indexed breaker);
 
   /**
    * @notice Emitted after a reset attempt fails when cooldown time has not elapsed.
-   * @param exchange The address of the exchange.
+   * @param rateFeedID The address of the rateFeedID.
    * @param breaker The address of the breaker.
    */
-  event ResetAttemptNotCool(address indexed exchange, address indexed breaker);
+  event ResetAttemptNotCool(address indexed rateFeedID, address indexed breaker);
 
   /**
    * @notice Emitted when the sortedOracles address is updated.
@@ -96,16 +96,15 @@ interface IBreakerBox {
   function isBreaker(address breaker) external view returns (bool);
 
   /**
-   * @notice Checks breakers for the exchange with the specified id 
-             and sets correct trading mode if any breakers are tripped
-             or need to be reset.
-   * @param  referenceRate The registryId of the exchange to run checks for.
+   * @notice Checks breakers for the rateFeedID and sets correct trading mode
+   * if any breakers are tripped or need to be reset.
+   * @param rateFeedID The registryId of the rateFeedID to run checks for.
    */
-  function checkAndSetBreakers(address referenceRate) external;
+  function checkAndSetBreakers(address rateFeedID) external;
 
   /**
-   * @notice Gets the trading mode for the specified exchange.
-   * @param  exchange The address of the exchange to retrieve the trading mode for.
+   * @notice Gets the trading mode for the specified rateFeedID.
+   * @param rateFeedID The address of the rateFeedID to retrieve the trading mode for.
    */
-  function getTradingMode(address exchange) external view returns (uint256 tradingMode);
+  function getRateFeedTradingMode(address rateFeedID) external view returns (uint256 tradingMode);
 }

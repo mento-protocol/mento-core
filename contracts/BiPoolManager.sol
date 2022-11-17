@@ -160,7 +160,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   function checkTradingMode(PoolExchange memory exchange)public view {
     if (address(breakerBox) != address(0)) {
       require(
-        breakerBox.getTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
+        breakerBox.getRateFeedTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
         "Trading is suspended for this reference rate"
       );
     }

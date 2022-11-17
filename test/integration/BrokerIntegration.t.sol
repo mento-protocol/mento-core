@@ -78,7 +78,7 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     vm.warp(pool.config.referenceRateResetFrequency + pool.lastBucketUpdate);
 
     // Median report recent == true
-    sortedOracles.setMedianTimestampToNow(pool.config.oracleReportTarget);
+    sortedOracles.setMedianTimestampToNow(pool.config.referenceRateFeedID);
 
     changePrank(trader);
     IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());

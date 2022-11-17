@@ -13,7 +13,7 @@ import { Initializable } from "./common/Initializable.sol";
  * @title   BreakerBox
  * @notice  The BreakerBox checks the criteria defined in separate breaker contracts
  *          to determine whether or not buying or selling should be allowed for a
- *          specified rateFeedIDs. The contract stores rate feed IDs to all breakers
+ *          specified rateFeedIDs. The contract stores references to all breakers
  *          that hold criteria to be checked, rateFeedIDs that
  *          can make use of the BreakerBox & their current trading.
  */
@@ -23,7 +23,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   /* ==================== State Variables ==================== */
 
   address[] public rateFeedIDs;
-  // Maps rate feed to its current trading mode info.
+  // Maps rate feed ID to its current trading mode info.
   mapping(address => TradingModeInfo) public rateFeedTradingModes;
   // Maps a trading mode to the associated breaker.
   mapping(uint64 => address) public tradingModeBreaker;
@@ -153,7 +153,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     rateFeedTradingModes[rateFeedID] = info;
     rateFeedIDs.push(rateFeedID);
 
-    emit rateFeedIDAdded(rateFeedID);
+    emit RateFeedAdded(rateFeedID);
   }
 
   /**
@@ -189,7 +189,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     rateFeedIDs.pop();
 
     delete rateFeedTradingModes[rateFeedID];
-    emit rateFeedIDRemoved(rateFeedID);
+    emit RateFeedRemoved(rateFeedID);
   }
 
   /**
@@ -234,7 +234,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   /**
    * @notice Returns addresses of rateFeedIDs that have been added.
    */
-  function getrateFeedIDs() external view returns (address[] memory) {
+  function getrateFeeds() external view returns (address[] memory) {
     return rateFeedIDs;
   }
 
@@ -242,7 +242,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @notice Returns the trading mode for the specified rateFeedID.
    * @param rateFeedID The address of the rateFeedID to retrieve the trading mode for.
    */
-  function getTradingMode(address rateFeedID) external view returns (uint256 tradingMode) {
+  function getRateFeedTradingMode(address rateFeedID) external view returns (uint256 tradingMode) {
     TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
     return info.tradingMode;
   }

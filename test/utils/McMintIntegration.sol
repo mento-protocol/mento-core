@@ -50,11 +50,11 @@ contract McMintIntegration is Test, WithRegistry {
   StableToken cEURToken;
   Freezer freezer;
 
-  address cUSD_CELO_oracleReportTarget;
-  address cEUR_CELO_oracleReportTarget;
-  address cUSD_USDCet_oracleReportTarget;
-  address cEUR_USDCet_oracleReportTarget;
-  address cUSD_cEUR_oracleReportTarget;
+  address cUSD_CELO_rateFeedID;
+  address cEUR_CELO_referenceRateFeedID;
+  address cUSD_USDCet_referenceRateFeedID;
+  address cEUR_USDCet_referenceRateFeedID;
+  address cUSD_cEUR_referenceRateFeedID;
 
   bytes32 pair_cUSD_CELO_ID;
   bytes32 pair_cEUR_CELO_ID;
@@ -142,26 +142,26 @@ contract McMintIntegration is Test, WithRegistry {
     sortedOracles = new MockSortedOracles();
     breaker = new MockBreakerBox();
 
-    cUSD_CELO_oracleReportTarget = address(cUSDToken);
-    cEUR_CELO_oracleReportTarget = address(cEURToken);
-    cUSD_USDCet_oracleReportTarget = address(bytes20(keccak256("USD/USDC")));
-    cEUR_USDCet_oracleReportTarget = address(bytes20(keccak256("EUR/USDC")));
-    cUSD_cEUR_oracleReportTarget = address(bytes20(keccak256("USD/EUR")));
+    cUSD_CELO_rateFeedID = address(cUSDToken);
+    cEUR_CELO_referenceRateFeedID = address(cEURToken);
+    cUSD_USDCet_referenceRateFeedID = address(bytes20(keccak256("USD/USDC")));
+    cEUR_USDCet_referenceRateFeedID = address(bytes20(keccak256("EUR/USDC")));
+    cUSD_cEUR_referenceRateFeedID = address(bytes20(keccak256("USD/EUR")));
 
-    sortedOracles.setMedianRate(cUSD_CELO_oracleReportTarget, 5e23);
-    sortedOracles.setNumRates(cUSD_CELO_oracleReportTarget, 10);
+    sortedOracles.setMedianRate(cUSD_CELO_rateFeedID, 5e23);
+    sortedOracles.setNumRates(cUSD_CELO_rateFeedID, 10);
 
-    sortedOracles.setMedianRate(cEUR_CELO_oracleReportTarget, 5e23);
-    sortedOracles.setNumRates(cEUR_CELO_oracleReportTarget, 10);
+    sortedOracles.setMedianRate(cEUR_CELO_referenceRateFeedID, 5e23);
+    sortedOracles.setNumRates(cEUR_CELO_referenceRateFeedID, 10);
 
-    sortedOracles.setMedianRate(cUSD_USDCet_oracleReportTarget, 1.02 * 1e24);
-    sortedOracles.setNumRates(cUSD_USDCet_oracleReportTarget, 10);
+    sortedOracles.setMedianRate(cUSD_USDCet_referenceRateFeedID, 1.02 * 1e24);
+    sortedOracles.setNumRates(cUSD_USDCet_referenceRateFeedID, 10);
 
-    sortedOracles.setMedianRate(cEUR_USDCet_oracleReportTarget, 0.9 * 1e24);
-    sortedOracles.setNumRates(cEUR_USDCet_oracleReportTarget, 10);
+    sortedOracles.setMedianRate(cEUR_USDCet_referenceRateFeedID, 0.9 * 1e24);
+    sortedOracles.setNumRates(cEUR_USDCet_referenceRateFeedID, 10);
 
-    sortedOracles.setMedianRate(cUSD_cEUR_oracleReportTarget, 1.1 * 1e24);
-    sortedOracles.setNumRates(cUSD_cEUR_oracleReportTarget, 10);
+    sortedOracles.setMedianRate(cUSD_cEUR_referenceRateFeedID, 1.1 * 1e24);
+    sortedOracles.setNumRates(cUSD_cEUR_referenceRateFeedID, 10);
 
     /* ===== Deploy BiPoolManager & Broker ===== */
 
@@ -188,7 +188,7 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cUSD_CELO.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cUSD_CELO.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_CELO.config.minimumReports = 5;
-    pair_cUSD_CELO.config.oracleReportTarget = cUSD_CELO_oracleReportTarget;
+    pair_cUSD_CELO.config.referenceRateFeedID = cUSD_CELO_rateFeedID;
     pair_cUSD_CELO.config.stablePoolResetSize = 1e24;
 
     pair_cUSD_CELO_ID = biPoolManager.createExchange(pair_cUSD_CELO);
@@ -201,7 +201,7 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cEUR_CELO.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cEUR_CELO.config.referenceRateResetFrequency = 60 * 5;
     pair_cEUR_CELO.config.minimumReports = 5;
-    pair_cEUR_CELO.config.oracleReportTarget = cEUR_CELO_oracleReportTarget;
+    pair_cEUR_CELO.config.referenceRateFeedID = cEUR_CELO_referenceRateFeedID;
     pair_cEUR_CELO.config.stablePoolResetSize = 1e24;
 
     pair_cEUR_CELO_ID = biPoolManager.createExchange(pair_cEUR_CELO);
@@ -214,7 +214,7 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cUSD_USDCet.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cUSD_USDCet.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_USDCet.config.minimumReports = 5;
-    pair_cUSD_USDCet.config.oracleReportTarget = cUSD_USDCet_oracleReportTarget;
+    pair_cUSD_USDCet.config.referenceRateFeedID = cUSD_USDCet_referenceRateFeedID;
     pair_cUSD_USDCet.config.stablePoolResetSize = 1e24;
 
     pair_cUSD_USDCet_ID = biPoolManager.createExchange(pair_cUSD_USDCet);
@@ -227,7 +227,7 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cEUR_USDCet.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cEUR_USDCet.config.referenceRateResetFrequency = 60 * 5;
     pair_cEUR_USDCet.config.minimumReports = 5;
-    pair_cEUR_USDCet.config.oracleReportTarget = cEUR_USDCet_oracleReportTarget;
+    pair_cEUR_USDCet.config.referenceRateFeedID = cEUR_USDCet_referenceRateFeedID;
     pair_cEUR_USDCet.config.stablePoolResetSize = 1e24;
 
     pair_cEUR_USDCet_ID = biPoolManager.createExchange(pair_cEUR_USDCet);
@@ -240,7 +240,7 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cUSD_cEUR.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cUSD_cEUR.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_cEUR.config.minimumReports = 5;
-    pair_cUSD_cEUR.config.oracleReportTarget = cUSD_cEUR_oracleReportTarget;
+    pair_cUSD_cEUR.config.referenceRateFeedID = cUSD_cEUR_referenceRateFeedID;
     pair_cUSD_cEUR.config.stablePoolResetSize = 1e24;
 
     pair_cUSD_cEUR_ID = biPoolManager.createExchange(pair_cUSD_cEUR);

@@ -109,14 +109,14 @@ contract BiPoolManagerTest is Test {
     MockERC20 asset0,
     MockERC20 asset1,
     IPricingModule pricingModule,
-    address oracleReportTarget
+    address referenceRateFeedID
   ) internal returns (bytes32 exchangeId) {
     return
       createExchange(
         asset0,
         asset1,
         pricingModule,
-        oracleReportTarget,
+        referenceRateFeedID,
         FixidityLib.wrap(0.1 * 1e24), // spread
         1e26 // stablePoolResetSize
       );
@@ -126,7 +126,7 @@ contract BiPoolManagerTest is Test {
     MockERC20 asset0,
     MockERC20 asset1,
     IPricingModule pricingModule,
-    address oracleReportTarget,
+    address referenceRateFeedID,
     FixidityLib.Fraction memory spread,
     uint256 stablePoolResetSize
   ) internal returns (bytes32 exchangeId) {
@@ -136,7 +136,7 @@ contract BiPoolManagerTest is Test {
     exchange.pricingModule = pricingModule;
 
     BiPoolManager.PoolConfig memory config;
-    config.oracleReportTarget = oracleReportTarget;
+    config.referenceRateFeedID = referenceRateFeedID;
     config.stablePoolResetSize = stablePoolResetSize;
     config.referenceRateResetFrequency = 60 * 5; // 5 minutes
     config.minimumReports = 5;
@@ -386,8 +386,8 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
     createExchange(cUSD, MockERC20(address(0)));
   }
 
-  function test_createExchange_whenOracleReportTargetIsNotSet_shouldRevert() public {
-    vm.expectRevert("oracleReportTarget must be set");
+  function test_createExchange_whenReferenceRateFeedIDIsNotSet_shouldRevert() public {
+    vm.expectRevert("referenceRateFeedID must be set");
     createExchange(cUSD, CELO, constantProduct, address(0));
   }
 
@@ -595,7 +595,7 @@ contract BiPoolManagerTest_swap is BiPoolManagerTest_withExchange {
   function test_swapIn_whenExchangeIdDoesNotExist_shouldRevert() public {
       vm.mockCall(
       address(breaker),
-      abi.encodeWithSelector(breaker.getTradingMode.selector),
+      abi.encodeWithSelector(breaker.getRateFeedTradingMode.selector),
       abi.encode(1)
     );
     vm.expectRevert("Trading is suspended for this reference rate");
