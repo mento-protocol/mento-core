@@ -20,8 +20,8 @@ import { BiPoolManagerProxy } from "contracts/proxies/BiPoolManagerProxy.sol";
 import { BrokerProxy } from "contracts/proxies/BrokerProxy.sol";
 import { ReserveProxy } from "contracts/proxies/ReserveProxy.sol";
 
-// ANVIL - forge script script/Deploy/0-DeployMcMint-Baklava.sol --fork-url http://localhost:8545 --broadcast --legacy --private-key
-// Baklava - forge script script/Deploy/0-DeployMcMint-Baklava.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --private-key
+// ANVIL - forge script scripts/deploy/00-McMint.sol --fork-url http://localhost:8545 --broadcast --legacy --private-key
+// Baklava - forge script scripts/deploy/00-McMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --verify --verifier sourcify --private-key
 
 contract DeployMcMint is Script, ScriptHelper {
   ConstantSumPricingModule csPricingModule;
@@ -39,9 +39,11 @@ contract DeployMcMint is Script, ScriptHelper {
 
   function run() public {
     NetworkProxies memory proxies = getNetworkProxies(0);
+    // NetworkProxies memory proxies = getNetworkProxies(vm.envUint("DEPLOY_NETWORK"));
 
     vm.startBroadcast();
     {
+      // TODO: Verify initilized should be set
       // Deploy new implementations
       biPoolManager = new BiPoolManager(true);
       broker = new Broker(true);
