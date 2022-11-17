@@ -78,7 +78,7 @@ contract ConstantProductPricingModuleTest is Test, WithRegistry {
     sortedOracles.setNumRates(address(0), 10);
 
     registry.setAddressFor("SortedOracles", address(sortedOracles));
-    constantProduct = new ConstantProductPricingModule(true);
+    constantProduct = new ConstantProductPricingModule();
     legacyExchange = new LegacyExchangeWrapper();
   }
 
