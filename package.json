@@ -2,9 +2,17 @@
   "name": "@mento-protocol/mento-core",
   "description": "The core smart contracts of the Mento protocol",
   "version": "1.0.0",
+  "main": "types/index.ts",
   "author": {
     "name": "Mento Labs"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mento-protocol/mento-core/tree/main"
+  },
+  "files": [
+    "types"
+  ],
   "devDependencies": {
     "@commitlint/cli": "^17.0.3",
     "@commitlint/config-conventional": "^17.0.3",
@@ -30,6 +38,7 @@
     "prettier": "prettier --config \"./.prettierrc.yml\" --write \"**/*.{json,md,sol,yml}\"",
     "prettier:check": "prettier --config \"./.prettierrc.yml\" --check \"**/*.{json,md,sol,yml}\"",
     "solhint": "solhint --config \"./.solhint.json\" \"{contracts,test}/**/*.sol\"",
-    "solhint:check": "solhint --config \"./.solhint.json\" \"{contracts,test}/**/*.sol\" -q"
+    "solhint:check": "solhint --config \"./.solhint.json\" \"{contracts,test}/**/*.sol\" -q",
+    "generatetypes": "node generatetypes.js"
   }
 }
