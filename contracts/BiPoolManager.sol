@@ -56,6 +56,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @notice Sets initialized == true on implementation contracts.
    * @param test Set to true to skip implementation initialization.
    */
+  // solhint-disable-next-line no-empty-blocks
   constructor(bool test) public Initializable(test) {}
 
   /**
@@ -357,7 +358,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountIn
   ) internal view returns (uint256 amountOut, bool bucketsUpdated) {
     require(
-      (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) || (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
+      (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
+        (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
       "tokenIn and tokenOut must match exchange"
     );
 
@@ -396,7 +398,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountOut
   ) internal view returns (uint256 amountIn, bool bucketsUpdated) {
     require(
-      (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) || (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
+      (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
+        (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
       "tokenIn and tokenOut must match exchange"
     );
 
@@ -426,7 +429,11 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @param exchange The exchange being updated.
    * @return exchangeAfter The updated exchange.
    */
-  function updateBucketsIfNecessary(PoolExchange memory exchange) internal view returns (PoolExchange memory, bool updated) {
+  function updateBucketsIfNecessary(PoolExchange memory exchange)
+    internal
+    view
+    returns (PoolExchange memory, bool updated)
+  {
     if (shouldUpdateBuckets(exchange)) {
       (exchange.bucket0, exchange.bucket1) = getUpdatedBuckets(exchange);
       updated = true;
@@ -491,10 +498,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     require(reserve.isStableAsset(exchange.asset0), "asset0 must be a stable registered with the reserve");
     require(
       reserve.isStableAsset(exchange.asset1) || reserve.isCollateralAsset(exchange.asset1),
-      "asset1 must be a stable or collateral registered with the reserve"
+      "asset1 must be a stable or collateral"
     );
 
-    require(FixidityLib.lte(exchange.config.spread, FixidityLib.fixed1()), "Spread must be less than or equal to 1");
+    require(FixidityLib.lte(exchange.config.spread, FixidityLib.fixed1()), "spread must be less than or equal to 1");
 
     require(exchange.config.referenceRateFeedID != address(0), "referenceRateFeedID must be set");
 

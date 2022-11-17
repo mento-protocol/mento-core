@@ -22,13 +22,13 @@ interface IPricingModule {
   ) external view returns (uint256 amountOut);
 
   /**
-    * @notice Returns the input amount necessary for a given output amount.
-    * @param tokenInBucketSize Size of the tokenIn bucket.
-    * @param tokenOutBucketSize Size of the tokenOut bucket.
+   * @notice Returns the input amount necessary for a given output amount.
+   * @param tokenInBucketSize Size of the tokenIn bucket.
+   * @param tokenOutBucketSize Size of the tokenOut bucket.
    * @param spread Spread charged on exchanges.
-    * @param amountOut Amount of tokenIn being paid out.
-    * @return amountIn Amount of tokenOut that would have to be paid in.
-    */
+   * @param amountOut Amount of tokenIn being paid out.
+   * @return amountIn Amount of tokenOut that would have to be paid in.
+   */
   function getAmountIn(
     uint256 tokenInBucketSize,
     uint256 tokenOutBucketSize,
