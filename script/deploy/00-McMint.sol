@@ -20,8 +20,8 @@ import { BiPoolManagerProxy } from "contracts/proxies/BiPoolManagerProxy.sol";
 import { BrokerProxy } from "contracts/proxies/BrokerProxy.sol";
 import { ReserveProxy } from "contracts/proxies/ReserveProxy.sol";
 
-// ANVIL - forge script scripts/deploy/00-McMint.sol --fork-url http://localhost:8545 --broadcast --legacy --private-key
-// Baklava - forge script scripts/deploy/00-McMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --verify --verifier sourcify --private-key
+// ANVIL - forge script script/deploy/00-McMint.sol --fork-url http://localhost:8545 --broadcast --legacy --private-key
+// Baklava - forge script script/deploy/00-McMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --verify --verifier sourcify --private-key
 
 contract DeployMcMint is Script, ScriptHelper {
   ConstantSumPricingModule csPricingModule;
@@ -61,8 +61,8 @@ contract DeployMcMint is Script, ScriptHelper {
       broker.transferOwnership(proxies.celoGovernance);
 
       // Deploy stateless contracts
-      csPricingModule = new ConstantSumPricingModule(true);
-      cpPricingModule = new ConstantProductPricingModule(true);
+      csPricingModule = new ConstantSumPricingModule();
+      cpPricingModule = new ConstantProductPricingModule();
 
       // Deploy updated implementations
       reserve = new Reserve(true);

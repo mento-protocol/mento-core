@@ -10,7 +10,7 @@ import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
 import { ICeloGovernance } from "contracts/governance/interfaces/ICeloGovernance.sol";
 
-// Baklava - forge script scripts/governance/CGP-00X-McMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --private-key
+// Baklava - forge script script/governance/CGP-00X-McMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --private-key
 contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
   using FixidityLib for FixidityLib.Fraction;
 
