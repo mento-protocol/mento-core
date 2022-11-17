@@ -34,9 +34,11 @@ contract MedianDeltaBreaker is IBreaker, UsingRegistry {
 
   /* ==================== Constructor ==================== */
 
-  constructor(address registryAddress, uint256 _cooldownTime, uint256 _priceChangeThreshold)
-    public
-  {
+  constructor(
+    address registryAddress,
+    uint256 _cooldownTime,
+    uint256 _priceChangeThreshold
+  ) public {
     _transferOwnership(msg.sender);
     setRegistry(registryAddress);
     setCooldownTime(_cooldownTime);
@@ -61,10 +63,7 @@ contract MedianDeltaBreaker is IBreaker, UsingRegistry {
    */
   function setPriceChangeThreshold(uint256 _priceChangeThreshold) public onlyOwner {
     priceChangeThreshold = FixidityLib.wrap(_priceChangeThreshold);
-    require(
-      priceChangeThreshold.lt(FixidityLib.fixed1()),
-      "price change threshold must be less than 1"
-    );
+    require(priceChangeThreshold.lt(FixidityLib.fixed1()), "price change threshold must be less than 1");
     emit PriceChangeThresholdUpdated(_priceChangeThreshold);
   }
 
@@ -87,9 +86,7 @@ contract MedianDeltaBreaker is IBreaker, UsingRegistry {
    *                          should be tripped for the exchange.
    */
   function shouldTrigger(address exchange) public view returns (bool triggerBreaker) {
-    ISortedOracles sortedOracles = ISortedOracles(
-      registry.getAddressForOrDie(SORTED_ORACLES_REGISTRY_ID)
-    );
+    ISortedOracles sortedOracles = ISortedOracles(registry.getAddressForOrDie(SORTED_ORACLES_REGISTRY_ID));
 
     address stableToken = IExchange(exchange).stable();
 

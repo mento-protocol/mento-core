@@ -183,7 +183,12 @@ contract McMintIntegration is Test, WithRegistry {
     biPoolManager = new BiPoolManager(true);
     broker = new Broker(true);
 
-    biPoolManager.initialize(address(broker), IReserve(reserve), ISortedOracles(address(sortedOracles)), IBreakerBox(address(breaker)));
+    biPoolManager.initialize(
+      address(broker),
+      IReserve(reserve),
+      ISortedOracles(address(sortedOracles)),
+      IBreakerBox(address(breaker))
+    );
     address[] memory exchangeProviders = new address[](1);
     exchangeProviders[0] = address(biPoolManager);
 

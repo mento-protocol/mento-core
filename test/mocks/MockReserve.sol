@@ -66,7 +66,7 @@ contract MockReserve {
     return collateralAssets[token];
   }
 
-   function setReserveSpender(bool _reserveSpender) external {
+  function setReserveSpender(bool _reserveSpender) external {
     reserveSpender = _reserveSpender;
   }
 

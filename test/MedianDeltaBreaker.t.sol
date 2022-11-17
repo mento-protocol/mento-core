@@ -134,7 +134,10 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
     setupSortedOracles(currentMedianRate, previousMedianRate);
 
     vm.expectCall(address(testExchange), abi.encodeWithSelector(testExchange.stable.selector));
-    vm.expectCall(address(sortedOracles), abi.encodeWithSelector(sortedOracles.previousMedianRate.selector, testStable));
+    vm.expectCall(
+      address(sortedOracles),
+      abi.encodeWithSelector(sortedOracles.previousMedianRate.selector, testStable)
+    );
     vm.expectCall(address(sortedOracles), abi.encodeWithSelector(sortedOracles.medianRate.selector, testStable));
   }
 

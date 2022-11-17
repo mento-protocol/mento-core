@@ -42,14 +42,18 @@ contract MockSortedOracles {
     return (expired[token], token);
   }
 
-    function setOldestReportExpired(address token) public {
-        expired[token] = true;
-    }
+  function setOldestReportExpired(address token) public {
+    expired[token] = true;
+  }
 
-    function getTimestamps(address)
+  function getTimestamps(address)
     external
     pure
-    returns (address[] memory, uint256[] memory, SortedLinkedListWithMedian.MedianRelation[] memory)
+    returns (
+      address[] memory,
+      uint256[] memory,
+      SortedLinkedListWithMedian.MedianRelation[] memory
+    )
   {
     return (new address[](1), new uint256[](1), new SortedLinkedListWithMedian.MedianRelation[](1));
   }
@@ -58,7 +62,7 @@ contract MockSortedOracles {
     return 0;
   }
 
-  function getOracles(address priceFeedId) public view returns (address[] memory ) {
+  function getOracles(address priceFeedId) public view returns (address[] memory) {
     return oracles[priceFeedId];
   }
 

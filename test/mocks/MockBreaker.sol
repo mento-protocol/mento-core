@@ -7,7 +7,11 @@ contract MockBreaker {
   bool public trigger;
   bool public reset;
 
-  constructor(uint256 _cooldown, bool _trigger, bool _reset) public {
+  constructor(
+    uint256 _cooldown,
+    bool _trigger,
+    bool _reset
+  ) public {
     cooldown = _cooldown;
     trigger = _trigger;
     reset = _reset;

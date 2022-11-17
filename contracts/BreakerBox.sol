@@ -37,7 +37,10 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
 
   modifier onlyValidBreaker(address breaker, uint64 tradingMode) {
     require(!isBreaker(breaker), "This breaker has already been added");
-    require(tradingModeBreaker[tradingMode] == address(0), "There is already a breaker added with the same trading mode");
+    require(
+      tradingModeBreaker[tradingMode] == address(0),
+      "There is already a breaker added with the same trading mode"
+    );
     require(tradingMode != 0, "The default trading mode can not have a breaker");
     _;
   }

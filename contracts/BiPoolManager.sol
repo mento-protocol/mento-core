@@ -154,11 +154,11 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     (amountIn, ) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);
   }
 
- /**
+  /**
    * @notice Check trading mode for a particular oracle report target
    * @param exchange The exchange i.e PoolExchange to use
    */
-  function checkTradingMode(PoolExchange memory exchange)public view {
+  function checkTradingMode(PoolExchange memory exchange) public view {
     if (address(breakerBox) != address(0)) {
       require(
         breakerBox.getRateFeedTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
@@ -451,7 +451,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
     // solhint-disable-next-line not-rely-on-time
     bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
-    bool enoughReports = (sortedOracles.numRates(exchange.config.referenceRateFeedID) >= exchange.config.minimumReports);
+    bool enoughReports = (sortedOracles.numRates(exchange.config.referenceRateFeedID) >=
+      exchange.config.minimumReports);
     // solhint-disable-next-line not-rely-on-time
     bool medianReportRecent = sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID) >
       now.sub(exchange.config.referenceRateResetFrequency);

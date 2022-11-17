@@ -46,7 +46,6 @@ contract BiPoolManagerTest is Test {
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
   event BreakerBoxUpdated(address newBreakerBox);
 
-
   /* ------------------------------------------- */
 
   address deployer;
@@ -114,7 +113,12 @@ contract BiPoolManagerTest is Test {
 
     changePrank(deployer);
 
-    biPoolManager.initialize(broker, IReserve(address(reserve)), ISortedOracles(address(sortedOracles)), IBreakerBox(address(breaker)));
+    biPoolManager.initialize(
+      broker,
+      IReserve(address(reserve)),
+      ISortedOracles(address(sortedOracles)),
+      IBreakerBox(address(breaker))
+    );
   }
 
   function mockOracleRate(address target, uint256 rateNumerator) internal {
@@ -326,7 +330,7 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     assertEq(address(biPoolManager.sortedOracles()), newSortedOracles);
   }
 
-   function test_setBreakerBox_whenSenderIsNotOwner_shouldRevert() public {
+  function test_setBreakerBox_whenSenderIsNotOwner_shouldRevert() public {
     changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     biPoolManager.setBreakerBox(IBreakerBox(address(0)));
@@ -337,7 +341,7 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     biPoolManager.setBreakerBox(IBreakerBox(address(0)));
   }
 
-   function test_setBreakerBox_whenSenderIsOwner_shouldUpdateAndEmit() public {
+  function test_setBreakerBox_whenSenderIsOwner_shouldUpdateAndEmit() public {
     address newBreakerBox = actor("newBreakerBox");
     vm.expectEmit(true, true, true, true);
     emit BreakerBoxUpdated(newBreakerBox);
@@ -621,11 +625,7 @@ contract BiPoolManagerTest_swap is BiPoolManagerTest_withExchange {
   }
 
   function test_swapIn_whenExchangeIdDoesNotExist_shouldRevert() public {
-      vm.mockCall(
-      address(breaker),
-      abi.encodeWithSelector(breaker.getRateFeedTradingMode.selector),
-      abi.encode(1)
-    );
+    vm.mockCall(address(breaker), abi.encodeWithSelector(breaker.getRateFeedTradingMode.selector), abi.encode(1));
     vm.expectRevert("Trading is suspended for this reference rate");
     biPoolManager.swapIn(exchangeId, address(cEUR), address(cUSD), 1e24);
   }

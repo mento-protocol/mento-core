@@ -26,7 +26,6 @@ contract BreakerBoxTest is Test, WithRegistry {
   BreakerBox breakerBox;
   MockSortedOracles sortedOracles;
 
-
   event BreakerAdded(address indexed breaker);
   event BreakerRemoved(address indexed breaker);
   event BreakerTripped(address indexed breaker, address indexed rateFeedID);
@@ -90,23 +89,11 @@ contract BreakerBoxTest is Test, WithRegistry {
     bool trigger,
     address rateFeedID
   ) public {
-    vm.mockCall(
-      address(breaker),
-      abi.encodeWithSelector(breaker.getCooldown.selector),
-      abi.encode(cooldown)
-    );
+    vm.mockCall(address(breaker), abi.encodeWithSelector(breaker.getCooldown.selector), abi.encode(cooldown));
 
-    vm.mockCall(
-      address(breaker),
-      abi.encodeWithSelector(breaker.shouldReset.selector),
-      abi.encode(reset)
-    );
+    vm.mockCall(address(breaker), abi.encodeWithSelector(breaker.shouldReset.selector), abi.encode(reset));
 
-    vm.mockCall(
-      address(breaker),
-      abi.encodeWithSelector(breaker.shouldTrigger.selector),
-      abi.encode(trigger)
-    );
+    vm.mockCall(address(breaker), abi.encodeWithSelector(breaker.shouldTrigger.selector), abi.encode(trigger));
 
     breakerBox.addBreaker(address(breaker), tradingMode);
     assertTrue(breakerBox.isBreaker(address(breaker)));
@@ -141,14 +128,16 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_initilize_shouldAddRateFeedIdsWithDefaultMode() public view {
-    (uint256 tradingModeA, uint256 lastUpdatedA, uint256 lastUpdatedBlockA) = breakerBox
-      .rateFeedTradingModes(rateFeedID1);
+    (uint256 tradingModeA, uint256 lastUpdatedA, uint256 lastUpdatedBlockA) = breakerBox.rateFeedTradingModes(
+      rateFeedID1
+    );
     assert(tradingModeA == 0);
     assert(lastUpdatedA > 0);
     assert(lastUpdatedBlockA > 0);
 
-    (uint256 tradingModeB, uint256 lastUpdatedB, uint256 lastUpdatedBlockB) = breakerBox
-      .rateFeedTradingModes(rateFeedID2);
+    (uint256 tradingModeB, uint256 lastUpdatedB, uint256 lastUpdatedBlockB) = breakerBox.rateFeedTradingModes(
+      rateFeedID2
+    );
     assert(tradingModeB == 0);
     assert(lastUpdatedB > 0);
     assert(lastUpdatedBlockB > 0);
@@ -248,12 +237,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     vm.expectEmit(true, false, false, false);
     emit BreakerAdded(address(mockBreaker4));
 
-    breakerBox.insertBreaker(
-      address(mockBreaker4),
-      4,
-      address(mockBreaker2),
-      address(mockBreaker1)
-    );
+    breakerBox.insertBreaker(address(mockBreaker4), 4, address(mockBreaker2), address(mockBreaker1));
 
     address[] memory breakersAfter = breakerBox.getBreakers();
     assert(breakersAfter.length == 4);
@@ -370,9 +354,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 }
 
 contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
-  function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCooldownNotPassed_shouldEmitNotCool()
-    public
-  {
+  function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCooldownNotPassed_shouldEmitNotCool() public {
     setupBreakerAndRateFeed(mockBreaker3, 6, 3600, false, false, rateFeedID3);
 
     skip(3599);
@@ -385,17 +367,12 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     assertEq(breakerBox.getRateFeedTradingMode(rateFeedID3), 6);
   }
 
-  function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCantReset_shouldEmitCriteriaFail()
-    public
-  {
+  function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCantReset_shouldEmitCriteriaFail() public {
     setupBreakerAndRateFeed(mockBreaker3, 6, 3600, false, false, rateFeedID3);
 
     skip(3600);
     vm.expectCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.getCooldown.selector));
-    vm.expectCall(
-      address(mockBreaker3),
-      abi.encodeWithSelector(mockBreaker3.shouldReset.selector, rateFeedID3)
-    );
+    vm.expectCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector, rateFeedID3));
     vm.expectEmit(true, true, true, true);
     emit ResetAttemptCriteriaFail(rateFeedID3, address(mockBreaker3));
 
@@ -403,17 +380,12 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     assertEq(breakerBox.getRateFeedTradingMode(rateFeedID3), 6);
   }
 
-  function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCanReset_shouldResetMode()
-    public
-  {
+  function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCanReset_shouldResetMode() public {
     setupBreakerAndRateFeed(mockBreaker3, 6, 3600, true, false, rateFeedID3);
     skip(3600);
 
     vm.expectCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.getCooldown.selector));
-    vm.expectCall(
-      address(mockBreaker3),
-      abi.encodeWithSelector(mockBreaker3.shouldReset.selector, rateFeedID3)
-    );
+    vm.expectCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector, rateFeedID3));
     vm.expectEmit(true, true, true, true);
     emit ResetSuccessful(rateFeedID3, address(mockBreaker3));
 
@@ -485,9 +457,7 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
 
     breakerBox.checkAndSetBreakers(rateFeedID3);
 
-    (, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.rateFeedTradingModes(
-      rateFeedID3
-    );
+    (, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
     assertEq(lastUpdatedTime, 3601);
     assertEq(lastUpdatedBlock, 5);
   }

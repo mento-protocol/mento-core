@@ -244,8 +244,8 @@ contract SortedOracles_RemoveOracles is SortedOraclesTest {
   }
 
   function testFail_removeOracle_whenOneReportExists_shouldNotEmitTheOracleReportedAndMedianUpdatedEvent() public {
-    // testFail feals impricise here. 
-    // TODO: Better way of testing this case :)  
+    // testFail feals impricise here.
+    // TODO: Better way of testing this case :)
     submitNReports(1);
     vm.expectEmit(true, true, true, true, address(sortedOracles));
     emit OracleReportRemoved(token, oracle);
@@ -540,10 +540,7 @@ contract SortedOraclesTest_report is SortedOraclesTest {
     testee.addOracle(address(mockStableToken), oracleA);
     testee.setBreakerBox(mockBreakerBox);
 
-    vm.expectCall(
-      address(mockBreakerBox),
-      abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector)
-    );
+    vm.expectCall(address(mockBreakerBox), abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector));
 
     changePrank(oracleA);
 
