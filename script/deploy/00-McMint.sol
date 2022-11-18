@@ -43,10 +43,9 @@ contract DeployMcMint is Script, ScriptHelper {
 
     vm.startBroadcast();
     {
-      // TODO: Verify initilized should be set
       // Deploy new implementations
-      biPoolManager = new BiPoolManager(true);
-      broker = new Broker(true);
+      biPoolManager = new BiPoolManager(false);
+      broker = new Broker(false);
 
       // Deploy new proxies
       biPoolManagerProxy = new BiPoolManagerProxy();
