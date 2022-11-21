@@ -50,7 +50,7 @@ interface IBreakerBox {
 
   /**
    * @notice Emitted when the trading mode for a rateFeedID is updated
-   * @param rateFeedID The address of the rataFeedID.
+   * @param rateFeedID The address of the rateFeedID.
    * @param tradingMode The new trading mode of the rateFeedID.
    */
   event TradingModeUpdated(address indexed rateFeedID, uint256 tradingMode);
