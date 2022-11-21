@@ -178,6 +178,7 @@ contract StableTokenTest_mint is StableTokenTest {
   address exchange;
   address validators;
   address grandaMento;
+  address broker;
 
   uint256 mintAmount = 100 * 10**18;
 
@@ -187,10 +188,12 @@ contract StableTokenTest_mint is StableTokenTest {
     exchange = actor("exchange");
     validators = actor("validators");
     grandaMento = actor("grandaMento");
+    broker = actor("broker");
 
     registry.setAddressFor("Exchange", exchange);
     registry.setAddressFor("Validators", validators);
     registry.setAddressFor("GrandaMento", grandaMento);
+    registry.setAddressFor("Broker", broker);
   }
 
   function mintAndAssert(address to, uint256 value) public {
@@ -210,6 +213,10 @@ contract StableTokenTest_mint is StableTokenTest {
 
   function test_mint_whenCalledByGrandaMento_shouldMintTokens() public {
     mintAndAssert(grandaMento, mintAmount);
+  }
+
+  function test_mint_whenCalledByBroker_shouldMintTokens() public {
+    mintAndAssert(broker, mintAmount);
   }
 
   function test_mint_whenValueIsZero_shouldAllowMint() public {
@@ -465,6 +472,7 @@ contract StableTokenTest_unitsToValue is StableTokenTest {
 contract StableTokenTest_burn is StableTokenTest {
   address exchange;
   address grandaMento;
+  address broker;
 
   uint256 mintAmount = 10;
   uint256 burnAmount = 5;
@@ -474,9 +482,11 @@ contract StableTokenTest_burn is StableTokenTest {
 
     exchange = actor("exchange");
     grandaMento = actor("grandaMento");
+    broker = actor("broker");
 
     registry.setAddressFor("Exchange", exchange);
     registry.setAddressFor("GrandaMento", grandaMento);
+    registry.setAddressFor("Broker", broker);
   }
 
   function burnAndAssert(address to, uint256 value) public {
@@ -498,6 +508,12 @@ contract StableTokenTest_burn is StableTokenTest {
     changePrank(grandaMento);
     testee.mint(grandaMento, mintAmount);
     burnAndAssert(grandaMento, burnAmount);
+  }
+
+  function test_burn_whenCalledByBroker_shouldBurnTokens() public {
+    changePrank(broker);
+    testee.mint(broker, mintAmount);
+    burnAndAssert(broker, burnAmount);
   }
 
   function test_burn_whenValueExceedsBalance_shouldRevert() public {
