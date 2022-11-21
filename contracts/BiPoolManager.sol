@@ -154,19 +154,6 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     (amountIn, ) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);
   }
 
-  /**
-   * @notice Check trading mode for a particular oracle report target
-   * @param exchange The exchange i.e PoolExchange to use
-   */
-  function checkTradingMode(PoolExchange memory exchange) public view {
-    if (address(breakerBox) != address(0)) {
-      require(
-        breakerBox.getRateFeedTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
-        "Trading is suspended for this reference rate"
-      );
-    }
-  }
-
   /* ==================== Mutative Functions ==================== */
 
   /**
@@ -276,7 +263,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountIn
   ) external onlyBroker returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-    checkTradingMode(exchange);
+    require(
+      breakerBox.getRateFeedTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
+      "Trading is suspended for this reference rate"
+    );
     bool bucketsUpdated;
 
     (amountOut, bucketsUpdated) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn);
@@ -299,7 +289,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountOut
   ) external onlyBroker returns (uint256 amountIn) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-    checkTradingMode(exchange);
+    require(
+      breakerBox.getRateFeedTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
+      "Trading is suspended for this reference rate"
+    );
     bool bucketsUpdated;
 
     (amountIn, bucketsUpdated) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);

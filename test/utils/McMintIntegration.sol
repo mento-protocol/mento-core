@@ -51,7 +51,7 @@ contract McMintIntegration is Test, WithRegistry {
   StableToken cEURToken;
   Freezer freezer;
 
-  address cUSD_CELO_rateFeedID;
+  address cUSD_CELO_referenceRateFeedID;
   address cEUR_CELO_referenceRateFeedID;
   address cUSD_USDCet_referenceRateFeedID;
   address cEUR_USDCet_referenceRateFeedID;
@@ -154,14 +154,14 @@ contract McMintIntegration is Test, WithRegistry {
     sortedOracles = new MockSortedOracles();
     breaker = new MockBreakerBox();
 
-    cUSD_CELO_rateFeedID = address(cUSDToken);
+    cUSD_CELO_referenceRateFeedID = address(cUSDToken);
     cEUR_CELO_referenceRateFeedID = address(cEURToken);
     cUSD_USDCet_referenceRateFeedID = address(bytes20(keccak256("USD/USDC")));
     cEUR_USDCet_referenceRateFeedID = address(bytes20(keccak256("EUR/USDC")));
     cUSD_cEUR_referenceRateFeedID = address(bytes20(keccak256("USD/EUR")));
 
-    sortedOracles.setMedianRate(cUSD_CELO_rateFeedID, 5e23);
-    sortedOracles.setNumRates(cUSD_CELO_rateFeedID, 10);
+    sortedOracles.setMedianRate(cUSD_CELO_referenceRateFeedID, 5e23);
+    sortedOracles.setNumRates(cUSD_CELO_referenceRateFeedID, 10);
 
     sortedOracles.setMedianRate(cEUR_CELO_referenceRateFeedID, 5e23);
     sortedOracles.setNumRates(cEUR_CELO_referenceRateFeedID, 10);
@@ -207,7 +207,7 @@ contract McMintIntegration is Test, WithRegistry {
     pair_cUSD_CELO.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cUSD_CELO.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_CELO.config.minimumReports = 5;
-    pair_cUSD_CELO.config.referenceRateFeedID = cUSD_CELO_rateFeedID;
+    pair_cUSD_CELO.config.referenceRateFeedID = cUSD_CELO_referenceRateFeedID;
     pair_cUSD_CELO.config.stablePoolResetSize = 1e24;
 
     pair_cUSD_CELO_ID = biPoolManager.createExchange(pair_cUSD_CELO);

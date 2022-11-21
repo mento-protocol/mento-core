@@ -148,7 +148,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
     require(info.lastUpdatedTime == 0, "Rate feed ID has already been added");
 
-    require(sortedOracles.getOracles(rateFeedID).length > 0, "Rate feed ID does not exist in oracles list");
+    require(sortedOracles.getOracles(rateFeedID).length > 0, "Rate feed ID does not exist as it has 0 oracles");
 
     info.tradingMode = 0; // Default trading mode (Bi-directional).
     info.lastUpdatedTime = uint64(block.timestamp);

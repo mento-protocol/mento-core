@@ -19,7 +19,7 @@ contract BreakerBoxTest is Test, WithRegistry {
   address rateFeedID1;
   address rateFeedID2;
   address rateFeedID3;
-  address rando;
+  address nonDeployer;
 
   MockBreaker mockBreaker1;
   MockBreaker mockBreaker2;
@@ -37,13 +37,14 @@ contract BreakerBoxTest is Test, WithRegistry {
   event ResetAttemptNotCool(address indexed rateFeedID, address indexed breaker);
   event RateFeedAdded(address indexed rateFeedID);
   event RateFeedRemoved(address indexed rateFeedID);
+  event SortedOraclesUpdated(address indexed newSortedOracles);
 
   function setUp() public {
     deployer = actor("deployer");
     rateFeedID1 = actor("rateFeedID1");
     rateFeedID2 = actor("rateFeedID2");
     rateFeedID3 = actor("rateFeedID3");
-    rando = actor("rando");
+    nonDeployer = actor("nonDeployer");
 
     address[] memory testRateFeedIDs = new address[](2);
     testRateFeedIDs[0] = rateFeedID1;
@@ -149,7 +150,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 
   function test_addBreaker_canOnlyBeCalledByOwner() public {
     vm.expectRevert("Ownable: caller is not the owner");
-    changePrank(rando);
+    changePrank(nonDeployer);
     breakerBox.addBreaker(address(mockBreaker1), 2);
   }
 
@@ -264,7 +265,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_addRateFeed_whenRateFeedDoesNotExistInOracleList_shouldRevert() public {
-    vm.expectRevert("Rate feed ID does not exist in oracles list");
+    vm.expectRevert("Rate feed ID does not exist as it has 0 oracles");
     breakerBox.addRateFeed(rateFeedID3);
   }
 
@@ -352,6 +353,29 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assert(tradingModeAfter == 1);
     assert(lastUpdatedTimeAfter > lastUpdatedTimeBefore);
     assert(lastUpdatedBlockAfter > lastUpdatedBlockBefore);
+  }
+
+  /* ---------- Sorted Oracles ---------- */
+
+  function test_setSortedOracles_whenSenderIsNotOwner_shouldRevert() public {
+    changePrank(nonDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    breakerBox.setSortedOracles(ISortedOracles(address(0)));
+  }
+
+  function test_setSortedOracles_whenAddressIsZero_shouldRevert() public {
+    vm.expectRevert("SortedOracles address must be set");
+    breakerBox.setSortedOracles(ISortedOracles(address(0)));
+  }
+
+  function test_setSortedOracles_whenSenderIsOwner_shouldUpdateAndEmit() public {
+    address newSortedOracles = actor("newSortedOracles");
+    vm.expectEmit(true, true, true, true);
+    emit SortedOraclesUpdated(newSortedOracles);
+
+    breakerBox.setSortedOracles(ISortedOracles(newSortedOracles));
+
+    assertEq(address(breakerBox.sortedOracles()), newSortedOracles);
   }
 }
 
