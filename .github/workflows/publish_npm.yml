@@ -35,6 +35,12 @@ jobs:
           forge --version
           forge build --sizes
       
+      - name: "install typechain"
+        run: "npm install --save-dev typechain"
+
+      - name: "install typechain target"
+        run: "npm install --save-dev @typechain/ethers-v5"
+
       - name: "Generate types"
         run: "yarn generatetypes"
       
