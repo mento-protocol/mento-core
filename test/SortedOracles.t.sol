@@ -9,7 +9,6 @@ import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedL
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { MockBreakerBox } from "./mocks/MockBreakerBox.sol";
-import { MockStableToken } from "./mocks/MockStableToken.sol";
 
 contract SortedOraclesTest is Test {
   // Declare SortedOracles events for matching
@@ -29,38 +28,25 @@ contract SortedOraclesTest is Test {
   address token;
   uint256 aReportExpiry = 3600;
   uint256 fixed1 = FixidityLib.unwrap(FixidityLib.fixed1());
-  
+
   address oracle;
-  address oracleA;
-  address oracleB;
-  address oracleC;
 
   bytes32 constant MOCK_EXCHANGE_ID = keccak256(abi.encodePacked("mockExchange"));
 
   MockBreakerBox mockBreakerBox;
-  MockStableToken mockStableToken;
+
 
   function setUp() public {
     sortedOracles = new SortedOracles(true);
     sortedOracles.initialize(aReportExpiry);
-    
+
     owner = address(this);
     notOwner = address(10);
     rando = address(2);
     token = address(3);
     oracle = address(4);
-    oracleA = actor("oracleA");
-    oracleB = actor("oracleB");
-    oracleC = actor("oracleC");
 
     mockBreakerBox = new MockBreakerBox();
-    mockStableToken = new MockStableToken();
-
-    vm.mockCall(
-      address(mockStableToken),
-      abi.encodeWithSelector(mockStableToken.getExchangeRegistryId.selector),
-      abi.encode(MOCK_EXCHANGE_ID)
-    );
 
     sortedOracles.setBreakerBox(IBreakerBox(mockBreakerBox));
   }
@@ -199,7 +185,7 @@ contract SortedOracles_breakerBox is SortedOraclesTest {
   function test_setBreakerBox_shouldUpdateAndEmit() public {
     sortedOracles = new SortedOracles(true);
     assertEq(address(sortedOracles.breakerBox()), address(0));
-    vm.expectEmit(true, false, false, false);
+    vm.expectEmit(true, true, true, true);
     emit BreakerBoxUpdated(address(mockBreakerBox));
 
     sortedOracles.setBreakerBox(mockBreakerBox);
@@ -432,6 +418,9 @@ contract SortedOracles_isOldestReportExpired is SortedOraclesTest {
 }
 
 contract SortedOracles_report is SortedOraclesTest {
+  address oracleB = actor("oracleB");
+  address oracleC = actor("oracleC");
+
   function test_report_shouldIncreaseTheNumberOfRates() public {
     assertEq(sortedOracles.numRates(token), 0);
     submitNReports(1);
@@ -563,50 +552,49 @@ contract SortedOracles_report is SortedOraclesTest {
     assertEq(anotherOracle, oracles[1]);
     assertEq(timestamp0, timestamps[1]);
   }
-}
 
-contract SortedOraclesTest_report is SortedOraclesTest {
-  function test_report_shouldCallBreakerBoxWithExchangeId() public {
-    sortedOracles.addOracle(address(mockStableToken), oracleA);
+  function test_report_shouldCallBreakerBoxWithRateFeedID() public {
+    // token is a legacy reference of rateFeedID
+    sortedOracles.addOracle(token, oracle);
     sortedOracles.setBreakerBox(mockBreakerBox);
 
-    vm.expectCall(address(mockBreakerBox), abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector));
+    vm.expectCall(address(mockBreakerBox), abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector, token));
 
-    changePrank(oracleA);
+    changePrank(oracle);
 
-    sortedOracles.report(address(mockStableToken), 9999, address(0), address(0));
+    sortedOracles.report(token, 9999, address(0), address(0));
   }
 
   function test_report_whenMedianChanges_shouldUpdatePreviousMedian() public {
     sortedOracles.setBreakerBox(mockBreakerBox);
 
-    // Initially we have no rates, so no prevMediasn or currentMedian
-    uint256 prevMedianBefore = sortedOracles.previousMedianRate(address(mockStableToken));
-    (uint256 currentMedianBefore, ) = sortedOracles.medianRate(address(mockStableToken));
+    // Initially we have no rates, so no prevMedian or currentMedian
+    uint256 prevMedianBefore = sortedOracles.previousMedianRate(token);
+    (uint256 currentMedianBefore, ) = sortedOracles.medianRate(token);
     assertTrue((prevMedianBefore == 0) && (currentMedianBefore == 0));
 
-    sortedOracles.addOracle(address(mockStableToken), oracleA);
-    sortedOracles.addOracle(address(mockStableToken), oracleB);
+    sortedOracles.addOracle(token, oracle);
+    sortedOracles.addOracle(token, oracleB);
 
-    changePrank(oracleA);
+    changePrank(oracle);
     vm.expectEmit(true, false, false, false);
     // Actual value doesn't matter, just that it was changed
-    emit MedianUpdated(address(mockStableToken), 0);
-    sortedOracles.report(address(mockStableToken), 9999, address(0), address(0));
+    emit MedianUpdated(token, 0);
+    sortedOracles.report(token, 9999, address(0), address(0));
 
     // Now we have a report, current median is set but prev median should still be 0
-    (uint256 currentMedianAfterFirstReport, ) = sortedOracles.medianRate(address(mockStableToken));
-    uint256 prevMedianAfterFirstReport = sortedOracles.previousMedianRate(address(mockStableToken));
+    (uint256 currentMedianAfterFirstReport, ) = sortedOracles.medianRate(token);
+    uint256 prevMedianAfterFirstReport = sortedOracles.previousMedianRate(token);
     assertEq(prevMedianAfterFirstReport, 0);
 
     changePrank(oracleB);
     vm.expectEmit(true, false, false, false);
     // Actual value doesn't matter, just that it was changed
-    emit MedianUpdated(address(mockStableToken), 0);
-    sortedOracles.report(address(mockStableToken), 23012, oracleA, address(0));
+    emit MedianUpdated(token, 0);
+    sortedOracles.report(token, 23012, oracle, address(0));
 
     // Now we have another median changing report, prev median should be the current median before this update
-    uint256 prevMedianAfter = sortedOracles.previousMedianRate(address(mockStableToken));
+    uint256 prevMedianAfter = sortedOracles.previousMedianRate(token);
     assertEq(prevMedianAfter, currentMedianAfterFirstReport);
   }
 
@@ -614,20 +602,20 @@ contract SortedOraclesTest_report is SortedOraclesTest {
     test_report_whenMedianChanges_shouldUpdatePreviousMedian(); //¯\_(ツ)_/¯
 
     // Get the current median & prev median
-    (uint256 currentMedianBefore, ) = sortedOracles.medianRate(address(mockStableToken));
-    uint256 prevMedianBefore = sortedOracles.previousMedianRate(address(mockStableToken));
+    (uint256 currentMedianBefore, ) = sortedOracles.medianRate(token);
+    uint256 prevMedianBefore = sortedOracles.previousMedianRate(token);
 
     // Submit a report using the current median, so we don't get a change
     changePrank(owner);
-    sortedOracles.addOracle(address(mockStableToken), oracleC);
+    sortedOracles.addOracle(token, oracleC);
     changePrank(oracleC);
-    sortedOracles.report(address(mockStableToken), currentMedianBefore, oracleA, address(0));
+    sortedOracles.report(token, currentMedianBefore, oracle, address(0));
 
     // Check median values are unchanged
-    (uint256 currentMedianAfter, ) = sortedOracles.medianRate(address(mockStableToken));
+    (uint256 currentMedianAfter, ) = sortedOracles.medianRate(token);
     assertEq(currentMedianBefore, currentMedianAfter);
 
-    uint256 prevMedianAfter = sortedOracles.previousMedianRate(address(mockStableToken));
+    uint256 prevMedianAfter = sortedOracles.previousMedianRate(token);
 
     // Check prev median is unchanged
     assertEq(prevMedianAfter, prevMedianBefore);
