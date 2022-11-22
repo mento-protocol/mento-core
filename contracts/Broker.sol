@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IExchangeProvider } from "./interfaces/IExchangeProvider.sol";
 import { IBroker } from "./interfaces/IBroker.sol";
@@ -17,6 +18,8 @@ import { Initializable } from "./common/Initializable.sol";
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
 contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
+  using SafeMath for uint256;
+
   /* ==================== State Variables ==================== */
 
   address[] public exchangeProviders;
@@ -175,6 +178,20 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     transferIn(msg.sender, tokenIn, amountIn);
     transferOut(msg.sender, tokenOut, amountOut);
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
+  }
+
+  /**
+   * @notice Permissionless way to burn stables from msg.sender directly.
+   * @param token The token getting burned.
+   * @param amount The amount of the token getting burned.
+   * @return True if transaction succeeds.
+   */
+  function burnStableTokens(address token, uint256 amount) public returns (bool) {
+    require(reserve.isStableAsset(token), "Token must be a reserve stable asset");
+    IERC20(token).transferFrom(msg.sender, address(this), amount);
+    IStableToken(token).burn(amount);
+    emit TokenBurned(token, amount);
+    return true;
   }
 
   /* ==================== Private Functions ==================== */

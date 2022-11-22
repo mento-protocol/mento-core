@@ -26,6 +26,13 @@ interface IBroker {
     uint256 amountOut
   );
 
+ /**
+   * @notice Emitted when stables are burned.
+   * @param token The token getting burned.
+   * @param amount The amount of token getting burned.
+   */
+  event TokenBurned(address token, uint256 amount);
+
   /**
    * @notice Execute a token swap with fixed amountIn.
    * @param exchangeProvider the address of the exchange provider for the pair.
