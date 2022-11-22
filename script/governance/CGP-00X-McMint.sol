@@ -38,7 +38,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
   function buildProposal() public returns (ICeloGovernance.Transaction[] memory) {
     require(transactions.length == 0);
     proposal_upgradeContracts();
-    proposal_setBrokerAsReserveSpender();
+    proposal_configureReserve();
     proposal_registryUpdates();
     proposal_createExchanges();
     //TODO: Set Oracle report targets for new rates
@@ -91,7 +91,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
     );
   }
 
-  function proposal_setBrokerAsReserveSpender() private {
+  function proposal_configureReserve() private {
     transactions.push(
       ICeloGovernance.Transaction(
         0,
@@ -99,6 +99,28 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
         abi.encodeWithSelector(
           IReserve(0).addExchangeSpender.selector,
           proxies.broker
+        )
+      )
+    );
+
+    transactions.push(
+      ICeloGovernance.Transaction(
+        0,
+        proxies.reserve,
+        abi.encodeWithSelector(
+          IReserve(0).addCollateralAsset.selector,
+          implementations.usdcToken
+        )
+      )
+    );
+
+    transactions.push(
+      ICeloGovernance.Transaction(
+        0,
+        proxies.reserve,
+        abi.encodeWithSelector(
+          IReserve(0).addCollateralAsset.selector,
+          proxies.celoToken
         )
       )
     );
@@ -158,46 +180,50 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       })
     });
 
-    pools[2] =  IBiPoolManager.PoolExchange({ // cREAL/CELO
-      asset0: proxies.stableTokenBRL,
-      asset1: proxies.celoToken,
-      pricingModule: IPricingModule(implementations.constantProductPricingModule),
-      bucket0: 0,
-      bucket1: 0,
-      lastBucketUpdate: 0,
-      config: IBiPoolManager.PoolConfig({
-        spread: FixidityLib.newFixedFraction(5, 100),
-        referenceRateFeedID: proxies.stableTokenBRL,
-        referenceRateResetFrequency: 60 * 5,
-        minimumReports: 5,
-        stablePoolResetSize: 24
-      })
-    });
+    // XXX: Commented because cREAL isn't deployed to baklava :(
+    // pools[2] =  IBiPoolManager.PoolExchange({ // cREAL/CELO
+    //   asset0: proxies.stableTokenBRL,
+    //   asset1: proxies.celoToken,
+    //   pricingModule: IPricingModule(implementations.constantProductPricingModule),
+    //   bucket0: 0,
+    //   bucket1: 0,
+    //   lastBucketUpdate: 0,
+    //   config: IBiPoolManager.PoolConfig({
+    //     spread: FixidityLib.newFixedFraction(5, 100),
+    //     referenceRateFeedID: proxies.stableTokenBRL,
+    //     referenceRateResetFrequency: 60 * 5,
+    //     minimumReports: 5,
+    //     stablePoolResetSize: 24
+    //   })
+    // });
     
-    pools[3] = IBiPoolManager.PoolExchange({ // cUSD/USDCet
-      asset0: proxies.stableToken,
-      asset1: implementations.usdcToken,
-      pricingModule: IPricingModule(implementations.constantSumPricingModule),
-      bucket0: 0,
-      bucket1: 0,
-      lastBucketUpdate: 0,
-      config: IBiPoolManager.PoolConfig({
-        spread: FixidityLib.newFixedFraction(5, 100),
-        referenceRateFeedID: address(bytes20(keccak256(abi.encode("cUSD/USDC")))),
-        referenceRateResetFrequency: 60 * 5,
-        minimumReports: 5,
-        stablePoolResetSize: 24
-      })
-    });
+    // XXX: Commented because I'm not sure USDCet is on baklava
+    // pools[3] = IBiPoolManager.PoolExchange({ // cUSD/USDCet
+    //   asset0: proxies.stableToken,
+    //   asset1: implementations.usdcToken,
+    //   pricingModule: IPricingModule(implementations.constantSumPricingModule),
+    //   bucket0: 0,
+    //   bucket1: 0,
+    //   lastBucketUpdate: 0,
+    //   config: IBiPoolManager.PoolConfig({
+    //     spread: FixidityLib.newFixedFraction(5, 100),
+    //     referenceRateFeedID: address(bytes20(keccak256(abi.encode("cUSD/USDC")))),
+    //     referenceRateResetFrequency: 60 * 5,
+    //     minimumReports: 5,
+    //     stablePoolResetSize: 24
+    //   })
+    // });
 
     for (uint256 i = 0; i < pools.length; i++) {
-      transactions.push(
-        ICeloGovernance.Transaction(
-          0,
-          proxies.biPoolManager,
-          abi.encodeWithSelector(IBiPoolManager(0).createExchange.selector, pools[i])
-        )
-      );
+      if (pools[i].asset0 != address(0)) {
+        transactions.push(
+          ICeloGovernance.Transaction(
+            0,
+            proxies.biPoolManager,
+            abi.encodeWithSelector(IBiPoolManager(0).createExchange.selector, pools[i])
+          )
+        );
+      }
     }
   }
 }

@@ -96,7 +96,7 @@ contract ScriptHelper is IScriptHelper, Script {
         constantSumPricingModule: 0x85357878162F71B40f6a8036Edcf34DCaF80a2F4,
         celoGovernance: 0x175ffD14F36228d1479CFB8051A9e09Dc41CFC52,
         celoToken: 0x0B26352b5e2019A39d23a8eea2A9Fe4B0489Bd47,
-        usdcToken: 0x22a4aAF42A50bFA7238182460E32f15859c93dfe // ??
+        usdcToken: 0x37f750B7cC259A2f741AF45294f6a16572CF5cAd // ??
       });
     } else {
       revert("Unknown network");
