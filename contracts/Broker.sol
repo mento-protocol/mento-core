@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IExchangeProvider } from "./interfaces/IExchangeProvider.sol";
 import { IBroker } from "./interfaces/IBroker.sol";
@@ -18,7 +17,6 @@ import { Initializable } from "./common/Initializable.sol";
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
 contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
-  using SafeMath for uint256;
 
   /* ==================== State Variables ==================== */
 
