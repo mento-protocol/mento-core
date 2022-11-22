@@ -10,8 +10,20 @@ contract ScriptHelper is IScriptHelper {
   uint256 constant NETWORK_ANVIL = 0;
   uint256 constant NETWORK_CELO = 42220;
   uint256 constant NETWORK_BAKLAVA = 62320;
+  address constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
 
   constructor() public {}
+
+  /**
+   * @notice Get the current chainId
+   * @return the chain id
+   */
+  function chainId() internal pure returns (uint256 _chainId) {
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      _chainId := chainid
+    }
+  }
 
   /**
    * @notice Helper function to retrieve deployed proxy addresses.
@@ -19,6 +31,7 @@ contract ScriptHelper is IScriptHelper {
   function getNetworkProxies(uint256 network) internal pure returns (NetworkProxies memory proxies) {
     if (network == NETWORK_ANVIL) {
       proxies = NetworkProxies({
+        registry: address(0),
         stableToken: 0x62492A644A588FD904270BeD06ad52B9abfEA1aE,
         stableTokenBRL: 0x6a0EEf2bed4C30Dc2CB42fe6c5f01F80f7EF16d1,
         stableTokenEUR: 0xf9ecE301247aD2CE21894941830A2470f4E774ca,
@@ -34,6 +47,7 @@ contract ScriptHelper is IScriptHelper {
       });
     } else if (network == NETWORK_BAKLAVA) {
       proxies = NetworkProxies({
+        registry: REGISTRY_ADDRESS,
         stableToken: 0x62492A644A588FD904270BeD06ad52B9abfEA1aE,
         stableTokenBRL: 0x6a0EEf2bed4C30Dc2CB42fe6c5f01F80f7EF16d1,
         stableTokenEUR: 0xf9ecE301247aD2CE21894941830A2470f4E774ca,

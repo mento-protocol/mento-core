@@ -8,4 +8,11 @@ interface ICeloGovernance {
   }
 
   function minDeposit() external returns (uint256);
+  function propose(
+    uint256[] calldata values,
+    address[] calldata destinations,
+    bytes calldata data,
+    uint256[] calldata dataLengths,
+    string calldata descriptionUrl
+  ) external payable returns (uint256);
 }

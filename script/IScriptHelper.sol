@@ -3,6 +3,7 @@ pragma solidity ^0.5.13;
 
 interface IScriptHelper {
   struct NetworkProxies {
+    address registry;
     address stableToken;
     address stableTokenBRL;
     address stableTokenEUR;
