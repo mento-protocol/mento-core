@@ -29,6 +29,7 @@ contract BrokerTest is Test {
   event ExchangeProviderAdded(address indexed exchangeProvider);
   event ExchangeProviderRemoved(address indexed exchangeProvider);
   event ReserveSet(address indexed newAddress, address indexed prevAddress);
+  event TokenBurned(address token, uint256 amount);
 
   address deployer = actor("deployer");
   address notDeployer = actor("notDeployer");
@@ -229,6 +230,47 @@ contract BrokerTest_getAmounts is BrokerTest {
     );
 
     assertEq(amountOut, mockAmountOut);
+  }
+}
+
+contract BrokerTest_BurnStableTokens is BrokerTest {
+  uint256 burnAmount = 1;
+
+  function test_burnStableTokens_whenTokenIsNotReserveStable_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Token must be a reserve stable asset");
+    broker.burnStableTokens(randomAsset, 2);
+  }
+
+  function test_burnStableTokens_whenTokenIsAReserveStable_shouldBurnAndEmit() public {
+    stableAsset.mint(notDeployer, 2);
+    stableAsset.mint(address(broker), 2);
+
+    changePrank(notDeployer);
+
+    vm.expectCall(
+      address(IERC20(address(stableAsset))),
+      abi.encodeWithSelector(
+        IERC20(address(stableAsset)).transferFrom.selector,
+        address(notDeployer),
+        address(broker),
+        burnAmount
+      )
+    );
+
+    vm.expectCall(
+      address(IStableToken(address(stableAsset))),
+      abi.encodeWithSelector(IStableToken(address(stableAsset)).burn.selector, burnAmount)
+    );
+
+    vm.expectEmit(true, true, true, true);
+    emit TokenBurned(address(stableAsset), 1);
+    bool result = broker.burnStableTokens(address(stableAsset), 1);
+
+    assertEq(result, true);
+    assertEq(stableAsset.balanceOf(notDeployer), 1);
+    // assertion fails here
+    assertEq(stableAsset.balanceOf(address(broker)), 1);
   }
 }
 
