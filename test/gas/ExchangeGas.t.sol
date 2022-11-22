@@ -39,14 +39,6 @@ contract ExchangeGasTest is Test, TokenHelpers {
 
     mint(cUSDToken, trader, 10**22);
     mint(cEURToken, trader, 10**22);
-
-    console.log("trader CELO balance", celoToken.balanceOf(trader)); // 0, should be 10**22
-    console.log(
-      "governance proxy CELO balance after tansfer",
-      celoToken.balanceOf(0xD533Ca259b330c7A88f74E000a3FaEa2d63B7972)
-    );
-    console.log("trader cUSD balance", cUSDToken.balanceOf(trader)); // 10**22
-    console.log("trader cEUR balance", cEURToken.balanceOf(trader)); // 10**22
   }
 
   function test_gas_sell_CELO_for_cUSD() public {
