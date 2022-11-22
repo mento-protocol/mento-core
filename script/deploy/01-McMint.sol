@@ -77,6 +77,7 @@ contract DeployMcMint is Script, ScriptHelper {
         ISortedOracles(proxies.sortedOracles),
         IBreakerBox(proxies.breakerBox)
       );
+      BiPoolManager(address(biPoolManagerProxy)).transferOwnership(proxies.celoGovernance);
       address[] memory exchangeProviders = new address[](1);
       exchangeProviders[0] = address(biPoolManagerProxy);
 
