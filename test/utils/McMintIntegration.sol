@@ -6,7 +6,6 @@ pragma experimental ABIEncoderV2;
 import { Test } from "celo-foundry/Test.sol";
 
 import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
-import { MockBreakerBox } from "../mocks/MockBreakerBox.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
@@ -19,6 +18,8 @@ import { Broker } from "contracts/Broker.sol";
 import { ConstantProductPricingModule } from "contracts/ConstantProductPricingModule.sol";
 import { StableToken } from "contracts/StableToken.sol";
 import { Reserve } from "contracts/Reserve.sol";
+import { BreakerBox } from "contracts/BreakerBox.sol";
+import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { Freezer } from "contracts/common/Freezer.sol";
@@ -43,7 +44,8 @@ contract McMintIntegration is Test, WithRegistry {
   IPricingModule constantProduct;
 
   MockSortedOracles sortedOracles; // TODO
-  MockBreakerBox breaker;
+  BreakerBox breakerBox;
+  MedianDeltaBreaker medianDeltaBreaker;
 
   Token celoToken;
   Token usdcToken;
@@ -51,14 +53,12 @@ contract McMintIntegration is Test, WithRegistry {
   StableToken cEURToken;
   Freezer freezer;
 
-
   address cUSD_CELO_referenceRateFeedID;
   address cEUR_CELO_referenceRateFeedID;
   address cUSD_USDCet_referenceRateFeedID;
   address cEUR_USDCet_referenceRateFeedID;
   address cUSD_cEUR_referenceRateFeedID;
   address exchange;
-
 
   bytes32 pair_cUSD_CELO_ID;
   bytes32 pair_cEUR_CELO_ID;
@@ -71,6 +71,7 @@ contract McMintIntegration is Test, WithRegistry {
     setUp_assets();
     setUp_reserve();
     setUp_sortedOracles();
+    setUp_breakers();
     setUp_broker();
     setUp_freezer();
   }
@@ -157,7 +158,7 @@ contract McMintIntegration is Test, WithRegistry {
     /* ===== Deploy SortedOracles ===== */
 
     sortedOracles = new MockSortedOracles();
-    breaker = new MockBreakerBox();
+    // breaker = new MockBreakerBox();
 
     cUSD_CELO_referenceRateFeedID = address(cUSDToken);
     cEUR_CELO_referenceRateFeedID = address(cEURToken);
@@ -192,7 +193,7 @@ contract McMintIntegration is Test, WithRegistry {
       address(broker),
       IReserve(reserve),
       ISortedOracles(address(sortedOracles)),
-      IBreakerBox(address(breaker))
+      IBreakerBox(address(breakerBox))
     );
     address[] memory exchangeProviders = new address[](1);
     exchangeProviders[0] = address(biPoolManager);
@@ -275,5 +276,24 @@ contract McMintIntegration is Test, WithRegistry {
 
     freezer = new Freezer(true);
     registry.setAddressFor("Freezer", address(freezer));
+  }
+
+  function setUp_breakers() internal {
+    /* ========== Deploy Breaker Box =============== */
+    address[] memory rateFeedIDs = new address[](2);
+    rateFeedIDs[0] = address(21);
+    rateFeedIDs[1] = address(20);
+
+    sortedOracles.addOracle(rateFeedIDs[0], address(21));
+    sortedOracles.addOracle(rateFeedIDs[1], address(20));
+
+    breakerBox = new BreakerBox(true);
+    breakerBox.initialize(rateFeedIDs, ISortedOracles(address(sortedOracles)));
+
+    /* ========== Deploy Median Delta Breaker =============== */
+
+    uint256 threshold = 0.15 * 10**24; // 15%
+    uint256 coolDownTime = 5 minutes;
+    medianDeltaBreaker = new MedianDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
   }
 }
