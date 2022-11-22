@@ -8,6 +8,7 @@ interface IScriptHelper {
     address stableTokenBRL;
     address stableTokenEUR;
     address broker;
+    address breakerBox;
     address reserve;
     address sortedOracles;
     address exchange;
@@ -23,6 +24,8 @@ interface IScriptHelper {
     address stableTokenBRL;
     address stableTokenEUR;
     address broker;
+    address breakerBox;
+    address medianDeltaBreaker;
     address reserve;
     address sortedOracles;
     address exchange;

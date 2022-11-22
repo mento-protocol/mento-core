@@ -3,8 +3,8 @@ pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
 import { Script, console2 } from "forge-std/Script.sol";
-import { ScriptHelper } from "../ScriptHelper.sol";
-import { GovernanceHelper } from "../GovernanceHelper.sol";
+import { ScriptHelper } from "../utils/ScriptHelper.sol";
+import { GovernanceHelper } from "../utils/GovernanceHelper.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
@@ -22,50 +22,27 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
 
   ICeloGovernance.Transaction[] private transactions;
 
-  NetworkProxies private proxies = getNetworkProxies(chainId());
-  NetworkImplementations private implementations = getNetworkImplementations(chainId());
+  NetworkProxies private proxies = getNetworkProxies();
+  NetworkImplementations private implementations = getNetworkImplementations();
 
   function run() public {
+    ICeloGovernance.Transaction[] memory _transactions = buildProposal();
+
+    vm.startBroadcast();
+    {
+      createProposal(_transactions, proxies.celoGovernance);
+    }
+    vm.stopBroadcast();
+  }
+
+  function buildProposal() public returns (ICeloGovernance.Transaction[] memory) {
+    require(transactions.length == 0);
     proposal_upgradeContracts();
     proposal_setBrokerAsReserveSpender();
     proposal_registryUpdates();
     proposal_createExchanges();
     //TODO: Set Oracle report targets for new rates
-
-    vm.startBroadcast();
-    {
-      // Serialize transactions
-      (
-        uint256[] memory values,
-        address[] memory destinations,
-        bytes memory data,
-        uint256[] memory dataLengths
-      ) = serializeTransactions(transactions);
-
-      uint256 depositAmount = ICeloGovernance(proxies.celoGovernance).minDeposit();
-      console2.log("Celo governance proposal required deposit amount: ", depositAmount);
-
-      // Submit proposal
-      (bool success, bytes memory returnData) = address(proxies.celoGovernance).call.value(depositAmount)(
-        abi.encodeWithSelector(
-          ICeloGovernance(0).propose.selector,
-          values,
-          destinations,
-          data,
-          dataLengths,
-          "CGP-00X-McMint"
-        )
-      );
-
-      if (success == false) {
-        console2.log("Failed to create proposal");
-        console2.logBytes(returnData);
-      }
-      require(success);
-
-      console2.log("Proposal was successfully created. ID: ", abi.decode(returnData, (uint256)));
-    }
-    vm.stopBroadcast();
+    return transactions;
   }
 
   function proposal_upgradeContracts() private {
@@ -158,7 +135,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       lastBucketUpdate: 0,
       config: IBiPoolManager.PoolConfig({
         spread: FixidityLib.newFixedFraction(5, 100),
-        oracleReportTarget: proxies.stableToken,
+        referenceRateFeedID: proxies.stableToken,
         referenceRateResetFrequency: 60 * 5,
         minimumReports: 5,
         stablePoolResetSize: 24
@@ -174,7 +151,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       lastBucketUpdate: 0,
       config: IBiPoolManager.PoolConfig({
         spread: FixidityLib.newFixedFraction(5, 100),
-        oracleReportTarget: proxies.stableTokenEUR,
+        referenceRateFeedID: proxies.stableTokenEUR,
         referenceRateResetFrequency: 60 * 5,
         minimumReports: 5,
         stablePoolResetSize: 24
@@ -190,7 +167,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       lastBucketUpdate: 0,
       config: IBiPoolManager.PoolConfig({
         spread: FixidityLib.newFixedFraction(5, 100),
-        oracleReportTarget: proxies.stableTokenBRL,
+        referenceRateFeedID: proxies.stableTokenBRL,
         referenceRateResetFrequency: 60 * 5,
         minimumReports: 5,
         stablePoolResetSize: 24
@@ -206,7 +183,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       lastBucketUpdate: 0,
       config: IBiPoolManager.PoolConfig({
         spread: FixidityLib.newFixedFraction(5, 100),
-        oracleReportTarget: address(bytes20(keccak256(abi.encode("cUSD/USDC")))),
+        referenceRateFeedID: address(bytes20(keccak256(abi.encode("cUSD/USDC")))),
         referenceRateResetFrequency: 60 * 5,
         minimumReports: 5,
         stablePoolResetSize: 24

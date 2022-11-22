@@ -2,7 +2,7 @@
 pragma solidity ^0.5.13;
 
 import { Script, console2 } from "forge-std/Script.sol";
-import { ScriptHelper } from "../ScriptHelper.sol";
+import { ScriptHelper } from "../utils/ScriptHelper.sol";
 
 import { ConstantSumPricingModule } from "contracts/ConstantSumPricingModule.sol";
 import { ConstantProductPricingModule } from "contracts/ConstantProductPricingModule.sol";
@@ -14,6 +14,7 @@ import { StableTokenBRL } from "contracts/StableTokenBRL.sol";
 import { StableTokenEUR } from "contracts/StableTokenEUR.sol";
 
 import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 
 import { BiPoolManagerProxy } from "contracts/proxies/BiPoolManagerProxy.sol";
@@ -38,7 +39,7 @@ contract DeployMcMint is Script, ScriptHelper {
   ReserveProxy reserveProxy;
 
   function run() public {
-    NetworkProxies memory proxies = getNetworkProxies(0);
+    NetworkProxies memory proxies = getNetworkProxies();
     // NetworkProxies memory proxies = getNetworkProxies(vm.envUint("DEPLOY_NETWORK"));
 
     vm.startBroadcast();
@@ -73,13 +74,15 @@ contract DeployMcMint is Script, ScriptHelper {
       BiPoolManager(address(biPoolManagerProxy)).initialize(
         address(brokerProxy),
         IReserve(proxies.reserve),
-        ISortedOracles(proxies.sortedOracles)
+        ISortedOracles(proxies.sortedOracles),
+        IBreakerBox(proxies.breakerBox)
       );
       address[] memory exchangeProviders = new address[](1);
       exchangeProviders[0] = address(biPoolManagerProxy);
 
       // Init broker
       Broker(address(brokerProxy)).initialize(exchangeProviders, address(proxies.reserve));
+      Broker(address(brokerProxy)).transferOwnership(proxies.celoGovernance);
     }
     vm.stopBroadcast();
 
