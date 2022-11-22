@@ -158,7 +158,6 @@ contract McMintIntegration is Test, WithRegistry {
     /* ===== Deploy SortedOracles ===== */
 
     sortedOracles = new MockSortedOracles();
-    // breaker = new MockBreakerBox();
 
     cUSD_CELO_referenceRateFeedID = address(cUSDToken);
     cEUR_CELO_referenceRateFeedID = address(cEURToken);
