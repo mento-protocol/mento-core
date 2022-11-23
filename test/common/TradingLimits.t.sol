@@ -19,11 +19,6 @@ contract TradingLimitsTest is Test {
 
   TradingLimits.State private state;
 
-  function setUp() public {
-    TradingLimits.State memory _state;
-    state = _state;
-  }
-
   function configEmpty() internal pure returns (TradingLimits.Config memory config) {}
 
   function configL0(uint32 timestep0, int48 limit0) internal pure returns (TradingLimits.Config memory config) {
@@ -219,7 +214,7 @@ contract TradingLimitsTest is Test {
 
   /* ==================== State#update ==================== */
 
-  function test_update_withNoLimit_updatesOnlyGlobal() public {
+  function test_update_withNoLimit_doesNotUpdate() public {
     state = state.update(configEmpty(), 100 * 1e18, 18);
     assertEq(state.netflow0, 0);
     assertEq(state.netflow1, 0);
