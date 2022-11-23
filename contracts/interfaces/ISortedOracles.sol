@@ -1,5 +1,7 @@
 pragma solidity ^0.5.13;
 
+import "../common/linkedlists/SortedLinkedListWithMedian.sol";
+
 interface ISortedOracles {
   function addOracle(address, address) external;
 
@@ -27,4 +29,17 @@ interface ISortedOracles {
   function numTimestamps(address) external view returns (uint256);
 
   function medianTimestamp(address) external view returns (uint256);
+
+  function previousMedianRate(address) external view returns (uint256);
+
+  function getOracles(address) external view returns (address[] memory);
+
+  function getTimestamps(address token)
+    external
+    view
+    returns (
+      address[] memory,
+      uint256[] memory,
+      SortedLinkedListWithMedian.MedianRelation[] memory
+    );
 }

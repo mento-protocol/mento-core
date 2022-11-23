@@ -1,5 +1,7 @@
 pragma solidity ^0.5.13;
 
+import "../../contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
+
 /**
  * @title A mock SortedOracles for testing.
  */
@@ -9,6 +11,7 @@ contract MockSortedOracles {
   mapping(address => uint256) public medianTimestamp;
   mapping(address => uint256) public numRates;
   mapping(address => bool) public expired;
+  mapping(address => address[]) public oracles;
 
   function setMedianRate(address token, uint256 numerator) external returns (bool) {
     numerators[token] = numerator;
@@ -41,5 +44,29 @@ contract MockSortedOracles {
 
   function setOldestReportExpired(address token) public {
     expired[token] = true;
+  }
+
+  function getTimestamps(address)
+    external
+    pure
+    returns (
+      address[] memory,
+      uint256[] memory,
+      SortedLinkedListWithMedian.MedianRelation[] memory
+    )
+  {
+    return (new address[](1), new uint256[](1), new SortedLinkedListWithMedian.MedianRelation[](1));
+  }
+
+  function previousMedianRate(address) public pure returns (uint256) {
+    return 0;
+  }
+
+  function getOracles(address priceFeedId) public view returns (address[] memory) {
+    return oracles[priceFeedId];
+  }
+
+  function addOracle(address priceFeedId, address oracleAddress) public {
+    oracles[priceFeedId].push(oracleAddress);
   }
 }

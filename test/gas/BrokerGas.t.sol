@@ -6,11 +6,11 @@ pragma experimental ABIEncoderV2;
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import { McMintIntegration } from "../utils/McMintIntegration.sol";
+import { IntegrationSetup } from "../utils/IntegrationSetup.sol";
 import { TokenHelpers } from "../utils/TokenHelpers.sol";
 
 // forge test --match-contract BrokerIntegration -vvv
-contract BrokerGasTest is Test, McMintIntegration, TokenHelpers {
+contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
   address trader;
 
   function setUp() public {

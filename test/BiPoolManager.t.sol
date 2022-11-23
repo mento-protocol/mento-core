@@ -9,11 +9,13 @@ import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
 import { MockReserve } from "./mocks/MockReserve.sol";
+import { MockBreakerBox } from "./mocks/MockBreakerBox.sol";
 import { MockERC20 } from "./mocks/MockERC20.sol";
 import { MockPricingModule } from "./mocks/MockPricingModule.sol";
 import { MockSortedOracles } from "./mocks/MockSortedOracles.sol";
@@ -42,6 +44,7 @@ contract BiPoolManagerTest is Test {
   event ReserveUpdated(address indexed newReserve);
   event SortedOraclesUpdated(address indexed newSortedOracles);
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
+  event BreakerBoxUpdated(address newBreakerBox);
 
   /* ------------------------------------------- */
 
@@ -59,6 +62,7 @@ contract BiPoolManagerTest is Test {
 
   MockReserve reserve;
   BiPoolManager biPoolManager;
+  MockBreakerBox breaker;
 
   function newMockERC20(string memory name, string memory symbol) internal returns (MockERC20 token) {
     token = new MockERC20(name, symbol);
@@ -81,6 +85,7 @@ contract BiPoolManagerTest is Test {
 
     reserve = new MockReserve();
     biPoolManager = new BiPoolManager(true);
+    breaker = new MockBreakerBox();
 
     vm.mockCall(
       address(reserve),
@@ -108,7 +113,12 @@ contract BiPoolManagerTest is Test {
 
     changePrank(deployer);
 
-    biPoolManager.initialize(broker, IReserve(address(reserve)), ISortedOracles(address(sortedOracles)));
+    biPoolManager.initialize(
+      broker,
+      IReserve(address(reserve)),
+      ISortedOracles(address(sortedOracles)),
+      IBreakerBox(address(breaker))
+    );
   }
 
   function mockOracleRate(address target, uint256 rateNumerator) internal {
@@ -131,14 +141,14 @@ contract BiPoolManagerTest is Test {
     MockERC20 asset0,
     MockERC20 asset1,
     IPricingModule pricingModule,
-    address oracleReportTarget
+    address referenceRateFeedID
   ) internal returns (bytes32 exchangeId) {
     return
       createExchange(
         asset0,
         asset1,
         pricingModule,
-        oracleReportTarget,
+        referenceRateFeedID,
         FixidityLib.wrap(0.1 * 1e24), // spread
         1e26 // stablePoolResetSize
       );
@@ -148,7 +158,7 @@ contract BiPoolManagerTest is Test {
     MockERC20 asset0,
     MockERC20 asset1,
     IPricingModule pricingModule,
-    address oracleReportTarget,
+    address referenceRateFeedID,
     FixidityLib.Fraction memory spread,
     uint256 stablePoolResetSize
   ) internal returns (bytes32 exchangeId) {
@@ -158,7 +168,7 @@ contract BiPoolManagerTest is Test {
     exchange.pricingModule = pricingModule;
 
     BiPoolManager.PoolConfig memory config;
-    config.oracleReportTarget = oracleReportTarget;
+    config.referenceRateFeedID = referenceRateFeedID;
     config.stablePoolResetSize = stablePoolResetSize;
     config.referenceRateResetFrequency = 60 * 5; // 5 minutes
     config.minimumReports = 5;
@@ -251,6 +261,10 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     assertEq(address(biPoolManager.sortedOracles()), address(sortedOracles));
   }
 
+  function test_initialize_shouldSetBreakerBox() public {
+    assertEq(address(biPoolManager.breakerBox()), address(breaker));
+  }
+
   /* ---------- Setters ---------- */
 
   function test_setBroker_whenSenderIsNotOwner_shouldRevert() public {
@@ -314,6 +328,27 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     biPoolManager.setSortedOracles(ISortedOracles(newSortedOracles));
 
     assertEq(address(biPoolManager.sortedOracles()), newSortedOracles);
+  }
+
+  function test_setBreakerBox_whenSenderIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    biPoolManager.setBreakerBox(IBreakerBox(address(0)));
+  }
+
+  function test_setBreakerBox_whenAddressIsZero_shouldRevert() public {
+    vm.expectRevert("BreakerBox address must be set");
+    biPoolManager.setBreakerBox(IBreakerBox(address(0)));
+  }
+
+  function test_setBreakerBox_whenSenderIsOwner_shouldUpdateAndEmit() public {
+    address newBreakerBox = actor("newBreakerBox");
+    vm.expectEmit(true, true, true, true);
+    emit BreakerBoxUpdated(newBreakerBox);
+
+    biPoolManager.setBreakerBox(IBreakerBox(newBreakerBox));
+
+    assertEq(address(biPoolManager.breakerBox()), newBreakerBox);
   }
 
   /* ---------- Getters ---------- */
@@ -383,8 +418,8 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
     createExchange(cUSD, MockERC20(address(0)));
   }
 
-  function test_createExchange_whenOracleReportTargetIsNotSet_shouldRevert() public {
-    vm.expectRevert("oracleReportTarget must be set");
+  function test_createExchange_whenReferenceRateFeedIDIsNotSet_shouldRevert() public {
+    vm.expectRevert("referenceRateFeedID must be set");
     createExchange(cUSD, CELO, constantProduct, address(0));
   }
 
@@ -589,6 +624,12 @@ contract BiPoolManagerTest_swap is BiPoolManagerTest_withExchange {
     biPoolManager.swapIn(0x0, address(0), address(0), 1e24);
   }
 
+  function test_swapIn_whenTradingModeDoesntExist_shouldRevert() public {
+    vm.mockCall(address(breaker), abi.encodeWithSelector(breaker.getRateFeedTradingMode.selector), abi.encode(1));
+    vm.expectRevert("Trading is suspended for this reference rate");
+    biPoolManager.swapIn(exchangeId, address(cEUR), address(cUSD), 1e24);
+  }
+
   function test_swapIn_whenTokenInNotInexchange_itReverts() public {
     vm.expectRevert("tokenIn and tokenOut must match exchange");
     biPoolManager.swapIn(exchangeId, address(cEUR), address(cUSD), 1e24);
@@ -644,6 +685,12 @@ contract BiPoolManagerTest_swap is BiPoolManagerTest_withExchange {
   function test_swapOut_whenExchangeDoesntExist_itReverts() public {
     vm.expectRevert("An exchange with the specified id does not exist");
     biPoolManager.swapOut(0x0, address(0), address(0), 1e24);
+  }
+
+  function test_swapOut_whenTradingModeDoesntExist_shouldRevert() public {
+    vm.mockCall(address(breaker), abi.encodeWithSelector(breaker.getRateFeedTradingMode.selector), abi.encode(2));
+    vm.expectRevert("Trading is suspended for this reference rate");
+    biPoolManager.swapOut(exchangeId, address(cEUR), address(cUSD), 1e24);
   }
 
   function test_swapOut_whenTokenInNotInPool_itReverts() public {
