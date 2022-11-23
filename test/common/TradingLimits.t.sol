@@ -90,7 +90,7 @@ contract TradingLimitsTest is Test {
 
   /* ==================== Config#validate ==================== */
 
-  function test_validate_withL0_isValid() public {
+  function test_validate_withL0_isValid() public pure {
     TradingLimits.Config memory config = configL0(100, 1000);
     config.validate();
   }
@@ -101,7 +101,7 @@ contract TradingLimitsTest is Test {
     config.validate();
   }
 
-  function test_validate_withL0L1_isValid() public {
+  function test_validate_withL0L1_isValid() public pure {
     TradingLimits.Config memory config = configL0L1(100, 1000, 1000, 10000);
     config.validate();
   }
@@ -112,7 +112,7 @@ contract TradingLimitsTest is Test {
     config.validate();
   }
 
-  function test_validate_withL0L1LG_isValid() public {
+  function test_validate_withL0L1LG_isValid() public pure {
     TradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 100000);
     config.validate();
   }
