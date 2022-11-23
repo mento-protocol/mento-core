@@ -33,7 +33,6 @@ contract BrokerTest is Test {
   event ExchangeProviderAdded(address indexed exchangeProvider);
   event ExchangeProviderRemoved(address indexed exchangeProvider);
   event ReserveSet(address indexed newAddress, address indexed prevAddress);
-  event TokenBurned(address token, uint256 amount);
 
   address deployer = actor("deployer");
   address notDeployer = actor("notDeployer");
@@ -256,8 +255,6 @@ contract BrokerTest_BurnStableTokens is BrokerTest {
       abi.encodeWithSelector(IStableToken(address(stableAsset)).burn.selector, burnAmount)
     );
 
-    vm.expectEmit(true, true, true, true);
-    emit TokenBurned(address(stableAsset), 1);
     bool result = broker.burnStableTokens(address(stableAsset), 1);
 
     assertEq(result, true);
