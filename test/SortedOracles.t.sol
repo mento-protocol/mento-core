@@ -35,7 +35,6 @@ contract SortedOraclesTest is Test {
 
   MockBreakerBox mockBreakerBox;
 
-
   function setUp() public {
     sortedOracles = new SortedOracles(true);
     sortedOracles.initialize(aReportExpiry);
