@@ -205,12 +205,11 @@ contract IntegrationSetup is Test, WithRegistry {
       address oracleAddy = getOracleAddy(rateFeedID, oracleIndex);
       address lesserKey;
       address greaterKey;
-      {
-        (address[] memory keys, uint256[] memory values, ) = sortedOracles.getRates(rateFeedID);
-        for (uint256 i = 0; i < keys.length; i++) {
-          if (values[i] < rate) lesserKey = keys[i];
-          if (values[i] >= rate) greaterKey = keys[i];
-        }
+      (address[] memory keys, uint256[] memory values, ) = sortedOracles.getRates(rateFeedID);
+      for (uint256 i = 0; i < keys.length; i++) {
+        if (keys[i] == oracleAddy) continue;
+        if (values[i] < rate) lesserKey = keys[i];
+        if (values[i] >= rate) greaterKey = keys[i];
       }
 
       changePrank(oracleAddy);

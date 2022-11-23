@@ -77,6 +77,34 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
     broker.swapIn(address(biPoolManager), pair_cUSD_USDCet_ID, address(cUSDToken), address(usdcToken), 1, 0);
   }
 
+  function test_swap_whenCircuitBreakerActivates_shouldDisableTrading() public {
+    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(pair_cUSD_USDCet_ID);
+
+    (uint256 numerator, uint256 denominator) = sortedOracles.medianRate(pool.config.referenceRateFeedID);
+    FixidityLib.Fraction memory rate_2x = FixidityLib.newFixedFraction(numerator, denominator).multiply(
+      FixidityLib.newFixedFraction(20, 10)
+    );
+    FixidityLib.Fraction memory rate_2_1x = FixidityLib.newFixedFraction(numerator, denominator).multiply(
+      FixidityLib.newFixedFraction(21, 10)
+    );
+
+    setMedianRate(pool.config.referenceRateFeedID, rate_2x.unwrap());
+
+    changePrank(trader);
+    IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
+
+    vm.expectRevert("Trading is suspended for this reference rate");
+    broker.swapIn(address(biPoolManager), pair_cUSD_USDCet_ID, address(cUSDToken), address(usdcToken), 1, 0);
+
+    vm.warp(block.timestamp + 6 minutes);
+    setMedianRate(pool.config.referenceRateFeedID, rate_2_1x.unwrap());
+
+    changePrank(trader);
+    IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
+
+    broker.swapIn(address(biPoolManager), pair_cUSD_USDCet_ID, address(cUSDToken), address(usdcToken), 1, 0);
+  }
+
   function test_getExchangeProviders_shouldReturnProviderWithCorrectExchanges() public {
     address[] memory exchangeProviders = broker.getExchangeProviders();
     assertEq(exchangeProviders.length, 1);
