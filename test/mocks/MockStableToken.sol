@@ -43,12 +43,6 @@ contract MockStableToken {
     return true;
   }
 
-  function burnStables(address from, uint256 value) external returns (bool) {
-    balances[from] = balances[from].sub(valueToUnits(value));
-    _totalSupply = _totalSupply.sub(value);
-    return true;
-  }
-
   function totalSupply() external view returns (uint256) {
     return _totalSupply;
   }
