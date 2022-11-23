@@ -15,6 +15,10 @@ solc = "0.5.17"
 fuzz_runs = 1_000
 verbosity = 4
 
+[profile.integration]
+no_match_contract = "RandomTest"
+match_contract = "Integration"
+
 [rpc_endpoints]
 celo_mainnet="${CELO_RPC_URL}"
 baklava="${BAKLAVA_RPC_URL}"

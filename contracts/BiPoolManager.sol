@@ -9,6 +9,7 @@ import { IBiPoolManager } from "./interfaces/IBiPoolManager.sol";
 import { IReserve } from "./interfaces/IReserve.sol";
 import { IPricingModule } from "./interfaces/IPricingModule.sol";
 import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
+import { IBreakerBox } from "./interfaces/IBreakerBox.sol";
 
 import { StableToken } from "./StableToken.sol";
 
@@ -38,10 +39,15 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   mapping(bytes32 => PoolExchange) public exchanges;
   bytes32[] public exchangeIds;
 
-  // Address of the Mento reserve contract
+  uint256 private constant TRADING_MODE_BIDIRECTIONAL = 0;
+
+  // Address of the Mento Reserve contract
   IReserve public reserve;
 
-  // Address of the Mento reserve contract
+  //Address of the Mento BreakerBox contract
+  IBreakerBox public breakerBox;
+
+  // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
 
   /* ==================== Constructor ==================== */
@@ -61,12 +67,14 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   function initialize(
     address _broker,
     IReserve _reserve,
-    ISortedOracles _sortedOracles
+    ISortedOracles _sortedOracles,
+    IBreakerBox _breakerBox
   ) external initializer {
     _transferOwnership(msg.sender);
     setBroker(_broker);
     setReserve(_reserve);
     setSortedOracles(_sortedOracles);
+    setBreakerBox(_breakerBox);
   }
 
   /* ==================== Modifiers ==================== */
@@ -169,6 +177,16 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   }
 
   /**
+   * @notice Sets the address of the BreakerBox.
+   * @param _breakerBox The new BreakerBox address.
+   */
+  function setBreakerBox(IBreakerBox _breakerBox) public onlyOwner {
+    require(address(_breakerBox) != address(0), "BreakerBox address must be set");
+    breakerBox = _breakerBox;
+    emit BreakerBoxUpdated(address(_breakerBox));
+  }
+
+  /**
    * @notice Sets the address of the sortedOracles contract.
    * @param _sortedOracles The new address of the sorted oracles contract.
    */
@@ -245,6 +263,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountIn
   ) external onlyBroker returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
+    require(
+      breakerBox.getRateFeedTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
+      "Trading is suspended for this reference rate"
+    );
     bool bucketsUpdated;
 
     (amountOut, bucketsUpdated) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn);
@@ -267,6 +289,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountOut
   ) external onlyBroker returns (uint256 amountIn) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
+    require(
+      breakerBox.getRateFeedTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
+      "Trading is suspended for this reference rate"
+    );
     bool bucketsUpdated;
 
     (amountIn, bucketsUpdated) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);
@@ -415,12 +441,13 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @return shouldUpdate
    */
   function shouldUpdateBuckets(PoolExchange memory exchange) internal view returns (bool) {
-    (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.oracleReportTarget);
+    (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
     // solhint-disable-next-line not-rely-on-time
     bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
-    bool enoughReports = (sortedOracles.numRates(exchange.config.oracleReportTarget) >= exchange.config.minimumReports);
+    bool enoughReports = (sortedOracles.numRates(exchange.config.referenceRateFeedID) >=
+      exchange.config.minimumReports);
     // solhint-disable-next-line not-rely-on-time
-    bool medianReportRecent = sortedOracles.medianTimestamp(exchange.config.oracleReportTarget) >
+    bool medianReportRecent = sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID) >
       now.sub(exchange.config.referenceRateResetFrequency);
     return timePassed && enoughReports && medianReportRecent && !isReportExpired;
   }
@@ -436,7 +463,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     bucket0 = exchange.config.stablePoolResetSize;
     uint256 exchangeRateNumerator;
     uint256 exchangeRateDenominator;
-    (exchangeRateNumerator, exchangeRateDenominator) = getOracleExchangeRate(exchange.config.oracleReportTarget);
+    (exchangeRateNumerator, exchangeRateDenominator) = getOracleExchangeRate(exchange.config.referenceRateFeedID);
 
     bucket1 = exchangeRateDenominator.mul(bucket0).div(exchangeRateNumerator);
   }
@@ -470,7 +497,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
 
     require(FixidityLib.lte(exchange.config.spread, FixidityLib.fixed1()), "spread must be less than or equal to 1");
 
-    require(exchange.config.oracleReportTarget != address(0), "oracleReportTarget must be set");
+    require(exchange.config.referenceRateFeedID != address(0), "referenceRateFeedID must be set");
 
     // TODO: Stable bucket max fraction should not exceed available stable bucket fraction.
     // TODO: minSupplyForStableBucketCap gt 0 & is there an aggregated value that needs to be checked

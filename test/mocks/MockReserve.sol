@@ -12,6 +12,8 @@ contract MockReserve {
 
   IERC20 public goldToken;
 
+  bool public reserveSpender;
+
   // solhint-disable-next-line no-empty-blocks
   function() external payable {}
 
@@ -62,5 +64,13 @@ contract MockReserve {
 
   function isCollateralAsset(address token) external view returns (bool) {
     return collateralAssets[token];
+  }
+
+  function setReserveSpender(bool _reserveSpender) external {
+    reserveSpender = _reserveSpender;
+  }
+
+  function isExchangeSpender(address) external view returns (bool) {
+    return reserveSpender;
   }
 }
