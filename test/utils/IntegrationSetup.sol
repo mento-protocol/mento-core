@@ -211,8 +211,8 @@ contract IntegrationSetup is Test, WithRegistry {
           uint256[] memory values,
         ) = sortedOracles.getRates(rateFeedID);
         for (uint256 i = 0; i < keys.length; i++) {
-          if (values[i] <= rate) lesserKey = keys[i];
-          if (values[i] > rate) greaterKey = keys[i];
+          if (values[i] < rate) lesserKey = keys[i];
+          if (values[i] >= rate) greaterKey = keys[i];
         }
       }
       
