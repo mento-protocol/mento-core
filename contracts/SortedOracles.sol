@@ -248,7 +248,10 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
       previousMedianRate[token] = originalMedian;
       emit MedianUpdated(token, newMedian);
     }
-    breakerBox.checkAndSetBreakers(token);
+
+    if (address(breakerBox) != address(0)) {
+      breakerBox.checkAndSetBreakers(token);
+    }
   }
 
   /**

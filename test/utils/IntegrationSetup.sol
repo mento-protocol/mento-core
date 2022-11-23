@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import { Test } from "celo-foundry/Test.sol";
 
-import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
+// import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
@@ -17,18 +17,22 @@ import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { Broker } from "contracts/Broker.sol";
 import { ConstantProductPricingModule } from "contracts/ConstantProductPricingModule.sol";
 import { StableToken } from "contracts/StableToken.sol";
+import { SortedOracles } from "contracts/SortedOracles.sol";
 import { Reserve } from "contracts/Reserve.sol";
 import { BreakerBox } from "contracts/BreakerBox.sol";
 import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { Freezer } from "contracts/common/Freezer.sol";
+import { AddressSortedLinkedListWithMedian } from "contracts//common/linkedlists/AddressSortedLinkedListWithMedian.sol";
+import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
 
 import { WithRegistry } from "./WithRegistry.sol";
 import { Token } from "./Token.sol";
 
-contract McMintIntegration is Test, WithRegistry {
+contract IntegrationSetup is Test, WithRegistry {
   using FixidityLib for FixidityLib.Fraction;
+  using AddressSortedLinkedListWithMedian for SortedLinkedListWithMedian.List;
 
   uint256 constant tobinTaxStalenessThreshold = 600;
   uint256 constant dailySpendingRatio = 1000000000000000000000000;
@@ -38,12 +42,15 @@ contract McMintIntegration is Test, WithRegistry {
 
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
 
+  address deployer;
+  mapping(address => uint256) oracleCounts;
+
   Broker broker;
   BiPoolManager biPoolManager;
   Reserve reserve;
   IPricingModule constantProduct;
 
-  MockSortedOracles sortedOracles; // TODO
+  SortedOracles sortedOracles;
   BreakerBox breakerBox;
   MedianDeltaBreaker medianDeltaBreaker;
 
@@ -68,6 +75,9 @@ contract McMintIntegration is Test, WithRegistry {
 
   function setUp_mcMint() public {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
+    deployer = actor("deployer");
+    changePrank(deployer);
+
     setUp_assets();
     setUp_reserve();
     setUp_sortedOracles();
@@ -79,7 +89,6 @@ contract McMintIntegration is Test, WithRegistry {
   function setUp_assets() internal {
     /* ===== Deploy collateral and stable assets ===== */
 
-    changePrank(actor("deployer"));
     celoToken = new Token("Celo", "cGLD", 18);
     usdcToken = new Token("USDCet", "USDCet", 18);
     exchange = address(21);
@@ -157,7 +166,8 @@ contract McMintIntegration is Test, WithRegistry {
   function setUp_sortedOracles() internal {
     /* ===== Deploy SortedOracles ===== */
 
-    sortedOracles = new MockSortedOracles();
+    sortedOracles = new SortedOracles(true);
+    sortedOracles.initialize(60 * 10);
 
     cUSD_CELO_referenceRateFeedID = address(cUSDToken);
     cEUR_CELO_referenceRateFeedID = address(cEURToken);
@@ -165,20 +175,76 @@ contract McMintIntegration is Test, WithRegistry {
     cEUR_USDCet_referenceRateFeedID = address(bytes20(keccak256("EUR/USDC")));
     cUSD_cEUR_referenceRateFeedID = address(bytes20(keccak256("USD/EUR")));
 
-    sortedOracles.setMedianRate(cUSD_CELO_referenceRateFeedID, 5e23);
-    sortedOracles.setNumRates(cUSD_CELO_referenceRateFeedID, 10);
+    initOracles(cUSD_CELO_referenceRateFeedID, 10);
+    setMedianRate(cUSD_CELO_referenceRateFeedID, 5e23);
 
-    sortedOracles.setMedianRate(cEUR_CELO_referenceRateFeedID, 5e23);
-    sortedOracles.setNumRates(cEUR_CELO_referenceRateFeedID, 10);
+    initOracles(cEUR_CELO_referenceRateFeedID, 10);
+    setMedianRate(cEUR_CELO_referenceRateFeedID, 5e23);
 
-    sortedOracles.setMedianRate(cUSD_USDCet_referenceRateFeedID, 1.02 * 1e24);
-    sortedOracles.setNumRates(cUSD_USDCet_referenceRateFeedID, 10);
+    initOracles(cUSD_USDCet_referenceRateFeedID, 10);
+    setMedianRate(cUSD_USDCet_referenceRateFeedID, 1.02 * 1e24);
 
-    sortedOracles.setMedianRate(cEUR_USDCet_referenceRateFeedID, 0.9 * 1e24);
-    sortedOracles.setNumRates(cEUR_USDCet_referenceRateFeedID, 10);
+    initOracles(cEUR_USDCet_referenceRateFeedID, 10);
+    setMedianRate(cEUR_USDCet_referenceRateFeedID, 0.9 * 1e24);
 
-    sortedOracles.setMedianRate(cUSD_cEUR_referenceRateFeedID, 1.1 * 1e24);
-    sortedOracles.setNumRates(cUSD_cEUR_referenceRateFeedID, 10);
+    initOracles(cUSD_cEUR_referenceRateFeedID, 10);
+    setMedianRate(cUSD_cEUR_referenceRateFeedID, 1.1 * 1e24);
+  }
+
+  function initOracles(address rateFeedID, uint256 count) internal {
+    oracleCounts[rateFeedID] = count;
+    for (uint256 oracleIndex = 0; oracleIndex < count; oracleIndex++) {
+      address oracleAddy = getOracleAddy(rateFeedID, oracleIndex);
+      sortedOracles.addOracle(rateFeedID, oracleAddy);
+    }
+  }
+
+  function setMedianRate(address rateFeedID, uint256 rate) internal {
+    uint256 count = oracleCounts[rateFeedID];
+    for (uint256 oracleIndex = 0; oracleIndex < count; oracleIndex++) {
+      address oracleAddy = getOracleAddy(rateFeedID, oracleIndex);
+      address lesserKey;
+      address greaterKey;
+      {
+        (
+          address[] memory keys,
+          uint256[] memory values,
+        ) = sortedOracles.getRates(rateFeedID);
+        for (uint256 i = 0; i < keys.length; i++) {
+          if (values[i] <= rate) lesserKey = keys[i];
+          if (values[i] > rate) greaterKey = keys[i];
+        }
+      }
+      
+      changePrank(oracleAddy);
+      sortedOracles.report(rateFeedID, rate, lesserKey, greaterKey);
+      changePrank(deployer);
+    }
+  }
+
+  function getOracleAddy(address rateFeedID, uint256 oracleIndex) internal returns (address) {
+    return vm.addr(uint256(keccak256(abi.encodePacked(rateFeedID, oracleIndex))));
+  }
+
+  function setUp_breakers() internal {
+    /* ========== Deploy Breaker Box =============== */
+    address[] memory rateFeedIDs = new address[](5);
+    rateFeedIDs[0] = cUSD_CELO_referenceRateFeedID;
+    rateFeedIDs[1] = cEUR_CELO_referenceRateFeedID;
+    rateFeedIDs[2] = cUSD_USDCet_referenceRateFeedID;
+    rateFeedIDs[3] = cEUR_USDCet_referenceRateFeedID;
+    rateFeedIDs[4] = cUSD_cEUR_referenceRateFeedID;
+
+    breakerBox = new BreakerBox(true);
+    breakerBox.initialize(rateFeedIDs, ISortedOracles(address(sortedOracles)));
+
+    /* ========== Deploy Median Delta Breaker =============== */
+
+    uint256 threshold = 0.15 * 10**24; // 15%
+    uint256 coolDownTime = 5 minutes;
+    medianDeltaBreaker = new MedianDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
+    breakerBox.addBreaker(address(medianDeltaBreaker), 1);
+    sortedOracles.setBreakerBox(breakerBox);
   }
 
   function setUp_broker() internal {
@@ -275,24 +341,5 @@ contract McMintIntegration is Test, WithRegistry {
 
     freezer = new Freezer(true);
     registry.setAddressFor("Freezer", address(freezer));
-  }
-
-  function setUp_breakers() internal {
-    /* ========== Deploy Breaker Box =============== */
-    address[] memory rateFeedIDs = new address[](2);
-    rateFeedIDs[0] = address(21);
-    rateFeedIDs[1] = address(20);
-
-    sortedOracles.addOracle(rateFeedIDs[0], address(21));
-    sortedOracles.addOracle(rateFeedIDs[1], address(20));
-
-    breakerBox = new BreakerBox(true);
-    breakerBox.initialize(rateFeedIDs, ISortedOracles(address(sortedOracles)));
-
-    /* ========== Deploy Median Delta Breaker =============== */
-
-    uint256 threshold = 0.15 * 10**24; // 15%
-    uint256 coolDownTime = 5 minutes;
-    medianDeltaBreaker = new MedianDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
   }
 }

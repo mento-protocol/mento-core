@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import { McMintIntegration } from "../utils/McMintIntegration.sol";
+import { IntegrationSetup } from "../utils/IntegrationSetup.sol";
 import { TokenHelpers } from "../utils/TokenHelpers.sol";
 
 import { Broker } from "contracts/Broker.sol";
@@ -19,7 +19,7 @@ import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
 // forge test --match-contract BrokerIntegration -vvv
-contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
+contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
   address trader;
 
   function setUp() public {
@@ -65,7 +65,8 @@ contract BrokerIntegrationTest is Test, McMintIntegration, TokenHelpers {
     vm.warp(pool.config.referenceRateResetFrequency + pool.lastBucketUpdate);
 
     // Median report recent == true
-    sortedOracles.setMedianTimestampToNow(pool.config.referenceRateFeedID);
+    (uint256 numerator, uint256 denominator) = sortedOracles.medianRate(pool.config.referenceRateFeedID);
+    setMedianRate(pool.config.referenceRateFeedID, FixidityLib.newFixedFraction(numerator, denominator).unwrap());
 
     changePrank(trader);
     IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
