@@ -2,7 +2,6 @@ pragma solidity ^0.5.13;
 // solhint-disable no-unused-vars, const-name-snakecase
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-
 import "contracts/common/FixidityLib.sol";
 
 /**
@@ -40,6 +39,12 @@ contract MockStableToken {
 
   function burn(uint256 value) external returns (bool) {
     balances[msg.sender] = balances[msg.sender].sub(valueToUnits(value));
+    _totalSupply = _totalSupply.sub(value);
+    return true;
+  }
+
+  function burnStables(address from, uint256 value) external returns (bool) {
+    balances[from] = balances[from].sub(valueToUnits(value));
     _totalSupply = _totalSupply.sub(value);
     return true;
   }

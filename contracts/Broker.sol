@@ -9,6 +9,7 @@ import { IBrokerAdmin } from "./interfaces/IBrokerAdmin.sol";
 import { IReserve } from "./interfaces/IReserve.sol";
 import { IStableToken } from "./interfaces/IStableToken.sol";
 import { IERC20Metadata } from "./common/interfaces/IERC20Metadata.sol";
+import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import { Initializable } from "./common/Initializable.sol";
 import { TradingLimits } from "./common/TradingLimits.sol";

@@ -3,7 +3,7 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { Test, console2 as console } from "celo-foundry/Test.sol";
+import { Test } from "celo-foundry/Test.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { Broker } from "contracts/Broker.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
@@ -238,7 +238,6 @@ contract BrokerTest_BurnStableTokens is BrokerTest {
 
   function test_burnStableTokens_whenTokenIsAReserveStable_shouldBurnAndEmit() public {
     stableAsset.mint(notDeployer, 2);
-    stableAsset.mint(address(broker), 2);
 
     changePrank(notDeployer);
 
@@ -263,8 +262,7 @@ contract BrokerTest_BurnStableTokens is BrokerTest {
 
     assertEq(result, true);
     assertEq(stableAsset.balanceOf(notDeployer), 1);
-    // assertion fails here
-    assertEq(stableAsset.balanceOf(address(broker)), 1);
+    assertEq(stableAsset.balanceOf(address(broker)), 0);
   }
 }
 
