@@ -188,6 +188,19 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
   }
 
   /**
+   * @notice Permissionless way to burn stables from msg.sender directly.
+   * @param token The token getting burned.
+   * @param amount The amount of the token getting burned.
+   * @return True if transaction succeeds.
+   */
+  function burnStableTokens(address token, uint256 amount) public returns (bool) {
+    require(reserve.isStableAsset(token), "Token must be a reserve stable asset");
+    IERC20Metadata(token).transferFrom(msg.sender, address(this), amount);
+    IStableToken(token).burn(amount);
+    return true;
+  }
+
+  /**
    * @notice Configure trading limits for an (exchangeId, token) touple.
    * @dev Will revert if the configuration is not valid according to the
    * TradingLimits library.

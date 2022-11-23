@@ -3,7 +3,7 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { Test, console2 as console } from "celo-foundry/Test.sol";
+import { Test } from "celo-foundry/Test.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { Broker } from "contracts/Broker.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
@@ -223,6 +223,43 @@ contract BrokerTest_getAmounts is BrokerTest {
       1e18
     );
     assertEq(amountOut, 4e17);
+  }
+}
+
+contract BrokerTest_BurnStableTokens is BrokerTest {
+  uint256 burnAmount = 1;
+
+  function test_burnStableTokens_whenTokenIsNotReserveStable_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Token must be a reserve stable asset");
+    broker.burnStableTokens(randomAsset, 2);
+  }
+
+  function test_burnStableTokens_whenTokenIsAReserveStable_shouldBurnAndEmit() public {
+    stableAsset.mint(notDeployer, 2);
+
+    changePrank(notDeployer);
+
+    vm.expectCall(
+      address(IERC20(address(stableAsset))),
+      abi.encodeWithSelector(
+        IERC20(address(stableAsset)).transferFrom.selector,
+        address(notDeployer),
+        address(broker),
+        burnAmount
+      )
+    );
+
+    vm.expectCall(
+      address(IStableToken(address(stableAsset))),
+      abi.encodeWithSelector(IStableToken(address(stableAsset)).burn.selector, burnAmount)
+    );
+
+    bool result = broker.burnStableTokens(address(stableAsset), 1);
+
+    assertEq(result, true);
+    assertEq(stableAsset.balanceOf(notDeployer), 1);
+    assertEq(stableAsset.balanceOf(address(broker)), 0);
   }
 }
 

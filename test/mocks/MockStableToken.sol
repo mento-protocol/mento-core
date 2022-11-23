@@ -2,7 +2,6 @@ pragma solidity ^0.5.13;
 // solhint-disable no-unused-vars, const-name-snakecase
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-
 import "contracts/common/FixidityLib.sol";
 
 /**
