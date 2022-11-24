@@ -23,21 +23,17 @@ Mento V1 contracts take around 25% more gas for simple swaps from a Stable to CE
 ###### 2022/11/21 gas report
 
 Broker.sol
-[PASS] test_gas_swapIn_CELOTocEUR() (gas: 170792)
-[PASS] test_gas_swapIn_CELOTocUSD() (gas: 170790)
-[PASS] test_gas_swapIn_CEURToCelo() (gas: 229310)
-[PASS] test_gas_swapIn_CUSDToCelo() (gas: 229311)
-[PASS] test_gas_swapIn_cUSDTocEUR() (gas: 200882)
-[PASS] test_gas_swapIn_cEURTocUSD() (gas: 200965)
-[PASS] test_gas_swapIn_cUSDToUSDCet() (gas: 246431)
-[PASS] test_gas_swapIn_cEURToUSDCet() (gas: 246410)
-
-- test_gas_swapIn_CELOTocUSD: [112366] Broker::swapIn
+[PASS] test_gas_swapIn_CELOTocEUR() (gas: 237016)
+[PASS] test_gas_swapIn_CELOTocUSD() (gas: 237014)
+[PASS] test_gas_swapIn_CEURToCelo() (gas: 292394)
+[PASS] test_gas_swapIn_CUSDToCelo() (gas: 292395)
+[PASS] test_gas_swapIn_cEURToUSDCet() (gas: 309449)
+[PASS] test_gas_swapIn_cEURTocUSD() (gas: 269525)
+[PASS] test_gas_swapIn_cUSDToUSDCet() (gas: 309470)
+[PASS] test_gas_swapIn_cUSDTocEUR() (gas: 269442)
 
 Exchange.sol
 [PASS] test_gas_sell_CELO_for_cEUR() (gas: 207711)
 [PASS] test_gas_sell_CELO_for_cUSD() (gas: 207752)
 [PASS] test_gas_sell_cEUR_for_CELO() (gas: 257494)
 [PASS] test_gas_sell_cUSD_for_CELO() (gas: 261958)
-
-- test_gas_sell_CELO_for_cUSD: [140569] 0x67316300f17f063085Ca8bCa4bd3f7a5a3C66275::sell
