@@ -32,7 +32,7 @@ contract GovernanceHelper is Script {
         serTxs.destinations,
         serTxs.data,
         serTxs.dataLengths,
-        descriptionURL,
+        descriptionURL
       )
     );
 
