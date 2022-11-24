@@ -344,12 +344,8 @@ contract IntegrationSetup is Test, WithRegistry {
 
   function setUp_tradingLimits() internal {
     /* ========== Config Trading Limits =============== */
-    uint8 L0 = 1; // 0b001
-    uint8 L1 = 2; // 0b010
-    uint8 LG = 4; // 0b100
-
     TradingLimits.Config memory config = configL0L1LG(100, 10000, 1000, 100000, 1000000);
-    broker.configureTradingLimit(pair_cUSD_CELO_ID, address(cUSDToken), config);    
+    broker.configureTradingLimit(pair_cUSD_CELO_ID, address(cUSDToken), config);
     broker.configureTradingLimit(pair_cEUR_CELO_ID, address(cEURToken), config);
     broker.configureTradingLimit(pair_cUSD_USDCet_ID, address(usdcToken), config);
     broker.configureTradingLimit(pair_cEUR_USDCet_ID, address(usdcToken), config);
