@@ -13,7 +13,11 @@ contract GovernanceHelper is Script {
     uint256[] dataLengths;
   }
 
-  function createProposal(ICeloGovernance.Transaction[] memory transactions, address governance) internal {
+  function createProposal(
+    ICeloGovernance.Transaction[] memory transactions, 
+    string memory descriptionURL,
+    address governance
+  ) internal {
     // Serialize transactions
     SerializedTransactions memory serTxs = serializeTransactions(transactions);
 
@@ -28,7 +32,7 @@ contract GovernanceHelper is Script {
         serTxs.destinations,
         serTxs.data,
         serTxs.dataLengths,
-        "CGP-00X-McMint"
+        descriptionURL,
       )
     );
 

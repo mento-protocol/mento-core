@@ -30,7 +30,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
 
     vm.startBroadcast();
     {
-      createProposal(_transactions, proxies.celoGovernance);
+      createProposal(_transactions, "TODO", proxies.celoGovernance);
     }
     vm.stopBroadcast();
   }
