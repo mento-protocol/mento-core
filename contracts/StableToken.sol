@@ -111,7 +111,7 @@ contract StableToken is
       uint256
     )
   {
-    return (1, 2, 0, 1);
+    return (1, 2, 1, 0);
   }
 
   /**
