@@ -13,10 +13,7 @@ contract GovernanceHelper is Script {
     uint256[] dataLengths;
   }
 
-  function createProposal(
-    ICeloGovernance.Transaction[] memory transactions,
-    address governance
-  ) internal {
+  function createProposal(ICeloGovernance.Transaction[] memory transactions, address governance) internal {
     // Serialize transactions
     SerializedTransactions memory serTxs = serializeTransactions(transactions);
 
@@ -43,10 +40,7 @@ contract GovernanceHelper is Script {
     console2.log("Proposal was successfully created. ID: ", abi.decode(returnData, (uint256)));
   }
 
-  function simulateProposal(
-    ICeloGovernance.Transaction[] memory transactions,
-    address governance
-  ) internal {
+  function simulateProposal(ICeloGovernance.Transaction[] memory transactions, address governance) internal {
     vm.activeFork();
     vm.startPrank(governance);
     for (uint256 i = 0; i < transactions.length; i++) {
@@ -64,9 +58,9 @@ contract GovernanceHelper is Script {
 
   function serializeTransactions(ICeloGovernance.Transaction[] memory transactions)
     internal
-    pure returns (
-      SerializedTransactions memory serTxs
-  ) {
+    pure
+    returns (SerializedTransactions memory serTxs)
+  {
     //   uint256[] memory values,
     //   address[] memory destinations,
     //   bytes memory data,

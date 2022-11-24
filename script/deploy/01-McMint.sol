@@ -44,45 +44,51 @@ contract DeployMcMint is Script, ScriptHelper {
 
     vm.startBroadcast();
     {
-      // Deploy new implementations
-      biPoolManager = new BiPoolManager(false);
-      broker = new Broker(false);
-
-      // Deploy new proxies
-      biPoolManagerProxy = new BiPoolManagerProxy();
-      brokerProxy = new BrokerProxy();
-
-      // Set implementations & transfer ownership
-      biPoolManagerProxy._setImplementation(address(biPoolManager));
-      biPoolManagerProxy._transferOwnership(proxies.celoGovernance);
-      biPoolManager.transferOwnership(proxies.celoGovernance);
-      brokerProxy._setImplementation(address(broker));
-      brokerProxy._transferOwnership(proxies.celoGovernance);
-      broker.transferOwnership(proxies.celoGovernance);
+      // Deploy updated implementations
+      reserve = new Reserve(false);
+      stableToken = new StableToken(false);
+      stableTokenBRL = new StableTokenBRL(false);
+      stableTokenEUR = new StableTokenEUR(false);
 
       // Deploy stateless contracts
       csPricingModule = new ConstantSumPricingModule();
       cpPricingModule = new ConstantProductPricingModule();
 
-      // Deploy updated implementations
-      reserve = new Reserve(true);
-      stableToken = new StableToken(true);
-      stableTokenBRL = new StableTokenBRL(true);
-      stableTokenEUR = new StableTokenEUR(true);
+      // Deploy new proxies
+      biPoolManagerProxy = new BiPoolManagerProxy();
+      brokerProxy = new BrokerProxy();
 
-      //Init biPoolManager
-      BiPoolManager(address(biPoolManagerProxy)).initialize(
-        address(brokerProxy),
-        IReserve(proxies.reserve),
-        ISortedOracles(proxies.sortedOracles),
-        IBreakerBox(proxies.breakerBox)
+      // Deploy & Initialize BiPoolManager
+      biPoolManager = new BiPoolManager(false);
+
+      biPoolManagerProxy._setAndInitializeImplementation(
+        address(biPoolManager),
+        abi.encodeWithSelector(
+          BiPoolManager(address(biPoolManagerProxy)).initialize.selector,
+          address(brokerProxy),
+          IReserve(proxies.reserve),
+          ISortedOracles(proxies.sortedOracles),
+          IBreakerBox(proxies.breakerBox)
+        )
       );
+      biPoolManagerProxy._transferOwnership(proxies.celoGovernance);
       BiPoolManager(address(biPoolManagerProxy)).transferOwnership(proxies.celoGovernance);
+
+      // Deploy & Initialize Broker
+      broker = new Broker(false);
+
       address[] memory exchangeProviders = new address[](1);
       exchangeProviders[0] = address(biPoolManagerProxy);
 
-      // Init broker
-      Broker(address(brokerProxy)).initialize(exchangeProviders, address(proxies.reserve));
+      brokerProxy._setAndInitializeImplementation(
+        address(broker),
+        abi.encodeWithSelector(
+          Broker(address(brokerProxy)).initialize.selector,
+          exchangeProviders,
+          address(proxies.reserve)
+        )
+      );
+      brokerProxy._transferOwnership(proxies.celoGovernance);
       Broker(address(brokerProxy)).transferOwnership(proxies.celoGovernance);
     }
     vm.stopBroadcast();

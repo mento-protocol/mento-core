@@ -50,10 +50,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       ICeloGovernance.Transaction(
         0,
         proxies.reserve,
-        abi.encodeWithSelector(
-          Proxy(0)._setImplementation.selector, 
-          implementations.reserve
-        )
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.reserve)
       )
     );
 
@@ -61,10 +58,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       ICeloGovernance.Transaction(
         0,
         proxies.stableToken,
-        abi.encodeWithSelector(
-          Proxy(0)._setImplementation.selector, 
-          implementations.stableToken
-        )
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.stableToken)
       )
     );
 
@@ -72,10 +66,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       ICeloGovernance.Transaction(
         0,
         proxies.stableTokenEUR,
-        abi.encodeWithSelector(
-          Proxy(0)._setImplementation.selector, 
-          implementations.stableTokenEUR
-        )
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.stableTokenEUR)
       )
     );
 
@@ -83,10 +74,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       ICeloGovernance.Transaction(
         0,
         proxies.stableTokenBRL,
-        abi.encodeWithSelector(
-          Proxy(0)._setImplementation.selector, 
-          implementations.stableTokenBRL
-        )
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.stableTokenBRL)
       )
     );
   }
@@ -96,10 +84,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       ICeloGovernance.Transaction(
         0,
         proxies.reserve,
-        abi.encodeWithSelector(
-          IReserve(0).addExchangeSpender.selector,
-          proxies.broker
-        )
+        abi.encodeWithSelector(IReserve(0).addExchangeSpender.selector, proxies.broker)
       )
     );
 
@@ -107,10 +92,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       ICeloGovernance.Transaction(
         0,
         proxies.reserve,
-        abi.encodeWithSelector(
-          IReserve(0).addCollateralAsset.selector,
-          implementations.usdcToken
-        )
+        abi.encodeWithSelector(IReserve(0).addCollateralAsset.selector, implementations.usdcToken)
       )
     );
 
@@ -118,10 +100,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       ICeloGovernance.Transaction(
         0,
         proxies.reserve,
-        abi.encodeWithSelector(
-          IReserve(0).addCollateralAsset.selector,
-          proxies.celoToken
-        )
+        abi.encodeWithSelector(IReserve(0).addCollateralAsset.selector, proxies.celoToken)
       )
     );
   }
@@ -131,18 +110,12 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       ICeloGovernance.Transaction(
         0,
         proxies.registry,
-        abi.encodeWithSelector(
-          IRegistry(0).setAddressFor.selector,
-          "Broker",
-          proxies.broker
-        )
+        abi.encodeWithSelector(IRegistry(0).setAddressFor.selector, "Broker", proxies.broker)
       )
     );
   }
 
-  function proposal_createExchanges()
-    private
-  {
+  function proposal_createExchanges() private {
     // TODO: confirm values
     // Add pools to the BiPoolManager: cUSD/CELO, cEUR/CELO, cREAL/CELO, cUSD/USDCet
 
@@ -164,7 +137,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
       })
     });
 
-    pools[1] =  IBiPoolManager.PoolExchange({ // cEUR/CELO
+    pools[1] = IBiPoolManager.PoolExchange({ // cEUR/CELO
       asset0: proxies.stableTokenEUR,
       asset1: proxies.celoToken,
       pricingModule: IPricingModule(implementations.constantProductPricingModule),
@@ -196,7 +169,7 @@ contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
     //     stablePoolResetSize: 24
     //   })
     // });
-    
+
     // XXX: Commented because I'm not sure USDCet is on baklava
     // pools[3] = IBiPoolManager.PoolExchange({ // cUSD/USDCet
     //   asset0: proxies.stableToken,

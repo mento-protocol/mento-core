@@ -72,11 +72,7 @@ contract ScriptHelper is IScriptHelper, Script {
   /**
    * @notice Helper function to retrieve deployed implementation addresses.
    */
-  function getNetworkImplementations()
-    internal
-    pure
-    returns (NetworkImplementations memory implementations)
-  {
+  function getNetworkImplementations() internal pure returns (NetworkImplementations memory implementations) {
     uint256 _chainId = chainId();
     if (_chainId == NETWORK_BAKLAVA) {
       implementations = NetworkImplementations({

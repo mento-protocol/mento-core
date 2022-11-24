@@ -1,4 +1,3 @@
-
 pragma solidity ^0.5.13;
 
 import { Script, console2 } from "forge-std/Script.sol";
@@ -27,16 +26,19 @@ contract DeployCircuitBreaker is Script, ScriptHelper {
     vm.startBroadcast();
     {
       // Deploy new implementations
-      breakerBox = new BreakerBox(true);
 
       medianDeltaBreaker = new MedianDeltaBreaker(0, 0, ISortedOracles(proxies.sortedOracles));
       medianDeltaBreaker.transferOwnership(proxies.celoGovernance);
 
+      breakerBox = new BreakerBox(false);
       breakerBoxProxy = new BreakerBoxProxy();
-      breakerBoxProxy._setImplementation(address(breakerBox));
-      BreakerBox(address(breakerBoxProxy)).initialize(
-        rateFeedIDs,
-        ISortedOracles(proxies.sortedOracles)
+      breakerBoxProxy._setAndInitializeImplementation(
+        address(breakerBox),
+        abi.encodeWithSelector(
+          BreakerBox(address(breakerBoxProxy)).initialize.selector,
+          rateFeedIDs,
+          ISortedOracles(proxies.sortedOracles)
+        )
       );
       breakerBoxProxy._transferOwnership(proxies.celoGovernance);
       BreakerBox(address(breakerBoxProxy)).transferOwnership(proxies.celoGovernance);
