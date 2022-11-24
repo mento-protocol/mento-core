@@ -25,8 +25,6 @@ contract DeployCircuitBreaker is Script, ScriptHelper {
 
     vm.startBroadcast();
     {
-      // Deploy new implementations
-
       medianDeltaBreaker = new MedianDeltaBreaker(0, 0, ISortedOracles(proxies.sortedOracles));
       medianDeltaBreaker.transferOwnership(proxies.celoGovernance);
 
