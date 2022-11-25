@@ -3,7 +3,10 @@ name: "publish npm package"
 on:
   push:
     branches: 
-      - feature/create-npm-package
+      - feature/create-npm-package # for test reasons needs to be changed to feature/mcmint
+    paths:
+      - contracts/interfaces/**
+
 
 jobs:
   release:
@@ -34,17 +37,11 @@ jobs:
         run: |
           forge --version
           forge build --sizes
-      
-      - name: "install typechain"
-        run: "npm install --save-dev typechain"
-
-      - name: "install typechain target"
-        run: "npm install --save-dev @typechain/ethers-v5"
 
       - name: "Generate types"
         run: "yarn generatetypes"
       
       - name: "publish"
-        run: npm publish --access public
+        run:  cd types npm publish --access public
         env: 
             NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
