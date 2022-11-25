@@ -4,8 +4,6 @@ on:
   push:
     branches: 
       - feature/create-npm-package # for test reasons needs to be changed to feature/mcmint
-    paths:
-      - contracts/interfaces/**
 
 
 jobs:
