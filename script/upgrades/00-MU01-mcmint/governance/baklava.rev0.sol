@@ -3,8 +3,8 @@ pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
 import { Script, console2 } from "forge-std/Script.sol";
-import { ScriptHelper } from "../../utils/ScriptHelper.sol";
-import { GovernanceHelper } from "../../utils/GovernanceHelper.sol";
+import { ScriptHelper } from "script/utils/ScriptHelper.sol";
+import { GovernanceHelper } from "script/utils/GovernanceHelper.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
@@ -22,7 +22,7 @@ import { Proxy } from "contracts/common/Proxy.sol";
                      --private-key $BAKLAVA_MENTO_PROPOSER
  * @dev depends on deploy/00-CircuitBreaker.sol and deploy/01-Broker.sol
  */
-contract MentoUpgrade1_baklava is Script, ScriptHelper, GovernanceHelper {
+contract MentoUpgrade1_baklava_rev0 is Script, ScriptHelper, GovernanceHelper {
   using FixidityLib for FixidityLib.Fraction;
 
   ICeloGovernance.Transaction[] private transactions;
