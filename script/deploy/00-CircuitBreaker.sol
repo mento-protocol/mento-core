@@ -10,13 +10,17 @@ import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
 import { BreakerBox } from "contracts/BreakerBox.sol";
 import { BreakerBoxProxy } from "contracts/proxies/BreakerBoxProxy.sol";
 
-// ANVIL - forge script script/deploy/01-CircuitBreaker.sol --fork-url http://localhost:8545 --broadcast --legacy --private-key
-// Baklava - forge script script/deploy/01-CircuitBreaker.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --verify --verifier sourcify --private-key
+/*
+ Baklava: 
+ forge script {file} --rpc-url $BAKLAVA_RPC_URL 
+                     --broadcast --legacy --verify --verifier sourcify 
+                     --private-key $BAKLAVA_DEPLOYER_PK
+*/
 
 contract DeployCircuitBreaker is Script, ScriptHelper {
-  MedianDeltaBreaker medianDeltaBreaker;
-  BreakerBox breakerBox;
-  BreakerBoxProxy breakerBoxProxy;
+  MedianDeltaBreaker private medianDeltaBreaker;
+  BreakerBox private breakerBox;
+  BreakerBoxProxy private breakerBoxProxy;
 
   function run() public {
     NetworkProxies memory proxies = getNetworkProxies();

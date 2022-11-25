@@ -2,12 +2,11 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { McMintProposal } from "./CGP-00X-McMint.sol";
+import { MentoUpgrade1_baklava } from "./baklava.sol";
 import { ICeloGovernance } from "contracts/governance/interfaces/ICeloGovernance.sol";
 
-// Baklava
-// forge script script/governance/CGP-00X-McMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --private-key
-contract McMintProposalSimulation is McMintProposal {
+// forge script {file} --rpc-url $BAKLAVA_RPC_URL
+contract MentoUpgrade1_baklava_simulation is MentoUpgrade1_baklava {
   NetworkProxies private proxies = getNetworkProxies();
 
   function run() public {

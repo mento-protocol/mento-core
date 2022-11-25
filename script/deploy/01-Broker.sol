@@ -21,8 +21,12 @@ import { BiPoolManagerProxy } from "contracts/proxies/BiPoolManagerProxy.sol";
 import { BrokerProxy } from "contracts/proxies/BrokerProxy.sol";
 import { ReserveProxy } from "contracts/proxies/ReserveProxy.sol";
 
-// ANVIL - forge script script/deploy/00-McMint.sol --fork-url http://localhost:8545 --broadcast --legacy --private-key
-// Baklava - forge script script/deploy/00-McMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --verify --verifier sourcify --private-key
+/*
+ Baklava: 
+ forge script {file} --rpc-url $BAKLAVA_RPC_URL 
+                     --broadcast --legacy --verify --verifier sourcify 
+                     --private-key $BAKLAVA_DEPLOYER_PK
+*/
 
 contract DeployBroker is Script, ScriptHelper {
   ConstantSumPricingModule csPricingModule;

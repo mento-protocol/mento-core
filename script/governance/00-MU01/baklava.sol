@@ -3,8 +3,8 @@ pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
 import { Script, console2 } from "forge-std/Script.sol";
-import { ScriptHelper } from "../utils/ScriptHelper.sol";
-import { GovernanceHelper } from "../utils/GovernanceHelper.sol";
+import { ScriptHelper } from "../../utils/ScriptHelper.sol";
+import { GovernanceHelper } from "../../utils/GovernanceHelper.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
@@ -15,9 +15,14 @@ import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
 import { Proxy } from "contracts/common/Proxy.sol";
 
-// Baklava
-// forge script script/governance/CGP-00X-McMint.sol --rpc-url https://baklava-forno.celo-testnet.org --broadcast --legacy --private-key
-contract McMintProposal is Script, ScriptHelper, GovernanceHelper {
+
+/**
+ forge script {file} --rpc-url $BAKLAVA_RPC_URL 
+                     --broadcast --legacy 
+                     --private-key $BAKLAVA_MENTO_PROPOSER
+ * @dev depends on deploy/00-CircuitBreaker.sol and deploy/01-Broker.sol
+ */
+contract MentoUpgrade1_baklava is Script, ScriptHelper, GovernanceHelper {
   using FixidityLib for FixidityLib.Fraction;
 
   ICeloGovernance.Transaction[] private transactions;
