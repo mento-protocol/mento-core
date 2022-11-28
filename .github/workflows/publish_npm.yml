@@ -36,10 +36,20 @@ jobs:
           forge --version
           forge build --sizes
 
-      - name: "Generate types"
-        run: "yarn generatetypes"
+      - name: "Install the Node.js dependencies of the package"
+        run: |
+          "cd package"
+          "yarn install --immutable"
+
+      - name: "Generate & build types"
+        run: |
+          "cd package"
+          "yarn generatetypes"
+          "yarn build"
       
       - name: "publish"
-        run:  cd types npm publish --access public
+        run: |  
+          cd package 
+          npm publish --access public
         env: 
             NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}

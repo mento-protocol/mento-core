@@ -1,0 +1,30 @@
+{
+  "name": "@mentolabs/core",
+  "version": "1.0.0",
+  "description": "Typescript types and factories for the mento core contract interfaces",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mento-protocol/mento-core"
+  },
+  "keywords": [
+    "mento",
+    "celo",
+    "solidity"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "generatetypes": "node generateTypes.js"
+  },
+  "author": "Mento Labs",
+  "devDependencies": {
+    "@typechain/ethers-v5": "^10.1.1",
+    "typechain": "^8.1.1",
+    "typescript": "^4.3"
+  }
+}

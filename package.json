@@ -8,7 +8,6 @@
   "devDependencies": {
     "@commitlint/cli": "^17.0.3",
     "@commitlint/config-conventional": "^17.0.3",
-    "@typechain/ethers-v5": "^10.1.1",
     "commitizen": "^4.2.4",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^8.0.0",
@@ -16,8 +15,7 @@
     "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-dev.22",
     "solhint": "^3.3.7",
-    "solhint-plugin-prettier": "^0.0.5",
-    "typechain": "^8.1.1"
+    "solhint-plugin-prettier": "^0.0.5"
   },
   "keywords": [
     "mento",
@@ -32,7 +30,6 @@
     "prettier": "prettier --config \"./.prettierrc.yml\" --write \"**/*.{json,md,sol,yml}\"",
     "prettier:check": "prettier --config \"./.prettierrc.yml\" --check \"**/*.{json,md,sol,yml}\"",
     "solhint": "solhint --config \"./.solhint.json\" \"{contracts,test}/**/*.sol\"",
-    "solhint:check": "solhint --config \"./.solhint.json\" \"{contracts,test}/**/*.sol\" -q",
-    "generatetypes": "node types/generateTypes.js"
+    "solhint:check": "solhint --config \"./.solhint.json\" \"{contracts,test}/**/*.sol\" -q"
   }
 }
