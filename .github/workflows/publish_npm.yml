@@ -6,6 +6,7 @@ on:
        - feature/mcmint
     paths:
        - contracts/interfaces/**
+       - package/**
 
 
 jobs:
