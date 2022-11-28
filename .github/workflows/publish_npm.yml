@@ -43,7 +43,7 @@ jobs:
       - name: "Generate & build types"
         working-directory: ./package
         run: |
-          "yarn generatetypes"
+          "node generateTypes.js"
           "yarn build"
       
       - name: "publish"
