@@ -1,5 +1,5 @@
 {
-  "name": "@mentolabs/mento-core",
+  "name": "@mento-protocol/mento-core",
   "description": "The core smart contracts of the Mento protocol",
   "version": "1.0.0",
   "author": {
