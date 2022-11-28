@@ -38,8 +38,7 @@ jobs:
 
       - name: "Install the Node.js dependencies of the package"
         working-directory: ./package
-        run: |
-          "yarn install --immutable"
+        run: "yarn install --immutable"
 
       - name: "Generate & build types"
         working-directory: ./package
