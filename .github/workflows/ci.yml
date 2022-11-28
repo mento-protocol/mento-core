@@ -57,9 +57,6 @@ jobs:
           forge --version
           forge build --sizes
 
-      - name: "Generate types"
-        run: "yarn generatetypes"
-
       - name: "Add test summary"
         run: |
           echo "## Tests" >> $GITHUB_STEP_SUMMARY
