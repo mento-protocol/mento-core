@@ -40,15 +40,16 @@ jobs:
         working-directory: ./package
         run: "yarn install --immutable"
 
-      - name: "Generate & build types"
+      - name: "Generate types"
         working-directory: ./package
-        run: |
-          "node generateTypes.js"
-          "yarn build"
-      
+        run: "yarn generatetypes"
+
+      - name: "Build types"
+        working-directory: ./package
+        run: "yarn build"
+
       - name: "publish"
         working-directory: ./package
-        run: |  
-          npm publish --access public
+        run: npm publish --access public
         env: 
             NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
