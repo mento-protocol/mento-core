@@ -2,7 +2,7 @@
 pragma solidity ^0.5.13;
 
 import { Script, console2 } from "forge-std/Script.sol";
-import { ScriptHelper } from "../utils/ScriptHelper.sol";
+import { ScriptHelper } from "script/utils/ScriptHelper.sol";
 
 import { ConstantSumPricingModule } from "contracts/ConstantSumPricingModule.sol";
 import { ConstantProductPricingModule } from "contracts/ConstantProductPricingModule.sol";
@@ -44,7 +44,6 @@ contract DeployBroker is Script, ScriptHelper {
 
   function run() public {
     NetworkProxies memory proxies = getNetworkProxies();
-    // NetworkProxies memory proxies = getNetworkProxies(vm.envUint("DEPLOY_NETWORK"));
 
     vm.startBroadcast();
     {

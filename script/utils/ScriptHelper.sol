@@ -76,9 +76,9 @@ contract ScriptHelper is IScriptHelper, Script {
     uint256 _chainId = chainId();
     if (_chainId == NETWORK_BAKLAVA) {
       implementations = NetworkImplementations({
-        stableToken: 0x26FEB5166381ddb92Ec36F1Fa718522356F99855,
-        stableTokenBRL: 0x190D7529728CBBE51aCAb0db0C547DC76a60fA77,
-        stableTokenEUR: 0xaA551fDE8de1dDa8f2c47daD90E0fd33efF2aAA3,
+        stableToken: 0x0Dfa02B150742BA1f0622a086892687edFB04994,
+        stableTokenBRL: 0x0F4ad316B240260f915ed93484CbE5B0012BbA91,
+        stableTokenEUR: 0x9b3Cb4E895128Fd7F507cF429d565C38ef49Fa23,
         broker: 0x98d2776372F5769DD051a4522e00048345101aaC,
         breakerBox: 0x6618A3EBa94A769AA94c4f0d1669dCC5069B0C7D,
         medianDeltaBreaker: 0x5F234B6b82F5fF67Eeb4aB5D676c50ac9A07D009,

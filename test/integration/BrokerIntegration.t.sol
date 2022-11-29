@@ -23,7 +23,9 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
   address trader;
 
   function setUp() public {
-    setUp_mcMint();
+    // setUp_mcMint();
+    uint256 forkId = vm.createFork("baklava");
+    vm.selectFork(forkId);
 
     trader = actor("trader");
 

@@ -2,7 +2,7 @@
 pragma solidity ^0.5.13;
 
 import { Script, console2 } from "forge-std/Script.sol";
-import { ScriptHelper } from "../utils/ScriptHelper.sol";
+import { ScriptHelper } from "script/utils/ScriptHelper.sol";
 
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 

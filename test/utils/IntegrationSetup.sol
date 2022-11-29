@@ -65,7 +65,6 @@ contract IntegrationSetup is Test, WithRegistry {
   address cUSD_USDCet_referenceRateFeedID;
   address cEUR_USDCet_referenceRateFeedID;
   address cUSD_cEUR_referenceRateFeedID;
-  address exchange;
 
   bytes32 pair_cUSD_CELO_ID;
   bytes32 pair_cEUR_CELO_ID;
@@ -91,7 +90,6 @@ contract IntegrationSetup is Test, WithRegistry {
 
     celoToken = new Token("Celo", "cGLD", 18);
     usdcToken = new Token("USDCet", "USDCet", 18);
-    exchange = address(21);
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
@@ -124,7 +122,6 @@ contract IntegrationSetup is Test, WithRegistry {
 
     vm.label(address(cUSDToken), "cUSD");
     vm.label(address(cEURToken), "cEUR");
-    registry.setAddressFor("Exchange", address(exchange));
   }
 
   function setUp_reserve() internal {
