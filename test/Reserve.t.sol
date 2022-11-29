@@ -505,21 +505,6 @@ contract ReserveTest_transfers is ReserveTest {
     reserve.transferExchangeCollateralAsset(address(dummyToken1), trader, 1000);
   }
 
-  function transferExchangeCollateralAssetSpecs(address caller) public {
-    changePrank(caller);
-    address payable dest = address(0x1111);
-    reserve.transferExchangeCollateralAsset(address(dummyToken1), dest, 1000);
-    assertEq(dummyToken1.balanceOf(dest), 1000);
-
-    changePrank(spender);
-    vm.expectRevert("Address not allowed to spend");
-    reserve.transferExchangeCollateralAsset(address(dummyToken1), dest, 1000);
-
-    changePrank(notDeployer);
-    vm.expectRevert("Address not allowed to spend");
-    reserve.transferExchangeCollateralAsset(address(dummyToken1), dest, 1000);
-  }
-
   function test_addExchangeSpender() public {
     address exchangeSpender0 = address(0x22222);
     address exchangeSpender1 = address(0x33333);
