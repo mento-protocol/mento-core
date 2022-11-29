@@ -240,7 +240,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     if (reserve.isStableAsset(token)) {
       IStableToken(token).mint(to, amount);
     } else if (reserve.isCollateralAsset(token)) {
-      reserve.transferCollateralAsset(token, to, amount);
+      reserve.transferExchangeCollateralAsset(token, to, amount);
     } else {
       revert("Token must be stable or collateral assert");
     }

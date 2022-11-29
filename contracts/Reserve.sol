@@ -504,7 +504,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     address payable to,
     uint256 value
   ) external returns (bool) {
-    require(isExchangeSpender[msg.sender], "Address is not allowed to spend");
+    require(isExchangeSpender[msg.sender], "Address not allowed to spend");
     return _transferCollateralAsset(collateralAsset, to, value);
   }
 
