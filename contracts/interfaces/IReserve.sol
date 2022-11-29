@@ -42,4 +42,10 @@ interface IReserve {
   function getDailySpendingRatioForCollateralAsset(address collateralAsset) external view returns (uint256);
 
   function isExchangeSpender(address exchange) external view returns (bool);
+
+  function transferExchangeCollateralAsset(
+    address collateralAsset,
+    address payable to,
+    uint256 value
+  ) external returns (bool);
 }

@@ -492,6 +492,23 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   }
 
   /**
+   * @notice Transfer collateral asset to any address.
+   * @dev Transfers are not subject to a daily spending limit.
+   * @param collateralAsset The address of collateral asset being transferred.
+   * @param to The address that will receive the collateral asset.
+   * @param value The amount of collateral asset to transfer.
+   * @return Returns true if the transaction succeeds.
+   */
+  function transferExchangeCollateralAsset(
+    address collateralAsset,
+    address payable to,
+    uint256 value
+  ) external returns (bool) {
+    require(isExchangeSpender[msg.sender], "Address is not allowed to spend");
+    return _transferCollateralAsset(collateralAsset, to, value);
+  }
+
+  /**
    * @notice Transfer unfrozen gold to any address.
    * @param to The address that will receive the gold.
    * @param value The amount of gold to transfer.
