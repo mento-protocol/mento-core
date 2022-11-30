@@ -26,7 +26,7 @@ interface IBreaker {
 
   /**
    * @notice Emitted when the rate feed is configured to a rate threshold.
-   * @param defaultRateChangeThreshold The threshold of the rate feed.
+   * @param rateChangeThreshold The threshold of the rate feed.
    */
   event RateChangeThresholdForRateFeedUpdated(address rateFeedID, uint256 rateChangeThreshold);
 

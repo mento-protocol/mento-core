@@ -40,8 +40,8 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
   constructor(
     uint256 _cooldownTime,
     uint256 _defaultRateChangeThreshold,
-    address[] rateFeedIDs,
-    uint256[] rateChangeThresholds,
+    address[] memory rateFeedIDs,
+    uint256[] memory rateChangeThresholds,
     ISortedOracles _sortedOracles
   ) public {
     _transferOwnership(msg.sender);
@@ -70,7 +70,7 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
   function setDefaultRateChangeThreshold(uint256 _defaultRateChangeThreshold) public onlyOwner {
     defaultRateChangeThreshold = FixidityLib.wrap(_defaultRateChangeThreshold);
     require(defaultRateChangeThreshold.lt(FixidityLib.fixed1()), "rate change threshold must be less than 1");
-    emit RateChangeThresholdUpdated(_defaultRateChangeThreshold);
+    emit DefaultRateChangeThresholdUpdated(_defaultRateChangeThreshold);
   }
 
   /**
@@ -88,9 +88,10 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
     );
     for (uint256 i = 0; i < rateFeedIDs.length; i++) {
       if (rateFeedIDs[i] != address(0) && rateChangeThresholds[i] != 0) {
+        FixidityLib.Fraction memory _rateChangeThreshold  = FixidityLib.wrap(rateChangeThresholds[i]);
         require(sortedOracles.getOracles(rateFeedIDs[i]).length > 0, "rate feed ID does not exist as it has 0 oracles");
-        require(rateChangeThresholds[i].lt(FixidityLib.fixed1()), "rate change threshold must be less than 1");
-        rateChangeThreshold[rateFeedIDs[i]] = FixidityLib.wrap(rateChangeThresholds[i]);
+        require(_rateChangeThreshold.lt(FixidityLib.fixed1()), "rate change threshold must be less than 1");
+        rateChangeThreshold[rateFeedIDs[i]] = _rateChangeThreshold;
         emit RateChangeThresholdForRateFeedUpdated(rateFeedIDs[i], rateChangeThresholds[i]);
       }
     }
@@ -161,11 +162,11 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
     address rateFeedID
   ) public view returns (bool) {
     uint256 allowedThreshold;
-    uint256 rateSpecificThreshold = rateChangeThreshold[rateFeedID];
+    uint256 rateSpecificThreshold = rateChangeThreshold[rateFeedID].unwrap();
 
     // checks if a given rate feed id has a threshold set
-    if (rateSpecificThreshold) {
-      allowedThreshold = rateSpecificThreshold.unwrap();
+    if (rateSpecificThreshold != 0) {
+      allowedThreshold = rateSpecificThreshold;
     }
 
     // otherwise just uses a default threshold
