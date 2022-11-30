@@ -19,7 +19,7 @@ contract BreakerBoxTest is Test, WithRegistry {
   address rateFeedID1;
   address rateFeedID2;
   address rateFeedID3;
-  address nonDeployer;
+  address notDeployer;
 
   MockBreaker mockBreaker1;
   MockBreaker mockBreaker2;
@@ -38,13 +38,14 @@ contract BreakerBoxTest is Test, WithRegistry {
   event RateFeedAdded(address indexed rateFeedID);
   event RateFeedRemoved(address indexed rateFeedID);
   event SortedOraclesUpdated(address indexed newSortedOracles);
+  event BreakerEnabled(address breaker, address rateFeedID);
 
   function setUp() public {
     deployer = actor("deployer");
     rateFeedID1 = actor("rateFeedID1");
     rateFeedID2 = actor("rateFeedID2");
     rateFeedID3 = actor("rateFeedID3");
-    nonDeployer = actor("nonDeployer");
+    notDeployer = actor("notDeployer");
 
     address[] memory testRateFeedIDs = new address[](2);
     testRateFeedIDs[0] = rateFeedID1;
@@ -150,7 +151,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 
   function test_addBreaker_canOnlyBeCalledByOwner() public {
     vm.expectRevert("Ownable: caller is not the owner");
-    changePrank(nonDeployer);
+    changePrank(notDeployer);
     breakerBox.addBreaker(address(mockBreaker1), 2);
   }
 
@@ -257,6 +258,30 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assert(breakerBox.breakerTradingMode(address(mockBreaker4)) == 4);
   }
 
+  function test_setBreakerEnabled_whenNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID1);
+  }
+
+  function test_setBreakerEnabled_whenRateFeedIsNotRegistered_shouldRevert() public {
+    vm.expectRevert("this rate feed has not been registered");
+    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID3);
+  }
+
+  function test_setBreakerEnabled_whenBreakerIsNotRegistered_shouldRevert() public {
+    vm.expectRevert("this breaker has not been registered in the breakers list");
+    breakerBox.setBreakerEnabled(address(mockBreaker3), rateFeedID1);
+  }
+
+  function test_setBreakerEnabled_whenSenderIsOwner_shouldEnableAndEmit() public {
+    vm.expectEmit(true, true, true, true);
+    emit BreakerEnabled(address(mockBreaker1), rateFeedID1);
+    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID1);
+
+    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker1), rateFeedID1), true);
+  }
+
   /* ---------- Rate Feed IDs ---------- */
 
   function test_addRateFeed_whenAlreadyAdded_shouldRevert() public {
@@ -358,7 +383,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   /* ---------- Sorted Oracles ---------- */
 
   function test_setSortedOracles_whenSenderIsNotOwner_shouldRevert() public {
-    changePrank(nonDeployer);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     breakerBox.setSortedOracles(ISortedOracles(address(0)));
   }

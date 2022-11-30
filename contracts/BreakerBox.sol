@@ -32,7 +32,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   // Ordered list of breakers to be checked.
   LinkedList.List private breakers;
   // Maps a breaker with rate feed id and bool to check if it's enabled.
-  mapping(address => mapping(address => bool)) breakerEnabled;
+  mapping(address => mapping(address => bool)) public breakerEnabled;
 
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
@@ -140,7 +140,11 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     emit BreakerRemoved(breaker);
   }
 
-  // todo write natspec to describe the changes
+  /**
+   * @notice Sets a breaker that is enabled for the specified rate feed.
+   * @param breaker The address of the breaker to be enabled.
+   * @param rateFeedID The address of the rate feed.
+   */
   function setBreakerEnabled(address breaker, address rateFeedID) public onlyOwner {
     TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
     require(info.lastUpdatedTime != 0, "this rate feed has not been registered");
@@ -261,6 +265,15 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     return info.tradingMode;
   }
 
+  /**
+   * @notice Checks if a breaker is enabled for a specific rate feed.
+   * @param breaker The address of the breaker we're checking for.
+   * @param rateFeedID The address of the rateFeedID.
+   */
+  function isBreakerEnabled(address breaker, address rateFeedID) external view returns (bool) {
+    return breakerEnabled[breaker][rateFeedID];
+  }
+
   /* ==================== Check Breakers ==================== */
 
   /**
@@ -309,7 +322,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
 
     // Check all breakers.
     for (uint256 i = 0; i < _breakers.length; i++) {
-      if (breakerEnabled[_breakers[i]][rateFeedID]) {
+      if (isBreakerEnabled(_breakers[i], rateFeedID)) {
         IBreaker breaker = IBreaker(_breakers[i]);
         bool tripBreaker = breaker.shouldTrigger(rateFeedID);
         if (tripBreaker) {
