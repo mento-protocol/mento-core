@@ -25,26 +25,29 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
   // The amount of time that must pass before the breaker can be reset for a rate feed.
   // Should be set to 0 to force a manual reset.
   uint256 public cooldownTime;
-  // The allowed threshold for the median rate change as a Fixidity fraction.
-  FixidityLib.Fraction public rateChangeThreshold;
+
+  // The default allowed threshold for the median rate change as a Fixidity fraction.
+  FixidityLib.Fraction public defaultRateChangeThreshold;
+
+  // Maps rate feed to a threshold.
+  mapping(address => FixidityLib.Fraction) rateChangeThreshold;
 
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
-
-  /* ==================== Events ==================== */
-
-  event RateChangeThresholdUpdated(uint256 newRateChangeThreshold);
 
   /* ==================== Constructor ==================== */
 
   constructor(
     uint256 _cooldownTime,
-    uint256 _rateChangeThreshold,
+    uint256 _defaultRateChangeThreshold,
+    address[] rateFeedIDs,
+    uint256[] rateChangeThresholds,
     ISortedOracles _sortedOracles
   ) public {
     _transferOwnership(msg.sender);
     setCooldownTime(_cooldownTime);
-    setRateChangeThreshold(_rateChangeThreshold);
+    setDefaultRateChangeThreshold(_defaultRateChangeThreshold);
+    setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     setSortedOracles(_sortedOracles);
   }
 
@@ -62,12 +65,35 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
 
   /**
    * @notice Sets rateChangeThreshold.
-   * @param _rateChangeThreshold The new rateChangeThreshold value.
+   * @param _defaultRateChangeThreshold The new rateChangeThreshold value.
    */
-  function setRateChangeThreshold(uint256 _rateChangeThreshold) public onlyOwner {
-    rateChangeThreshold = FixidityLib.wrap(_rateChangeThreshold);
-    require(rateChangeThreshold.lt(FixidityLib.fixed1()), "rate change threshold must be less than 1");
-    emit RateChangeThresholdUpdated(_rateChangeThreshold);
+  function setDefaultRateChangeThreshold(uint256 _defaultRateChangeThreshold) public onlyOwner {
+    defaultRateChangeThreshold = FixidityLib.wrap(_defaultRateChangeThreshold);
+    require(defaultRateChangeThreshold.lt(FixidityLib.fixed1()), "rate change threshold must be less than 1");
+    emit RateChangeThresholdUpdated(_defaultRateChangeThreshold);
+  }
+
+  /**
+   * @notice Configures rate feed to rate shreshold pairs.
+   * @param rateFeedIDs Collection of the addresses rate feeds.
+   * @param rateChangeThresholds Collection of the rate thresholds.
+   */
+  function setRateChangeThresholds(address[] memory rateFeedIDs, uint256[] memory rateChangeThresholds)
+    public
+    onlyOwner
+  {
+    require(
+      rateFeedIDs.length == rateChangeThresholds.length,
+      "Rate feeds and rate change thresholds have to be the same length"
+    );
+    for (uint256 i = 0; i < rateFeedIDs.length; i++) {
+      if (rateFeedIDs[i] != address(0) && rateChangeThresholds[i] != 0) {
+        require(sortedOracles.getOracles(rateFeedIDs[i]).length > 0, "rate feed ID does not exist as it has 0 oracles");
+        require(rateChangeThresholds[i].lt(FixidityLib.fixed1()), "rate change threshold must be less than 1");
+        rateChangeThreshold[rateFeedIDs[i]] = FixidityLib.wrap(rateChangeThresholds[i]);
+        emit RateChangeThresholdForRateFeedUpdated(rateFeedIDs[i], rateChangeThresholds[i]);
+      }
+    }
   }
 
   /**
@@ -108,7 +134,7 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
     (uint256 currentMedian, ) = sortedOracles.medianRate(rateFeedID);
 
     // Check if current median is within allowed threshold of last median
-    triggerBreaker = !isWithinThreshold(previousMedian, currentMedian);
+    triggerBreaker = !isWithinThreshold(previousMedian, currentMedian, rateFeedID);
   }
 
   /**
@@ -125,11 +151,25 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
    * @notice Checks if the specified current median rate is within the allowed threshold.
    * @param prevRate The previous median rate.
    * @param currentRate The current median rate.
+   * @param rateFeedID The specific rate ID to check threshold for.
    * @return  Returns a bool indicating whether or not the current rate
    *          is within the allowed threshold.
    */
-  function isWithinThreshold(uint256 prevRate, uint256 currentRate) public view returns (bool) {
-    uint256 allowedThreshold = rateChangeThreshold.unwrap();
+  function isWithinThreshold(
+    uint256 prevRate,
+    uint256 currentRate,
+    address rateFeedID
+  ) public view returns (bool) {
+    uint256 allowedThreshold;
+    uint256 rateSpecificThreshold = rateChangeThreshold[rateFeedID];
+
+    // checks if a given rate feed id has a threshold set
+    if (rateSpecificThreshold) {
+      allowedThreshold = rateSpecificThreshold.unwrap();
+    }
+
+    // otherwise just uses a default threshold
+    allowedThreshold = defaultRateChangeThreshold.unwrap();
     uint256 fixed1 = FixidityLib.fixed1().unwrap();
 
     uint256 maxPercent = uint256(fixed1).add(allowedThreshold);
