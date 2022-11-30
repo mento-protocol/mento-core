@@ -4,7 +4,6 @@ pragma solidity ^0.5.13;
 import { IBreaker } from "./interfaces/IBreaker.sol";
 import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
 
-import { UsingRegistry } from "./common/UsingRegistry.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -30,7 +29,7 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
   FixidityLib.Fraction public defaultRateChangeThreshold;
 
   // Maps rate feed to a threshold.
-  mapping(address => FixidityLib.Fraction) rateChangeThreshold;
+  mapping(address => FixidityLib.Fraction) public rateChangeThreshold;
 
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
@@ -47,8 +46,8 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
     _transferOwnership(msg.sender);
     setCooldownTime(_cooldownTime);
     setDefaultRateChangeThreshold(_defaultRateChangeThreshold);
-    setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     setSortedOracles(_sortedOracles);
+    setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
 
   /* ==================== Restricted Functions ==================== */
@@ -84,7 +83,7 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
   {
     require(
       rateFeedIDs.length == rateChangeThresholds.length,
-      "Rate feeds and rate change thresholds have to be the same length"
+      "rate feeds and rate change thresholds have to be the same length"
     );
     for (uint256 i = 0; i < rateFeedIDs.length; i++) {
       if (rateFeedIDs[i] != address(0) && rateChangeThresholds[i] != 0) {
@@ -162,13 +161,14 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
     address rateFeedID
   ) public view returns (bool) {
     uint256 allowedThreshold;
+
     uint256 rateSpecificThreshold = rateChangeThreshold[rateFeedID].unwrap();
 
     // checks if a given rate feed id has a threshold set
     if (rateSpecificThreshold != 0) {
       allowedThreshold = rateSpecificThreshold;
     }
-
+   
     // otherwise just uses a default threshold
     allowedThreshold = defaultRateChangeThreshold.unwrap();
     uint256 fixed1 = FixidityLib.fixed1().unwrap();
