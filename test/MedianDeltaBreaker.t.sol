@@ -28,7 +28,7 @@ contract MedianDeltaBreakerTest is Test, WithRegistry {
   event BreakerTriggered(address indexed rateFeedID);
   event BreakerReset(address indexed rateFeedID);
   event CooldownTimeUpdated(uint256 newCooldownTime);
-  event PriceChangeThresholdUpdated(uint256 newMinPriceChangeThreshold);
+  event RateChangeThresholdUpdated(uint256 newMinRateChangeThreshold);
   event SortedOraclesUpdated(address newSortedOracles);
 
   function setUp() public {
@@ -69,8 +69,8 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
     assertEq(breaker.cooldownTime(), coolDownTime);
   }
 
-  function test_constructor_shouldSetPriceChangeThreshold() public {
-    assertEq(breaker.priceChangeThreshold(), threshold);
+  function test_constructor_shouldSetRateChangeThreshold() public {
+    assertEq(breaker.rateChangeThreshold(), threshold);
   }
 
   function test_constructor_shouldSetSortedOracles() public {
@@ -95,26 +95,26 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
     assertEq(breaker.cooldownTime(), testCooldown);
   }
 
-  function test_setPriceChangeThreshold_whenCallerIsNotOwner_shouldRevert() public {
+  function test_setRateChangeThreshold_whenCallerIsNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     changePrank(nonDeployer);
 
-    breaker.setPriceChangeThreshold(123456);
+    breaker.setRateChangeThreshold(123456);
   }
 
-  function test_setPriceChangeThreshold_whenValueGreaterThanOne_shouldRevert() public {
-    vm.expectRevert("price change threshold must be less than 1");
-    breaker.setPriceChangeThreshold(1 * 10**24);
+  function test_setRateChangeThreshold_whenValueGreaterThanOne_shouldRevert() public {
+    vm.expectRevert("rate change threshold must be less than 1");
+    breaker.setRateChangeThreshold(1 * 10**24);
   }
 
-  function test_setPriceChangeThreshold_whenCallerIsOwner_shouldUpdateAndEmit() public {
+  function test_setRateChangeThreshold_whenCallerIsOwner_shouldUpdateAndEmit() public {
     uint256 testThreshold = 0.1 * 10**24;
     vm.expectEmit(false, false, false, true);
-    emit PriceChangeThresholdUpdated(testThreshold);
+    emit RateChangeThresholdUpdated(testThreshold);
 
-    breaker.setPriceChangeThreshold(testThreshold);
+    breaker.setRateChangeThreshold(testThreshold);
 
-    assertEq(breaker.priceChangeThreshold(), testThreshold);
+    assertEq(breaker.rateChangeThreshold(), testThreshold);
   }
 
   function test_setSortedOracles_whenSenderIsNotOwner_shouldRevert() public {
