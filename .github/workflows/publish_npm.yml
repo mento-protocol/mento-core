@@ -1,13 +1,6 @@
 name: "publish npm package"
 
-on:
-  push:
-    branches: 
-       - feature/mcmint
-    paths:
-       - contracts/interfaces/**
-       - package/**
-
+on: [workflow_dispatch]
 
 jobs:
   release:
@@ -39,20 +32,13 @@ jobs:
           forge --version
           forge build --sizes
 
-      - name: "Install the Node.js dependencies of the package"
-        working-directory: ./package
-        run: "yarn install --immutable"
-
       - name: "Generate types"
-        working-directory: ./package
         run: "yarn generatetypes"
 
       - name: "Build types"
-        working-directory: ./package
         run: "yarn build"
 
       - name: "publish"
-        working-directory: ./package
         run: npm publish --access public
         env: 
             NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}

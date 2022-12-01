@@ -3,8 +3,6 @@ const fs = require('fs');
 
 async function main() {
   let cwd = process.cwd()
-  cwd = cwd.replace("/package","")
-
   const interfacesPath = cwd + "/contracts/interfaces"
 
   let files = await fs.readdirSync(interfacesPath)
@@ -15,7 +13,7 @@ async function main() {
    cwd,
    filesToProcess: allFiles,
    allFiles,
-   outDir: 'package/src',
+   outDir: 'src',
    target: 'ethers-v5',
 })
 }
