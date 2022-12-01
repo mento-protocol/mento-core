@@ -202,12 +202,15 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_removeBreaker_shouldUpdateStorageAndEmit() public {
+    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID1);
+
     vm.expectEmit(true, false, false, false);
     emit BreakerRemoved(address(mockBreaker1));
 
     assert(breakerBox.tradingModeBreaker(1) == address(mockBreaker1));
     assert(breakerBox.breakerTradingMode(address(mockBreaker1)) == 1);
     assert(breakerBox.isBreaker(address(mockBreaker1)));
+    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker1), rateFeedID3), false);
 
     breakerBox.removeBreaker(address(mockBreaker1));
 
@@ -298,7 +301,6 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     sortedOracles.addOracle(rateFeedID3, actor("oracleAddress"));
     vm.expectEmit(true, true, true, true);
     emit RateFeedAdded(rateFeedID3);
-
     (uint256 tradingModeBefore, uint256 lastUpdatedTimeBefore, uint256 lastUpdatedBlockBefore) = breakerBox
       .rateFeedTradingModes(rateFeedID3);
 
@@ -330,6 +332,8 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_removeRateFeed_shouldResetTradingModeInfoAndEmit() public {
+    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID1);
+
     breakerBox.setRateFeedTradingMode(rateFeedID1, 1);
     vm.expectEmit(true, true, true, true);
     emit RateFeedRemoved(rateFeedID1);
@@ -347,6 +351,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assert(tradingModeAfter == 0);
     assert(lastUpdatedTimeAfter == 0);
     assert(lastUpdatedBlockAfter == 0);
+    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker1), rateFeedID3), false);
   }
 
   function test_setRateFeedTradingMode_whenRateFeedHasNotBeenAdded_ShouldRevert() public {
