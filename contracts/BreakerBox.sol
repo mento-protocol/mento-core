@@ -4,6 +4,7 @@ pragma solidity ^0.5.13;
 import { IBreakerBox } from "./interfaces/IBreakerBox.sol";
 import { IBreaker } from "./interfaces/IBreaker.sol";
 import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
+import { Test, console2 as console } from "celo-foundry/Test.sol";
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { AddressLinkedList, LinkedList } from "./common/linkedlists/AddressLinkedList.sol";
@@ -147,13 +148,36 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @notice Enables a breaker for the specified rate feed.
    * @param breaker The address of the breaker to be enabled.
    * @param rateFeedID The address of the rate feed.
+   * @param status Bool indicating the the status.
    */
-  function setBreakerEnabled(address breaker, address rateFeedID) public onlyOwner {
+  function setBreakerEnabled(
+    address breaker,
+    address rateFeedID,
+    bool status
+  ) public onlyOwner {
     TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
     require(info.lastUpdatedTime != 0, "this rate feed has not been registered");
     require(isBreaker(breaker), "this breaker has not been registered in the breakers list");
-    breakerEnabled[breaker][rateFeedID] = true;
-    emit BreakerEnabled(breaker, rateFeedID);
+    breakerEnabled[breaker][rateFeedID] = status;
+    emit BreakerStatusUpdated(breaker, rateFeedID, status);
+  }
+
+  /**
+   * @notice Disables a breaker for the specified rate feed.
+   * @param breaker The address of the breaker to be disabled.
+   * @param rateFeedID The address of the rate feed.
+   * @param status Bool indicating the the status.
+   */
+  function disableBreaker(
+    address breaker,
+    address rateFeedID,
+    bool status
+  ) public onlyOwner {
+    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
+    require(info.lastUpdatedTime != 0, "this rate feed has not been registered");
+    require(isBreaker(breaker), "this breaker has not been registered in the breakers list");
+    breakerEnabled[breaker][rateFeedID] = status;
+    emit BreakerStatusUpdated(breaker, rateFeedID, status);
   }
 
   /* ---------- rateFeedIDs ---------- */
@@ -315,7 +339,6 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
           info.lastUpdatedTime = uint64(block.timestamp);
           info.lastUpdatedBlock = uint128(block.number);
           rateFeedTradingModes[rateFeedID] = info;
-          breakerEnabled[address(breaker)][rateFeedID] = false;
           emit ResetSuccessful(rateFeedID, address(breaker));
         } else {
           emit ResetAttemptCriteriaFail(rateFeedID, address(breaker));

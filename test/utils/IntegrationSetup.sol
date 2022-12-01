@@ -239,6 +239,27 @@ contract IntegrationSetup is Test, WithRegistry {
 
     /* ========== Deploy Median Delta Breaker =============== */
 
+    // todo change these to correct values
+    uint256[] memory rateChangeThresholds = new uint256[](5);
+    
+    rateChangeThresholds[0] = 0.15 * 10**24;
+    rateChangeThresholds[1] = 0.14 * 10**24;
+    rateChangeThresholds[2] = 0.13 * 10**24;
+    rateChangeThresholds[3] = 0.12 * 10**24;
+    rateChangeThresholds[4] = 0.11 * 10**24;
+
+    uint256 threshold = 0.15 * 10**24; // 15%
+    uint256 coolDownTime = 5 minutes;
+
+    medianDeltaBreaker = new MedianDeltaBreaker(
+      coolDownTime,
+      threshold,
+      rateFeedIDs,
+      rateChangeThresholds,
+      ISortedOracles(address(sortedOracles))
+    );
+
+
     breakerBox.addBreaker(address(medianDeltaBreaker), 1);
     sortedOracles.setBreakerBox(breakerBox);
   }
