@@ -123,6 +123,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     uint64 tradingMode = breakerTradingMode[breaker];
 
     // Set any refenceRateIDs using this breakers trading mode to the default mode.
+    // Disable a breaker on this address
     address[] memory activeRateFeeds = rateFeedIDs;
     TradingModeInfo memory tradingModeInfo;
 
@@ -131,8 +132,10 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
       if (tradingModeInfo.tradingMode == tradingMode) {
         setRateFeedTradingMode(activeRateFeeds[i], 0);
       }
+      if (breakerEnabled[breaker][activeRateFeeds[i]]) {
+        breakerEnabled[breaker][activeRateFeeds[i]] = false;
+      }
     }
-
     delete tradingModeBreaker[tradingMode];
     delete breakerTradingMode[breaker];
     breakers.remove(breaker);
@@ -141,7 +144,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   }
 
   /**
-   * @notice Sets a breaker that is enabled for the specified rate feed.
+   * @notice Enables a breaker for the specified rate feed.
    * @param breaker The address of the breaker to be enabled.
    * @param rateFeedID The address of the rate feed.
    */
@@ -207,6 +210,15 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     rateFeedIDs.pop();
 
     delete rateFeedTradingModes[rateFeedID];
+
+    address[] memory _breakers = breakers.getKeys();
+
+    // remove configured rate feed for the breaker
+    for (uint256 i = 0; i < _breakers.length; i++) {
+      if (breakerEnabled[_breakers[i]][rateFeedID]) {
+        breakerEnabled[_breakers[i]][rateFeedID] = false;
+      }
+    }
     emit RateFeedRemoved(rateFeedID);
   }
 
