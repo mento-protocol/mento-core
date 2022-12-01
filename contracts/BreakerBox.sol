@@ -303,10 +303,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
           info.lastUpdatedTime = uint64(block.timestamp);
           info.lastUpdatedBlock = uint128(block.number);
           rateFeedTradingModes[rateFeedID] = info;
-          // todo teat the edge case when we're disabling a breaker for a rate feed if that breaker is already tripped.
           breakerEnabled[address(breaker)][rateFeedID] = false;
-          // todo We should reset the trading mode of the rate feed to the default.
-          setRateFeedTradingMode(rateFeedID, 0);
           emit ResetSuccessful(rateFeedID, address(breaker));
         } else {
           emit ResetAttemptCriteriaFail(rateFeedID, address(breaker));
@@ -322,7 +319,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
 
     // Check all breakers.
     for (uint256 i = 0; i < _breakers.length; i++) {
-      if (isBreakerEnabled(_breakers[i], rateFeedID)) {
+      if (breakerEnabled[_breakers[i]][rateFeedID]) {
         IBreaker breaker = IBreaker(_breakers[i]);
         bool tripBreaker = breaker.shouldTrigger(rateFeedID);
         if (tripBreaker) {
