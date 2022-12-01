@@ -25,7 +25,7 @@ import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { Freezer } from "contracts/common/Freezer.sol";
-import { AddressSortedLinkedListWithMedian } from "contracts//common/linkedlists/AddressSortedLinkedListWithMedian.sol";
+import { AddressSortedLinkedListWithMedian } from "contracts/common/linkedlists/AddressSortedLinkedListWithMedian.sol";
 import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
 
 import { WithRegistry } from "./WithRegistry.sol";
@@ -239,9 +239,6 @@ contract IntegrationSetup is Test, WithRegistry {
 
     /* ========== Deploy Median Delta Breaker =============== */
 
-    uint256 threshold = 0.15 * 10**24; // 15%
-    uint256 coolDownTime = 5 minutes;
-    medianDeltaBreaker = new MedianDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
     breakerBox.addBreaker(address(medianDeltaBreaker), 1);
     sortedOracles.setBreakerBox(breakerBox);
   }
