@@ -294,8 +294,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     toggleAndAssertBreaker(address(mockBreaker1), rateFeedID1, true);
     toggleAndAssertBreaker(address(mockBreaker1), rateFeedID1, false);
 
-    assert(breakerBox.breakerTradingMode(address(mockBreaker1)) == 0);
-    assert(breakerBox.tradingModeBreaker(1) == address(0));
+    assertEq(breakerBox.getRateFeedTradingMode(rateFeedID1), 0);
   }
 
   /* ---------- Rate Feed IDs ---------- */

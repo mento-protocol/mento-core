@@ -158,8 +158,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     require(info.lastUpdatedTime != 0, "this rate feed has not been registered");
     require(isBreaker(breaker), "this breaker has not been registered in the breakers list");
     if (!status && tradingModeBreaker[info.tradingMode] == breaker) {
-      tradingModeBreaker[info.tradingMode] = address(0);
-      breakerTradingMode[breaker] = 0;
+      setRateFeedTradingMode(rateFeedID, 0);
     }
     breakerEnabled[breaker][rateFeedID] = status;
     emit BreakerStatusUpdated(breaker, rateFeedID, status);

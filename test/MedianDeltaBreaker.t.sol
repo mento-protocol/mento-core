@@ -19,38 +19,41 @@ contract MedianDeltaBreakerTest is Test, WithRegistry {
   address deployer;
   address notDeployer;
 
-  address rateFeedID;
+  address rateFeedID1;
+  address rateFeedID2;
+  address rateFeedID3;
   MockSortedOracles sortedOracles;
   MedianDeltaBreaker breaker;
 
   uint256 threshold = 0.15 * 10**24; // 15%
   uint256 coolDownTime = 5 minutes;
 
-  address[] rateFeedIDs = new address[](2);
-  uint256[] rateChangeThresholds = new uint256[](2);
+  address[] rateFeedIDs = new address[](1);
+  uint256[] rateChangeThresholds = new uint256[](1);
 
-  event BreakerTriggered(address indexed rateFeedID);
-  event BreakerReset(address indexed rateFeedID);
+  event BreakerTriggered(address indexed rateFeedID1);
+  event BreakerReset(address indexed rateFeedID1);
   event CooldownTimeUpdated(uint256 newCooldownTime);
   event DefaultRateChangeThresholdUpdated(uint256 newMinRateChangeThreshold);
   event SortedOraclesUpdated(address newSortedOracles);
-  event RateChangeThresholdUpdated(address rateFeedID, uint256 rateChangeThreshold);
+  event RateChangeThresholdUpdated(address rateFeedID1, uint256 rateChangeThreshold);
 
   function setUp() public {
     deployer = actor("deployer");
     notDeployer = actor("notDeployer");
-    rateFeedID = actor("rateFeedID");
+    rateFeedID1 = actor("rateFeedID1");
+    rateFeedID2 = actor("rateFeedID2");
+    rateFeedID3 = actor("rateFeedID3");
 
-    rateFeedIDs[0] = actor("rateFeedId0");
-    rateFeedIDs[1] = actor("rateFeedId1");
-    rateChangeThresholds[0] = 0.14 * 10**24;
-    rateChangeThresholds[1] = 0.13 * 10**24;
+    rateFeedIDs[0] = rateFeedID2;
+    rateChangeThresholds[0] = 0.9 * 10**24;
 
     changePrank(deployer);
     sortedOracles = new MockSortedOracles();
 
-    sortedOracles.addOracle(rateFeedIDs[0], actor("oracleClient"));
-    sortedOracles.addOracle(rateFeedIDs[1], actor("oracleClient1"));
+    sortedOracles.addOracle(rateFeedID1, actor("OracleClient"));
+    sortedOracles.addOracle(rateFeedID2, actor("oracleClient"));
+    sortedOracles.addOracle(rateFeedID3, actor("oracleClient1"));
 
     breaker = new MedianDeltaBreaker(
       coolDownTime,
@@ -97,7 +100,6 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
 
   function test_constructor_shouldSetRateChangeThresholds() public {
     assertEq(breaker.rateChangeThreshold(rateFeedIDs[0]), rateChangeThresholds[0]);
-    assertEq(breaker.rateChangeThreshold(rateFeedIDs[1]), rateChangeThresholds[1]);
   }
 
   /* ---------- Setters ---------- */
@@ -168,8 +170,9 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
   }
 
   function test_setRateChangeThreshold_whenValuesAreDifferentLengths_shouldRevert() public {
-    address[] memory rateFeedIDs2 = new address[](1);
+    address[] memory rateFeedIDs2 = new address[](2);
     rateFeedIDs2[0] = actor("randomRateFeed");
+    rateFeedIDs2[1] = actor("randomRateFeed2");
     vm.expectRevert("rate feeds and rate change thresholds have to be the same length");
     breaker.setRateChangeThresholds(rateFeedIDs2, rateChangeThresholds);
   }
@@ -189,11 +192,8 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
   function test_setRateChangeThreshold_whenSenderIsOwner_shouldUpdateAndEmit() public {
     vm.expectEmit(true, true, true, true);
     emit RateChangeThresholdUpdated(rateFeedIDs[0], rateChangeThresholds[0]);
-    vm.expectEmit(true, true, true, true);
-    emit RateChangeThresholdUpdated(rateFeedIDs[1], rateChangeThresholds[1]);
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     assertEq(breaker.rateChangeThreshold(rateFeedIDs[0]), rateChangeThresholds[0]);
-    assertEq(breaker.rateChangeThreshold(rateFeedIDs[1]), rateChangeThresholds[1]);
   }
 
   /* ---------- Getters ---------- */
@@ -215,43 +215,41 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
     vm.expectCall(address(sortedOracles), abi.encodeWithSelector(sortedOracles.medianRate.selector, _rateFeedID));
   }
 
-  function test_shouldTrigger_whenMedianDrops30Percent_shouldReturnTrue() public {
-    // rateChangeThreshold not configured
-    updateMedianByPercent(0.7 * 10**24, rateFeedID);
-    assertTrue(breaker.shouldTrigger(rateFeedID));
+  function test_shouldTrigger_whithDefaultThreshold_shouldTrigger() public {
+    assertEq(breaker.rateChangeThreshold(rateFeedID1), 0);
 
-    // rateChangeThreshold 14 %
-    updateMedianByPercent(0.7 * 10**24, rateFeedIDs[0]);
-    assertTrue(breaker.shouldTrigger(rateFeedIDs[0]));
+    updateMedianByPercent(0.7 * 10**24, rateFeedID1);
+
+    assertTrue(breaker.shouldTrigger(rateFeedID1));
   }
 
-  function test_shouldTrigger_whenMedianDrops10Percent_shouldReturnFalse() public {
-    // rateChangeThreshold not configured
-    updateMedianByPercent(0.9 * 10**24, rateFeedID);
-    assertFalse(breaker.shouldTrigger(rateFeedID));
+  function test_shouldTrigger_whenThresholdIsLargerThanMedian_shouldNotTrigger() public {
+    updateMedianByPercent(0.7 * 10**24, rateFeedID1);
 
-    // rateChangeThreshold 14 %
-    updateMedianByPercent(0.9 * 10**24, rateFeedIDs[0]);
-    assertFalse(breaker.shouldTrigger(rateFeedIDs[0]));
+    rateChangeThresholds[0] = 0.8 * 10**24;
+    rateFeedIDs[0] = rateFeedID1;
+    breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
+    assertEq(breaker.rateChangeThreshold(rateFeedID1), rateChangeThresholds[0]);
+
+    assertFalse(breaker.shouldTrigger(rateFeedID1));
   }
 
-  function test_shouldTrigger_whenMedianIncreases10Percent_shouldReturnFalse() public {
-    // rateChangeThreshold not configured
-    updateMedianByPercent(1.1 * 10**24, rateFeedID);
-    assertFalse(breaker.shouldTrigger(rateFeedID));
+  function test_shouldTrigger_whithDefaultThreshold_ShouldNotTrigger() public {
+    assertEq(breaker.rateChangeThreshold(rateFeedID3), 0);
 
-    // rateChangeThreshold 13 %
-    updateMedianByPercent(1.1 * 10**24, rateFeedIDs[1]);
-    assertFalse(breaker.shouldTrigger(rateFeedIDs[1]));
+    updateMedianByPercent(1.1 * 10**24, rateFeedID3);
+
+    assertFalse(breaker.shouldTrigger(rateFeedID3));
   }
 
-  function test_shouldTrigger_whenMedianIncreases20Percent_shouldReturnTrue() public {
-    // rateChangeThreshold not configured
-    updateMedianByPercent(1.2 * 10**24, rateFeedID);
-    assertTrue(breaker.shouldTrigger(rateFeedID));
+  function test_shouldTrigger_whenThresholdIsSmallerThanMedian_ShouldTrigger() public {
+    updateMedianByPercent(1.1 * 10**24, rateFeedID3);
 
-    // rateChangeThreshold 13 %
-    updateMedianByPercent(1.2 * 10**24, rateFeedIDs[1]);
-    assertTrue(breaker.shouldTrigger(rateFeedIDs[1]));
+    rateChangeThresholds[0] = 0.01 * 10**24;
+    rateFeedIDs[0] = rateFeedID3;
+    breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
+    assertEq(breaker.rateChangeThreshold(rateFeedID3), rateChangeThresholds[0]);
+
+    assertTrue(breaker.shouldTrigger(rateFeedID3));
   }
 }
