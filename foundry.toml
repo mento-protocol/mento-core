@@ -10,6 +10,11 @@ gas_reports = ["*"]
 optimizer = true
 optimizer_runs = 10_000
 solc = "0.5.17"
+legacy = true
+fs_permissions = [
+    { access = "read", path = "./broadcast"}, 
+    { access = "read", path = "./script/dependencies.json"}
+]
 
 [profile.ci]
 fuzz_runs = 1_000

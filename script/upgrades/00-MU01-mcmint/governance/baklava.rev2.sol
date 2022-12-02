@@ -2,12 +2,9 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { Script, console2 } from "forge-std/Script.sol";
-import { ScriptHelper } from "script/utils/ScriptHelper.sol";
-import { GovernanceHelper } from "script/utils/GovernanceHelper.sol";
-
+import { GovernanceScript } from "script/utils/Script.sol";
+import { Chain } from "script/utils/Chain.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
-
 import { ICeloGovernance } from "contracts/governance/interfaces/ICeloGovernance.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
@@ -22,43 +19,52 @@ import { Proxy } from "contracts/common/Proxy.sol";
                      --private-key $BAKLAVA_MENTO_PROPOSER
  * @dev Initial CGP (./baklava.sol) had a mistake in the bucket sizes.
  */
-contract MentoUpgrade1_baklava_rev2 is Script, ScriptHelper, GovernanceHelper {
+contract MentoUpgrade1_baklava_rev2 is GovernanceScript {
   ICeloGovernance.Transaction[] private transactions;
-  NetworkProxies private proxies = getNetworkProxies();
-  NetworkImplementations private implementations = getNetworkImplementations();
 
   function run() public {
+    contracts.load("00-CircuitBreaker", "1669916685");
+    contracts.load("01-Broker", "1669916825");
+    address governance = contracts.celoRegistry("Governance");
+
     ICeloGovernance.Transaction[] memory _transactions = buildProposal();
 
-    vm.startBroadcast();
+    vm.startBroadcast(Chain.deployerPrivateKey());
     {
-      createProposal(_transactions, "TODO", proxies.celoGovernance);
+      createProposal(_transactions, "TODO", governance);
     }
     vm.stopBroadcast();
   }
 
   function buildProposal() public returns (ICeloGovernance.Transaction[] memory) {
+    address cUSDProxy = contracts.celoRegistry("StableToken");
+    address cUSDImpl = contracts.deployed("StableToken");
+    address cEURProxy = contracts.celoRegistry("StableTokenEUR");
+    address cEURImpl = contracts.deployed("StableTokenEUR");
+    address cBRLProxy = contracts.celoRegistry("StableTokenBRL");
+    address cBRLImpl = contracts.deployed("StableTokenBRL");
+
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.stableToken,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.stableToken)
+        cUSDProxy,
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, cUSDImpl)
       )
     );
 
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.stableTokenEUR,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.stableTokenEUR)
+        cEURProxy,
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, cEURImpl)
       )
     );
 
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.stableTokenBRL,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.stableTokenBRL)
+        cBRLProxy,
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, cBRLImpl)
       )
     );
     return transactions;

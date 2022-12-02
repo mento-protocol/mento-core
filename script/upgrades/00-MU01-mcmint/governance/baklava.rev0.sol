@@ -2,10 +2,8 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { Script, console2 } from "forge-std/Script.sol";
-import { ScriptHelper } from "script/utils/ScriptHelper.sol";
-import { GovernanceHelper } from "script/utils/GovernanceHelper.sol";
-
+import { GovernanceScript } from "script/utils/Script.sol";
+import { console2 } from "forge-std/Script.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
 import { ICeloGovernance } from "contracts/governance/interfaces/ICeloGovernance.sol";
@@ -14,28 +12,29 @@ import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
 import { Proxy } from "contracts/common/Proxy.sol";
-
+import { Contracts } from "script/utils/Contracts.sol";
+import { Chain } from "script/utils/Chain.sol";
 
 /**
  forge script {file} --rpc-url $BAKLAVA_RPC_URL 
                      --broadcast --legacy 
-                     --private-key $BAKLAVA_MENTO_PROPOSER
  * @dev depends on deploy/00-CircuitBreaker.sol and deploy/01-Broker.sol
  */
-contract MentoUpgrade1_baklava_rev0 is Script, ScriptHelper, GovernanceHelper {
-  using FixidityLib for FixidityLib.Fraction;
-
+contract MentoUpgrade1_baklava_rev0 is GovernanceScript {
   ICeloGovernance.Transaction[] private transactions;
 
-  NetworkProxies private proxies = getNetworkProxies();
-  NetworkImplementations private implementations = getNetworkImplementations();
+  // NetworkProxies private proxies = getNetworkProxies();
+  // NetworkImplementations private implementations = getNetworkImplementations();
 
   function run() public {
+    contracts.load("00-CircuitBreaker", "1669916685");
+    contracts.load("01-Broker", "1669916825");
+    address governance = contracts.celoRegistry("Governance");
     ICeloGovernance.Transaction[] memory _transactions = buildProposal();
 
-    vm.startBroadcast();
+    vm.startBroadcast(Chain.deployerPrivateKey());
     {
-      createProposal(_transactions, "TODO", proxies.celoGovernance);
+      createProposal(_transactions, "TODO", governance);
     }
     vm.stopBroadcast();
   }
@@ -54,58 +53,71 @@ contract MentoUpgrade1_baklava_rev0 is Script, ScriptHelper, GovernanceHelper {
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.reserve,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.reserve)
+        contracts.celoRegistry("Reserve"),
+        abi.encodeWithSelector(
+          Proxy(0)._setImplementation.selector, 
+          contracts.deployed("Reserve")
+        )
       )
     );
 
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.stableToken,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.stableToken)
+        contracts.celoRegistry("StableToken"),
+        abi.encodeWithSelector(
+          Proxy(0)._setImplementation.selector, 
+          contracts.deployed("StableToken")
+        )
       )
     );
 
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.stableTokenEUR,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.stableTokenEUR)
+        contracts.celoRegistry("StableTokenEUR"),
+        abi.encodeWithSelector(
+          Proxy(0)._setImplementation.selector, 
+          contracts.deployed("StableTokenEUR")
+        )
       )
     );
 
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.stableTokenBRL,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, implementations.stableTokenBRL)
+        contracts.celoRegistry("StableTokenBRL"),
+        abi.encodeWithSelector(
+          Proxy(0)._setImplementation.selector, 
+          contracts.deployed("StableTokenBRL")
+        )
       )
     );
   }
 
   function proposal_configureReserve() private {
+    address reserveProxy = contracts.celoRegistry("Reserve");
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.reserve,
-        abi.encodeWithSelector(IReserve(0).addExchangeSpender.selector, proxies.broker)
+        reserveProxy,
+        abi.encodeWithSelector(IReserve(0).addExchangeSpender.selector, contracts.deployed("BrokerProxy"))
       )
     );
 
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.reserve,
-        abi.encodeWithSelector(IReserve(0).addCollateralAsset.selector, implementations.usdcToken)
+        reserveProxy,
+        abi.encodeWithSelector(IReserve(0).addCollateralAsset.selector, contracts.dependency("USDCet"))
       )
     );
 
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.reserve,
-        abi.encodeWithSelector(IReserve(0).addCollateralAsset.selector, proxies.celoToken)
+        reserveProxy,
+        abi.encodeWithSelector(IReserve(0).addCollateralAsset.selector, contracts.celoRegistry("GoldToken"))
       )
     );
   }
@@ -114,8 +126,8 @@ contract MentoUpgrade1_baklava_rev0 is Script, ScriptHelper, GovernanceHelper {
     transactions.push(
       ICeloGovernance.Transaction(
         0,
-        proxies.registry,
-        abi.encodeWithSelector(IRegistry(0).setAddressFor.selector, "Broker", proxies.broker)
+        REGISTRY_ADDRESS,
+        abi.encodeWithSelector(IRegistry(0).setAddressFor.selector, "Broker", contracts.deployed("BrokerProxy"))
       )
     );
   }
@@ -126,16 +138,22 @@ contract MentoUpgrade1_baklava_rev0 is Script, ScriptHelper, GovernanceHelper {
 
     IBiPoolManager.PoolExchange[] memory pools = new IBiPoolManager.PoolExchange[](4);
 
+    address cUSD = contracts.celoRegistry("StableToken");
+    address cEUR = contracts.celoRegistry("StableTokenEUR");
+    address cBRL = contracts.celoRegistry("StableTokenBRL");
+    address celo = contracts.celoRegistry("GoldToken");
+    IPricingModule constantProduct = IPricingModule(contracts.deployed("ConstantProductPricingModule"));
+
     pools[0] = IBiPoolManager.PoolExchange({ // cUSD/CELO
-      asset0: proxies.stableToken,
-      asset1: proxies.celoToken,
-      pricingModule: IPricingModule(implementations.constantProductPricingModule),
+      asset0: cUSD,
+      asset1: celo,
+      pricingModule: constantProduct,
       bucket0: 0,
       bucket1: 0,
       lastBucketUpdate: 0,
       config: IBiPoolManager.PoolConfig({
         spread: FixidityLib.newFixedFraction(5, 100),
-        referenceRateFeedID: proxies.stableToken,
+        referenceRateFeedID: cUSD,
         referenceRateResetFrequency: 60 * 5,
         minimumReports: 5,
         stablePoolResetSize: 24
@@ -143,15 +161,15 @@ contract MentoUpgrade1_baklava_rev0 is Script, ScriptHelper, GovernanceHelper {
     });
 
     pools[1] = IBiPoolManager.PoolExchange({ // cEUR/CELO
-      asset0: proxies.stableTokenEUR,
-      asset1: proxies.celoToken,
-      pricingModule: IPricingModule(implementations.constantProductPricingModule),
+      asset0: cEUR,
+      asset1: celo,
+      pricingModule: constantProduct,
       bucket0: 0,
       bucket1: 0,
       lastBucketUpdate: 0,
       config: IBiPoolManager.PoolConfig({
         spread: FixidityLib.newFixedFraction(5, 100),
-        referenceRateFeedID: proxies.stableTokenEUR,
+        referenceRateFeedID: cEUR,
         referenceRateResetFrequency: 60 * 5,
         minimumReports: 5,
         stablePoolResetSize: 24
@@ -197,7 +215,7 @@ contract MentoUpgrade1_baklava_rev0 is Script, ScriptHelper, GovernanceHelper {
         transactions.push(
           ICeloGovernance.Transaction(
             0,
-            proxies.biPoolManager,
+            contracts.deployed("BiPoolManagerProxy"),
             abi.encodeWithSelector(IBiPoolManager(0).createExchange.selector, pools[i])
           )
         );

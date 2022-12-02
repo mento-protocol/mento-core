@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.5.13;
 
-import { Script, console2 } from "forge-std/Script.sol";
-import { ScriptHelper } from "script/utils/ScriptHelper.sol";
+import { Script } from "script/utils/Script.sol";
+import { Chain } from "script/utils/Chain.sol";
+import { console2 } from "forge-std/Script.sol";
 
 import { ConstantSumPricingModule } from "contracts/ConstantSumPricingModule.sol";
 import { ConstantProductPricingModule } from "contracts/ConstantProductPricingModule.sol";
@@ -28,7 +29,7 @@ import { ReserveProxy } from "contracts/proxies/ReserveProxy.sol";
                      --private-key $BAKLAVA_DEPLOYER_PK
 */
 
-contract DeployBroker is Script, ScriptHelper {
+contract DeployBrokerScript is Script {
   ConstantSumPricingModule csPricingModule;
   ConstantProductPricingModule cpPricingModule;
   BiPoolManager biPoolManager;
@@ -40,12 +41,16 @@ contract DeployBroker is Script, ScriptHelper {
 
   BrokerProxy brokerProxy;
   BiPoolManagerProxy biPoolManagerProxy;
-  ReserveProxy reserveProxy;
 
   function run() public {
-    NetworkProxies memory proxies = getNetworkProxies();
+    // Existing proxies
+    address governance = contracts.celoRegistry("Governance");
+    address reserveProxy = contracts.celoRegistry("Reserve");
+    address sortedOraclesProxy = contracts.celoRegistry("SortedOracles");
+    contracts.load("00-CircuitBreaker", "1669916685");
+    address breakerBoxProxy = contracts.deployed("BreakerBoxProxy");
 
-    vm.startBroadcast();
+    vm.startBroadcast(Chain.deployerPrivateKey());
     {
       // Deploy updated implementations
       reserve = new Reserve(false);
@@ -64,18 +69,19 @@ contract DeployBroker is Script, ScriptHelper {
       // Deploy & Initialize BiPoolManager
       biPoolManager = new BiPoolManager(false);
 
+
       biPoolManagerProxy._setAndInitializeImplementation(
         address(biPoolManager),
         abi.encodeWithSelector(
-          BiPoolManager(address(biPoolManagerProxy)).initialize.selector,
+          BiPoolManager(0).initialize.selector,
           address(brokerProxy),
-          IReserve(proxies.reserve),
-          ISortedOracles(proxies.sortedOracles),
-          IBreakerBox(proxies.breakerBox)
+          IReserve(reserveProxy),
+          ISortedOracles(sortedOraclesProxy),
+          IBreakerBox(breakerBoxProxy)
         )
       );
-      biPoolManagerProxy._transferOwnership(proxies.celoGovernance);
-      BiPoolManager(address(biPoolManagerProxy)).transferOwnership(proxies.celoGovernance);
+      biPoolManagerProxy._transferOwnership(governance);
+      BiPoolManager(address(biPoolManagerProxy)).transferOwnership(governance);
 
       // Deploy & Initialize Broker
       broker = new Broker(false);
@@ -86,13 +92,13 @@ contract DeployBroker is Script, ScriptHelper {
       brokerProxy._setAndInitializeImplementation(
         address(broker),
         abi.encodeWithSelector(
-          Broker(address(brokerProxy)).initialize.selector,
+          Broker(0).initialize.selector,
           exchangeProviders,
-          address(proxies.reserve)
+          reserveProxy
         )
       );
-      brokerProxy._transferOwnership(proxies.celoGovernance);
-      Broker(address(brokerProxy)).transferOwnership(proxies.celoGovernance);
+      brokerProxy._transferOwnership(governance);
+      Broker(address(brokerProxy)).transferOwnership(governance);
     }
     vm.stopBroadcast();
 
@@ -102,12 +108,12 @@ contract DeployBroker is Script, ScriptHelper {
     console2.log("BiPoolManager deployed at: ", address(biPoolManager));
     console2.log("BiPoolManager proxy deployed at: ", address(biPoolManagerProxy));
     console2.log("Set BiPoolManager proxy implementation to ", address(biPoolManager));
-    console2.log("Transferred BiPoolManager proxy & implementation ownweship to ", address(proxies.celoGovernance));
+    console2.log("Transferred BiPoolManager proxy & implementation ownweship to ", address(governance));
     console2.log("----------");
     console2.log("Broker deployed at: ", address(broker));
     console2.log("Broker proxy deployed at: ", address(brokerProxy));
     console2.log("Set Broker proxy implementation to: ", address(brokerProxy));
-    console2.log("Transferred Broker proxy & implementation ownweship to ", address(proxies.celoGovernance));
+    console2.log("Transferred Broker proxy & implementation ownweship to ", address(governance));
     console2.log("----------");
     console2.log("Reserve deployed at: ", address(reserve));
     console2.log("----------");
