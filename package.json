@@ -1,8 +1,8 @@
 {
-  "name": "@mentolabs/mento-core",
+  "name": "@mentolabs/core",
   "description": "The core smart contracts of the Mento protocol",
   "license": "Apache-2.0",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "files": [
     "dist",
     "contracts",
@@ -30,6 +30,7 @@
     "ethers": "^5.1.3",
     "husky": "^8.0.0",
     "lint-staged": "^13.0.3",
+    "pinst": "^3.0.0",
     "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-dev.22",
     "solhint": "^3.3.7",
@@ -42,11 +43,13 @@
     "celo",
     "solidity"
   ],
-  "private": true,
+  "private": false,
   "scripts": {
     "lint": "yarn prettier && yarn solhint",
     "lint:check": "yarn prettier:check && yarn solhint:check",
     "postinstall": "husky install",
+    "prepack": "pinst --disable",
+    "postpack": "pinst --enable",
     "prettier": "prettier --config \"./.prettierrc.yml\" --write \"**/*.{json,md,sol,yml}\"",
     "prettier:check": "prettier --config \"./.prettierrc.yml\" --check \"**/*.{json,md,sol,yml}\"",
     "solhint": "solhint --config \"./.solhint.json\" \"{contracts,test}/**/*.sol\"",
