@@ -112,6 +112,17 @@ contract BreakerBoxTest is Test, WithRegistry {
       assertEq(savedTradingMode, tradingMode);
     }
   }
+
+  function toggleAndAssertBreaker(
+    address breaker,
+    address rateFeedID,
+    bool status
+  ) public {
+    vm.expectEmit(true, true, true, true);
+    emit BreakerStatusUpdated(breaker, rateFeedID, status);
+    breakerBox.toggleBreaker(breaker, rateFeedID, status);
+    assertEq(breakerBox.isBreakerEnabled(breaker, rateFeedID), status);
+  }
 }
 
 contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
@@ -202,8 +213,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_removeBreaker_shouldUpdateStorageAndEmit() public {
-    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID1, true);
-    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker1), rateFeedID1), true);
+    toggleAndAssertBreaker(address(mockBreaker1), rateFeedID1, true);
 
     vm.expectEmit(true, false, false, false);
     emit BreakerRemoved(address(mockBreaker1));
@@ -262,52 +272,30 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assert(breakerBox.breakerTradingMode(address(mockBreaker4)) == 4);
   }
 
-  function test_setBreakerEnabled_whenNotOwner_shouldRevert() public {
+  function test_toggleBreaker_whenNotOwner_shouldRevert() public {
     changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
-    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID1, true);
+    breakerBox.toggleBreaker(address(mockBreaker1), rateFeedID1, true);
   }
 
-  function test_setBreakerEnabled_whenRateFeedIsNotRegistered_shouldRevert() public {
+  function test_toggleBreaker_whenRateFeedIsNotRegistered_shouldRevert() public {
     vm.expectRevert("this rate feed has not been registered");
-    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID3, true);
+    breakerBox.toggleBreaker(address(mockBreaker1), rateFeedID3, false);
   }
 
-  function test_setBreakerEnabled_whenBreakerIsNotRegistered_shouldRevert() public {
+  function test_toggleBreaker_whenBreakerIsNotRegistered_shouldRevert() public {
     vm.expectRevert("this breaker has not been registered in the breakers list");
-    breakerBox.setBreakerEnabled(address(mockBreaker3), rateFeedID1, true);
+    breakerBox.toggleBreaker(address(mockBreaker3), rateFeedID1, true);
   }
 
-  function test_setBreakerEnabled_whenSenderIsOwner_shouldEnableAndEmit() public {
-    vm.expectEmit(true, true, true, true);
-    emit BreakerStatusUpdated(address(mockBreaker1), rateFeedID1, true);
-    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID1, true);
+  function test_toggleBreaker_whenSenderIsOwner_shouldToggleAndEmit() public {
+    breakerBox.setRateFeedTradingMode(rateFeedID1, 1);
 
-    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker1), rateFeedID1), true);
-  }
+    toggleAndAssertBreaker(address(mockBreaker1), rateFeedID1, true);
+    toggleAndAssertBreaker(address(mockBreaker1), rateFeedID1, false);
 
-  function test_disableBreaker_whenNotOwner_shouldRevert() public {
-    changePrank(notDeployer);
-    vm.expectRevert("Ownable: caller is not the owner");
-    breakerBox.disableBreaker(address(mockBreaker1), rateFeedID1, false);
-  }
-
-  function test_disableBreaker_whenRateFeedIsNotRegistered_shouldRevert() public {
-    vm.expectRevert("this rate feed has not been registered");
-    breakerBox.disableBreaker(address(mockBreaker1), rateFeedID3, false);
-  }
-
-  function test_disableBreaker_whenBreakerIsNotRegistered_shouldRevert() public {
-    vm.expectRevert("this breaker has not been registered in the breakers list");
-    breakerBox.disableBreaker(address(mockBreaker3), rateFeedID1, false);
-  }
-
-  function test_disabkeBreaker_whenSenderIsOwner_shouldDisableAndEmit() public {
-    vm.expectEmit(true, true, true, true);
-    emit BreakerStatusUpdated(address(mockBreaker1), rateFeedID1, false);
-    breakerBox.disableBreaker(address(mockBreaker1), rateFeedID1, false);
-
-    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker1), rateFeedID1), false);
+    assert(breakerBox.breakerTradingMode(address(mockBreaker1)) == 0);
+    assert(breakerBox.tradingModeBreaker(1) == address(0));
   }
 
   /* ---------- Rate Feed IDs ---------- */
@@ -357,8 +345,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_removeRateFeed_shouldResetTradingModeInfoAndEmit() public {
-    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID1, true);
-    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker1), rateFeedID1), true);
+    toggleAndAssertBreaker(address(mockBreaker1), rateFeedID1, true);
 
     breakerBox.setRateFeedTradingMode(rateFeedID1, 1);
     vm.expectEmit(true, true, true, true);
@@ -496,9 +483,8 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     breakerBox.addRateFeed(rateFeedID3);
     assertTrue(isRateFeed(rateFeedID3));
 
-    breakerBox.setBreakerEnabled(address(mockBreaker3), rateFeedID3, true);
-    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker3), rateFeedID3), true);
-    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID3, true);
+    toggleAndAssertBreaker(address(mockBreaker3), rateFeedID3, true);
+    toggleAndAssertBreaker(address(mockBreaker1), rateFeedID3, true);
 
     (uint256 tradingMode, , ) = breakerBox.rateFeedTradingModes(rateFeedID3);
     assertEq(tradingMode, 0);
@@ -524,10 +510,8 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     breakerBox.addRateFeed(rateFeedID3);
     assertTrue(isRateFeed(rateFeedID3));
 
-    breakerBox.setBreakerEnabled(address(mockBreaker3), rateFeedID3, true);
-    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker3), rateFeedID3), true);
-    breakerBox.setBreakerEnabled(address(mockBreaker1), rateFeedID3, true);
-    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker1), rateFeedID3), true);
+    toggleAndAssertBreaker(address(mockBreaker3), rateFeedID3, true);
+    toggleAndAssertBreaker(address(mockBreaker1), rateFeedID3, true);
 
     (uint256 tradingMode, , ) = breakerBox.rateFeedTradingModes(rateFeedID3);
     assertEq(tradingMode, 0);
@@ -564,8 +548,7 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     assertTrue(isRateFeed(rateFeedID3));
 
     // disable it
-    breakerBox.disableBreaker(address(mockBreaker3), rateFeedID3, false);
-    assertEq(breakerBox.isBreakerEnabled(address(mockBreaker3), rateFeedID3), false);
+    toggleAndAssertBreaker(address(mockBreaker3), rateFeedID3, false);
 
     (uint256 tradingMode, , ) = breakerBox.rateFeedTradingModes(rateFeedID3);
     assertEq(tradingMode, 0);

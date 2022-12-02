@@ -263,11 +263,11 @@ contract IntegrationSetup is Test, WithRegistry {
     sortedOracles.setBreakerBox(breakerBox);
 
     // enable breakers
-    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cUSD_CELO_referenceRateFeedID, true);
-    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cEUR_CELO_referenceRateFeedID, true);
-    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cUSD_USDCet_referenceRateFeedID, true);
-    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cUSD_cEUR_referenceRateFeedID, true);
-    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cEUR_USDCet_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_CELO_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_CELO_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_USDCet_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_cEUR_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_USDCet_referenceRateFeedID, true);
   }
 
   function setUp_broker() internal {

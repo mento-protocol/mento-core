@@ -4,7 +4,6 @@ pragma solidity ^0.5.13;
 import { IBreakerBox } from "./interfaces/IBreakerBox.sol";
 import { IBreaker } from "./interfaces/IBreaker.sol";
 import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
-import { Test, console2 as console } from "celo-foundry/Test.sol";
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { AddressLinkedList, LinkedList } from "./common/linkedlists/AddressLinkedList.sol";
@@ -145,12 +144,12 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   }
 
   /**
-   * @notice Enables a breaker for the specified rate feed.
-   * @param breaker The address of the breaker to be enabled.
+   * @notice Enables or disables a breaker for the specified rate feed.
+   * @param breaker The address of the breaker.
    * @param rateFeedID The address of the rate feed.
    * @param status Bool indicating the the status.
    */
-  function setBreakerEnabled(
+  function toggleBreaker(
     address breaker,
     address rateFeedID,
     bool status
@@ -158,24 +157,10 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
     require(info.lastUpdatedTime != 0, "this rate feed has not been registered");
     require(isBreaker(breaker), "this breaker has not been registered in the breakers list");
-    breakerEnabled[breaker][rateFeedID] = status;
-    emit BreakerStatusUpdated(breaker, rateFeedID, status);
-  }
-
-  /**
-   * @notice Disables a breaker for the specified rate feed.
-   * @param breaker The address of the breaker to be disabled.
-   * @param rateFeedID The address of the rate feed.
-   * @param status Bool indicating the the status.
-   */
-  function disableBreaker(
-    address breaker,
-    address rateFeedID,
-    bool status
-  ) public onlyOwner {
-    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
-    require(info.lastUpdatedTime != 0, "this rate feed has not been registered");
-    require(isBreaker(breaker), "this breaker has not been registered in the breakers list");
+    if (!status && tradingModeBreaker[info.tradingMode] == breaker) {
+      tradingModeBreaker[info.tradingMode] = address(0);
+      breakerTradingMode[breaker] = 0;
+    }
     breakerEnabled[breaker][rateFeedID] = status;
     emit BreakerStatusUpdated(breaker, rateFeedID, status);
   }

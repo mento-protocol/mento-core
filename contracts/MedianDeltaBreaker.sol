@@ -171,7 +171,7 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
 
     uint256 rateSpecificThreshold = rateChangeThreshold[rateFeedID].unwrap();
 
-    // checks if a given rate feed id has a threshold set
+    // checks if a given rate feed id has a threshold set and reassignes it
     if (rateSpecificThreshold != 0) allowedThreshold = rateSpecificThreshold;
 
     uint256 fixed1 = FixidityLib.fixed1().unwrap();
