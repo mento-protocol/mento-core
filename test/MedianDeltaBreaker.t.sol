@@ -34,7 +34,7 @@ contract MedianDeltaBreakerTest is Test, WithRegistry {
   event CooldownTimeUpdated(uint256 newCooldownTime);
   event DefaultRateChangeThresholdUpdated(uint256 newMinRateChangeThreshold);
   event SortedOraclesUpdated(address newSortedOracles);
-  event RateChangeThresholdForRateFeedUpdated(address rateFeedID, uint256 rateChangeThreshold);
+  event RateChangeThresholdUpdated(address rateFeedID, uint256 rateChangeThreshold);
 
   function setUp() public {
     deployer = actor("deployer");
@@ -188,9 +188,9 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
 
   function test_setRateChangeThreshold_whenSenderIsOwner_shouldUpdateAndEmit() public {
     vm.expectEmit(true, true, true, true);
-    emit RateChangeThresholdForRateFeedUpdated(rateFeedIDs[0], rateChangeThresholds[0]);
+    emit RateChangeThresholdUpdated(rateFeedIDs[0], rateChangeThresholds[0]);
     vm.expectEmit(true, true, true, true);
-    emit RateChangeThresholdForRateFeedUpdated(rateFeedIDs[1], rateChangeThresholds[1]);
+    emit RateChangeThresholdUpdated(rateFeedIDs[1], rateChangeThresholds[1]);
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     assertEq(breaker.rateChangeThreshold(rateFeedIDs[0]), rateChangeThresholds[0]);
     assertEq(breaker.rateChangeThreshold(rateFeedIDs[1]), rateChangeThresholds[1]);

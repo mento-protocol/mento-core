@@ -2,6 +2,7 @@
 pragma solidity ^0.5.13;
 
 import { IBreaker } from "./interfaces/IBreaker.sol";
+
 import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
@@ -33,6 +34,12 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
 
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
+
+  // Emitted when the default rate threshold is updated.
+  event DefaultRateChangeThresholdUpdated(uint256 defaultRateChangeThreshold);
+
+  // Emitted when the rate threshold is updated.
+  event RateChangeThresholdUpdated(address rateFeedID, uint256 rateChangeThreshold);
 
   /* ==================== Constructor ==================== */
 
@@ -87,11 +94,11 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
     );
     for (uint256 i = 0; i < rateFeedIDs.length; i++) {
       if (rateFeedIDs[i] != address(0) && rateChangeThresholds[i] != 0) {
-        FixidityLib.Fraction memory _rateChangeThreshold  = FixidityLib.wrap(rateChangeThresholds[i]);
+        FixidityLib.Fraction memory _rateChangeThreshold = FixidityLib.wrap(rateChangeThresholds[i]);
         require(sortedOracles.getOracles(rateFeedIDs[i]).length > 0, "rate feed ID does not exist as it has 0 oracles");
         require(_rateChangeThreshold.lt(FixidityLib.fixed1()), "rate change threshold must be less than 1");
         rateChangeThreshold[rateFeedIDs[i]] = _rateChangeThreshold;
-        emit RateChangeThresholdForRateFeedUpdated(rateFeedIDs[i], rateChangeThresholds[i]);
+        emit RateChangeThresholdUpdated(rateFeedIDs[i], rateChangeThresholds[i]);
       }
     }
   }
@@ -160,17 +167,13 @@ contract MedianDeltaBreaker is IBreaker, Ownable {
     uint256 currentRate,
     address rateFeedID
   ) public view returns (bool) {
-    uint256 allowedThreshold;
+    uint256 allowedThreshold = defaultRateChangeThreshold.unwrap();
 
     uint256 rateSpecificThreshold = rateChangeThreshold[rateFeedID].unwrap();
 
     // checks if a given rate feed id has a threshold set
-    if (rateSpecificThreshold != 0) {
-      allowedThreshold = rateSpecificThreshold;
-    }
-   
-    // otherwise just uses a default threshold
-    allowedThreshold = defaultRateChangeThreshold.unwrap();
+    if (rateSpecificThreshold != 0) allowedThreshold = rateSpecificThreshold;
+
     uint256 fixed1 = FixidityLib.fixed1().unwrap();
 
     uint256 maxPercent = uint256(fixed1).add(allowedThreshold);

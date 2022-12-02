@@ -19,18 +19,6 @@ interface IBreaker {
   event SortedOraclesUpdated(address newSortedOracles);
 
   /**
-   * @notice Emitted when the default rate threshold is updated.
-   * @param defaultRateChangeThreshold The value of the new threshold.
-   */
-  event DefaultRateChangeThresholdUpdated(uint256 defaultRateChangeThreshold);
-
-  /**
-   * @notice Emitted when the rate feed is configured to a rate threshold.
-   * @param rateChangeThreshold The threshold of the rate feed.
-   */
-  event RateChangeThresholdForRateFeedUpdated(address rateFeedID, uint256 rateChangeThreshold);
-
-  /**
    * @notice Retrieve the cooldown time for the breaker.
    * @return cooldown The amount of time that must pass before the breaker can reset.
    * @dev when cooldown is 0 auto reset will not be attempted.
