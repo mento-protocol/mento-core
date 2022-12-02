@@ -241,7 +241,7 @@ contract IntegrationSetup is Test, WithRegistry {
 
     // todo change these to correct values
     uint256[] memory rateChangeThresholds = new uint256[](5);
-    
+
     rateChangeThresholds[0] = 0.15 * 10**24;
     rateChangeThresholds[1] = 0.14 * 10**24;
     rateChangeThresholds[2] = 0.13 * 10**24;
@@ -259,9 +259,15 @@ contract IntegrationSetup is Test, WithRegistry {
       ISortedOracles(address(sortedOracles))
     );
 
-
     breakerBox.addBreaker(address(medianDeltaBreaker), 1);
     sortedOracles.setBreakerBox(breakerBox);
+
+    // enable breakers
+    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cUSD_CELO_referenceRateFeedID, true);
+    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cEUR_CELO_referenceRateFeedID, true);
+    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cUSD_USDCet_referenceRateFeedID, true);
+    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cUSD_cEUR_referenceRateFeedID, true);
+    breakerBox.setBreakerEnabled(address(medianDeltaBreaker), cEUR_USDCet_referenceRateFeedID, true);
   }
 
   function setUp_broker() internal {
