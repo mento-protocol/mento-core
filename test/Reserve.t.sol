@@ -4,18 +4,18 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Test } from "celo-foundry/Test.sol";
 
-import "./utils/WithRegistry.sol";
-import "./utils/TokenHelpers.sol";
-import "./utils/DummyErc20.sol";
+import { WithRegistry } from "./utils/WithRegistry.sol";
+import { TokenHelpers } from "./utils/TokenHelpers.sol";
+import { DummyERC20 } from "./utils/DummyErc20.sol";
 
-import "./mocks/MockSortedOracles.sol";
-import "./mocks/MockStableToken.sol";
+import { MockSortedOracles } from "./mocks/MockSortedOracles.sol";
+import { MockStableToken } from "./mocks/MockStableToken.sol";
 
-import "contracts/Reserve.sol";
-import "contracts/common/FixidityLib.sol";
+import { Reserve } from "contracts/Reserve.sol";
+import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
 contract ReserveTest is Test, WithRegistry, TokenHelpers {
   using SafeMath for uint256;
@@ -47,19 +47,21 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
   uint256 tobinTaxReserveRatio = FixidityLib.newFixedFraction(2, 1).unwrap();
 
   address deployer;
-  address rando;
+  address notDeployer;
 
+  address broker;
   Reserve reserve;
   MockSortedOracles sortedOracles;
   DummyERC20 dummyToken1 = new DummyERC20("DummyToken1", "DT1", 18);
   DummyERC20 dummyToken2 = new DummyERC20("DummyToken2", "DT2", 18);
 
   function setUp() public {
-    rando = actor("rando");
+    notDeployer = actor("notDeployer");
     deployer = actor("deployer");
     changePrank(deployer);
     reserve = new Reserve(true);
     sortedOracles = new MockSortedOracles();
+    broker = actor("broker");
 
     registry.setAddressFor("SortedOracles", address(sortedOracles));
     registry.setAddressFor("Exchange", exchangeAddress);
@@ -122,7 +124,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     vm.expectRevert("tobin tax cannot be larger than 1");
     reserve.setTobinTax(FixidityLib.newFixed(1).unwrap().add(1));
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setTobinTax(100);
   }
@@ -134,7 +136,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     reserve.setTobinTaxReserveRatio(newValue);
     assertEq(reserve.tobinTaxReserveRatio(), newValue);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setTobinTaxReserveRatio(100);
   }
@@ -149,7 +151,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     vm.expectRevert("spending ratio cannot be larger than 1");
     reserve.setDailySpendingRatio(FixidityLib.newFixed(1).unwrap().add(1));
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setDailySpendingRatio(100);
   }
@@ -200,7 +202,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
   }
 
   function test_setDailySpendingRatioForCollateralAssets_whenSenderIsNotOwner_shouldRevert() public {
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setDailySpendingRatioForCollateralAssets(new address[](0), new uint256[](0));
   }
@@ -225,7 +227,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
   }
 
   function test_addCollateralAsset_whenNotOwner_shouldRevert() public {
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.addCollateralAsset(address(0x1234));
   }
@@ -248,7 +250,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
   }
 
   function test_removeCollateralAsset_whenNotOwner_shouldRevert() public {
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.removeCollateralAsset(address(dummyToken1), 0);
   }
@@ -258,7 +260,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     reserve.setRegistry(newValue);
     assertEq(address(reserve.registry()), newValue);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setRegistry(address(0x1234));
   }
@@ -273,7 +275,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     vm.expectRevert("token addr already registered");
     reserve.addToken(token);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.addToken(address(0x1234));
   }
@@ -291,7 +293,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     emit TokenRemoved(token, 0);
     reserve.removeToken(token, 0);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.removeToken(address(0x1234), 0);
   }
@@ -303,7 +305,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     reserve.setTobinTaxStalenessThreshold(newThreshold);
     assertEq(reserve.tobinTaxStalenessThreshold(), newThreshold);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setTobinTaxStalenessThreshold(newThreshold);
   }
@@ -320,7 +322,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     vm.expectRevert("reserve addr already added");
     reserve.addOtherReserveAddress(otherReserveAddresses[0]);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.addOtherReserveAddress(otherReserveAddresses[1]);
     changePrank(deployer);
@@ -349,7 +351,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     reserve.addOtherReserveAddress(otherReserveAddresses[0]);
     reserve.addOtherReserveAddress(otherReserveAddresses[1]);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.removeOtherReserveAddress(otherReserveAddresses[0], 0);
     changePrank(deployer);
@@ -378,7 +380,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     assertEq(reserve.getAssetAllocationSymbols(), assetAllocationSymbols);
     assertEq(reserve.getAssetAllocationWeights(), assetAllocationWeights);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setAssetAllocations(assetAllocationSymbols, assetAllocationWeights);
     changePrank(deployer);
@@ -490,11 +492,24 @@ contract ReserveTest_transfers is ReserveTest {
     reserve.transferCollateralAsset(address(dummyToken1), address(0x234), reserveDummyToken1Balance);
   }
 
+  function test_transferExchangeCollateralAsset_whenSenderIsBroker_shouldTransfer() public {
+    reserve.addExchangeSpender(broker);
+    changePrank(broker);
+    reserve.transferExchangeCollateralAsset(address(dummyToken1), trader, 1000);
+    assertEq(dummyToken1.balanceOf(trader), 1000);
+  }
+
+  function test_transferExchangeCollateralAsset_notExchangeSender_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Address not allowed to spend");
+    reserve.transferExchangeCollateralAsset(address(dummyToken1), trader, 1000);
+  }
+
   function test_addExchangeSpender() public {
     address exchangeSpender0 = address(0x22222);
     address exchangeSpender1 = address(0x33333);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.addExchangeSpender(exchangeSpender0);
 
@@ -517,7 +532,7 @@ contract ReserveTest_transfers is ReserveTest {
     address exchangeSpender1 = address(0x33333);
     reserve.addExchangeSpender(exchangeSpender0);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.removeExchangeSpender(exchangeSpender0, 0);
 
@@ -545,7 +560,7 @@ contract ReserveTest_transfers is ReserveTest {
   function test_addSpender() public {
     address _spender = address(0x4444);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.addSpender(_spender);
 
@@ -563,7 +578,7 @@ contract ReserveTest_transfers is ReserveTest {
 
     reserve.addSpender(_spender);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.removeSpender(_spender);
 
@@ -600,7 +615,7 @@ contract ReserveTest_transfers is ReserveTest {
     vm.expectRevert("Address not allowed to spend");
     reserve.transferExchangeGold(dest, 1000);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Address not allowed to spend");
     reserve.transferExchangeGold(dest, 1000);
   }

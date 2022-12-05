@@ -30,49 +30,49 @@ interface IBreakerBox {
   event BreakerRemoved(address indexed breaker);
 
   /**
-   * @notice Emitted when a breaker is tripped by a rateFeedID.
+   * @notice Emitted when a breaker is tripped by a rate feed.
    * @param breaker The address of the breaker that was tripped.
-   * @param rateFeedID The address of the rateFeedID.
+   * @param rateFeedID The address of the rate feed.
    */
   event BreakerTripped(address indexed breaker, address indexed rateFeedID);
 
   /**
-   * @notice Emitted when a new rateFeedID is added to the breaker box.
-   * @param rateFeedID The address of the rateFeedID that was added.
+   * @notice Emitted when a new rate feed is added to the breaker box.
+   * @param rateFeedID The address of the rate feed that was added.
    */
   event RateFeedAdded(address indexed rateFeedID);
 
   /**
-   * @notice Emitted when a rateFeedID is removed from the breaker box.
-   * @param rateFeedID The rateFeedID that was removed.
+   * @notice Emitted when a rate feed is removed from the breaker box.
+   * @param rateFeedID The rate feed that was removed.
    */
   event RateFeedRemoved(address indexed rateFeedID);
 
   /**
-   * @notice Emitted when the trading mode for a rateFeedID is updated
+   * @notice Emitted when the trading mode for a rate feed is updated
    * @param rateFeedID The address of the rataFeedID.
-   * @param tradingMode The new trading mode of the rateFeedID.
+   * @param tradingMode The new trading mode of the rate feed.
    */
   event TradingModeUpdated(address indexed rateFeedID, uint256 tradingMode);
 
   /**
    * @notice Emitted after a reset attempt is successful.
-   * @param rateFeedID The address of the rateFeedID.
+   * @param rateFeedID The address of the rate feed.
    * @param breaker The address of the breaker.
    */
   event ResetSuccessful(address indexed rateFeedID, address indexed breaker);
 
   /**
    * @notice  Emitted after a reset attempt fails when the
-   *          rateFeedID fails the breakers reset criteria.
-   * @param rateFeedID The address of the rateFeedID.
+   *          rate feed fails the breakers reset criteria.
+   * @param rateFeedID The address of the rate feed.
    * @param breaker The address of the breaker.
    */
   event ResetAttemptCriteriaFail(address indexed rateFeedID, address indexed breaker);
 
   /**
    * @notice Emitted after a reset attempt fails when cooldown time has not elapsed.
-   * @param rateFeedID The address of the rateFeedID.
+   * @param rateFeedID The address of the rate feed.
    * @param breaker The address of the breaker.
    */
   event ResetAttemptNotCool(address indexed rateFeedID, address indexed breaker);
@@ -82,6 +82,14 @@ interface IBreakerBox {
    * @param newSortedOracles The address of the new sortedOracles.
    */
   event SortedOraclesUpdated(address indexed newSortedOracles);
+
+   /**
+   * @notice Emitted when the breaker is enabled or disabled for a rate feed.
+   * @param breaker The address of the breaker.
+   * @param rateFeedID The address of the rate feed.
+   * @param status Indicating the status.
+   */
+  event BreakerStatusUpdated(address breaker, address rateFeedID, bool status);
 
   /**
    * @notice Retrives an ordered array of all breaker addresses.

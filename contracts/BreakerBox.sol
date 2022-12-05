@@ -31,6 +31,8 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   mapping(address => uint64) public breakerTradingMode;
   // Ordered list of breakers to be checked.
   LinkedList.List private breakers;
+  // Maps a breaker with rate feed id and bool to check if it's enabled.
+  mapping(address => mapping(address => bool)) public breakerEnabled;
 
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
@@ -121,6 +123,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     uint64 tradingMode = breakerTradingMode[breaker];
 
     // Set any refenceRateIDs using this breakers trading mode to the default mode.
+    // Disable a breaker on this address
     address[] memory activeRateFeeds = rateFeedIDs;
     TradingModeInfo memory tradingModeInfo;
 
@@ -129,13 +132,36 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
       if (tradingModeInfo.tradingMode == tradingMode) {
         setRateFeedTradingMode(activeRateFeeds[i], 0);
       }
+      if (breakerEnabled[breaker][activeRateFeeds[i]]) {
+        breakerEnabled[breaker][activeRateFeeds[i]] = false;
+      }
     }
-
     delete tradingModeBreaker[tradingMode];
     delete breakerTradingMode[breaker];
     breakers.remove(breaker);
 
     emit BreakerRemoved(breaker);
+  }
+
+  /**
+   * @notice Enables or disables a breaker for the specified rate feed.
+   * @param breaker The address of the breaker.
+   * @param rateFeedID The address of the rate feed.
+   * @param status Bool indicating the the status.
+   */
+  function toggleBreaker(
+    address breaker,
+    address rateFeedID,
+    bool status
+  ) public onlyOwner {
+    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
+    require(info.lastUpdatedTime != 0, "this rate feed has not been registered");
+    require(isBreaker(breaker), "this breaker has not been registered in the breakers list");
+    if (!status && tradingModeBreaker[info.tradingMode] == breaker) {
+      setRateFeedTradingMode(rateFeedID, 0);
+    }
+    breakerEnabled[breaker][rateFeedID] = status;
+    emit BreakerStatusUpdated(breaker, rateFeedID, status);
   }
 
   /* ---------- rateFeedIDs ---------- */
@@ -192,6 +218,15 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     rateFeedIDs.pop();
 
     delete rateFeedTradingModes[rateFeedID];
+
+    address[] memory _breakers = breakers.getKeys();
+
+    // remove configured rate feed for the breaker
+    for (uint256 i = 0; i < _breakers.length; i++) {
+      if (breakerEnabled[_breakers[i]][rateFeedID]) {
+        breakerEnabled[_breakers[i]][rateFeedID] = false;
+      }
+    }
     emit RateFeedRemoved(rateFeedID);
   }
 
@@ -250,6 +285,15 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     return info.tradingMode;
   }
 
+  /**
+   * @notice Checks if a breaker is enabled for a specific rate feed.
+   * @param breaker The address of the breaker we're checking for.
+   * @param rateFeedID The address of the rateFeedID.
+   */
+  function isBreakerEnabled(address breaker, address rateFeedID) external view returns (bool) {
+    return breakerEnabled[breaker][rateFeedID];
+  }
+
   /* ==================== Check Breakers ==================== */
 
   /**
@@ -294,14 +338,16 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
 
     // Check all breakers.
     for (uint256 i = 0; i < _breakers.length; i++) {
-      IBreaker breaker = IBreaker(_breakers[i]);
-      bool tripBreaker = breaker.shouldTrigger(rateFeedID);
-      if (tripBreaker) {
-        info.tradingMode = breakerTradingMode[address(breaker)];
-        info.lastUpdatedTime = uint64(block.timestamp);
-        info.lastUpdatedBlock = uint128(block.number);
-        rateFeedTradingModes[rateFeedID] = info;
-        emit BreakerTripped(address(breaker), rateFeedID);
+      if (breakerEnabled[_breakers[i]][rateFeedID]) {
+        IBreaker breaker = IBreaker(_breakers[i]);
+        bool tripBreaker = breaker.shouldTrigger(rateFeedID);
+        if (tripBreaker) {
+          info.tradingMode = breakerTradingMode[address(breaker)];
+          info.lastUpdatedTime = uint64(block.timestamp);
+          info.lastUpdatedBlock = uint128(block.number);
+          rateFeedTradingModes[rateFeedID] = info;
+          emit BreakerTripped(address(breaker), rateFeedID);
+        }
       }
     }
   }

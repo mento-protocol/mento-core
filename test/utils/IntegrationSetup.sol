@@ -21,10 +21,11 @@ import { SortedOracles } from "contracts/SortedOracles.sol";
 import { Reserve } from "contracts/Reserve.sol";
 import { BreakerBox } from "contracts/BreakerBox.sol";
 import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
+import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { Freezer } from "contracts/common/Freezer.sol";
-import { AddressSortedLinkedListWithMedian } from "contracts//common/linkedlists/AddressSortedLinkedListWithMedian.sol";
+import { AddressSortedLinkedListWithMedian } from "contracts/common/linkedlists/AddressSortedLinkedListWithMedian.sol";
 import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
 
 import { WithRegistry } from "./WithRegistry.sol";
@@ -33,6 +34,7 @@ import { Token } from "./Token.sol";
 contract IntegrationSetup is Test, WithRegistry {
   using FixidityLib for FixidityLib.Fraction;
   using AddressSortedLinkedListWithMedian for SortedLinkedListWithMedian.List;
+  using TradingLimits for TradingLimits.Config;
 
   uint256 constant tobinTaxStalenessThreshold = 600;
   uint256 constant dailySpendingRatio = 1000000000000000000000000;
@@ -83,6 +85,7 @@ contract IntegrationSetup is Test, WithRegistry {
     setUp_breakers();
     setUp_broker();
     setUp_freezer();
+    setUp_tradingLimits();
   }
 
   function setUp_assets() internal {
@@ -233,11 +236,35 @@ contract IntegrationSetup is Test, WithRegistry {
 
     /* ========== Deploy Median Delta Breaker =============== */
 
+    // todo change these to correct values
+    uint256[] memory rateChangeThresholds = new uint256[](5);
+
+    rateChangeThresholds[0] = 0.15 * 10**24;
+    rateChangeThresholds[1] = 0.14 * 10**24;
+    rateChangeThresholds[2] = 0.13 * 10**24;
+    rateChangeThresholds[3] = 0.12 * 10**24;
+    rateChangeThresholds[4] = 0.11 * 10**24;
+
     uint256 threshold = 0.15 * 10**24; // 15%
     uint256 coolDownTime = 5 minutes;
-    medianDeltaBreaker = new MedianDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
+
+    medianDeltaBreaker = new MedianDeltaBreaker(
+      coolDownTime,
+      threshold,
+      rateFeedIDs,
+      rateChangeThresholds,
+      ISortedOracles(address(sortedOracles))
+    );
+
     breakerBox.addBreaker(address(medianDeltaBreaker), 1);
     sortedOracles.setBreakerBox(breakerBox);
+
+    // enable breakers
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_CELO_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_CELO_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_USDCet_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_cEUR_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_USDCet_referenceRateFeedID, true);
   }
 
   function setUp_broker() internal {
@@ -259,7 +286,6 @@ contract IntegrationSetup is Test, WithRegistry {
     broker.initialize(exchangeProviders, address(reserve));
     registry.setAddressFor("Broker", address(broker));
     reserve.addExchangeSpender(address(broker));
-    reserve.addSpender(address(broker));
 
     /* ====== Create pairs for all asset combinations ======= */
 
@@ -334,5 +360,30 @@ contract IntegrationSetup is Test, WithRegistry {
 
     freezer = new Freezer(true);
     registry.setAddressFor("Freezer", address(freezer));
+  }
+
+  function setUp_tradingLimits() internal {
+    /* ========== Config Trading Limits =============== */
+    TradingLimits.Config memory config = configL0L1LG(100, 10000, 1000, 100000, 1000000);
+    broker.configureTradingLimit(pair_cUSD_CELO_ID, address(cUSDToken), config);
+    broker.configureTradingLimit(pair_cEUR_CELO_ID, address(cEURToken), config);
+    broker.configureTradingLimit(pair_cUSD_USDCet_ID, address(usdcToken), config);
+    broker.configureTradingLimit(pair_cEUR_USDCet_ID, address(usdcToken), config);
+    broker.configureTradingLimit(pair_cUSD_cEUR_ID, address(cUSDToken), config);
+  }
+
+  function configL0L1LG(
+    uint32 timestep0,
+    int48 limit0,
+    uint32 timestep1,
+    int48 limit1,
+    int48 limitGlobal
+  ) internal pure returns (TradingLimits.Config memory config) {
+    config.timestep0 = timestep0;
+    config.limit0 = limit0;
+    config.timestep1 = timestep1;
+    config.limit1 = limit1;
+    config.limitGlobal = limitGlobal;
+    config.flags = 1 | 2 | 4; //L0, L1, and LG
   }
 }
