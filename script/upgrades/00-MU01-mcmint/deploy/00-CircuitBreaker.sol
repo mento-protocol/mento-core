@@ -31,9 +31,18 @@ contract DeployCircuitBreaker is Script {
     address governance = contracts.celoRegistry("Governance");
     address sortedOracles = contracts.celoRegistry("SortedOracles");
 
+    address[] memory __rateFeedIDs = new address[](0);
+    uint256[] memory __rateChangeThresholds = new uint256[](0);
+
     vm.startBroadcast(Chain.deployerPrivateKey());
     {
-      medianDeltaBreaker = new MedianDeltaBreaker(0, 0, ISortedOracles(sortedOracles));
+      medianDeltaBreaker = new MedianDeltaBreaker(
+        0, 
+        0, 
+        __rateFeedIDs, 
+        __rateChangeThresholds,
+        ISortedOracles(sortedOracles)
+      );
       medianDeltaBreaker.transferOwnership(governance);
 
       breakerBox = new BreakerBox(false);
