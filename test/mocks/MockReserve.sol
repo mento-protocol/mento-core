@@ -40,9 +40,11 @@ contract MockReserve {
     return true;
   }
 
-  function transferExchangeCollateralAsset( address tokenAddress,
+  function transferExchangeCollateralAsset(
+    address tokenAddress,
     address payable to,
-    uint256 amount) external returns (bool) {
+    uint256 amount
+  ) external returns (bool) {
     require(IERC20(tokenAddress).transfer(to, amount), "asset transfer failed");
     return true;
   }

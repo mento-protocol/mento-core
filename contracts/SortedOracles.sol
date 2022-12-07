@@ -38,7 +38,6 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
   mapping(address => uint256) public tokenReportExpirySeconds;
 
   IBreakerBox public breakerBox;
-  mapping(address => uint256) public previousMedianRate;
 
   event OracleAdded(address indexed token, address indexed oracleAddress);
   event OracleRemoved(address indexed token, address indexed oracleAddress);
@@ -245,7 +244,6 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
     emit OracleReported(token, msg.sender, now, value);
     uint256 newMedian = rates[token].getMedianValue();
     if (newMedian != originalMedian) {
-      previousMedianRate[token] = originalMedian;
       emit MedianUpdated(token, newMedian);
     }
 
@@ -375,7 +373,6 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
     emit OracleReportRemoved(token, oracle);
     uint256 newMedian = rates[token].getMedianValue();
     if (newMedian != originalMedian) {
-      previousMedianRate[token] = newMedian;
       emit MedianUpdated(token, newMedian);
     }
   }

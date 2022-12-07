@@ -1,4 +1,4 @@
-// SPDX-Liaense-Identifier: UNLICENSED
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.5.13;
 
 import { IBreaker } from "./interfaces/IBreaker.sol";
@@ -18,16 +18,22 @@ import { FixidityLib } from "./common/FixidityLib.sol";
  *          relative to the last is greater than a calculated threshold. If this
  *          breaker is triggered for a rate feed it should be set to no trading mode.
  */
-contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
+contract ValueDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
 
   /* ==================== State Variables ==================== */
+
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
 
-  // The previous median recorded for a ratefeed.
-  mapping(address => uint256) public previousMedianRates;
+  // The reference value to check against
+  mapping(address => uint256) public referenceValues;
+
+  /* ==================== Events ==================== */
+
+  // Emitted when the reference value is updated
+  event ReferenceValueUpdated(address rateFeedID, uint256 referenceValue);
 
   /* ==================== Constructor ==================== */
 
@@ -40,7 +46,6 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
     _setDefaultCooldownTime(_defaultCooldownTime);
     _setDefaultRateChangeThreshold(_defaultRateChangeThreshold);
     setSortedOracles(_sortedOracles);
-    // setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
 
   /* ==================== Restricted Functions ==================== */
@@ -51,7 +56,7 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
    * @param cooldownTimes The new cooldownTime value.
    * @dev Should be set to 0 to force a manual reset.
    */
-  function setCooldownTime(address[] calldata rateFeedIDs, uint256[] calldata cooldownTimes) external onlyOwner {
+  function setCooldownTimes(address[] calldata rateFeedIDs, uint256[] calldata cooldownTimes) external onlyOwner {
     _setCooldownTimes(rateFeedIDs, cooldownTimes);
   }
 
@@ -85,6 +90,20 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   }
 
   /**
+   * @notice Configures rate feed to reference value pairs.
+   * @param rateFeedIDs Collection of the addresses rate feeds.
+   * @param _referenceValues Collection of referance values.
+   */
+  function setReferenceValues(address[] calldata rateFeedIDs, uint256[] calldata _referenceValues) external onlyOwner {
+    require(rateFeedIDs.length == _referenceValues.length, "array length missmatch");
+    for (uint256 i = 0; i < rateFeedIDs.length; i++) {
+      require(rateFeedIDs[i] != address(0), "rate feed invalid");
+      referenceValues[rateFeedIDs[i]] = _referenceValues[i];
+      emit ReferenceValueUpdated(rateFeedIDs[i], _referenceValues[i]);
+    }
+  }
+
+  /**
    * @notice Sets the address of the sortedOracles contract.
    * @param _sortedOracles The new address of the sorted oracles contract.
    */
@@ -94,7 +113,7 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
     emit SortedOraclesUpdated(address(_sortedOracles));
   }
 
-  /* ==================== View Functions ==================== */
+  /* ==================== Public Functions ==================== */
 
   /**
    * @notice  Check if the current median report rate change, for a rate feed, relative
@@ -106,16 +125,14 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
    */
   function shouldTrigger(address rateFeedID) public returns (bool triggerBreaker) {
     (uint256 currentMedian, ) = sortedOracles.medianRate(rateFeedID);
+    uint256 referenceValue = referenceValues[rateFeedID];
 
-    uint256 previousMedian = previousMedianRates[rateFeedID];
-    previousMedianRates[rateFeedID] = currentMedian;
-
-    if (previousMedian == 0) {
-      // Previous median will be 0 the first time rate is checked.
+    if (referenceValue == 0) {
+      // Never trigger if reference value is not set
       return false;
     }
 
-    return exceedsThreshold(previousMedian, currentMedian, rateFeedID);
+    return exceedsThreshold(referenceValue, currentMedian, rateFeedID);
   }
 
   /**

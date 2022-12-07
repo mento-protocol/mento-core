@@ -30,8 +30,6 @@ interface ISortedOracles {
 
   function medianTimestamp(address) external view returns (uint256);
 
-  function previousMedianRate(address) external view returns (uint256);
-
   function getOracles(address) external view returns (address[] memory);
 
   function getTimestamps(address token)

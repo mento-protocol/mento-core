@@ -11,11 +11,14 @@ import { WithRegistry } from "./utils/WithRegistry.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
-import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
+import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
+import { ValueDeltaBreaker } from "contracts/ValueDeltaBreaker.sol";
 import { MockSortedOracles } from "./mocks/MockSortedOracles.sol";
 
-contract MedianDeltaBreakerTest is Test, WithRegistry {
+contract ValueDeltaBreakerTest is Test, WithRegistry {
+  using FixidityLib for FixidityLib.Fraction;
+
   address deployer;
   address notDeployer;
 
@@ -23,7 +26,7 @@ contract MedianDeltaBreakerTest is Test, WithRegistry {
   address rateFeedID2;
   address rateFeedID3;
   MockSortedOracles sortedOracles;
-  MedianDeltaBreaker breaker;
+  ValueDeltaBreaker breaker;
 
   uint256 threshold = 0.15 * 10**24; // 15%
   uint256 coolDownTime = 5 minutes;
@@ -56,13 +59,13 @@ contract MedianDeltaBreakerTest is Test, WithRegistry {
     sortedOracles.addOracle(rateFeedID2, actor("oracleClient"));
     sortedOracles.addOracle(rateFeedID3, actor("oracleClient1"));
 
-    breaker = new MedianDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
+    breaker = new ValueDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
 
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
 }
 
-contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest {
+contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
   /* ---------- Constructor ---------- */
 
   function test_constructor_shouldSetOwner() public {
@@ -179,12 +182,25 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
   }
 }
 
-contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
-  function updateMedianByPercent(uint256 medianChangeScaleFactor, address _rateFeedID) public {
-    uint256 previousMedianRate = 0.98 * 10**24;
-    uint256 currentMedianRate = (previousMedianRate * medianChangeScaleFactor) / 10**24;
-    stdstore.target(address(breaker)).sig(0x7dffc308).with_key(_rateFeedID).checked_write(previousMedianRate);
+contract ValueDeltaBreakerTest_shouldTrigger is ValueDeltaBreakerTest {
+  function setUp() public {
+    super.setUp();
 
+    address[] memory _rateFeedIDs = new address[](3);
+    uint256[] memory _referenceValues = new uint256[](3);
+    _rateFeedIDs[0] = rateFeedID1;
+    _rateFeedIDs[1] = rateFeedID2;
+    _rateFeedIDs[2] = rateFeedID3;
+    _referenceValues[0] = FixidityLib.fixed1().unwrap();
+    _referenceValues[1] = FixidityLib.fixed1().unwrap();
+    _referenceValues[2] = FixidityLib.fixed1().unwrap();
+
+    breaker.setReferenceValues(_rateFeedIDs, _referenceValues);
+  }
+
+  function updateMedianByPercent(uint256 medianChangeScaleFactor, address _rateFeedID) public {
+    uint256 previousMedianRate = 10**24;
+    uint256 currentMedianRate = (previousMedianRate * medianChangeScaleFactor) / 10**24;
     vm.mockCall(
       address(sortedOracles),
       abi.encodeWithSelector(sortedOracles.medianRate.selector),

@@ -251,13 +251,9 @@ contract IntegrationSetup is Test, WithRegistry {
     uint256 threshold = 0.15 * 10**24; // 15%
     uint256 coolDownTime = 5 minutes;
 
-    medianDeltaBreaker = new MedianDeltaBreaker(
-      coolDownTime,
-      threshold,
-      rateFeedIDs,
-      rateChangeThresholds,
-      ISortedOracles(address(sortedOracles))
-    );
+    medianDeltaBreaker = new MedianDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
+
+    medianDeltaBreaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
 
     breakerBox.addBreaker(address(medianDeltaBreaker), 1);
     sortedOracles.setBreakerBox(breakerBox);
