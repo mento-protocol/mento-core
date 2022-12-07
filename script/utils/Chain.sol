@@ -6,6 +6,7 @@ import { Vm } from "forge-std/Vm.sol";
 
 library Chain {
   address private constant VM_ADDRESS = address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
+  // solhint-disable-next-line const-name-snakecase
   Vm public constant vm = Vm(VM_ADDRESS);
 
   uint256 public constant NETWORK_ANVIL = 0;
@@ -60,7 +61,6 @@ library Chain {
     revert("unexpected network");
   }
 
-
   /**
    * @notice Setup a fork environment for the current chain
    */
@@ -68,7 +68,6 @@ library Chain {
     uint256 forkId = vm.createFork(rpcToken());
     vm.selectFork(forkId);
   }
-
 
   function isCelo() internal pure returns (bool) {
     return id() == NETWORK_CELO_CHAINID;

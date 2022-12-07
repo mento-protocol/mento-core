@@ -12,9 +12,11 @@ library Contracts {
   using stdJson for string;
 
   address private constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
+  // solhint-disable-next-line const-name-snakecase
   IRegistry private constant registry = IRegistry(REGISTRY_ADDRESS);
 
   address private constant VM_ADDRESS = address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
+  // solhint-disable-next-line const-name-snakecase
   Vm private constant vm = Vm(VM_ADDRESS);
 
   bytes32 private constant CREATE_HASH = 0x14feaf0665b390ef0561125746780cd06c1876ebed7339648fad78cd5fb754ed;
@@ -55,16 +57,12 @@ library Contracts {
 
     for (uint256 i = 0; i < length; i++) {
       string memory txType = abi.decode(
-        json.parseRaw(
-          string(abi.encodePacked("transactions[", uintToString(i), "].transactionType"))
-        ),
+        json.parseRaw(string(abi.encodePacked("transactions[", uintToString(i), "].transactionType"))),
         (string)
       );
       if (keccak256(bytes(txType)) == keccak256(bytes("CREATE"))) {
         string memory contractName = abi.decode(
-          json.parseRaw(
-            string(abi.encodePacked("transactions[", uintToString(i), "].contractName"))
-          ), 
+          json.parseRaw(string(abi.encodePacked("transactions[", uintToString(i), "].contractName"))),
           (string)
         );
 
@@ -76,12 +74,12 @@ library Contracts {
     return self;
   }
 
-  function deployed(Cache storage self, string memory contractName) internal returns (address addr) {
+  function deployed(Cache storage self, string memory contractName) internal view returns (address addr) {
     addr = self.contractAddress[keccak256(bytes(contractName))];
     require(addr != address(0), "ContractNotFound");
   }
 
-  function celoRegistry(Cache storage self, string memory contractName) internal returns (address) {
+  function celoRegistry(Cache storage, string memory contractName) internal view returns (address) {
     return registry.getAddressForStringOrDie(contractName);
   }
 
@@ -97,7 +95,8 @@ library Contracts {
     if (!self._dependenciesLoaded) _loadDependencies(self);
     string memory chainId = Chain.idString();
     bytes memory contractAddressRaw = self._dependencies.parseRaw(
-      string(abi.encodePacked("[\"", chainId, "\"]", "[\"", contractName, "\"]"))
+      // solhint-disable-next-line quotes
+      string(abi.encodePacked('["', chainId, '"]', '["', contractName, '"]'))
     );
 
     require(contractAddressRaw.length == 32, "depndency missing or invalid");

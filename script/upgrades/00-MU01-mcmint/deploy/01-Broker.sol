@@ -30,17 +30,17 @@ import { ReserveProxy } from "contracts/proxies/ReserveProxy.sol";
 */
 
 contract DeployBrokerScript is Script {
-  ConstantSumPricingModule csPricingModule;
-  ConstantProductPricingModule cpPricingModule;
-  BiPoolManager biPoolManager;
-  Broker broker;
-  Reserve reserve;
-  StableToken stableToken;
-  StableTokenBRL stableTokenBRL;
-  StableTokenEUR stableTokenEUR;
+  ConstantSumPricingModule private csPricingModule;
+  ConstantProductPricingModule private cpPricingModule;
+  BiPoolManager private biPoolManager;
+  Broker private broker;
+  Reserve private reserve;
+  StableToken private stableToken;
+  StableTokenBRL private stableTokenBRL;
+  StableTokenEUR private stableTokenEUR;
 
-  BrokerProxy brokerProxy;
-  BiPoolManagerProxy biPoolManagerProxy;
+  BrokerProxy private brokerProxy;
+  BiPoolManagerProxy private biPoolManagerProxy;
 
   function run() public {
     // Existing proxies
@@ -69,7 +69,6 @@ contract DeployBrokerScript is Script {
       // Deploy & Initialize BiPoolManager
       biPoolManager = new BiPoolManager(false);
 
-
       biPoolManagerProxy._setAndInitializeImplementation(
         address(biPoolManager),
         abi.encodeWithSelector(
@@ -91,11 +90,7 @@ contract DeployBrokerScript is Script {
 
       brokerProxy._setAndInitializeImplementation(
         address(broker),
-        abi.encodeWithSelector(
-          Broker(0).initialize.selector,
-          exchangeProviders,
-          reserveProxy
-        )
+        abi.encodeWithSelector(Broker(0).initialize.selector, exchangeProviders, reserveProxy)
       );
       brokerProxy._transferOwnership(governance);
       Broker(address(brokerProxy)).transferOwnership(governance);

@@ -14,7 +14,7 @@ contract GovernanceHelper is Script {
   }
 
   function createProposal(
-    ICeloGovernance.Transaction[] memory transactions, 
+    ICeloGovernance.Transaction[] memory transactions,
     string memory descriptionURL,
     address governance
   ) internal {
@@ -25,6 +25,7 @@ contract GovernanceHelper is Script {
     console2.log("Celo governance proposal required deposit amount: ", depositAmount);
 
     // Submit proposal
+    // solhint-disable-next-line avoid-call-value,avoid-low-level-calls
     (bool success, bytes memory returnData) = address(governance).call.value(depositAmount)(
       abi.encodeWithSelector(
         ICeloGovernance(0).propose.selector,
@@ -37,10 +38,9 @@ contract GovernanceHelper is Script {
     );
 
     if (success == false) {
-      console2.log("Failed to create proposal");
       console2.logBytes(returnData);
+      revert("Failed to create proposal");
     }
-    require(success);
     console2.log("Proposal was successfully created. ID: ", abi.decode(returnData, (uint256)));
   }
 
@@ -49,12 +49,12 @@ contract GovernanceHelper is Script {
     vm.startPrank(governance);
     for (uint256 i = 0; i < transactions.length; i++) {
       ICeloGovernance.Transaction memory _tx = transactions[i];
+      // solhint-disable-next-line avoid-call-value,avoid-low-level-calls
       (bool success, bytes memory returnData) = _tx.destination.call.value(_tx.value)(_tx.data);
       if (success == false) {
-        console2.log("Failed to simulate the proposal");
         console2.logBytes(returnData);
+        revert("Failed to simulate the proposal");
       }
-      require(success);
     }
     console2.log("Proposal was simulated successfully.");
     vm.stopPrank();

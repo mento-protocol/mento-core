@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, contract-name-camelcase
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
@@ -11,7 +12,6 @@ import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
 import { Proxy } from "contracts/common/Proxy.sol";
-
 
 /**
  forge script {file} --rpc-url $BAKLAVA_RPC_URL 
@@ -42,11 +42,7 @@ contract MentoUpgrade1_baklava_rev1 is GovernanceScript {
       ICeloGovernance.Transaction(
         0,
         biPoolManagerProxy,
-        abi.encodeWithSelector(
-          biPoolManager.destroyExchange.selector, 
-          exchangeIds[1], 
-          1
-        )
+        abi.encodeWithSelector(biPoolManager.destroyExchange.selector, exchangeIds[1], 1)
       )
     );
 
@@ -54,11 +50,7 @@ contract MentoUpgrade1_baklava_rev1 is GovernanceScript {
       ICeloGovernance.Transaction(
         0,
         biPoolManagerProxy,
-        abi.encodeWithSelector(
-          biPoolManager.destroyExchange.selector, 
-          exchangeIds[0], 
-          0
-        )
+        abi.encodeWithSelector(biPoolManager.destroyExchange.selector, exchangeIds[0], 0)
       )
     );
 
@@ -66,7 +58,7 @@ contract MentoUpgrade1_baklava_rev1 is GovernanceScript {
 
     address cUSD = contracts.celoRegistry("StableToken");
     address cEUR = contracts.celoRegistry("StableTokenEUR");
-    address cBRL = contracts.celoRegistry("StableTokenBRL");
+    // address cBRL = contracts.celoRegistry("StableTokenBRL");
     address celo = contracts.celoRegistry("GoldToken");
     IPricingModule constantProduct = IPricingModule(contracts.deployed("ConstantProductPricingModule"));
 

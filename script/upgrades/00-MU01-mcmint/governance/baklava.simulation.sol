@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, contract-name-camelcase
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
@@ -14,7 +15,8 @@ import { Chain } from "script/utils/Chain.sol";
 
 // forge script {file} --rpc-url $BAKLAVA_RPC_URL
 contract MentoUpgrade1_baklava_simulation is GovernanceScript {
-  address governance;
+  address public governance;
+
   function run() public {
     Chain.fork();
     governance = contracts.celoRegistry("Governance");

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, contract-name-camelcase
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
@@ -11,7 +12,6 @@ import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
 import { Proxy } from "contracts/common/Proxy.sol";
-
 
 /**
  forge script {file} --rpc-url $BAKLAVA_RPC_URL 
@@ -45,27 +45,15 @@ contract MentoUpgrade1_baklava_rev2 is GovernanceScript {
     address cBRLImpl = contracts.deployed("StableTokenBRL");
 
     transactions.push(
-      ICeloGovernance.Transaction(
-        0,
-        cUSDProxy,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, cUSDImpl)
-      )
+      ICeloGovernance.Transaction(0, cUSDProxy, abi.encodeWithSelector(Proxy(0)._setImplementation.selector, cUSDImpl))
     );
 
     transactions.push(
-      ICeloGovernance.Transaction(
-        0,
-        cEURProxy,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, cEURImpl)
-      )
+      ICeloGovernance.Transaction(0, cEURProxy, abi.encodeWithSelector(Proxy(0)._setImplementation.selector, cEURImpl))
     );
 
     transactions.push(
-      ICeloGovernance.Transaction(
-        0,
-        cBRLProxy,
-        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, cBRLImpl)
-      )
+      ICeloGovernance.Transaction(0, cBRLProxy, abi.encodeWithSelector(Proxy(0)._setImplementation.selector, cBRLImpl))
     );
     return transactions;
   }

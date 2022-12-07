@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, contract-name-camelcase
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
@@ -40,7 +41,7 @@ contract MentoUpgrade1_baklava_rev0 is GovernanceScript {
   }
 
   function buildProposal() public returns (ICeloGovernance.Transaction[] memory) {
-    require(transactions.length == 0);
+    require(transactions.length == 0, "buildProposal() should only be called once");
     proposal_upgradeContracts();
     proposal_configureReserve();
     proposal_registryUpdates();
@@ -54,10 +55,7 @@ contract MentoUpgrade1_baklava_rev0 is GovernanceScript {
       ICeloGovernance.Transaction(
         0,
         contracts.celoRegistry("Reserve"),
-        abi.encodeWithSelector(
-          Proxy(0)._setImplementation.selector, 
-          contracts.deployed("Reserve")
-        )
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, contracts.deployed("Reserve"))
       )
     );
 
@@ -65,10 +63,7 @@ contract MentoUpgrade1_baklava_rev0 is GovernanceScript {
       ICeloGovernance.Transaction(
         0,
         contracts.celoRegistry("StableToken"),
-        abi.encodeWithSelector(
-          Proxy(0)._setImplementation.selector, 
-          contracts.deployed("StableToken")
-        )
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, contracts.deployed("StableToken"))
       )
     );
 
@@ -76,10 +71,7 @@ contract MentoUpgrade1_baklava_rev0 is GovernanceScript {
       ICeloGovernance.Transaction(
         0,
         contracts.celoRegistry("StableTokenEUR"),
-        abi.encodeWithSelector(
-          Proxy(0)._setImplementation.selector, 
-          contracts.deployed("StableTokenEUR")
-        )
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, contracts.deployed("StableTokenEUR"))
       )
     );
 
@@ -87,10 +79,7 @@ contract MentoUpgrade1_baklava_rev0 is GovernanceScript {
       ICeloGovernance.Transaction(
         0,
         contracts.celoRegistry("StableTokenBRL"),
-        abi.encodeWithSelector(
-          Proxy(0)._setImplementation.selector, 
-          contracts.deployed("StableTokenBRL")
-        )
+        abi.encodeWithSelector(Proxy(0)._setImplementation.selector, contracts.deployed("StableTokenBRL"))
       )
     );
   }
@@ -140,7 +129,7 @@ contract MentoUpgrade1_baklava_rev0 is GovernanceScript {
 
     address cUSD = contracts.celoRegistry("StableToken");
     address cEUR = contracts.celoRegistry("StableTokenEUR");
-    address cBRL = contracts.celoRegistry("StableTokenBRL");
+    // address cBRL = contracts.celoRegistry("StableTokenBRL");
     address celo = contracts.celoRegistry("GoldToken");
     IPricingModule constantProduct = IPricingModule(contracts.deployed("ConstantProductPricingModule"));
 
@@ -176,7 +165,6 @@ contract MentoUpgrade1_baklava_rev0 is GovernanceScript {
       })
     });
 
-    // XXX: Commented because cREAL isn't deployed to baklava :(
     // pools[2] =  IBiPoolManager.PoolExchange({ // cREAL/CELO
     //   asset0: proxies.stableTokenBRL,
     //   asset1: proxies.celoToken,
