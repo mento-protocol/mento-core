@@ -90,7 +90,7 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
 
   /* ---------- Setters ---------- */
 
-  function test_setCooldownTime_whenCallerIsNotOwner_shouldRevert() public {
+  function test_setDefaultCooldownTime_whenCallerIsNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     changePrank(notDeployer);
     breaker.setDefaultCooldownTime(2 minutes);
@@ -113,12 +113,12 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
     breaker.setDefaultRateChangeThreshold(123456);
   }
 
-  function test_setRateChangeThreshold_whenValueGreaterThanOne_shouldRevert() public {
+  function test_setDefaultRateChangeThreshold_whenValueGreaterThanOne_shouldRevert() public {
     vm.expectRevert("value must be less than 1");
     breaker.setDefaultRateChangeThreshold(1 * 10**24);
   }
 
-  function test_setRateChangeThreshold_whenCallerIsOwner_shouldUpdateAndEmit() public {
+  function test_setDefaultRateChangeThreshold_whenCallerIsOwner_shouldUpdateAndEmit() public {
     uint256 testThreshold = 0.1 * 10**24;
     vm.expectEmit(false, false, false, true);
     emit DefaultRateChangeThresholdUpdated(testThreshold);
@@ -149,13 +149,13 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
     assertEq(address(breaker.sortedOracles()), newSortedOracles);
   }
 
-  function test_setRateChangeThreshold_whenSenderIsNotOwner_shouldRevert() public {
+  function test_setRateChangeThresholds_whenSenderIsNotOwner_shouldRevert() public {
     changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
 
-  function test_setRateChangeThreshold_whenValuesAreDifferentLengths_shouldRevert() public {
+  function test_setRateChangeThresholds_whenValuesAreDifferentLengths_shouldRevert() public {
     address[] memory rateFeedIDs2 = new address[](2);
     rateFeedIDs2[0] = actor("randomRateFeed");
     rateFeedIDs2[1] = actor("randomRateFeed2");
@@ -163,13 +163,13 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
     breaker.setRateChangeThresholds(rateFeedIDs2, rateChangeThresholds);
   }
 
-  function test_setRateChangeThreshold_whenThresholdIsMoreThan0_shouldRevert() public {
+  function test_setRateChangeThresholds_whenThresholdIsMoreThan0_shouldRevert() public {
     rateChangeThresholds[0] = 1 * 10**24;
     vm.expectRevert("value must be less than 1");
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
 
-  function test_setRateChangeThreshold_whenSenderIsOwner_shouldUpdateAndEmit() public {
+  function test_setRateChangeThresholds_whenSenderIsOwner_shouldUpdateAndEmit() public {
     vm.expectEmit(true, true, true, true);
     emit RateChangeThresholdUpdated(rateFeedIDs[0], rateChangeThresholds[0]);
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);

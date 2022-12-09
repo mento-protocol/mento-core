@@ -13,7 +13,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { FixidityLib } from "./common/FixidityLib.sol";
 
 /**
- * @title   Median Delta Breaker
+ * @title   Value Delta Breaker
  * @notice  Breaker contract that will trigger when the current oracle median rate change
  *          relative to the last is greater than a calculated threshold. If this
  *          breaker is triggered for a rate feed it should be set to no trading mode.

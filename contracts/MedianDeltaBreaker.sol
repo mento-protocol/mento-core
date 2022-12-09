@@ -1,4 +1,4 @@
-// SPDX-Liaense-Identifier: UNLICENSED
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.5.13;
 
 import { IBreaker } from "./interfaces/IBreaker.sol";
