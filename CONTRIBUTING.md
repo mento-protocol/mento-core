@@ -70,4 +70,4 @@ where
 ### Git Pull Requests
 Pull requests should be named as a mix from branch name and commit message style.
 
-`<type>(<scope>): <branch-name>`, for example `refactor(breaker): fix/correct breaker descriptions` where `fix/correct-breaker-descriptions`is the branch name. 
+`<type>(<scope>): <branch-name>`, for example `docs(contributing): feature/naming-conventions` where `feature/naming-conventions`is the branch name. 
