@@ -66,3 +66,8 @@ where
 - refactor: (refactoring production code, eg. renaming a variable)
 - test: (adding missing tests, refactoring tests; no production code change)
 - chore: (updating grunt tasks etc; no production code change)
+
+### Git Pull Requests
+Pull requests should be named as a mix from branch name and commit message style.
+
+`<type>(<scope>): <branch-name>`, for example `refactor(breaker): fix/correct breaker descriptions` where `fix/correct-breaker-descriptions`is the branch name. 
