@@ -15,7 +15,7 @@ import { FixidityLib } from "./common/FixidityLib.sol";
 /**
  * @title   Value Delta Breaker
  * @notice  Breaker contract that will trigger when the current oracle median rate change
- *          relative to the last is greater than a calculated threshold. If this
+ *          relative to a reference value is greater than a calculated threshold. If this
  *          breaker is triggered for a rate feed it should be set to no trading mode.
  */
 contract ValueDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {

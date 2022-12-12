@@ -87,7 +87,7 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
 
   /* ---------- Setters ---------- */
 
-  function test_setCooldownTime_whenCallerIsNotOwner_shouldRevert() public {
+  function test_setDefaultCooldownTime_whenCallerIsNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     changePrank(notDeployer);
     breaker.setDefaultCooldownTime(2 minutes);
@@ -97,10 +97,7 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
     uint256 testCooldown = 39 minutes;
     vm.expectEmit(false, false, false, true);
     emit DefaultCooldownTimeUpdated(testCooldown);
-
     breaker.setDefaultCooldownTime(testCooldown);
-
-    assertEq(breaker.defaultCooldownTime(), testCooldown);
   }
 
   function test_setRateChangeThreshold_whenCallerIsNotOwner_shouldRevert() public {
