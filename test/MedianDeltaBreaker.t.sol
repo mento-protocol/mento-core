@@ -25,11 +25,12 @@ contract MedianDeltaBreakerTest is Test, WithRegistry {
   MockSortedOracles sortedOracles;
   MedianDeltaBreaker breaker;
 
-  uint256 threshold = 0.15 * 10**24; // 15%
-  uint256 coolDownTime = 5 minutes;
+  uint256 defaultThreshold = 0.15 * 10**24; // 15%
+  uint256 defaultCooldownTime = 5 minutes;
 
   address[] rateFeedIDs = new address[](1);
   uint256[] rateChangeThresholds = new uint256[](1);
+  uint256[] cooldownTimes = new uint256[](1);
 
   event BreakerTriggered(address indexed rateFeedID);
   event BreakerReset(address indexed rateFeedID);
@@ -48,6 +49,7 @@ contract MedianDeltaBreakerTest is Test, WithRegistry {
 
     rateFeedIDs[0] = rateFeedID2;
     rateChangeThresholds[0] = 0.9 * 10**24;
+    cooldownTimes[0] = 10 minutes;
 
     changePrank(deployer);
     sortedOracles = new MockSortedOracles();
@@ -56,9 +58,14 @@ contract MedianDeltaBreakerTest is Test, WithRegistry {
     sortedOracles.addOracle(rateFeedID2, actor("oracleClient"));
     sortedOracles.addOracle(rateFeedID3, actor("oracleClient1"));
 
-    breaker = new MedianDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
-
-    breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
+    breaker = new MedianDeltaBreaker(
+      defaultCooldownTime,
+      defaultThreshold, 
+      ISortedOracles(address(sortedOracles)),
+      rateFeedIDs,
+      rateChangeThresholds,
+      cooldownTimes
+    );
   }
 }
 
@@ -69,12 +76,12 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
     assertEq(breaker.owner(), deployer);
   }
 
-  function test_constructor_shouldSetCooldownTime() public {
-    assertEq(breaker.defaultCooldownTime(), coolDownTime);
+  function test_constructor_shouldSetDefaultCooldownTime() public {
+    assertEq(breaker.defaultCooldownTime(), defaultCooldownTime);
   }
 
-  function test_constructor_shouldSetRateChangeThreshold() public {
-    assertEq(breaker.defaultRateChangeThreshold(), threshold);
+  function test_constructor_shouldSetDefaultRateChangeThreshold() public {
+    assertEq(breaker.defaultRateChangeThreshold(), defaultThreshold);
   }
 
   function test_constructor_shouldSetSortedOracles() public {
@@ -83,6 +90,10 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
 
   function test_constructor_shouldSetRateChangeThresholds() public {
     assertEq(breaker.rateChangeThreshold(rateFeedIDs[0]), rateChangeThresholds[0]);
+  }
+
+  function test_constructor_shouldSetCooldownTimes() public {
+    assertEq(breaker.getCooldown(rateFeedIDs[0]), cooldownTimes[0]);
   }
 
   /* ---------- Setters ---------- */
@@ -171,8 +182,12 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
   }
 
   /* ---------- Getters ---------- */
-  function test_getCooldown_shouldReturnCooldown() public {
-    assertEq(breaker.getCooldown(rateFeedIDs[0]), coolDownTime);
+  function test_getCooldown_withDefault_shouldReturnDefaultCooldown() public {
+    assertEq(breaker.getCooldown(rateFeedID1), defaultCooldownTime);
+  }
+
+  function test_getCooldown_withoutdefault_shouldReturnSpecificCooldown() public {
+    assertEq(breaker.getCooldown(rateFeedIDs[0]), cooldownTimes[0]);
   }
 }
 

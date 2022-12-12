@@ -241,6 +241,7 @@ contract IntegrationSetup is Test, WithRegistry {
 
     // todo change these to correct values
     uint256[] memory rateChangeThresholds = new uint256[](5);
+    uint256[] memory cooldownTimes = new uint256[](5);
 
     rateChangeThresholds[0] = 0.15 * 10**24;
     rateChangeThresholds[1] = 0.14 * 10**24;
@@ -251,9 +252,14 @@ contract IntegrationSetup is Test, WithRegistry {
     uint256 threshold = 0.15 * 10**24; // 15%
     uint256 coolDownTime = 5 minutes;
 
-    medianDeltaBreaker = new MedianDeltaBreaker(coolDownTime, threshold, ISortedOracles(address(sortedOracles)));
-
-    medianDeltaBreaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
+    medianDeltaBreaker = new MedianDeltaBreaker(
+      coolDownTime, 
+      threshold, 
+      ISortedOracles(address(sortedOracles)),
+      rateFeedIDs,
+      rateChangeThresholds,
+      cooldownTimes
+    );
 
     breakerBox.addBreaker(address(medianDeltaBreaker), 1);
     sortedOracles.setBreakerBox(breakerBox);
