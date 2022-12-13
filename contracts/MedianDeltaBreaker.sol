@@ -102,14 +102,6 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   /* ==================== View Functions ==================== */
 
   /**
-   * @notice Gets the cooldown time for the breaker.
-   * @return Returns the time in seconds.
-   */
-  function getCooldown() external view returns (uint256) {
-    return cooldownTime;
-  }
-
-  /**
    * @notice  Check if the current median report rate for a rate feed change, relative
    *          to the last median report, is greater than the configured threshold.
    *          If the change is greater than the threshold the breaker will trip.
