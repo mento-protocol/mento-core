@@ -14,8 +14,8 @@ import { FixidityLib } from "./common/FixidityLib.sol";
 
 /**
  * @title   Median Delta Breaker
- * @notice  Breaker contract that will trigger when the current oracle median rate change
- *          relative to the last is greater than a calculated threshold. If this
+ * @notice  Breaker contract that will trigger when an updated oracle median rate changes
+ *          more than a configured relative threshold from the previous one. If this
  *          breaker is triggered for a rate feed it should be set to no trading mode.
  */
 contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
@@ -102,8 +102,16 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   /* ==================== View Functions ==================== */
 
   /**
-   * @notice  Check if the current median report rate change, for a rate feed, relative
-   *          to the last median report is greater than a calculated threshold.
+   * @notice Gets the cooldown time for the breaker.
+   * @return Returns the time in seconds.
+   */
+  function getCooldown() external view returns (uint256) {
+    return cooldownTime;
+  }
+
+  /**
+   * @notice  Check if the current median report rate for a rate feed change, relative
+   *          to the last median report, is greater than the configured threshold.
    *          If the change is greater than the threshold the breaker will trip.
    * @param   rateFeedID The rate feed to be checked.
    * @return  triggerBreaker  A bool indicating whether or not this breaker
