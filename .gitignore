@@ -15,6 +15,7 @@
 *.log
 .DS_Store
 .pnp.*
+.tool-versions
 yarn-debug.log*
 yarn-error.log*
 

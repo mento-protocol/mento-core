@@ -83,7 +83,7 @@ interface IBreakerBox {
    */
   event SortedOraclesUpdated(address indexed newSortedOracles);
 
-   /**
+  /**
    * @notice Emitted when the breaker is enabled or disabled for a rate feed.
    * @param breaker The address of the breaker.
    * @param rateFeedID The address of the rate feed.

@@ -17,7 +17,7 @@ contract MockBreaker {
     reset = _reset;
   }
 
-  function getCooldown() external view returns (uint256) {
+  function getCooldown(address) external view returns (uint256) {
     return cooldown;
   }
 
