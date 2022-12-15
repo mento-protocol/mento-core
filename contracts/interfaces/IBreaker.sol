@@ -7,12 +7,6 @@ pragma solidity ^0.5.13;
  */
 interface IBreaker {
   /**
-   * @notice Emitted after the cooldownTime has been updated.
-   * @param newCooldownTime The new cooldownTime of the breaker.
-   */
-  event CooldownTimeUpdated(uint256 newCooldownTime);
-
-  /**
    * @notice Emitted when the sortedOracles address is updated.
    * @param newSortedOracles The address of the new sortedOracles.
    */
@@ -20,10 +14,11 @@ interface IBreaker {
 
   /**
    * @notice Retrieve the cooldown time for the breaker.
+   * @param rateFeedID The rate feed to get the cooldown for
    * @return cooldown The amount of time that must pass before the breaker can reset.
    * @dev when cooldown is 0 auto reset will not be attempted.
    */
-  function getCooldown() external view returns (uint256 cooldown);
+  function getCooldown(address rateFeedID) external view returns (uint256 cooldown);
 
   /**
    * @notice Check if the criteria have been met, by a specified rateFeedID, to trigger the breaker.
@@ -31,7 +26,7 @@ interface IBreaker {
    * @return triggerBreaker A boolean indicating whether or not the breaker
    *                        should be triggered for the given rate feed.
    */
-  function shouldTrigger(address rateFeedID) external view returns (bool triggerBreaker);
+  function shouldTrigger(address rateFeedID) external returns (bool triggerBreaker);
 
   /**
    * @notice Check if the criteria to automatically reset the breaker have been met.
@@ -41,5 +36,5 @@ interface IBreaker {
    * @dev Allows the definition of additional critera to check before reset.
    *      If no additional criteria is needed set to !shouldTrigger();
    */
-  function shouldReset(address rateFeedID) external view returns (bool resetBreaker);
+  function shouldReset(address rateFeedID) external returns (bool resetBreaker);
 }

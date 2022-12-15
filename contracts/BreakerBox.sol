@@ -314,7 +314,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     if (info.tradingMode != 0) {
       IBreaker breaker = IBreaker(tradingModeBreaker[info.tradingMode]);
 
-      uint256 cooldown = breaker.getCooldown();
+      uint256 cooldown = breaker.getCooldown(rateFeedID);
 
       // If the cooldown == 0, then a manual reset is required.
       if (((cooldown > 0) && (cooldown + info.lastUpdatedTime) <= block.timestamp)) {

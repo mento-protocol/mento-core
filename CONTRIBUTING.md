@@ -33,12 +33,41 @@ You can contribute to the development of Mento by suggesting new features to be 
 
 Code contributions can be made by creating a pull request that addresses an open issue labelled with **good first issue** or **help wanted**. PR's that address styling issues or add unit/integration tests are always welcome. For changes that address core functionality or would require breaking changes, it's best to open an Issue to discuss your proposal first.
 
-## Styleguides
+## Naming conventions
+Our naming conventions have the goal of making our code cleaner and our lives easier.
+
+### Git branches
+We follow the [Gitflow workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) and allow for the following branch names:
+
+- Production branch: main
+- Develop branch: develop
+- Feature prefix: feature/*
+- Release prefix: release/*
+- Hotfix prefix: hotfix/*
 
 ### Git Commit Messages
 
-Below are the guidelines for git commit messages:
+Below are some guidelines for git commit messages:
 
 - Use the present tense ("Add feature" not "Added feature")
 - Follow [Semantic Commit Messages](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716)
 - Consider ending commit description using relevant emoji (e.g. test: verify token address is valid 🕵️)
+
+Semantic Commit Messages allow the following commit message style:
+
+`<type>(<scope>): <subject>`
+where 
+`<scope>` is optional and `<type>` can be any of
+
+- feat: (new feature for the user, not a new feature for build script)
+- fix: (bug fix for the user, not a fix to a build script)
+- docs: (changes to the documentation)
+- style: (formatting, missing semi colons, etc; no production code change)
+- refactor: (refactoring production code, eg. renaming a variable)
+- test: (adding missing tests, refactoring tests; no production code change)
+- chore: (updating grunt tasks etc; no production code change)
+
+### Git Pull Requests
+Pull requests should be named as a mix from branch name and commit message style.
+
+`<type>(<scope>): <branch-name>`, for example `docs(contributing): feature/naming-conventions` where `feature/naming-conventions`is the branch name. 
