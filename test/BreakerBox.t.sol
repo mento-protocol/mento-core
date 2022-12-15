@@ -138,7 +138,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assert(breakerBox.isBreaker(address(mockBreaker1)));
   }
 
-  function test_initilize_shouldSetSortedOracles() public {
+  function test_initilize_shouldSetSortedOracles() public view {
     assert(address(breakerBox.sortedOracles()) == address(sortedOracles));
   }
 

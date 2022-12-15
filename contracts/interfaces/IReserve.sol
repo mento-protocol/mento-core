@@ -43,6 +43,8 @@ interface IReserve {
 
   function isExchangeSpender(address exchange) external view returns (bool);
 
+  function addCollateralAsset(address asset) external returns (bool);
+
   function transferExchangeCollateralAsset(
     address collateralAsset,
     address payable to,
