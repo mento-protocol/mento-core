@@ -32,7 +32,7 @@ contract ConstantSumPricingModuleTest is Test {
     uint176 tokenOutBucketSize,
     uint80 spread,
     uint176 amountIn
-  ) public {
+  ) public view {
     vm.assume(spread < FixidityLib.fixed1().value);
     vm.assume(amountIn <= tokenOutBucketSize);
 
@@ -57,7 +57,7 @@ contract ConstantSumPricingModuleTest is Test {
     uint176 tokenOutBucketSize,
     uint80 spread,
     uint176 amountOut
-  ) public {
+  ) public view {
     vm.assume(spread < FixidityLib.fixed1().value);
     vm.assume(amountOut <= tokenOutBucketSize);
     constantSum.getAmountIn(tokenInBucketSize, tokenOutBucketSize, spread, amountOut);

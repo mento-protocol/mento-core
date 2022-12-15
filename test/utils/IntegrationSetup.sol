@@ -218,7 +218,7 @@ contract IntegrationSetup is Test, WithRegistry {
     }
   }
 
-  function getOracleAddy(address rateFeedID, uint256 oracleIndex) internal returns (address) {
+  function getOracleAddy(address rateFeedID, uint256 oracleIndex) internal pure returns (address) {
     return vm.addr(uint256(keccak256(abi.encodePacked(rateFeedID, oracleIndex))));
   }
 

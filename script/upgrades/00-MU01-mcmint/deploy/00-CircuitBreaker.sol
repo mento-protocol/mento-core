@@ -33,15 +33,17 @@ contract DeployCircuitBreaker is Script {
 
     address[] memory __rateFeedIDs = new address[](0);
     uint256[] memory __rateChangeThresholds = new uint256[](0);
+    uint256[] memory __cooldowns = new uint256[](0);
 
     vm.startBroadcast(Chain.deployerPrivateKey());
     {
       medianDeltaBreaker = new MedianDeltaBreaker(
         0, 
         0, 
+        ISortedOracles(sortedOracles),
         __rateFeedIDs, 
         __rateChangeThresholds,
-        ISortedOracles(sortedOracles)
+        __cooldowns
       );
       medianDeltaBreaker.transferOwnership(governance);
 
