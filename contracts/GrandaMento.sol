@@ -49,7 +49,11 @@ contract GrandaMento is ICeloVersionedContract, Ownable, Initializable, UsingReg
   event VetoPeriodSecondsSet(uint256 vetoPeriodSeconds);
 
   // Emitted when the exchange limits for a stable token are set.
-  event StableTokenExchangeLimitsSet(string stableTokenRegistryId, uint256 minExchangeAmount, uint256 maxExchangeAmount);
+  event StableTokenExchangeLimitsSet(
+    string stableTokenRegistryId,
+    uint256 minExchangeAmount,
+    uint256 maxExchangeAmount
+  );
 
   enum ExchangeProposalState {
     None,
@@ -270,7 +274,14 @@ contract GrandaMento is ICeloVersionedContract, Ownable, Initializable, UsingReg
     // Push it into the array of active proposals.
     activeProposalIdsSuperset.push(exchangeProposalCount);
     // Even if stable tokens are being sold, the sellAmount emitted is the "value."
-    emit ExchangeProposalCreated(exchangeProposalCount, msg.sender, stableTokenRegistryId, sellAmount, buyAmount, sellCelo);
+    emit ExchangeProposalCreated(
+      exchangeProposalCount,
+      msg.sender,
+      stableTokenRegistryId,
+      sellAmount,
+      buyAmount,
+      sellCelo
+    );
     return exchangeProposalCount;
   }
 
@@ -291,7 +302,10 @@ contract GrandaMento is ICeloVersionedContract, Ownable, Initializable, UsingReg
       ? (currentRate, proposalRate)
       : (proposalRate, currentRate);
     FixidityLib.Fraction memory rateChange = greaterRate.subtract(lesserRate).divide(proposalRate);
-    require(rateChange.lte(maxApprovalExchangeRateChange), "CELO exchange rate is too different from the proposed price");
+    require(
+      rateChange.lte(maxApprovalExchangeRateChange),
+      "CELO exchange rate is too different from the proposed price"
+    );
 
     // Set the time the approval occurred and change the state.
     proposal.approvalTimestamp = block.timestamp;
@@ -348,7 +362,10 @@ contract GrandaMento is ICeloVersionedContract, Ownable, Initializable, UsingReg
       // Send the CELO from this contract to the reserve.
       require(sellToken.transfer(address(getReserve()), sellAmount), "Transfer out of CELO to Reserve failed");
       // Mint stable token to the exchanger.
-      require(IStableToken(proposal.stableToken).mint(proposal.exchanger, proposal.buyAmount), "Stable token mint failed");
+      require(
+        IStableToken(proposal.stableToken).mint(proposal.exchanger, proposal.buyAmount),
+        "Stable token mint failed"
+      );
     } else {
       // If the exchange is selling stable token, the stable token is burned from
       // this contract and CELO is transferred from the Reserve to the exchanger.

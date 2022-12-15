@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.5.13;
 
 import { Test, console2 as console } from "celo-foundry/Test.sol";
@@ -49,13 +51,23 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
-    testee.initialize("Celo Dollar", "cUSD", 18, address(registry), 1e24, 1 weeks, initialAddresses, initialBalances, "Exchange");
+    testee.initialize(
+      "Celo Dollar",
+      "cUSD",
+      18,
+      address(registry),
+      1e24,
+      1 weeks,
+      initialAddresses,
+      initialBalances,
+      "Exchange"
+    );
 
     initTime = block.timestamp;
   }
 
-  function setUpInflation(uint256 inflationRate) public {
-    testee.setInflationParameters(inflationRate, 1 weeks);
+  function setUpInflation(uint256 _inflationRate) public {
+    testee.setInflationParameters(_inflationRate, 1 weeks);
     skip(1 weeks);
     vm.roll(block.number + 1);
   }
@@ -63,7 +75,9 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
   function mockFractionMul0995() public {
     ph.mockReturn(
       FRACTION_MUL,
-      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(1), uint256(18))),
+      keccak256(
+        abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(1), uint256(18))
+      ),
       abi.encode(uint256(0.995 * 10**18), uint256(1e18))
     );
   }
@@ -71,7 +85,9 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
   function mockFractionMul0995Twice() public {
     ph.mockReturn(
       FRACTION_MUL,
-      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(2), uint256(18))),
+      keccak256(
+        abi.encodePacked(uint256(1e24), uint256(1e24), uint256(995e21), uint256(1e24), uint256(2), uint256(18))
+      ),
       abi.encode(uint256(0.990025 * 10**18), uint256(1e18))
     );
   }
@@ -79,7 +95,9 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
   function mockFractionMul1005() public {
     ph.mockReturn(
       FRACTION_MUL,
-      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(1), uint256(18))),
+      keccak256(
+        abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(1), uint256(18))
+      ),
       abi.encode(uint256(1.005 * 10**18), uint256(1e18))
     );
   }
@@ -87,7 +105,9 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
   function mockFractionMul1005Twice() public {
     ph.mockReturn(
       FRACTION_MUL,
-      keccak256(abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(2), uint256(18))),
+      keccak256(
+        abi.encodePacked(uint256(1e24), uint256(1e24), uint256(1.005 * 10**24), uint256(1e24), uint256(2), uint256(18))
+      ),
       abi.encode(uint256(1.010025 * 10**18), uint256(1e18))
     );
   }
@@ -102,15 +122,15 @@ contract StableTokenTest_initilizerAndSetters is StableTokenTest {
     assertEq(testee.symbol(), "cUSD");
   }
 
-  function test_initialize_shouldSetOwner() public {
+  function test_initialize_shouldSetOwner() public view {
     assert(testee.owner() == deployer);
   }
 
-  function test_initialize_shouldSetDecimals() public {
+  function test_initialize_shouldSetDecimals() public view {
     assert(testee.decimals() == 18);
   }
 
-  function test_initialize_shouldSetRegistry() public {
+  function test_initialize_shouldSetRegistry() public view {
     assert(address(testee.registry()) == address(registry));
   }
 
@@ -158,6 +178,7 @@ contract StableTokenTest_mint is StableTokenTest {
   address exchange;
   address validators;
   address grandaMento;
+  address broker;
 
   uint256 mintAmount = 100 * 10**18;
 
@@ -167,10 +188,12 @@ contract StableTokenTest_mint is StableTokenTest {
     exchange = actor("exchange");
     validators = actor("validators");
     grandaMento = actor("grandaMento");
+    broker = actor("broker");
 
     registry.setAddressFor("Exchange", exchange);
     registry.setAddressFor("Validators", validators);
     registry.setAddressFor("GrandaMento", grandaMento);
+    registry.setAddressFor("Broker", broker);
   }
 
   function mintAndAssert(address to, uint256 value) public {
@@ -190,6 +213,10 @@ contract StableTokenTest_mint is StableTokenTest {
 
   function test_mint_whenCalledByGrandaMento_shouldMintTokens() public {
     mintAndAssert(grandaMento, mintAmount);
+  }
+
+  function test_mint_whenCalledByBroker_shouldMintTokens() public {
+    mintAndAssert(broker, mintAmount);
   }
 
   function test_mint_whenValueIsZero_shouldAllowMint() public {
@@ -303,7 +330,7 @@ contract StableTokenTest_setInflationParameters is StableTokenTest {
   }
 
   function test_setInflationParameters_shouldEmitEvent() public {
-    uint256 newUpdatePeriod = 1 weeks + 5;
+    newUpdatePeriod = 1 weeks + 5;
 
     changePrank(deployer);
     vm.expectEmit(true, true, true, true);
@@ -445,6 +472,7 @@ contract StableTokenTest_unitsToValue is StableTokenTest {
 contract StableTokenTest_burn is StableTokenTest {
   address exchange;
   address grandaMento;
+  address broker;
 
   uint256 mintAmount = 10;
   uint256 burnAmount = 5;
@@ -454,9 +482,11 @@ contract StableTokenTest_burn is StableTokenTest {
 
     exchange = actor("exchange");
     grandaMento = actor("grandaMento");
+    broker = actor("broker");
 
     registry.setAddressFor("Exchange", exchange);
     registry.setAddressFor("GrandaMento", grandaMento);
+    registry.setAddressFor("Broker", broker);
   }
 
   function burnAndAssert(address to, uint256 value) public {
@@ -478,6 +508,12 @@ contract StableTokenTest_burn is StableTokenTest {
     changePrank(grandaMento);
     testee.mint(grandaMento, mintAmount);
     burnAndAssert(grandaMento, burnAmount);
+  }
+
+  function test_burn_whenCalledByBroker_shouldBurnTokens() public {
+    changePrank(broker);
+    testee.mint(broker, mintAmount);
+    burnAndAssert(broker, burnAmount);
   }
 
   function test_burn_whenValueExceedsBalance_shouldRevert() public {
@@ -583,7 +619,7 @@ contract StableTokenTest_erc20Functions is StableTokenTest {
   function test_increaseAllowance_whenSpenderIsNotZeroAddress_shouldUpdateAndEmit() public {
     vm.expectEmit(true, true, true, true);
     emit Approval(sender, receiver, 2);
-    bool res = testee.increaseAllowance(receiver, 2);
+    testee.increaseAllowance(receiver, 2);
     assertEq(testee.allowance(sender, receiver), 2);
     assertEq(testee.allowance(sender, sender), 0);
   }

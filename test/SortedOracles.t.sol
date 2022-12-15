@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.5.13;
 
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { SortedOracles } from "contracts/SortedOracles.sol";
-
-import "../contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
+import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { MockBreakerBox } from "./mocks/MockBreakerBox.sol";
 
 contract SortedOraclesTest is Test {
   // Declare SortedOracles events for matching
@@ -16,22 +19,35 @@ contract SortedOraclesTest is Test {
   event OracleReportRemoved(address indexed token, address indexed oracle);
   event MedianUpdated(address indexed token, uint256 value);
   event OracleReported(address indexed token, address indexed oracle, uint256 timestamp, uint256 value);
+  event BreakerBoxUpdated(address indexed newBreakerBox);
 
   SortedOracles sortedOracles;
   address owner;
+  address notOwner;
   address rando;
   address token;
-  address oracle;
   uint256 aReportExpiry = 3600;
   uint256 fixed1 = FixidityLib.unwrap(FixidityLib.fixed1());
+
+  address oracle;
+
+  bytes32 constant MOCK_EXCHANGE_ID = keccak256(abi.encodePacked("mockExchange"));
+
+  MockBreakerBox mockBreakerBox;
 
   function setUp() public {
     sortedOracles = new SortedOracles(true);
     sortedOracles.initialize(aReportExpiry);
+
     owner = address(this);
+    notOwner = address(10);
     rando = address(2);
     token = address(3);
     oracle = address(4);
+
+    mockBreakerBox = new MockBreakerBox();
+
+    sortedOracles.setBreakerBox(IBreakerBox(mockBreakerBox));
   }
 
   /**
@@ -158,6 +174,24 @@ contract SortedOracles_addOracles is SortedOraclesTest {
   }
 }
 
+contract SortedOracles_breakerBox is SortedOraclesTest {
+  function test_setBreakerBox_whenCalledByNonOwner_shouldRevert() public {
+    changePrank(notOwner);
+    vm.expectRevert("Ownable: caller is not the owner");
+    sortedOracles.setBreakerBox(MockBreakerBox(address(0)));
+  }
+
+  function test_setBreakerBox_shouldUpdateAndEmit() public {
+    sortedOracles = new SortedOracles(true);
+    assertEq(address(sortedOracles.breakerBox()), address(0));
+    vm.expectEmit(true, true, true, true);
+    emit BreakerBoxUpdated(address(mockBreakerBox));
+
+    sortedOracles.setBreakerBox(mockBreakerBox);
+    assertEq(address(sortedOracles.breakerBox()), address(mockBreakerBox));
+  }
+}
+
 contract SortedOracles_RemoveOracles is SortedOraclesTest {
   function test_removeOracle_shouldRemoveAnOracle() public {
     sortedOracles.addOracle(token, oracle);
@@ -225,10 +259,8 @@ contract SortedOracles_RemoveOracles is SortedOraclesTest {
   }
 
   function testFail_removeOracle_whenOneReportExists_shouldNotEmitTheOracleReportedAndMedianUpdatedEvent() public {
-    /*
-        testFail feals impricise here. 
-        TODO: Better way of testing this case :)  
-        */
+    // testFail feals impricise here.
+    // TODO: Better way of testing this case :)
     submitNReports(1);
     vm.expectEmit(true, true, true, true, address(sortedOracles));
     emit OracleReportRemoved(token, oracle);
@@ -385,6 +417,9 @@ contract SortedOracles_isOldestReportExpired is SortedOraclesTest {
 }
 
 contract SortedOracles_report is SortedOraclesTest {
+  address oracleB = actor("oracleB");
+  address oracleC = actor("oracleC");
+
   function test_report_shouldIncreaseTheNumberOfRates() public {
     assertEq(sortedOracles.numRates(token), 0);
     submitNReports(1);
@@ -515,5 +550,17 @@ contract SortedOracles_report is SortedOraclesTest {
 
     assertEq(anotherOracle, oracles[1]);
     assertEq(timestamp0, timestamps[1]);
+  }
+
+  function test_report_shouldCallBreakerBoxWithRateFeedID() public {
+    // token is a legacy reference of rateFeedID
+    sortedOracles.addOracle(token, oracle);
+    sortedOracles.setBreakerBox(mockBreakerBox);
+
+    vm.expectCall(address(mockBreakerBox), abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector, token));
+
+    changePrank(oracle);
+
+    sortedOracles.report(token, 9999, address(0), address(0));
   }
 }

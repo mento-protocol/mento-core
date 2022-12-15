@@ -16,6 +16,7 @@ import "./common/ReentrancyGuard.sol";
 /**
  * @title Ensures price stability of StableTokens with respect to their pegs
  */
+// solhint-disable-next-line max-states-count
 contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, UsingRegistry, ReentrancyGuard {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
@@ -102,7 +103,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       uint256
     )
   {
-    return (1, 2, 0, 0);
+    return (2, 1, 0, 0);
   }
 
   function() external payable {} // solhint-disable no-empty-blocks
@@ -143,6 +144,9 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     setAssetAllocations(_assetAllocationSymbols, _assetAllocationWeights);
     setTobinTax(_tobinTax);
     setTobinTaxReserveRatio(_tobinTaxReserveRatio);
+    for (uint256 i = 0; i < _collateralAssets.length; i++) {
+      addCollateralAsset(_collateralAssets[i]);
+    }
     setDailySpendingRatioForCollateralAssets(_collateralAssets, _collateralAssetDailySpendingRatios);
   }
 
@@ -188,28 +192,33 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   /**
    * @notice Set the ratio of reserve for a given collateral asset
    * that is spendable per day.
-   * @param collateralAssets Collection of the addresses of collateral assets
+   * @param _collateralAssets Collection of the addresses of collateral assets
    * we're setting a limit for.
    * @param collateralAssetDailySpendingRatios Collection of the relative daily spending limits
    * of collateral assets.
    */
   function setDailySpendingRatioForCollateralAssets(
-    address[] memory collateralAssets,
+    address[] memory _collateralAssets,
     uint256[] memory collateralAssetDailySpendingRatios
   ) public onlyOwner {
     require(
-      collateralAssets.length == collateralAssetDailySpendingRatios.length,
+      _collateralAssets.length == collateralAssetDailySpendingRatios.length,
       "token addresses and spending ratio lengths have to be the same"
     );
-    for (uint256 i = 0; i < collateralAssets.length; i++) {
-      if (collateralAssets[i] != address(0) && collateralAssetDailySpendingRatios[i] != 0) {
-        require(checkIsCollateralAsset(collateralAssets[i]), "the address specified is not a reserve collateral asset");
+    for (uint256 i = 0; i < _collateralAssets.length; i++) {
+      if (_collateralAssets[i] != address(0) && collateralAssetDailySpendingRatios[i] != 0) {
+        require(
+          checkIsCollateralAsset(_collateralAssets[i]),
+          "the address specified is not a reserve collateral asset"
+        );
         require(
           FixidityLib.wrap(collateralAssetDailySpendingRatios[i]).lte(FixidityLib.fixed1()),
           "spending ratio cannot be larger than 1"
         );
-        collateralAssetDailySpendingRatio[collateralAssets[i]] = FixidityLib.wrap(collateralAssetDailySpendingRatios[i]);
-        emit DailySpendingRatioForCollateralAssetSet(collateralAssets[i], collateralAssetDailySpendingRatios[i]);
+        collateralAssetDailySpendingRatio[_collateralAssets[i]] = FixidityLib.wrap(
+          collateralAssetDailySpendingRatios[i]
+        );
+        emit DailySpendingRatioForCollateralAssetSet(_collateralAssets[i], collateralAssetDailySpendingRatios[i]);
       }
     }
   }
@@ -483,6 +492,23 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   }
 
   /**
+   * @notice Transfer collateral asset to any address.
+   * @dev Transfers are not subject to a daily spending limit.
+   * @param collateralAsset The address of collateral asset being transferred.
+   * @param to The address that will receive the collateral asset.
+   * @param value The amount of collateral asset to transfer.
+   * @return Returns true if the transaction succeeds.
+   */
+  function transferExchangeCollateralAsset(
+    address collateralAsset,
+    address payable to,
+    uint256 value
+  ) external returns (bool) {
+    require(isExchangeSpender[msg.sender], "Address not allowed to spend");
+    return _transferCollateralAsset(collateralAsset, to, value);
+  }
+
+  /**
    * @notice Transfer unfrozen gold to any address.
    * @param to The address that will receive the gold.
    * @param value The amount of gold to transfer.
@@ -502,7 +528,11 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of gold to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferExchangeGold(address payable to, uint256 value) external isAllowedToSpendExchange(msg.sender) returns (bool) {
+  function transferExchangeGold(address payable to, uint256 value)
+    external
+    isAllowedToSpendExchange(msg.sender)
+    returns (bool)
+  {
     return _transferGold(to, value);
   }
 
@@ -616,7 +646,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param collateralAsset The address of the token being added.
    * @return Returns true if the transaction succeeds.
    */
-  function addCollateralAsset(address collateralAsset) external onlyOwner returns (bool) {
+  function addCollateralAsset(address collateralAsset) public onlyOwner returns (bool) {
     require(!checkIsCollateralAsset(collateralAsset), "specified address is already added as a collateral asset");
     require(collateralAsset != address(0), "can't be a zero address");
     isCollateralAsset[collateralAsset] = true;
@@ -688,7 +718,11 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       }
     }
     return
-      FixidityLib.newFixed(reserveGoldBalance).divide(cgldWeight).divide(FixidityLib.newFixed(stableTokensValueInGold)).unwrap();
+      FixidityLib
+        .newFixed(reserveGoldBalance)
+        .divide(cgldWeight)
+        .divide(FixidityLib.newFixed(stableTokensValueInGold))
+        .unwrap();
   }
 
   /*

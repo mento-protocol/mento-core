@@ -7,45 +7,79 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
  * @title A mock Reserve for testing.
  */
 contract MockReserve {
-    mapping(address => bool) public tokens;
+  mapping(address => bool) public tokens;
+  mapping(address => bool) public collateralAssets;
 
-    IERC20 public goldToken;
+  IERC20 public goldToken;
 
-    // solhint-disable-next-line no-empty-blocks
-    function() external payable {}
+  bool public reserveSpender;
 
-    function setGoldToken(address goldTokenAddress) external {
-        goldToken = IERC20(goldTokenAddress);
-    }
+  // solhint-disable-next-line no-empty-blocks
+  function() external payable {}
 
-    function transferGold(address to, uint256 value) external returns (bool) {
-        require(goldToken.transfer(to, value), "gold token transfer failed");
-        return true;
-    }
+  function setGoldToken(address goldTokenAddress) external {
+    goldToken = IERC20(goldTokenAddress);
+  }
 
-    function transferExchangeGold(address to, uint256 value) external returns (bool) {
-        require(goldToken.transfer(to, value), "gold token transfer failed");
-        return true;
-    }
+  function transferGold(address to, uint256 value) external returns (bool) {
+    require(goldToken.transfer(to, value), "gold token transfer failed");
+    return true;
+  }
 
-    function addToken(address token) external returns (bool) {
-        tokens[token] = true;
-        return true;
-    }
+  function transferExchangeGold(address to, uint256 value) external returns (bool) {
+    require(goldToken.transfer(to, value), "gold token transfer failed");
+    return true;
+  }
 
-    function burnToken(address) external pure returns (bool) {
-        return true;
-    }
+  function transferCollateralAsset(
+    address tokenAddress,
+    address payable to,
+    uint256 amount
+  ) external returns (bool) {
+    require(IERC20(tokenAddress).transfer(to, amount), "asset transfer failed");
+    return true;
+  }
 
-    function getUnfrozenReserveGoldBalance() external view returns (uint256) {
-        return address(this).balance;
-    }
+  function transferExchangeCollateralAsset(
+    address tokenAddress,
+    address payable to,
+    uint256 amount
+  ) external returns (bool) {
+    require(IERC20(tokenAddress).transfer(to, amount), "asset transfer failed");
+    return true;
+  }
 
-    function isStableAsset(address) external view returns (bool) {
-        return false;
-    }
+  function addToken(address token) external returns (bool) {
+    tokens[token] = true;
+    return true;
+  }
 
-    function isCollateralAsset(address) external view returns (bool) {
-        return false;
-    }
+  function addCollateralAsset(address token) external returns (bool) {
+    collateralAssets[token] = true;
+    return true;
+  }
+
+  function burnToken(address) external pure returns (bool) {
+    return true;
+  }
+
+  function getUnfrozenReserveGoldBalance() external view returns (uint256) {
+    return address(this).balance;
+  }
+
+  function isStableAsset(address token) external view returns (bool) {
+    return tokens[token];
+  }
+
+  function isCollateralAsset(address token) external view returns (bool) {
+    return collateralAssets[token];
+  }
+
+  function setReserveSpender(bool _reserveSpender) external {
+    reserveSpender = _reserveSpender;
+  }
+
+  function isExchangeSpender(address) external view returns (bool) {
+    return reserveSpender;
+  }
 }

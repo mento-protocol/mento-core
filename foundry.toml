@@ -10,7 +10,20 @@ gas_reports = ["*"]
 optimizer = true
 optimizer_runs = 10_000
 solc = "0.5.17"
+legacy = true
+fs_permissions = [
+    { access = "read", path = "./broadcast"}, 
+    { access = "read", path = "./script/dependencies.json"}
+]
 
 [profile.ci]
 fuzz_runs = 1_000
 verbosity = 4
+
+[profile.integration]
+no_match_contract = "RandomTest"
+match_contract = "Integration"
+
+[rpc_endpoints]
+celo_mainnet="${CELO_RPC_URL}"
+baklava="${BAKLAVA_RPC_URL}"

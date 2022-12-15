@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - "main"
+      - "feature/**"
       - "develop"
   push:
     branches:
@@ -14,7 +15,6 @@ on:
       - "develop"
 
 jobs:
-
   ci:
     name: Lint & Test
     runs-on: "ubuntu-latest"
