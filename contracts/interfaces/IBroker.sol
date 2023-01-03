@@ -79,7 +79,7 @@ interface IBroker {
     address tokenIn,
     address tokenOut,
     uint256 amountIn
-  ) external returns (uint256 amountOut);
+  ) external view returns (uint256 amountOut);
 
   /**
    * @notice Calculate amountIn of tokenIn needed for a given amountOut of tokenOut.
@@ -96,7 +96,7 @@ interface IBroker {
     address tokenIn,
     address tokenOut,
     uint256 amountOut
-  ) external returns (uint256 amountIn);
+  ) external view returns (uint256 amountIn);
 
   /**
    * @notice Get the list of registered exchange providers.
