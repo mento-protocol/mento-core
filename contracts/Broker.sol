@@ -108,7 +108,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     address tokenIn,
     address tokenOut,
     uint256 amountOut
-  ) external returns (uint256 amountIn) {
+  ) external view returns (uint256 amountIn) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
     amountIn = IExchangeProvider(exchangeProvider).getAmountIn(exchangeId, tokenIn, tokenOut, amountOut);
   }
@@ -128,7 +128,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     address tokenIn,
     address tokenOut,
     uint256 amountIn
-  ) external returns (uint256 amountOut) {
+  ) external view returns (uint256 amountOut) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
     amountOut = IExchangeProvider(exchangeProvider).getAmountOut(exchangeId, tokenIn, tokenOut, amountIn);
   }
