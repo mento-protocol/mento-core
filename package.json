@@ -1,5 +1,5 @@
 {
-  "name": "@mentolabs/core",
+  "name": "@mento-protocol/core",
   "description": "The core smart contracts of the Mento protocol",
   "license": "Apache-2.0",
   "version": "1.0.3",
@@ -43,7 +43,7 @@
     "celo",
     "solidity"
   ],
-  "private": false,
+  "private": true,
   "scripts": {
     "lint": "yarn prettier && yarn solhint",
     "lint:check": "yarn prettier:check && yarn solhint:check",
@@ -54,7 +54,6 @@
     "prettier:check": "prettier --config \"./.prettierrc.yml\" --check \"**/*.{json,md,sol,yml}\"",
     "solhint": "solhint --config \"./.solhint.json\" \"{contracts,test,script}/**/*.sol\"",
     "solhint:check": "solhint --config \"./.solhint.json\" \"{contracts,test,script}/**/*.sol\" -q",
-    "generatetypes": "node generateTypes.js",
     "build": "tsc"
   }
 }
