@@ -43,7 +43,7 @@
     "celo",
     "solidity"
   ],
-  "private": false,
+  "private": true,
   "scripts": {
     "lint": "yarn prettier && yarn solhint",
     "lint:check": "yarn prettier:check && yarn solhint:check",
