@@ -1,15 +1,6 @@
 {
   "name": "@mento-protocol/core",
   "description": "The core smart contracts of the Mento protocol",
-  "license": "Apache-2.0",
-  "version": "1.0.3",
-  "files": [
-    "dist",
-    "contracts",
-    "img"
-  ],
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "author": {
     "name": "Mento Labs"
   },
