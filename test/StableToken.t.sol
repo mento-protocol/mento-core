@@ -5,7 +5,7 @@ pragma solidity ^0.5.13;
 
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 
-import { WithRegistry } from "./utils/WithRegistry.sol";
+import { WithRegistry } from "./utils/WithRegistry.t.sol";
 
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { UsingPrecompiles } from "contracts/common/UsingPrecompiles.sol";

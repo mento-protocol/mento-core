@@ -7,7 +7,7 @@ pragma experimental ABIEncoderV2;
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 
-import { WithRegistry } from "./utils/WithRegistry.sol";
+import { WithRegistry } from "./utils/WithRegistry.t.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
