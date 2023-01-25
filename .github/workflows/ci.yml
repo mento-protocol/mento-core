@@ -15,6 +15,16 @@ on:
       - "develop"
 
 jobs:
+  slither:
+    name: Slither
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out the repo"
+        uses: "actions/checkout@v3"
+        with:
+          submodules: "recursive"
+      - name: Run Slither
+        uses: crytic/slither-action@v0.2.0
   ci:
     name: Lint & Test
     runs-on: "ubuntu-latest"
