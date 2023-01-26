@@ -40,8 +40,12 @@ forge test
 
 #### Slither 
 
-Running slither locally requires you to build only a subset of packages:
+Install slither, if not installed.
+```bash
+pip3 install slither-analyzer
+```
 
+Running slither locally requires you to build only a subset of packages:
 ```bash
 forge clean
 forge build --build-info --skip tests
@@ -49,7 +53,6 @@ slither . --foundry-ignore-compile
 ```
 
 If you want to ignore a slither warning run:
-
 ```bash
 slither . --foundry-ignore-compile --triage-mode
 ```
