@@ -48,6 +48,15 @@ forge build --build-info --skip tests
 slither . --foundry-ignore-compile
 ```
 
+If you want to ignore a slither warning run:
+
+```bash
+slither . --foundry-ignore-compile --triage-mode
+```
+
+For triage mode, in which you can choose to ignore warnings which are added to `slither.db.json`.
+
+
 [ci-link]: https://github.com/mento-protocol/mento-core/actions/workflows/ci.yml
 [ci-badge]: https://github.com/mento-protocol/mento-core/actions/workflows/ci.yml/badge.svg
 [foundry]: https://getfoundry.sh/
