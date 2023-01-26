@@ -2,6 +2,7 @@ pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { SafeERC20 } from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
 import { IExchangeProvider } from "./interfaces/IExchangeProvider.sol";
 import { IBroker } from "./interfaces/IBroker.sol";
@@ -9,6 +10,7 @@ import { IBrokerAdmin } from "./interfaces/IBrokerAdmin.sol";
 import { IReserve } from "./interfaces/IReserve.sol";
 import { IStableToken } from "./interfaces/IStableToken.sol";
 import { IERC20Metadata } from "./common/interfaces/IERC20Metadata.sol";
+import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import { Initializable } from "./common/Initializable.sol";
 import { TradingLimits } from "./common/TradingLimits.sol";
@@ -20,6 +22,7 @@ import { TradingLimits } from "./common/TradingLimits.sol";
 contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
   using TradingLimits for TradingLimits.State;
   using TradingLimits for TradingLimits.Config;
+  using SafeERC20 for IERC20;
 
   /* ==================== State Variables ==================== */
 
@@ -195,7 +198,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
    */
   function burnStableTokens(address token, uint256 amount) public returns (bool) {
     require(reserve.isStableAsset(token), "Token must be a reserve stable asset");
-    IERC20Metadata(token).transferFrom(msg.sender, address(this), amount);
+    IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
     IStableToken(token).burn(amount);
     return true;
   }
@@ -260,10 +263,10 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     uint256 amount
   ) internal {
     if (reserve.isStableAsset(token)) {
-      IERC20Metadata(token).transferFrom(from, address(this), amount);
+      IERC20(token).safeTransferFrom(from, address(this), amount);
       IStableToken(token).burn(amount);
     } else if (reserve.isCollateralAsset(token)) {
-      IERC20Metadata(token).transferFrom(from, address(reserve), amount);
+      IERC20(token).safeTransferFrom(from, address(reserve), amount);
     } else {
       revert("Token must be stable or collateral assert");
     }
