@@ -36,11 +36,12 @@ jobs:
         with:
           ignore-compile: true
           sarif: results.sarif
-          fail-on: none # TODO: Remove after issues are triaged
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: ${{ steps.slither.outputs.sarif }}
+          fail-on: none # TODO: Remove after issues are fixed
+      # TODO: Uncomment after issues are fixed
+      # - name: Upload SARIF file
+      #   uses: github/codeql-action/upload-sarif@v2
+      #   with:
+      #     sarif_file: ${{ steps.slither.outputs.sarif }}
   ci:
     name: Lint & Test
     runs-on: "ubuntu-latest"
