@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+import { IERC20Metadata } from "./common/interfaces/IERC20Metadata.sol";
 import { IExchangeProvider } from "./interfaces/IExchangeProvider.sol";
 import { IBiPoolManager } from "./interfaces/IBiPoolManager.sol";
 import { IReserve } from "./interfaces/IReserve.sol";
@@ -15,11 +16,6 @@ import { StableToken } from "./StableToken.sol";
 
 import { Initializable } from "./common/Initializable.sol";
 import { FixidityLib } from "./common/FixidityLib.sol";
-
-// TODO: Remove when migrating to mento-core. Newer versions of OZ-contracts have this interface
-interface IERC20Metadata {
-  function symbol() external view returns (string memory);
-}
 
 /**
  * @title BiPoolExchangeManager
