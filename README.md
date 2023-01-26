@@ -38,6 +38,16 @@ forge build
 forge test
 ```
 
+#### Slither 
+
+Running slither locally requires you to build only a subset of packages:
+
+```bash
+forge clean
+forge build --build-info --skip tests
+slither . --foundry-ignore-compile
+```
+
 [ci-link]: https://github.com/mento-protocol/mento-core/actions/workflows/ci.yml
 [ci-badge]: https://github.com/mento-protocol/mento-core/actions/workflows/ci.yml/badge.svg
 [foundry]: https://getfoundry.sh/
