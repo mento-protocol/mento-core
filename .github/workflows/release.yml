@@ -1,0 +1,45 @@
+name: "create a new release"
+on:
+  workflow_dispatch:
+     tags:
+     - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check out the repo"
+        uses: "actions/checkout@v3"
+        with:
+          submodules: "recursive"
+
+      - name: "Install Foundry"
+        uses: "onbjerg/foundry-toolchain@v1"
+        with:
+          version: "nightly"
+
+      - name: "Install Node.js"
+        uses: "actions/setup-node@v3"
+        with:
+          cache: "yarn"
+          node-version: "16"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: "Install the Node.js dependencies"
+        run: "yarn install --immutable"
+
+      - name: "Build the contracts"
+        run: |
+          forge --version
+          forge build --sizes
+
+      - name: "Create Release"
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
