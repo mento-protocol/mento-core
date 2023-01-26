@@ -459,7 +459,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       getDailySpendingRatioForCollateralAsset(collateralAsset) > 0,
       "this asset has no spending ratio, therefore can't be transferred"
     );
-    uint256 spendingLimitForThisAsset;
+    uint256 spendingLimitForThisAsset = 0;
     uint256 currentDay = now / 1 days;
     if (currentDay > collateralAssetLastSpendingDay[collateralAsset]) {
       uint256 balance = getReserveAddressesCollateralAssetBalance(collateralAsset);
