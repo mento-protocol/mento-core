@@ -8,7 +8,7 @@ import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { MockBreaker } from "./mocks/MockBreaker.sol";
 import { MockSortedOracles } from "./mocks/MockSortedOracles.sol";
 
-import { WithRegistry } from "./utils/WithRegistry.sol";
+import { WithRegistry } from "./utils/WithRegistry.t.sol";
 
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";

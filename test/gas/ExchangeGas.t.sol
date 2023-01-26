@@ -4,7 +4,7 @@ pragma solidity ^0.5.17;
 pragma experimental ABIEncoderV2;
 
 import { Test, console2 as console } from "celo-foundry/Test.sol";
-import { TokenHelpers } from "../utils/TokenHelpers.sol";
+import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
 import { StableToken } from "contracts/StableToken.sol";
 import { StableTokenEUR } from "contracts/StableTokenEUR.sol";
 import { GoldToken } from "contracts/common/GoldToken.sol";

@@ -28,7 +28,7 @@ import { Freezer } from "contracts/common/Freezer.sol";
 import { AddressSortedLinkedListWithMedian } from "contracts/common/linkedlists/AddressSortedLinkedListWithMedian.sol";
 import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
 
-import { WithRegistry } from "./WithRegistry.sol";
+import { WithRegistry } from "./WithRegistry.t.sol";
 import { Token } from "./Token.sol";
 
 contract IntegrationSetup is Test, WithRegistry {

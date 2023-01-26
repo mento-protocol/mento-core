@@ -7,8 +7,8 @@ pragma experimental ABIEncoderV2;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "celo-foundry/Test.sol";
 
-import "./utils/WithRegistry.sol";
-import "./utils/TokenHelpers.sol";
+import "./utils/WithRegistry.t.sol";
+import "./utils/TokenHelpers.t.sol";
 
 import "./mocks/MockReserve.sol";
 import "./mocks/MockSortedOracles.sol";

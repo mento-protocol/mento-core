@@ -6,8 +6,8 @@ pragma experimental ABIEncoderV2;
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import { IntegrationSetup } from "../utils/IntegrationSetup.sol";
-import { TokenHelpers } from "../utils/TokenHelpers.sol";
+import { IntegrationSetup } from "../utils/IntegrationSetup.t.sol";
+import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
 
 import { Broker } from "contracts/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";

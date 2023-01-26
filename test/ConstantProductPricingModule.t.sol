@@ -14,7 +14,7 @@ import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
 import { MockSortedOracles } from "./mocks/MockSortedOracles.sol";
-import { WithRegistry } from "./utils/WithRegistry.sol";
+import { WithRegistry } from "./utils/WithRegistry.t.sol";
 
 contract LegacyExchangeWrapper {
   address constant registryAddress = 0x000000000000000000000000000000000000ce10;
