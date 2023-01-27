@@ -3,6 +3,7 @@ pragma solidity ^0.5.13;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/utils/Address.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
 import "./interfaces/IReserve.sol";
 import "./interfaces/ISortedOracles.sol";
@@ -21,6 +22,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
   using Address for address payable; // prettier-ignore
+  using SafeERC20 for IERC20;
 
   struct TobinTaxCache {
     uint128 numerator;
@@ -486,7 +488,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     uint256 value
   ) internal returns (bool) {
     require(value <= getReserveAddressesCollateralAssetBalance(collateralAsset), "Exceeding the amount reserve holds");
-    IERC20(collateralAsset).transfer(to, value);
+    IERC20(collateralAsset).safeTransfer(to, value);
     emit ReserveCollateralAssetsTransferred(msg.sender, to, value, collateralAsset);
     return true;
   }
