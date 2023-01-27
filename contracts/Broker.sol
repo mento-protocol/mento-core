@@ -238,7 +238,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     uint256 amount
   ) internal {
     if (reserve.isStableAsset(token)) {
-      require(IStableToken(token).mint(to, amount), "Transfer of the stable asset failed");
+      require(IStableToken(token).mint(to, amount), "Minting of the stable asset failed");
     } else if (reserve.isCollateralAsset(token)) {
       require(reserve.transferExchangeCollateralAsset(token, to, amount), "Transfer of the collateral asset failed");
     } else {
