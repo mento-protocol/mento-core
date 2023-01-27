@@ -199,7 +199,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
   function burnStableTokens(address token, uint256 amount) public returns (bool) {
     require(reserve.isStableAsset(token), "Token must be a reserve stable asset");
     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-    IStableToken(token).burn(amount);
+    require(IStableToken(token).burn(amount), "Burning of the stable asset failed");
     return true;
   }
 
@@ -241,9 +241,9 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     uint256 amount
   ) internal {
     if (reserve.isStableAsset(token)) {
-      IStableToken(token).mint(to, amount);
+      require(IStableToken(token).mint(to, amount), "Minting of the stable asset failed");
     } else if (reserve.isCollateralAsset(token)) {
-      reserve.transferExchangeCollateralAsset(token, to, amount);
+      require(reserve.transferExchangeCollateralAsset(token, to, amount), "Transfer of the collateral asset failed");
     } else {
       revert("Token must be stable or collateral assert");
     }
@@ -263,8 +263,9 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     uint256 amount
   ) internal {
     if (reserve.isStableAsset(token)) {
+
       IERC20(token).safeTransferFrom(from, address(this), amount);
-      IStableToken(token).burn(amount);
+      require(IStableToken(token).burn(amount), "Burning of the stable asset failed");
     } else if (reserve.isCollateralAsset(token)) {
       IERC20(token).safeTransferFrom(from, address(reserve), amount);
     } else {
