@@ -20,7 +20,7 @@ import { TradingLimits } from "./common/TradingLimits.sol";
  * @title Broker
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
-contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable,ReentrancyGuard {
+contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuard {
   using TradingLimits for TradingLimits.State;
   using TradingLimits for TradingLimits.Config;
   using SafeERC20 for IERC20;
