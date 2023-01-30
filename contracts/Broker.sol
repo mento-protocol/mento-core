@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeERC20 } from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
-import { ReentrancyGuard } from  "./common/ReentrancyGuard.sol";
 
 import { IExchangeProvider } from "./interfaces/IExchangeProvider.sol";
 import { IBroker } from "./interfaces/IBroker.sol";
@@ -15,6 +14,7 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import { Initializable } from "./common/Initializable.sol";
 import { TradingLimits } from "./common/TradingLimits.sol";
+import { ReentrancyGuard } from  "./common/ReentrancyGuard.sol";
 
 /**
  * @title Broker
