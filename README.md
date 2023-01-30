@@ -52,7 +52,7 @@ forge build --build-info --skip tests
 slither . --foundry-ignore-compile
 ```
 
-If you want to ignore a slither warning run: (press enter to get a numbered list of warnings and keep pressing it till it gets to desired section)
+If you want to ignore a slither warning run:
 ```bash
 slither . --foundry-ignore-compile --triage-mode
 ```

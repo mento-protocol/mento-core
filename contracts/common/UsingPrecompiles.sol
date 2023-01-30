@@ -159,9 +159,9 @@ contract UsingPrecompiles {
    */
   function checkProofOfPossession(
     address sender,
-    bytes calldata blsKey,
-    bytes calldata blsPop
-  ) external view returns (bool) {
+    bytes memory blsKey,
+    bytes memory blsPop
+  ) public view returns (bool) {
     bool success;
     (success, ) = PROOF_OF_POSSESSION.staticcall(abi.encodePacked(sender, blsKey, blsPop));
     return success;
@@ -172,7 +172,7 @@ contract UsingPrecompiles {
    * @param header RLP encoded header
    * @return Block number.
    */
-  function getBlockNumberFromHeader(bytes calldata header) external view returns (uint256) {
+  function getBlockNumberFromHeader(bytes memory header) public view returns (uint256) {
     bytes memory out;
     bool success;
     (success, out) = BLOCK_NUMBER_FROM_HEADER.staticcall(abi.encodePacked(header));
@@ -185,7 +185,7 @@ contract UsingPrecompiles {
    * @param header RLP encoded header
    * @return Header hash.
    */
-  function hashHeader(bytes calldata header) external view returns (bytes32) {
+  function hashHeader(bytes memory header) public view returns (bytes32) {
     bytes memory out;
     bool success;
     (success, out) = HASH_HEADER.staticcall(abi.encodePacked(header));
@@ -213,7 +213,7 @@ contract UsingPrecompiles {
    * @param header RLP encoded header
    * @return Bitmap parent seal with set bits at indices correspoinding to signing validators.
    */
-  function getVerifiedSealBitmapFromHeader(bytes calldata header) external view returns (bytes32) {
+  function getVerifiedSealBitmapFromHeader(bytes memory header) public view returns (bytes32) {
     bytes memory out;
     bool success;
     (success, out) = GET_VERIFIED_SEAL_BITMAP.staticcall(abi.encodePacked(header));
