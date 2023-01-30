@@ -26,7 +26,7 @@ library FixidityLib {
     return 24;
   }
 
-  uint256 private constant FIXED1_UINT = 1e24;
+  uint256 private constant FIXED1_UINT = 1000000000000000000000000;
 
   /**
    * @notice This is 1 in the fixed point units used in this library.
@@ -59,7 +59,7 @@ library FixidityLib {
    * @dev Test mulPrecision() equals sqrt(fixed1)
    */
   function mulPrecision() internal pure returns (uint256) {
-    return 1e12;
+    return 1000000000000;
   }
 
   /**
