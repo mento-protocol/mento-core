@@ -537,17 +537,7 @@ contract ReserveTest_transfers is ReserveTest {
     vm.expectRevert("Exceeding spending limit");
     // Spend amount GT remaining daily limit
     reserve.transferCollateralAsset(address(dummyToken3), trader, spendingLimitAfter + 1);
-  }
-
-  function test_transferCollateralAsset_whenDailySpendIsHit_shouldResetNextDay() public {
-    changePrank(spender);
-
-    // Spend 999 DT3
-    reserve.transferCollateralAsset(address(dummyToken3), trader, 999 * 10**18);
-    vm.expectRevert("Exceeding spending limit");
-    // Spend 100 DT3 (GT remaining daily limit)
-    reserve.transferCollateralAsset(address(dummyToken3), trader, 600 * 10**18);
-  }
+  } 
 
   function test_transferCollateralAsset_whenSpendingLimitIsHit_shoudResetNextDay() public {
     changePrank(spender);
