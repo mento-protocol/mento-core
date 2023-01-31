@@ -14,12 +14,13 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import { Initializable } from "./common/Initializable.sol";
 import { TradingLimits } from "./common/TradingLimits.sol";
+import { ReentrancyGuard } from  "./common/ReentrancyGuard.sol";
 
 /**
  * @title Broker
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
-contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
+contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuard {
   using TradingLimits for TradingLimits.State;
   using TradingLimits for TradingLimits.Config;
   using SafeERC20 for IERC20;
@@ -153,7 +154,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     address tokenOut,
     uint256 amountIn,
     uint256 amountOutMin
-  ) external returns (uint256 amountOut) {
+  ) external nonReentrant returns (uint256 amountOut) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
     amountOut = IExchangeProvider(exchangeProvider).swapIn(exchangeId, tokenIn, tokenOut, amountIn);
     require(amountOut >= amountOutMin, "amountOutMin not met");
@@ -180,7 +181,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable {
     address tokenOut,
     uint256 amountOut,
     uint256 amountInMax
-  ) external returns (uint256 amountIn) {
+  ) external nonReentrant returns (uint256 amountIn) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
     amountIn = IExchangeProvider(exchangeProvider).swapOut(exchangeId, tokenIn, tokenOut, amountOut);
     require(amountIn <= amountInMax, "amountInMax exceeded");
