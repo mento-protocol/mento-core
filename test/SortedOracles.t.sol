@@ -181,6 +181,11 @@ contract SortedOracles_breakerBox is SortedOraclesTest {
     sortedOracles.setBreakerBox(MockBreakerBox(address(0)));
   }
 
+  function test_setBreakerBox_whenGivenAddressIsNull_shouldRevert() public {
+    vm.expectRevert("BreakerBox address must be set");
+    sortedOracles.setBreakerBox(MockBreakerBox(address(0)));
+  }
+
   function test_setBreakerBox_shouldUpdateAndEmit() public {
     sortedOracles = new SortedOracles(true);
     assertEq(address(sortedOracles.breakerBox()), address(0));
