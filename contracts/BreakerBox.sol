@@ -200,7 +200,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @param rateFeedID The address of the rateFeedID to be removed.
    */
   function removeRateFeed(address rateFeedID) external onlyOwner {
-    uint256 rateFeedIndex;
+    uint256 rateFeedIndex = 0;
     for (uint256 i = 0; i < rateFeedIDs.length; i++) {
       if (rateFeedIDs[i] == rateFeedID) {
         rateFeedIndex = i;

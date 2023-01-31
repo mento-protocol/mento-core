@@ -57,6 +57,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   mapping(address => uint256) public collateralAssetLastSpendingDay;
   address[] public collateralAssets;
   mapping(address => bool) public isCollateralAsset;
+  mapping(address => uint256) public collateralAssetSpendingLimit;
 
   event TobinTaxStalenessThresholdSet(uint256 value);
   event DailySpendingRatioSet(uint256 ratio);
@@ -461,17 +462,18 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       getDailySpendingRatioForCollateralAsset(collateralAsset) > 0,
       "this asset has no spending ratio, therefore can't be transferred"
     );
-    uint256 spendingLimitForThisAsset;
     uint256 currentDay = now / 1 days;
     if (currentDay > collateralAssetLastSpendingDay[collateralAsset]) {
       uint256 balance = getReserveAddressesCollateralAssetBalance(collateralAsset);
       collateralAssetLastSpendingDay[collateralAsset] = currentDay;
-      spendingLimitForThisAsset = collateralAssetDailySpendingRatio[collateralAsset]
+      collateralAssetSpendingLimit[collateralAsset] = collateralAssetDailySpendingRatio[collateralAsset]
         .multiply(FixidityLib.newFixed(balance))
         .fromFixed();
     }
+    uint256 spendingLimitForThisAsset = collateralAssetSpendingLimit[collateralAsset];
     require(spendingLimitForThisAsset >= value, "Exceeding spending limit");
-    spendingLimitForThisAsset = spendingLimitForThisAsset.sub(value);
+
+    collateralAssetSpendingLimit[collateralAsset] = spendingLimitForThisAsset.sub(value);
     return _transferCollateralAsset(collateralAsset, to, value);
   }
 

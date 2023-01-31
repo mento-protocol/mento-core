@@ -54,6 +54,7 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
   MockSortedOracles sortedOracles;
   DummyERC20 dummyToken1 = new DummyERC20("DummyToken1", "DT1", 18);
   DummyERC20 dummyToken2 = new DummyERC20("DummyToken2", "DT2", 18);
+  DummyERC20 dummyToken3 = new DummyERC20("DummyToken3", "DT3", 18);
 
   function setUp() public {
     notDeployer = actor("notDeployer");
@@ -71,10 +72,16 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
     uint256[] memory initialAssetAllocationWeights = new uint256[](1);
     initialAssetAllocationWeights[0] = FixidityLib.newFixed(1).unwrap();
 
-    address[] memory collateralAssets = new address[](1);
-    uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
+    address[] memory collateralAssets = new address[](2);
+    uint256[] memory collateralAssetDailySpendingRatios = new uint256[](2);
     collateralAssets[0] = address(dummyToken1);
     collateralAssetDailySpendingRatios[0] = 100000000000000000000000;
+
+    // Donate 10k DT3 to the reserve
+    deal(address(dummyToken3), address(reserve), 10000 * 10**18);
+    // Only 10% of reserve DT3 should be spendable per day
+    collateralAssetDailySpendingRatios[1] = FixidityLib.newFixedFraction(1, 10).unwrap();
+    collateralAssets[1] = address(dummyToken3);
 
     reserve.initialize(
       address(registry),
@@ -428,6 +435,8 @@ contract ReserveTest_transfers is ReserveTest {
     vm.warp(100 * 24 * 3600 + 445);
   }
 
+  /* ---------- Transfer Gold ---------- */
+
   function test_transferGold() public {
     changePrank(spender);
     uint256 amount = reserveCeloBalance.div(10);
@@ -453,6 +462,8 @@ contract ReserveTest_transfers is ReserveTest {
     vm.expectRevert("sender not allowed to transfer Reserve funds");
     reserve.transferGold(otherReserveAddress, amount);
   }
+
+  /* ---------- Transfer Collateral Asset ---------- */
 
   function test_transferCollateralAsset_whenParametersAreCorrect_shouldUpdate() public {
     changePrank(spender);
@@ -491,6 +502,69 @@ contract ReserveTest_transfers is ReserveTest {
     vm.expectRevert("sender not allowed to transfer Reserve funds");
     reserve.transferCollateralAsset(address(dummyToken1), address(0x234), reserveDummyToken1Balance);
   }
+
+  function test_transferCollateralAsset_whenMultipleTransfersDoNotHitDailySpend_shouldTransferCorrectAmounts() public {
+    changePrank(spender);
+
+    uint256 transfer1Amount = 500 * 10**18;
+    uint256 transfer2Amount = 400 * 10**18;
+
+    uint256 totalTransferAmount = transfer1Amount + transfer2Amount;
+    uint256 reserveBalanceBefore = dummyToken3.balanceOf(address(reserve));
+
+    // Spend 500 DT3 (50% of daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer1Amount);
+    // Spend 400 DT3 (LT remaining daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer2Amount);
+
+    uint256 traderBalanceAfter = dummyToken3.balanceOf(trader);
+    uint256 reserveBalanceAfter = dummyToken3.balanceOf(address(reserve));
+
+    assertEq(reserveBalanceAfter, (reserveBalanceBefore - totalTransferAmount));
+    assertEq(traderBalanceAfter, totalTransferAmount);
+  }
+
+  function test_transferCollateralAsset_whenMultipleTransfersHitDailySpend_shouldRevert() public {
+    changePrank(spender);
+
+    // Spend 500 DT3 (50% of daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), trader, 500 * 10**18);
+    uint256 spendingLimitAfter = reserve.collateralAssetSpendingLimit(address(dummyToken3));
+
+    // (collateralAssetDailySpendingRatio * reserve DT3 balance before transfer) - transfer amount
+    assertEq(spendingLimitAfter, 500 * 10**18);
+
+    vm.expectRevert("Exceeding spending limit");
+    // Spend amount GT remaining daily limit
+    reserve.transferCollateralAsset(address(dummyToken3), trader, spendingLimitAfter + 1);
+  } 
+
+  function test_transferCollateralAsset_whenSpendingLimitIsHit_shoudResetNextDay() public {
+    changePrank(spender);
+
+    uint256 transfer1Amount = 500 * 10**18;
+    uint256 transfer2Amount = 600 * 10**18;
+
+    // Spend 500 DT3 (50% of daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer1Amount);
+
+    vm.expectRevert("Exceeding spending limit");
+    // Spend 600 DT3 (GT remaining daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer2Amount);
+
+    uint256 traderBalanceAfterFirstDay = dummyToken3.balanceOf(trader);
+    assertEq(traderBalanceAfterFirstDay, transfer1Amount);
+
+    vm.warp(block.timestamp + 24 * 3600);
+
+    // Spend 600 DT3 (LT remaining daily limit on new day)
+    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer2Amount);
+    uint256 traderBalanceAfterSecondDay = dummyToken3.balanceOf(trader);
+
+    assertEq(traderBalanceAfterSecondDay, transfer1Amount + transfer2Amount);
+  }
+
+  /* ---------- Transfer Exchange Collateral Asset ---------- */
 
   function test_transferExchangeCollateralAsset_whenSenderIsBroker_shouldTransfer() public {
     reserve.addExchangeSpender(broker);
