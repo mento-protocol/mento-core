@@ -20,7 +20,7 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
   using AddressSortedLinkedListWithMedian for SortedLinkedListWithMedian.List;
   using FixidityLib for FixidityLib.Fraction;
 
-  uint256 private constant FIXED1_UINT = 1000000000000000000000000;
+  uint256 private constant FIXED1_UINT = 1e24;
 
   // Maps a token address to a sorted list of report values.
   mapping(address => SortedLinkedListWithMedian.List) private rates;
