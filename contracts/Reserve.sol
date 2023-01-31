@@ -361,6 +361,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param spender The address that is to be no longer allowed to spend Reserve funds.
    */
   function removeSpender(address spender) external onlyOwner {
+    require(isSpender[spender], "Spender hasn't been added");
     isSpender[spender] = false;
     emit SpenderRemoved(spender);
   }

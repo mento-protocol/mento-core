@@ -647,19 +647,24 @@ contract ReserveTest_transfers is ReserveTest {
     reserve.addSpender(address(0x0));
   }
 
-  function test_removeSpender() public {
-    address _spender = address(0x4444);
+  function test_removeSpender_whenCallerIsOwner_shouldRemove() public {
+    address _spender = actor("_spender");
 
     reserve.addSpender(_spender);
-
-    changePrank(notDeployer);
-    vm.expectRevert("Ownable: caller is not the owner");
-    reserve.removeSpender(_spender);
-
-    changePrank(deployer);
     vm.expectEmit(true, true, true, true, address(reserve));
     emit SpenderRemoved(_spender);
     reserve.removeSpender(_spender);
+  }
+
+  function test_removeSpender_whenCallerIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    reserve.removeSpender(spender);
+  }
+
+  function test_removeSpender_whenSpenderDoesNotExist_shouldRevert() public {
+    vm.expectRevert("Spender hasn't been added");
+    reserve.removeSpender(notDeployer);
   }
 
   function test_transferExchangeGold_asExchangeFromRegistry() public {
