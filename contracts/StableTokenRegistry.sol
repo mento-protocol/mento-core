@@ -79,7 +79,7 @@ contract StableTokenRegistry is Initializable, Ownable {
   }
 
   /**
-   * @notice Removes unwanted token instances.
+   * @notice Removes unwamted token instances.
    * @param fiatTicker The currency that is no longer supported.
    * @param index The index in fiatTickers of fiatTicker.
    */
