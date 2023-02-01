@@ -418,6 +418,11 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
     createExchange(cUSD, MockERC20(address(0)));
   }
 
+  function test_createExchange_whenAssetsAreIdentical_shouldRevert() public {
+    vm.expectRevert("exchange assets can't be identical");
+    createExchange(cUSD, cUSD);
+  }
+
   function test_createExchange_whenReferenceRateFeedIDIsNotSet_shouldRevert() public {
     vm.expectRevert("referenceRateFeedID must be set");
     createExchange(cUSD, CELO, constantProduct, address(0));
@@ -462,11 +467,6 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(exchangeId);
     assertEq(exchange.bucket0, 1e24);
     assertEq(exchange.bucket1, 5e23); // exchange.bucket0 / 2
-  }
-
-  function test_createExchange_whenAssetsAreIdentical_shouldRevert() public {
-    vm.expectRevert("exchange assets can't be identical");
-    createExchange(cUSD, cUSD);
   }
 }
 
