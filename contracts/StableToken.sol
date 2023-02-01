@@ -490,8 +490,9 @@ contract StableToken is
     FixidityLib.Fraction memory currentInflationFactor = FixidityLib.wrap(numerator).divide(
       FixidityLib.wrap(denominator)
     );
-    uint256 lastUpdated = inflationState.factorLastUpdated.add(inflationState.updatePeriod.mul(timesToApplyInflation));
-
+    uint256 lastUpdated = inflationState.factorLastUpdated.add(
+      inflationState.updatePeriod.mul(now.sub(inflationState.factorLastUpdated)).div(inflationState.updatePeriod)
+    );
     return (currentInflationFactor, lastUpdated);
     /* solhint-enable not-rely-on-time */
   }
