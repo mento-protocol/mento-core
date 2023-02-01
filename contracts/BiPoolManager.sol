@@ -135,7 +135,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   }
 
   /**
-   * @notice Calculate amountIn of tokenIn for a given amountIn of tokenIn
+   * @notice Calculate amountIn of tokenIn for a given amountOut of tokenOut
    * @param exchangeId The id of the exchange i.e PoolExchange to use
    * @param tokenIn The token to be sold
    * @param tokenOut The token to be bought
@@ -374,7 +374,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   }
 
   /**
-   * @notice Calculate amountIn of tokenIn for a given amountIn of tokenIn
+   * @notice Calculate amountIn of tokenIn for a given amountOut of tokenOut
    * @param exchange The exchange to operate on
    * @param tokenIn The token to be sold
    * @param tokenOut The token to be bought
