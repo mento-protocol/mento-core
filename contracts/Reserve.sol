@@ -289,7 +289,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param token The address of the token being stabilized.
    * @return Returns true if the transaction succeeds.
    */
-  function addToken(address token) external onlyOwner nonReentrant returns (bool) {
+  function addToken(address token) external onlyOwner returns (bool) {
     require(!isToken[token], "token addr already registered");
     isToken[token] = true;
     _tokens.push(token);
@@ -318,7 +318,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param reserveAddress The reserve address to add.
    * @return Returns true if the transaction succeeds.
    */
-  function addOtherReserveAddress(address reserveAddress) external onlyOwner nonReentrant returns (bool) {
+  function addOtherReserveAddress(address reserveAddress) external onlyOwner returns (bool) {
     require(!isOtherReserveAddress[reserveAddress], "reserve addr already added");
     isOtherReserveAddress[reserveAddress] = true;
     otherReserveAddresses.push(reserveAddress);
