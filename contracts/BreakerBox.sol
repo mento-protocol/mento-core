@@ -5,6 +5,7 @@ import { IBreakerBox } from "./interfaces/IBreakerBox.sol";
 import { IBreaker } from "./interfaces/IBreaker.sol";
 import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
 
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { AddressLinkedList, LinkedList } from "./common/linkedlists/AddressLinkedList.sol";
 import { Initializable } from "./common/Initializable.sol";
@@ -19,6 +20,7 @@ import { Initializable } from "./common/Initializable.sol";
  */
 contract BreakerBox is IBreakerBox, Initializable, Ownable {
   using AddressLinkedList for LinkedList.List;
+  using SafeMath for uint256;
 
   /* ==================== State Variables ==================== */
 
@@ -111,11 +113,11 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     emit BreakerAdded(breaker);
   }
 
-  // changes trading mode for pairs that have this breaker because if its tripped and if we remove it its stuck
   /**
    * @notice Removes the specified breaker from the list of breakers.
    * @param breaker The address of the breaker to be removed.
-   * @dev Will set any rateFeedID using this breakers trading mode to the default trading mode.
+   * @dev Will set any rateFeedID using this breakers trading mode to the default trading mode
+   *      because if its tripped and if we remove it rateFeed will be stuck in the trading mode.
    */
   function removeBreaker(address breaker) external onlyOwner {
     require(isBreaker(breaker), "This breaker has not been added");
@@ -210,7 +212,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
 
     require(rateFeedIDs[rateFeedIndex] == rateFeedID, "Rate feed ID has not been added");
 
-    uint256 lastIndex = rateFeedIDs.length - 1;
+    uint256 lastIndex = rateFeedIDs.length.sub(1);
     if (rateFeedIndex != lastIndex) {
       rateFeedIDs[rateFeedIndex] = rateFeedIDs[lastIndex];
     }
@@ -317,7 +319,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
       uint256 cooldown = breaker.getCooldown(rateFeedID);
 
       // If the cooldown == 0, then a manual reset is required.
-      if (((cooldown > 0) && (cooldown + info.lastUpdatedTime) <= block.timestamp)) {
+      if (((cooldown > 0) && (cooldown.add(info.lastUpdatedTime)) <= block.timestamp)) {
         if (breaker.shouldReset(rateFeedID)) {
           info.tradingMode = 0;
           info.lastUpdatedTime = uint64(block.timestamp);

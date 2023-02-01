@@ -672,7 +672,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       index < collateralAssets.length && collateralAssets[index] == collateralAsset,
       "index into collateralAssets list not mapped to token"
     );
-    collateralAssets[index] = collateralAssets[collateralAssets.length - 1];
+    collateralAssets[index] = collateralAssets[collateralAssets.length.sub(1)];
     collateralAssets.pop();
     delete isCollateralAsset[collateralAsset];
     emit CollateralAssetRemoved(collateralAsset);

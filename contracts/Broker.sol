@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeERC20 } from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IExchangeProvider } from "./interfaces/IExchangeProvider.sol";
 import { IBroker } from "./interfaces/IBroker.sol";
@@ -24,6 +25,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
   using TradingLimits for TradingLimits.State;
   using TradingLimits for TradingLimits.Config;
   using SafeERC20 for IERC20;
+  using SafeMath for uint256;
 
   /* ==================== State Variables ==================== */
 
@@ -71,7 +73,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     exchangeProviders.push(exchangeProvider);
     isExchangeProvider[exchangeProvider] = true;
     emit ExchangeProviderAdded(exchangeProvider);
-    index = exchangeProviders.length - 1;
+    index = exchangeProviders.length.sub(1);
   }
 
   /**
@@ -81,7 +83,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    */
   function removeExchangeProvider(address exchangeProvider, uint256 index) public onlyOwner {
     require(exchangeProviders[index] == exchangeProvider, "index doesn't match provider");
-    exchangeProviders[index] = exchangeProviders[exchangeProviders.length - 1];
+    exchangeProviders[index] = exchangeProviders[exchangeProviders.length.sub(1)];
     exchangeProviders.pop();
     delete isExchangeProvider[exchangeProvider];
     emit ExchangeProviderRemoved(exchangeProvider);

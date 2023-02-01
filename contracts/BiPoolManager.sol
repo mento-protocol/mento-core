@@ -40,7 +40,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   // Address of the Mento Reserve contract
   IReserve public reserve;
 
-  //Address of the Mento BreakerBox contract
+  // Address of the Mento BreakerBox contract
   IBreakerBox public breakerBox;
 
   // Address of the Mento SortedOracles contract
@@ -237,7 +237,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     PoolExchange memory exchange = exchanges[exchangeId];
 
     delete exchanges[exchangeId];
-    exchangeIds[exchangeIdIndex] = exchangeIds[exchangeIds.length - 1];
+    exchangeIds[exchangeIdIndex] = exchangeIds[exchangeIds.length.sub(1)];
     exchangeIds.pop();
     destroyed = true;
 
@@ -323,11 +323,11 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     }
 
     if (tokenIn == exchange.asset0) {
-      exchanges[exchangeId].bucket0 = exchange.bucket0 + amountIn;
-      exchanges[exchangeId].bucket1 = exchange.bucket1 - amountOut;
+      exchanges[exchangeId].bucket0 = exchange.bucket0.add(amountIn);
+      exchanges[exchangeId].bucket1 = exchange.bucket1.sub(amountOut);
     } else {
-      exchanges[exchangeId].bucket0 = exchange.bucket0 - amountOut;
-      exchanges[exchangeId].bucket1 = exchange.bucket1 + amountIn;
+      exchanges[exchangeId].bucket0 = exchange.bucket0.sub(amountOut);
+      exchanges[exchangeId].bucket1 = exchange.bucket1.add(amountIn);
     }
   }
 
@@ -455,7 +455,6 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @return bucket1 The size of bucket1.
    */
   function getUpdatedBuckets(PoolExchange memory exchange) internal view returns (uint256 bucket0, uint256 bucket1) {
-    // TODO: Take max fraction/min supply in account when setting the bucket size
     bucket0 = exchange.config.stablePoolResetSize;
     uint256 exchangeRateNumerator;
     uint256 exchangeRateDenominator;
@@ -490,12 +489,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
       reserve.isStableAsset(exchange.asset1) || reserve.isCollateralAsset(exchange.asset1),
       "asset1 must be a stable or collateral"
     );
-
     require(FixidityLib.lte(exchange.config.spread, FixidityLib.fixed1()), "spread must be less than or equal to 1");
-
     require(exchange.config.referenceRateFeedID != address(0), "referenceRateFeedID must be set");
-
-    // TODO: Stable bucket max fraction should not exceed available stable bucket fraction.
-    // TODO: minSupplyForStableBucketCap gt 0 & is there an aggregated value that needs to be checked
   }
 }
