@@ -463,6 +463,11 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
     assertEq(exchange.bucket0, 1e24);
     assertEq(exchange.bucket1, 5e23); // exchange.bucket0 / 2
   }
+
+  function test_createExchange_whenAssetsAreIdentical_shouldRevert() public {
+    vm.expectRevert("exchange assets can't be identical");
+    createExchange(cUSD, cUSD);
+  }
 }
 
 contract BiPoolManagerTest_destroyExchange is BiPoolManagerTest {
