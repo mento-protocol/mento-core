@@ -14,7 +14,7 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import { Initializable } from "./common/Initializable.sol";
 import { TradingLimits } from "./common/TradingLimits.sol";
-import { ReentrancyGuard } from  "./common/ReentrancyGuard.sol";
+import { ReentrancyGuard } from "./common/ReentrancyGuard.sol";
 
 /**
  * @title Broker
@@ -224,6 +224,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     bytes32 limitId = exchangeId ^ bytes32(uint256(uint160(token)));
     tradingLimitsConfig[limitId] = config;
     tradingLimitsState[limitId] = tradingLimitsState[limitId].reset(config);
+    emit TradingLimitConfigured(exchangeId, token, config);
   }
 
   /* ==================== Private Functions ==================== */
@@ -264,7 +265,6 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     uint256 amount
   ) internal {
     if (reserve.isStableAsset(token)) {
-
       IERC20(token).safeTransferFrom(from, address(this), amount);
       require(IStableToken(token).burn(amount), "Burning of the stable asset failed");
     } else if (reserve.isCollateralAsset(token)) {

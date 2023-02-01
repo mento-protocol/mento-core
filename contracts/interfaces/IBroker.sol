@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.5.13;
+pragma experimental ABIEncoderV2;
+
+import { TradingLimits } from "../common/TradingLimits.sol";
 
 /*
  * @title Broker Interface for trader functions
@@ -25,6 +28,14 @@ interface IBroker {
     uint256 amountIn,
     uint256 amountOut
   );
+
+  /**
+   * @notice Emitted when a new trading limit is configured.
+   * @param exchangeId the exchangeId to target.
+   * @param token the token to target.
+   * @param config the new trading limits config.
+   */
+  event TradingLimitConfigured(bytes32 exchangeId, address token, TradingLimits.Config config);
 
   /**
    * @notice Execute a token swap with fixed amountIn.
