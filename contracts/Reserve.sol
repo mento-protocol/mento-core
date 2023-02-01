@@ -289,7 +289,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param token The address of the token being stabilized.
    * @return Returns true if the transaction succeeds.
    */
-  function addToken(address token) external onlyOwner nonReentrant returns (bool) {
+  function addToken(address token) external onlyOwner returns (bool) {
     require(!isToken[token], "token addr already registered");
     isToken[token] = true;
     _tokens.push(token);
@@ -318,7 +318,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param reserveAddress The reserve address to add.
    * @return Returns true if the transaction succeeds.
    */
-  function addOtherReserveAddress(address reserveAddress) external onlyOwner nonReentrant returns (bool) {
+  function addOtherReserveAddress(address reserveAddress) external onlyOwner returns (bool) {
     require(!isOtherReserveAddress[reserveAddress], "reserve addr already added");
     isOtherReserveAddress[reserveAddress] = true;
     otherReserveAddresses.push(reserveAddress);
@@ -361,6 +361,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param spender The address that is to be no longer allowed to spend Reserve funds.
    */
   function removeSpender(address spender) external onlyOwner {
+    require(isSpender[spender], "Spender hasn't been added");
     isSpender[spender] = false;
     emit SpenderRemoved(spender);
   }
@@ -671,7 +672,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       index < collateralAssets.length && collateralAssets[index] == collateralAsset,
       "index into collateralAssets list not mapped to token"
     );
-    collateralAssets[index] = collateralAssets[collateralAssets.length - 1];
+    collateralAssets[index] = collateralAssets[collateralAssets.length.sub(1)];
     collateralAssets.pop();
     delete isCollateralAsset[collateralAsset];
     emit CollateralAssetRemoved(collateralAsset);

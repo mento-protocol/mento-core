@@ -116,6 +116,7 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
    * @param newBreakerBox The new BreakerBox address.
    */
   function setBreakerBox(IBreakerBox newBreakerBox) public onlyOwner {
+    require(address(newBreakerBox) != address(0), "BreakerBox address must be set");
     breakerBox = newBreakerBox;
     emit BreakerBoxUpdated(address(newBreakerBox));
   }

@@ -33,6 +33,7 @@ contract BrokerTest is Test {
   event ExchangeProviderAdded(address indexed exchangeProvider);
   event ExchangeProviderRemoved(address indexed exchangeProvider);
   event ReserveSet(address indexed newAddress, address indexed prevAddress);
+  event TradingLimitConfigured(bytes32 exchangeId, address token, TradingLimits.Config config);
 
   address deployer = actor("deployer");
   address notDeployer = actor("notDeployer");
@@ -487,6 +488,8 @@ contract BrokerTest_swap is BrokerTest {
     config.timestep0 = 10000;
     config.limit0 = 1000;
     changePrank(deployer);
+    vm.expectEmit(true, true, true, true);
+    emit TradingLimitConfigured(exchangeId, address(stableAsset), config);
     broker.configureTradingLimit(exchangeId, address(stableAsset), config);
     changePrank(trader);
 
@@ -500,6 +503,8 @@ contract BrokerTest_swap is BrokerTest {
     config.timestep0 = 10000;
     config.limit0 = 100;
     changePrank(deployer);
+    vm.expectEmit(true, true, true, true);
+    emit TradingLimitConfigured(exchangeId, address(stableAsset), config);
     broker.configureTradingLimit(exchangeId, address(stableAsset), config);
     changePrank(trader);
 
