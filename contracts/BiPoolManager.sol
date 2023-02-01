@@ -59,6 +59,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @notice Allows the contract to be upgradable via the proxy.
    * @param _broker The address of the broker contract.
    * @param _reserve The address of the reserve contract.
+   * @param _sortedOracles The address of the sorted oracles contract.
+   * @param _breakerBox The address of the breaker box contract. 
    */
   function initialize(
     address _broker,
