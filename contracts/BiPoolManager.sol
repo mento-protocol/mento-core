@@ -204,6 +204,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     require(address(exchange.pricingModule) != address(0), "pricingModule must be set");
     require(exchange.asset0 != address(0), "asset0 must be set");
     require(exchange.asset1 != address(0), "asset1 must be set");
+    require(exchange.asset0 != exchange.asset1, "exchange assets can't be identical");
 
     exchangeId = keccak256(
       abi.encodePacked(
