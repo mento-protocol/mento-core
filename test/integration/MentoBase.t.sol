@@ -43,21 +43,21 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     vm.label(address(broker), "Broker");
 
     address[] memory exchangeProviders = broker.getExchangeProviders();
-    for (uint i = 0; i < exchangeProviders.length; i++) {
+    for (uint256 i = 0; i < exchangeProviders.length; i++) {
       IExchangeProvider.Exchange[] memory _exchanges = IExchangeProvider(exchangeProviders[i]).getExchanges();
-      for (uint j = 0; j < _exchanges.length; j++) {
+      for (uint256 j = 0; j < _exchanges.length; j++) {
         exchanges.push(ExchangeWithProvider(exchangeProviders[i], _exchanges[j]));
       }
     }
 
     // print all exchanges
-    for (uint i = 0; i < exchanges.length; i++) {
+    for (uint256 i = 0; i < exchanges.length; i++) {
       console.log(i, exchanges[i].exchangeProvider, exchanges[i].exchange.assets[0], exchanges[i].exchange.assets[1]);
     }
   }
 
   function test_swaps_happen_in_both_directions() public {
-    for (uint i = 0; i < exchanges.length; i++) {
+    for (uint256 i = 0; i < exchanges.length; i++) {
       _test_swaps_happen_in_both_directions(exchanges[i]);
     }
   }
@@ -73,13 +73,27 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     uint256 asset0Amount = 1000 * 1e18;
     mint(exchange.assets[0], trader0, asset0Amount);
     IERC20Metadata(exchange.assets[0]).approve(address(broker), asset0Amount);
-    uint256 minAmountOut = broker.getAmountOut(exchangeProvider, exchange.exchangeId, exchange.assets[0], exchange.assets[1], asset0Amount) - 1e19;
-    uint256 amountOut = broker.swapIn(exchangeProvider, exchange.exchangeId, exchange.assets[0], exchange.assets[1], asset0Amount, minAmountOut);
+    uint256 minAmountOut = broker.getAmountOut(
+      exchangeProvider,
+      exchange.exchangeId,
+      exchange.assets[0],
+      exchange.assets[1],
+      asset0Amount
+    ) - 1e19;
+    uint256 amountOut = broker.swapIn(
+      exchangeProvider,
+      exchange.exchangeId,
+      exchange.assets[0],
+      exchange.assets[1],
+      asset0Amount,
+      minAmountOut
+    );
 
-    uint256 expectedAmountOut = FixidityLib.newFixed(asset0Amount).divide(rate).unwrap() / FixidityLib.fixed1().unwrap();
+    uint256 expectedAmountOut = FixidityLib.newFixed(asset0Amount).divide(rate).unwrap() /
+      FixidityLib.fixed1().unwrap();
     assertApproxEqAbs(
-      amountOut, 
-      expectedAmountOut, 
+      amountOut,
+      expectedAmountOut,
       pc10.multiply(FixidityLib.newFixed(expectedAmountOut)).unwrap() / FixidityLib.fixed1().unwrap()
     );
 
@@ -87,13 +101,22 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     uint256 asset1Amount = 1000 * 1e18;
     mint(exchange.assets[1], trader0, asset1Amount);
     IERC20Metadata(exchange.assets[1]).approve(address(broker), asset1Amount);
-    minAmountOut = broker.getAmountOut(exchangeProvider, exchange.exchangeId, exchange.assets[1], exchange.assets[0], asset1Amount) - 1e19;
-    amountOut = broker.swapIn(exchangeProvider, exchange.exchangeId, exchange.assets[1], exchange.assets[0], asset1Amount, minAmountOut);
+    minAmountOut =
+      broker.getAmountOut(exchangeProvider, exchange.exchangeId, exchange.assets[1], exchange.assets[0], asset1Amount) -
+      1e19;
+    amountOut = broker.swapIn(
+      exchangeProvider,
+      exchange.exchangeId,
+      exchange.assets[1],
+      exchange.assets[0],
+      asset1Amount,
+      minAmountOut
+    );
 
     expectedAmountOut = FixidityLib.newFixed(asset1Amount).multiply(rate).unwrap() / FixidityLib.fixed1().unwrap();
     assertApproxEqAbs(
-      amountOut, 
-      expectedAmountOut, 
+      amountOut,
+      expectedAmountOut,
       pc10.multiply(FixidityLib.newFixed(expectedAmountOut)).unwrap() / FixidityLib.fixed1().unwrap()
     );
   }
@@ -109,4 +132,3 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     return (rateNumerator, rateDenominator);
   }
 }
-
