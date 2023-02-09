@@ -67,6 +67,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     IExchangeProvider.Exchange memory exchange = exchangeWithProvider.exchange;
     (uint256 numerator, uint256 denominator) = getReferenceRate(exchangeProvider, exchange.exchangeId);
     FixidityLib.Fraction memory rate = FixidityLib.newFixedFraction(numerator, denominator);
+    FixidityLib.Fraction memory pc10 = FixidityLib.newFixedFraction(10, 100);
 
     // asset0 -> asset1
     uint256 asset0Amount = 1000 * 1e18;
@@ -79,27 +80,26 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     assertApproxEqAbs(
       amountOut, 
       expectedAmountOut, 
-      FixidityLib.newFixedFraction(10, 100).multiply(FixidityLib.newFixed(expectedAmountOut)).unwrap() / FixidityLib.fixed1().unwrap()
+      pc10.multiply(FixidityLib.newFixed(expectedAmountOut)).unwrap() / FixidityLib.fixed1().unwrap()
     );
 
     // asset1 -> asset0
     uint256 asset1Amount = 1000 * 1e18;
-
-    mint(exchange.assets[1], trader0, 1000);
-    IERC20Metadata(exchange.assets[1]).approve(address(broker), 1000);
+    mint(exchange.assets[1], trader0, asset1Amount);
+    IERC20Metadata(exchange.assets[1]).approve(address(broker), asset1Amount);
     minAmountOut = broker.getAmountOut(exchangeProvider, exchange.exchangeId, exchange.assets[1], exchange.assets[0], asset1Amount) - 1e19;
     amountOut = broker.swapIn(exchangeProvider, exchange.exchangeId, exchange.assets[1], exchange.assets[0], asset1Amount, minAmountOut);
 
-    expectedAmountOut = FixidityLib.newFixed(asset1Amount).divide(rate).unwrap() / FixidityLib.fixed1().unwrap();
+    expectedAmountOut = FixidityLib.newFixed(asset1Amount).multiply(rate).unwrap() / FixidityLib.fixed1().unwrap();
     assertApproxEqAbs(
       amountOut, 
       expectedAmountOut, 
-      FixidityLib.newFixedFraction(10, 100).multiply(FixidityLib.newFixed(expectedAmountOut)).unwrap() / FixidityLib.fixed1().unwrap()
+      pc10.multiply(FixidityLib.newFixed(expectedAmountOut)).unwrap() / FixidityLib.fixed1().unwrap()
     );
   }
 
   function getReferenceRate(address exchangeProvider, bytes32 exchangeId) internal returns (uint256, uint256) {
-    // TODO: extend this when we have multiple exchange providers, for now assume it's an BiPoolManager
+    // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(exchangeId);
     uint256 rateNumerator;
