@@ -5,7 +5,7 @@
 
 # Mento Core
 
-This repo contains the source code of the core smart contracts for the Mento protocol. The repository is built with foundry which is used for the compilation, testing and deployment of the smart contracts.
+This repo contains the source code of the core smart contracts for the Mento protocol. The repository is built with foundry which is used for the compilation and testing of the smart contracts.
 
 ## What is Mento?
 
@@ -37,28 +37,6 @@ forge build
 # Run all tests with forge
 forge test
 ```
-
-#### Slither 
-
-Install slither, if not installed.
-```bash
-pip3 install slither-analyzer
-```
-
-Running slither locally requires you to build only a subset of packages:
-```bash
-forge clean
-forge build --build-info --skip tests
-slither . --foundry-ignore-compile
-```
-
-If you want to ignore a slither warning run:
-```bash
-slither . --foundry-ignore-compile --triage-mode
-```
-
-For triage mode, in which you can choose to ignore warnings which are added to `slither.db.json`.
-
 
 [ci-link]: https://github.com/mento-protocol/mento-core/actions/workflows/ci.yml
 [ci-badge]: https://github.com/mento-protocol/mento-core/actions/workflows/ci.yml/badge.svg
