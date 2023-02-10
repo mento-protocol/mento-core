@@ -180,7 +180,9 @@ contract MentoBaseForkTest is Test, TokenHelpers {
   }
 
   function assert_limitConfigured(bytes32 limitId) internal {
-
+    IBrokerWithTradingLimits _broker = IBrokerWithTradingLimits(address(broker));
+    TradingLimits.Config memory limitConfig = _broker.tradingLimitsConfig(limitId);
+    assert(limitConfig.flags > uint8(0));
   }
 
   function assert_swapOverLimitFails(
