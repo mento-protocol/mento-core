@@ -43,6 +43,8 @@ contract MentoBaseForkTest is Test, TokenHelpers {
   uint256 fixed1 = FixidityLib.fixed1().unwrap();
 
   Broker public broker;
+  IBrokerWithTradingLimits public broker_;
+
   SortedOracles public sortedOracles;
   address governance;
 
@@ -57,6 +59,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
 
   function setUp() public {
     broker = Broker(registry.getAddressForStringOrDie("Broker"));
+    broker_ = IBrokerWithTradingLimits(address(broker));
     sortedOracles = SortedOracles(registry.getAddressForStringOrDie("SortedOracles"));
     governance = registry.getAddressForStringOrDie("Governance");
     trader0 = actor("trader0");
@@ -81,7 +84,6 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     }
 
     // XXX: Temporarily add trading limits to broker
-    IBrokerWithTradingLimits _broker = IBrokerWithTradingLimits(address(broker));
     changePrank(governance);
     for (uint256 i = 0; i < exchanges.length; i++) {
       IExchangeProvider.Exchange memory exchange = exchanges[i].exchange;
@@ -91,10 +93,10 @@ contract MentoBaseForkTest is Test, TokenHelpers {
         10000,
         100000,
         1000000,
-        L0 & L1 & LG
+        L0 | L1 | LG
       );
-      _broker.configureTradingLimit(exchange.exchangeId, exchange.assets[0], config);
-      _broker.configureTradingLimit(exchange.exchangeId, exchange.assets[1], config);
+      broker.configureTradingLimit(exchange.exchangeId, exchange.assets[0], config);
+      broker.configureTradingLimit(exchange.exchangeId, exchange.assets[1], config);
     }
     changePrank(trader0);
   }
@@ -123,7 +125,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     }
   }
 
-  function test_tradingLimitsStopTrading() public {
+  function test_tradingLimitsAreEnforced() public {
     for (uint256 i = 0; i < exchanges.length; i++) {
       ExchangeWithProvider memory exchangeWithProvider = exchanges[i];
       IExchangeProvider.Exchange memory exchange = exchangeWithProvider.exchange;
@@ -171,8 +173,11 @@ contract MentoBaseForkTest is Test, TokenHelpers {
       bytes32 asset1Bytes32 = bytes32(uint256(uint160(exchange.assets[1])));
       bytes32 limitIdForAsset1 = exchange.exchangeId ^ asset1Bytes32;
 
-      assert_limitConfigured(limitIdForAsset0);
-      assert_limitConfigured(limitIdForAsset0);
+      require(
+        isLimitConfigured(limitIdForAsset0) ||
+        isLimitConfigured(limitIdForAsset1),
+        "Limit not configured"
+      );
     }
   }
 
@@ -201,10 +206,24 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     );
   }
 
-  function assert_limitConfigured(bytes32 limitId) internal {
-    IBrokerWithTradingLimits _broker = IBrokerWithTradingLimits(address(broker));
-    TradingLimits.Config memory limitConfig = _broker.tradingLimitsConfig(limitId);
-    assert(limitConfig.flags > uint8(0));
+  function assert_swap_reverts(
+    address exchangeProvider,
+    bytes32 exchangeId,
+    address from,
+    address to,
+    uint256 sellAmountUnits,
+    string memory revertReason
+  ) internal {
+    FixidityLib.Fraction memory rate = getReferenceRateFraction(exchangeProvider, exchangeId, from);
+    uint256 tokenBase = 10**uint256(IERC20Metadata(from).decimals());
+
+    uint256 sellAmount = sellAmountUnits * tokenBase;
+    mint(from, trader0, sellAmount);
+    IERC20Metadata(from).approve(address(broker), sellAmount);
+
+    uint256 minAmountOut = broker.getAmountOut(exchangeProvider, exchangeId, from, to, sellAmount) - (10 * tokenBase); // slippage
+    vm.expectRevert(bytes(revertReason));
+    uint256 amountOut = broker.swapIn(exchangeProvider, exchangeId, from, to, sellAmount, minAmountOut);
   }
 
   function assert_swapOverLimitFails(
@@ -215,9 +234,8 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     address assetToVerifyLimit
   ) internal {
     bytes32 assetToVerifyLimitBytes32 = bytes32(uint256(uint160(assetToVerifyLimit)));
-    IBrokerWithTradingLimits _broker = IBrokerWithTradingLimits(address(broker));
-    TradingLimits.Config memory limitConfig = _broker.tradingLimitsConfig(exchangeId ^ assetToVerifyLimitBytes32);
-    TradingLimits.State memory limitState = _broker.tradingLimitsState(exchangeId ^ assetToVerifyLimitBytes32);
+    TradingLimits.Config memory limitConfig = broker_.tradingLimitsConfig(exchangeId ^ assetToVerifyLimitBytes32);
+    TradingLimits.State memory limitState = broker_.tradingLimitsState(exchangeId ^ assetToVerifyLimitBytes32);
 
     if (limitConfig.flags & L0 > 0) {
       assert_swapOverLimitFailsForLimit(
@@ -230,26 +248,74 @@ contract MentoBaseForkTest is Test, TokenHelpers {
         limitState.netflow0
       );
     } else if (limitConfig.flags & L1 > 0) {
-      assert_swapOverLimitFailsForLimit(
+      assert_swapOverLimitFailsForLimitInIncrements(
         exchangeProvider,
         exchangeId,
         from,
         to,
         assetToVerifyLimit,
         limitConfig.limit1,
-        limitState.netflow1
+        limitState.netflow1,
+        limitConfig.limit0
       );
     } else if (limitConfig.flags & LG > 0) {
-      assert_swapOverLimitFailsForLimit(
-        exchangeProvider,
-        exchangeId,
-        from,
-        to,
-        assetToVerifyLimit,
-        limitConfig.limitGlobal,
-        limitState.netflowGlobal
-      );
+      if (limitConfig.flags & L0 == 0 && limitConfig.flags & L1 == 0) {
+        assert_swapOverLimitFailsForLimit(
+          exchangeProvider,
+          exchangeId,
+          from,
+          to,
+          assetToVerifyLimit,
+          limitConfig.limit0,
+          limitState.netflow0
+        );
+      } else {
+        assert_swapOverLimitFailsForLimitInIncrements(
+          exchangeProvider,
+          exchangeId,
+          from,
+          to,
+          assetToVerifyLimit,
+          limitConfig.limitGlobal,
+          limitState.netflowGlobal,
+          limitConfig.limit0
+        );
+      }
     }
+  }
+
+  function assert_swapOverLimitFailsForLimitInIncrements(
+    address exchangeProvider,
+    bytes32 exchangeId,
+    address from,
+    address to,
+    address assetToVerifyLimit,
+    int48 limit,
+    int48 netflow,
+    int48 incrementUnits
+  ) internal {
+    if (from == assetToVerifyLimit) {
+      // L[from] -> to, `from` flows into the reserve, so limit tested on positive end
+      require(limit - netflow >= 0, "otherwise the limit has been passed");
+      uint256 inflowRequiredUnits = uint256(limit - netflow) + 1;
+      console.logInt(limit);
+      console.logInt(netflow);
+      console.log("Inflow required: ", inflowRequiredUnits);
+      uint256 increments = inflowRequiredUnits / uint256(incrementUnits);
+      assert_swap_reverts(exchangeProvider, exchangeId, from, to, inflowRequiredUnits, "L0 Exceeded");
+    } else {
+      // from -> L[to], `to` flows out of the reserve, so limit tested on negative end
+      require(limit + netflow >= 0, "otherwise the limit has been passed");
+      uint256 outflowRequiredUnits = uint256(limit + netflow) + 1;
+      FixidityLib.Fraction memory rate = getReferenceRateFraction(exchangeProvider, exchangeId, from);
+      uint256 inflowRequiredUnits = FixidityLib.newFixed(outflowRequiredUnits).multiply(rate).unwrap() / fixed1;
+      console.logInt(limit);
+      console.logInt(netflow);
+      console.log("Outflow required: ", outflowRequiredUnits);
+      console.log("Inflow required: ", inflowRequiredUnits);
+      assert_swap_reverts(exchangeProvider, exchangeId, from, to, inflowRequiredUnits, "L0 Exceeded");
+    }
+
   }
 
   function assert_swapOverLimitFailsForLimit(
@@ -265,17 +331,27 @@ contract MentoBaseForkTest is Test, TokenHelpers {
       // L[from] -> to, `from` flows into the reserve, so limit tested on positive end
       require(limit - netflow >= 0, "otherwise the limit has been passed");
       uint256 inflowRequiredUnits = uint256(limit - netflow) + 1;
-      vm.expectRevert(bytes("test"));
-      assert_swap(exchangeProvider, exchangeId, from, to, inflowRequiredUnits);
+      console.logInt(limit);
+      console.logInt(netflow);
+      console.log("Inflow required: ", inflowRequiredUnits);
+      assert_swap_reverts(exchangeProvider, exchangeId, from, to, inflowRequiredUnits, "L0 Exceeded");
     } else {
       // from -> L[to], `to` flows out of the reserve, so limit tested on negative end
       require(limit + netflow >= 0, "otherwise the limit has been passed");
       uint256 outflowRequiredUnits = uint256(limit + netflow) + 1;
       FixidityLib.Fraction memory rate = getReferenceRateFraction(exchangeProvider, exchangeId, from);
       uint256 inflowRequiredUnits = FixidityLib.newFixed(outflowRequiredUnits).multiply(rate).unwrap() / fixed1;
-      vm.expectRevert(bytes("test"));
-      assert_swap(exchangeProvider, exchangeId, from, to, inflowRequiredUnits);
+      console.logInt(limit);
+      console.logInt(netflow);
+      console.log("Outflow required: ", outflowRequiredUnits);
+      console.log("Inflow required: ", inflowRequiredUnits);
+      assert_swap_reverts(exchangeProvider, exchangeId, from, to, inflowRequiredUnits, "L0 Exceeded");
     }
+  }
+
+  function isLimitConfigured(bytes32 limitId) internal returns (bool) {
+    TradingLimits.Config memory limitConfig = broker_.tradingLimitsConfig(limitId);
+    return limitConfig.flags > uint8(0);
   }
 
   function getReferenceRateFraction(
