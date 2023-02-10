@@ -22,6 +22,8 @@ interface IBrokerWithTradingLimits {
   function tradingLimitsState(bytes32 id) external view returns (TradingLimits.State memory);
 
   function tradingLimitsConfig(bytes32 id) external view returns (TradingLimits.Config memory);
+
+  function configureTradingLimit(bytes32 exchangeId, address token, TradingLimits.Config calldata config) external;
 }
 
 contract MentoBaseForkTest is Test, TokenHelpers {
@@ -42,6 +44,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
 
   Broker public broker;
   SortedOracles public sortedOracles;
+  address governance;
 
   address trader0;
 
@@ -55,6 +58,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
   function setUp() public {
     broker = Broker(registry.getAddressForStringOrDie("Broker"));
     sortedOracles = SortedOracles(registry.getAddressForStringOrDie("SortedOracles"));
+    governance = registry.getAddressForStringOrDie("Governance");
     trader0 = actor("trader0");
     changePrank(trader0);
 
@@ -75,6 +79,24 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     for (uint256 i = 0; i < exchanges.length; i++) {
       console.log(i, exchanges[i].exchangeProvider, exchanges[i].exchange.assets[0], exchanges[i].exchange.assets[1]);
     }
+
+    // XXX: Temporarily add trading limits to broker
+    IBrokerWithTradingLimits _broker = IBrokerWithTradingLimits(address(broker));
+    changePrank(governance);
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      IExchangeProvider.Exchange memory exchange = exchanges[i].exchange;
+      TradingLimits.Config memory config = TradingLimits.Config(
+        10000,
+        1000000,
+        10000,
+        100000,
+        1000000,
+        L0 & L1 & LG
+      );
+      _broker.configureTradingLimit(exchange.exchangeId, exchange.assets[0], config);
+      _broker.configureTradingLimit(exchange.exchangeId, exchange.assets[1], config);
+    }
+    changePrank(trader0);
   }
 
   function test_swapsHappenInBothDirections() public {
