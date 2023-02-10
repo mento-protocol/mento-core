@@ -114,7 +114,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
         exchange.assets[1],
         exchange.assets[0]
       );
-      assert_swapOverLimitsFails(
+      assert_swapOverLimitFails(
         exchangeWithProvider.exchangeProvider,
         exchange.exchangeId,
         exchange.assets[0],
@@ -122,14 +122,14 @@ contract MentoBaseForkTest is Test, TokenHelpers {
         exchange.assets[1]
       );
       // asset1 -> asset0
-      assert_swapOverLimitsFails(
+      assert_swapOverLimitFails(
         exchangeWithProvider.exchangeProvider,
         exchange.exchangeId,
         exchange.assets[1],
         exchange.assets[0],
         exchange.assets[0]
       );
-      assert_swapOverLimitsFails(
+      assert_swapOverLimitFails(
         exchangeWithProvider.exchangeProvider,
         exchange.exchangeId,
         exchange.assets[1],
@@ -179,7 +179,11 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     );
   }
 
-  function assert_swapOverLimitsFails(
+  function assert_limitConfigured(bytes32 limitId) internal {
+
+  }
+
+  function assert_swapOverLimitFails(
     address exchangeProvider,
     bytes32 exchangeId,
     address from,
@@ -192,7 +196,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     TradingLimits.State memory limitState = _broker.tradingLimitsState(exchangeId ^ assetToVerifyLimitBytes32);
 
     if (limitConfig.flags & L0 > 0) {
-      assert_swapOverLimitsFailsForLimit(
+      assert_swapOverLimitFailsForLimit(
         exchangeProvider,
         exchangeId,
         from,
@@ -202,7 +206,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
         limitState.netflow0
       );
     } else if (limitConfig.flags & L1 > 0) {
-      assert_swapOverLimitsFailsForLimit(
+      assert_swapOverLimitFailsForLimit(
         exchangeProvider,
         exchangeId,
         from,
@@ -212,7 +216,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
         limitState.netflow1
       );
     } else if (limitConfig.flags & LG > 0) {
-      assert_swapOverLimitsFailsForLimit(
+      assert_swapOverLimitFailsForLimit(
         exchangeProvider,
         exchangeId,
         from,
@@ -224,7 +228,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     }
   }
 
-  function assert_swapOverLimitsFailsForLimit(
+  function assert_swapOverLimitFailsForLimit(
     address exchangeProvider,
     bytes32 exchangeId,
     address from,
