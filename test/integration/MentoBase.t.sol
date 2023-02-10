@@ -18,18 +18,27 @@ import { SortedOracles } from "contracts/SortedOracles.sol";
 import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
+/**
+ * @title IBrokerWithTradingLimits
+ * @notice Interface for Broker with trading limits
+ * @dev This is used to access the internal trading limits state and 
+ * config as structs as opposed to tuples.
+ */
 interface IBrokerWithTradingLimits {
   function tradingLimitsState(bytes32 id) external view returns (TradingLimits.State memory);
-
   function tradingLimitsConfig(bytes32 id) external view returns (TradingLimits.Config memory);
-
-  function configureTradingLimit(
-    bytes32 exchangeId,
-    address token,
-    TradingLimits.Config calldata config
-  ) external;
 }
 
+/** 
+ * @title MentoBaseForkTest
+ * @notice Fork tests for Mento!
+ * This test suite tests invariantes on a fork of a live Mento environemnts.
+ * The philosophy is to test in accordance with how the target fork is configured,
+ * therfore it doesn't make assumptions about the systems, nor tries to configure
+ * the system to test specific scenarios.
+ * However, it should be exausitve in testing invariants across all tradable pairs
+ * in the system, therfore each test should.
+ */
 contract MentoBaseForkTest is Test, TokenHelpers {
   using FixidityLib for FixidityLib.Fraction;
   using TradingLimits for TradingLimits.State;
@@ -47,7 +56,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
   uint256 fixed1 = FixidityLib.fixed1().unwrap();
 
   Broker public broker;
-  IBrokerWithTradingLimits public broker_;
+  IBrokerWithTradingLimits public brokerForLimits;
 
   SortedOracles public sortedOracles;
   address governance;
@@ -63,7 +72,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
 
   function setUp() public {
     broker = Broker(registry.getAddressForStringOrDie("Broker"));
-    broker_ = IBrokerWithTradingLimits(address(broker));
+    brokerForLimits = IBrokerWithTradingLimits(address(broker));
     sortedOracles = SortedOracles(registry.getAddressForStringOrDie("SortedOracles"));
     governance = registry.getAddressForStringOrDie("Governance");
     trader0 = actor("trader0");
@@ -88,6 +97,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     }
 
     // XXX: Temporarily add trading limits to broker
+    // These are not the real trading limits, but they are good enough for testing.
     changePrank(governance);
     for (uint256 i = 0; i < exchanges.length; i++) {
       IExchangeProvider.Exchange memory exchange = exchanges[i].exchange;
@@ -238,10 +248,10 @@ contract MentoBaseForkTest is Test, TokenHelpers {
     address assetToVerifyLimit
   ) internal {
     bytes32 assetToVerifyLimitBytes32 = bytes32(uint256(uint160(assetToVerifyLimit)));
-    TradingLimits.Config memory limitConfig = broker_.tradingLimitsConfig(exchangeId ^ assetToVerifyLimitBytes32);
+    TradingLimits.Config memory limitConfig = brokerForLimits.tradingLimitsConfig(exchangeId ^ assetToVerifyLimitBytes32);
 
     if (limitConfig.flags & L0 > 0) {
-      TradingLimits.State memory limitState = broker_.tradingLimitsState(exchangeId ^ assetToVerifyLimitBytes32);
+      TradingLimits.State memory limitState = brokerForLimits.tradingLimitsState(exchangeId ^ assetToVerifyLimitBytes32);
       assert_swapOverLimitFailsForLimit(
         exchangeProvider,
         exchangeId,
@@ -253,7 +263,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
       );
     }
     if (limitConfig.flags & L1 > 0) {
-      TradingLimits.State memory limitState = broker_.tradingLimitsState(exchangeId ^ assetToVerifyLimitBytes32);
+      TradingLimits.State memory limitState = brokerForLimits.tradingLimitsState(exchangeId ^ assetToVerifyLimitBytes32);
       assert_swapOverLimitFailsForLimitInIncrements(
         exchangeProvider,
         exchangeId,
@@ -268,7 +278,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
       );
     }
     if (limitConfig.flags & LG > 0) {
-      TradingLimits.State memory limitState = broker_.tradingLimitsState(exchangeId ^ assetToVerifyLimitBytes32);
+      TradingLimits.State memory limitState = brokerForLimits.tradingLimitsState(exchangeId ^ assetToVerifyLimitBytes32);
       if (limitConfig.flags & L0 == 0 && limitConfig.flags & L1 == 0) {
         assert_swapOverLimitFailsForLimit(
           exchangeProvider,
@@ -435,7 +445,7 @@ contract MentoBaseForkTest is Test, TokenHelpers {
   }
 
   function isLimitConfigured(bytes32 limitId) internal returns (bool) {
-    TradingLimits.Config memory limitConfig = broker_.tradingLimitsConfig(limitId);
+    TradingLimits.Config memory limitConfig = brokerForLimits.tradingLimitsConfig(limitId);
     return limitConfig.flags > uint8(0);
   }
 
