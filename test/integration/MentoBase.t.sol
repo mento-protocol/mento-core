@@ -302,6 +302,9 @@ contract MentoBaseForkTest is Test, TokenHelpers {
       console.logInt(netflow);
       console.log("Inflow required: ", inflowRequiredUnits);
       uint256 increments = inflowRequiredUnits / uint256(incrementUnits);
+      for(uint256 i = 0; i < increments; i++ ) {
+
+      }
       assert_swap_reverts(exchangeProvider, exchangeId, from, to, inflowRequiredUnits, "L0 Exceeded");
     } else {
       // from -> L[to], `to` flows out of the reserve, so limit tested on negative end
