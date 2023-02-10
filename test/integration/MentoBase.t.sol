@@ -20,19 +20,22 @@ import { BiPoolManager } from "contracts/BiPoolManager.sol";
 contract MentoBaseForkTest is Test, TokenHelpers {
   using FixidityLib for FixidityLib.Fraction;
 
-  address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
-  IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
-  ExchangeWithProvider[] public exchanges;
-
-  Broker public broker;
-  SortedOracles public sortedOracles;
-
   struct ExchangeWithProvider {
     address exchangeProvider;
     IExchangeProvider.Exchange exchange;
   }
 
+  address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
+  IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
+  FixidityLib.Fraction pc10 = FixidityLib.newFixedFraction(10, 100);
+
+  Broker public broker;
+  SortedOracles public sortedOracles;
+
   address trader0;
+
+  ExchangeWithProvider[] public exchanges;
+  mapping(address => mapping(bytes32 => ExchangeWithProvider)) public exchangeMap;
 
   function setUp() public {
     broker = Broker(registry.getAddressForStringOrDie("Broker"));
@@ -47,10 +50,13 @@ contract MentoBaseForkTest is Test, TokenHelpers {
       IExchangeProvider.Exchange[] memory _exchanges = IExchangeProvider(exchangeProviders[i]).getExchanges();
       for (uint256 j = 0; j < _exchanges.length; j++) {
         exchanges.push(ExchangeWithProvider(exchangeProviders[i], _exchanges[j]));
+        exchangeMap[exchangeProviders[i]][_exchanges[j].exchangeId] = ExchangeWithProvider(
+          exchangeProviders[i],
+          _exchanges[j]
+        );
       }
     }
 
-    // print all exchanges
     for (uint256 i = 0; i < exchanges.length; i++) {
       console.log(i, exchanges[i].exchangeProvider, exchanges[i].exchange.assets[0], exchanges[i].exchange.assets[1]);
     }
@@ -58,67 +64,65 @@ contract MentoBaseForkTest is Test, TokenHelpers {
 
   function test_swaps_happen_in_both_directions() public {
     for (uint256 i = 0; i < exchanges.length; i++) {
-      _test_swaps_happen_in_both_directions(exchanges[i]);
+      ExchangeWithProvider memory exchangeWithProvider = exchanges[i];
+      IExchangeProvider.Exchange memory exchange = exchangeWithProvider.exchange;
+
+      // asset0 -> asset1
+      assert_swap(
+        exchangeWithProvider.exchangeProvider,
+        exchange.exchangeId,
+        exchange.assets[0],
+        exchange.assets[1],
+        1000
+      );
+      // asset1 -> asset0
+      assert_swap(
+        exchangeWithProvider.exchangeProvider,
+        exchange.exchangeId,
+        exchange.assets[1],
+        exchange.assets[0],
+        1000
+      );
     }
   }
 
-  function _test_swaps_happen_in_both_directions(ExchangeWithProvider memory exchangeWithProvider) internal {
-    address exchangeProvider = exchangeWithProvider.exchangeProvider;
-    IExchangeProvider.Exchange memory exchange = exchangeWithProvider.exchange;
-    (uint256 numerator, uint256 denominator) = getReferenceRate(exchangeProvider, exchange.exchangeId);
-    FixidityLib.Fraction memory rate = FixidityLib.newFixedFraction(numerator, denominator);
-    FixidityLib.Fraction memory pc10 = FixidityLib.newFixedFraction(10, 100);
+  function assert_swap(
+    address exchangeProvider,
+    bytes32 exchangeId,
+    address from,
+    address to,
+    uint256 sellAmountUnits
+  ) internal {
+    (uint256 numerator, uint256 denominator) = getReferenceRate(exchangeProvider, exchangeId);
+    FixidityLib.Fraction memory rate = getReferenceRateFraction(exchangeProvider, exchangeId, from);
+    uint256 tokenBase = 10**uint256(IERC20Metadata(from).decimals());
 
-    // asset0 -> asset1
-    uint256 asset0Amount = 1000 * 1e18;
-    mint(exchange.assets[0], trader0, asset0Amount);
-    IERC20Metadata(exchange.assets[0]).approve(address(broker), asset0Amount);
-    uint256 minAmountOut = broker.getAmountOut(
-      exchangeProvider,
-      exchange.exchangeId,
-      exchange.assets[0],
-      exchange.assets[1],
-      asset0Amount
-    ) - 1e19;
-    uint256 amountOut = broker.swapIn(
-      exchangeProvider,
-      exchange.exchangeId,
-      exchange.assets[0],
-      exchange.assets[1],
-      asset0Amount,
-      minAmountOut
-    );
+    uint256 sellAmount = sellAmountUnits * tokenBase;
+    mint(from, trader0, sellAmount);
+    IERC20Metadata(from).approve(address(broker), sellAmount);
 
-    uint256 expectedAmountOut = FixidityLib.newFixed(asset0Amount).divide(rate).unwrap() /
-      FixidityLib.fixed1().unwrap();
+    uint256 minAmountOut = broker.getAmountOut(exchangeProvider, exchangeId, from, to, sellAmount) - (10 * tokenBase); // slippage
+    uint256 amountOut = broker.swapIn(exchangeProvider, exchangeId, from, to, sellAmount, minAmountOut);
+
+    uint256 expectedAmountOut = FixidityLib.newFixed(sellAmount).divide(rate).unwrap() / FixidityLib.fixed1().unwrap();
     assertApproxEqAbs(
       amountOut,
       expectedAmountOut,
       pc10.multiply(FixidityLib.newFixed(expectedAmountOut)).unwrap() / FixidityLib.fixed1().unwrap()
     );
+  }
 
-    // asset1 -> asset0
-    uint256 asset1Amount = 1000 * 1e18;
-    mint(exchange.assets[1], trader0, asset1Amount);
-    IERC20Metadata(exchange.assets[1]).approve(address(broker), asset1Amount);
-    minAmountOut =
-      broker.getAmountOut(exchangeProvider, exchange.exchangeId, exchange.assets[1], exchange.assets[0], asset1Amount) -
-      1e19;
-    amountOut = broker.swapIn(
-      exchangeProvider,
-      exchange.exchangeId,
-      exchange.assets[1],
-      exchange.assets[0],
-      asset1Amount,
-      minAmountOut
-    );
-
-    expectedAmountOut = FixidityLib.newFixed(asset1Amount).multiply(rate).unwrap() / FixidityLib.fixed1().unwrap();
-    assertApproxEqAbs(
-      amountOut,
-      expectedAmountOut,
-      pc10.multiply(FixidityLib.newFixed(expectedAmountOut)).unwrap() / FixidityLib.fixed1().unwrap()
-    );
+  function getReferenceRateFraction(
+    address exchangeProvider,
+    bytes32 exchangeId,
+    address baseAsset
+  ) internal returns (FixidityLib.Fraction memory) {
+    (uint256 numerator, uint256 denominator) = getReferenceRate(exchangeProvider, exchangeId);
+    address asset0 = exchangeMap[exchangeProvider][exchangeId].exchange.assets[0];
+    if (baseAsset == asset0) {
+      return FixidityLib.newFixedFraction(numerator, denominator);
+    }
+    return FixidityLib.newFixedFraction(denominator, numerator);
   }
 
   function getReferenceRate(address exchangeProvider, bytes32 exchangeId) internal returns (uint256, uint256) {
