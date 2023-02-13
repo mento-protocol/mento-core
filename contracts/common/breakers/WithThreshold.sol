@@ -44,7 +44,7 @@ contract WithThreshold {
    *          is within the allowed threshold.
    */
   function exceedsThreshold(
-    uint256 referenceValue, 
+    uint256 referenceValue,
     uint256 currentValue,
     address rateFeedID
   ) public view returns (bool) {
@@ -77,7 +77,7 @@ contract WithThreshold {
   }
 
   /**
-   * @notice Configures rate feed to rate shreshold pairs.
+   * @notice Configures rate feed to rate threshold pairs.
    * @param rateFeedIDs Collection of the addresses rate feeds.
    * @param rateChangeThresholds Collection of the rate thresholds.
    */

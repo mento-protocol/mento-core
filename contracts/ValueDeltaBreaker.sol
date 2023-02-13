@@ -84,7 +84,7 @@ contract ValueDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   }
 
   /**
-   * @notice Configures rate feed to rate shreshold pairs.
+   * @notice Configures rate feed to rate threshold pairs.
    * @param rateFeedIDs Collection of the addresses rate feeds.
    * @param rateChangeThresholds Collection of the rate thresholds.
    */
