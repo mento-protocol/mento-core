@@ -54,13 +54,12 @@ contract SwapAssert is Test {
     uint256 sellAmount,
     string memory revertReason
   ) internal {
-    FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
     ctx.t.mint(from, ctx.t.trader0(), sellAmount);
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
 
-    uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount); // slippage
+    uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
     vm.expectRevert(bytes(revertReason));
-    uint256 amountOut = ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
+    ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
   }
 
   function assert_swapOverLimitFails(
@@ -113,14 +112,13 @@ contract SwapAssert is Test {
 
     uint256 outflowRequiredUnits = uint256(limitConfig.getLimit(limit) + limitState.getNetflow(limit)) + 2;
     console.log("Outflow required: ", outflowRequiredUnits);
-    uint256 amountIn =
-      ctx.broker.getAmountIn(
-        ctx.exchangeProvider,
-        ctx.exchangeId,
-        from,
-        to,
-        outflowRequiredUnits.toSubunits(to)
-      );
+    uint256 amountIn = ctx.broker.getAmountIn(
+      ctx.exchangeProvider,
+      ctx.exchangeId,
+      from,
+      to,
+      outflowRequiredUnits.toSubunits(to)
+    );
     assert_swapFails(ctx, from, to, amountIn, limit.revertReason());
   }
 
@@ -139,17 +137,15 @@ contract SwapAssert is Test {
 
     uint256 outflowRequiredUnits = uint256(limitConfig.getLimit(limit) + limitState.getNetflow(limit)) + 2;
     console.log("Outflow required: ", outflowRequiredUnits);
-    uint256 amountIn =
-      ctx.broker.getAmountIn(
-        ctx.exchangeProvider,
-        ctx.exchangeId,
-        from,
-        to,
-        outflowRequiredUnits.toSubunits(to)
-      );
+    uint256 amountIn = ctx.broker.getAmountIn(
+      ctx.exchangeProvider,
+      ctx.exchangeId,
+      from,
+      to,
+      outflowRequiredUnits.toSubunits(to)
+    );
     assert_swapFails(ctx, from, to, amountIn, limit.revertReason());
   }
-
 
   function swapUntilLimit_onFrom(
     Utils.Context memory ctx,
@@ -201,7 +197,7 @@ contract SwapAssert is Test {
       skip(limitConfig.timestep0 + 1);
       swapUntilLimit0_onFrom(ctx, from, to);
       limitConfig = ctx.tradingLimitsConfig(from);
-      // Triger an update to reset netflows 
+      // Triger an update to reset netflows
       limitState = ctx.tradingLimitsState(from).update(limitConfig, 0, 0);
     }
     skip(limitConfig.timestep0 + 1);
@@ -223,7 +219,7 @@ contract SwapAssert is Test {
         skip(limitConfig.timestep1 + 1);
         swapUntilLimit1_onFrom(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(from);
-        // Triger an update to reset netflows 
+        // Triger an update to reset netflows
         limitState = ctx.tradingLimitsState(from).update(limitConfig, 0, 0);
       }
       skip(limitConfig.timestep1 + 1);
@@ -233,7 +229,7 @@ contract SwapAssert is Test {
         skip(limitConfig.timestep0 + 1);
         swapUntilLimit0_onFrom(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(from);
-        // Triger an update to reset netflows 
+        // Triger an update to reset netflows
         limitState = ctx.tradingLimitsState(from).update(limitConfig, 0, 0);
       }
       skip(limitConfig.timestep0 + 1);
@@ -255,7 +251,7 @@ contract SwapAssert is Test {
     } else {
       revert("Invalid limit");
     }
-  } 
+  }
 
   function swapUntilLimit0_onTo(
     Utils.Context memory ctx,
@@ -273,14 +269,13 @@ contract SwapAssert is Test {
     console.log("Max possible: ");
     console.logInt(maxPossible);
     if (maxPossible > 0) {
-      uint256 amountIn =
-        ctx.broker.getAmountIn(
-          ctx.exchangeProvider,
-          ctx.exchangeId,
-          from,
-          to,
-          uint256(maxPossible).toSubunits(to)
-        );
+      uint256 amountIn = ctx.broker.getAmountIn(
+        ctx.exchangeProvider,
+        ctx.exchangeId,
+        from,
+        to,
+        uint256(maxPossible).toSubunits(to)
+      );
       ctx.swap(from, to, amountIn);
     }
   }
@@ -323,7 +318,7 @@ contract SwapAssert is Test {
         skip(limitConfig.timestep1 + 1);
         swapUntilLimit1_onTo(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
-        // Triger an update to reset netflows 
+        // Triger an update to reset netflows
         limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
       }
       skip(limitConfig.timestep1 + 1);
@@ -333,7 +328,7 @@ contract SwapAssert is Test {
         skip(limitConfig.timestep0 + 1);
         swapUntilLimit0_onTo(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
-        // Triger an update to reset netflows 
+        // Triger an update to reset netflows
         limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
       }
       skip(limitConfig.timestep0 + 1);
