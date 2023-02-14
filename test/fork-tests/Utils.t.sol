@@ -111,7 +111,6 @@ library Utils {
     return limitConfig.flags > uint8(0);
   }
 
-
   function tradingLimitsConfig(Context memory ctx, bytes32 limitId) public view returns (TradingLimits.Config memory) {
     return ctx.brokerWithCasts.tradingLimitsConfig(limitId);
   }
@@ -120,22 +119,15 @@ library Utils {
     return ctx.brokerWithCasts.tradingLimitsState(limitId);
   }
 
-  function tradingLimitsConfig(
-    Context memory ctx,
-    address asset
-  ) public view returns (TradingLimits.Config memory) {
+  function tradingLimitsConfig(Context memory ctx, address asset) public view returns (TradingLimits.Config memory) {
     bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
     return ctx.brokerWithCasts.tradingLimitsConfig(ctx.exchangeId ^ assetBytes32);
   }
 
-  function tradingLimitsState(
-    Context memory ctx,
-    address asset
-  ) public view returns (TradingLimits.State memory) {
+  function tradingLimitsState(Context memory ctx, address asset) public view returns (TradingLimits.State memory) {
     bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
     return ctx.brokerWithCasts.tradingLimitsState(ctx.exchangeId ^ assetBytes32);
   }
-
 
   function isLimitEnabled(TradingLimits.Config memory config, uint8 limit) internal returns (bool) {
     return (config.flags & limit) > 0;
@@ -183,5 +175,4 @@ library Utils {
     uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
     return units * tokenBase;
   }
-
 }
