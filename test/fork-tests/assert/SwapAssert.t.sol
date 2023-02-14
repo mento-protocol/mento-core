@@ -98,6 +98,59 @@ contract SwapAssert is Test {
     assert_swapFails(ctx, from, to, inflowRequiredUnits.toSubunits(from), limit.revertReason());
   }
 
+  function assert_swapOverLimitFails_onTo(
+    Utils.Context memory ctx,
+    address from,
+    address to,
+    uint8 limit
+  ) internal {
+    // from -> L[to], `to` flows out of the reserve, so limit tested on the negative end
+
+    // This should do valid swaps until just before the limit is reached
+    swapUntilLimit_onTo(ctx, from, to, limit);
+    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    TradingLimits.State memory limitState = ctx.tradingLimitsState(to);
+
+    uint256 outflowRequiredUnits = uint256(limitConfig.getLimit(limit) + limitState.getNetflow(limit)) + 2;
+    console.log("Outflow required: ", outflowRequiredUnits);
+    uint256 amountIn =
+      ctx.broker.getAmountIn(
+        ctx.exchangeProvider,
+        ctx.exchangeId,
+        from,
+        to,
+        outflowRequiredUnits.toSubunits(to)
+      );
+    assert_swapFails(ctx, from, to, amountIn, limit.revertReason());
+  }
+
+  function assert_swapOverLimitFails_onTo(
+    Utils.Context memory ctx,
+    address from,
+    address to,
+    uint8 limit
+  ) internal {
+    // from -> L[to], `to` flows out of the reserve, so limit tested on the negative end
+
+    // This should do valid swaps until just before the limit is reached
+    swapUntilLimit_onTo(ctx, from, to, limit);
+    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    TradingLimits.State memory limitState = ctx.tradingLimitsState(to);
+
+    uint256 outflowRequiredUnits = uint256(limitConfig.getLimit(limit) + limitState.getNetflow(limit)) + 2;
+    console.log("Outflow required: ", outflowRequiredUnits);
+    uint256 amountIn =
+      ctx.broker.getAmountIn(
+        ctx.exchangeProvider,
+        ctx.exchangeId,
+        from,
+        to,
+        outflowRequiredUnits.toSubunits(to)
+      );
+    assert_swapFails(ctx, from, to, amountIn, limit.revertReason());
+  }
+
+
   function swapUntilLimit_onFrom(
     Utils.Context memory ctx,
     address from,
@@ -187,32 +240,6 @@ contract SwapAssert is Test {
     }
   }
 
-  function assert_swapOverLimitFails_onTo(
-    Utils.Context memory ctx,
-    address from,
-    address to,
-    uint8 limit
-  ) internal {
-    // from -> L[to], `to` flows out of the reserve, so limit tested on the negative end
-
-    // This should do valid swaps until just before the limit is reached
-    swapUntilLimit_onTo(ctx, from, to, limit);
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.tradingLimitsState(to);
-
-    uint256 outflowRequiredUnits = uint256(limitConfig.getLimit(limit) + limitState.getNetflow(limit)) + 2;
-    console.log("Outflow required: ", outflowRequiredUnits);
-    uint256 amountIn =
-      ctx.broker.getAmountIn(
-        ctx.exchangeProvider,
-        ctx.exchangeId,
-        from,
-        to,
-        outflowRequiredUnits.toSubunits(to)
-      );
-    assert_swapFails(ctx, from, to, amountIn, limit.revertReason());
-  }
-
   function swapUntilLimit_onTo(
     Utils.Context memory ctx,
     address from,
@@ -272,7 +299,7 @@ contract SwapAssert is Test {
 
     while (limitState.netflow1 - maxPerSwap > -1 * limitConfig.limit1) {
       skip(limitConfig.timestep0 + 1);
-      swapUntilLimit0_onFrom(ctx, from, to);
+      swapUntilLimit0_onTo(ctx, from, to);
       limitConfig = ctx.tradingLimitsConfig(to);
       limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
     }
@@ -294,7 +321,7 @@ contract SwapAssert is Test {
       int48 maxPerSwap = limitConfig.limit0 - 1;
       while (limitState.netflowGlobal - maxPerSwap > -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
-        swapUntilLimit1_onFrom(ctx, from, to);
+        swapUntilLimit1_onTo(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
         // Triger an update to reset netflows 
         limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
@@ -304,7 +331,7 @@ contract SwapAssert is Test {
       int48 maxPerSwap = limitConfig.limit0 - 1;
       while (limitState.netflowGlobal - maxPerSwap > -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
-        swapUntilLimit0_onFrom(ctx, from, to);
+        swapUntilLimit0_onTo(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
         // Triger an update to reset netflows 
         limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
