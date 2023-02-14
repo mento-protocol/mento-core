@@ -148,7 +148,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   /**
    * @notice Enables or disables a breaker for the specified rate feed.
    * @param breakerAddress The address of the breaker.
-   * @param rateFeedAddress The address of the rate feed.
+   * @param rateFeedId The id of the rate feed.
    * @param isEnabled Boolean indicating whether the breaker should be
    *                  enabled or disabled for the given rateFeed.
    * @dev If the breaker is being disabled and the rateFeed is using the same trading mode
@@ -156,10 +156,10 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    */
   function toggleBreaker(
     address breakerAddress,
-    address rateFeedAddress,
+    address rateFeedId,
     bool isEnabled
   ) public onlyOwner {
-    TradingModeInfo memory info = rateFeedTradingModes[rateFeedAddress];
+    TradingModeInfo memory info = rateFeedTradingModes[rateFeedId];
     require(info.lastUpdatedTime != 0, "This rate feed has not been added to the BreakerBox");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
 
@@ -167,11 +167,11 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     // If so, set the rateFeed to the default trading mode,
     // before disabling the breaker.
     if (!isEnabled && tradingModeBreaker[info.tradingMode] == breakerAddress) {
-      setRateFeedTradingMode(rateFeedAddress, 0);
+      setRateFeedTradingMode(rateFeedId, 0);
     }
 
-    breakerEnabled[breakerAddress][rateFeedAddress] = isEnabled;
-    emit BreakerStatusUpdated(breakerAddress, rateFeedAddress, isEnabled);
+    breakerEnabled[breakerAddress][rateFeedId] = isEnabled;
+    emit BreakerStatusUpdated(breakerAddress, rateFeedId, isEnabled);
   }
 
   /* ---------- rateFeedIDs ---------- */
