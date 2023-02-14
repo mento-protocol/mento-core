@@ -4,10 +4,10 @@ pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
 import { PrecompileHandler } from "celo-foundry/PrecompileHandler.sol";
-import { MentoBaseForkTest } from "./MentoBase.t.sol";
+import { BaseForkTest } from "./Base.t.sol";
 import { Chain } from "test/utils/Chain.sol";
 
-contract MentoBaklavaForkTest is MentoBaseForkTest {
+contract BaklavaForkTest is BaseForkTest {
   function setUp() public {
     Chain.fork(62320);
     ph = new PrecompileHandler();
