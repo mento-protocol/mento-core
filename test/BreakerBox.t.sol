@@ -279,12 +279,12 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_toggleBreaker_whenRateFeedIsNotRegistered_shouldRevert() public {
-    vm.expectRevert("this rate feed has not been registered");
+    vm.expectRevert("This rate feed has not been added to the BreakerBox");
     breakerBox.toggleBreaker(address(mockBreaker1), rateFeedID3, false);
   }
 
   function test_toggleBreaker_whenBreakerIsNotRegistered_shouldRevert() public {
-    vm.expectRevert("this breaker has not been registered in the breakers list");
+    vm.expectRevert("This breaker has not been added to the BreakerBox");
     breakerBox.toggleBreaker(address(mockBreaker3), rateFeedID1, true);
   }
 
