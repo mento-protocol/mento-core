@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 import { Test } from "celo-foundry/Test.sol";
 import { console2 } from "forge-std/console2.sol";
 import { console } from "forge-std/console.sol";
-import { Utils } from "../Utils.t.sol";
+import { Utils } from "./Utils.t.sol";
 
 import { IERC20Metadata } from "contracts/common/interfaces/IERC20Metadata.sol";
 import { TradingLimits } from "contracts/common/TradingLimits.sol";
@@ -95,31 +95,6 @@ contract SwapAssert is Test {
     uint256 inflowRequiredUnits = uint256(limitConfig.getLimit(limit) - limitState.getNetflow(limit)) + 1;
     console.log("Inflow required: ", inflowRequiredUnits);
     assert_swapFails(ctx, from, to, inflowRequiredUnits.toSubunits(from), limit.revertReason());
-  }
-
-  function assert_swapOverLimitFails_onTo(
-    Utils.Context memory ctx,
-    address from,
-    address to,
-    uint8 limit
-  ) internal {
-    // from -> L[to], `to` flows out of the reserve, so limit tested on the negative end
-
-    // This should do valid swaps until just before the limit is reached
-    swapUntilLimit_onTo(ctx, from, to, limit);
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.tradingLimitsState(to);
-
-    uint256 outflowRequiredUnits = uint256(limitConfig.getLimit(limit) + limitState.getNetflow(limit)) + 2;
-    console.log("Outflow required: ", outflowRequiredUnits);
-    uint256 amountIn = ctx.broker.getAmountIn(
-      ctx.exchangeProvider,
-      ctx.exchangeId,
-      from,
-      to,
-      outflowRequiredUnits.toSubunits(to)
-    );
-    assert_swapFails(ctx, from, to, amountIn, limit.revertReason());
   }
 
   function assert_swapOverLimitFails_onTo(

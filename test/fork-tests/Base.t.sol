@@ -9,7 +9,7 @@ import { console } from "forge-std/console.sol";
 import { TokenHelpers } from "test/utils/TokenHelpers.t.sol";
 
 import { Utils } from "./Utils.t.sol";
-import { SwapAssert } from "./assert/SwapAssert.t.sol";
+import { SwapAssert } from "./SwapAssert.t.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
