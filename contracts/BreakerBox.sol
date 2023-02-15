@@ -86,7 +86,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @notice Adds a breaker to the end of the list of breakers & the tradingMode-Breaker mapping.
    * @param breaker The address of the breaker to be added.
    * @param tradingMode The trading mode of the breaker to be added.
-   */ 
+   */
   function addBreaker(address breaker, uint64 tradingMode) public onlyOwner onlyValidBreaker(breaker, tradingMode) {
     tradingModeBreaker[tradingMode] = breaker;
     breakerTradingMode[breaker] = tradingMode;
