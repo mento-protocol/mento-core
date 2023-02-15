@@ -3,7 +3,7 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { BaseForkTest } from "./Base.t.sol";
+import { BaseForkTest } from "./BaseForkTest.t.sol";
 import { console2 } from "forge-std/console2.sol";
 import { console } from "forge-std/console.sol";
 
@@ -31,6 +31,7 @@ interface IBrokerWithCasts {
 
 library Utils {
   using FixidityLib for FixidityLib.Fraction;
+  using TradingLimits for TradingLimits.State;
 
   uint8 private constant L0 = 1; // 0b001 Limit0
   uint8 private constant L1 = 2; // 0b010 Limit1
@@ -63,7 +64,7 @@ library Utils {
 
   // ========================= Swaps =========================
 
-  function swap(
+  function swapIn(
     Context memory ctx,
     address from,
     address to,
@@ -73,9 +74,23 @@ library Utils {
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
 
     uint256 tokenBase = 10**uint256(IERC20Metadata(from).decimals());
-    uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount) -
-      (10 * tokenBase); // slippage
+    uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
     return ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
+  }
+
+  function swapOut(
+    Context memory ctx,
+    address from,
+    address to,
+    uint256 buyAmount
+  ) public returns (uint256) {
+    uint256 tokenBase = 10**uint256(IERC20Metadata(from).decimals());
+    uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
+
+    ctx.t.mint(from, ctx.t.trader0(), maxAmountIn);
+    IERC20Metadata(from).approve(address(ctx.broker), maxAmountIn);
+
+    return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
   }
 
   // ========================= Sorted Oracles =========================
@@ -127,6 +142,17 @@ library Utils {
   function tradingLimitsState(Context memory ctx, address asset) public view returns (TradingLimits.State memory) {
     bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
     return ctx.brokerWithCasts.tradingLimitsState(ctx.exchangeId ^ assetBytes32);
+  }
+
+  function refreshedTradingLimitsState(Context memory ctx, address asset)
+    public
+    view
+    returns (TradingLimits.State memory)
+  {
+    TradingLimits.Config memory config = tradingLimitsConfig(ctx, asset);
+    // Netflow might be outdated because of a skip(...) call and doing
+    // an update(0) would reset the netflow if enough time has passed.
+    return tradingLimitsState(ctx, asset).update(config, 0, 0);
   }
 
   function isLimitEnabled(TradingLimits.Config memory config, uint8 limit) internal returns (bool) {

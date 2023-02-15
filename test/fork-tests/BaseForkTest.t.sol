@@ -6,7 +6,10 @@ pragma experimental ABIEncoderV2;
 import { Test } from "celo-foundry/Test.sol";
 import { console2 } from "forge-std/console2.sol";
 import { console } from "forge-std/console.sol";
+import { PrecompileHandler } from "celo-foundry/PrecompileHandler.sol";
+
 import { TokenHelpers } from "test/utils/TokenHelpers.t.sol";
+import { Chain } from "test/utils/Chain.sol";
 
 import { Utils } from "./Utils.t.sol";
 import { SwapAssert } from "./SwapAssert.t.sol";
@@ -22,7 +25,7 @@ import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
 /**
- * @title MentoBaseForkTest
+ * @title BaseForkTest
  * @notice Fork tests for Mento!
  * This test suite tests invariantes on a fork of a live Mento environemnts.
  * The philosophy is to test in accordance with how the target fork is configured,
@@ -61,7 +64,18 @@ contract BaseForkTest is Test, TokenHelpers, SwapAssert {
   uint8 private constant L1 = 2; // 0b010 Limit1
   uint8 private constant LG = 4; // 0b100 LimitGlobal
 
+  uint256 targetChainId;
+
+  constructor(uint256 _targetChainId) public Test() {
+    targetChainId = _targetChainId;
+  }
+
   function setUp() public {
+    Chain.fork(targetChainId);
+    // The precompile handler is usually initialized in the celo-foundry/Test constructor
+    // but it needs to be reinitalized after forking
+    ph = new PrecompileHandler();
+
     broker = Broker(registry.getAddressForStringOrDie("Broker"));
     sortedOracles = SortedOracles(registry.getAddressForStringOrDie("SortedOracles"));
     governance = registry.getAddressForStringOrDie("Governance");
@@ -111,9 +125,9 @@ contract BaseForkTest is Test, TokenHelpers, SwapAssert {
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
 
       // asset0 -> asset1
-      assert_swap(ctx, exchange.assets[0], exchange.assets[1], Utils.toSubunits(1000, exchange.assets[0]));
+      assert_swapIn(ctx, exchange.assets[0], exchange.assets[1], Utils.toSubunits(1000, exchange.assets[0]));
       // asset1 -> asset0
-      assert_swap(ctx, exchange.assets[1], exchange.assets[0], Utils.toSubunits(1000, exchange.assets[1]));
+      assert_swapIn(ctx, exchange.assets[1], exchange.assets[0], Utils.toSubunits(1000, exchange.assets[1]));
     }
   }
 
