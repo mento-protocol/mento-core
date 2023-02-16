@@ -79,8 +79,6 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     targetChainId = _targetChainId;
   }
 
-  function __xxx_temp_setup() internal {}
-
   function setUp() public {
     Chain.fork(targetChainId);
     // The precompile handler is usually initialized in the celo-foundry/Test constructor
