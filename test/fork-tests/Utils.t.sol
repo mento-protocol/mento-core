@@ -14,8 +14,10 @@ import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
 import { Broker } from "contracts/Broker.sol";
+import { BreakerBox } from "contracts/BreakerBox.sol";
 import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { SortedOracles } from "contracts/SortedOracles.sol";
+import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
 
 /**
  * @title IBrokerWithCasts
@@ -42,6 +44,7 @@ library Utils {
     Broker broker;
     IBrokerWithCasts brokerWithCasts;
     SortedOracles sortedOracles;
+    BreakerBox breakerBox;
     address exchangeProvider;
     bytes32 exchangeId;
     IExchangeProvider.Exchange exchange;
@@ -56,6 +59,7 @@ library Utils {
       t.broker(),
       IBrokerWithCasts(address(t.broker())),
       t.sortedOracles(),
+      t.breakerBox(),
       exchangeProvider,
       exchange.exchangeId,
       exchange
@@ -109,14 +113,34 @@ library Utils {
   }
 
   function getReferenceRate(Context memory ctx) internal view returns (uint256, uint256) {
+    uint256 rateNumerator;
+    uint256 rateDenominator;
+    (rateNumerator, rateDenominator) = ctx.sortedOracles.medianRate(getReferenceRateFeedID(ctx));
+    require(rateDenominator > 0, "exchange rate denominator must be greater than 0");
+    return (rateNumerator, rateDenominator);
+  }
+
+  function getReferenceRateFeedID(Context memory ctx) internal view returns (address) {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
-    uint256 rateNumerator;
-    uint256 rateDenominator;
-    (rateNumerator, rateDenominator) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
-    require(rateDenominator > 0, "exchange rate denominator must be greater than 0");
-    return (rateNumerator, rateDenominator);
+    return pool.config.referenceRateFeedID;
+  }
+
+  function getMedianDeltaBreakerRateChangeThreshold(Context memory ctx, address _breaker)
+    internal
+    view
+    returns (uint256)
+  {
+    MedianDeltaBreaker breaker = MedianDeltaBreaker(_breaker);
+    address rateFeedID = getReferenceRateFeedID(ctx);
+
+    uint256 rateChangeThreshold = breaker.defaultRateChangeThreshold();
+    uint256 specificRateChangeThreshold = breaker.rateChangeThreshold(rateFeedID);
+    if (specificRateChangeThreshold != 0) {
+      rateChangeThreshold = specificRateChangeThreshold;
+    }
+    return rateChangeThreshold;
   }
 
   // ========================= Trading Limits =========================
@@ -194,6 +218,10 @@ library Utils {
       revert("invalid limit");
     }
   }
+
+  // ========================= Oracles =========================
+
+  function getOraclesCount(Context memory ctx, address rateFeedID) public view returns (uint256) {}
 
   // ========================= Misc =========================
 

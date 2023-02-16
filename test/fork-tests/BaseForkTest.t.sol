@@ -12,17 +12,24 @@ import { TokenHelpers } from "test/utils/TokenHelpers.t.sol";
 import { Chain } from "test/utils/Chain.sol";
 
 import { Utils } from "./Utils.t.sol";
-import { SwapAssert } from "./SwapAssert.t.sol";
+import { TestAsserts } from "./TestAsserts.t.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
+import { IBreaker } from "contracts/interfaces/IBreaker.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
 import { IERC20Metadata } from "contracts/common/interfaces/IERC20Metadata.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
+import { Proxy } from "contracts/common/Proxy.sol";
 
 import { Broker } from "contracts/Broker.sol";
+import { BreakerBox } from "contracts/BreakerBox.sol";
 import { SortedOracles } from "contracts/SortedOracles.sol";
 import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { TradingLimits } from "contracts/common/TradingLimits.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
+import { ValueDeltaBreaker } from "contracts/ValueDeltaBreaker.sol";
 
 /**
  * @title BaseForkTest
@@ -34,7 +41,7 @@ import { TradingLimits } from "contracts/common/TradingLimits.sol";
  * However, it should be exausitve in testing invariants across all tradable pairs
  * in the system, therfore each test should.
  */
-contract BaseForkTest is Test, TokenHelpers, SwapAssert {
+contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   using FixidityLib for FixidityLib.Fraction;
   using TradingLimits for TradingLimits.State;
   using TradingLimits for TradingLimits.Config;
@@ -50,10 +57,11 @@ contract BaseForkTest is Test, TokenHelpers, SwapAssert {
   address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
   IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
 
-  Broker public broker;
-
-  SortedOracles public sortedOracles;
   address governance;
+  Broker public broker;
+  BreakerBox public breakerBox;
+  SortedOracles public sortedOracles;
+  MedianDeltaBreaker public medianDeltaBreaker;
 
   address public trader0;
 
@@ -69,6 +77,8 @@ contract BaseForkTest is Test, TokenHelpers, SwapAssert {
   constructor(uint256 _targetChainId) public Test() {
     targetChainId = _targetChainId;
   }
+
+  function __xxx_temp_setup() internal {}
 
   function setUp() public {
     Chain.fork(targetChainId);
@@ -97,10 +107,12 @@ contract BaseForkTest is Test, TokenHelpers, SwapAssert {
       }
     }
 
+    console.log("Exchanges:");
     for (uint256 i = 0; i < exchanges.length; i++) {
       console.log(i, exchanges[i].exchangeProvider, exchanges[i].exchange.assets[0], exchanges[i].exchange.assets[1]);
     }
 
+    // ================================ TEMPORARY ====================================== //
     // XXX: Temporarily add trading limits to broker
     // These are not the real trading limits, but they are good enough for testing.
     changePrank(governance);
@@ -116,7 +128,34 @@ contract BaseForkTest is Test, TokenHelpers, SwapAssert {
       );
       broker.configureTradingLimit(exchange.exchangeId, exchange.assets[0], config);
     }
+    // XXX: Temporarily upgrade SortedOracles and set BreakerBox
+    // These contracts are specific to baklava and are here just to make the tests work.
+    address breakerBoxProxy = 0x5028D351F71b6797A49A2Ae429924B6a3f9cb280;
+    address newSortedOraclesImpl = 0xeBD235883f9040f12AD583b0820a7A62C96f9b6f;
+    Proxy(uint160(address(sortedOracles)))._setImplementation(newSortedOraclesImpl);
+    sortedOracles.setBreakerBox(IBreakerBox(breakerBoxProxy));
+    breakerBox = BreakerBox(breakerBoxProxy);
+    address[] memory rateFeedIDs = new address[](0);
+    uint256[] memory rateChangeThresholds = new uint256[](0);
+    uint256[] memory cooldownTimes = new uint256[](0);
+    medianDeltaBreaker = new MedianDeltaBreaker(
+      60 * 10,
+      FixidityLib.newFixedFraction(1, 10).unwrap(),
+      ISortedOracles(address(sortedOracles)),
+      rateFeedIDs,
+      rateChangeThresholds,
+      cooldownTimes
+    );
+    // medianDeltaBreaker.setDefaultCooldownTime(60 * 10); // 10min
+    // medianDeltaBreaker.setDefaultRateChangeThreshold(); // 10%
+    breakerBox.addBreaker(address(medianDeltaBreaker), 1);
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      Utils.Context memory ctx = Utils.newContext(address(this), i);
+      address rateFeedID = ctx.getReferenceRateFeedID();
+      breakerBox.toggleBreaker(address(medianDeltaBreaker), rateFeedID, true);
+    }
     changePrank(trader0);
+    // ================================================================================== //
   }
 
   function test_swapsHappenInBothDirections() public {
@@ -199,6 +238,67 @@ contract BaseForkTest is Test, TokenHelpers, SwapAssert {
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
 
       assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], LG);
+    }
+  }
+
+  function test_circuitBreaker_rateFeedsAreProtected() public {
+    address[] memory breakers = breakerBox.getBreakers();
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      Utils.Context memory ctx = Utils.newContext(address(this), i);
+      address rateFeedID = ctx.getReferenceRateFeedID();
+      bool found = false;
+      for (uint256 j = 0; j < breakers.length && !found; j++) {
+        found = breakerBox.isBreakerEnabled(breakers[j], rateFeedID);
+      }
+      require(found, "No breaker found for rateFeedID");
+    }
+  }
+
+  function test_circuitBreaker_breaks() public {
+    address[] memory breakers = breakerBox.getBreakers();
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      Utils.Context memory ctx = Utils.newContext(address(this), i);
+      address rateFeedID = ctx.getReferenceRateFeedID();
+      for (uint256 j = 0; j < breakers.length; j++) {
+        if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
+          assert_breakerBreaks(ctx, breakers[j], breakerBox.breakerTradingMode(breakers[j]));
+        }
+      }
+    }
+  }
+
+  function test_circuitBreaker_recovers() public {
+    address[] memory breakers = breakerBox.getBreakers();
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      Utils.Context memory ctx = Utils.newContext(address(this), i);
+      address rateFeedID = ctx.getReferenceRateFeedID();
+      for (uint256 j = 0; j < breakers.length; j++) {
+        if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
+          assert_breakerRecovers(ctx, breakers[j], breakerBox.breakerTradingMode(breakers[j]));
+        }
+      }
+    }
+  }
+
+  function test_circuitBreaker_haltsTrading() public {
+    address[] memory breakers = breakerBox.getBreakers();
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      Utils.Context memory ctx = Utils.newContext(address(this), i);
+      address rateFeedID = ctx.getReferenceRateFeedID();
+      IExchangeProvider.Exchange memory exchange = ctx.exchange;
+
+      for (uint256 j = 0; j < breakers.length; j++) {
+        if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
+          assert_breakerBreaks(ctx, breakers[j], breakerBox.breakerTradingMode(breakers[j]));
+          assert_swapInFails(
+            ctx,
+            exchange.assets[0],
+            exchange.assets[1],
+            Utils.toSubunits(1000, exchange.assets[0]),
+            "Trading is suspended for this reference rate"
+          );
+        }
+      }
     }
   }
 }
