@@ -18,6 +18,8 @@ import { BreakerBox } from "contracts/BreakerBox.sol";
 import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { SortedOracles } from "contracts/SortedOracles.sol";
 import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
+import { ValueDeltaBreaker } from "contracts/ValueDeltaBreaker.sol";
+import { WithThreshold } from "contracts/common/breakers/WithThreshold.sol";
 
 /**
  * @title IBrokerWithCasts
@@ -127,7 +129,17 @@ library Utils {
     return pool.config.referenceRateFeedID;
   }
 
-  function getMedianDeltaBreakerRateChangeThreshold(Context memory ctx, address _breaker)
+  function getValueDeltaBreakerReferenceValue(Context memory ctx, address _breaker)
+    internal
+    view
+    returns (uint256)
+  {
+    ValueDeltaBreaker breaker = ValueDeltaBreaker(_breaker);
+    address rateFeedID = getReferenceRateFeedID(ctx);
+    return breaker.referenceValues(rateFeedID);
+  }
+
+  function getBreakerRateChangeThreshold(Context memory ctx, address _breaker)
     internal
     view
     returns (uint256)

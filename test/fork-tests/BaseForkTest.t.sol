@@ -62,6 +62,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   BreakerBox public breakerBox;
   SortedOracles public sortedOracles;
   MedianDeltaBreaker public medianDeltaBreaker;
+  ValueDeltaBreaker public valueDeltaBreaker;
 
   address public trader0;
 
@@ -138,22 +139,41 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     address[] memory rateFeedIDs = new address[](0);
     uint256[] memory rateChangeThresholds = new uint256[](0);
     uint256[] memory cooldownTimes = new uint256[](0);
+
     medianDeltaBreaker = new MedianDeltaBreaker(
       60 * 10,
-      FixidityLib.newFixedFraction(1, 10).unwrap(),
+      FixidityLib.newFixedFraction(10, 100).unwrap(),
       ISortedOracles(address(sortedOracles)),
       rateFeedIDs,
       rateChangeThresholds,
       cooldownTimes
     );
-    // medianDeltaBreaker.setDefaultCooldownTime(60 * 10); // 10min
-    // medianDeltaBreaker.setDefaultRateChangeThreshold(); // 10%
     breakerBox.addBreaker(address(medianDeltaBreaker), 1);
-    for (uint256 i = 0; i < exchanges.length; i++) {
-      Utils.Context memory ctx = Utils.newContext(address(this), i);
-      address rateFeedID = ctx.getReferenceRateFeedID();
-      breakerBox.toggleBreaker(address(medianDeltaBreaker), rateFeedID, true);
-    }
+
+    valueDeltaBreaker = new ValueDeltaBreaker(
+      60 * 10,
+      FixidityLib.newFixedFraction(3, 100).unwrap(),
+      ISortedOracles(address(sortedOracles)),
+      rateFeedIDs,
+      rateChangeThresholds,
+      cooldownTimes
+    );
+    breakerBox.addBreaker(address(valueDeltaBreaker), 2);
+
+    require(exchanges.length == 2, "this temporary setup expects only 2 exchanges");
+    Utils.Context memory ctx0 = Utils.newContext(address(this), 0);
+    address rateFeedID0 = ctx0.getReferenceRateFeedID();
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), rateFeedID0, true);
+
+    Utils.Context memory ctx1 = Utils.newContext(address(this), 1);
+    address rateFeedID1 = ctx1.getReferenceRateFeedID();
+    breakerBox.toggleBreaker(address(valueDeltaBreaker), rateFeedID1, true);
+    rateFeedIDs = new address[](1);
+    rateFeedIDs[0] = rateFeedID1;
+    uint256[] memory referenceValues = new uint256[](1);
+    (referenceValues[0], ) = ctx1.getReferenceRate();
+    valueDeltaBreaker.setReferenceValues(rateFeedIDs, referenceValues);
+
     changePrank(trader0);
     // ================================================================================== //
   }
