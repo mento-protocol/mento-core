@@ -117,8 +117,8 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     for (uint256 i = 0; i < exchanges.length; i++) {
       IExchangeProvider.Exchange memory exchange = exchanges[i].exchange;
       TradingLimits.Config memory config = TradingLimits.Config(
-        60 * 5, // 5min
-        60 * 60 * 24, // 1day
+        5 minutes,
+        1 days,
         1_000,
         10_000,
         100_000,
