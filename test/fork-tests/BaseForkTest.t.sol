@@ -92,7 +92,6 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     changePrank(trader0);
 
     vm.label(address(broker), "Broker");
-    __swapAssertDebug = true;
 
     address[] memory exchangeProviders = broker.getExchangeProviders();
     for (uint256 i = 0; i < exchangeProviders.length; i++) {
