@@ -307,11 +307,34 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       for (uint256 j = 0; j < breakers.length; j++) {
         if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
           assert_breakerBreaks(ctx, breakers[j], breakerBox.breakerTradingMode(breakers[j]));
+
           assert_swapInFails(
             ctx,
             exchange.assets[0],
             exchange.assets[1],
             Utils.toSubunits(1000, exchange.assets[0]),
+            "Trading is suspended for this reference rate"
+          );
+          assert_swapInFails(
+            ctx,
+            exchange.assets[1],
+            exchange.assets[0],
+            Utils.toSubunits(1000, exchange.assets[1]),
+            "Trading is suspended for this reference rate"
+          );
+
+          assert_swapOutFails(
+            ctx,
+            exchange.assets[0],
+            exchange.assets[1],
+            Utils.toSubunits(1000, exchange.assets[0]),
+            "Trading is suspended for this reference rate"
+          );
+          assert_swapOutFails(
+            ctx,
+            exchange.assets[1],
+            exchange.assets[0],
+            Utils.toSubunits(1000, exchange.assets[1]),
             "Trading is suspended for this reference rate"
           );
         }
