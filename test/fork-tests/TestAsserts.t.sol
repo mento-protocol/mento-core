@@ -376,8 +376,6 @@ contract TestAsserts is Test {
     } else {
       revert("Unknown trading mode, can't infer breaker type");
     }
-
-    address rateFeedID = ctx.getReferenceRateFeedID();
   }
 
   function assert_medianDeltaBreakerBreaks_onIncrease(Utils.Context memory ctx, address _breaker) public {
