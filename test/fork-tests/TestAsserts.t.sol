@@ -200,8 +200,7 @@ contract TestAsserts is Test {
 
     console.log(block.timestamp, "Swap until limit on from (L0)");
     int48 maxPossible = limitConfig.limit0 - limitState.netflow0;
-    console.log("Max possible: ");
-    console.logInt(maxPossible);
+    console.log("Max possible: ", uint256(maxPossible));
     if (maxPossible > 0) {
       ctx.swapIn(from, to, uint256(maxPossible).toSubunits(from));
     }
@@ -284,8 +283,7 @@ contract TestAsserts is Test {
 
     console.log(block.timestamp, "Swap until limit on to (L0)");
     int48 maxPossible = limitConfig.limit0 + limitState.netflow0 - 1;
-    console.log("Max possible: ");
-    console.logInt(maxPossible);
+    console.log("Max possible: ", uint256(maxPossible));
     if (maxPossible > 0) {
       ctx.swapOut(from, to, uint256(maxPossible).toSubunits(to));
     }
