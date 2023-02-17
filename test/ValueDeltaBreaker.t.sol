@@ -258,4 +258,38 @@ contract ValueDeltaBreakerTest_shouldTrigger is ValueDeltaBreakerTest {
 
     assertTrue(breaker.shouldTrigger(rateFeedID3));
   }
+  function test_shouldTrigger_multipleBlocksInARow_ShouldTrigger() public {
+    rateChangeThresholds[0] = 0.01 * 10**24;
+    rateFeedIDs[0] = rateFeedID3;
+    breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
+    assertEq(breaker.rateChangeThreshold(rateFeedID3), rateChangeThresholds[0]);
+    
+    // set cooldown time to 1 second
+    uint256[] memory valueDeltaBreakerCooldownTimes = new uint256[](1);
+    valueDeltaBreakerCooldownTimes[0] = 1 seconds;
+
+    breaker.setCooldownTimes(rateFeedIDs, valueDeltaBreakerCooldownTimes);
+
+    // block 1
+    assertEq(block.number, 1);
+    vm.warp(1672527600); // 2023-01-01 00:00:00
+    // median 1.1, treshold [0.99, 1.01], should trigger
+    updateMedianByPercent(1.1 * 10**24, rateFeedID3);
+    assertTrue(breaker.shouldTrigger(rateFeedID3));
+
+    // block 2
+    vm.roll(2);
+    vm.warp(1672527605); // 2023-01-01 00:00:05
+    assertEq(block.number, 2);
+    // median 1.1, treshold [0.99, 1.01], should trigger
+    assertTrue(breaker.shouldTrigger(rateFeedID3));
+
+    // block n+2
+    vm.roll(3);
+    vm.warp(1672527610); // 2023-01-01 00:00:10
+    assertEq(block.number, 3);
+    updateMedianByPercent(1.0 * 10**24, rateFeedID3);
+    // median 1.0, treshold [0.99, 1.01], should not trigger
+    assertFalse(breaker.shouldTrigger(rateFeedID3));
+  }
 }
