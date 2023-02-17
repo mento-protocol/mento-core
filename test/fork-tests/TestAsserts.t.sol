@@ -502,7 +502,7 @@ contract TestAsserts is Test {
 
     updateOracleMedianRate(ctx, newMedian);
     (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
-    require(tradingMode != 0, "breaker should be triggered");
+    require(tradingMode == expectedTradingMode, "trading more is different from expected");
   }
 
   function assert_breakerRecovers_withNewMedian(Utils.Context memory ctx, uint256 newMedian) public {
