@@ -197,9 +197,16 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       bytes32 asset1Bytes32 = bytes32(uint256(uint160(exchange.assets[1])));
       bytes32 limitIdForAsset1 = exchange.exchangeId ^ asset1Bytes32;
 
+      bool asset0LimitConfigured = ctx.isLimitConfigured(limitIdForAsset0);
+      bool asset1LimitConfigured = ctx.isLimitConfigured(limitIdForAsset1);
+
       require(
-        ctx.isLimitConfigured(limitIdForAsset0) || ctx.isLimitConfigured(limitIdForAsset1),
+        asset0LimitConfigured || asset1LimitConfigured,
         "Limit not configured"
+      );
+      require(
+        !asset0LimitConfigured || !asset1LimitConfigured,
+        "Limit configured for both assets"
       );
     }
   }
