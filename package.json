@@ -35,6 +35,7 @@
     "solhint": "solhint --config \"./.solhint.json\" \"{contracts,test,script}/**/*.sol\"",
     "solhint:check": "solhint --config \"./.solhint.json\" \"{contracts,test,script}/**/*.sol\" -q",
     "test": "forge test",
+    "forge:build:slither": "forge clean && forge build --skip test --skip script --build-info",
     "fork-test": "env FOUNDRY_PROFILE=fork-tests forge test",
     "fork-test:baklava": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Baklava",
     "fork-test:alfajores": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Alfajores",
