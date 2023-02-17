@@ -33,8 +33,6 @@ contract TestAsserts is Test {
   uint8 private constant L1 = 2; // 0b010 Limit1
   uint8 private constant LG = 4; // 0b100 LimitGlobal
 
-  bool __swapAssertDebug = false;
-
   uint256 fixed1 = FixidityLib.fixed1().unwrap();
   FixidityLib.Fraction pc10 = FixidityLib.newFixedFraction(10, 100);
 
