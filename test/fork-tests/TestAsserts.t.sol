@@ -279,7 +279,7 @@ contract TestAsserts is Test {
      * of the limit because `to` flows out of the reserve.
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
+    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
     console.log(block.timestamp, "Swap until limit on to (L0)");
     int48 maxPossible = limitConfig.limit0 + limitState.netflow0 - 1;
@@ -301,7 +301,7 @@ contract TestAsserts is Test {
      * of the limit because `to` flows out of the reserve.
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
+    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
     console.log(block.timestamp, "Swap until limit on to (L1)");
     int48 maxPerSwap = limitConfig.limit0 - 1;
@@ -310,7 +310,7 @@ contract TestAsserts is Test {
       skip(limitConfig.timestep0 + 1);
       swapUntilL0_onOutflow(ctx, from, to);
       limitConfig = ctx.tradingLimitsConfig(to);
-      limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
+      limitState = ctx.tradingLimitsState(to);
     }
     skip(limitConfig.timestep0 + 1);
   }
@@ -327,7 +327,7 @@ contract TestAsserts is Test {
      * of the limit because `to` flows out of the reserve.
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
+    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
     console.log(block.timestamp, "Swap until limit on to (LG)");
 
@@ -338,7 +338,7 @@ contract TestAsserts is Test {
         swapUntilL1_onOutflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
         // Triger an update to reset netflows
-        limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
+        limitState = ctx.tradingLimitsState(to);
       }
       skip(limitConfig.timestep1 + 1);
     } else if (limitConfig.isLimitEnabled(L0)) {
@@ -348,7 +348,7 @@ contract TestAsserts is Test {
         swapUntilL0_onOutflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
         // Triger an update to reset netflows
-        limitState = ctx.tradingLimitsState(to).update(limitConfig, 0, 0);
+        limitState = ctx.tradingLimitsState(to);
       }
       skip(limitConfig.timestep0 + 1);
     }
