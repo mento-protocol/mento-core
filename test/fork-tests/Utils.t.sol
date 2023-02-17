@@ -79,7 +79,6 @@ library Utils {
     ctx.t.mint(from, ctx.t.trader0(), sellAmount);
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
 
-    uint256 tokenBase = 10**uint256(IERC20Metadata(from).decimals());
     uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
     return ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
   }
@@ -90,7 +89,6 @@ library Utils {
     address to,
     uint256 buyAmount
   ) public returns (uint256) {
-    uint256 tokenBase = 10**uint256(IERC20Metadata(from).decimals());
     uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
 
     ctx.t.mint(from, ctx.t.trader0(), maxAmountIn);
