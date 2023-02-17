@@ -56,7 +56,7 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
    * @param cooldownTimes The new cooldownTime value.
    * @dev Should be set to 0 to force a manual reset.
    */
-  function setCooldownTimes(address[] calldata rateFeedIDs, uint256[] calldata cooldownTimes) external onlyOwner {
+  function setCooldownTime(address[] calldata rateFeedIDs, uint256[] calldata cooldownTimes) external onlyOwner {
     _setCooldownTimes(rateFeedIDs, cooldownTimes);
   }
 
