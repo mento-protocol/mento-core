@@ -458,7 +458,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     uint256 value
   ) external returns (bool) {
     require(isSpender[msg.sender], "sender not allowed to transfer Reserve funds");
-    require(to != address(0), "can not transfer to 0 address");
+    require(isOtherReserveAddress[to], "can only transfer to other reserve address");
     require(
       getDailySpendingRatioForCollateralAsset(collateralAsset) > 0,
       "this asset has no spending ratio, therefore can't be transferred"

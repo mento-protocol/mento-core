@@ -414,11 +414,11 @@ contract ReserveTest_transfers is ReserveTest {
   uint256 constant reserveDummyToken2Balance = 20000000;
   address payable constant otherReserveAddress = address(0x1234);
   address payable constant trader = address(0x1245);
-  address spender;
+  address payable spender;
 
   function setUp() public {
     super.setUp();
-    spender = actor("spender");
+    spender = address(uint160(actor("spender")));
 
     address[] memory collateralAssets = new address[](1);
     uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
@@ -476,22 +476,26 @@ contract ReserveTest_transfers is ReserveTest {
   function test_transferCollateralAsset_whenItExceedsSpendingLimit_shouldRevert() public {
     changePrank(spender);
     vm.expectRevert("Exceeding spending limit");
-    reserve.transferCollateralAsset(address(dummyToken1), trader, reserveDummyToken1Balance.add(2));
+    reserve.transferCollateralAsset(
+      address(dummyToken1), 
+      otherReserveAddress, 
+      reserveDummyToken1Balance.add(2)
+    );
 
     vm.warp(block.timestamp + 24 * 3600);
   }
 
-  function test_transferCollateralAsset_whenItTransfersToZeroAddress_shouldRevert() public {
+  function test_transferCollateralAsset_whenItTransfersToARandomAddress_shouldRevert() public {
     uint256 amount = reserveDummyToken1Balance.div(100);
     changePrank(spender);
-    vm.expectRevert("can not transfer to 0 address");
-    reserve.transferCollateralAsset(address(dummyToken1), address(0), amount);
+    vm.expectRevert("can only transfer to other reserve address");
+    reserve.transferCollateralAsset(address(dummyToken1), spender, amount);
   }
 
   function test_transferCollateralAsset_whenSpendingRatioWasNotSet_shouldRevert() public {
     changePrank(spender);
     vm.expectRevert("this asset has no spending ratio, therefore can't be transferred");
-    reserve.transferCollateralAsset(address(dummyToken2), trader, reserveDummyToken2Balance);
+    reserve.transferCollateralAsset(address(dummyToken2), otherReserveAddress, reserveDummyToken2Balance);
   }
 
   function test_transferCollateralAsset_whenSpenderWasRemoved_shouldRevert() public {
@@ -513,11 +517,11 @@ contract ReserveTest_transfers is ReserveTest {
     uint256 reserveBalanceBefore = dummyToken3.balanceOf(address(reserve));
 
     // Spend 500 DT3 (50% of daily limit)
-    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer1Amount);
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer1Amount);
     // Spend 400 DT3 (LT remaining daily limit)
-    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer2Amount);
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer2Amount);
 
-    uint256 traderBalanceAfter = dummyToken3.balanceOf(trader);
+    uint256 traderBalanceAfter = dummyToken3.balanceOf(otherReserveAddress);
     uint256 reserveBalanceAfter = dummyToken3.balanceOf(address(reserve));
 
     assertEq(reserveBalanceAfter, (reserveBalanceBefore - totalTransferAmount));
@@ -528,7 +532,7 @@ contract ReserveTest_transfers is ReserveTest {
     changePrank(spender);
 
     // Spend 500 DT3 (50% of daily limit)
-    reserve.transferCollateralAsset(address(dummyToken3), trader, 500 * 10**18);
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, 500 * 10**18);
     uint256 spendingLimitAfter = reserve.collateralAssetSpendingLimit(address(dummyToken3));
 
     // (collateralAssetDailySpendingRatio * reserve DT3 balance before transfer) - transfer amount
@@ -536,7 +540,7 @@ contract ReserveTest_transfers is ReserveTest {
 
     vm.expectRevert("Exceeding spending limit");
     // Spend amount GT remaining daily limit
-    reserve.transferCollateralAsset(address(dummyToken3), trader, spendingLimitAfter + 1);
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, spendingLimitAfter + 1);
   } 
 
   function test_transferCollateralAsset_whenSpendingLimitIsHit_shoudResetNextDay() public {
@@ -546,20 +550,20 @@ contract ReserveTest_transfers is ReserveTest {
     uint256 transfer2Amount = 600 * 10**18;
 
     // Spend 500 DT3 (50% of daily limit)
-    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer1Amount);
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer1Amount);
 
     vm.expectRevert("Exceeding spending limit");
     // Spend 600 DT3 (GT remaining daily limit)
-    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer2Amount);
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer2Amount);
 
-    uint256 traderBalanceAfterFirstDay = dummyToken3.balanceOf(trader);
+    uint256 traderBalanceAfterFirstDay = dummyToken3.balanceOf(otherReserveAddress);
     assertEq(traderBalanceAfterFirstDay, transfer1Amount);
 
     vm.warp(block.timestamp + 24 * 3600);
 
     // Spend 600 DT3 (LT remaining daily limit on new day)
-    reserve.transferCollateralAsset(address(dummyToken3), trader, transfer2Amount);
-    uint256 traderBalanceAfterSecondDay = dummyToken3.balanceOf(trader);
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer2Amount);
+    uint256 traderBalanceAfterSecondDay = dummyToken3.balanceOf(otherReserveAddress);
 
     assertEq(traderBalanceAfterSecondDay, transfer1Amount + transfer2Amount);
   }
@@ -569,14 +573,14 @@ contract ReserveTest_transfers is ReserveTest {
   function test_transferExchangeCollateralAsset_whenSenderIsBroker_shouldTransfer() public {
     reserve.addExchangeSpender(broker);
     changePrank(broker);
-    reserve.transferExchangeCollateralAsset(address(dummyToken1), trader, 1000);
-    assertEq(dummyToken1.balanceOf(trader), 1000);
+    reserve.transferExchangeCollateralAsset(address(dummyToken1), otherReserveAddress, 1000);
+    assertEq(dummyToken1.balanceOf(otherReserveAddress), 1000);
   }
 
   function test_transferExchangeCollateralAsset_notExchangeSender_shouldRevert() public {
     changePrank(notDeployer);
     vm.expectRevert("Address not allowed to spend");
-    reserve.transferExchangeCollateralAsset(address(dummyToken1), trader, 1000);
+    reserve.transferExchangeCollateralAsset(address(dummyToken1), otherReserveAddress, 1000);
   }
 
   function test_addExchangeSpender() public {
