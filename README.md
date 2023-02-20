@@ -5,7 +5,7 @@
 
 # Mento Core
 
-This repo contains the source code of the core smart contracts for the Mento protocol. The repository is built with foundry which is used for the compilation, testing and deployment of the smart contracts.
+This repo contains the source code of the core smart contracts for the Mento protocol. The repository is built with foundry which is used for the compilation and testing of the smart contracts.
 
 ## What is Mento?
 

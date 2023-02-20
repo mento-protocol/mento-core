@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable state-visibility
 pragma solidity ^0.5.13;
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable var-name-mixedcase
 pragma solidity >=0.5.13 <0.9.0;
 

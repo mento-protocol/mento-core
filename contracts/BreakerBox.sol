@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.5.13;
 
 import { IBreakerBox } from "./interfaces/IBreakerBox.sol";
@@ -147,23 +147,31 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
 
   /**
    * @notice Enables or disables a breaker for the specified rate feed.
-   * @param breaker The address of the breaker.
-   * @param rateFeedID The address of the rate feed.
-   * @param status Bool indicating the the status.
+   * @param breakerAddress The address of the breaker.
+   * @param rateFeedId The id of the rate feed.
+   * @param isEnabled Boolean indicating whether the breaker should be
+   *                  enabled or disabled for the given rateFeed.
+   * @dev If the breaker is being disabled and the rateFeed is using the same trading mode
+   *      as the breaker, the rateFeed will be set to the default trading mode.
    */
   function toggleBreaker(
-    address breaker,
-    address rateFeedID,
-    bool status
+    address breakerAddress,
+    address rateFeedId,
+    bool isEnabled
   ) public onlyOwner {
-    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
-    require(info.lastUpdatedTime != 0, "this rate feed has not been registered");
-    require(isBreaker(breaker), "this breaker has not been registered in the breakers list");
-    if (!status && tradingModeBreaker[info.tradingMode] == breaker) {
-      setRateFeedTradingMode(rateFeedID, 0);
+    TradingModeInfo memory info = rateFeedTradingModes[rateFeedId];
+    require(info.lastUpdatedTime != 0, "This rate feed has not been added to the BreakerBox");
+    require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
+
+    // Check if we are disabling the breaker for this rateFeedID.
+    // If so, set the rateFeed to the default trading mode,
+    // before disabling the breaker.
+    if (!isEnabled && tradingModeBreaker[info.tradingMode] == breakerAddress) {
+      setRateFeedTradingMode(rateFeedId, 0);
     }
-    breakerEnabled[breaker][rateFeedID] = status;
-    emit BreakerStatusUpdated(breaker, rateFeedID, status);
+
+    breakerEnabled[breakerAddress][rateFeedId] = isEnabled;
+    emit BreakerStatusUpdated(breakerAddress, rateFeedId, isEnabled);
   }
 
   /* ---------- rateFeedIDs ---------- */

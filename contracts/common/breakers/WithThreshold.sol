@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.5.13;
 
 import { FixidityLib } from "../FixidityLib.sol";
@@ -44,7 +44,7 @@ contract WithThreshold {
    *          is within the allowed threshold.
    */
   function exceedsThreshold(
-    uint256 referenceValue, 
+    uint256 referenceValue,
     uint256 currentValue,
     address rateFeedID
   ) public view returns (bool) {
@@ -77,7 +77,7 @@ contract WithThreshold {
   }
 
   /**
-   * @notice Configures rate feed to rate shreshold pairs.
+   * @notice Configures rate feed to rate threshold pairs.
    * @param rateFeedIDs Collection of the addresses rate feeds.
    * @param rateChangeThresholds Collection of the rate thresholds.
    */
