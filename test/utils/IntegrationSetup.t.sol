@@ -64,14 +64,14 @@ contract IntegrationSetup is Test, WithRegistry {
 
   address cUSD_CELO_referenceRateFeedID;
   address cEUR_CELO_referenceRateFeedID;
-  address cUSD_USDCet_referenceRateFeedID;
-  address cEUR_USDCet_referenceRateFeedID;
+  address cUSD_bridgedUSDC_referenceRateFeedID;
+  address cEUR_bridgedUSDC_referenceRateFeedID;
   address cUSD_cEUR_referenceRateFeedID;
 
   bytes32 pair_cUSD_CELO_ID;
   bytes32 pair_cEUR_CELO_ID;
-  bytes32 pair_cUSD_USDCet_ID;
-  bytes32 pair_cEUR_USDCet_ID;
+  bytes32 pair_cUSD_bridgedUSDC_ID;
+  bytes32 pair_cEUR_bridgedUSDC_ID;
   bytes32 pair_cUSD_cEUR_ID;
 
   function setUp_mcMint() public {
@@ -92,7 +92,7 @@ contract IntegrationSetup is Test, WithRegistry {
     /* ===== Deploy collateral and stable assets ===== */
 
     celoToken = new Token("Celo", "cGLD", 18);
-    usdcToken = new Token("USDCet", "USDCet", 18);
+    usdcToken = new Token("bridgedUSDC", "bridgedUSDC", 18);
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
@@ -134,7 +134,7 @@ contract IntegrationSetup is Test, WithRegistry {
     uint256[] memory initialAssetAllocationWeights = new uint256[](2);
     initialAssetAllocationSymbols[0] = bytes32("cGLD");
     initialAssetAllocationWeights[0] = FixidityLib.newFixedFraction(1, 2).unwrap();
-    initialAssetAllocationSymbols[1] = bytes32("USDCet");
+    initialAssetAllocationSymbols[1] = bytes32("bridgedUSDC");
     initialAssetAllocationWeights[1] = FixidityLib.newFixedFraction(1, 2).unwrap();
 
     address[] memory asse1s = new address[](2);
@@ -171,8 +171,8 @@ contract IntegrationSetup is Test, WithRegistry {
 
     cUSD_CELO_referenceRateFeedID = address(cUSDToken);
     cEUR_CELO_referenceRateFeedID = address(cEURToken);
-    cUSD_USDCet_referenceRateFeedID = address(bytes20(keccak256("USD/USDC")));
-    cEUR_USDCet_referenceRateFeedID = address(bytes20(keccak256("EUR/USDC")));
+    cUSD_bridgedUSDC_referenceRateFeedID = address(bytes20(keccak256("USD/USDC")));
+    cEUR_bridgedUSDC_referenceRateFeedID = address(bytes20(keccak256("EUR/USDC")));
     cUSD_cEUR_referenceRateFeedID = address(bytes20(keccak256("USD/EUR")));
 
     initOracles(cUSD_CELO_referenceRateFeedID, 10);
@@ -181,11 +181,11 @@ contract IntegrationSetup is Test, WithRegistry {
     initOracles(cEUR_CELO_referenceRateFeedID, 10);
     setMedianRate(cEUR_CELO_referenceRateFeedID, 5e23);
 
-    initOracles(cUSD_USDCet_referenceRateFeedID, 10);
-    setMedianRate(cUSD_USDCet_referenceRateFeedID, 1.02 * 1e24);
+    initOracles(cUSD_bridgedUSDC_referenceRateFeedID, 10);
+    setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1.02 * 1e24);
 
-    initOracles(cEUR_USDCet_referenceRateFeedID, 10);
-    setMedianRate(cEUR_USDCet_referenceRateFeedID, 0.9 * 1e24);
+    initOracles(cEUR_bridgedUSDC_referenceRateFeedID, 10);
+    setMedianRate(cEUR_bridgedUSDC_referenceRateFeedID, 0.9 * 1e24);
 
     initOracles(cUSD_cEUR_referenceRateFeedID, 10);
     setMedianRate(cUSD_cEUR_referenceRateFeedID, 1.1 * 1e24);
@@ -227,8 +227,8 @@ contract IntegrationSetup is Test, WithRegistry {
     address[] memory rateFeedIDs = new address[](5);
     rateFeedIDs[0] = cUSD_CELO_referenceRateFeedID;
     rateFeedIDs[1] = cEUR_CELO_referenceRateFeedID;
-    rateFeedIDs[2] = cUSD_USDCet_referenceRateFeedID;
-    rateFeedIDs[3] = cEUR_USDCet_referenceRateFeedID;
+    rateFeedIDs[2] = cUSD_bridgedUSDC_referenceRateFeedID;
+    rateFeedIDs[3] = cEUR_bridgedUSDC_referenceRateFeedID;
     rateFeedIDs[4] = cUSD_cEUR_referenceRateFeedID;
 
     breakerBox = new BreakerBox(true);
@@ -264,9 +264,9 @@ contract IntegrationSetup is Test, WithRegistry {
     // enable breakers
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_CELO_referenceRateFeedID, true);
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_CELO_referenceRateFeedID, true);
-    breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_USDCet_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_bridgedUSDC_referenceRateFeedID, true);
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_cEUR_referenceRateFeedID, true);
-    breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_USDCet_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_bridgedUSDC_referenceRateFeedID, true);
   }
 
   function setUp_broker() internal {
@@ -317,31 +317,31 @@ contract IntegrationSetup is Test, WithRegistry {
 
     pair_cEUR_CELO_ID = biPoolManager.createExchange(pair_cEUR_CELO);
 
-    BiPoolManager.PoolExchange memory pair_cUSD_USDCet;
-    pair_cUSD_USDCet.asset0 = address(cUSDToken);
-    pair_cUSD_USDCet.asset1 = address(usdcToken);
-    pair_cUSD_USDCet.pricingModule = constantProduct;
-    pair_cUSD_USDCet.lastBucketUpdate = now;
-    pair_cUSD_USDCet.config.spread = FixidityLib.newFixedFraction(5, 100);
-    pair_cUSD_USDCet.config.referenceRateResetFrequency = 60 * 5;
-    pair_cUSD_USDCet.config.minimumReports = 5;
-    pair_cUSD_USDCet.config.referenceRateFeedID = cUSD_USDCet_referenceRateFeedID;
-    pair_cUSD_USDCet.config.stablePoolResetSize = 1e24;
+    BiPoolManager.PoolExchange memory pair_cUSD_bridgedUSDC;
+    pair_cUSD_bridgedUSDC.asset0 = address(cUSDToken);
+    pair_cUSD_bridgedUSDC.asset1 = address(usdcToken);
+    pair_cUSD_bridgedUSDC.pricingModule = constantProduct;
+    pair_cUSD_bridgedUSDC.lastBucketUpdate = now;
+    pair_cUSD_bridgedUSDC.config.spread = FixidityLib.newFixedFraction(5, 100);
+    pair_cUSD_bridgedUSDC.config.referenceRateResetFrequency = 60 * 5;
+    pair_cUSD_bridgedUSDC.config.minimumReports = 5;
+    pair_cUSD_bridgedUSDC.config.referenceRateFeedID = cUSD_bridgedUSDC_referenceRateFeedID;
+    pair_cUSD_bridgedUSDC.config.stablePoolResetSize = 1e24;
 
-    pair_cUSD_USDCet_ID = biPoolManager.createExchange(pair_cUSD_USDCet);
+    pair_cUSD_bridgedUSDC_ID = biPoolManager.createExchange(pair_cUSD_bridgedUSDC);
 
-    BiPoolManager.PoolExchange memory pair_cEUR_USDCet;
-    pair_cEUR_USDCet.asset0 = address(cEURToken);
-    pair_cEUR_USDCet.asset1 = address(usdcToken);
-    pair_cEUR_USDCet.pricingModule = constantProduct;
-    pair_cEUR_USDCet.lastBucketUpdate = now;
-    pair_cEUR_USDCet.config.spread = FixidityLib.newFixedFraction(5, 100);
-    pair_cEUR_USDCet.config.referenceRateResetFrequency = 60 * 5;
-    pair_cEUR_USDCet.config.minimumReports = 5;
-    pair_cEUR_USDCet.config.referenceRateFeedID = cEUR_USDCet_referenceRateFeedID;
-    pair_cEUR_USDCet.config.stablePoolResetSize = 1e24;
+    BiPoolManager.PoolExchange memory pair_cEUR_bridgedUSDC;
+    pair_cEUR_bridgedUSDC.asset0 = address(cEURToken);
+    pair_cEUR_bridgedUSDC.asset1 = address(usdcToken);
+    pair_cEUR_bridgedUSDC.pricingModule = constantProduct;
+    pair_cEUR_bridgedUSDC.lastBucketUpdate = now;
+    pair_cEUR_bridgedUSDC.config.spread = FixidityLib.newFixedFraction(5, 100);
+    pair_cEUR_bridgedUSDC.config.referenceRateResetFrequency = 60 * 5;
+    pair_cEUR_bridgedUSDC.config.minimumReports = 5;
+    pair_cEUR_bridgedUSDC.config.referenceRateFeedID = cEUR_bridgedUSDC_referenceRateFeedID;
+    pair_cEUR_bridgedUSDC.config.stablePoolResetSize = 1e24;
 
-    pair_cEUR_USDCet_ID = biPoolManager.createExchange(pair_cEUR_USDCet);
+    pair_cEUR_bridgedUSDC_ID = biPoolManager.createExchange(pair_cEUR_bridgedUSDC);
 
     BiPoolManager.PoolExchange memory pair_cUSD_cEUR;
     pair_cUSD_cEUR.asset0 = address(cUSDToken);
@@ -369,8 +369,8 @@ contract IntegrationSetup is Test, WithRegistry {
     TradingLimits.Config memory config = configL0L1LG(100, 10000, 1000, 100000, 1000000);
     broker.configureTradingLimit(pair_cUSD_CELO_ID, address(cUSDToken), config);
     broker.configureTradingLimit(pair_cEUR_CELO_ID, address(cEURToken), config);
-    broker.configureTradingLimit(pair_cUSD_USDCet_ID, address(usdcToken), config);
-    broker.configureTradingLimit(pair_cEUR_USDCet_ID, address(usdcToken), config);
+    broker.configureTradingLimit(pair_cUSD_bridgedUSDC_ID, address(usdcToken), config);
+    broker.configureTradingLimit(pair_cEUR_bridgedUSDC_ID, address(usdcToken), config);
     broker.configureTradingLimit(pair_cUSD_cEUR_ID, address(cUSDToken), config);
   }
 

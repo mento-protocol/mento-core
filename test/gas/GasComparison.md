@@ -27,9 +27,9 @@ Broker.sol
 [PASS] test_gas_swapIn_CELOTocUSD() (gas: 237014)
 [PASS] test_gas_swapIn_CEURToCelo() (gas: 292394)
 [PASS] test_gas_swapIn_CUSDToCelo() (gas: 292395)
-[PASS] test_gas_swapIn_cEURToUSDCet() (gas: 309449)
+[PASS] test_gas_swapIn_cEURToBridgedUSDC() (gas: 309449)
 [PASS] test_gas_swapIn_cEURTocUSD() (gas: 269525)
-[PASS] test_gas_swapIn_cUSDToUSDCet() (gas: 309470)
+[PASS] test_gas_swapIn_cUSDToBridgedUSDC() (gas: 309470)
 [PASS] test_gas_swapIn_cUSDTocEUR() (gas: 269442)
 
 Exchange.sol

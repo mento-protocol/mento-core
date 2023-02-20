@@ -54,7 +54,7 @@ contract BiPoolManagerTest is Test {
 
   MockERC20 cUSD;
   MockERC20 cEUR;
-  MockERC20 USDCet;
+  MockERC20 bridgedUSDC;
   MockERC20 CELO;
 
   IPricingModule constantProduct;
@@ -77,7 +77,7 @@ contract BiPoolManagerTest is Test {
 
     cUSD = newMockERC20("Celo Dollar", "cUSD");
     cEUR = newMockERC20("Celo Euro", "cEUR");
-    USDCet = newMockERC20("Portal USDC", "USDCet");
+    bridgedUSDC = newMockERC20("Bridged USDC", "bridgedUSDC");
     CELO = newMockERC20("CELO", "CELO");
 
     constantProduct = new MockPricingModule("ConstantProduct");
@@ -101,7 +101,7 @@ contract BiPoolManagerTest is Test {
 
     vm.mockCall(
       address(reserve),
-      abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(USDCet)),
+      abi.encodeWithSelector(reserve.isCollateralAsset.selector, address(bridgedUSDC)),
       abi.encode(true)
     );
 
@@ -354,7 +354,7 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
   /* ---------- Getters ---------- */
 
   function test_getPoolExchange_whenExchangeDoesNotExist_shouldRevert() public {
-    bytes32 exchangeId = keccak256(abi.encodePacked(cUSD.symbol(), USDCet.symbol(), constantProduct.name()));
+    bytes32 exchangeId = keccak256(abi.encodePacked(cUSD.symbol(), bridgedUSDC.symbol(), constantProduct.name()));
 
     vm.expectRevert("An exchange with the specified id does not exist");
     biPoolManager.getPoolExchange(exchangeId);
@@ -362,10 +362,10 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
 
   function test_getPoolExchange_whenPoolExists_shouldReturnPool() public {
     mockOracleRate(address(cUSD), 1e24);
-    bytes32 exchangeId = createExchange(cUSD, USDCet);
+    bytes32 exchangeId = createExchange(cUSD, bridgedUSDC);
     BiPoolManager.PoolExchange memory existingExchange = biPoolManager.getPoolExchange(exchangeId);
     assertEq(existingExchange.asset0, address(cUSD));
-    assertEq(existingExchange.asset1, address(USDCet));
+    assertEq(existingExchange.asset1, address(bridgedUSDC));
   }
 }
 
@@ -380,10 +380,10 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
 
   function test_createExchange_whenPoolWithIdExists_shouldRevert() public {
     mockOracleRate(address(cUSD), 1e24);
-    createExchange(cUSD, USDCet);
+    createExchange(cUSD, bridgedUSDC);
 
     vm.expectRevert("An exchange with the specified assets and exchange exists");
-    createExchange(cUSD, USDCet);
+    createExchange(cUSD, bridgedUSDC);
   }
 
   function test_createExchange_whenAsset0IsNotRegistered_shouldRevert() public {
@@ -394,7 +394,7 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
 
   function test_createExchange_whenAsset0IsCollateral_shouldRevert() public {
     vm.expectRevert("asset0 must be a stable registered with the reserve");
-    createExchange(USDCet, CELO);
+    createExchange(bridgedUSDC, CELO);
   }
 
   function test_createExchange_whenAsset1IsNotRegistered_shouldRevert() public {
@@ -484,33 +484,33 @@ contract BiPoolManagerTest_destroyExchange is BiPoolManagerTest {
 
   function test_destroyExchange_whenExchangeExistsButTheIdIsWrong_shouldRevert() public {
     mockOracleRate(address(cUSD), 2e24);
-    createExchange(cUSD, USDCet);
+    createExchange(cUSD, bridgedUSDC);
     vm.expectRevert("exchangeId at index doesn't match");
     biPoolManager.destroyExchange(0x0, 0);
   }
 
   function test_destroyExchange_whenExchangeExistsButTheIndexIsTooLarge_shouldRevert() public {
     mockOracleRate(address(cUSD), 2e24);
-    createExchange(cUSD, USDCet);
+    createExchange(cUSD, bridgedUSDC);
     vm.expectRevert("exchangeIdIndex not in range");
     biPoolManager.destroyExchange(0x0, 1);
   }
 
   function test_destroyExchange_whenExchangeExists_shouldUpdateAndEmit() public {
     mockOracleRate(address(cUSD), 2e24);
-    bytes32 exchangeId = createExchange(cUSD, USDCet);
+    bytes32 exchangeId = createExchange(cUSD, bridgedUSDC);
     vm.expectEmit(true, true, true, true);
-    emit ExchangeDestroyed(exchangeId, address(cUSD), address(USDCet), address(constantProduct));
+    emit ExchangeDestroyed(exchangeId, address(cUSD), address(bridgedUSDC), address(constantProduct));
     biPoolManager.destroyExchange(exchangeId, 0);
   }
 
   function test_destroyExchange_whenMultipleExchangesExist_shouldUpdateTheIdList() public {
     mockOracleRate(address(cUSD), 2e24);
-    bytes32 exchangeId0 = createExchange(cUSD, USDCet);
+    bytes32 exchangeId0 = createExchange(cUSD, bridgedUSDC);
     bytes32 exchangeId1 = createExchange(cUSD, CELO);
 
     vm.expectEmit(true, true, true, true);
-    emit ExchangeDestroyed(exchangeId0, address(cUSD), address(USDCet), address(constantProduct));
+    emit ExchangeDestroyed(exchangeId0, address(cUSD), address(bridgedUSDC), address(constantProduct));
     biPoolManager.destroyExchange(exchangeId0, 0);
 
     IExchangeProvider.Exchange[] memory exchanges = biPoolManager.getExchanges();
