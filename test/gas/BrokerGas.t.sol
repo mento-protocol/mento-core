@@ -45,20 +45,20 @@ contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
     broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, 1000 * 10**18, 0);
   }
 
-  function test_gas_swapIn_cUSDToUSDCet() public {
+  function test_gas_swapIn_cUSDToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k
     IERC20 tokenIn = cUSDToken;
     IERC20 tokenOut = usdcToken;
-    bytes32 poolId = pair_cUSD_USDCet_ID;
+    bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
 
     doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
   }
 
-  function test_gas_swapIn_cEURToUSDCet() public {
+  function test_gas_swapIn_cEURToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k
     IERC20 tokenIn = cEURToken;
     IERC20 tokenOut = usdcToken;
-    bytes32 poolId = pair_cEUR_USDCet_ID;
+    bytes32 poolId = pair_cEUR_bridgedUSDC_ID;
 
     doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
   }

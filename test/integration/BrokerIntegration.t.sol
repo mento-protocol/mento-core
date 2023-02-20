@@ -59,7 +59,7 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
   }
 
   function test_swap_whenBucketTriggerConditionsAreMet_shouldTriggerBucketUpdate() public {
-    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(pair_cUSD_USDCet_ID);
+    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(pair_cUSD_bridgedUSDC_ID);
 
     // FF by bucket update frequency time
     vm.warp(pool.config.referenceRateResetFrequency + pool.lastBucketUpdate);
@@ -72,13 +72,13 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
     IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
 
     vm.expectEmit(false, false, false, false);
-    emit BucketsUpdated(pair_cUSD_USDCet_ID, 0, 0);
+    emit BucketsUpdated(pair_cUSD_bridgedUSDC_ID, 0, 0);
 
-    broker.swapIn(address(biPoolManager), pair_cUSD_USDCet_ID, address(cUSDToken), address(usdcToken), 1, 0);
+    broker.swapIn(address(biPoolManager), pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), 1, 0);
   }
 
   function test_swap_whenCircuitBreakerActivates_shouldDisableTrading() public {
-    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(pair_cUSD_USDCet_ID);
+    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(pair_cUSD_bridgedUSDC_ID);
 
     (uint256 numerator, uint256 denominator) = sortedOracles.medianRate(pool.config.referenceRateFeedID);
     FixidityLib.Fraction memory rate_2x = FixidityLib.newFixedFraction(numerator, denominator).multiply(
@@ -94,7 +94,7 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
     IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
 
     vm.expectRevert("Trading is suspended for this reference rate");
-    broker.swapIn(address(biPoolManager), pair_cUSD_USDCet_ID, address(cUSDToken), address(usdcToken), 1, 0);
+    broker.swapIn(address(biPoolManager), pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), 1, 0);
 
     vm.warp(block.timestamp + 6 minutes);
     setMedianRate(pool.config.referenceRateFeedID, rate_2_1x.unwrap());
@@ -102,7 +102,7 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
     changePrank(trader);
     IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
 
-    broker.swapIn(address(biPoolManager), pair_cUSD_USDCet_ID, address(cUSDToken), address(usdcToken), 1, 0);
+    broker.swapIn(address(biPoolManager), pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), 1, 0);
   }
 
   function test_getExchangeProviders_shouldReturnProviderWithCorrectExchanges() public {
@@ -124,11 +124,11 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
     }
   }
 
-  function test_swapIn_cUSDToUSDCet() public {
+  function test_swapIn_cUSDToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k
     IERC20 tokenIn = cUSDToken;
     IERC20 tokenOut = usdcToken;
-    bytes32 poolId = pair_cUSD_USDCet_ID;
+    bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
 
     // Get amounts before swap
     uint256 traderTokenInBefore = tokenIn.balanceOf(trader);
@@ -157,11 +157,11 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
     assertEq(StableAssetSupplyBefore - amountIn, StableAssetSupplyAfter);
   }
 
-  function test_swapIn_cEURToUSDCet() public {
+  function test_swapIn_cEURToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k
     IERC20 tokenIn = cEURToken;
     IERC20 tokenOut = usdcToken;
-    bytes32 poolId = pair_cEUR_USDCet_ID;
+    bytes32 poolId = pair_cEUR_bridgedUSDC_ID;
 
     // Get amounts before swap
     uint256 traderTokenInBefore = tokenIn.balanceOf(trader);
