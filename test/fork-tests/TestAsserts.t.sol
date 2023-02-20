@@ -77,6 +77,7 @@ contract TestAsserts is Test {
     uint256 sellAmount,
     string memory revertReason
   ) internal {
+    ctx.addReportsIfNeeded();
     ctx.t.mint(from, ctx.t.trader0(), sellAmount);
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
     uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
@@ -91,6 +92,7 @@ contract TestAsserts is Test {
     uint256 buyAmount,
     string memory revertReason
   ) internal {
+    ctx.addReportsIfNeeded();
     uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
     ctx.t.mint(from, ctx.t.trader0(), maxAmountIn);
     IERC20Metadata(from).approve(address(ctx.broker), maxAmountIn);
@@ -500,7 +502,7 @@ contract TestAsserts is Test {
     (uint256 tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     require(tradingMode == 0, "breaker should be recovered");
 
-    updateOracleMedianRate(ctx, newMedian);
+    ctx.updateOracleMedianRate(newMedian);
     (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     require(tradingMode == expectedTradingMode, "trading more is different from expected");
   }
@@ -510,7 +512,7 @@ contract TestAsserts is Test {
     (uint256 tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     require(tradingMode != 0, "breaker should be triggered");
 
-    updateOracleMedianRate(ctx, newMedian);
+    ctx.updateOracleMedianRate(newMedian);
     (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     require(tradingMode == 0, "breaker should be recovered");
   }
@@ -521,7 +523,7 @@ contract TestAsserts is Test {
     // the breakers are warm.
     (uint256 currentRate, ) = ctx.sortedOracles.medianRate(rateFeedID);
     newMedian = currentRate.add(currentRate.div(1000)); // +0.1%
-    updateOracleMedianRate(ctx, newMedian);
+    ctx.updateOracleMedianRate(newMedian);
 
     (uint64 tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     while (tradingMode != 0) {
@@ -532,7 +534,7 @@ contract TestAsserts is Test {
       uint256 cooldown = WithCooldown(breaker).getCooldown(rateFeedID);
       skip(cooldown);
       newMedian = newMedianToResetBreaker(ctx, tradingMode);
-      updateOracleMedianRate(ctx, newMedian);
+      ctx.updateOracleMedianRate(newMedian);
       (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     }
   }
@@ -551,29 +553,5 @@ contract TestAsserts is Test {
     } else {
       revert("Unknown trading mode, can't infer breaker type");
     }
-  }
-
-  function updateOracleMedianRate(Utils.Context memory ctx, uint256 newMedian) internal {
-    address rateFeedID = ctx.getReferenceRateFeedID();
-    address checkpointPrank = currentPrank;
-    address[] memory oracles = ctx.sortedOracles.getOracles(rateFeedID);
-    require(oracles.length > 0, "No oracles for rateFeedID");
-    console.log("Updating oracles to new median: ", newMedian);
-    for (uint256 i = 0; i < oracles.length; i++) {
-      skip(5);
-      address oracle = oracles[i];
-      address lesserKey;
-      address greaterKey;
-      (address[] memory keys, uint256[] memory values, ) = ctx.sortedOracles.getRates(rateFeedID);
-      for (uint256 j = 0; j < keys.length; j++) {
-        if (keys[j] == oracle) continue;
-        if (values[j] < newMedian) lesserKey = keys[j];
-        if (values[j] >= newMedian) greaterKey = keys[j];
-      }
-
-      changePrank(oracle);
-      ctx.sortedOracles.report(rateFeedID, newMedian, lesserKey, greaterKey);
-    }
-    changePrank(checkpointPrank);
   }
 }

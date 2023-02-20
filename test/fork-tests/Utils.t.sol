@@ -10,6 +10,7 @@ import { console } from "forge-std/console.sol";
 import { IERC20Metadata } from "contracts/common/interfaces/IERC20Metadata.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
@@ -34,6 +35,7 @@ interface IBrokerWithCasts {
 }
 
 library Utils {
+  using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
   using TradingLimits for TradingLimits.State;
 
@@ -77,8 +79,10 @@ library Utils {
     uint256 sellAmount
   ) public returns (uint256) {
     ctx.t.mint(from, ctx.t.trader0(), sellAmount);
+    ctx.t._changePrank(ctx.t.trader0());
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
 
+    addReportsIfNeeded(ctx);
     uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
     return ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
   }
@@ -89,12 +93,77 @@ library Utils {
     address to,
     uint256 buyAmount
   ) public returns (uint256) {
+    addReportsIfNeeded(ctx);
     uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
 
     ctx.t.mint(from, ctx.t.trader0(), maxAmountIn);
+    ctx.t._changePrank(ctx.t.trader0());
     IERC20Metadata(from).approve(address(ctx.broker), maxAmountIn);
 
     return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
+  }
+
+  function addReportsIfNeeded(
+    Context memory ctx
+  ) internal {
+    // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
+    BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
+    BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
+    (bool isReportExpired, ) = ctx.sortedOracles.isOldestReportExpired(pool.config.referenceRateFeedID);
+
+    // solhint-disable-next-line not-rely-on-time
+    bool timePassed = now >= pool.lastBucketUpdate.add(pool.config.referenceRateResetFrequency);
+    bool enoughReports = (ctx.sortedOracles.numRates(pool.config.referenceRateFeedID) >=
+      pool.config.minimumReports);
+    // solhint-disable-next-line not-rely-on-time
+    bool medianReportRecent = ctx.sortedOracles.medianTimestamp(pool.config.referenceRateFeedID) >
+      now.sub(pool.config.referenceRateResetFrequency);
+    
+    console.log(
+      "\t timePassed: %s | enoughReports: %s",
+      timePassed ? "true" : "false",
+      enoughReports ? "true" : "false"
+    );
+    console.log(
+      "\t medianReportRecent: %s | !isReportExpired: %s", 
+      medianReportRecent ? "true" : "false",
+      !isReportExpired ? "true" : "false"
+    );
+    console.log(
+      "\t pool.bucket0: %d | pool.bucket1: %d", 
+      pool.bucket0,
+      pool.bucket1
+    );
+    console.log(
+      "\t pool.lastBucketUpdate: %d",
+      pool.lastBucketUpdate
+    );
+
+    if (timePassed && (!medianReportRecent || isReportExpired)) {
+      (uint256 newMedian,) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
+      updateOracleMedianRate(ctx, newMedian.mul(101).div(100));
+
+      (isReportExpired, ) = ctx.sortedOracles.isOldestReportExpired(pool.config.referenceRateFeedID);
+      // solhint-disable-next-line not-rely-on-time
+      timePassed = now >= pool.lastBucketUpdate.add(pool.config.referenceRateResetFrequency);
+      enoughReports = (ctx.sortedOracles.numRates(pool.config.referenceRateFeedID) >=
+        pool.config.minimumReports);
+      // solhint-disable-next-line not-rely-on-time
+      medianReportRecent = ctx.sortedOracles.medianTimestamp(pool.config.referenceRateFeedID) >
+        now.sub(pool.config.referenceRateResetFrequency);
+    
+      console.log(
+        "\t timePassed: %s | enoughReports: %s",
+        timePassed ? "true" : "false",
+        enoughReports ? "true" : "false"
+      );
+      console.log(
+        "\t medianReportRecent: %s | !isReportExpired: %s", 
+        medianReportRecent ? "true" : "false",
+        !isReportExpired ? "true" : "false"
+      );
+      return;
+    }
   }
 
   // ========================= Sorted Oracles =========================
@@ -151,6 +220,31 @@ library Utils {
       rateChangeThreshold = specificRateChangeThreshold;
     }
     return rateChangeThreshold;
+  }
+
+  function updateOracleMedianRate(Context memory ctx, uint256 newMedian) internal {
+    address rateFeedID = getReferenceRateFeedID(ctx);
+    address checkpointPrank = ctx.t._currentPrank();
+    address[] memory oracles = ctx.sortedOracles.getOracles(rateFeedID);
+    require(oracles.length > 0, "No oracles for rateFeedID");
+    console.log("Updating oracles to new median: ", newMedian);
+    for (uint256 i = 0; i < oracles.length; i++) {
+      ctx.t._skip(5);
+      address oracle = oracles[i];
+      address lesserKey;
+      address greaterKey;
+      (address[] memory keys, uint256[] memory values, ) = ctx.sortedOracles.getRates(rateFeedID);
+      for (uint256 j = 0; j < keys.length; j++) {
+        if (keys[j] == oracle) continue;
+        if (values[j] < newMedian) lesserKey = keys[j];
+        if (values[j] >= newMedian) greaterKey = keys[j];
+      }
+
+      ctx.t._changePrank(oracle);
+      console.log("Updating oracle: %s to new median: %s", oracle, newMedian);
+      ctx.sortedOracles.report(rateFeedID, newMedian, lesserKey, greaterKey);
+    }
+    ctx.t._changePrank(ctx.t.trader0());
   }
 
   // ========================= Trading Limits =========================

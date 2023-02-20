@@ -24,12 +24,11 @@ import { Proxy } from "contracts/common/Proxy.sol";
 import { Broker } from "contracts/Broker.sol";
 import { BreakerBox } from "contracts/BreakerBox.sol";
 import { SortedOracles } from "contracts/SortedOracles.sol";
+import { Reserve } from "contracts/Reserve.sol";
 import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { TradingLimits } from "contracts/common/TradingLimits.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
-import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
-import { ValueDeltaBreaker } from "contracts/ValueDeltaBreaker.sol";
 
 /**
  * @title BaseForkTest
@@ -61,8 +60,6 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   Broker public broker;
   BreakerBox public breakerBox;
   SortedOracles public sortedOracles;
-  MedianDeltaBreaker public medianDeltaBreaker;
-  ValueDeltaBreaker public valueDeltaBreaker;
 
   address public trader0;
 
@@ -88,7 +85,10 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     broker = Broker(registry.getAddressForStringOrDie("Broker"));
     sortedOracles = SortedOracles(registry.getAddressForStringOrDie("SortedOracles"));
     governance = registry.getAddressForStringOrDie("Governance");
+    breakerBox = BreakerBox(address(sortedOracles.breakerBox()));
     trader0 = actor("trader0");
+    Reserve reserve = Reserve(uint160(address(broker.reserve())));
+
     changePrank(trader0);
 
     vm.label(address(broker), "Broker");
@@ -105,74 +105,31 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       }
     }
 
+    // XXX: The number of collateral assets 2 is hardcoded here [CELO, USDC]
+    for (uint256 i = 0; i < 2; i++) {
+      address collateralAsset = reserve.collateralAssets(i);
+      mint(collateralAsset, address(reserve), 10_000_000 * (10 ** uint256(IERC20Metadata(collateralAsset).decimals())));
+      console.log("Minting 10mil %s to reserve", IERC20Metadata(collateralAsset).symbol());
+    }
+
     console.log("Exchanges:");
     for (uint256 i = 0; i < exchanges.length; i++) {
       console.log(i, exchanges[i].exchangeProvider, exchanges[i].exchange.assets[0], exchanges[i].exchange.assets[1]);
     }
+  }
 
-    // ================================ TEMPORARY ====================================== //
-    // XXX: Temporarily add trading limits to broker
-    // These are not the real trading limits, but they are good enough for testing.
-    changePrank(governance);
-    for (uint256 i = 0; i < exchanges.length; i++) {
-      IExchangeProvider.Exchange memory exchange = exchanges[i].exchange;
-      TradingLimits.Config memory config = TradingLimits.Config(
-        5 minutes,
-        1 days,
-        1_000,
-        10_000,
-        100_000,
-        L0 | L1 | LG
-      );
-      broker.configureTradingLimit(exchange.exchangeId, exchange.assets[0], config);
-    }
-    // XXX: Temporarily upgrade SortedOracles and set BreakerBox
-    // These contracts are specific to baklava and are here just to make the tests work.
-    address breakerBoxProxy = 0x5028D351F71b6797A49A2Ae429924B6a3f9cb280;
-    address newSortedOraclesImpl = 0xeBD235883f9040f12AD583b0820a7A62C96f9b6f;
-    Proxy(uint160(address(sortedOracles)))._setImplementation(newSortedOraclesImpl);
-    sortedOracles.setBreakerBox(IBreakerBox(breakerBoxProxy));
-    breakerBox = BreakerBox(breakerBoxProxy);
-    address[] memory rateFeedIDs = new address[](0);
-    uint256[] memory rateChangeThresholds = new uint256[](0);
-    uint256[] memory cooldownTimes = new uint256[](0);
+  // TODO: find a better way to expose this to the Utils library
+  function _currentPrank() public view returns (address) {
+    return currentPrank;
+  }
 
-    medianDeltaBreaker = new MedianDeltaBreaker(
-      60 * 10,
-      FixidityLib.newFixedFraction(10, 100).unwrap(),
-      ISortedOracles(address(sortedOracles)),
-      rateFeedIDs,
-      rateChangeThresholds,
-      cooldownTimes
-    );
-    breakerBox.addBreaker(address(medianDeltaBreaker), 1);
+  function _changePrank(address who) public {
+      vm.stopPrank();
+      vm.startPrank(who);
+  }
 
-    valueDeltaBreaker = new ValueDeltaBreaker(
-      60 * 10,
-      FixidityLib.newFixedFraction(3, 100).unwrap(),
-      ISortedOracles(address(sortedOracles)),
-      rateFeedIDs,
-      rateChangeThresholds,
-      cooldownTimes
-    );
-    breakerBox.addBreaker(address(valueDeltaBreaker), 2);
-
-    require(exchanges.length == 2, "this temporary setup expects only 2 exchanges");
-    Utils.Context memory ctx0 = Utils.newContext(address(this), 0);
-    address rateFeedID0 = ctx0.getReferenceRateFeedID();
-    breakerBox.toggleBreaker(address(medianDeltaBreaker), rateFeedID0, true);
-
-    Utils.Context memory ctx1 = Utils.newContext(address(this), 1);
-    address rateFeedID1 = ctx1.getReferenceRateFeedID();
-    breakerBox.toggleBreaker(address(valueDeltaBreaker), rateFeedID1, true);
-    rateFeedIDs = new address[](1);
-    rateFeedIDs[0] = rateFeedID1;
-    uint256[] memory referenceValues = new uint256[](1);
-    (referenceValues[0], ) = ctx1.getReferenceRate();
-    valueDeltaBreaker.setReferenceValues(rateFeedIDs, referenceValues);
-
-    changePrank(trader0);
-    // ================================================================================== //
+  function _skip(uint256 time) public {
+      vm.warp(block.timestamp + time);
   }
 
   function test_swapsHappenInBothDirections() public {
@@ -280,6 +237,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
 
   function test_circuitBreaker_breaks() public {
     address[] memory breakers = breakerBox.getBreakers();
+    console.log("asd");
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
       address rateFeedID = ctx.getReferenceRateFeedID();
