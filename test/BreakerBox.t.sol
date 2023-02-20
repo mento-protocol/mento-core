@@ -94,9 +94,7 @@ contract BreakerBoxTest is Test, WithRegistry {
     address rateFeedID
   ) public {
     vm.mockCall(address(breaker), abi.encodeWithSelector(breaker.getCooldown.selector), abi.encode(cooldown));
-
     vm.mockCall(address(breaker), abi.encodeWithSelector(breaker.shouldReset.selector), abi.encode(reset));
-
     vm.mockCall(address(breaker), abi.encodeWithSelector(breaker.shouldTrigger.selector), abi.encode(trigger));
 
     breakerBox.addBreaker(address(breaker), tradingMode);
@@ -476,11 +474,7 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
   }
 
   function test_checkAndSetBreakers_whenNoBreakersAreTripped_shouldReturnDefaultMode() public {
-    setupBreakerAndRateFeed(mockBreaker3, 6, 3600, true, false, address(0));
-
-    sortedOracles.addOracle(rateFeedID3, actor("oracleClient3"));
-    breakerBox.addRateFeed(rateFeedID3);
-    assertTrue(isRateFeed(rateFeedID3));
+    setupBreakerAndRateFeed(mockBreaker3, 6, 3600, true, false, rateFeedID3);
 
     toggleAndAssertBreaker(address(mockBreaker3), rateFeedID3, true);
     toggleAndAssertBreaker(address(mockBreaker1), rateFeedID3, true);
@@ -561,5 +555,102 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
 
     assertEq(lastUpdatedTime, 1);
     assertEq(lastUpdatedBlock, 1);
+  }
+
+  function test_cooldownOneSecondWorks_multipleBlocksInARow() public {
+    // block 1
+    vm.roll(1);
+    vm.warp(1672527600); // 2023-01-01 00:00:00
+
+    setupBreakerAndRateFeed(mockBreaker3, 2, 1 seconds, true, false, rateFeedID3);
+    
+    breakerBox.checkAndSetBreakers(rateFeedID3);
+    (uint256 tradingMode, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
+
+    assertEq(block.number, 1);
+    assertEq(block.timestamp, 1672527600);
+    assertEq(tradingMode, 2);
+    assertEq(lastUpdatedTime, 1672527600);
+    assertEq(lastUpdatedBlock, 1);
+
+
+    // block 2
+    vm.roll(2);
+    vm.warp(1672527605); // 2023-01-01 00:00:05
+
+    vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldTrigger.selector), abi.encode(true));
+    vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector), abi.encode(false));
+    breakerBox.checkAndSetBreakers(rateFeedID3);
+    (tradingMode, lastUpdatedTime, lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
+
+    assertEq(block.number, 2);
+    assertEq(block.timestamp, 1672527605);
+    assertEq(tradingMode, 2);
+    assertEq(lastUpdatedTime, 1672527600);
+    assertEq(lastUpdatedBlock, 1);
+
+
+    // block 3
+    vm.roll(3);
+    vm.warp(1672527610); // 2023-01-01 00:00:10
+        
+    vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldTrigger.selector), abi.encode(false));
+    vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector), abi.encode(true));
+    breakerBox.checkAndSetBreakers(rateFeedID3);
+    (tradingMode, lastUpdatedTime, lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
+    
+    assertEq(block.number, 3);
+    assertEq(block.timestamp, 1672527610);
+    assertEq(tradingMode, 0);
+    assertEq(lastUpdatedTime, 1672527610);
+    assertEq(lastUpdatedBlock, 3);
+  }
+
+  function test_cooldownTenSecondsWorks_multipleBlocksInARow() public {
+    // block 1
+    vm.roll(1);
+    vm.warp(1672527600); // 2023-01-01 00:00:00
+
+    setupBreakerAndRateFeed(mockBreaker3, 2, 10 seconds, true, false, rateFeedID3);
+    
+    breakerBox.checkAndSetBreakers(rateFeedID3);
+    (uint256 tradingMode, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
+
+    assertEq(block.number, 1);
+    assertEq(block.timestamp, 1672527600);
+    assertEq(tradingMode, 2);
+    assertEq(lastUpdatedTime, 1672527600);
+    assertEq(lastUpdatedBlock, 1);
+
+
+    // block 2
+    vm.roll(2);
+    vm.warp(1672527605); // 2023-01-01 00:00:05
+
+    vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldTrigger.selector), abi.encode(true));
+    vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector), abi.encode(false));
+    breakerBox.checkAndSetBreakers(rateFeedID3);
+    (tradingMode, lastUpdatedTime, lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
+
+    assertEq(block.number, 2);
+    assertEq(block.timestamp, 1672527605);
+    assertEq(tradingMode, 2);
+    assertEq(lastUpdatedTime, 1672527600);
+    assertEq(lastUpdatedBlock, 1);
+
+    // block 3
+    vm.roll(3);
+    vm.warp(1672527610); // 2023-01-01 00:00:10
+        
+    vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldTrigger.selector), abi.encode(false));
+    vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector), abi.encode(true));
+    breakerBox.checkAndSetBreakers(rateFeedID3);
+    (tradingMode, lastUpdatedTime, lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
+    
+    assertEq(block.number, 3);
+    assertEq(block.timestamp, 1672527610);
+    assertEq(tradingMode, 0);
+    assertEq(lastUpdatedTime, 1672527610);
+    assertEq(lastUpdatedBlock, 3);
   }
 }
