@@ -474,7 +474,11 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
   }
 
   function test_checkAndSetBreakers_whenNoBreakersAreTripped_shouldReturnDefaultMode() public {
-    setupBreakerAndRateFeed(mockBreaker3, 6, 3600, true, false, rateFeedID3);
+    setupBreakerAndRateFeed(mockBreaker3, 6, 3600, true, false, address(0));
+
+    sortedOracles.addOracle(rateFeedID3, actor("oracleClient3"));
+    breakerBox.addRateFeed(rateFeedID3);
+    assertTrue(isRateFeed(rateFeedID3));
 
     toggleAndAssertBreaker(address(mockBreaker3), rateFeedID3, true);
     toggleAndAssertBreaker(address(mockBreaker1), rateFeedID3, true);
