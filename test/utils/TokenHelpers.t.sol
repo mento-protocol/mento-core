@@ -2,10 +2,33 @@
 pragma solidity ^0.5.13;
 
 import "celo-foundry/Test.sol";
-import "contracts/common/GoldToken.sol";
+
 import "contracts/StableToken.sol";
+import "contracts/common/GoldToken.sol";
+import "contracts/common/interfaces/IRegistry.sol";
 
 contract TokenHelpers is Test {
+  address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
+  IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
+
+  function mint(
+    address token,
+    address to,
+    uint256 amount
+  ) public {
+    if (token == registry.getAddressForString("GoldToken")) {
+      mint(GoldToken(token), to, amount);
+    } else if (token == registry.getAddressForStringOrDie("StableToken")) {
+      mint(StableToken(token), to, amount);
+    } else if (token == registry.getAddressForStringOrDie("StableTokenEUR")) {
+      mint(StableToken(token), to, amount);
+    } else if (token == registry.getAddressForStringOrDie("StableTokenBRL")) {
+      mint(StableToken(token), to, amount);
+    } else {
+      deal(token, to, amount);
+    }
+  }
+
   function mint(
     GoldToken celoToken,
     address to,
