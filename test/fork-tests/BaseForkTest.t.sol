@@ -61,7 +61,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   BreakerBox public breakerBox;
   SortedOracles public sortedOracles;
 
-  address public trader0;
+  address public trader;
 
   ExchangeWithProvider[] public exchanges;
   mapping(address => mapping(bytes32 => ExchangeWithProvider)) public exchangeMap;
@@ -86,10 +86,10 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     sortedOracles = SortedOracles(registry.getAddressForStringOrDie("SortedOracles"));
     governance = registry.getAddressForStringOrDie("Governance");
     breakerBox = BreakerBox(address(sortedOracles.breakerBox()));
-    trader0 = actor("trader0");
+    trader = actor("trader");
     Reserve reserve = Reserve(uint160(address(broker.reserve())));
 
-    changePrank(trader0);
+    changePrank(trader);
 
     vm.label(address(broker), "Broker");
 
@@ -118,20 +118,6 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     }
   }
 
-  // TODO: find a better way to expose this to the Utils library
-  function _currentPrank() public view returns (address) {
-    return currentPrank;
-  }
-
-  function _changePrank(address who) public {
-      vm.stopPrank();
-      vm.startPrank(who);
-  }
-
-  function _skip(uint256 time) public {
-      vm.warp(block.timestamp + time);
-  }
-
   function test_swapsHappenInBothDirections() public {
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
@@ -144,7 +130,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     }
   }
 
-  function test_tradingLimitsAreConfigured() public {
+  function test_tradingLimitsAreConfigured() public view {
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
@@ -222,7 +208,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     }
   }
 
-  function test_circuitBreaker_rateFeedsAreProtected() public {
+  function test_circuitBreaker_rateFeedsAreProtected() public view {
     address[] memory breakers = breakerBox.getBreakers();
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);

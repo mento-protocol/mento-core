@@ -78,7 +78,7 @@ contract TestAsserts is Test {
     string memory revertReason
   ) internal {
     ctx.addReportsIfNeeded();
-    ctx.t.mint(from, ctx.t.trader0(), sellAmount);
+    ctx.t.mint(from, ctx.trader, sellAmount);
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
     uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
     vm.expectRevert(bytes(revertReason));
@@ -94,7 +94,7 @@ contract TestAsserts is Test {
   ) internal {
     ctx.addReportsIfNeeded();
     uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
-    ctx.t.mint(from, ctx.t.trader0(), maxAmountIn);
+    ctx.t.mint(from, ctx.trader, maxAmountIn);
     IERC20Metadata(from).approve(address(ctx.broker), maxAmountIn);
     vm.expectRevert(bytes(revertReason));
     ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
@@ -542,7 +542,7 @@ contract TestAsserts is Test {
   function newMedianToResetBreaker(
     Utils.Context memory ctx,
     uint64 tradingMode
-  ) internal returns (uint256 newMedian) {
+  ) internal view returns (uint256 newMedian) {
     address rateFeedID = ctx.getReferenceRateFeedID();
     address breaker = ctx.breakerBox.tradingModeBreaker(tradingMode);
     if (tradingMode == 1) {

@@ -6,6 +6,7 @@ pragma experimental ABIEncoderV2;
 import { BaseForkTest } from "./BaseForkTest.t.sol";
 import { console2 } from "forge-std/console2.sol";
 import { console } from "forge-std/console.sol";
+import { Vm } from "forge-std/Vm.sol";
 
 import { IERC20Metadata } from "contracts/common/interfaces/IERC20Metadata.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
@@ -43,6 +44,11 @@ library Utils {
   uint8 private constant L1 = 2; // 0b010 Limit1
   uint8 private constant LG = 4; // 0b100 LimitGlobal
 
+  address constant private VM_ADDRESS =
+    address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
+
+  Vm public constant vm = Vm(VM_ADDRESS);
+
   struct Context {
     BaseForkTest t;
     Broker broker;
@@ -52,6 +58,7 @@ library Utils {
     address exchangeProvider;
     bytes32 exchangeId;
     IExchangeProvider.Exchange exchange;
+    address trader;
   }
 
   function newContext(address _t, uint256 index) public view returns (Context memory ctx) {
@@ -66,7 +73,8 @@ library Utils {
       t.breakerBox(),
       exchangeProvider,
       exchange.exchangeId,
-      exchange
+      exchange,
+      t.trader()
     );
   }
 
@@ -78,8 +86,8 @@ library Utils {
     address to,
     uint256 sellAmount
   ) public returns (uint256) {
-    ctx.t.mint(from, ctx.t.trader0(), sellAmount);
-    ctx.t._changePrank(ctx.t.trader0());
+    ctx.t.mint(from, ctx.trader, sellAmount);
+    changePrank(ctx.trader);
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
 
     addReportsIfNeeded(ctx);
@@ -96,8 +104,8 @@ library Utils {
     addReportsIfNeeded(ctx);
     uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
 
-    ctx.t.mint(from, ctx.t.trader0(), maxAmountIn);
-    ctx.t._changePrank(ctx.t.trader0());
+    ctx.t.mint(from, ctx.trader, maxAmountIn);
+    changePrank(ctx.trader);
     IERC20Metadata(from).approve(address(ctx.broker), maxAmountIn);
 
     return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
@@ -224,12 +232,11 @@ library Utils {
 
   function updateOracleMedianRate(Context memory ctx, uint256 newMedian) internal {
     address rateFeedID = getReferenceRateFeedID(ctx);
-    address checkpointPrank = ctx.t._currentPrank();
     address[] memory oracles = ctx.sortedOracles.getOracles(rateFeedID);
     require(oracles.length > 0, "No oracles for rateFeedID");
     console.log("Updating oracles to new median: ", newMedian);
     for (uint256 i = 0; i < oracles.length; i++) {
-      ctx.t._skip(5);
+      skip(5);
       address oracle = oracles[i];
       address lesserKey;
       address greaterKey;
@@ -240,11 +247,11 @@ library Utils {
         if (values[j] >= newMedian) greaterKey = keys[j];
       }
 
-      ctx.t._changePrank(oracle);
       console.log("Updating oracle: %s to new median: %s", oracle, newMedian);
+      changePrank(oracle);
       ctx.sortedOracles.report(rateFeedID, newMedian, lesserKey, greaterKey);
     }
-    ctx.t._changePrank(ctx.t.trader0());
+    changePrank(ctx.trader);
   }
 
   // ========================= Trading Limits =========================
@@ -283,11 +290,11 @@ library Utils {
     return tradingLimitsState(ctx, asset).update(config, 0, 0);
   }
 
-  function isLimitEnabled(TradingLimits.Config memory config, uint8 limit) internal returns (bool) {
+  function isLimitEnabled(TradingLimits.Config memory config, uint8 limit) internal pure returns (bool) {
     return (config.flags & limit) > 0;
   }
 
-  function getLimit(TradingLimits.Config memory config, uint8 limit) internal returns (int48) {
+  function getLimit(TradingLimits.Config memory config, uint8 limit) internal pure returns (int48) {
     if (limit == L0) {
       return config.limit0;
     } else if (limit == L1) {
@@ -299,7 +306,7 @@ library Utils {
     }
   }
 
-  function getNetflow(TradingLimits.State memory state, uint8 limit) internal returns (int48) {
+  function getNetflow(TradingLimits.State memory state, uint8 limit) internal pure returns (int48) {
     if (limit == L0) {
       return state.netflow0;
     } else if (limit == L1) {
@@ -311,7 +318,7 @@ library Utils {
     }
   }
 
-  function revertReason(uint8 limit) internal returns (string memory) {
+  function revertReason(uint8 limit) internal pure returns (string memory) {
     if (limit == L0) {
       return "L0 Exceeded";
     } else if (limit == L1) {
@@ -323,8 +330,6 @@ library Utils {
     }
   }
 
-  // ========================= Oracles =========================
-
   function getOraclesCount(Context memory ctx, address rateFeedID) public view returns (uint256) {}
 
   // ========================= Misc =========================
@@ -332,5 +337,18 @@ library Utils {
   function toSubunits(uint256 units, address token) internal view returns (uint256) {
     uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
     return units * tokenBase;
+  }
+
+  // ==================== Forge Cheats ======================
+  // Pulling in some test helpers to not have to expose them in 
+  // the test contract
+
+  function skip(uint256 time) internal {
+    vm.warp(block.timestamp + time);
+  }
+
+  function changePrank(address who) internal {
+    vm.stopPrank();
+    vm.startPrank(who);
   }
 }
