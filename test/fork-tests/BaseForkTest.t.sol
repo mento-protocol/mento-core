@@ -177,7 +177,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   function test_tradingLimitsAreEnforced_0to1_L0() public {
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
 
       assert_swapOverLimitFails(ctx, exchange.assets[0], exchange.assets[1], L0);
@@ -187,7 +187,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   function test_tradingLimitsAreEnforced_0to1_L1() public {
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
 
       assert_swapOverLimitFails(ctx, exchange.assets[0], exchange.assets[1], L1);
@@ -197,7 +197,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   function test_tradingLimitsAreEnforced_0to1_LG() public {
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
 
       assert_swapOverLimitFails(ctx, exchange.assets[0], exchange.assets[1], LG);
@@ -207,7 +207,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   function test_tradingLimitsAreEnforced_1to0_L0() public {
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
 
       assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], L0);
@@ -217,7 +217,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   function test_tradingLimitsAreEnforced_1to0_L1() public {
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
 
       assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], L1);
@@ -227,7 +227,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   function test_tradingLimitsAreEnforced_1to0_LG() public {
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
 
       assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], LG);
@@ -238,7 +238,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     address[] memory breakers = breakerBox.getBreakers();
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       address rateFeedID = ctx.getReferenceRateFeedID();
       bool found = false;
       for (uint256 j = 0; j < breakers.length && !found; j++) {
@@ -250,10 +250,9 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
 
   function test_circuitBreaker_breaks() public {
     address[] memory breakers = breakerBox.getBreakers();
-    console.log("asd");
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       address rateFeedID = ctx.getReferenceRateFeedID();
       for (uint256 j = 0; j < breakers.length; j++) {
         if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
@@ -267,7 +266,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     address[] memory breakers = breakerBox.getBreakers();
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       address rateFeedID = ctx.getReferenceRateFeedID();
       for (uint256 j = 0; j < breakers.length; j++) {
         if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
@@ -281,7 +280,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     address[] memory breakers = breakerBox.getBreakers();
     for (uint256 i = 0; i < exchanges.length; i++) {
       Utils.Context memory ctx = Utils.newContext(address(this), i);
-      ctx.printHeader();
+      ctx.logHeader();
       address rateFeedID = ctx.getReferenceRateFeedID();
       IExchangeProvider.Exchange memory exchange = ctx.exchange;
 

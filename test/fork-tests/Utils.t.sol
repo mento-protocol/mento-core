@@ -91,6 +91,11 @@ library Utils {
 
     addReportsIfNeeded(ctx);
     uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
+    console.log(
+      string(abi.encodePacked("🤝 swapIn(", toSymbol(from), "->", toSymbol(to), ", amountIn: %d, minAmountOut:%d)")),
+      sellAmount,
+      minAmountOut
+    );
     return ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
   }
 
@@ -107,62 +112,65 @@ library Utils {
     changePrank(ctx.trader);
     IERC20Metadata(from).approve(address(ctx.broker), maxAmountIn);
 
+    console.log(
+      string(abi.encodePacked("🤝 swapOut(", toSymbol(from), "->", toSymbol(to), ",amountOut: %d, maxAmountIn: %d)")),
+      buyAmount,
+      maxAmountIn
+    );
     return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
+  }
+
+  function shouldUpdateBuckets(Context memory ctx) internal view returns (bool, bool, bool, bool, bool) {
+    BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
+    BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
+
+    (bool isReportExpired, ) = ctx.sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
+    // solhint-disable-next-line not-rely-on-time
+    bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
+    bool enoughReports = (ctx.sortedOracles.numRates(exchange.config.referenceRateFeedID) >=
+      exchange.config.minimumReports);
+    // solhint-disable-next-line not-rely-on-time
+    bool medianReportRecent = ctx.sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID) >
+      now.sub(exchange.config.referenceRateResetFrequency);
+    
+    return (
+      timePassed,
+      enoughReports,
+      medianReportRecent,
+      isReportExpired,
+      timePassed && enoughReports && medianReportRecent && !isReportExpired
+    );
+  }
+
+  function getUpdatedBuckets(Context memory ctx) internal view returns (uint256 bucket0, uint256 bucket1) {
+    BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
+    BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
+
+    bucket0 = exchange.config.stablePoolResetSize;
+    uint256 exchangeRateNumerator;
+    uint256 exchangeRateDenominator;
+    (exchangeRateNumerator, exchangeRateDenominator) = getReferenceRate(ctx);
+
+    bucket1 = exchangeRateDenominator.mul(bucket0).div(exchangeRateNumerator);
   }
 
   function addReportsIfNeeded(Context memory ctx) internal {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
-    (bool isReportExpired, ) = ctx.sortedOracles.isOldestReportExpired(pool.config.referenceRateFeedID);
-
-    // solhint-disable-next-line not-rely-on-time
-    bool timePassed = now >= pool.lastBucketUpdate.add(pool.config.referenceRateResetFrequency);
-    bool enoughReports = (ctx.sortedOracles.numRates(pool.config.referenceRateFeedID) >= pool.config.minimumReports);
-    // solhint-disable-next-line not-rely-on-time
-    bool medianReportRecent = ctx.sortedOracles.medianTimestamp(pool.config.referenceRateFeedID) >
-      now.sub(pool.config.referenceRateResetFrequency);
-
-    console.log(
-      "\t timePassed: %s | enoughReports: %s",
-      timePassed ? "true" : "false",
-      enoughReports ? "true" : "false"
-    );
-    console.log(
-      "\t medianReportRecent: %s | !isReportExpired: %s",
-      medianReportRecent ? "true" : "false",
-      !isReportExpired ? "true" : "false"
-    );
-    console.log(
-      "\t pool.bucket0: %d | pool.bucket1: %d",
-      pool.bucket0.div(10**uint256(IERC20Metadata(pool.asset0).decimals())),
-      pool.bucket1.div(10**uint256(IERC20Metadata(pool.asset0).decimals()))
-    );
-    console.log("\t pool.lastBucketUpdate: %d", pool.lastBucketUpdate);
-
+    (
+      bool timePassed, 
+      bool enoughReports, 
+      bool medianReportRecent, 
+      bool isReportExpired,
+    ) = shouldUpdateBuckets(ctx);
+    logPool(ctx);
     if (timePassed && (!medianReportRecent || isReportExpired || !enoughReports)) {
       (uint256 newMedian, ) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
+      (timePassed, enoughReports, medianReportRecent, isReportExpired,) = shouldUpdateBuckets(ctx);
       updateOracleMedianRate(ctx, newMedian.mul(1_000_001).div(1_000_000));
 
-      (isReportExpired, ) = ctx.sortedOracles.isOldestReportExpired(pool.config.referenceRateFeedID);
-      // solhint-disable-next-line not-rely-on-time
-      timePassed = now >= pool.lastBucketUpdate.add(pool.config.referenceRateResetFrequency);
-      enoughReports = (ctx.sortedOracles.numRates(pool.config.referenceRateFeedID) >= pool.config.minimumReports);
-      // solhint-disable-next-line not-rely-on-time
-      medianReportRecent =
-        ctx.sortedOracles.medianTimestamp(pool.config.referenceRateFeedID) >
-        now.sub(pool.config.referenceRateResetFrequency);
-
-      console.log(
-        "\t timePassed: %s | enoughReports: %s",
-        timePassed ? "true" : "false",
-        enoughReports ? "true" : "false"
-      );
-      console.log(
-        "\t medianReportRecent: %s | !isReportExpired: %s",
-        medianReportRecent ? "true" : "false",
-        !isReportExpired ? "true" : "false"
-      );
+      logPool(ctx);
       return;
     }
   }
@@ -176,7 +184,12 @@ library Utils {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
-    uint256 toBucket = pool.asset0 == to ? pool.bucket0 : pool.bucket1;
+    uint256 toBucket = (pool.asset0 == to ? pool.bucket0 : pool.bucket1) - 1;
+    (,,,,bool shouldUpdate) = shouldUpdateBuckets(ctx);
+    if (shouldUpdate) {
+      (uint256 bucket0, uint256 bucket1) = getUpdatedBuckets(ctx);
+      toBucket = (pool.asset0 == to ? bucket0 : bucket1) - 1;
+    }
     maxPossible = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, toBucket);
     if (maxPossible > desired) {
       maxPossible = desired;
@@ -192,7 +205,13 @@ library Utils {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
-    maxPossible = pool.asset0 == to ? pool.bucket0 : pool.bucket1;
+    maxPossible = (pool.asset0 == to ? pool.bucket0 : pool.bucket1) - 1;
+    (,,,,bool shouldUpdate) = shouldUpdateBuckets(ctx);
+    if (shouldUpdate) {
+      (uint256 bucket0, uint256 bucket1) = getUpdatedBuckets(ctx);
+      maxPossible = (pool.asset0 == to ? bucket0 : bucket1) - 1;
+    }
+
     if (maxPossible > desired) {
       maxPossible = desired;
     }
@@ -251,7 +270,7 @@ library Utils {
     address rateFeedID = getReferenceRateFeedID(ctx);
     address[] memory oracles = ctx.sortedOracles.getOracles(rateFeedID);
     require(oracles.length > 0, "No oracles for rateFeedID");
-    console.log("Updating oracles to new median: ", newMedian);
+    console.log("🔮 Updating oracles to new median: ", newMedian);
     for (uint256 i = 0; i < oracles.length; i++) {
       skip(5);
       address oracle = oracles[i];
@@ -264,7 +283,6 @@ library Utils {
         if (values[j] >= newMedian) greaterKey = keys[j];
       }
 
-      console.log("Updating oracle: %s to new value: %s", oracle, newMedian);
       changePrank(oracle);
       ctx.sortedOracles.report(rateFeedID, newMedian, lesserKey, greaterKey);
     }
@@ -349,6 +367,18 @@ library Utils {
     }
   }
 
+  function limitString(uint8 limit) internal pure returns (string memory) {
+    if (limit == L0) {
+      return "L0";
+    } else if (limit == L1) {
+      return "L1";
+    } else if (limit == LG) {
+      return "LG";
+    } else {
+      revert("invalid limit");
+    }
+  }
+
   function maxPossibleInflow(Context memory ctx, address from) internal view returns (int48) {
     TradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, from);
     TradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, from);
@@ -393,7 +423,16 @@ library Utils {
 
   function toSubunits(uint256 units, address token) internal view returns (uint256) {
     uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
-    return units * tokenBase;
+    return units.mul(tokenBase);
+  }
+
+  function toUnits(uint256 units, address token) internal view returns (uint256) {
+    uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
+    return units.div(tokenBase);
+  }
+
+  function toSymbol(address token) internal view returns (string memory) {
+    return IERC20Metadata(token).symbol();
   }
 
   function ticker(Context memory ctx) internal view returns (string memory) {
@@ -407,7 +446,7 @@ library Utils {
       );
   }
 
-  function printHeader(Context memory ctx) internal view {
+  function logHeader(Context memory ctx) internal view {
     console.log("========================================");
     console.log("🔦 Testing pair:", ticker(ctx));
     console.log("========================================");
@@ -417,8 +456,42 @@ library Utils {
     return a > b ? b : a;
   }
 
-  function min(int48 a, int48 b, int48 c) internal pure returns (int48) {
+  function min(
+    int48 a,
+    int48 b,
+    int48 c
+  ) internal pure returns (int48) {
     return min(a, min(b, c));
+  }
+
+  function logPool(Context memory ctx) internal view {
+    BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
+    BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
+
+    (
+      bool timePassed, 
+      bool enoughReports, 
+      bool medianReportRecent, 
+      bool isReportExpired,
+    ) = shouldUpdateBuckets(ctx);
+    console.log("🎱 Pool: %s", ticker(ctx));
+    console.log(
+      "\t timePassed: %s | enoughReports: %s",
+      timePassed ? "true" : "false",
+      enoughReports ? "true" : "false"
+    );
+    console.log(
+      "\t medianReportRecent: %s | !isReportExpired: %s",
+      medianReportRecent ? "true" : "false",
+      !isReportExpired ? "true" : "false"
+    );
+    console.log(
+      "\t exchange.bucket0: %d | exchange.bucket1: %d",
+      toUnits(exchange.bucket0, exchange.asset0),
+      toUnits(exchange.bucket1, exchange.asset1)
+    );
+    console.log("\t exchange.lastBucketUpdate: %d", exchange.lastBucketUpdate);
+
   }
 
   // ==================== Forge Cheats ======================
