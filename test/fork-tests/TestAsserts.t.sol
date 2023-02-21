@@ -197,16 +197,21 @@ contract TestAsserts is Test {
      * during inflow on `from`, therfore we check the positive end
      * of the limit because `from` flows into the reserve.
      */
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
-    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
 
-    console.log(block.timestamp, "Swap until limit on from (L0)");
-    int48 maxPossible = limitConfig.limit0 - limitState.netflow0;
-    require(maxPossible >= 0, "max possible trade amount is negative");
-    console.log("Max possible: ", uint256(maxPossible));
-    if (maxPossible > 0) {
-      ctx.swapIn(from, to, uint256(maxPossible).toSubunits(from));
-    }
+    console.log(block.timestamp, "Swap until L0 on inflow");
+    uint256 maxPossible;
+    uint256 maxPossibleUntilLimit;
+    do {
+      int48 maxPossibleUntilLimitUnits = ctx.maxPossibleInflow(from);
+      require(maxPossibleUntilLimitUnits >= 0, "max possible trade amount is negative");
+      maxPossibleUntilLimit = uint256(maxPossibleUntilLimitUnits).toSubunits(from);
+      maxPossible = ctx.maxSwapIn(maxPossibleUntilLimit, from, to);
+
+      console.log("Swapping max possible: ", maxPossible.div(10 ** uint256(IERC20Metadata(from).decimals())));
+      if (maxPossible > 0) {
+        ctx.swapIn(from, to, maxPossible);
+      }
+    } while (maxPossible > 0 && maxPossibleUntilLimit > maxPossible);
   }
 
   function swapUntilL1_onInflow(
@@ -222,7 +227,7 @@ contract TestAsserts is Test {
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
-    console.log(block.timestamp, "Swap until limit on from (L1)");
+    console.log(block.timestamp, "Swap until L1 on inflow");
     int48 maxPerSwap = limitConfig.limit0 - 1;
 
     while (limitState.netflow1 + maxPerSwap < limitConfig.limit1) {
@@ -247,7 +252,7 @@ contract TestAsserts is Test {
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
-    console.log(block.timestamp, "Swap until limit on from (LG)");
+    console.log(block.timestamp, "Swap until LG on inflow");
 
     if (limitConfig.isLimitEnabled(L1)) {
       int48 maxPerSwap = limitConfig.limit0 - 1;
@@ -281,16 +286,48 @@ contract TestAsserts is Test {
      * during outflow on `to`, therfore we check the negative end
      * of the limit because `to` flows out of the reserve.
      */
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
-    console.log(block.timestamp, "Swap until limit on to (L0)");
-    int48 maxPossible = limitConfig.limit0 + limitState.netflow0 - 1;
-    require(maxPossible >= 0, "max possible trade amount is negative");
-    console.log("Max possible: ", uint256(maxPossible));
-    if (maxPossible > 0) {
-      ctx.swapOut(from, to, uint256(maxPossible).toSubunits(to));
-    }
+    console.log(block.timestamp, "Swap until L0 on outflow");
+    // uint256 maxPossible;
+    // uint256 maxPossibleUntilLimit;
+    // do {
+    //   int48 maxPossibleUntilLimitUnits = ctx.maxPossibleInflow(from);
+    //   require(maxPossibleUntilLimitUnits >= 0, "max possible trade amount is negative");
+    //   maxPossibleUntilLimit = uint256(maxPossibleUntilLimitUnits).toSubunits(from);
+    //   maxPossible = ctx.maxSwapIn(maxPossibleUntilLimit, from, to);
+
+    //   console.log("Swapping max possible: ", maxPossible.div(10 ** uint256(IERC20Metadata(from).decimals())));
+    //   if (maxPossible > 0) {
+    //     ctx.swapIn(from, to, maxPossible);
+    //   }
+    // } while (maxPossible > 0 && maxPossibleUntilLimit > maxPossible);
+
+    uint256 maxPossible;
+    uint256 maxPossibleUntilLimit;
+    do {
+      int48 maxPossibleUntilLimitUnits = ctx.maxPossibleOutflow(to);
+      require(maxPossibleUntilLimitUnits >= 0, "max possible trade amount is negative");
+      maxPossibleUntilLimit = uint256(maxPossibleUntilLimitUnits).toSubunits(to);
+      maxPossible = ctx.maxSwapOut(maxPossibleUntilLimit, from, to);
+
+      console.log("Swapping max possible: ", maxPossible.div(10 ** uint256(IERC20Metadata(to).decimals())));
+      if (maxPossible > 0) {
+        ctx.swapOut(from, to, maxPossible);
+      }
+    } while (maxPossible > 0 && maxPossibleUntilLimit > maxPossible);
+
+    // TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    // TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
+
+    // console.log(block.timestamp, "Swap until L0 on outflow");
+    // int48 maxPossibleUnits = limitConfig.limit0 + limitState.netflow0 - 1;
+    // require(maxPossibleUnits >= 0, "max possible trade amount is negative");
+    // uint256 maxPossible = ctx.maxSwapOut(uint256(maxPossibleUnits).toSubunits(to), from, to);
+    // console.log("Max possible: ", maxPossible.div(10 ** uint256(IERC20Metadata(from).decimals())));
+
+    // if (maxPossible > 0) {
+    //   ctx.swapOut(from, to, maxPossible);
+    // }
   }
 
   function swapUntilL1_onOutflow(
@@ -307,7 +344,7 @@ contract TestAsserts is Test {
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
-    console.log(block.timestamp, "Swap until limit on to (L1)");
+    console.log(block.timestamp, "Swap until L1 on outflow");
     int48 maxPerSwap = limitConfig.limit0 - 1;
 
     while (limitState.netflow1 - maxPerSwap > -1 * limitConfig.limit1) {
@@ -333,7 +370,7 @@ contract TestAsserts is Test {
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
-    console.log(block.timestamp, "Swap until limit on to (LG)");
+    console.log(block.timestamp, "Swap until LG on outflow");
 
     if (limitConfig.isLimitEnabled(L1)) {
       int48 maxPerSwap = limitConfig.limit0 - 1;

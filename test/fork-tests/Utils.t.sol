@@ -44,8 +44,7 @@ library Utils {
   uint8 private constant L1 = 2; // 0b010 Limit1
   uint8 private constant LG = 4; // 0b100 LimitGlobal
 
-  address constant private VM_ADDRESS =
-    address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
+  address private constant VM_ADDRESS = address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
 
   Vm public constant vm = Vm(VM_ADDRESS);
 
@@ -111,9 +110,7 @@ library Utils {
     return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
   }
 
-  function addReportsIfNeeded(
-    Context memory ctx
-  ) internal {
+  function addReportsIfNeeded(Context memory ctx) internal {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
@@ -121,57 +118,85 @@ library Utils {
 
     // solhint-disable-next-line not-rely-on-time
     bool timePassed = now >= pool.lastBucketUpdate.add(pool.config.referenceRateResetFrequency);
-    bool enoughReports = (ctx.sortedOracles.numRates(pool.config.referenceRateFeedID) >=
-      pool.config.minimumReports);
+    bool enoughReports = (ctx.sortedOracles.numRates(pool.config.referenceRateFeedID) >= pool.config.minimumReports);
     // solhint-disable-next-line not-rely-on-time
     bool medianReportRecent = ctx.sortedOracles.medianTimestamp(pool.config.referenceRateFeedID) >
       now.sub(pool.config.referenceRateResetFrequency);
-    
+
     console.log(
       "\t timePassed: %s | enoughReports: %s",
       timePassed ? "true" : "false",
       enoughReports ? "true" : "false"
     );
     console.log(
-      "\t medianReportRecent: %s | !isReportExpired: %s", 
+      "\t medianReportRecent: %s | !isReportExpired: %s",
       medianReportRecent ? "true" : "false",
       !isReportExpired ? "true" : "false"
     );
     console.log(
-      "\t pool.bucket0: %d | pool.bucket1: %d", 
-      pool.bucket0,
-      pool.bucket1
+      "\t pool.bucket0: %d | pool.bucket1: %d",
+      pool.bucket0.div(10**uint256(IERC20Metadata(pool.asset0).decimals())),
+      pool.bucket1.div(10**uint256(IERC20Metadata(pool.asset0).decimals()))
     );
-    console.log(
-      "\t pool.lastBucketUpdate: %d",
-      pool.lastBucketUpdate
-    );
+    console.log("\t pool.lastBucketUpdate: %d", pool.lastBucketUpdate);
 
-    if (timePassed && (!medianReportRecent || isReportExpired)) {
-      (uint256 newMedian,) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
-      updateOracleMedianRate(ctx, newMedian.mul(101).div(100));
+    if (timePassed && (!medianReportRecent || isReportExpired || !enoughReports)) {
+      (uint256 newMedian, ) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
+      updateOracleMedianRate(ctx, newMedian.mul(1_000_001).div(1_000_000));
 
       (isReportExpired, ) = ctx.sortedOracles.isOldestReportExpired(pool.config.referenceRateFeedID);
       // solhint-disable-next-line not-rely-on-time
       timePassed = now >= pool.lastBucketUpdate.add(pool.config.referenceRateResetFrequency);
-      enoughReports = (ctx.sortedOracles.numRates(pool.config.referenceRateFeedID) >=
-        pool.config.minimumReports);
+      enoughReports = (ctx.sortedOracles.numRates(pool.config.referenceRateFeedID) >= pool.config.minimumReports);
       // solhint-disable-next-line not-rely-on-time
-      medianReportRecent = ctx.sortedOracles.medianTimestamp(pool.config.referenceRateFeedID) >
+      medianReportRecent =
+        ctx.sortedOracles.medianTimestamp(pool.config.referenceRateFeedID) >
         now.sub(pool.config.referenceRateResetFrequency);
-    
+
       console.log(
         "\t timePassed: %s | enoughReports: %s",
         timePassed ? "true" : "false",
         enoughReports ? "true" : "false"
       );
       console.log(
-        "\t medianReportRecent: %s | !isReportExpired: %s", 
+        "\t medianReportRecent: %s | !isReportExpired: %s",
         medianReportRecent ? "true" : "false",
         !isReportExpired ? "true" : "false"
       );
       return;
     }
+  }
+
+  function maxSwapIn(
+    Context memory ctx,
+    uint256 desired,
+    address from,
+    address to
+  ) internal view returns (uint256 maxPossible) {
+    // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
+    BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
+    BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
+    uint256 toBucket = pool.asset0 == to ? pool.bucket0 : pool.bucket1;
+    maxPossible = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, toBucket);
+    if (maxPossible > desired) {
+      maxPossible = desired;
+    }
+  }
+
+  function maxSwapOut(
+    Context memory ctx,
+    uint256 desired,
+    address from,
+    address to
+  ) internal view returns (uint256 maxPossible) {
+    // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
+    BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
+    BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
+    maxPossible = pool.asset0 == to ? pool.bucket0 : pool.bucket1;
+    if (maxPossible > desired) {
+      maxPossible = desired;
+    }
+    // maxPossible -= 10 * 10 ** uint256(IERC20Metadata(pool.asset0).decimals());
   }
 
   // ========================= Sorted Oracles =========================
@@ -204,21 +229,13 @@ library Utils {
     return pool.config.referenceRateFeedID;
   }
 
-  function getValueDeltaBreakerReferenceValue(Context memory ctx, address _breaker)
-    internal
-    view
-    returns (uint256)
-  {
+  function getValueDeltaBreakerReferenceValue(Context memory ctx, address _breaker) internal view returns (uint256) {
     ValueDeltaBreaker breaker = ValueDeltaBreaker(_breaker);
     address rateFeedID = getReferenceRateFeedID(ctx);
     return breaker.referenceValues(rateFeedID);
   }
 
-  function getBreakerRateChangeThreshold(Context memory ctx, address _breaker)
-    internal
-    view
-    returns (uint256)
-  {
+  function getBreakerRateChangeThreshold(Context memory ctx, address _breaker) internal view returns (uint256) {
     MedianDeltaBreaker breaker = MedianDeltaBreaker(_breaker);
     address rateFeedID = getReferenceRateFeedID(ctx);
 
@@ -247,12 +264,14 @@ library Utils {
         if (values[j] >= newMedian) greaterKey = keys[j];
       }
 
-      console.log("Updating oracle: %s to new median: %s", oracle, newMedian);
+      console.log("Updating oracle: %s to new value: %s", oracle, newMedian);
       changePrank(oracle);
       ctx.sortedOracles.report(rateFeedID, newMedian, lesserKey, greaterKey);
     }
     changePrank(ctx.trader);
   }
+
+  function getOraclesCount(Context memory ctx, address rateFeedID) public view returns (uint256) {}
 
   // ========================= Trading Limits =========================
 
@@ -330,7 +349,45 @@ library Utils {
     }
   }
 
-  function getOraclesCount(Context memory ctx, address rateFeedID) public view returns (uint256) {}
+  function maxPossibleInflow(Context memory ctx, address from) internal view returns (int48) {
+    TradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, from);
+    TradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, from);
+    int48 maxInflowL0 = limitConfig.limit0 - limitState.netflow0;
+    int48 maxInflowL1 = limitConfig.limit1 - limitState.netflow1;
+    int48 maxInflowLG = limitConfig.limitGlobal - limitState.netflowGlobal;
+
+    if (limitConfig.flags == L0 | L1 | LG) {
+      return min(maxInflowL0, maxInflowL1, maxInflowLG);
+    } else if (limitConfig.flags == L0 | LG) {
+      return min(maxInflowL0, maxInflowLG);
+    } else if (limitConfig.flags == L0 | L1) {
+      return min(maxInflowL0, maxInflowL1);
+    } else if (limitConfig.flags == L0) {
+      return maxInflowL0;
+    } else {
+      revert("Unexpected limit config");
+    }
+  }
+
+  function maxPossibleOutflow(Context memory ctx, address to) internal view returns (int48) {
+    TradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, to);
+    TradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, to);
+    int48 maxOutflowL0 = limitConfig.limit0 + limitState.netflow0 - 1;
+    int48 maxOutflowL1 = limitConfig.limit1 + limitState.netflow1 - 1;
+    int48 maxOutflowLG = limitConfig.limitGlobal + limitState.netflowGlobal - 1;
+
+    if (limitConfig.flags == L0 | L1 | LG) {
+      return min(maxOutflowL0, maxOutflowL1, maxOutflowLG);
+    } else if (limitConfig.flags == L0 | LG) {
+      return min(maxOutflowL0, maxOutflowLG);
+    } else if (limitConfig.flags == L0 | L1) {
+      return min(maxOutflowL0, maxOutflowL1);
+    } else if (limitConfig.flags == L0) {
+      return maxOutflowL0;
+    } else {
+      revert("Unexpected limit config");
+    }
+  }
 
   // ========================= Misc =========================
 
@@ -339,8 +396,33 @@ library Utils {
     return units * tokenBase;
   }
 
+  function ticker(Context memory ctx) internal view returns (string memory) {
+    return
+      string(
+        abi.encodePacked(
+          IERC20Metadata(ctx.exchange.assets[0]).symbol(),
+          "/",
+          IERC20Metadata(ctx.exchange.assets[1]).symbol()
+        )
+      );
+  }
+
+  function printHeader(Context memory ctx) internal view {
+    console.log("========================================");
+    console.log("🔦 Testing pair:", ticker(ctx));
+    console.log("========================================");
+  }
+
+  function min(int48 a, int48 b) internal pure returns (int48) {
+    return a > b ? b : a;
+  }
+
+  function min(int48 a, int48 b, int48 c) internal pure returns (int48) {
+    return min(a, min(b, c));
+  }
+
   // ==================== Forge Cheats ======================
-  // Pulling in some test helpers to not have to expose them in 
+  // Pulling in some test helpers to not have to expose them in
   // the test contract
 
   function skip(uint256 time) internal {
