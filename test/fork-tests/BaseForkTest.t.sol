@@ -126,7 +126,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     // XXX: The number of collateral assets 2 is hardcoded here [CELO, USDC]
     for (uint256 i = 0; i < 2; i++) {
       address collateralAsset = reserve.collateralAssets(i);
-      mint(collateralAsset, address(reserve), 10_000_000 * (10 ** uint256(IERC20Metadata(collateralAsset).decimals())));
+      mint(collateralAsset, address(reserve), Utils.toSubunits(10_000_000, collateralAsset ));
       console.log("Minting 10mil %s to reserve", IERC20Metadata(collateralAsset).symbol());
     }
 
