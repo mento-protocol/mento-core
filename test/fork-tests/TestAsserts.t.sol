@@ -210,7 +210,8 @@ contract TestAsserts is Test {
      * of the limit because `from` flows into the reserve.
      */
 
-    console.log("🏷️[",block.timestamp, "] Swap until L0 on inflow");
+    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    console.log("🏷️ [%d] Swap until L0=%d on inflow", block.timestamp, uint256(limitConfig.limit0));
     uint256 maxPossible;
     uint256 maxPossibleUntilLimit;
     do {
@@ -223,6 +224,7 @@ contract TestAsserts is Test {
         ctx.swapIn(from, to, maxPossible);
       }
     } while (maxPossible > 0 && maxPossibleUntilLimit > maxPossible);
+    ctx.logNetflows(from);
   }
 
   function swapUntilL1_onInflow(
@@ -238,10 +240,10 @@ contract TestAsserts is Test {
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
-    console.log("🏷️[",block.timestamp, "] Swap until L1 on inflow");
-    int48 maxPerSwap = limitConfig.limit0 - 1;
+    console.log("🏷️ [%d] Swap until L1=%d on inflow", block.timestamp, uint256(limitConfig.limit1));
+    int48 maxPerSwap = limitConfig.limit0;
 
-    while (limitState.netflow1 + maxPerSwap < limitConfig.limit1) {
+    while (limitState.netflow1 + maxPerSwap <= limitConfig.limit1) {
       skip(limitConfig.timestep0 + 1);
       swapUntilL0_onInflow(ctx, from, to);
       limitConfig = ctx.tradingLimitsConfig(from);
@@ -263,11 +265,11 @@ contract TestAsserts is Test {
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
-    console.log("🏷️[",block.timestamp, "] Swap until LG on inflow");
+    console.log("🏷️ [%d] Swap until LG=%d on inflow", block.timestamp, uint256(limitConfig.limitGlobal));
 
     if (limitConfig.isLimitEnabled(L1)) {
-      int48 maxPerSwap = limitConfig.limit0 - 1;
-      while (limitState.netflowGlobal + maxPerSwap < limitConfig.limitGlobal) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
         swapUntilL1_onInflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(from);
@@ -275,8 +277,8 @@ contract TestAsserts is Test {
       }
       skip(limitConfig.timestep1 + 1);
     } else if (limitConfig.isLimitEnabled(L0)) {
-      int48 maxPerSwap = limitConfig.limit0 - 1;
-      while (limitState.netflowGlobal + maxPerSwap < limitConfig.limitGlobal) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
         swapUntilL0_onInflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(from);
@@ -298,19 +300,21 @@ contract TestAsserts is Test {
      * of the limit because `to` flows out of the reserve.
      */
 
-    console.log("🏷️[",block.timestamp, "] Swap until L0 on outflow");
+    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    console.log("🏷️ [%d] Swap until L0=%d on outflow", block.timestamp, uint256(limitConfig.limit0));
     uint256 maxPossible;
     uint256 maxPossibleUntilLimit;
     do {
       int48 maxPossibleUntilLimitUnits = ctx.maxPossibleOutflow(to);
       require(maxPossibleUntilLimitUnits >= 0, "max possible trade amount is negative");
       maxPossibleUntilLimit = uint256(maxPossibleUntilLimitUnits).toSubunits(to);
-      maxPossible = ctx.maxSwapOut(maxPossibleUntilLimit, from, to);
+      maxPossible = ctx.maxSwapOut(maxPossibleUntilLimit, to);
 
       if (maxPossible > 0) {
         ctx.swapOut(from, to, maxPossible);
       }
     } while (maxPossible > 0 && maxPossibleUntilLimit > maxPossible);
+    ctx.logNetflows(to);
   }
 
   function swapUntilL1_onOutflow(
@@ -327,10 +331,10 @@ contract TestAsserts is Test {
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
-    console.log("🏷️[",block.timestamp, "] Swap until L1 on outflow");
-    int48 maxPerSwap = limitConfig.limit0 - 1;
+    console.log("🏷️ [%d] Swap until L1=%d on outflow", block.timestamp, uint256(limitConfig.limit1));
+    int48 maxPerSwap = limitConfig.limit0;
 
-    while (limitState.netflow1 - maxPerSwap > -1 * limitConfig.limit1) {
+    while (limitState.netflow1 - maxPerSwap >= -1 * limitConfig.limit1) {
       skip(limitConfig.timestep0 + 1);
       swapUntilL0_onOutflow(ctx, from, to);
       limitConfig = ctx.tradingLimitsConfig(to);
@@ -352,11 +356,11 @@ contract TestAsserts is Test {
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
-    console.log("🏷️[",block.timestamp, "] Swap until LG on outflow");
+    console.log("🏷️ [%d] Swap until LG=%d on outflow", block.timestamp, uint256(limitConfig.limitGlobal));
 
     if (limitConfig.isLimitEnabled(L1)) {
-      int48 maxPerSwap = limitConfig.limit0 - 1;
-      while (limitState.netflowGlobal - maxPerSwap > -1 * limitConfig.limitGlobal) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
         swapUntilL1_onOutflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
@@ -365,8 +369,8 @@ contract TestAsserts is Test {
       }
       skip(limitConfig.timestep1 + 1);
     } else if (limitConfig.isLimitEnabled(L0)) {
-      int48 maxPerSwap = limitConfig.limit0 - 1;
-      while (limitState.netflowGlobal - maxPerSwap > -1 * limitConfig.limitGlobal) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
         swapUntilL0_onOutflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);

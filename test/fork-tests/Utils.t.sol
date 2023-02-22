@@ -93,8 +93,8 @@ library Utils {
     uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
     console.log(
       string(abi.encodePacked("🤝 swapIn(", toSymbol(from), "->", toSymbol(to), ", amountIn: %d, minAmountOut:%d)")),
-      sellAmount,
-      minAmountOut
+      toUnits(sellAmount, from),
+      toUnits(minAmountOut, to)
     );
     return ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
   }
@@ -114,8 +114,8 @@ library Utils {
 
     console.log(
       string(abi.encodePacked("🤝 swapOut(", toSymbol(from), "->", toSymbol(to), ",amountOut: %d, maxAmountIn: %d)")),
-      buyAmount,
-      maxAmountIn
+      toUnits(buyAmount, to),
+      toUnits(maxAmountIn, from)
     );
     return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
   }
@@ -199,7 +199,6 @@ library Utils {
   function maxSwapOut(
     Context memory ctx,
     uint256 desired,
-    address from,
     address to
   ) internal view returns (uint256 maxPossible) {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
@@ -215,7 +214,6 @@ library Utils {
     if (maxPossible > desired) {
       maxPossible = desired;
     }
-    // maxPossible -= 10 * 10 ** uint256(IERC20Metadata(pool.asset0).decimals());
   }
 
   // ========================= Sorted Oracles =========================
@@ -288,8 +286,6 @@ library Utils {
     }
     changePrank(ctx.trader);
   }
-
-  function getOraclesCount(Context memory ctx, address rateFeedID) public view returns (uint256) {}
 
   // ========================= Trading Limits =========================
 
@@ -492,6 +488,25 @@ library Utils {
     );
     console.log("\t exchange.lastBucketUpdate: %d", exchange.lastBucketUpdate);
 
+  }
+
+  function logNetflows(Context memory ctx, address target) internal view {
+    TradingLimits.State memory limitState = tradingLimitsState(ctx, target);
+    console.log(
+      "\t netflow0: %s%d",
+      limitState.netflow0 < 0 ? "-" : "",
+      uint256(limitState.netflow0 < 0 ? limitState.netflow0 * -1 : limitState.netflow0)
+    );
+    console.log(
+      "\t netflow1: %s%d",
+      limitState.netflow1 < 0 ? "-" : "",
+      uint256(limitState.netflow1 < 0 ? limitState.netflow1 * -1 : limitState.netflow1)
+    );
+    console.log(
+      "\t netflowGlobal: %s%d",
+      limitState.netflowGlobal < 0 ? "-" : "",
+      uint256(limitState.netflowGlobal < 0 ? limitState.netflowGlobal * -1 : limitState.netflowGlobal)
+    );
   }
 
   // ==================== Forge Cheats ======================
