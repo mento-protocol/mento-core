@@ -31,8 +31,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   }
 
   mapping(address => bool) public isToken;
-  address[] public _tokens;
-  address[] private _tokens2;
+  address[] private _tokens;
   TobinTaxCache public tobinTaxCache;
   uint256 public tobinTaxStalenessThreshold;
   uint256 public tobinTax;
@@ -752,4 +751,6 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   function isStableAsset(address token) external view returns (bool) {
     return isToken[token];
   }
+
+  address[] private _tokens2;
 }
