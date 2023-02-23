@@ -42,6 +42,7 @@ jobs:
           sarif_file: ${{ steps.slither.outputs.sarif }}
 
   get_proxy_names:
+    name: Get contract names
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -54,6 +55,7 @@ jobs:
 
   check_storage_layout:
     needs: get_proxy_names
+    name: Check storage layout
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
