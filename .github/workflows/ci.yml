@@ -40,6 +40,38 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: ${{ steps.slither.outputs.sarif }}
+
+  get_proxy_names:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Generate matrix with all contract names from the proxy directory 
+        id: set-matrix
+        run: |
+          echo "::set-output name=matrix::$(ls contracts/proxies | sed 's/Proxy.sol//')"
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+  check_storage_layout:
+    needs: get_proxy_names
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        contract: ${{ fromJson(needs.get_proxy_names.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: onbjerg/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Check storage layout
+        uses: Rubilmax/foundry-storage-check@v3.2.1
+        with:
+          contract: ${{ matrix.contract }}
+          failOnRemoval: true 
   ci:
     name: Lint & Test
     runs-on: "ubuntu-latest"
