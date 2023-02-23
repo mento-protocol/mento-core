@@ -126,7 +126,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     vm.expectEmit(true, true, true, true, address(reserve));
     emit TobinTaxSet(newValue);
     reserve.setTobinTax(newValue);
-    assertEq(reserve.tobinTax(), newValue);
+    assertEq(reserve.tobinTax_(), newValue);
 
     vm.expectRevert("tobin tax cannot be larger than 1");
     reserve.setTobinTax(FixidityLib.newFixed(1).unwrap().add(1));
