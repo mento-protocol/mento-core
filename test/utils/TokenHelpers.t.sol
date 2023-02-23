@@ -29,6 +29,10 @@ contract TokenHelpers is Test {
     }
   }
 
+  function mintCelo(address to, uint256 amount) public {
+    mint(registry.getAddressForString("GoldToken"), to, amount);
+  }
+
   function mint(
     GoldToken celoToken,
     address to,
