@@ -32,6 +32,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
 
   mapping(address => bool) public isToken;
   address[] private _tokens;
+  address[] private _tokens3;
   TobinTaxCache public tobinTaxCache;
   uint256 public tobinTaxStalenessThreshold;
   uint256 public tobinTax;
