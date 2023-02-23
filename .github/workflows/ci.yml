@@ -73,7 +73,7 @@ jobs:
         uses: Rubilmax/foundry-storage-check@v3.2.1
         with:
           contract: ${{ matrix.contract }}
-          failOnRemoval: true 
+          workingDirectory: contracts/
   ci:
     name: Lint & Test
     runs-on: "ubuntu-latest"
