@@ -34,7 +34,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   address[] private _tokens;
   TobinTaxCache public tobinTaxCache;
   uint256 public tobinTaxStalenessThreshold;
-  uint256 public tobinTax_;
+  uint256 public tobinTax;
   uint256 public tobinTaxReserveRatio;
   mapping(address => bool) public isSpender;
 
@@ -170,7 +170,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    */
   function setTobinTax(uint256 value) public onlyOwner {
     require(FixidityLib.wrap(value).lte(FixidityLib.fixed1()), "tobin tax cannot be larger than 1");
-    tobinTax_ = value;
+    tobinTax = value;
     emit TobinTaxSet(value);
   }
 
@@ -744,7 +744,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     if (ratio.gte(FixidityLib.wrap(tobinTaxReserveRatio))) {
       return FixidityLib.wrap(0);
     } else {
-      return FixidityLib.wrap(tobinTax_);
+      return FixidityLib.wrap(tobinTax);
     }
   }
 
