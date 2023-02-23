@@ -72,7 +72,7 @@ jobs:
       - name: Check storage layout
         uses: Rubilmax/foundry-storage-check@v3.2.1
         with:
-          contract: ${{ matrix.contract }}
+          contract: ${{ matrix.contract }}.sol:${{ matrix.contract }}
           workingDirectory: contracts/
   ci:
     name: Lint & Test
