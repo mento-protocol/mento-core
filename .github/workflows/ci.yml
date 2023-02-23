@@ -48,7 +48,7 @@ jobs:
       - name: Generate matrix with all contract names from the proxy directory 
         id: set-matrix
         run: |
-          echo "::set-output name=matrix::$(ls contracts/proxies | sed 's/Proxy.sol//')"
+          echo "::set-output name=matrix::$(ls contracts/proxies | sed 's/Proxy.sol//' | jq -R -s -c 'split("\n") | map(select(length > 0))') )"
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
