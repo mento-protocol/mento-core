@@ -47,7 +47,7 @@ contract Exchange is
   address public stable;
 
   // Size of the Uniswap gold bucket
-  uint256 public goldBucket;
+  int256 public goldBucket;
   // Size of the Uniswap stable token bucket
   uint256 public stableBucket;
 
