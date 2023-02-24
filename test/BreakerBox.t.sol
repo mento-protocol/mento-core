@@ -67,7 +67,7 @@ contract BreakerBoxTest is Test, WithRegistry {
   }
 
   function isRateFeed(address rateFeedID) public view returns (bool rateFeedIDFound) {
-    address[] memory allRateFeedIDs = breakerBox.getrateFeeds();
+    address[] memory allRateFeedIDs = breakerBox.getRateFeeds();
     for (uint256 i = 0; i < allRateFeedIDs.length; i++) {
       if (allRateFeedIDs[i] == rateFeedID) {
         rateFeedIDFound = true;
