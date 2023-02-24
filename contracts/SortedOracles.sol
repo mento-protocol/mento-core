@@ -280,14 +280,14 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
   /**
    * @notice Returns the number of rates that are currently stored for a specifed rateFeedId.
    * @param token The rateFeedId for which to retrieve the number of rates.
-   * @return uint256 The number of reported oracle rates storedn for the given rateFeedId.
+   * @return uint256 The number of reported oracle rates stored for the given rateFeedId.
    */
   function numRates(address token) public view returns (uint256) {
     return rates[token].getNumElements();
   }
 
   /**
-   * @notice Returns the median of the curretly stored rates for a specified rateFeedId.
+   * @notice Returns the median of the currently stored rates for a specified rateFeedId.
    * @param token The rateFeedId of the rates for which the median value is being retrieved.
    * @return uint256 The median exchange rate for rateFeedId.
    * @return fixidity
