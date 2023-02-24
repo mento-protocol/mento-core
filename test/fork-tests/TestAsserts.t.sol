@@ -77,7 +77,8 @@ contract TestAsserts is Test {
     uint256 sellAmount,
     string memory revertReason
   ) internal {
-    ctx.t.mint(from, ctx.t.trader0(), sellAmount);
+    ctx.addReportsIfNeeded();
+    ctx.t.mint(from, ctx.trader, sellAmount);
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
     uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
     vm.expectRevert(bytes(revertReason));
@@ -91,8 +92,9 @@ contract TestAsserts is Test {
     uint256 buyAmount,
     string memory revertReason
   ) internal {
+    ctx.addReportsIfNeeded();
     uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
-    ctx.t.mint(from, ctx.t.trader0(), maxAmountIn);
+    ctx.t.mint(from, ctx.trader, maxAmountIn);
     IERC20Metadata(from).approve(address(ctx.broker), maxAmountIn);
     vm.expectRevert(bytes(revertReason));
     ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
@@ -108,6 +110,18 @@ contract TestAsserts is Test {
   ) internal {
     TradingLimits.Config memory limitConfigFrom = ctx.tradingLimitsConfig(from);
     TradingLimits.Config memory limitConfigTo = ctx.tradingLimitsConfig(to);
+    console.log(
+      string(abi.encodePacked(
+        "Swapping ", 
+        IERC20Metadata(from).symbol(), 
+        " -> ", 
+        IERC20Metadata(to).symbol()
+      )),
+      "with limit", 
+      limit.limitString()
+    );
+    console.log("========================================");
+
 
     // Always only one limit on a pair
     if (limitConfigFrom.isLimitEnabled(limit)) {
@@ -179,7 +193,7 @@ contract TestAsserts is Test {
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     TradingLimits.State memory limitState = ctx.tradingLimitsState(to);
 
-    uint256 outflowRequiredUnits = uint256(limitConfig.getLimit(limit) + limitState.getNetflow(limit)) + 2;
+    uint256 outflowRequiredUnits = uint256(limitConfig.getLimit(limit) + limitState.getNetflow(limit)) + 1;
     console.log("Outflow required: ", outflowRequiredUnits);
     assert_swapOutFails(ctx, from, to, outflowRequiredUnits.toSubunits(to), limit.revertReason());
   }
@@ -195,16 +209,22 @@ contract TestAsserts is Test {
      * during inflow on `from`, therfore we check the positive end
      * of the limit because `from` flows into the reserve.
      */
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
-    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
 
-    console.log(block.timestamp, "Swap until limit on from (L0)");
-    int48 maxPossible = limitConfig.limit0 - limitState.netflow0;
-    require(maxPossible >= 0, "max possible trade amount is negative");
-    console.log("Max possible: ", uint256(maxPossible));
-    if (maxPossible > 0) {
-      ctx.swapIn(from, to, uint256(maxPossible).toSubunits(from));
-    }
+    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    console.log("🏷️ [%d] Swap until L0=%d on inflow", block.timestamp, uint256(limitConfig.limit0));
+    uint256 maxPossible;
+    uint256 maxPossibleUntilLimit;
+    do {
+      int48 maxPossibleUntilLimitUnits = ctx.maxPossibleInflow(from);
+      require(maxPossibleUntilLimitUnits >= 0, "max possible trade amount is negative");
+      maxPossibleUntilLimit = uint256(maxPossibleUntilLimitUnits).toSubunits(from);
+      maxPossible = ctx.maxSwapIn(maxPossibleUntilLimit, from, to);
+
+      if (maxPossible > 0) {
+        ctx.swapIn(from, to, maxPossible);
+      }
+    } while (maxPossible > 0 && maxPossibleUntilLimit > maxPossible);
+    ctx.logNetflows(from);
   }
 
   function swapUntilL1_onInflow(
@@ -220,10 +240,10 @@ contract TestAsserts is Test {
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
-    console.log(block.timestamp, "Swap until limit on from (L1)");
-    int48 maxPerSwap = limitConfig.limit0 - 1;
+    console.log("🏷️ [%d] Swap until L1=%d on inflow", block.timestamp, uint256(limitConfig.limit1));
+    int48 maxPerSwap = limitConfig.limit0;
 
-    while (limitState.netflow1 + maxPerSwap < limitConfig.limit1) {
+    while (limitState.netflow1 + maxPerSwap <= limitConfig.limit1) {
       skip(limitConfig.timestep0 + 1);
       swapUntilL0_onInflow(ctx, from, to);
       limitConfig = ctx.tradingLimitsConfig(from);
@@ -245,11 +265,11 @@ contract TestAsserts is Test {
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
-    console.log(block.timestamp, "Swap until limit on from (LG)");
+    console.log("🏷️ [%d] Swap until LG=%d on inflow", block.timestamp, uint256(limitConfig.limitGlobal));
 
     if (limitConfig.isLimitEnabled(L1)) {
-      int48 maxPerSwap = limitConfig.limit0 - 1;
-      while (limitState.netflowGlobal + maxPerSwap < limitConfig.limitGlobal) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
         swapUntilL1_onInflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(from);
@@ -257,8 +277,8 @@ contract TestAsserts is Test {
       }
       skip(limitConfig.timestep1 + 1);
     } else if (limitConfig.isLimitEnabled(L0)) {
-      int48 maxPerSwap = limitConfig.limit0 - 1;
-      while (limitState.netflowGlobal + maxPerSwap < limitConfig.limitGlobal) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
         swapUntilL0_onInflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(from);
@@ -279,16 +299,22 @@ contract TestAsserts is Test {
      * during outflow on `to`, therfore we check the negative end
      * of the limit because `to` flows out of the reserve.
      */
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
-    console.log(block.timestamp, "Swap until limit on to (L0)");
-    int48 maxPossible = limitConfig.limit0 + limitState.netflow0 - 1;
-    require(maxPossible >= 0, "max possible trade amount is negative");
-    console.log("Max possible: ", uint256(maxPossible));
-    if (maxPossible > 0) {
-      ctx.swapOut(from, to, uint256(maxPossible).toSubunits(to));
-    }
+    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    console.log("🏷️ [%d] Swap until L0=%d on outflow", block.timestamp, uint256(limitConfig.limit0));
+    uint256 maxPossible;
+    uint256 maxPossibleUntilLimit;
+    do {
+      int48 maxPossibleUntilLimitUnits = ctx.maxPossibleOutflow(to);
+      require(maxPossibleUntilLimitUnits >= 0, "max possible trade amount is negative");
+      maxPossibleUntilLimit = uint256(maxPossibleUntilLimitUnits).toSubunits(to);
+      maxPossible = ctx.maxSwapOut(maxPossibleUntilLimit, to);
+
+      if (maxPossible > 0) {
+        ctx.swapOut(from, to, maxPossible);
+      }
+    } while (maxPossible > 0 && maxPossibleUntilLimit > maxPossible);
+    ctx.logNetflows(to);
   }
 
   function swapUntilL1_onOutflow(
@@ -305,10 +331,10 @@ contract TestAsserts is Test {
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
-    console.log(block.timestamp, "Swap until limit on to (L1)");
-    int48 maxPerSwap = limitConfig.limit0 - 1;
+    console.log("🏷️ [%d] Swap until L1=%d on outflow", block.timestamp, uint256(limitConfig.limit1));
+    int48 maxPerSwap = limitConfig.limit0;
 
-    while (limitState.netflow1 - maxPerSwap > -1 * limitConfig.limit1) {
+    while (limitState.netflow1 - maxPerSwap >= -1 * limitConfig.limit1) {
       skip(limitConfig.timestep0 + 1);
       swapUntilL0_onOutflow(ctx, from, to);
       limitConfig = ctx.tradingLimitsConfig(to);
@@ -330,12 +356,11 @@ contract TestAsserts is Test {
      */
     TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
-
-    console.log(block.timestamp, "Swap until limit on to (LG)");
+    console.log("🏷️ [%d] Swap until LG=%d on outflow", block.timestamp, uint256(limitConfig.limitGlobal));
 
     if (limitConfig.isLimitEnabled(L1)) {
-      int48 maxPerSwap = limitConfig.limit0 - 1;
-      while (limitState.netflowGlobal - maxPerSwap > -1 * limitConfig.limitGlobal) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
         swapUntilL1_onOutflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
@@ -344,8 +369,8 @@ contract TestAsserts is Test {
       }
       skip(limitConfig.timestep1 + 1);
     } else if (limitConfig.isLimitEnabled(L0)) {
-      int48 maxPerSwap = limitConfig.limit0 - 1;
-      while (limitState.netflowGlobal - maxPerSwap > -1 * limitConfig.limitGlobal) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
         swapUntilL0_onOutflow(ctx, from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
@@ -500,7 +525,7 @@ contract TestAsserts is Test {
     (uint256 tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     require(tradingMode == 0, "breaker should be recovered");
 
-    updateOracleMedianRate(ctx, newMedian);
+    ctx.updateOracleMedianRate(newMedian);
     (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     require(tradingMode == expectedTradingMode, "trading more is different from expected");
   }
@@ -510,7 +535,7 @@ contract TestAsserts is Test {
     (uint256 tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     require(tradingMode != 0, "breaker should be triggered");
 
-    updateOracleMedianRate(ctx, newMedian);
+    ctx.updateOracleMedianRate(newMedian);
     (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     require(tradingMode == 0, "breaker should be recovered");
   }
@@ -521,7 +546,7 @@ contract TestAsserts is Test {
     // the breakers are warm.
     (uint256 currentRate, ) = ctx.sortedOracles.medianRate(rateFeedID);
     newMedian = currentRate.add(currentRate.div(1000)); // +0.1%
-    updateOracleMedianRate(ctx, newMedian);
+    ctx.updateOracleMedianRate(newMedian);
 
     (uint64 tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     while (tradingMode != 0) {
@@ -532,7 +557,7 @@ contract TestAsserts is Test {
       uint256 cooldown = WithCooldown(breaker).getCooldown(rateFeedID);
       skip(cooldown);
       newMedian = newMedianToResetBreaker(ctx, tradingMode);
-      updateOracleMedianRate(ctx, newMedian);
+      ctx.updateOracleMedianRate(newMedian);
       (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
     }
   }
@@ -540,7 +565,7 @@ contract TestAsserts is Test {
   function newMedianToResetBreaker(
     Utils.Context memory ctx,
     uint64 tradingMode
-  ) internal returns (uint256 newMedian) {
+  ) internal view returns (uint256 newMedian) {
     address rateFeedID = ctx.getReferenceRateFeedID();
     address breaker = ctx.breakerBox.tradingModeBreaker(tradingMode);
     if (tradingMode == 1) {
@@ -551,29 +576,5 @@ contract TestAsserts is Test {
     } else {
       revert("Unknown trading mode, can't infer breaker type");
     }
-  }
-
-  function updateOracleMedianRate(Utils.Context memory ctx, uint256 newMedian) internal {
-    address rateFeedID = ctx.getReferenceRateFeedID();
-    address checkpointPrank = currentPrank;
-    address[] memory oracles = ctx.sortedOracles.getOracles(rateFeedID);
-    require(oracles.length > 0, "No oracles for rateFeedID");
-    console.log("Updating oracles to new median: ", newMedian);
-    for (uint256 i = 0; i < oracles.length; i++) {
-      skip(5);
-      address oracle = oracles[i];
-      address lesserKey;
-      address greaterKey;
-      (address[] memory keys, uint256[] memory values, ) = ctx.sortedOracles.getRates(rateFeedID);
-      for (uint256 j = 0; j < keys.length; j++) {
-        if (keys[j] == oracle) continue;
-        if (values[j] < newMedian) lesserKey = keys[j];
-        if (values[j] >= newMedian) greaterKey = keys[j];
-      }
-
-      changePrank(oracle);
-      ctx.sortedOracles.report(rateFeedID, newMedian, lesserKey, greaterKey);
-    }
-    changePrank(checkpointPrank);
   }
 }

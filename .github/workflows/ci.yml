@@ -41,7 +41,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: ${{ steps.slither.outputs.sarif }}
-
   get_proxy_names:
     name: Get contract names
     runs-on: ubuntu-latest
@@ -75,7 +74,6 @@ jobs:
         with:
           contract: ${{ matrix.contract }}.sol:${{ matrix.contract }}
           workingDirectory: contracts/
-
   ci:
     name: Lint & Test
     runs-on: "ubuntu-latest"
