@@ -153,7 +153,7 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
     // solhint-disable-next-line reason-string
     require(
       token != address(0) && oracleAddress != address(0) && !isOracle[token][oracleAddress],
-      "token addr was null or oracle addr was null or oracle addr is not an oracle for token addr"
+      "token addr was null or oracle addr was null or oracle addr is already an oracle for token addr"
     );
     isOracle[token][oracleAddress] = true;
     oracles[token].push(oracleAddress);
