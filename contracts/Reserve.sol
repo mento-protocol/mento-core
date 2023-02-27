@@ -94,7 +94,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       uint256
     )
   {
-    return (1, 2, 0, 0);
+    return (1, 1, 2, 2);
   }
 
   function() external payable {} // solhint-disable no-empty-blocks
