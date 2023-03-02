@@ -152,18 +152,18 @@ contract SortedOracles_addOracles is SortedOraclesTest {
   }
 
   function test_addOracle_whenTokenIsTheNullAddress_shouldRevert() public {
-    vm.expectRevert("token addr was null or oracle addr was null or oracle addr is not an oracle for token addr");
+    vm.expectRevert("token addr was null or oracle addr was null or oracle addr is already an oracle for token addr");
     sortedOracles.addOracle(address(0), oracle);
   }
 
   function test_addOracle_whenOracleIsTheNullAddress_shouldRevert() public {
-    vm.expectRevert("token addr was null or oracle addr was null or oracle addr is not an oracle for token addr");
+    vm.expectRevert("token addr was null or oracle addr was null or oracle addr is already an oracle for token addr");
     sortedOracles.addOracle(token, address(0));
   }
 
   function test_addOracle_whenOracleHasBeenAdded_shouldRevert() public {
     sortedOracles.addOracle(token, oracle);
-    vm.expectRevert("token addr was null or oracle addr was null or oracle addr is not an oracle for token addr");
+    vm.expectRevert("token addr was null or oracle addr was null or oracle addr is already an oracle for token addr");
     sortedOracles.addOracle(token, oracle);
   }
 

@@ -282,7 +282,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   /**
    * @notice Returns addresses of rateFeedIDs that have been added.
    */
-  function getrateFeeds() external view returns (address[] memory) {
+  function getRateFeeds() external view returns (address[] memory) {
     return rateFeedIDs;
   }
 
