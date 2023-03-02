@@ -16,6 +16,31 @@ on:
       - "develop"
 
 jobs:
+  slither:
+    name: Slither
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out the repo"
+        uses: "actions/checkout@v3"
+        with:
+          submodules: "recursive"
+      - name: "Install Foundry"
+        uses: "onbjerg/foundry-toolchain@v1"
+        with:
+          version: "nightly"
+      - name: "Build the contracts"
+        run: |
+          forge build --skip test --skip script --build-info
+      - name: Run Slither
+        uses: crytic/slither-action@v0.2.0
+        id: slither
+        with:
+          ignore-compile: true
+          sarif: results.sarif
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.slither.outputs.sarif }}
   get_proxy_names:
     name: Get contract names
     runs-on: ubuntu-latest
@@ -50,6 +75,7 @@ jobs:
           contract: ${{ matrix.contract }}.sol:${{ matrix.contract }}
           workingDirectory: contracts/
   ci:
+    name: Lint & Test
     runs-on: "ubuntu-latest"
     steps:
       - name: "Check out the repo"

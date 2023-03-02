@@ -1,19 +1,21 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Test } from "celo-foundry/Test.sol";
 
-import "./utils/WithRegistry.sol";
-import "./utils/TokenHelpers.sol";
-import "./utils/DummyErc20.sol";
+import { WithRegistry } from "./utils/WithRegistry.t.sol";
+import { TokenHelpers } from "./utils/TokenHelpers.t.sol";
+import { DummyERC20 } from "./utils/DummyErc20.sol";
 
-import "./mocks/MockSortedOracles.sol";
-import "./mocks/MockStableToken.sol";
+import { MockSortedOracles } from "./mocks/MockSortedOracles.sol";
+import { MockStableToken } from "./mocks/MockStableToken.sol";
 
-import "contracts/Reserve.sol";
-import "contracts/common/FixidityLib.sol";
+import { Reserve } from "contracts/Reserve.sol";
+import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
 contract ReserveTest is Test, WithRegistry, TokenHelpers {
   using SafeMath for uint256;
@@ -33,6 +35,9 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
   event TobinTaxReserveRatioSet(uint256 value);
   event ExchangeSpenderAdded(address indexed exchangeSpender);
   event ExchangeSpenderRemoved(address indexed exchangeSpender);
+  event DailySpendingRatioForCollateralAssetSet(address collateralAsset, uint256 collateralAssetDailySpendingRatios);
+  event CollateralAssetAdded(address collateralAsset);
+  event CollateralAssetRemoved(address collateralAsset);
 
   address constant exchangeAddress = address(0xe7c45fa);
   uint256 constant tobinTaxStalenessThreshold = 600;
@@ -42,17 +47,22 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
   uint256 tobinTaxReserveRatio = FixidityLib.newFixedFraction(2, 1).unwrap();
 
   address deployer;
-  address rando;
+  address notDeployer;
 
+  address broker;
   Reserve reserve;
   MockSortedOracles sortedOracles;
+  DummyERC20 dummyToken1 = new DummyERC20("DummyToken1", "DT1", 18);
+  DummyERC20 dummyToken2 = new DummyERC20("DummyToken2", "DT2", 18);
+  DummyERC20 dummyToken3 = new DummyERC20("DummyToken3", "DT3", 18);
 
   function setUp() public {
-    rando = actor("rando");
+    notDeployer = actor("notDeployer");
     deployer = actor("deployer");
     changePrank(deployer);
     reserve = new Reserve(true);
     sortedOracles = new MockSortedOracles();
+    broker = actor("broker");
 
     registry.setAddressFor("SortedOracles", address(sortedOracles));
     registry.setAddressFor("Exchange", exchangeAddress);
@@ -61,6 +71,17 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
     initialAssetAllocationSymbols[0] = bytes32("cGLD");
     uint256[] memory initialAssetAllocationWeights = new uint256[](1);
     initialAssetAllocationWeights[0] = FixidityLib.newFixed(1).unwrap();
+
+    address[] memory collateralAssets = new address[](2);
+    uint256[] memory collateralAssetDailySpendingRatios = new uint256[](2);
+    collateralAssets[0] = address(dummyToken1);
+    collateralAssetDailySpendingRatios[0] = 100000000000000000000000;
+
+    // Donate 10k DT3 to the reserve
+    deal(address(dummyToken3), address(reserve), 10000 * 10**18);
+    // Only 10% of reserve DT3 should be spendable per day
+    collateralAssetDailySpendingRatios[1] = FixidityLib.newFixedFraction(1, 10).unwrap();
+    collateralAssets[1] = address(dummyToken3);
 
     reserve.initialize(
       address(registry),
@@ -71,7 +92,9 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
       initialAssetAllocationSymbols,
       initialAssetAllocationWeights,
       tobinTax,
-      tobinTaxReserveRatio
+      tobinTaxReserveRatio,
+      collateralAssets,
+      collateralAssetDailySpendingRatios
     );
   }
 }
@@ -83,7 +106,19 @@ contract ReserveTest_initAndSetters is ReserveTest {
     assertEq(reserve.tobinTaxStalenessThreshold(), tobinTaxStalenessThreshold);
 
     vm.expectRevert("contract already initialized");
-    reserve.initialize(address(registry), 0, 0, 0, 0, new bytes32[](0), new uint256[](0), 0, 0);
+    reserve.initialize(
+      address(registry),
+      0,
+      0,
+      0,
+      0,
+      new bytes32[](0),
+      new uint256[](0),
+      0,
+      0,
+      new address[](0),
+      new uint256[](0)
+    );
   }
 
   function test_tobinTax() public {
@@ -96,7 +131,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     vm.expectRevert("tobin tax cannot be larger than 1");
     reserve.setTobinTax(FixidityLib.newFixed(1).unwrap().add(1));
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setTobinTax(100);
   }
@@ -108,7 +143,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     reserve.setTobinTaxReserveRatio(newValue);
     assertEq(reserve.tobinTaxReserveRatio(), newValue);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setTobinTaxReserveRatio(100);
   }
@@ -123,9 +158,108 @@ contract ReserveTest_initAndSetters is ReserveTest {
     vm.expectRevert("spending ratio cannot be larger than 1");
     reserve.setDailySpendingRatio(FixidityLib.newFixed(1).unwrap().add(1));
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setDailySpendingRatio(100);
+  }
+
+  function test_setDailySpendingRatioForCollateralAssets_whenRatioIsSetWithCorrectParams_shouldEmitAndUpdate() public {
+    address[] memory collateralAssets = new address[](1);
+    uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
+    uint256 newValue = 123;
+    collateralAssetDailySpendingRatios[0] = newValue;
+    collateralAssets[0] = address(dummyToken1);
+
+    vm.expectEmit(true, true, true, true, address(reserve));
+    emit DailySpendingRatioForCollateralAssetSet(address(dummyToken1), newValue);
+    reserve.setDailySpendingRatioForCollateralAssets(collateralAssets, collateralAssetDailySpendingRatios);
+    assertEq(reserve.getDailySpendingRatioForCollateralAsset(address(dummyToken1)), newValue);
+  }
+
+  function test_setDailySpendingRatioForCollateralAssets_whenArraysAreDifferentLengths_shouldRevert() public {
+    address[] memory collateralAssetsLocal = new address[](2);
+    uint256[] memory collateralAssetDailySpendingRatiosLocal = new uint256[](1);
+    collateralAssetsLocal[0] = address(dummyToken1);
+    collateralAssetsLocal[1] = address(dummyToken2);
+    collateralAssetDailySpendingRatiosLocal[0] = 1;
+
+    vm.expectRevert("token addresses and spending ratio lengths have to be the same");
+    reserve.setDailySpendingRatioForCollateralAssets(collateralAssetsLocal, collateralAssetDailySpendingRatiosLocal);
+  }
+
+  function test_setDailySpendingRatioForCollateralAssets_whenAddressIsNotCollateralAsset_shouldRevert() public {
+    address[] memory collateralAssets = new address[](1);
+    uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
+    collateralAssets[0] = address(dummyToken1);
+    collateralAssetDailySpendingRatios[0] = 123;
+    reserve.removeCollateralAsset(address(dummyToken1), 0);
+
+    vm.expectRevert("the address specified is not a reserve collateral asset");
+    reserve.setDailySpendingRatioForCollateralAssets(collateralAssets, collateralAssetDailySpendingRatios);
+  }
+
+  function test_setDailySpendingRatioForCollateralAssets_whenRatioIsLargerThanOne_shouldRevert() public {
+    address[] memory collateralAssets = new address[](1);
+    uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
+    collateralAssets[0] = address(dummyToken1);
+    collateralAssetDailySpendingRatios[0] = FixidityLib.newFixed(1).unwrap().add(1);
+
+    vm.expectRevert("spending ratio cannot be larger than 1");
+    reserve.setDailySpendingRatioForCollateralAssets(collateralAssets, collateralAssetDailySpendingRatios);
+  }
+
+  function test_setDailySpendingRatioForCollateralAssets_whenSenderIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    reserve.setDailySpendingRatioForCollateralAssets(new address[](0), new uint256[](0));
+  }
+
+  function test_addCollateralAsset_whenAssetShouldBeAdded_shouldUpdateAndEmit() public {
+    address token = address(0x1122);
+
+    vm.expectEmit(true, true, true, true, address(reserve));
+    emit CollateralAssetAdded(token);
+    reserve.addCollateralAsset(token);
+    assertEq(reserve.checkIsCollateralAsset(token), true);
+  }
+
+  function test_addCollateralAsset_whenAlreadyAdded_shouldRevert() public {
+    vm.expectRevert("specified address is already added as a collateral asset");
+    reserve.addCollateralAsset(address(dummyToken1));
+  }
+
+  function test_addCollateralAsset_withZeroAddress_shouldRevert() public {
+    vm.expectRevert("can't be a zero address");
+    reserve.addCollateralAsset(address(0));
+  }
+
+  function test_addCollateralAsset_whenNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    reserve.addCollateralAsset(address(0x1234));
+  }
+
+  function test_removeCollateralAsset_whenAssetShouldBeRemoved_shouldUpdateAndEmit() public {
+    vm.expectEmit(true, true, true, true, address(reserve));
+    emit CollateralAssetRemoved(address(dummyToken1));
+    reserve.removeCollateralAsset(address(dummyToken1), 0);
+    assertEq(reserve.checkIsCollateralAsset(address(dummyToken1)), false);
+  }
+
+  function test_removeCollateralAsset_whenNotCollateralAsset_shouldRevert() public {
+    vm.expectRevert("specified address is not a collateral asset");
+    reserve.removeCollateralAsset(address(0x1234), 1);
+  }
+
+  function test_removeCollateralAsset_whenIndexOutOfRange_shouldRevert() public {
+    vm.expectRevert("index into collateralAssets list not mapped to token");
+    reserve.removeCollateralAsset(address(dummyToken1), 3);
+  }
+
+  function test_removeCollateralAsset_whenNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    reserve.removeCollateralAsset(address(dummyToken1), 0);
   }
 
   function test_registry() public {
@@ -133,7 +267,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     reserve.setRegistry(newValue);
     assertEq(address(reserve.registry()), newValue);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setRegistry(address(0x1234));
   }
@@ -148,7 +282,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     vm.expectRevert("token addr already registered");
     reserve.addToken(token);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.addToken(address(0x1234));
   }
@@ -166,7 +300,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     emit TokenRemoved(token, 0);
     reserve.removeToken(token, 0);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.removeToken(address(0x1234), 0);
   }
@@ -178,7 +312,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     reserve.setTobinTaxStalenessThreshold(newThreshold);
     assertEq(reserve.tobinTaxStalenessThreshold(), newThreshold);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setTobinTaxStalenessThreshold(newThreshold);
   }
@@ -195,7 +329,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     vm.expectRevert("reserve addr already added");
     reserve.addOtherReserveAddress(otherReserveAddresses[0]);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.addOtherReserveAddress(otherReserveAddresses[1]);
     changePrank(deployer);
@@ -224,7 +358,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     reserve.addOtherReserveAddress(otherReserveAddresses[0]);
     reserve.addOtherReserveAddress(otherReserveAddresses[1]);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.removeOtherReserveAddress(otherReserveAddresses[0], 0);
     changePrank(deployer);
@@ -253,7 +387,7 @@ contract ReserveTest_initAndSetters is ReserveTest {
     assertEq(reserve.getAssetAllocationSymbols(), assetAllocationSymbols);
     assertEq(reserve.getAssetAllocationWeights(), assetAllocationWeights);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.setAssetAllocations(assetAllocationSymbols, assetAllocationWeights);
     changePrank(deployer);
@@ -276,18 +410,32 @@ contract ReserveTest_initAndSetters is ReserveTest {
 
 contract ReserveTest_transfers is ReserveTest {
   uint256 constant reserveCeloBalance = 100000;
+  uint256 constant reserveDummyToken1Balance = 10000000;
+  uint256 constant reserveDummyToken2Balance = 20000000;
   address payable constant otherReserveAddress = address(0x1234);
-  address spender;
+  address payable constant trader = address(0x1245);
+  address payable spender;
 
   function setUp() public {
     super.setUp();
-    spender = actor("spender");
+    spender = address(uint160(actor("spender")));
+
+    address[] memory collateralAssets = new address[](1);
+    uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
+    collateralAssets[0] = address(dummyToken1);
+    collateralAssetDailySpendingRatios[0] = FixidityLib.newFixedFraction(2, 10).unwrap();
+
     deal(address(reserve), reserveCeloBalance);
+    deal(address(dummyToken1), address(reserve), reserveDummyToken1Balance);
+    deal(address(dummyToken2), address(reserve), reserveDummyToken2Balance);
     reserve.addOtherReserveAddress(otherReserveAddress);
     reserve.addSpender(spender);
     reserve.setDailySpendingRatio(FixidityLib.newFixedFraction(2, 10).unwrap());
+    reserve.setDailySpendingRatioForCollateralAssets(collateralAssets, collateralAssetDailySpendingRatios);
     vm.warp(100 * 24 * 3600 + 445);
   }
+
+  /* ---------- Transfer Gold ---------- */
 
   function test_transferGold() public {
     changePrank(spender);
@@ -315,11 +463,131 @@ contract ReserveTest_transfers is ReserveTest {
     reserve.transferGold(otherReserveAddress, amount);
   }
 
+  /* ---------- Transfer Collateral Asset ---------- */
+
+  function test_transferCollateralAsset_whenParametersAreCorrect_shouldUpdate() public {
+    changePrank(spender);
+    uint256 amount = reserveDummyToken1Balance.div(10);
+    reserve.transferCollateralAsset(address(dummyToken1), otherReserveAddress, amount);
+    assertEq(dummyToken1.balanceOf(otherReserveAddress), amount);
+    assertEq(dummyToken1.balanceOf(address(reserve)), reserveDummyToken1Balance - amount);
+  }
+
+  function test_transferCollateralAsset_whenItExceedsSpendingLimit_shouldRevert() public {
+    changePrank(spender);
+    vm.expectRevert("Exceeding spending limit");
+    reserve.transferCollateralAsset(
+      address(dummyToken1), 
+      otherReserveAddress, 
+      reserveDummyToken1Balance.add(2)
+    );
+
+    vm.warp(block.timestamp + 24 * 3600);
+  }
+
+  function test_transferCollateralAsset_whenItTransfersToARandomAddress_shouldRevert() public {
+    uint256 amount = reserveDummyToken1Balance.div(100);
+    changePrank(spender);
+    vm.expectRevert("can only transfer to other reserve address");
+    reserve.transferCollateralAsset(address(dummyToken1), spender, amount);
+  }
+
+  function test_transferCollateralAsset_whenSpendingRatioWasNotSet_shouldRevert() public {
+    changePrank(spender);
+    vm.expectRevert("this asset has no spending ratio, therefore can't be transferred");
+    reserve.transferCollateralAsset(address(dummyToken2), otherReserveAddress, reserveDummyToken2Balance);
+  }
+
+  function test_transferCollateralAsset_whenSpenderWasRemoved_shouldRevert() public {
+    changePrank(deployer);
+    reserve.removeSpender(spender);
+    changePrank(spender);
+    vm.warp(block.timestamp + 24 * 3600);
+    vm.expectRevert("sender not allowed to transfer Reserve funds");
+    reserve.transferCollateralAsset(address(dummyToken1), address(0x234), reserveDummyToken1Balance);
+  }
+
+  function test_transferCollateralAsset_whenMultipleTransfersDoNotHitDailySpend_shouldTransferCorrectAmounts() public {
+    changePrank(spender);
+
+    uint256 transfer1Amount = 500 * 10**18;
+    uint256 transfer2Amount = 400 * 10**18;
+
+    uint256 totalTransferAmount = transfer1Amount + transfer2Amount;
+    uint256 reserveBalanceBefore = dummyToken3.balanceOf(address(reserve));
+
+    // Spend 500 DT3 (50% of daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer1Amount);
+    // Spend 400 DT3 (LT remaining daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer2Amount);
+
+    uint256 traderBalanceAfter = dummyToken3.balanceOf(otherReserveAddress);
+    uint256 reserveBalanceAfter = dummyToken3.balanceOf(address(reserve));
+
+    assertEq(reserveBalanceAfter, (reserveBalanceBefore - totalTransferAmount));
+    assertEq(traderBalanceAfter, totalTransferAmount);
+  }
+
+  function test_transferCollateralAsset_whenMultipleTransfersHitDailySpend_shouldRevert() public {
+    changePrank(spender);
+
+    // Spend 500 DT3 (50% of daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, 500 * 10**18);
+    uint256 spendingLimitAfter = reserve.collateralAssetSpendingLimit(address(dummyToken3));
+
+    // (collateralAssetDailySpendingRatio * reserve DT3 balance before transfer) - transfer amount
+    assertEq(spendingLimitAfter, 500 * 10**18);
+
+    vm.expectRevert("Exceeding spending limit");
+    // Spend amount GT remaining daily limit
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, spendingLimitAfter + 1);
+  } 
+
+  function test_transferCollateralAsset_whenSpendingLimitIsHit_shoudResetNextDay() public {
+    changePrank(spender);
+
+    uint256 transfer1Amount = 500 * 10**18;
+    uint256 transfer2Amount = 600 * 10**18;
+
+    // Spend 500 DT3 (50% of daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer1Amount);
+
+    vm.expectRevert("Exceeding spending limit");
+    // Spend 600 DT3 (GT remaining daily limit)
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer2Amount);
+
+    uint256 traderBalanceAfterFirstDay = dummyToken3.balanceOf(otherReserveAddress);
+    assertEq(traderBalanceAfterFirstDay, transfer1Amount);
+
+    vm.warp(block.timestamp + 24 * 3600);
+
+    // Spend 600 DT3 (LT remaining daily limit on new day)
+    reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, transfer2Amount);
+    uint256 traderBalanceAfterSecondDay = dummyToken3.balanceOf(otherReserveAddress);
+
+    assertEq(traderBalanceAfterSecondDay, transfer1Amount + transfer2Amount);
+  }
+
+  /* ---------- Transfer Exchange Collateral Asset ---------- */
+
+  function test_transferExchangeCollateralAsset_whenSenderIsBroker_shouldTransfer() public {
+    reserve.addExchangeSpender(broker);
+    changePrank(broker);
+    reserve.transferExchangeCollateralAsset(address(dummyToken1), otherReserveAddress, 1000);
+    assertEq(dummyToken1.balanceOf(otherReserveAddress), 1000);
+  }
+
+  function test_transferExchangeCollateralAsset_notExchangeSender_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Address not allowed to spend");
+    reserve.transferExchangeCollateralAsset(address(dummyToken1), otherReserveAddress, 1000);
+  }
+
   function test_addExchangeSpender() public {
     address exchangeSpender0 = address(0x22222);
     address exchangeSpender1 = address(0x33333);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.addExchangeSpender(exchangeSpender0);
 
@@ -342,7 +610,7 @@ contract ReserveTest_transfers is ReserveTest {
     address exchangeSpender1 = address(0x33333);
     reserve.addExchangeSpender(exchangeSpender0);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.removeExchangeSpender(exchangeSpender0, 0);
 
@@ -370,7 +638,7 @@ contract ReserveTest_transfers is ReserveTest {
   function test_addSpender() public {
     address _spender = address(0x4444);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     reserve.addSpender(_spender);
 
@@ -383,19 +651,24 @@ contract ReserveTest_transfers is ReserveTest {
     reserve.addSpender(address(0x0));
   }
 
-  function test_removeSpender() public {
-    address _spender = address(0x4444);
+  function test_removeSpender_whenCallerIsOwner_shouldRemove() public {
+    address _spender = actor("_spender");
 
     reserve.addSpender(_spender);
-
-    changePrank(rando);
-    vm.expectRevert("Ownable: caller is not the owner");
-    reserve.removeSpender(_spender);
-
-    changePrank(deployer);
     vm.expectEmit(true, true, true, true, address(reserve));
     emit SpenderRemoved(_spender);
     reserve.removeSpender(_spender);
+  }
+
+  function test_removeSpender_whenCallerIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    reserve.removeSpender(spender);
+  }
+
+  function test_removeSpender_whenSpenderDoesNotExist_shouldRevert() public {
+    vm.expectRevert("Spender hasn't been added");
+    reserve.removeSpender(notDeployer);
   }
 
   function test_transferExchangeGold_asExchangeFromRegistry() public {
@@ -425,7 +698,7 @@ contract ReserveTest_transfers is ReserveTest {
     vm.expectRevert("Address not allowed to spend");
     reserve.transferExchangeGold(dest, 1000);
 
-    changePrank(rando);
+    changePrank(notDeployer);
     vm.expectRevert("Address not allowed to spend");
     reserve.transferExchangeGold(dest, 1000);
   }
@@ -478,9 +751,11 @@ contract ReserveTest_tobinTax is ReserveTest {
     reserve.addToken(address(stableToken1));
   }
 
-  function setValues(uint256 reserveBalance, uint256 stableToken0Supply, uint256 stableToken1Supply)
-    internal
-  {
+  function setValues(
+    uint256 reserveBalance,
+    uint256 stableToken0Supply,
+    uint256 stableToken1Supply
+  ) internal {
     deal(address(reserve), reserveBalance);
     stableToken0.setTotalSupply(stableToken0Supply);
     stableToken1.setTotalSupply(stableToken1Supply);
