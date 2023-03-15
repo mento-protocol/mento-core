@@ -50,7 +50,7 @@ contract ConstantProductPricingModule is IPricingModule {
 
   /**
    * @notice Calculates the amount of tokens that should be provided in order to receive the desired amount out.
-   * @dev amountIn = (amountOut * tokenInBucketSize) / (Y-dy) ) * (1-spread)
+   * @dev amountIn = (tokenInBucketSize * amountOut) / ((tokenOutBucketSize - amountOut) * (1-spread))
    * @param tokenInBucketSize The bucket size of the token swapt in.
    * @param tokenOutBucketSize The bucket size of the token swapt out.
    * @param spread The spread that is applied to a swap.
