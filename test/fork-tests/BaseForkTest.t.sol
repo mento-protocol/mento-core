@@ -21,6 +21,9 @@ import { IERC20Metadata } from "contracts/common/interfaces/IERC20Metadata.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { Proxy } from "contracts/common/Proxy.sol";
 
+import { StableToken } from "contracts/StableToken.sol";
+import { StableTokenEUR } from "contracts/StableTokenEUR.sol";
+import { StableTokenBRL } from "contracts/StableTokenBRL.sol";
 import { Broker } from "contracts/Broker.sol";
 import { BreakerBox } from "contracts/BreakerBox.sol";
 import { SortedOracles } from "contracts/SortedOracles.sol";
@@ -60,6 +63,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   Broker public broker;
   BreakerBox public breakerBox;
   SortedOracles public sortedOracles;
+  Reserve public reserve;
 
   address public trader;
 
@@ -87,7 +91,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     governance = registry.getAddressForStringOrDie("Governance");
     breakerBox = BreakerBox(address(sortedOracles.breakerBox()));
     trader = actor("trader");
-    Reserve reserve = Reserve(uint160(address(broker.reserve())));
+    reserve = Reserve(uint160(address(broker.reserve())));
 
     changePrank(trader);
 
@@ -136,6 +140,37 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       console.log("%d | %s | %s", i, ctx.ticker(), ctx.exchangeProvider);
       console.logBytes32(ctx.exchange.exchangeId);
     }
+  }
+
+  function test_contractsCanNotBeReinitialized() public {
+      BiPoolManager biPoolManager = BiPoolManager(broker.getExchangeProviders()[0]);
+      StableToken stableToken = StableToken(registry.getAddressForStringOrDie("StableToken"));
+      StableTokenEUR stableTokenEUR = StableTokenEUR(registry.getAddressForStringOrDie("StableTokenEUR"));
+      StableTokenEUR stableTokenBRL = StableTokenEUR(registry.getAddressForStringOrDie("StableTokenBRL"));
+
+      vm.expectRevert("contract already initialized");
+      broker.initialize(new address[](0), address(reserve));
+
+      vm.expectRevert("contract already initialized");
+      biPoolManager.initialize(address(broker), reserve, sortedOracles, breakerBox);
+
+      vm.expectRevert("contract already initialized");
+      breakerBox.initialize(new address[](0), sortedOracles);
+
+      vm.expectRevert("contract already initialized");
+      sortedOracles.initialize(1);
+
+      vm.expectRevert("contract already initialized");
+      reserve.initialize(address(10),0 ,0 ,0 ,0 , new bytes32[](0), new uint256[](0), 0, 0, new address[](0), new uint256[](0));
+
+      vm.expectRevert("contract already initialized");
+      stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+      vm.expectRevert("contract already initialized");
+      stableTokenEUR.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+      vm.expectRevert("contract already initialized");
+      stableTokenBRL.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
   }
 
   function test_swapsHappenInBothDirections() public {
