@@ -142,35 +142,46 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     }
   }
 
-  function test_contractsCanNotBeReinitialized() public {
-      BiPoolManager biPoolManager = BiPoolManager(broker.getExchangeProviders()[0]);
-      StableToken stableToken = StableToken(registry.getAddressForStringOrDie("StableToken"));
-      StableTokenEUR stableTokenEUR = StableTokenEUR(registry.getAddressForStringOrDie("StableTokenEUR"));
-      StableTokenEUR stableTokenBRL = StableTokenEUR(registry.getAddressForStringOrDie("StableTokenBRL"));
+  function test_biPoolManagerCanNotBeReinitialized() public {
+    BiPoolManager biPoolManager = BiPoolManager(broker.getExchangeProviders()[0]);
 
-      vm.expectRevert("contract already initialized");
-      broker.initialize(new address[](0), address(reserve));
+    vm.expectRevert("contract already initialized");
+    biPoolManager.initialize(address(broker), reserve, sortedOracles, breakerBox);
+  }
 
-      vm.expectRevert("contract already initialized");
-      biPoolManager.initialize(address(broker), reserve, sortedOracles, breakerBox);
+  function test_breakerBoxCanNotBeReinitialized() public {
+    vm.expectRevert("contract already initialized");
+    breakerBox.initialize(new address[](0), sortedOracles);
+  }
 
-      vm.expectRevert("contract already initialized");
-      breakerBox.initialize(new address[](0), sortedOracles);
+  function test_brokerCanNotBeReinitialized() public {
+    vm.expectRevert("contract already initialized");
+    broker.initialize(new address[](0), address(reserve));
+  }
 
-      vm.expectRevert("contract already initialized");
-      sortedOracles.initialize(1);
+  function test_sortedOraclesCanNotBeReinitialized() public {
+    vm.expectRevert("contract already initialized");
+    sortedOracles.initialize(1);
+  }
 
-      vm.expectRevert("contract already initialized");
-      reserve.initialize(address(10),0 ,0 ,0 ,0 , new bytes32[](0), new uint256[](0), 0, 0, new address[](0), new uint256[](0));
+  function test_reserveCanNotBeReinitialized() public {
+    vm.expectRevert("contract already initialized");
+    reserve.initialize(address(10),0 ,0 ,0 ,0 , new bytes32[](0), new uint256[](0), 0, 0, new address[](0), new uint256[](0));
+  }
 
-      vm.expectRevert("contract already initialized");
-      stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+  function test_stableTokensCanNotBeReinitialized() public {
+    StableToken stableToken = StableToken(registry.getAddressForStringOrDie("StableToken"));
+    StableTokenEUR stableTokenEUR = StableTokenEUR(registry.getAddressForStringOrDie("StableTokenEUR"));
+    StableTokenEUR stableTokenBRL = StableTokenEUR(registry.getAddressForStringOrDie("StableTokenBRL"));
 
-      vm.expectRevert("contract already initialized");
-      stableTokenEUR.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+    vm.expectRevert("contract already initialized");
+    stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
-      vm.expectRevert("contract already initialized");
-      stableTokenBRL.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+    vm.expectRevert("contract already initialized");
+    stableTokenEUR.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+    vm.expectRevert("contract already initialized");
+    stableTokenBRL.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
   }
 
   function test_swapsHappenInBothDirections() public {
