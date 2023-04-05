@@ -1,4 +1,7 @@
-cryticArgs: ["--ignore-compile"]
+# cryticArgs: ["--ignore-compile"]
+cryticArgs: 
+  - --solc-remaps
+  - "openzeppelin-solidity/=lib/openzeppelin-contracts/ celo-foundry/=lib/celo-foundry/src/ forge-std/=lib/celo-foundry/lib/forge-std/src/ ds-test/=lib/celo-foundry/lib/forge-std/lib/ds-test/src/ test/=test/ contracts/=contracts/"
 format: text
 # Set the timeout to 3 minutes to keep CI from getting too long.
 # The tool also adds 2 or 3 minutes before/after the actual timeout window.
