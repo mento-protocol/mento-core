@@ -11,7 +11,7 @@ optimizer = true
 optimizer_runs = 10_000
 solc = "0.5.17"
 legacy = true
-no_match_contract = "ForkTest"
+no_match_contract = "EchidnaValidate"
 
 [profile.ci]
 fuzz_runs = 1_000
