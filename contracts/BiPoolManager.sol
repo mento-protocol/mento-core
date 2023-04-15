@@ -47,6 +47,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
 
+  // Toke precision multiplier for tokens with a precision less than 18.
+  mapping(address => uint256) public tokenPrecisionMultipliers;
+
   /* ==================== Constructor ==================== */
 
   /**
@@ -133,6 +136,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   ) external view returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     (amountOut, ) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn);
+    return amountOut;
   }
 
   /**
@@ -195,6 +199,13 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     emit SortedOraclesUpdated(address(_sortedOracles));
   }
 
+  function setTokenPrecisionMultipliers(address[] calldata tokens, uint256[] calldata precisionMultipliers) external onlyOwner {
+    require(tokens.length == precisionMultipliers.length, "tokens and precisionMultipliers must be the same length");
+    for (uint256 i = 0; i < tokens.length; i++) {
+      tokenPrecisionMultipliers[tokens[i]] = precisionMultipliers[i];
+    }
+  }
+
   /**
    * @notice Creates a new exchange using the given parameters.
    * @param _exchange the PoolExchange to create.
@@ -221,6 +232,16 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
 
     exchange.bucket0 = bucket0;
     exchange.bucket1 = bucket1;
+
+    if (IERC20Metadata(exchange.asset0).decimals() > 18) {
+      revert("asset0 decimals must be <= 18");
+    }
+    if (IERC20Metadata(exchange.asset1).decimals() > 18) {
+      revert("asset1 decimals must be <= 18");
+    }
+
+    tokenPrecisionMultipliers[exchange.asset0] = 10**(18 - uint256(IERC20Metadata(exchange.asset0).decimals()));
+    tokenPrecisionMultipliers[exchange.asset1] = 10**(18 - uint256(IERC20Metadata(exchange.asset1).decimals()));
 
     exchanges[exchangeId] = exchange;
     exchangeIds.push(exchangeId);
@@ -363,15 +384,15 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
         exchange.bucket0,
         exchange.bucket1,
         exchange.config.spread.unwrap(),
-        amountIn
-      );
+        amountIn.mul(tokenPrecisionMultipliers[exchange.asset0])
+      ).div(tokenPrecisionMultipliers[exchange.asset1]);
     } else {
       amountOut = exchange.pricingModule.getAmountOut(
         exchange.bucket1,
         exchange.bucket0,
         exchange.config.spread.unwrap(),
-        amountIn
-      );
+        amountIn.mul(tokenPrecisionMultipliers[exchange.asset1])
+      ).div(tokenPrecisionMultipliers[exchange.asset0]);
     }
   }
 
@@ -403,15 +424,15 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
         exchange.bucket0,
         exchange.bucket1,
         exchange.config.spread.unwrap(),
-        amountOut
-      );
+        amountOut.mul(tokenPrecisionMultipliers[exchange.asset1])
+      ).div(tokenPrecisionMultipliers[exchange.asset0]);
     } else {
       amountIn = exchange.pricingModule.getAmountIn(
         exchange.bucket1,
         exchange.bucket0,
         exchange.config.spread.unwrap(),
-        amountOut
-      );
+        amountOut.mul(tokenPrecisionMultipliers[exchange.asset0])
+      ).div(tokenPrecisionMultipliers[exchange.asset1]);
     }
   }
 

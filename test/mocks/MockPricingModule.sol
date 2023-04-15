@@ -5,6 +5,8 @@ import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
 contract MockPricingModule is IPricingModule {
   string private _name;
+  uint256 private _nextGetAmountOut;
+  uint256 private _nextGetAmountIn;
 
   constructor(string memory name_) public {
     _name = name_;
@@ -14,13 +16,21 @@ contract MockPricingModule is IPricingModule {
     return _name;
   }
 
+  function mockNextGetAmountOut(uint256 amount) external {
+    _nextGetAmountOut = amount;
+  }
+
+  function mockNextGetAmountIn(uint256 amount) external {
+    _nextGetAmountIn = amount;
+  }
+
   function getAmountOut(
     uint256,
     uint256,
     uint256,
     uint256
   ) external view returns (uint256) {
-    return 0;
+    return _nextGetAmountOut;
   }
 
   function getAmountIn(
@@ -29,6 +39,6 @@ contract MockPricingModule is IPricingModule {
     uint256,
     uint256
   ) external view returns (uint256) {
-    return 0;
+    return _nextGetAmountIn;
   }
 }

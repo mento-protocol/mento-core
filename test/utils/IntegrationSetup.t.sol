@@ -16,6 +16,7 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { Broker } from "contracts/Broker.sol";
 import { ConstantProductPricingModule } from "contracts/ConstantProductPricingModule.sol";
+import { ConstantSumPricingModule } from "contracts/ConstantSumPricingModule.sol";
 import { StableToken } from "contracts/StableToken.sol";
 import { SortedOracles } from "contracts/SortedOracles.sol";
 import { Reserve } from "contracts/Reserve.sol";
@@ -51,6 +52,7 @@ contract IntegrationSetup is Test, WithRegistry {
   BiPoolManager biPoolManager;
   Reserve reserve;
   IPricingModule constantProduct;
+  IPricingModule constantSum;
 
   SortedOracles sortedOracles;
   BreakerBox breakerBox;
@@ -92,7 +94,7 @@ contract IntegrationSetup is Test, WithRegistry {
     /* ===== Deploy collateral and stable assets ===== */
 
     celoToken = new Token("Celo", "cGLD", 18);
-    usdcToken = new Token("bridgedUSDC", "bridgedUSDC", 18);
+    usdcToken = new Token("bridgedUSDC", "bridgedUSDC", 6);
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
@@ -182,7 +184,7 @@ contract IntegrationSetup is Test, WithRegistry {
     setMedianRate(cEUR_CELO_referenceRateFeedID, 5e23);
 
     initOracles(cUSD_bridgedUSDC_referenceRateFeedID, 10);
-    setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1.02 * 1e24);
+    setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1 * 1e24);
 
     initOracles(cEUR_bridgedUSDC_referenceRateFeedID, 10);
     setMedianRate(cEUR_bridgedUSDC_referenceRateFeedID, 0.9 * 1e24);
@@ -273,6 +275,7 @@ contract IntegrationSetup is Test, WithRegistry {
     /* ===== Deploy BiPoolManager & Broker ===== */
 
     constantProduct = new ConstantProductPricingModule();
+    constantSum = new ConstantSumPricingModule();
     biPoolManager = new BiPoolManager(true);
     broker = new Broker(true);
 
@@ -320,9 +323,9 @@ contract IntegrationSetup is Test, WithRegistry {
     BiPoolManager.PoolExchange memory pair_cUSD_bridgedUSDC;
     pair_cUSD_bridgedUSDC.asset0 = address(cUSDToken);
     pair_cUSD_bridgedUSDC.asset1 = address(usdcToken);
-    pair_cUSD_bridgedUSDC.pricingModule = constantProduct;
+    pair_cUSD_bridgedUSDC.pricingModule = constantSum;
     pair_cUSD_bridgedUSDC.lastBucketUpdate = now;
-    pair_cUSD_bridgedUSDC.config.spread = FixidityLib.newFixedFraction(5, 100);
+    pair_cUSD_bridgedUSDC.config.spread = FixidityLib.newFixedFraction(5, 1000);
     pair_cUSD_bridgedUSDC.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_bridgedUSDC.config.minimumReports = 5;
     pair_cUSD_bridgedUSDC.config.referenceRateFeedID = cUSD_bridgedUSDC_referenceRateFeedID;
