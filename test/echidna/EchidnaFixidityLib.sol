@@ -1,7 +1,7 @@
 pragma solidity ^0.5.13;
 import "../../contracts/common/FixidityLib.sol";
 
-//echidna ./test/echidna/FixidityLib.sol --contract EchidnaFixidtyLib --config ./echidna.yaml --test-mode assertion
+//echidna ./test/echidna/EchidnaFixidityLib.sol --contract EchidnaFixidtyLib --config ./echidna.yaml --test-mode assertion
   
 contract EchidnaFixidtyLib{
 

@@ -3,7 +3,7 @@ pragma solidity ^0.5.13;
 import {StableToken} from "../../contracts/StableToken.sol";
 import {Registry} from "../../contracts/common/Registry.sol";
 
-//echidna ./test/echidna/StableToken.sol --contract EchidnaStableToken --config ./echidna.yaml --test-mode assertion
+//echidna ./test/echidna/EchidnaStableToken.sol --contract EchidnaStableToken --config ./echidna.yaml --test-mode assertion
 contract EchidnaStableToken {    
     StableToken public stableToken;
     Registry public registry;

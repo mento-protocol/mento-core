@@ -74,6 +74,46 @@ jobs:
         with:
           contract: ${{ matrix.contract }}.sol:${{ matrix.contract }}
           workingDirectory: contracts/
+
+  get_echidna_tests_names:
+    name: Get tests names
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Generate matrix with all contract names from the proxy directory 
+        id: set-matrix
+        run: |
+           run: echo "::set-output name=matrix::$(ls test/echidna/*.sol | jq -R -s -c 'split("\n")[:-1]')"
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+  run_echidna_tests:
+      needs: get_echidna_tests_names
+      name: run echidna tests
+      runs-on: ubuntu-latest
+      strategy:
+        fail-fast: false
+        matrix:
+          contract: ${{ fromJson(needs.get_proxy_names.outputs.matrix) }}
+      steps:
+        - uses: actions/checkout@v3
+          with:
+            submodules: recursive
+        - name: Install Foundry
+          uses: onbjerg/foundry-toolchain@v1
+          with:
+            version: nightly
+        - name: "Build for echidna"
+          run: yarn forge:build:slither
+
+        - name: "Run Echidna"
+          uses:  crytic/echidna-action@v2
+          with: 
+            files: test/echidna/${{ matrix.contract }}.sol
+            contract: ${{ matrix.contract }}
+            config: echidna.yaml
+            test-mode: assertion
+        
   ci:
     name: Lint & Test
     runs-on: "ubuntu-latest"
@@ -120,14 +160,3 @@ jobs:
         run: |
           echo "## Tests" >> $GITHUB_STEP_SUMMARY
           echo "✅ Passed" >> $GITHUB_STEP_SUMMARY
-      
-      - name: "Build for echidna"
-        run: yarn forge:build:slither
-
-      - name: "Run Echidna"
-        uses:  crytic/echidna-action@v2
-        with: 
-          files: test/echidna
-          config: echidna.yaml
-          test-mode: assertion
-
