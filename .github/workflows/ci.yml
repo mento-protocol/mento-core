@@ -83,7 +83,7 @@ jobs:
       - name: Generate matrix with all test names from the test/echidna directory
         id: set-matrix
         run: |
-          echo "::set-output name=matrix::$(ls test/echidna/*.sol | jq -R -s -c 'split("\n")[:-1]')"
+          echo "::set-output name=matrix::$(ls test/echidna | sed 's/.sol//' | jq -R -s -c 'split("\n")[:-1]')"
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
@@ -94,7 +94,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        contract: ${{ fromJson(needs.get_proxy_names.outputs.matrix) }}
+        contract: ${{ fromJson(needs.get_echidna_tests_names.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
         with:
