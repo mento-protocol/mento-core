@@ -37,9 +37,9 @@ contract EchidnaStableToken {
     uint120 user2Amount,
     uint120 user3Amount
   ) public {
-    address user1 = address(0xfffffff);
-    address user2 = address(0xffffff);
-    address user3 = address(0xfffff);
+    address user1 = address(0x1234);
+    address user2 = address(0x5678);
+    address user3 = address(0x9abc);
     assert(
       stableToken.balanceOf(user1) + stableToken.balanceOf(user2) + stableToken.balanceOf(user3) ==
         stableToken.totalSupply()
@@ -57,7 +57,6 @@ contract EchidnaStableToken {
     address receiver = address(0x123456);
     uint256 amount = 100;
     stableToken.mint(msg.sender, amount);
-    uint256 balanceBefore = stableToken.balanceOf(msg.sender);
     assert(stableToken.balanceOf(msg.sender) == amount);
     assert(stableToken.balanceOf(receiver) == 0);
 
