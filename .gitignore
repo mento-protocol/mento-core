@@ -9,6 +9,7 @@
 **/node_modules
 **/out
 .vscode
+**/crytic-export
 
 # files
 *.env
