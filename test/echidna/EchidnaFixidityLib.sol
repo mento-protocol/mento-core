@@ -2,9 +2,9 @@ pragma solidity ^0.5.13;
 import "../../contracts/common/FixidityLib.sol";
 
 // solhint-disable-next-line max-line-length
-//echidna ./test/echidna/EchidnaFixidityLib.sol --contract EchidnaFixidtyLib --config ./echidna.yaml --test-mode assertion
+//echidna ./test/echidna/EchidnaFixidityLib.sol --contract EchidnaFixidityLib --config ./echidna.yaml --test-mode assertion
 
-contract EchidnaFixidtyLib {
+contract EchidnaFixidityLib {
   function wrapUnwrap(uint256 a) public returns (bool) {
     FixidityLib.Fraction memory fraction = FixidityLib.wrap(a);
     uint256 r = FixidityLib.unwrap(fraction);
