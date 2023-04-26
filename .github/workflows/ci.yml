@@ -75,8 +75,8 @@ jobs:
           contract: ${{ matrix.contract }}.sol:${{ matrix.contract }}
           workingDirectory: contracts/
 
-  get_echidna_tests_names:
-    name: Get tests names
+  get_echidna_test_names:
+    name: Get Echidna test names
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -88,13 +88,13 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
   run_echidna_tests:
-    needs: get_echidna_tests_names
-    name: run echidna tests
+    needs: get_echidna_test_names
+    name: Run echidna tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        contract: ${{ fromJson(needs.get_echidna_tests_names.outputs.matrix) }}
+        contract: ${{ fromJson(needs.get_echidna_test_names.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
         with:
