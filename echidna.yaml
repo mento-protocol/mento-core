@@ -1,4 +1,3 @@
-#cryticArgs: ["--ignore-compile"]
 cryticArgs: 
   - --ignore-compile
   - --solc-remaps
