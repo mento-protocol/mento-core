@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Generate matrix with all contract names from the proxy directory 
+      - name: Generate matrix with all contract names from the proxy directory
         id: set-matrix
         run: |
           echo "::set-output name=matrix::$(ls contracts/proxies | sed 's/Proxy.sol//' | jq -R -s -c 'split("\n") | map(select(length > 0))') )"
@@ -74,6 +74,47 @@ jobs:
         with:
           contract: ${{ matrix.contract }}.sol:${{ matrix.contract }}
           workingDirectory: contracts/
+
+  get_echidna_test_names:
+    name: Get Echidna test names
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Generate matrix with all test names from the test/echidna directory
+        id: set-matrix
+        run: |
+          echo "::set-output name=matrix::$(ls test/echidna | sed 's/.sol//' | jq -R -s -c 'split("\n")[:-1]')"
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+  run_echidna_tests:
+    needs: get_echidna_test_names
+    name: Run echidna tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        contract: ${{ fromJson(needs.get_echidna_test_names.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: onbjerg/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: "Build for echidna"
+        run: yarn forge:build:slither
+
+      - name: "Run Echidna"
+        uses: crytic/echidna-action@v2
+        with:
+          files: test/echidna/${{ matrix.contract }}.sol
+          solc-version: 0.5.13
+          contract: ${{ matrix.contract }}
+          config: echidna.yaml
+          test-mode: assertion
+
   ci:
     name: Lint & Test
     runs-on: "ubuntu-latest"
