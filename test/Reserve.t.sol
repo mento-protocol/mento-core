@@ -59,7 +59,7 @@ contract ReserveTest is Test, WithRegistry, TokenHelpers {
   function setUp() public {
     notDeployer = actor("notDeployer");
     deployer = actor("deployer");
-    changePrank(deployer);
+    vm.startPrank(deployer);
     reserve = new Reserve(true);
     sortedOracles = new MockSortedOracles();
     broker = actor("broker");

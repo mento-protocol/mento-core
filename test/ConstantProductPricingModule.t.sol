@@ -73,7 +73,9 @@ contract ConstantProductPricingModuleTest is Test, WithRegistry {
 
   function setUp() public {
     vm.warp(24 * 60 * 60);
-    changePrank(actor("deployer"));
+    address deployer = actor("deployer");
+    vm.startPrank(deployer);
+    currentPrank = deployer;
     sortedOracles = new MockSortedOracles();
     sortedOracles.setNumRates(address(0), 10);
 

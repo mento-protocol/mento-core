@@ -51,7 +51,7 @@ contract BreakerBoxTest is Test, WithRegistry {
     testRateFeedIDs[0] = rateFeedID1;
     testRateFeedIDs[1] = rateFeedID2;
 
-    changePrank(deployer);
+    vm.startPrank(deployer);
     mockBreaker1 = new MockBreaker(0, false, false);
     mockBreaker2 = new MockBreaker(0, false, false);
     mockBreaker3 = new MockBreaker(0, false, false);
