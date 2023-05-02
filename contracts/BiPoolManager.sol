@@ -137,7 +137,6 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   ) external view returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     (amountOut, ) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn);
-    return amountOut;
   }
 
   /**
