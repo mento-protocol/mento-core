@@ -113,7 +113,7 @@ contract BiPoolManagerTest is Test {
       abi.encode(true)
     );
 
-    changePrank(deployer);
+    vm.startPrank(deployer);
 
     biPoolManager.initialize(
       broker,

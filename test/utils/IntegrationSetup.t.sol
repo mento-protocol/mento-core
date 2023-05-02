@@ -79,7 +79,8 @@ contract IntegrationSetup is Test, WithRegistry {
   function setUp_mcMint() public {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
     deployer = actor("deployer");
-    changePrank(deployer);
+    vm.startPrank(deployer);
+    currentPrank = deployer;
 
     setUp_assets();
     setUp_reserve();
