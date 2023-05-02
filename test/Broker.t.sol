@@ -66,7 +66,7 @@ contract BrokerTest is Test {
     reserve.addToken(address(stableAsset));
     reserve.addCollateralAsset(address(collateralAsset));
 
-    changePrank(deployer);
+    vm.startPrank(deployer);
     exchangeProviders.push(exchangeProvider1);
     exchangeProviders.push(exchangeProvider2);
     exchangeProviders.push((address(exchangeProvider)));

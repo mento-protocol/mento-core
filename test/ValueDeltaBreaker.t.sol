@@ -54,7 +54,7 @@ contract ValueDeltaBreakerTest is Test, WithRegistry {
     rateChangeThresholds[0] = 0.9 * 10**24;
     cooldownTimes[0] = 10 minutes;
 
-    changePrank(deployer);
+    vm.startPrank(deployer);
     sortedOracles = new MockSortedOracles();
 
     sortedOracles.addOracle(rateFeedID1, actor("OracleClient"));

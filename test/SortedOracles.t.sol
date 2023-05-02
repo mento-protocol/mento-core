@@ -46,8 +46,9 @@ contract SortedOraclesTest is Test {
     oracle = address(4);
 
     mockBreakerBox = new MockBreakerBox();
-
     sortedOracles.setBreakerBox(IBreakerBox(mockBreakerBox));
+    vm.startPrank(owner);
+    currentPrank = owner;
   }
 
   /**

@@ -42,7 +42,7 @@ contract StableTokenTest is Test, WithRegistry, UsingPrecompiles {
     deployer = actor("deployer");
     notDeployer = actor("notDeployer");
 
-    changePrank(deployer);
+    vm.startPrank(deployer);
 
     freezer = new Freezer(true);
     testee = new StableToken(true);
