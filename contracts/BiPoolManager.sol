@@ -47,7 +47,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
 
-  // Toke precision multiplier for tokens with a precision less than 18.
+  // Token precision multiplier used to normalize values to the 
+  // same precision when calculating vAMM bucket sizes.
   mapping(address => uint256) public tokenPrecisionMultipliers;
 
   /* ==================== Constructor ==================== */
