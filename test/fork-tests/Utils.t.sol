@@ -190,6 +190,7 @@ library Utils {
       (uint256 bucket0, uint256 bucket1) = getUpdatedBuckets(ctx);
       toBucket = (pool.asset0 == to ? bucket0 : bucket1) - 1;
     }
+    toBucket = toBucket.div(biPoolManager.tokenPrecisionMultipliers(to));
     maxPossible = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, toBucket);
     if (maxPossible > desired) {
       maxPossible = desired;
@@ -204,13 +205,13 @@ library Utils {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
-    maxPossible = (pool.asset0 == to ? pool.bucket0 : pool.bucket1) - 1;
+    uint256 maxPossible_ = (pool.asset0 == to ? pool.bucket0 : pool.bucket1) - 1;
     (,,,,bool shouldUpdate) = shouldUpdateBuckets(ctx);
     if (shouldUpdate) {
       (uint256 bucket0, uint256 bucket1) = getUpdatedBuckets(ctx);
-      maxPossible = (pool.asset0 == to ? bucket0 : bucket1) - 1;
+      maxPossible_ = (pool.asset0 == to ? bucket0 : bucket1) - 1;
     }
-
+    maxPossible = maxPossible_.div(biPoolManager.tokenPrecisionMultipliers(to));
     if (maxPossible > desired) {
       maxPossible = desired;
     }
