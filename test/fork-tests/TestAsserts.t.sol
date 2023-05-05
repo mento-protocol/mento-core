@@ -65,7 +65,7 @@ contract TestAsserts is Test {
     FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
     FixidityLib.Fraction memory amountOut = buyAmount.toUnitsFixed(to);
     FixidityLib.Fraction memory amountIn = ctx.swapOut(from, to, buyAmount).toUnitsFixed(from);
-    FixidityLib.Fraction memory expectedAmountIn = buyAmount.multiply(rate);
+    FixidityLib.Fraction memory expectedAmountIn = amountOut.multiply(rate);
 
     assertApproxEqAbs(
       amountIn.unwrap(),
