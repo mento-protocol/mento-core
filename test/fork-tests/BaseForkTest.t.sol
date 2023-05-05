@@ -93,7 +93,8 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     trader = actor("trader");
     reserve = Reserve(uint160(address(broker.reserve())));
 
-    changePrank(trader);
+    vm.startPrank(trader);
+    currentPrank = trader;
 
     vm.label(address(broker), "Broker");
 
@@ -353,14 +354,14 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
             ctx,
             exchange.assets[0],
             exchange.assets[1],
-            Utils.toSubunits(1000, exchange.assets[0]),
+            Utils.toSubunits(1000, exchange.assets[1]),
             "Trading is suspended for this reference rate"
           );
           assert_swapOutFails(
             ctx,
             exchange.assets[1],
             exchange.assets[0],
-            Utils.toSubunits(1000, exchange.assets[1]),
+            Utils.toSubunits(1000, exchange.assets[0]),
             "Trading is suspended for this reference rate"
           );
         }

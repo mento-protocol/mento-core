@@ -45,12 +45,14 @@ contract TestAsserts is Test {
     uint256 sellAmount
   ) internal {
     FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
-    uint256 amountOut = ctx.swapIn(from, to, sellAmount);
-    uint256 expectedAmountOut = FixidityLib.newFixed(sellAmount).divide(rate).unwrap() / fixed1;
+    FixidityLib.Fraction memory amountIn = sellAmount.toUnitsFixed(from);
+    FixidityLib.Fraction memory amountOut = ctx.swapIn(from, to, sellAmount).toUnitsFixed(to);
+    FixidityLib.Fraction memory expectedAmountOut = amountIn.divide(rate);
+
     assertApproxEqAbs(
-      amountOut,
-      expectedAmountOut,
-      pc10.multiply(FixidityLib.newFixed(expectedAmountOut)).unwrap() / fixed1
+      amountOut.unwrap(),
+      expectedAmountOut.unwrap(),
+      pc10.multiply(expectedAmountOut).unwrap()
     );
   }
 
@@ -61,12 +63,14 @@ contract TestAsserts is Test {
     uint256 buyAmount
   ) internal {
     FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
-    uint256 amountIn = ctx.swapOut(from, to, buyAmount);
-    uint256 expectedAmountIn = FixidityLib.newFixed(buyAmount).multiply(rate).unwrap() / fixed1;
+    FixidityLib.Fraction memory amountOut = buyAmount.toUnitsFixed(to);
+    FixidityLib.Fraction memory amountIn = ctx.swapOut(from, to, buyAmount).toUnitsFixed(from);
+    FixidityLib.Fraction memory expectedAmountIn = amountOut.multiply(rate);
+
     assertApproxEqAbs(
-      amountIn,
-      expectedAmountIn,
-      pc10.multiply(FixidityLib.newFixed(expectedAmountIn)).unwrap() / fixed1
+      amountIn.unwrap(),
+      expectedAmountIn.unwrap(),
+      pc10.multiply(expectedAmountIn).unwrap()
     );
   }
 
