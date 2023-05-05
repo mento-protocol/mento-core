@@ -422,9 +422,14 @@ library Utils {
     return units.mul(tokenBase);
   }
 
-  function toUnits(uint256 units, address token) internal view returns (uint256) {
+  function toUnits(uint256 subunits, address token) internal view returns (uint256) {
     uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
-    return units.div(tokenBase);
+    return subunits.div(tokenBase);
+  }
+
+  function toUnitsFixed(uint256 subunits, address token) internal view returns (FixidityLib.Fraction memory) {
+    uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
+    return FixidityLib.newFixedFraction(subunits, tokenBase);
   }
 
   function toSymbol(address token) internal view returns (string memory) {
