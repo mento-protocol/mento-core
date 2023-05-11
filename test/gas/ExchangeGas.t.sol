@@ -36,6 +36,8 @@ contract ExchangeGasTest is Test, TokenHelpers {
     celoToken = GoldToken(0x471EcE3750Da237f93B8E339c536989b8978a438);
 
     trader = actor("trader");
+    vm.startPrank(trader);
+    currentPrank = trader;
 
     mint(cUSDToken, trader, 10**22);
     mint(cEURToken, trader, 10**22);
