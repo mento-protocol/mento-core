@@ -2,14 +2,17 @@ pragma solidity ^0.5.13;
 
 import { ConstantSumPricingModule } from "../../contracts/ConstantSumPricingModule.sol";
 import { FixidityLib } from "../../contracts/common/FixidityLib.sol";
+import { EchidnaHelpers } from "./EchidnaHelpers.sol";
 
 contract EchidnaConstantSumPricingModule {
   using FixidityLib for FixidityLib.Fraction;
 
   ConstantSumPricingModule public constantSumPricingModule;
+  EchidnaHelpers private helpers;
 
   constructor() public {
     constantSumPricingModule = new ConstantSumPricingModule();
+    helpers = new EchidnaHelpers();
   }
 
   // TODO: Generate random inputs with constraints for these tests.
@@ -66,7 +69,7 @@ contract EchidnaConstantSumPricingModule {
     uint256 amountIn = 5000;
 
     // Make sure spread is between 0 and 1.
-    spread = between(spread, 0, FixidityLib.unwrap(FixidityLib.fixed1()));
+    spread = helpers.between(spread, 0, FixidityLib.unwrap(FixidityLib.fixed1()));
 
     uint256 amountOut = constantSumPricingModule.getAmountOut(tokenOutBucketSize, tokenOutBucketSize, spread, amountIn);
     uint256 amountInCalculated = constantSumPricingModule.getAmountIn(
@@ -85,7 +88,7 @@ contract EchidnaConstantSumPricingModule {
     uint256 amountOut = 5000;
 
     // Make sure spread is between 0 and 1.
-    spread = between(spread, 0, FixidityLib.unwrap(FixidityLib.fixed1()));
+    spread = helpers.between(spread, 0, FixidityLib.unwrap(FixidityLib.fixed1()));
 
     uint256 amountIn = constantSumPricingModule.getAmountIn(tokenOutBucketSize, tokenOutBucketSize, spread, amountOut);
     uint256 amountOutCalculated = constantSumPricingModule.getAmountOut(
@@ -96,24 +99,5 @@ contract EchidnaConstantSumPricingModule {
     );
 
     assert(amountOutCalculated == amountOut);
-  }
-
-  /* ==================== Helper Functions ==================== */
-
-  /**
-   * @notice Checks if a given number falls within a specified range.
-   * @param num The number to be checked.
-   * @param lower The lower boundary of the range.
-   * @param upper The upper boundary of the range.
-   * @return The number if it falls within the range, the closest boundary otherwise.
-   */
-  function between(uint256 num, uint256 lower, uint256 upper) internal pure returns (uint256) {
-    if (num < lower) {
-      return lower;
-    } else if (num > upper) {
-      return upper;
-    } else {
-      return num;
-    }
   }
 }
