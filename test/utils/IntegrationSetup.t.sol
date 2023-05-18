@@ -4,8 +4,11 @@ pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
 import { Test } from "celo-foundry/Test.sol";
+import { console } from "forge-std/console.sol";
+import { Factory } from "./Factory.sol";
 
-// import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
+import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
+import { IMentoERC20 } from "contracts/tokens/IMentoERC20.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
@@ -17,11 +20,11 @@ import { BiPoolManager } from "contracts/BiPoolManager.sol";
 import { Broker } from "contracts/Broker.sol";
 import { ConstantProductPricingModule } from "contracts/ConstantProductPricingModule.sol";
 import { ConstantSumPricingModule } from "contracts/ConstantSumPricingModule.sol";
-import { StableToken } from "contracts/StableToken.sol";
 import { SortedOracles } from "contracts/SortedOracles.sol";
 import { Reserve } from "contracts/Reserve.sol";
 import { BreakerBox } from "contracts/BreakerBox.sol";
 import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
+import { StableToken } from "contracts/StableToken.sol";
 import { TradingLimits } from "contracts/common/TradingLimits.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
@@ -45,8 +48,11 @@ contract IntegrationSetup is Test, WithRegistry {
 
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
 
-  address deployer;
+
   mapping(address => uint256) oracleCounts;
+
+  address deployer;
+  Factory factory;
 
   Broker broker;
   BiPoolManager biPoolManager;
@@ -60,8 +66,8 @@ contract IntegrationSetup is Test, WithRegistry {
 
   Token celoToken;
   Token usdcToken;
-  StableToken cUSDToken;
-  StableToken cEURToken;
+  IMentoERC20 cUSDToken;
+  IMentoERC20 cEURToken;
   Freezer freezer;
 
   address cUSD_CELO_referenceRateFeedID;
@@ -78,9 +84,11 @@ contract IntegrationSetup is Test, WithRegistry {
 
   function setUp_mcMint() public {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
+    factory = new Factory();
     deployer = actor("deployer");
     vm.startPrank(deployer);
     currentPrank = deployer;
+    broker = new Broker(true);
 
     setUp_assets();
     setUp_reserve();
@@ -100,7 +108,7 @@ contract IntegrationSetup is Test, WithRegistry {
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
 
-    cUSDToken = new StableToken(true);
+    cUSDToken = IMentoERC20(factory.create("MentoERC20", abi.encode(true)));
     cUSDToken.initialize(
       "cUSD",
       "cUSD",
@@ -112,8 +120,12 @@ contract IntegrationSetup is Test, WithRegistry {
       initialBalances,
       "Exchange"
     );
+    cUSDToken.initializeV2(
+      address(broker),
+      address(0x0)
+    );
 
-    cEURToken = new StableToken(true);
+    cEURToken = IMentoERC20(factory.create("MentoERC20", abi.encode(true)));
     cEURToken.initialize(
       "cEUR",
       "cEUR",
@@ -125,12 +137,17 @@ contract IntegrationSetup is Test, WithRegistry {
       initialBalances,
       "Exchange"
     );
+    cEURToken.initializeV2(
+      address(broker),
+      address(0x0)
+    );
 
     vm.label(address(cUSDToken), "cUSD");
     vm.label(address(cEURToken), "cEUR");
   }
 
   function setUp_reserve() internal {
+    changePrank(deployer);
     /* ===== Deploy reserve ===== */
 
     bytes32[] memory initialAssetAllocationSymbols = new bytes32[](2);
@@ -167,6 +184,7 @@ contract IntegrationSetup is Test, WithRegistry {
   }
 
   function setUp_sortedOracles() internal {
+    changePrank(deployer);
     /* ===== Deploy SortedOracles ===== */
 
     sortedOracles = new SortedOracles(true);
@@ -277,7 +295,6 @@ contract IntegrationSetup is Test, WithRegistry {
     constantProduct = new ConstantProductPricingModule();
     constantSum = new ConstantSumPricingModule();
     biPoolManager = new BiPoolManager(true);
-    broker = new Broker(true);
 
     biPoolManager.initialize(
       address(broker),

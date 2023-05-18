@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >0.5.13 < 0.9;
+pragma solidity >0.5.13;
 /* solhint-disable no-inline-assembly, no-complex-fallback, avoid-low-level-calls */
 
 import "openzeppelin-solidity/contracts/utils/Address.sol";

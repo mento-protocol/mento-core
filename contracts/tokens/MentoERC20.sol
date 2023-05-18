@@ -2,13 +2,12 @@
 pragma solidity ^0.8.19;
 
 import { ERC20PermitUpgradeable } from "./oz-overrides/ERC20PermitUpgradeable.sol";
+import { ERC20Upgradeable } from "./oz-overrides/ERC20Upgradeable.sol";
+import { IMentoERC20 } from "./IMentoERC20.sol";
 
-contract MentoERC20 is ERC20PermitUpgradeable  {
-  // bytes32 private constant VALIDATORS_REGISTRY_ID = keccak256(abi.encodePacked("Validators"));
-  // bytes32 private constant BROKER_REGISTRY_ID = keccak256(abi.encodePacked("Broker"));
-
-  address private validators;
-  address private broker;
+contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
+  address public validators;
+  address public broker;
 
   event TransferComment(string comment);
 
@@ -91,5 +90,41 @@ contract MentoERC20 is ERC20PermitUpgradeable  {
     );
     _burn(msg.sender, value);
     return true;
+  }
+
+  function transferFrom(address from, address to, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
+    return ERC20Upgradeable.transferFrom(from, to, amount);
+  }
+
+  function transfer(address to, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
+    return ERC20Upgradeable.transfer(to, amount);
+  }
+
+  function balanceOf(address account) public view override(ERC20Upgradeable, IMentoERC20) returns (uint256) {
+    return ERC20Upgradeable.balanceOf(account);
+  }
+
+  function approve(address spender, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
+    return ERC20Upgradeable.approve(spender, amount);
+  }
+
+  function allowance(address owner, address spender) public view override(ERC20Upgradeable, IMentoERC20) returns (uint256) {
+    return ERC20Upgradeable.allowance(owner, spender);
+  }
+
+  function totalSupply() public view override(ERC20Upgradeable, IMentoERC20) returns (uint256) {
+    return ERC20Upgradeable.totalSupply();
+  }
+
+  function permit(
+    address owner,
+    address spender,
+    uint256 value,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) public override(ERC20PermitUpgradeable, IMentoERC20) {
+    ERC20PermitUpgradeable.permit(owner, spender, value, deadline, v, r, s);
   }
 }

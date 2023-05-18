@@ -47,7 +47,7 @@ contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
 
   function test_gas_swapIn_cUSDToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k
-    IERC20 tokenIn = cUSDToken;
+    IERC20 tokenIn = IERC20(address(cUSDToken));
     IERC20 tokenOut = usdcToken;
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
 
@@ -56,7 +56,7 @@ contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
 
   function test_gas_swapIn_cEURToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k
-    IERC20 tokenIn = cEURToken;
+    IERC20 tokenIn = IERC20(address(cEURToken));
     IERC20 tokenOut = usdcToken;
     bytes32 poolId = pair_cEUR_bridgedUSDC_ID;
 
@@ -65,8 +65,8 @@ contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
 
   function test_gas_swapIn_cEURTocUSD() public {
     uint256 amountIn = 1000 * 10**18; // 1k
-    IERC20 tokenIn = cEURToken;
-    IERC20 tokenOut = cUSDToken;
+    IERC20 tokenIn = IERC20(address(cEURToken));
+    IERC20 tokenOut = IERC20(address(cUSDToken));
     bytes32 poolId = pair_cUSD_cEUR_ID;
 
     doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
@@ -74,8 +74,8 @@ contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
 
   function test_gas_swapIn_cUSDTocEUR() public {
     uint256 amountIn = 1000 * 10**18; // 1k
-    IERC20 tokenIn = cUSDToken;
-    IERC20 tokenOut = cEURToken;
+    IERC20 tokenIn = IERC20(address(cUSDToken));
+    IERC20 tokenOut = IERC20(address(cEURToken));
     bytes32 poolId = pair_cUSD_cEUR_ID;
 
     doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
@@ -84,7 +84,7 @@ contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
   function test_gas_swapIn_CELOTocEUR() public {
     uint256 amountIn = 1000 * 10**18; // 1k
     IERC20 tokenIn = celoToken;
-    IERC20 tokenOut = cEURToken;
+    IERC20 tokenOut = IERC20(address(cEURToken));
     bytes32 poolId = pair_cEUR_CELO_ID;
 
     doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
@@ -93,7 +93,7 @@ contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
   function test_gas_swapIn_CELOTocUSD() public {
     uint256 amountIn = 1000 * 10**18; // 1k
     IERC20 tokenIn = celoToken;
-    IERC20 tokenOut = cUSDToken;
+    IERC20 tokenOut = IERC20(address(cUSDToken));
     bytes32 poolId = pair_cUSD_CELO_ID;
 
     doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
@@ -101,7 +101,7 @@ contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
 
   function test_gas_swapIn_CUSDToCelo() public {
     uint256 amountIn = 1000 * 10**18; // 1k
-    IERC20 tokenIn = cUSDToken;
+    IERC20 tokenIn = IERC20(address(cUSDToken));
     IERC20 tokenOut = celoToken;
     bytes32 poolId = pair_cUSD_CELO_ID;
 
@@ -110,7 +110,7 @@ contract BrokerGasTest is Test, IntegrationSetup, TokenHelpers {
 
   function test_gas_swapIn_CEURToCelo() public {
     uint256 amountIn = 1000 * 10**18; // 1k
-    IERC20 tokenIn = cEURToken;
+    IERC20 tokenIn = IERC20(address(cEURToken));
     IERC20 tokenOut = celoToken;
     bytes32 poolId = pair_cEUR_CELO_ID;
 
