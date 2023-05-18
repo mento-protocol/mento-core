@@ -4,6 +4,10 @@ import { ConstantProductPricingModule } from "../../contracts/ConstantProductPri
 import { FixidityLib } from "../../contracts/common/FixidityLib.sol";
 import { EchidnaHelpers } from "./EchidnaHelpers.sol";
 
+/**
+ * @dev Command for local running:
+ * echidna ./test/echidna/EchidnaConstantProductPricingModule.sol --contract EchidnaConstantProductPricingModule --config ./echidna.yaml --test-mode assertion
+ */
 contract EchidnaConstantProductPricingModule {
   using FixidityLib for FixidityLib.Fraction;
 
@@ -14,6 +18,8 @@ contract EchidnaConstantProductPricingModule {
     constantProductPricingModule = new ConstantProductPricingModule();
     helpers = new EchidnaHelpers();
   }
+
+  // TODO: Generate random inputs with constraints for these tests.
 
   /* ==================== GetAmountOut ==================== */
 

@@ -4,6 +4,10 @@ import { ConstantSumPricingModule } from "../../contracts/ConstantSumPricingModu
 import { FixidityLib } from "../../contracts/common/FixidityLib.sol";
 import { EchidnaHelpers } from "./EchidnaHelpers.sol";
 
+/**
+ * @dev Command for local running:
+ * echidna ./test/echidna/EchidnaConstantSumPricingModule.sol --contract EchidnaConstantSumPricingModule --config ./echidna.yaml --test-mode assertion
+ */
 contract EchidnaConstantSumPricingModule {
   using FixidityLib for FixidityLib.Fraction;
 
@@ -63,10 +67,18 @@ contract EchidnaConstantSumPricingModule {
 
   /* ==================== Inverse Operations ==================== */
 
-  function echidna_test_getAmountOut_getAmountIn_inverse() public view {
-    uint256 tokenOutBucketSize = 10000;
-    uint256 spread = 500;
-    uint256 amountIn = 5000;
+  function echidna_test_getAmountOut_getAmountIn_inverse(
+    uint256 tokenOutBucketSize,
+    uint256 spread,
+    uint256 amountIn
+  ) public view {
+    // uint256 tokenOutBucketSize = 10000;
+    // uint256 spread = 500;
+    // uint256 amountIn = 5000;
+
+    tokenOutBucketSize = (tokenOutBucketSize % 10000) + 1;
+    spread = spread % 1000;
+    amountIn = (amountIn % 10000) + 1;
 
     // Make sure spread is between 0 and 1.
     spread = helpers.between(spread, 0, FixidityLib.unwrap(FixidityLib.fixed1()));
