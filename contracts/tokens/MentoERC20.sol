@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.19;
 
-import { ERC20PermitUpgradeable } from "./oz-overrides/ERC20PermitUpgradeable.sol";
-import { ERC20Upgradeable } from "./oz-overrides/ERC20Upgradeable.sol";
+import { ERC20PermitUpgradeable } from "./patched/ERC20PermitUpgradeable.sol";
+import { ERC20Upgradeable } from "./patched/ERC20Upgradeable.sol";
 import { IMentoERC20 } from "../interfaces/IMentoERC20.sol";
 
 contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
