@@ -1,3 +1,5 @@
+// solhint-disable-next-line max-line-length
+
 pragma solidity ^0.5.13;
 
 import { ConstantSumPricingModule } from "../../contracts/ConstantSumPricingModule.sol";
@@ -6,7 +8,7 @@ import { EchidnaHelpers } from "./EchidnaHelpers.sol";
 
 /**
  * @dev Command for local running:
- * echidna ./test/echidna/EchidnaConstantSumPricingModule.sol --contract EchidnaConstantSumPricingModule --config ./echidna.yaml --test-mode assertion
+ *      echidna ./test/echidna/EchidnaConstantSumPricingModule.sol --contract EchidnaConstantSumPricingModule --config ./echidna.yaml --test-mode assertion
  */
 contract EchidnaConstantSumPricingModule {
   using FixidityLib for FixidityLib.Fraction;
