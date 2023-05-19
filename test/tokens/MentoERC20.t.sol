@@ -11,6 +11,11 @@ import { MentoERC20 } from "contracts/tokens/MentoERC20.sol";
 
 contract MentoERC20Test is BaseTest {
   event TransferComment(string comment);
+  bytes32 private constant _PERMIT_TYPEHASH =
+      keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+  bytes32 private constant _TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+  bytes32 private _HASHED_NAME;
+  bytes32 private _HASHED_VERSION;
 
   address validators = address(0x1001);
   address broker = address(0x1002);
@@ -25,6 +30,9 @@ contract MentoERC20Test is BaseTest {
 
   function setUp() public {
     holder2 = vm.addr(holder2Pk);
+
+    _HASHED_NAME = keccak256(bytes("cUSD"));
+    _HASHED_VERSION = keccak256(bytes("1"));
 
     token = new MentoERC20(false);
     token.initialize(
@@ -115,5 +123,29 @@ contract MentoERC20Test is BaseTest {
   function test_erc20_permit() public {
     console.log("holder2", holder2);
     console.logBytes32(token.DOMAIN_SEPARATOR());
+    uint256 deadline = block.timestamp + 1000;
+    bytes32 structHash = buildTypedDataHash(holder2, holder0, 100, deadline);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(holder2Pk, structHash);
+
+    vm.prank(holder0);
+    token.permit(holder2, holder0, 100, deadline, v, r, s);
+    assertEq(100, token.allowance(holder2, holder0));
+  }
+
+  function buildTypedDataHash(
+    address owner,
+    address spender,
+    uint256 amount,
+    uint256 deadline
+  ) internal returns (bytes32) {
+    uint256 nonce = token.nonces(owner);
+    bytes32 digest = keccak256(
+      abi.encodePacked(
+        "\x19\x01",
+        keccak256(abi.encode(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION, block.chainid, address(token))),
+        keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, amount, nonce, deadline))
+      )
+    );
+    return digest;
   }
 }

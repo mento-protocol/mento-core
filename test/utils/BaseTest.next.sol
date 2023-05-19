@@ -16,7 +16,7 @@ contract BaseTest is Test {
   address public constant deployer = address(0x31337);
   Factory public factory;
 
-  constructor() public {
+  constructor() {
     address _factory = address(new Factory());
     vm.etch(deployer, _factory.code);
     factory = Factory(deployer);

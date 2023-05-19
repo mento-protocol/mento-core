@@ -62,13 +62,13 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
    * in legacy/StableToken.sol
    * @param _name The name of the stable token (English)
    * @param _symbol A short symbol identifying the token (e.g. "cUSD")
-   * @param DEPRECATED: _decimals Tokens are divisible to this many decimal places.
-   * @param DEPRECATED: registryAddress Address of the Registry contract.
-   * @param DEPRECATED: inflationRate Weekly inflation rate.
-   * @param DEPRECATED: inflationFactorUpdatePeriod How often the inflation factor is updated, in seconds.
+   * deprecated-param decimals Tokens are divisible to this many decimal places.
+   * deprecated-param registryAddress Address of the Registry contract.
+   * deprecated-param inflationRate Weekly inflation rate.
+   * deprecated-param inflationFactorUpdatePeriod How often the inflation factor is updated, in seconds.
    * @param initialBalanceAddresses Array of addresses with an initial balance.
    * @param initialBalanceValues Array of balance values corresponding to initialBalanceAddresses.
-   * @param DEPRECATED: exchangeIdentifier String identifier of exchange in registry (for specific fiat pairs)
+   * deprecated-param exchangeIdentifier String identifier of exchange in registry (for specific fiat pairs)
    */
   function initialize(
     string calldata _name,
