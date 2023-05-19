@@ -16,7 +16,6 @@ import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/draf
 import "openzeppelin-contracts-upgradeable/contracts/utils/cryptography/ECDSAUpgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/utils/cryptography/EIP712Upgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/utils/CountersUpgradeable.sol";
-import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
 /**
  * @dev Implementation of the ERC20 Permit extension allowing approvals to be made via signatures, as defined in

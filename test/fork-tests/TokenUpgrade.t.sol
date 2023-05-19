@@ -21,7 +21,7 @@ contract TokenUpgradeTest is Test {
     console.log(ILegacyProxy(stableToken)._getImplementation());
     console.log(ILegacyProxy(stableToken)._getOwner());
     vm.startPrank(ILegacyProxy(stableToken)._getOwner());
-    address mentoERC20Impl = address(new MentoERC20());
+    address mentoERC20Impl = address(new MentoERC20(false));
     stableTokenProxy._setImplementation(mentoERC20Impl);
 
     MentoERC20 cusd = MentoERC20(stableToken);

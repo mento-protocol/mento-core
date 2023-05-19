@@ -30,6 +30,12 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     _;
   }
 
+  constructor(bool disable) {
+    if (disable) {
+      _disableInitializers();
+    }
+  }
+
   function initialize(
     string calldata _name,
     string calldata _symbol,
@@ -43,7 +49,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
   ) external initializer {
     __ERC20_init_unchained(_name, _symbol);
     __ERC20Permit_init(_symbol);
-    _transferOwnership(msg.sender);
+    _transferOwnership(_msgSender());
 
     require(initialBalanceAddresses.length == initialBalanceValues.length, "Array length mismatch");
     for (uint256 i = 0; i < initialBalanceAddresses.length; i += 1) {
