@@ -3,10 +3,10 @@ pragma solidity ^0.5.13;
 
 import "celo-foundry/Test.sol";
 
-import "contracts/StableToken.sol";
+import "contracts/legacy/StableToken.sol";
 import "contracts/common/GoldToken.sol";
 import "contracts/common/interfaces/IRegistry.sol";
-import "contracts/tokens/IMentoERC20.sol";
+import "contracts/interfaces/IMentoERC20.sol";
 
 contract TokenHelpers is Test {
   address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.13;
 
-import { StableToken } from "../../contracts/StableToken.sol";
-import { Registry } from "../../contracts/common/Registry.sol";
+import { StableToken } from "contracts/legacy/StableToken.sol";
+import { Registry } from "contracts/common/Registry.sol";
 
 // solhint-disable-next-line max-line-length
 //echidna ./test/echidna/EchidnaStableToken.sol --contract EchidnaStableToken --config ./echidna.yaml --test-mode assertion

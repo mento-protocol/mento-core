@@ -6,24 +6,23 @@ pragma experimental ABIEncoderV2;
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import { IntegrationSetup } from "../utils/IntegrationSetup.t.sol";
+import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
 import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
 
-import { Broker } from "contracts/Broker.sol";
+import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
-import { IStableToken } from "contracts/interfaces/IStableToken.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
 // forge test --match-contract BrokerIntegration -vvv
-contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
+contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
   address trader;
 
   function setUp() public {
-    setUp_mcMint();
+    IntegrationTest.setUp();
 
     trader = actor("trader");
 

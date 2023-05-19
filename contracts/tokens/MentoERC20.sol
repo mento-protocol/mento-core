@@ -3,13 +3,32 @@ pragma solidity ^0.8.19;
 
 import { ERC20PermitUpgradeable } from "./oz-overrides/ERC20PermitUpgradeable.sol";
 import { ERC20Upgradeable } from "./oz-overrides/ERC20Upgradeable.sol";
-import { IMentoERC20 } from "./IMentoERC20.sol";
+import { IMentoERC20 } from "../interfaces/IMentoERC20.sol";
 
 contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
   address public validators;
   address public broker;
+  address public exchange;
 
   event TransferComment(string comment);
+
+  modifier onlyMinter {
+    address sender = _msgSender();
+    require(
+      sender == broker || sender == validators || sender == exchange,
+      "not allowed to mint"
+    );
+    _;
+  }
+
+  modifier onlyBurner {
+    address sender = _msgSender();
+    require(
+      sender == broker || sender == exchange,
+      "not allowed to burn"
+    );
+    _;
+  }
 
   function initialize(
     string calldata _name,
@@ -34,10 +53,12 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
 
   function initializeV2(
     address _broker,
-    address _validators
+    address _validators,
+    address _exchange
   ) external reinitializer(2) onlyOwner {
     broker = _broker;
     validators = _validators;
+    exchange = _exchange;
     __ERC20Permit_init(symbol());
   }
 
@@ -47,6 +68,10 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
 
   function setValidators(address _validators) external onlyOwner {
     validators = _validators;
+  }
+
+  function setExchange(address _exchange) external onlyOwner {
+    exchange = _exchange;
   }
 
   /**
@@ -70,11 +95,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
    * @param to The account for which to mint tokens.
    * @param value The amount of StableToken to mint.
    */
-  function mint(address to, uint256 value) external returns (bool) {
-    require(
-      msg.sender == broker || msg.sender == validators,
-      "Sender not authorized to mint"
-    );
+  function mint(address to, uint256 value) external onlyMinter returns (bool) {
     _mint(to, value);
     return true;
   }
@@ -83,11 +104,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
    * @notice Burns StableToken from the balance of msg.sender.
    * @param value The amount of StableToken to burn.
    */
-  function burn(uint256 value) external returns (bool) {
-    require(
-      msg.sender == broker,
-      "Sender not authorized to burn"
-    );
+  function burn(uint256 value) external onlyBurner returns (bool) {
     _burn(msg.sender, value);
     return true;
   }

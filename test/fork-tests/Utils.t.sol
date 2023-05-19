@@ -13,15 +13,15 @@ import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
-import { TradingLimits } from "contracts/common/TradingLimits.sol";
+import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
 
-import { Broker } from "contracts/Broker.sol";
-import { BreakerBox } from "contracts/BreakerBox.sol";
-import { BiPoolManager } from "contracts/BiPoolManager.sol";
-import { SortedOracles } from "contracts/SortedOracles.sol";
-import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
-import { ValueDeltaBreaker } from "contracts/ValueDeltaBreaker.sol";
-import { WithThreshold } from "contracts/common/breakers/WithThreshold.sol";
+import { Broker } from "contracts/swap/Broker.sol";
+import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
+import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
+import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
+import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
+import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
+import { WithThreshold } from "contracts/oracles/breakers/WithThreshold.sol";
 
 /**
  * @title IBrokerWithCasts

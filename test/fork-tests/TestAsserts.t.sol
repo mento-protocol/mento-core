@@ -12,11 +12,12 @@ import { Utils } from "./Utils.t.sol";
 
 import { IERC20Metadata } from "contracts/common/interfaces/IERC20Metadata.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
-import { TradingLimits } from "contracts/common/TradingLimits.sol";
-import { WithCooldown } from "contracts/common/breakers/WithCooldown.sol";
 import { IBreaker } from "contracts/interfaces/IBreaker.sol";
-import { MedianDeltaBreaker } from "contracts/MedianDeltaBreaker.sol";
-import { ValueDeltaBreaker } from "contracts/ValueDeltaBreaker.sol";
+
+import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
+import { WithCooldown } from "contracts/oracles/breakers/WithCooldown.sol";
+import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
+import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
 
 contract TestAsserts is Test {
   using Utils for Utils.Context;
