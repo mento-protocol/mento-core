@@ -5,6 +5,9 @@ import { ERC20PermitUpgradeable } from "./patched/ERC20PermitUpgradeable.sol";
 import { ERC20Upgradeable } from "./patched/ERC20Upgradeable.sol";
 import { IMentoERC20 } from "../interfaces/IMentoERC20.sol";
 
+/**
+ * @title ERC20 token with minting and burning permissioned to a broker and validators.
+ */
 contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
   address public validators;
   address public broker;
@@ -12,6 +15,10 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
 
   event TransferComment(string comment);
 
+  /**
+   * @dev Restricts a function so it can only be executed by an address that's allowed to mint.
+   * Currently that's the broker, validators, or exchange.
+   */
   modifier onlyMinter {
     address sender = _msgSender();
     require(
@@ -21,6 +28,10 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     _;
   }
 
+  /**
+   * @dev Restricts a function so it can only be executed by an address that's allowed to burn.
+   * Currently that's the broker or exchange.
+   */
   modifier onlyBurner {
     address sender = _msgSender();
     require(
@@ -30,12 +41,35 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     _;
   }
 
+  /**
+   * @notice The constructor for the MentoERC20 contract.
+   * @dev Should be called with disable=true in deployments when
+   * it's accessed through a Proxy.
+   * Call this with disable=false during testing, when used
+   * without a proxy.
+   * @param disable Set to true to run `_disableInitializers()` inherited from
+   * openzeppelin-contracts-upgradeable/Initializable.sol
+   */
   constructor(bool disable) {
     if (disable) {
       _disableInitializers();
     }
   }
 
+  /**
+   * @notice Initializes a MentoERC20.
+   * It keeps the same signature as the original initialize() function
+   * in legacy/StableToken.sol
+   * @param _name The name of the stable token (English)
+   * @param _symbol A short symbol identifying the token (e.g. "cUSD")
+   * @param DEPRECATED: _decimals Tokens are divisible to this many decimal places.
+   * @param DEPRECATED: registryAddress Address of the Registry contract.
+   * @param DEPRECATED: inflationRate Weekly inflation rate.
+   * @param DEPRECATED: inflationFactorUpdatePeriod How often the inflation factor is updated, in seconds.
+   * @param initialBalanceAddresses Array of addresses with an initial balance.
+   * @param initialBalanceValues Array of balance values corresponding to initialBalanceAddresses.
+   * @param DEPRECATED: exchangeIdentifier String identifier of exchange in registry (for specific fiat pairs)
+   */
   function initialize(
     string calldata _name,
     string calldata _symbol,
@@ -57,6 +91,16 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     }
   }
 
+  /**
+   * @notice Initializes a MentoERC20 contract
+   * when upgrading from legacy/StableToken.sol.
+   * It sets the addresses that were previously read from the Registry.
+   * It runs the ERC20PermitUpgradeable initializer.
+   * @dev This function is only callable once.
+   * @param _broker The address of the Broker contract.
+   * @param _validators The address of the Validators contract.
+   * @param _exchange The address of the Exchange contract.
+   */
   function initializeV2(
     address _broker,
     address _validators,
@@ -68,14 +112,29 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     __ERC20Permit_init(symbol());
   }
 
+  /**
+   * @notice Sets the address of the Broker contract.
+   * @dev This function is only callable by the owner.
+   * @param _broker The address of the Broker contract.
+   */
   function setBroker(address _broker) external onlyOwner {
     broker = _broker;
   }
 
+  /**
+   * @notice Sets the address of the Validators contract.
+   * @dev This function is only callable by the owner.
+   * @param _validators The address of the Validators contract.
+   */
   function setValidators(address _validators) external onlyOwner {
     validators = _validators;
   }
 
+  /**
+   * @notice Sets the address of the Exchange contract.
+   * @dev This function is only callable by the owner.
+   * @param _exchange The address of the Exchange contract.
+   */
   function setExchange(address _exchange) external onlyOwner {
     exchange = _exchange;
   }
@@ -115,30 +174,38 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     return true;
   }
 
+  
+  /// @inheritdoc ERC20Upgradeable
   function transferFrom(address from, address to, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
     return ERC20Upgradeable.transferFrom(from, to, amount);
   }
 
+  /// @inheritdoc ERC20Upgradeable
   function transfer(address to, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
     return ERC20Upgradeable.transfer(to, amount);
   }
 
+  /// @inheritdoc ERC20Upgradeable
   function balanceOf(address account) public view override(ERC20Upgradeable, IMentoERC20) returns (uint256) {
     return ERC20Upgradeable.balanceOf(account);
   }
 
+  /// @inheritdoc ERC20Upgradeable
   function approve(address spender, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
     return ERC20Upgradeable.approve(spender, amount);
   }
 
+  /// @inheritdoc ERC20Upgradeable
   function allowance(address owner, address spender) public view override(ERC20Upgradeable, IMentoERC20) returns (uint256) {
     return ERC20Upgradeable.allowance(owner, spender);
   }
 
+  /// @inheritdoc ERC20Upgradeable
   function totalSupply() public view override(ERC20Upgradeable, IMentoERC20) returns (uint256) {
     return ERC20Upgradeable.totalSupply();
   }
 
+  /// @inheritdoc ERC20PermitUpgradeable
   function permit(
     address owner,
     address spender,

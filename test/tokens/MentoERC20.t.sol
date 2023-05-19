@@ -3,11 +3,13 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8.19;
 
-import { Test } from "forge-std-next/Test.sol";
-import { MentoERC20 } from "contracts/tokens/MentoERC20.sol";
+import { console } from "forge-std-next/console.sol";
 import { Arrays } from "../utils/Arrays.sol";
+import { BaseTest } from "../utils/BaseTest.next.sol";
 
-contract MentoERC20Test is Test {
+import { MentoERC20 } from "contracts/tokens/MentoERC20.sol";
+
+contract MentoERC20Test is BaseTest {
   event TransferComment(string comment);
 
   address validators = address(0x1001);
@@ -16,10 +18,14 @@ contract MentoERC20Test is Test {
 
   address holder0 = address(0x2001);
   address holder1 = address(0x2002);
+  address holder2;
+  uint256 holder2Pk = uint256(0x31337);
 
   MentoERC20 private token;
 
   function setUp() public {
+    holder2 = vm.addr(holder2Pk);
+
     token = new MentoERC20(false);
     token.initialize(
       "cUSD",
@@ -28,8 +34,8 @@ contract MentoERC20Test is Test {
       address(0), // deprecated
       0, // deprecated
       0, // deprecated
-      Arrays.addresses(holder0, holder1, broker, exchange),
-      Arrays.uints(1000, 1000, 1000, 1000),
+      Arrays.addresses(holder0, holder1, holder2, broker, exchange),
+      Arrays.uints(1000, 1000, 1000, 1000, 1000),
       "" // deprecated
     );
     token.initializeV2(
@@ -104,5 +110,10 @@ contract MentoERC20Test is Test {
     vm.prank(holder0);
     vm.expectRevert(bytes("MentoERC20: not allowed to burn"));
     token.burn(100);
+  }
+
+  function test_erc20_permit() public {
+    console.log("holder2", holder2);
+    console.logBytes32(token.DOMAIN_SEPARATOR());
   }
 }
