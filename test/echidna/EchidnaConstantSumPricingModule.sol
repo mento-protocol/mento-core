@@ -1,4 +1,4 @@
-// solhint-disable-next-line max-line-length
+// solhint-disable max-line-length
 
 pragma solidity ^0.5.13;
 
