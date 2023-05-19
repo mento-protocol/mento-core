@@ -16,7 +16,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     address sender = _msgSender();
     require(
       sender == broker || sender == validators || sender == exchange,
-      "not allowed to mint"
+      "MentoERC20: not allowed to mint"
     );
     _;
   }
@@ -25,7 +25,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     address sender = _msgSender();
     require(
       sender == broker || sender == exchange,
-      "not allowed to burn"
+      "MentoERC20: not allowed to burn"
     );
     _;
   }
