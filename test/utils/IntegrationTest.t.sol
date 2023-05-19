@@ -100,7 +100,7 @@ contract IntegrationTest is BaseTest {
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
 
-    cUSDToken = IMentoERC20(factory.create("MentoERC20", abi.encode(true)));
+    cUSDToken = IMentoERC20(factory.create("MentoERC20", abi.encode(false)));
     cUSDToken.initialize(
       "cUSD",
       "cUSD",
@@ -118,7 +118,7 @@ contract IntegrationTest is BaseTest {
       address(0x0)
     );
 
-    cEURToken = IMentoERC20(factory.create("MentoERC20", abi.encode(true)));
+    cEURToken = IMentoERC20(factory.create("MentoERC20", abi.encode(false)));
     cEURToken.initialize(
       "cEUR",
       "cEUR",

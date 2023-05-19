@@ -62,7 +62,7 @@ contract ExchangeTest is BaseTest, TokenHelpers {
     celoToken = new GoldToken(true);
     reserve = new MockReserve();
     exchange = new Exchange(true);
-    stableToken = IMentoERC20(factory.create("MentoERC20", abi.encode(true)));
+    stableToken = IMentoERC20(factory.create("MentoERC20", abi.encode(false)));
     sortedOracles = new MockSortedOracles();
 
     registry.setAddressFor("Freezer", address(freezer));
