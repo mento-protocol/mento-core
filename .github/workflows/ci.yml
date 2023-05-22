@@ -50,6 +50,7 @@ jobs:
         id: set-matrix
         run: |
           echo "::set-output name=matrix::$(ls contracts/proxies | sed 's/Proxy.sol//' | jq -R -s -c 'split("\n") | map(select(length > 0))') )"
+          echo "::set-output name=matrix::$(ls contracts/legacy/proxies | sed 's/Proxy.sol//' | jq -R -s -c 'split("\n") | map(select(length > 0))') )"
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 

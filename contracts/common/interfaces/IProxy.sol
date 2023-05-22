@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.5.13 <0.9;
+pragma solidity >=0.5.17 <0.9;
 
 interface IProxy {
   function _getImplementation() external view returns (address);
