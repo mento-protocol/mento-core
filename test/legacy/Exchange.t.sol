@@ -355,15 +355,18 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
     uint256 minBuyAmount,
     bool sellCelo
   ) internal returns (uint256) {
-    changePrank(seller);
     return exchange.sell(amount, minBuyAmount, sellCelo);
   }
 
   function approveExchange(uint256 amount, bool sellCelo) internal {
     changePrank(seller);
     if (sellCelo) {
+      vm.expectEmit(true, true, true, true, address(celoToken));
+      emit Approval(seller, address(exchange), amount);
       celoToken.approve(address(exchange), amount);
     } else {
+      vm.expectEmit(true, true, true, true, address(stableToken));
+      emit Approval(seller, address(exchange), amount);
       stableToken.approve(address(exchange), amount);
     }
   }
@@ -381,7 +384,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
   }
 
   function approveAndSell(
-    uint256 amount,
+    uint256 amount, 
     bool sellCelo,
     uint256 updatedCeloBucket,
     uint256 updatedStableBucket
@@ -579,7 +582,7 @@ contract ExchangeTest_buy is ExchangeTest_stableActivated {
   }
 
   function approveAndBuy(
-    uint256 amount,
+    uint256 amount, 
     bool buyCelo,
     uint256 updatedCeloBucket,
     uint256 updateStableBucket

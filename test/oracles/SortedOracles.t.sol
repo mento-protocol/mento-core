@@ -76,7 +76,6 @@ contract SortedOraclesTest is Test {
 /**
  * @notice Tests
  */
-
 contract SortedOracles_initialize is SortedOraclesTest {
   function test_initialize_shouldHaveSetTheOwner() public {
     assertEq(sortedOracles.owner(), owner);
