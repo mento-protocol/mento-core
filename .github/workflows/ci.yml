@@ -41,27 +41,23 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: ${{ steps.slither.outputs.sarif }}
-  get_proxy_names:
-    name: Get contract names
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Generate matrix with all contract names from the proxy directory
-        id: set-matrix
-        run: |
-          echo "::set-output name=matrix::$(ls contracts/proxies | sed 's/Proxy.sol//' | jq -R -s -c 'split("\n") | map(select(length > 0))') )"
-          echo "::set-output name=matrix::$(ls contracts/proxies | sed 's/Proxy.sol//' | jq -R -s -c 'split("\n") | map(select(length > 0))') )"
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
 
   check_storage_layout:
-    needs: get_proxy_names
     name: Check storage layout
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        contract: ${{ fromJson(needs.get_proxy_names.outputs.matrix) }}
+        contract:
+          - contracts/legacy/ReserveSpenderMultiSig.sol:ReserveSpenderMultiSig
+          - contracts/legacy/StableToken.sol:StableToken
+          - contracts/legacy/Exchange.sol:Excange
+          - contracts/legacy/GrandaMento.sol:GrandaMento
+          - contracts/swap/Broker.sol:Broker
+          - contracts/swap/BiPoolManager.sol:BiPoolManager
+          - contracts/swap/Reserve.sol:Reserve
+          - contracts/oracles/BreakerBox.sol:BreakerBox
+          - contracts/oracles/SortedOracles.sol:SortedOracles
     steps:
       - uses: actions/checkout@v3
         with:
@@ -73,8 +69,7 @@ jobs:
       - name: Check storage layout
         uses: Rubilmax/foundry-storage-check@v3.2.1
         with:
-          contract: ${{ matrix.contract }}.sol:${{ matrix.contract }}
-          workingDirectory: contracts/
+          contract: ${{ matrix.contract }}
 
   get_echidna_test_names:
     name: Get Echidna test names
