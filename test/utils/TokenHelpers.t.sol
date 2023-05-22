@@ -6,7 +6,7 @@ import "celo-foundry/Test.sol";
 import "contracts/legacy/StableToken.sol";
 import "contracts/common/GoldToken.sol";
 import "contracts/common/interfaces/IRegistry.sol";
-import "contracts/interfaces/IMentoERC20.sol";
+import "contracts/interfaces/IStableTokenV2.sol";
 
 contract TokenHelpers is Test {
   address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
@@ -57,7 +57,7 @@ contract TokenHelpers is Test {
   }
 
   function mint(
-    IMentoERC20 stableToken,
+    IStableTokenV2 stableToken,
     address to,
     uint256 amount
   ) internal {

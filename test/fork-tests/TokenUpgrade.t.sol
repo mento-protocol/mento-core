@@ -6,7 +6,7 @@ import { console } from "forge-std/console.sol";
 
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
 import { IProxy as ILegacyProxy } from "contracts/common/interfaces/IProxy.sol";
-import { MentoERC20 } from "contracts/tokens/MentoERC20.sol";
+import { StableTokenV2 } from "contracts/tokens/StableTokenV2.sol";
 
 contract TokenUpgradeForkTest is Test {
   address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
@@ -21,10 +21,10 @@ contract TokenUpgradeForkTest is Test {
     console.log(ILegacyProxy(stableToken)._getImplementation());
     console.log(ILegacyProxy(stableToken)._getOwner());
     vm.startPrank(ILegacyProxy(stableToken)._getOwner());
-    address mentoERC20Impl = address(new MentoERC20(false));
+    address mentoERC20Impl = address(new StableTokenV2(false));
     stableTokenProxy._setImplementation(mentoERC20Impl);
 
-    MentoERC20 cusd = MentoERC20(stableToken);
+    StableTokenV2 cusd = StableTokenV2(stableToken);
     cusd.initializeV2(
       registry.getAddressForString("Broker"),
       registry.getAddressForString("Validators"),

@@ -6,7 +6,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./interfaces/IExchange.sol";
 import "../interfaces/ISortedOracles.sol";
 import "../interfaces/IReserve.sol";
-import "../interfaces/IMentoERC20.sol";
+import "../interfaces/IStableTokenV2.sol";
 import "../common/Initializable.sol";
 import "../common/FixidityLib.sol";
 import "../common/Freezable.sol";
@@ -212,12 +212,12 @@ contract Exchange is
       goldBucket = goldBucket.add(sellAmount);
       stableBucket = stableBucket.sub(buyAmount);
       require(getGoldToken().transferFrom(msg.sender, address(reserve), sellAmount), "Transfer of sell token failed");
-      require(IMentoERC20(stable).mint(msg.sender, buyAmount), "Mint of stable token failed");
+      require(IStableTokenV2(stable).mint(msg.sender, buyAmount), "Mint of stable token failed");
     } else {
       stableBucket = stableBucket.add(sellAmount);
       goldBucket = goldBucket.sub(buyAmount);
       require(IERC20(stable).transferFrom(msg.sender, address(this), sellAmount), "Transfer of sell token failed");
-      IMentoERC20(stable).burn(sellAmount);
+      IStableTokenV2(stable).burn(sellAmount);
 
       require(reserve.transferExchangeGold(msg.sender, buyAmount), "Transfer of buyToken failed");
     }

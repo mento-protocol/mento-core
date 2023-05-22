@@ -7,9 +7,9 @@ import { console } from "forge-std-next/console.sol";
 import { Arrays } from "../utils/Arrays.sol";
 import { BaseTest } from "../utils/BaseTest.next.sol";
 
-import { MentoERC20 } from "contracts/tokens/MentoERC20.sol";
+import { StableTokenV2 } from "contracts/tokens/StableTokenV2.sol";
 
-contract MentoERC20Test is BaseTest {
+contract StableTokenV2Test is BaseTest {
   event TransferComment(string comment);
   bytes32 private constant _PERMIT_TYPEHASH =
       keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
@@ -26,7 +26,7 @@ contract MentoERC20Test is BaseTest {
   address holder2;
   uint256 holder2Pk = uint256(0x31337);
 
-  MentoERC20 private token;
+  StableTokenV2 private token;
 
   function setUp() public {
     holder2 = vm.addr(holder2Pk);
@@ -34,7 +34,7 @@ contract MentoERC20Test is BaseTest {
     _HASHED_NAME = keccak256(bytes("cUSD"));
     _HASHED_VERSION = keccak256(bytes("1"));
 
-    token = new MentoERC20(false);
+    token = new StableTokenV2(false);
     token.initialize(
       "cUSD",
       "cUSD",
@@ -54,7 +54,7 @@ contract MentoERC20Test is BaseTest {
   }
 
   function test_initializers_disabled() public {
-    MentoERC20 disabledToken = new MentoERC20(true);
+    StableTokenV2 disabledToken = new StableTokenV2(true);
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
@@ -100,7 +100,7 @@ contract MentoERC20Test is BaseTest {
 
   function test_mint_forbidden() public {
     vm.prank(holder0);
-    vm.expectRevert(bytes("MentoERC20: not allowed to mint"));
+    vm.expectRevert(bytes("StableTokenV2: not allowed to mint"));
     token.mint(holder0, 100);
   }
 
@@ -116,7 +116,7 @@ contract MentoERC20Test is BaseTest {
 
   function test_burn_forbidden() public {
     vm.prank(holder0);
-    vm.expectRevert(bytes("MentoERC20: not allowed to burn"));
+    vm.expectRevert(bytes("StableTokenV2: not allowed to burn"));
     token.burn(100);
   }
 

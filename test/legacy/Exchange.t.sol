@@ -16,7 +16,7 @@ import "contracts/legacy/Exchange.sol";
 import "contracts/common/FixidityLib.sol";
 import "contracts/common/Freezer.sol";
 import "contracts/common/GoldToken.sol";
-import "contracts/interfaces/IMentoERC20.sol";
+import "contracts/interfaces/IStableTokenV2.sol";
 
 contract ExchangeTest is BaseTest, TokenHelpers {
   using SafeMath for uint256;
@@ -37,7 +37,7 @@ contract ExchangeTest is BaseTest, TokenHelpers {
 
   Exchange exchange;
   Freezer freezer;
-  IMentoERC20 stableToken;
+  IStableTokenV2 stableToken;
   GoldToken celoToken;
   MockReserve reserve;
   MockSortedOracles sortedOracles;
@@ -62,7 +62,7 @@ contract ExchangeTest is BaseTest, TokenHelpers {
     celoToken = new GoldToken(true);
     reserve = new MockReserve();
     exchange = new Exchange(true);
-    stableToken = IMentoERC20(factory.create("MentoERC20", abi.encode(false)));
+    stableToken = IStableTokenV2(factory.create("StableTokenV2", abi.encode(false)));
     sortedOracles = new MockSortedOracles();
 
     registry.setAddressFor("Freezer", address(freezer));

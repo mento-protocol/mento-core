@@ -3,12 +3,12 @@ pragma solidity ^0.8.19;
 
 import { ERC20PermitUpgradeable } from "./patched/ERC20PermitUpgradeable.sol";
 import { ERC20Upgradeable } from "./patched/ERC20Upgradeable.sol";
-import { IMentoERC20 } from "../interfaces/IMentoERC20.sol";
+import { IStableTokenV2 } from "../interfaces/IStableTokenV2.sol";
 
 /**
  * @title ERC20 token with minting and burning permissioned to a broker and validators.
  */
-contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
+contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2 {
   address public validators;
   address public broker;
   address public exchange;
@@ -26,7 +26,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     address sender = _msgSender();
     require(
       sender == broker || sender == validators || sender == exchange,
-      "MentoERC20: not allowed to mint"
+      "StableTokenV2: not allowed to mint"
     );
     _;
   }
@@ -39,13 +39,13 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     address sender = _msgSender();
     require(
       sender == broker || sender == exchange,
-      "MentoERC20: not allowed to burn"
+      "StableTokenV2: not allowed to burn"
     );
     _;
   }
 
   /**
-   * @notice The constructor for the MentoERC20 contract.
+   * @notice The constructor for the StableTokenV2 contract.
    * @dev Should be called with disable=true in deployments when
    * it's accessed through a Proxy.
    * Call this with disable=false during testing, when used
@@ -60,7 +60,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
   }
 
   /**
-   * @notice Initializes a MentoERC20.
+   * @notice Initializes a StableTokenV2.
    * It keeps the same signature as the original initialize() function
    * in legacy/StableToken.sol
    * @param _name The name of the stable token (English)
@@ -95,7 +95,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
   }
 
   /**
-   * @notice Initializes a MentoERC20 contract
+   * @notice Initializes a StableTokenV2 contract
    * when upgrading from legacy/StableToken.sol.
    * It sets the addresses that were previously read from the Registry.
    * It runs the ERC20PermitUpgradeable initializer.
@@ -205,32 +205,32 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function transferFrom(address from, address to, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
+  function transferFrom(address from, address to, uint256 amount) public override(ERC20Upgradeable, IStableTokenV2) returns (bool) {
     return ERC20Upgradeable.transferFrom(from, to, amount);
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function transfer(address to, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
+  function transfer(address to, uint256 amount) public override(ERC20Upgradeable, IStableTokenV2) returns (bool) {
     return ERC20Upgradeable.transfer(to, amount);
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function balanceOf(address account) public view override(ERC20Upgradeable, IMentoERC20) returns (uint256) {
+  function balanceOf(address account) public view override(ERC20Upgradeable, IStableTokenV2) returns (uint256) {
     return ERC20Upgradeable.balanceOf(account);
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function approve(address spender, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
+  function approve(address spender, uint256 amount) public override(ERC20Upgradeable, IStableTokenV2) returns (bool) {
     return ERC20Upgradeable.approve(spender, amount);
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function allowance(address owner, address spender) public view override(ERC20Upgradeable, IMentoERC20) returns (uint256) {
+  function allowance(address owner, address spender) public view override(ERC20Upgradeable, IStableTokenV2) returns (uint256) {
     return ERC20Upgradeable.allowance(owner, spender);
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function totalSupply() public view override(ERC20Upgradeable, IMentoERC20) returns (uint256) {
+  function totalSupply() public view override(ERC20Upgradeable, IStableTokenV2) returns (uint256) {
     return ERC20Upgradeable.totalSupply();
   }
 
@@ -243,7 +243,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) public override(ERC20PermitUpgradeable, IMentoERC20) {
+  ) public override(ERC20PermitUpgradeable, IStableTokenV2) {
     ERC20PermitUpgradeable.permit(owner, spender, value, deadline, v, r, s);
   }
 }

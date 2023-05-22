@@ -12,7 +12,7 @@ import { IBroker } from "../interfaces/IBroker.sol";
 import { IBrokerAdmin } from "../interfaces/IBrokerAdmin.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
 import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
-import { IMentoERC20 } from "../interfaces/IMentoERC20.sol";
+import { IStableTokenV2 } from "../interfaces/IStableTokenV2.sol";
 
 import { Initializable } from "../common/Initializable.sol";
 import { TradingLimits } from "../libraries/TradingLimits.sol";
@@ -203,7 +203,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
   function burnStableTokens(address token, uint256 amount) public returns (bool) {
     require(reserve.isStableAsset(token), "Token must be a reserve stable asset");
     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-    require(IMentoERC20(token).burn(amount), "Burning of the stable asset failed");
+    require(IStableTokenV2(token).burn(amount), "Burning of the stable asset failed");
     return true;
   }
 
@@ -246,7 +246,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     uint256 amount
   ) internal {
     if (reserve.isStableAsset(token)) {
-      require(IMentoERC20(token).mint(to, amount), "Minting of the stable asset failed");
+      require(IStableTokenV2(token).mint(to, amount), "Minting of the stable asset failed");
     } else if (reserve.isCollateralAsset(token)) {
       require(reserve.transferExchangeCollateralAsset(token, to, amount), "Transfer of the collateral asset failed");
     } else {
@@ -269,7 +269,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
   ) internal {
     if (reserve.isStableAsset(token)) {
       IERC20(token).safeTransferFrom(from, address(this), amount);
-      require(IMentoERC20(token).burn(amount), "Burning of the stable asset failed");
+      require(IStableTokenV2(token).burn(amount), "Burning of the stable asset failed");
     } else if (reserve.isCollateralAsset(token)) {
       IERC20(token).safeTransferFrom(from, address(reserve), amount);
     } else {

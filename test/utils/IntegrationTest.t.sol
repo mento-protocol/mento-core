@@ -7,7 +7,7 @@ import { console } from "forge-std/console.sol";
 import { Factory } from "./Factory.sol";
 
 import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
-import { IMentoERC20 } from "contracts/interfaces/IMentoERC20.sol";
+import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
@@ -61,8 +61,8 @@ contract IntegrationTest is BaseTest {
 
   Token celoToken;
   Token usdcToken;
-  IMentoERC20 cUSDToken;
-  IMentoERC20 cEURToken;
+  IStableTokenV2 cUSDToken;
+  IStableTokenV2 cEURToken;
   Freezer freezer;
 
   address cUSD_CELO_referenceRateFeedID;
@@ -100,7 +100,7 @@ contract IntegrationTest is BaseTest {
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
 
-    cUSDToken = IMentoERC20(factory.create("MentoERC20", abi.encode(false)));
+    cUSDToken = IStableTokenV2(factory.create("StableTokenV2", abi.encode(false)));
     cUSDToken.initialize(
       "cUSD",
       "cUSD",
@@ -118,7 +118,7 @@ contract IntegrationTest is BaseTest {
       address(0x0)
     );
 
-    cEURToken = IMentoERC20(factory.create("MentoERC20", abi.encode(false)));
+    cEURToken = IStableTokenV2(factory.create("StableTokenV2", abi.encode(false)));
     cEURToken.initialize(
       "cEUR",
       "cEUR",

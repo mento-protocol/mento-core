@@ -41,10 +41,10 @@ To make this work I copied the contracts from version `v4.8.0` here and modified
 The `initialized` bool upgrades nicely to the new `Initializable` structure in more recent OZ - it was designed this way.
 We reserve some deprecated solts, and make sure the others match up 1:1. The name being differnet is not an issue.
 
-And which can then be used in `ERC20Permit` and `MentoERC20` to finally come up with this:
+And which can then be used in `ERC20Permit` and `StableTokenV2` to finally come up with this:
 
 ```
-> ./bin/storage-show.sh MentoERC20
+> ./bin/storage-show.sh StableTokenV2
 0    0   _owner                                t_address
 0    20  _initialized                          t_uint8
 0    21  _initializing                         t_bool

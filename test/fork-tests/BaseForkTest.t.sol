@@ -21,7 +21,7 @@ import { IERC20Metadata } from "contracts/common/interfaces/IERC20Metadata.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { Proxy } from "contracts/common/Proxy.sol";
 
-import { IMentoERC20 } from "contracts/interfaces/IMentoERC20.sol";
+import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
 import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
@@ -174,9 +174,9 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   }
 
   function test_stableTokensCanNotBeReinitialized() public {
-    IMentoERC20 stableToken = IMentoERC20(registry.getAddressForStringOrDie("StableToken"));
-    IMentoERC20 stableTokenEUR = IMentoERC20(registry.getAddressForStringOrDie("StableTokenEUR"));
-    IMentoERC20 stableTokenBRL = IMentoERC20(registry.getAddressForStringOrDie("StableTokenBRL"));
+    IStableTokenV2 stableToken = IStableTokenV2(registry.getAddressForStringOrDie("StableToken"));
+    IStableTokenV2 stableTokenEUR = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenEUR"));
+    IStableTokenV2 stableTokenBRL = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenBRL"));
 
     vm.expectRevert("contract already initialized");
     stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");

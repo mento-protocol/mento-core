@@ -13,7 +13,7 @@ import { DummyERC20 } from "../utils/DummyErc20.sol";
 
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
-import { IMentoERC20 } from "contracts/interfaces/IMentoERC20.sol";
+import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 
@@ -245,9 +245,9 @@ contract BrokerTest_BurnStableTokens is BrokerTest {
     changePrank(notDeployer);
 
     vm.expectCall(
-      address(IMentoERC20(address(stableAsset))),
+      address(IStableTokenV2(address(stableAsset))),
       abi.encodeWithSelector(
-        IMentoERC20(address(stableAsset)).transferFrom.selector,
+        IStableTokenV2(address(stableAsset)).transferFrom.selector,
         address(notDeployer),
         address(broker),
         burnAmount
@@ -255,8 +255,8 @@ contract BrokerTest_BurnStableTokens is BrokerTest {
     );
 
     vm.expectCall(
-      address(IMentoERC20(address(stableAsset))),
-      abi.encodeWithSelector(IMentoERC20(address(stableAsset)).burn.selector, burnAmount)
+      address(IStableTokenV2(address(stableAsset))),
+      abi.encodeWithSelector(IStableTokenV2(address(stableAsset)).burn.selector, burnAmount)
     );
 
     bool result = broker.burnStableTokens(address(stableAsset), 1);
