@@ -8,7 +8,7 @@ import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
 import { IProxy as ILegacyProxy } from "contracts/common/interfaces/IProxy.sol";
 import { MentoERC20 } from "contracts/tokens/MentoERC20.sol";
 
-contract TokenUpgradeTest is Test {
+contract TokenUpgradeForkTest is Test {
   address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
   IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
 
