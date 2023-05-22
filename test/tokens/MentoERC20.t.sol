@@ -137,7 +137,7 @@ contract MentoERC20Test is BaseTest {
     address spender,
     uint256 amount,
     uint256 deadline
-  ) internal returns (bytes32) {
+  ) internal view returns (bytes32) {
     uint256 nonce = token.nonces(owner);
     bytes32 digest = keccak256(
       abi.encodePacked(

@@ -14,6 +14,9 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
   address public exchange;
 
   event TransferComment(string comment);
+  event BrokerUpdated(address broker);
+  event ValidatorsUpdated(address validators);
+  event ExchangeUpdated(address exchange);
 
   /**
    * @dev Restricts a function so it can only be executed by an address that's allowed to mint.
@@ -106,9 +109,9 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     address _validators,
     address _exchange
   ) external reinitializer(2) onlyOwner {
-    broker = _broker;
-    validators = _validators;
-    exchange = _exchange;
+    _setBroker(_broker);
+    _setValidators(_validators);
+    _setExchange(_exchange);
     __ERC20Permit_init(symbol());
   }
 
@@ -118,7 +121,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
    * @param _broker The address of the Broker contract.
    */
   function setBroker(address _broker) external onlyOwner {
-    broker = _broker;
+    _setBroker(_broker);
   }
 
   /**
@@ -127,7 +130,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
    * @param _validators The address of the Validators contract.
    */
   function setValidators(address _validators) external onlyOwner {
-    validators = _validators;
+    _setValidators(_validators);
   }
 
   /**
@@ -136,7 +139,7 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
    * @param _exchange The address of the Exchange contract.
    */
   function setExchange(address _exchange) external onlyOwner {
-    exchange = _exchange;
+    _setExchange(_exchange);
   }
 
   /**
@@ -174,7 +177,33 @@ contract MentoERC20 is ERC20PermitUpgradeable, IMentoERC20 {
     return true;
   }
 
-  
+  /**
+   * @notice Set the address of the Broker contract and emit an event
+   * @param _broker The address of the Broker contract.
+   */
+  function _setBroker(address _broker) internal {
+    broker = _broker;
+    emit BrokerUpdated(_broker);
+  }
+
+  /**
+   * @notice Set the address of the Validators contract and emit an event
+   * @param _validators The address of the Validators contract.
+   */
+  function _setValidators(address _validators) internal {
+    validators = _validators;
+    emit ValidatorsUpdated(_validators);
+  }
+
+  /**
+   * @notice Set the address of the Exchange contract and emit an event
+   * @param _exchange The address of the Exchange contract.
+   */
+  function _setExchange(address _exchange) internal {
+    exchange = _exchange;
+    emit ExchangeUpdated(_exchange);
+  }
+
   /// @inheritdoc ERC20Upgradeable
   function transferFrom(address from, address to, uint256 amount) public override(ERC20Upgradeable, IMentoERC20) returns (bool) {
     return ERC20Upgradeable.transferFrom(from, to, amount);
