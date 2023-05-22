@@ -51,7 +51,7 @@ jobs:
         contract:
           - contracts/legacy/ReserveSpenderMultiSig.sol:ReserveSpenderMultiSig
           - contracts/legacy/StableToken.sol:StableToken
-          - contracts/legacy/Exchange.sol:Excange
+          - contracts/legacy/Exchange.sol:Exchange
           - contracts/legacy/GrandaMento.sol:GrandaMento
           - contracts/swap/Broker.sol:Broker
           - contracts/swap/BiPoolManager.sol:BiPoolManager
