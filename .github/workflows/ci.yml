@@ -107,7 +107,7 @@ jobs:
         uses: crytic/echidna-action@v2
         with:
           files: test/echidna/${{ matrix.contract }}.sol
-          solc-version: 0.5.13
+          solc-version: 0.5.17
           contract: ${{ matrix.contract }}
           config: echidna.yaml
           test-mode: assertion
