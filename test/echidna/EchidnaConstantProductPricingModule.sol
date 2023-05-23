@@ -26,8 +26,12 @@ contract EchidnaConstantProductPricingModule {
     uint256 tokenOutBucketSize,
     uint256 spread,
     uint256 amountIn
-  ) public view returns (bool) {
+  ) public view {
+
+    tokenInBucketSize = helpers.between(tokenInBucketSize, 1e18, uint256(-1));
+    tokenOutBucketSize = helpers.between(tokenOutBucketSize, 1e18, uint256(-1));
     spread = helpers.between(spread, 0, FixidityLib.unwrap(FixidityLib.fixed1()));
+
     uint256 amountOut = constantProductPricingModule.getAmountOut(
       tokenInBucketSize,
       tokenOutBucketSize,
@@ -35,6 +39,8 @@ contract EchidnaConstantProductPricingModule {
       amountIn
     );
     uint256 r = constantProductPricingModule.getAmountIn(tokenInBucketSize, tokenOutBucketSize, spread, amountOut);
-    return (r == amountIn);
+    uint256 spreadFraction = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread)).multiply(FixidityLib.newFixed(2)).unwrap();
+
+    assert(helpers.areClose(amountIn, r, spread));
   }
 }

@@ -25,10 +25,12 @@ contract EchidnaConstantSumPricingModule {
     uint256 tokenOutBucketSize,
     uint256 spread,
     uint256 amountIn
-  ) public view returns (bool) {
+  ) public view {
     spread = helpers.between(spread, 0, FixidityLib.unwrap(FixidityLib.fixed1()));
     uint256 amountOut = constantSumPricingModule.getAmountOut(0, tokenOutBucketSize, spread, amountIn);
     uint256 r = constantSumPricingModule.getAmountIn(0, tokenOutBucketSize, spread, amountOut);
-    return (r == amountIn);
+    uint256 spreadFraction = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread)).multiply(FixidityLib.newFixed(2)).unwrap();
+
+    assert(helpers.areClose(amountIn, r, spread));
   }
 }
