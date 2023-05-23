@@ -28,7 +28,7 @@ contract EchidnaStableToken {
     );
   }
 
-  function zeroAlwaysEmptyERC20Properties() public {
+  function zeroAlwaysEmptyERC20Properties() public view {
     assert(stableToken.balanceOf(address(0x0)) == 0);
   }
 
