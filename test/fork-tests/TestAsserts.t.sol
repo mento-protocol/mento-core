@@ -49,11 +49,7 @@ contract TestAsserts is Test {
     FixidityLib.Fraction memory amountOut = ctx.swapIn(from, to, sellAmount).toUnitsFixed(to);
     FixidityLib.Fraction memory expectedAmountOut = amountIn.divide(rate);
 
-    assertApproxEqAbs(
-      amountOut.unwrap(),
-      expectedAmountOut.unwrap(),
-      pc10.multiply(expectedAmountOut).unwrap()
-    );
+    assertApproxEqAbs(amountOut.unwrap(), expectedAmountOut.unwrap(), pc10.multiply(expectedAmountOut).unwrap());
   }
 
   function assert_swapOut(
@@ -67,11 +63,7 @@ contract TestAsserts is Test {
     FixidityLib.Fraction memory amountIn = ctx.swapOut(from, to, buyAmount).toUnitsFixed(from);
     FixidityLib.Fraction memory expectedAmountIn = amountOut.multiply(rate);
 
-    assertApproxEqAbs(
-      amountIn.unwrap(),
-      expectedAmountIn.unwrap(),
-      pc10.multiply(expectedAmountIn).unwrap()
-    );
+    assertApproxEqAbs(amountIn.unwrap(), expectedAmountIn.unwrap(), pc10.multiply(expectedAmountIn).unwrap());
   }
 
   function assert_swapInFails(
@@ -115,17 +107,11 @@ contract TestAsserts is Test {
     TradingLimits.Config memory limitConfigFrom = ctx.tradingLimitsConfig(from);
     TradingLimits.Config memory limitConfigTo = ctx.tradingLimitsConfig(to);
     console.log(
-      string(abi.encodePacked(
-        "Swapping ", 
-        IERC20Metadata(from).symbol(), 
-        " -> ", 
-        IERC20Metadata(to).symbol()
-      )),
-      "with limit", 
+      string(abi.encodePacked("Swapping ", IERC20Metadata(from).symbol(), " -> ", IERC20Metadata(to).symbol())),
+      "with limit",
       limit.limitString()
     );
     console.log("========================================");
-
 
     // Always only one limit on a pair
     if (limitConfigFrom.isLimitEnabled(limit)) {
@@ -566,14 +552,15 @@ contract TestAsserts is Test {
     }
   }
 
-  function newMedianToResetBreaker(
-    Utils.Context memory ctx,
-    uint64 tradingMode
-  ) internal view returns (uint256 newMedian) {
+  function newMedianToResetBreaker(Utils.Context memory ctx, uint64 tradingMode)
+    internal
+    view
+    returns (uint256 newMedian)
+  {
     address rateFeedID = ctx.getReferenceRateFeedID();
     address breaker = ctx.breakerBox.tradingModeBreaker(tradingMode);
     if (tradingMode == 1) {
-      (uint256 currentRate,) = ctx.sortedOracles.medianRate(rateFeedID);
+      (uint256 currentRate, ) = ctx.sortedOracles.medianRate(rateFeedID);
       return currentRate.add(currentRate.div(1000)); // +0.1%
     } else if (tradingMode == 2) {
       return ctx.getValueDeltaBreakerReferenceValue(breaker);

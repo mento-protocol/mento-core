@@ -65,7 +65,11 @@ contract BiPoolManagerTest is Test {
   BiPoolManager biPoolManager;
   MockBreakerBox breaker;
 
-  function newMockERC20(string memory name, string memory symbol, uint256 decimals) internal returns (MockERC20 token) {
+  function newMockERC20(
+    string memory name,
+    string memory symbol,
+    uint256 decimals
+  ) internal returns (MockERC20 token) {
     token = new MockERC20(name, symbol, decimals);
     vm.label(address(token), symbol);
   }
@@ -181,17 +185,11 @@ contract BiPoolManagerTest is Test {
     return biPoolManager.createExchange(exchange);
   }
 
-  function mockGetAmountIn(
-    IPricingModule pricingModule,
-    uint256 result
-  ) internal {
+  function mockGetAmountIn(IPricingModule pricingModule, uint256 result) internal {
     MockPricingModule(address(pricingModule)).mockNextGetAmountIn(result);
   }
 
-  function mockGetAmountOut(
-    IPricingModule pricingModule,
-    uint256 result
-  ) internal {
+  function mockGetAmountOut(IPricingModule pricingModule, uint256 result) internal {
     MockPricingModule(address(pricingModule)).mockNextGetAmountOut(result);
   }
 }
@@ -541,7 +539,12 @@ contract BiPoolManagerTest_quote is BiPoolManagerTest_withExchange {
     uint256 amountIn = 1e18;
     uint256 mockAmountOut = 1e18;
     mockGetAmountOut(constantSum, mockAmountOut);
-    uint256 amountOut = biPoolManager.getAmountOut(exchangeId_cUSD_bridgedUSDC, address(cUSD), address(bridgedUSDC), amountIn);
+    uint256 amountOut = biPoolManager.getAmountOut(
+      exchangeId_cUSD_bridgedUSDC,
+      address(cUSD),
+      address(bridgedUSDC),
+      amountIn
+    );
     assertEq(amountOut, 1e6);
   }
 
@@ -549,7 +552,12 @@ contract BiPoolManagerTest_quote is BiPoolManagerTest_withExchange {
     uint256 amountIn = 1e6;
     uint256 mockAmountOut = 1e18;
     mockGetAmountOut(constantSum, mockAmountOut);
-    uint256 amountOut = biPoolManager.getAmountOut(exchangeId_cUSD_bridgedUSDC, address(bridgedUSDC), address(cUSD), amountIn);
+    uint256 amountOut = biPoolManager.getAmountOut(
+      exchangeId_cUSD_bridgedUSDC,
+      address(bridgedUSDC),
+      address(cUSD),
+      amountIn
+    );
     assertEq(amountOut, 1e18);
   }
 
@@ -597,7 +605,12 @@ contract BiPoolManagerTest_quote is BiPoolManagerTest_withExchange {
     uint256 amountOut = 1e6;
     uint256 mockAmountIn = 1e18;
     MockPricingModule(address(constantSum)).mockNextGetAmountIn(mockAmountIn);
-    uint256 amountIn = biPoolManager.getAmountIn(exchangeId_cUSD_bridgedUSDC, address(cUSD), address(bridgedUSDC), amountOut);
+    uint256 amountIn = biPoolManager.getAmountIn(
+      exchangeId_cUSD_bridgedUSDC,
+      address(cUSD),
+      address(bridgedUSDC),
+      amountOut
+    );
     assertEq(amountIn, mockAmountIn);
   }
 
@@ -605,7 +618,12 @@ contract BiPoolManagerTest_quote is BiPoolManagerTest_withExchange {
     uint256 amountOut = 1e18;
     uint256 mockAmountIn = 1e18;
     MockPricingModule(address(constantSum)).mockNextGetAmountIn(mockAmountIn);
-    uint256 amountIn = biPoolManager.getAmountIn(exchangeId_cUSD_bridgedUSDC, address(bridgedUSDC), address(cUSD), amountOut);
+    uint256 amountIn = biPoolManager.getAmountIn(
+      exchangeId_cUSD_bridgedUSDC,
+      address(bridgedUSDC),
+      address(cUSD),
+      amountOut
+    );
     assertEq(amountIn, 1e6);
   }
 }

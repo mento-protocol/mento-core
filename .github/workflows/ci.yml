@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Generate matrix with all contract names from the proxy directory 
+      - name: Generate matrix with all contract names from the proxy directory
         id: set-matrix
         run: |
           echo "::set-output name=matrix::$(ls contracts/proxies | sed 's/Proxy.sol//' | jq -R -s -c 'split("\n") | map(select(length > 0))') )"
