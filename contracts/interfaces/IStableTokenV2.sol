@@ -21,12 +21,29 @@ interface IStableTokenV2 {
     bytes32 s
   ) external;
 
-  function transferWithComment(
-    address to,
-    uint256 value,
-    string calldata comment
-  ) external returns (bool);
+  /**
+   * @notice Transfer token for a specified address
+   * @param to The address to transfer to.
+   * @param value The amount to be transferred.
+   * @param comment The transfer comment.
+   * @return True if the transaction succeeds.
+   */
+  function transferWithComment(address to, uint256 value, string calldata comment) external returns (bool);
 
+  /**
+   * @notice Initializes a StableTokenV2.
+   * It keeps the same signature as the original initialize() function
+   * in legacy/StableToken.sol
+   * @param _name The name of the stable token (English)
+   * @param _symbol A short symbol identifying the token (e.g. "cUSD")
+   * deprecated-param decimals Tokens are divisible to this many decimal places.
+   * deprecated-param registryAddress Address of the Registry contract.
+   * deprecated-param inflationRate Weekly inflation rate.
+   * deprecated-param inflationFactorUpdatePeriod How often the inflation factor is updated, in seconds.
+   * @param initialBalanceAddresses Array of addresses with an initial balance.
+   * @param initialBalanceValues Array of balance values corresponding to initialBalanceAddresses.
+   * deprecated-param exchangeIdentifier String identifier of exchange in registry (for specific fiat pairs)
+   */
   function initialize(
     string calldata _name,
     string calldata _symbol,
@@ -39,11 +56,20 @@ interface IStableTokenV2 {
     string calldata // deprecated: exchangeIdentifier
   ) external;
 
-  function initializeV2(
-    address _broker,
-    address _validators,
-    address _exchange
-  ) external;
+  /**
+   * @notice Initializes a StableTokenV2 contract
+   * when upgrading from legacy/StableToken.sol.
+   * It sets the addresses that were previously read from the Registry.
+   * It runs the ERC20PermitUpgradeable initializer.
+   * @dev This function is only callable once.
+   * @param _broker The address of the Broker contract.
+   * @param _validators The address of the Validators contract.
+   * @param _exchange The address of the Exchange contract.
+   */
+  function initializeV2(address _broker, address _validators, address _exchange) external;
 
+  /**
+   * @notice Gets the address of the Broker contract.
+   */
   function broker() external returns (address);
 }
