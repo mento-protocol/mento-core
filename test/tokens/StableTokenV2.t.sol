@@ -51,7 +51,7 @@ contract StableTokenV2Test is BaseTest {
   }
 
   function mintAndAssert(address minter, address to, uint256 value) public {
-    changePrank(minter);
+    vm.prank(minter);
     uint256 balanceBefore = token.balanceOf(to);
     token.mint(to, value);
     assertEq(token.balanceOf(to), balanceBefore + value);
