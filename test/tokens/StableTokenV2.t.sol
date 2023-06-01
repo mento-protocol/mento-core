@@ -51,8 +51,8 @@ contract StableTokenV2Test is BaseTest {
   }
 
   function mintAndAssert(address minter, address to, uint256 value) public {
-    vm.prank(minter);
     uint256 balanceBefore = token.balanceOf(to);
+    vm.prank(minter);
     token.mint(to, value);
     assertEq(token.balanceOf(to), balanceBefore + value);
   }
@@ -106,17 +106,19 @@ contract StableTokenV2Test is BaseTest {
     token.mint(holder0, 100);
   }
 
-  function test_burn_allowed() public {
-    vm.prank(broker);
-    token.burn(100);
-    assertEq(900, token.balanceOf(broker));
-
+  function test_burn_whenCalledByExchange_shouldBurnTokens() public {
     vm.prank(exchange);
     token.burn(100);
     assertEq(900, token.balanceOf(exchange));
   }
 
-  function test_burn_forbidden() public {
+  function test_burn_whenCalledByBroker_shouldBurnTokens() public {
+    vm.prank(broker);
+    token.burn(100);
+    assertEq(900, token.balanceOf(broker));
+  }
+
+  function test_burn_whenSenderIsNotAuthorized_shouldRevert() public {
     vm.prank(holder0);
     vm.expectRevert(bytes("StableTokenV2: not allowed to burn"));
     token.burn(100);
