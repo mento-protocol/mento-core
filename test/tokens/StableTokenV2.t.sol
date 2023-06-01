@@ -124,9 +124,10 @@ contract StableTokenV2Test is BaseTest {
     token.burn(100);
   }
 
-  function test_erc20_permit() public {
-    console.log("holder2", holder2);
-    console.logBytes32(token.DOMAIN_SEPARATOR());
+  function test_permit_whenSenderPermits_shouldIncreaseAllowance() public {
+    uint256 allowanceBefore = token.allowance(holder2, holder0);
+    assertEq(0, allowanceBefore);
+
     uint256 deadline = block.timestamp + 1000;
     bytes32 structHash = buildTypedDataHash(holder2, holder0, 100, deadline);
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(holder2Pk, structHash);
