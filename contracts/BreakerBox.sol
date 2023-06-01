@@ -4,6 +4,7 @@ pragma solidity ^0.5.13;
 import { IBreakerBox } from "./interfaces/IBreakerBox.sol";
 import { IBreaker } from "./interfaces/IBreaker.sol";
 import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
+import { console2 as console } from "celo-foundry/Test.sol";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
@@ -23,28 +24,26 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   using SafeMath for uint256;
 
   /* ==================== State Variables ==================== */
-
-  address[] public rateFeedIDs;
-  // Maps rate feed ID to its current trading mode info.
-  mapping(address => TradingModeInfo) public rateFeedTradingModes;
+ mapping(address => TradingModeInfo) public rateFeedTradingModes;
   // Maps a trading mode to the associated breaker.
   mapping(uint64 => address) public tradingModeBreaker;
-  // Maps a breaker to the associated trading mode.
-  mapping(address => uint64) public breakerTradingMode;
-  // Ordered list of breakers to be checked.
-  LinkedList.List private breakers;
-  // Maps a breaker with rate feed id and bool to check if it's enabled.
   mapping(address => mapping(address => bool)) public breakerEnabled;
 
+
+  address[] public rateFeedIDs;
+
+  mapping(address => mapping(address => BreakerStatus)) public breakerStatus;
+  mapping(address => uint8) public tradingModes;
+
+  // Maps a breaker to the associated trading mode.
+  mapping(address => uint8) public breakerTradingMode;
+  // Ordered list of breakers to be checked.
+  LinkedList.List private breakers;
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
 
   modifier onlyValidBreaker(address breaker, uint64 tradingMode) {
     require(!isBreaker(breaker), "This breaker has already been added");
-    require(
-      tradingModeBreaker[tradingMode] == address(0),
-      "There is already a breaker added with the same trading mode"
-    );
     require(tradingMode != 0, "The default trading mode can not have a breaker");
     _;
   }
@@ -87,8 +86,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @param breaker The address of the breaker to be added.
    * @param tradingMode The trading mode of the breaker to be added.
    */
-  function addBreaker(address breaker, uint64 tradingMode) public onlyOwner onlyValidBreaker(breaker, tradingMode) {
-    tradingModeBreaker[tradingMode] = breaker;
+  function addBreaker(address breaker, uint8 tradingMode) public onlyOwner onlyValidBreaker(breaker, tradingMode) {
     breakerTradingMode[breaker] = tradingMode;
     breakers.push(breaker);
     emit BreakerAdded(breaker);
@@ -103,11 +101,10 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    */
   function insertBreaker(
     address breaker,
-    uint64 tradingMode,
+    uint8 tradingMode,
     address prevBreaker,
     address nextBreaker
   ) external onlyOwner onlyValidBreaker(breaker, tradingMode) {
-    tradingModeBreaker[tradingMode] = breaker;
     breakerTradingMode[breaker] = tradingMode;
     breakers.insert(breaker, prevBreaker, nextBreaker);
     emit BreakerAdded(breaker);
@@ -127,21 +124,18 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     // Set any refenceRateIDs using this breakers trading mode to the default mode.
     // Disable a breaker on this address
     address[] memory activeRateFeeds = rateFeedIDs;
-    TradingModeInfo memory tradingModeInfo;
+    BreakerStatus memory _breakerStatus;
 
-    for (uint256 i = 0; i < activeRateFeeds.length; i++) {
-      tradingModeInfo = rateFeedTradingModes[activeRateFeeds[i]];
-      if (tradingModeInfo.tradingMode == tradingMode) {
-        setRateFeedTradingMode(activeRateFeeds[i], 0);
-      }
-      if (breakerEnabled[breaker][activeRateFeeds[i]]) {
-        breakerEnabled[breaker][activeRateFeeds[i]] = false;
+    for (uint256 i = 0; i < activeRateFeeds.length; i++) {    
+      _breakerStatus = breakerStatus[activeRateFeeds[i]][breaker];
+      if(_breakerStatus.enabled) {
+        delete breakerStatus[activeRateFeeds[i]][breaker];
+        uint8 newTradingMode = calculateTradingMode(activeRateFeeds[i]);
+        setRateFeedTradingMode(activeRateFeeds[i], newTradingMode);
       }
     }
-    delete tradingModeBreaker[tradingMode];
     delete breakerTradingMode[breaker];
     breakers.remove(breaker);
-
     emit BreakerRemoved(breaker);
   }
 
@@ -149,7 +143,7 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @notice Enables or disables a breaker for the specified rate feed.
    * @param breakerAddress The address of the breaker.
    * @param rateFeedId The id of the rate feed.
-   * @param isEnabled Boolean indicating whether the breaker should be
+   * @param enable Boolean indicating whether the breaker should be
    *                  enabled or disabled for the given rateFeed.
    * @dev If the breaker is being disabled and the rateFeed is using the same trading mode
    *      as the breaker, the rateFeed will be set to the default trading mode.
@@ -157,21 +151,31 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
   function toggleBreaker(
     address breakerAddress,
     address rateFeedId,
-    bool isEnabled
+    bool enable
   ) public onlyOwner {
-    TradingModeInfo memory info = rateFeedTradingModes[rateFeedId];
-    require(info.lastUpdatedTime != 0, "This rate feed has not been added to the BreakerBox");
+    require(breakerStatus[rateFeedId][address(0)].enabled, "This rate feed has not been added to the BreakerBox");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
+    require(breakerStatus[rateFeedId][breakerAddress].enabled != enable, "Breaker is already in this state");
 
-    // Check if we are disabling the breaker for this rateFeedID.
-    // If so, set the rateFeed to the default trading mode,
-    // before disabling the breaker.
-    if (!isEnabled && tradingModeBreaker[info.tradingMode] == breakerAddress) {
-      setRateFeedTradingMode(rateFeedId, 0);
+    breakerStatus[rateFeedId][breakerAddress].enabled = enable;
+    if(!enable){
+      uint8 newTradingMode = calculateTradingMode(rateFeedId);
+      setRateFeedTradingMode(rateFeedId, newTradingMode);
     }
+    emit BreakerStatusUpdated(breakerAddress, rateFeedId, enable);
+  }
 
-    breakerEnabled[breakerAddress][rateFeedId] = isEnabled;
-    emit BreakerStatusUpdated(breakerAddress, rateFeedId, isEnabled);
+  function calculateTradingMode(address rateFeedId) internal view returns (uint8) {
+    uint8 tradingMode = 0;
+    BreakerStatus memory _breakerStatus;
+    address[] memory _breakers = breakers.getKeys();
+    for (uint256 i = 0; i < _breakers.length; i++) {
+      _breakerStatus = breakerStatus[rateFeedId][_breakers[i]];
+      if(_breakerStatus.enabled) {
+        tradingMode = tradingMode | _breakerStatus.tradingMode;
+      }
+    }
+    return tradingMode;
   }
 
   /* ---------- rateFeedIDs ---------- */
@@ -181,17 +185,10 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @param rateFeedID The address of the rateFeedID to be added.
    */
   function addRateFeed(address rateFeedID) public onlyOwner {
-    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
-    require(info.lastUpdatedTime == 0, "Rate feed ID has already been added");
-
+    require(!breakerStatus[rateFeedID][address(0)].enabled, "Rate feed ID has already been added");
     require(sortedOracles.getOracles(rateFeedID).length > 0, "Rate feed ID does not exist as it has 0 oracles");
-
-    info.tradingMode = 0; // Default trading mode (Bi-directional).
-    info.lastUpdatedTime = uint64(block.timestamp);
-    info.lastUpdatedBlock = uint128(block.number);
-    rateFeedTradingModes[rateFeedID] = info;
     rateFeedIDs.push(rateFeedID);
-
+    breakerStatus[rateFeedID][address(0)].enabled = true;
     emit RateFeedAdded(rateFeedID);
   }
 
@@ -209,6 +206,10 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @notice Removes a rateFeedID from the mapping of monitored rateFeedIDs.
    * @param rateFeedID The address of the rateFeedID to be removed.
    */
+   // to do: remove rateFeedID traadingMode from tradingModes 
+   // to do: remove rateFeedID from rateFeedIDs
+   // to do: remove rateFeedID from breakerStatus
+   // to do: reset breakers from breakerStatus
   function removeRateFeed(address rateFeedID) external onlyOwner {
     uint256 rateFeedIndex = 0;
     for (uint256 i = 0; i < rateFeedIDs.length; i++) {
@@ -224,19 +225,9 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
     if (rateFeedIndex != lastIndex) {
       rateFeedIDs[rateFeedIndex] = rateFeedIDs[lastIndex];
     }
-
     rateFeedIDs.pop();
-
-    delete rateFeedTradingModes[rateFeedID];
-
-    address[] memory _breakers = breakers.getKeys();
-
-    // remove configured rate feed for the breaker
-    for (uint256 i = 0; i < _breakers.length; i++) {
-      if (breakerEnabled[_breakers[i]][rateFeedID]) {
-        breakerEnabled[_breakers[i]][rateFeedID] = false;
-      }
-    }
+    delete tradingModes[rateFeedID];
+    deleteBreakerStatus(rateFeedID);
     emit RateFeedRemoved(rateFeedID);
   }
 
@@ -245,21 +236,19 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @param rateFeedID The address of the rateFeedID.
    * @param tradingMode The trading mode that should be set.
    */
-  function setRateFeedTradingMode(address rateFeedID, uint64 tradingMode) public onlyOwner {
-    require(
-      tradingMode == 0 || tradingModeBreaker[tradingMode] != address(0),
-      "Trading mode must be default or have a breaker set"
-    );
+  function setRateFeedTradingMode(address rateFeedID, uint8 tradingMode) public onlyOwner {
+    require(breakerStatus[rateFeedID][address(0)].enabled, "Rate feed ID has not been added");
 
-    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
-    require(info.lastUpdatedTime > 0, "Rate feed ID has not been added");
-
-    info.tradingMode = tradingMode;
-    info.lastUpdatedTime = uint64(block.timestamp);
-    info.lastUpdatedBlock = uint128(block.number);
-    rateFeedTradingModes[rateFeedID] = info;
-
+    tradingModes[rateFeedID] = tradingMode;
     emit TradingModeUpdated(rateFeedID, tradingMode);
+  }
+
+  function deleteBreakerStatus(address rateFeedID) internal {
+    address[] memory _breakers = breakers.getKeys();
+    for (uint256 i = 0; i < _breakers.length; i++) {
+      delete breakerStatus[rateFeedID][_breakers[i]];
+    }
+    delete breakerStatus[rateFeedID][address(0)];
   }
 
   /* ==================== View Functions ==================== */
@@ -290,9 +279,9 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @notice Returns the trading mode for the specified rateFeedID.
    * @param rateFeedID The address of the rateFeedID to retrieve the trading mode for.
    */
-  function getRateFeedTradingMode(address rateFeedID) external view returns (uint256 tradingMode) {
-    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
-    return info.tradingMode;
+  function getRateFeedTradingMode(address rateFeedID) external view returns (uint8 tradingMode) {
+    require(breakerStatus[rateFeedID][address(0)].enabled, "Rate feed ID has not been added");
+    return(tradingModes[rateFeedID]);
   }
 
   /**
@@ -301,64 +290,58 @@ contract BreakerBox is IBreakerBox, Initializable, Ownable {
    * @param rateFeedID The address of the rateFeedID.
    */
   function isBreakerEnabled(address breaker, address rateFeedID) external view returns (bool) {
-    return breakerEnabled[breaker][rateFeedID];
+    return breakerStatus[rateFeedID][breaker].enabled;
   }
 
   /* ==================== Check Breakers ==================== */
 
-  /**
-   * @notice Checks breakers for the rateFeedID with the specified id 
-             and sets correct trading mode if any breakers are tripped
-             or need to be reset.
-   * @param rateFeedID The registryId of the rateFeedID to run checks for.
-   */
-  function checkAndSetBreakers(address rateFeedID) external {
-    TradingModeInfo memory info = rateFeedTradingModes[rateFeedID];
 
-    // This rateFeedID has not been added. So do nothing.
-    if (info.lastUpdatedTime == 0) {
-      return;
-    }
 
-    // Check if a breaker has non default trading mode and reset if we should.
-    if (info.tradingMode != 0) {
-      IBreaker breaker = IBreaker(tradingModeBreaker[info.tradingMode]);
-
-      uint256 cooldown = breaker.getCooldown(rateFeedID);
-
-      // If the cooldown == 0, then a manual reset is required.
-      if (((cooldown > 0) && (cooldown.add(info.lastUpdatedTime)) <= block.timestamp)) {
-        if (breaker.shouldReset(rateFeedID)) {
-          info.tradingMode = 0;
-          info.lastUpdatedTime = uint64(block.timestamp);
-          info.lastUpdatedBlock = uint128(block.number);
-          rateFeedTradingModes[rateFeedID] = info;
-          emit ResetSuccessful(rateFeedID, address(breaker));
-        } else {
-          emit ResetAttemptCriteriaFail(rateFeedID, address(breaker));
-          return;
-        }
-      } else {
-        emit ResetAttemptNotCool(rateFeedID, address(breaker));
-        return;
-      }
-    }
-
+  function checkAndSetBreakers(address rateFeedID) external{
+    uint8 tradingMode = 0;
     address[] memory _breakers = breakers.getKeys();
-
-    // Check all breakers.
     for (uint256 i = 0; i < _breakers.length; i++) {
-      if (breakerEnabled[_breakers[i]][rateFeedID]) {
-        IBreaker breaker = IBreaker(_breakers[i]);
-        bool tripBreaker = breaker.shouldTrigger(rateFeedID);
-        if (tripBreaker) {
-          info.tradingMode = breakerTradingMode[address(breaker)];
-          info.lastUpdatedTime = uint64(block.timestamp);
-          info.lastUpdatedBlock = uint128(block.number);
-          rateFeedTradingModes[rateFeedID] = info;
-          emit BreakerTripped(address(breaker), rateFeedID);
-        }
+      if (breakerStatus[rateFeedID][_breakers[i]].enabled) {
+        uint8 breakerTradingMode = updateBreaker(rateFeedID, _breakers[i]);
+        console.log("breakerTradingMode after update call %s", breakerTradingMode);
+        tradingMode = tradingMode | breakerTradingMode; 
       }
     }
+    tradingModes[rateFeedID] = tradingMode;
+  }
+
+  function updateBreaker(address rateFeedID, address breaker) internal returns (uint8) {
+    if(breakerStatus[rateFeedID][breaker].tradingMode != 0){
+      return tryResetBreaker(rateFeedID, breaker);
+    }
+    else return checkBreaker(rateFeedID, breaker);
+  }
+
+  function tryResetBreaker(address rateFeedID, address _breaker) internal returns (uint8) {
+    BreakerStatus memory _breakerStatus = breakerStatus[rateFeedID][_breaker];
+    IBreaker breaker = IBreaker(_breaker);
+    uint256 cooldown = breaker.getCooldown(rateFeedID);
+    if((cooldown > 0) && (cooldown.add(_breakerStatus.lastUpdatedTime) <= block.timestamp)){
+      if(breaker.shouldReset(rateFeedID)){
+        breakerStatus[rateFeedID][_breaker].tradingMode = 0;
+        breakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp);
+        emit ResetSuccessful(rateFeedID, _breaker);
+      }
+      else emit ResetAttemptCriteriaFail(rateFeedID, _breaker);
+    } 
+    else emit ResetAttemptNotCool(rateFeedID, _breaker);
+    return breakerStatus[rateFeedID][_breaker].tradingMode;
+  }
+
+  function checkBreaker(address rateFeedID, address _breaker) internal returns (uint8) {
+    uint8 tradingMode = 0;
+    IBreaker breaker = IBreaker(_breaker);
+    if(breaker.shouldTrigger(rateFeedID)){
+      tradingMode = breakerTradingMode[_breaker];
+      breakerStatus[rateFeedID][_breaker].tradingMode = tradingMode;
+      breakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp);
+      emit BreakerTripped(_breaker, rateFeedID);
+    }
+    return tradingMode;
   }
 }

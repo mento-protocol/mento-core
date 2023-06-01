@@ -12,6 +12,11 @@ interface IBreakerBox {
    *      LastUpdatedTime helps to check cooldown.
    *      LastUpdatedBlock helps to determine if check should be executed.
    */
+  struct BreakerStatus {
+    uint8 tradingMode;
+    uint64 lastUpdatedTime;
+    bool enabled;
+  }
   struct TradingModeInfo {
     uint64 tradingMode;
     uint64 lastUpdatedTime;
@@ -115,5 +120,5 @@ interface IBreakerBox {
    * @notice Gets the trading mode for the specified rateFeedID.
    * @param rateFeedID The address of the rateFeedID to retrieve the trading mode for.
    */
-  function getRateFeedTradingMode(address rateFeedID) external view returns (uint256 tradingMode);
+  function getRateFeedTradingMode(address rateFeedID) external view returns (uint8 tradingMode);
 }
