@@ -12,8 +12,9 @@ import { StableTokenV2 } from "contracts/tokens/StableTokenV2.sol";
 contract StableTokenV2Test is BaseTest {
   event TransferComment(string comment);
   bytes32 private constant _PERMIT_TYPEHASH =
-      keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-  bytes32 private constant _TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+    keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+  bytes32 private constant _TYPE_HASH =
+    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
   bytes32 private _HASHED_NAME;
   bytes32 private _HASHED_VERSION;
 
@@ -46,11 +47,14 @@ contract StableTokenV2Test is BaseTest {
       Arrays.uints(1000, 1000, 1000, 1000, 1000),
       "" // deprecated
     );
-    token.initializeV2(
-      broker,
-      validators,
-      exchange
-    );
+    token.initializeV2(broker, validators, exchange);
+  }
+
+  function mintAndAssert(address minter, address to, uint256 value) public {
+    changePrank(minter);
+    uint256 balanceBefore = token.balanceOf(to);
+    token.mint(to, value);
+    assertEq(token.balanceOf(to), balanceBefore + value);
   }
 
   function test_initializers_disabled() public {
@@ -73,32 +77,30 @@ contract StableTokenV2Test is BaseTest {
     );
 
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
-    token.initializeV2(
-      broker,
-      validators,
-      exchange
-    );
+    token.initializeV2(broker, validators, exchange);
   }
 
-  function test_transferWithComment() public {
+  function test_transferWithComment_shouldEmitCorrectMessage() public {
     vm.expectEmit(true, true, true, true);
     emit TransferComment("Hello World");
+
     vm.prank(holder0);
     token.transferWithComment(holder1, 100, "Hello World");
   }
 
-  function test_mint_allowed() public {
-    uint256 before = token.balanceOf(holder0);
-    vm.prank(broker);
-    token.mint(holder0, 100);
-    vm.prank(validators);
-    token.mint(holder0, 100);
-    vm.prank(exchange);
-    token.mint(holder0, 100);
-    assertEq(before + 300, token.balanceOf(holder0));
+  function test_mint_whenCalledByExchange_shouldMintTokens() public {
+    mintAndAssert(exchange, holder0, 100);
   }
 
-  function test_mint_forbidden() public {
+  function test_mint_whenCalledByValidators_shouldMintTokens() public {
+    mintAndAssert(validators, holder0, 100);
+  }
+
+  function test_mint_whenCalledByBroker_shouldMintTokens() public {
+    mintAndAssert(broker, holder0, 100);
+  }
+
+  function test_mint_whenSenderIsNotAuthorized_shouldRevert() public {
     vm.prank(holder0);
     vm.expectRevert(bytes("StableTokenV2: not allowed to mint"));
     token.mint(holder0, 100);
