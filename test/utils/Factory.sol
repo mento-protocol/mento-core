@@ -4,12 +4,18 @@ pragma solidity >=0.5.17 <0.9.0;
 import { console } from "forge-std/console.sol";
 import { GetCode } from "./GetCode.sol";
 
-
 interface MiniVM {
   function etch(address _addr, bytes calldata _code) external;
+
   function getCode(string calldata _path) external view returns (bytes memory);
 }
 
+/**
+ * @title Factory
+ * @dev Should be use to allow interoperability between solidity versions.
+ *      Contracts with a newer solidity version should be initialized through this contract.
+ *      See initilization of StableToken in Exchange.t.sol setup() for an example.
+ */
 contract Factory {
   address internal constant VM_ADDRESS = address(uint160(uint256(keccak256("hevm cheat code"))));
   MiniVM internal constant vm = MiniVM(VM_ADDRESS);
@@ -34,6 +40,6 @@ contract Factory {
   function createAt(string memory _contract, address dest, bytes memory args) public {
     address addr = create(_contract, args);
     vm.etch(dest, GetCode.at(addr));
-    console.log("Etched %s to %s",_contract, dest);
+    console.log("Etched %s to %s", _contract, dest);
   }
 }
