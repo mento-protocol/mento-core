@@ -63,12 +63,12 @@ contract WithCooldownTest is WithCooldown, Test {
     uint256 testCooldown = 39 minutes;
     uint256 defaultCooldown = 10 minutes;
     address rateFeedID = address(1111);
-    
+
     address[] memory rateFeedIDs = new address[](1);
     rateFeedIDs[0] = rateFeedID;
     uint256[] memory cooldownTimes = new uint256[](1);
     cooldownTimes[0] = testCooldown;
-    
+
     _setCooldownTimes(rateFeedIDs, cooldownTimes);
     _setDefaultCooldownTime(defaultCooldown);
 

@@ -63,7 +63,7 @@ contract ValueDeltaBreakerTest is Test, WithRegistry {
 
     breaker = new ValueDeltaBreaker(
       defaultCooldownTime,
-      defaultThreshold, 
+      defaultThreshold,
       ISortedOracles(address(sortedOracles)),
       rateFeedIDs,
       rateChangeThresholds,

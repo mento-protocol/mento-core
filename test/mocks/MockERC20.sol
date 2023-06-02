@@ -6,7 +6,11 @@ contract MockERC20 {
   string private _symbol;
   uint256 private _decimals;
 
-  constructor(string memory name_, string memory symbol_, uint256 decimals_) public {
+  constructor(
+    string memory name_,
+    string memory symbol_,
+    uint256 decimals_
+  ) public {
     _name = name_;
     _symbol = symbol_;
     _decimals = decimals_;

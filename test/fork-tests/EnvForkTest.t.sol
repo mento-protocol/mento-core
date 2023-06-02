@@ -6,5 +6,7 @@ pragma experimental ABIEncoderV2;
 import { BaseForkTest } from "./BaseForkTest.t.sol";
 
 contract BaklavaForkTest is BaseForkTest(62320) {}
+
 contract AlfajoresForkTest is BaseForkTest(44787) {}
+
 contract CeloMainnetForkTest is BaseForkTest(42220) {}

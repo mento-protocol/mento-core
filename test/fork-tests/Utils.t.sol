@@ -120,7 +120,17 @@ library Utils {
     return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
   }
 
-  function shouldUpdateBuckets(Context memory ctx) internal view returns (bool, bool, bool, bool, bool) {
+  function shouldUpdateBuckets(Context memory ctx)
+    internal
+    view
+    returns (
+      bool,
+      bool,
+      bool,
+      bool,
+      bool
+    )
+  {
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
 
@@ -132,7 +142,7 @@ library Utils {
     // solhint-disable-next-line not-rely-on-time
     bool medianReportRecent = ctx.sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID) >
       now.sub(exchange.config.referenceRateResetFrequency);
-    
+
     return (
       timePassed,
       enoughReports,
@@ -158,16 +168,11 @@ library Utils {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
-    (
-      bool timePassed, 
-      bool enoughReports, 
-      bool medianReportRecent, 
-      bool isReportExpired,
-    ) = shouldUpdateBuckets(ctx);
+    (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = shouldUpdateBuckets(ctx);
     logPool(ctx);
     if (timePassed && (!medianReportRecent || isReportExpired || !enoughReports)) {
       (uint256 newMedian, ) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
-      (timePassed, enoughReports, medianReportRecent, isReportExpired,) = shouldUpdateBuckets(ctx);
+      (timePassed, enoughReports, medianReportRecent, isReportExpired, ) = shouldUpdateBuckets(ctx);
       updateOracleMedianRate(ctx, newMedian.mul(1_000_001).div(1_000_000));
 
       logPool(ctx);
@@ -185,7 +190,7 @@ library Utils {
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
     uint256 toBucket = (pool.asset0 == to ? pool.bucket0 : pool.bucket1) - 1;
-    (,,,,bool shouldUpdate) = shouldUpdateBuckets(ctx);
+    (, , , , bool shouldUpdate) = shouldUpdateBuckets(ctx);
     if (shouldUpdate) {
       (uint256 bucket0, uint256 bucket1) = getUpdatedBuckets(ctx);
       toBucket = (pool.asset0 == to ? bucket0 : bucket1) - 1;
@@ -206,7 +211,7 @@ library Utils {
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
     uint256 maxPossible_ = (pool.asset0 == to ? pool.bucket0 : pool.bucket1) - 1;
-    (,,,,bool shouldUpdate) = shouldUpdateBuckets(ctx);
+    (, , , , bool shouldUpdate) = shouldUpdateBuckets(ctx);
     if (shouldUpdate) {
       (uint256 bucket0, uint256 bucket1) = getUpdatedBuckets(ctx);
       maxPossible_ = (pool.asset0 == to ? bucket0 : bucket1) - 1;
@@ -470,12 +475,7 @@ library Utils {
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
 
-    (
-      bool timePassed, 
-      bool enoughReports, 
-      bool medianReportRecent, 
-      bool isReportExpired,
-    ) = shouldUpdateBuckets(ctx);
+    (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = shouldUpdateBuckets(ctx);
     console.log("🎱 Pool: %s", ticker(ctx));
     console.log(
       "\t timePassed: %s | enoughReports: %s",
@@ -493,7 +493,6 @@ library Utils {
       toUnits(exchange.bucket1, exchange.asset1)
     );
     console.log("\t exchange.lastBucketUpdate: %d", exchange.lastBucketUpdate);
-
   }
 
   function logNetflows(Context memory ctx, address target) internal view {
