@@ -22,12 +22,21 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
 
+  /* ==================== Events ==================== */
+  event SmoothingFactorSet(address rateFeedId, uint256 smoothingFactor);
+
   /* ==================== State Variables ==================== */
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
 
-  // The previous median recorded for a ratefeed.
-  mapping(address => uint256) public previousMedianRates;
+  // Default smoothing factor for EMA as a Fixidity value
+  uint256 public constant DEFAULT_SMOOTHING_FACTOR = 1e24;
+
+  // Smoothing factor per rate feed
+  mapping(address => FixidityLib.Fraction) public smoothingFactors;
+
+  // EMA of the median rates per rate feed
+  mapping(address => uint256) public medianRatesEMA;
 
   /* ==================== Constructor ==================== */
 
@@ -99,7 +108,32 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
     emit SortedOraclesUpdated(address(_sortedOracles));
   }
 
+  /*
+   * @notice Sets the smoothing factor for a rate feed.
+   * @param rateFeedID The rate feed to be updated.
+   * @param smoothingFactor The new smoothingFactor value.
+   */
+  function setSmoothingFactor(address rateFeedID, uint256 newSmoothingFactor) external onlyOwner {
+    FixidityLib.Fraction memory _newSmoothingFactor = FixidityLib.wrap(newSmoothingFactor);
+    require(_newSmoothingFactor.lte(FixidityLib.fixed1()), "Smoothing factor must be <= 1");
+    smoothingFactors[rateFeedID] = _newSmoothingFactor;
+    emit SmoothingFactorSet(rateFeedID, newSmoothingFactor);
+  }
+
   /* ==================== View Functions ==================== */
+
+  /**
+   * @notice  Get the smoothing factor for a rate feed.
+   * @param   rateFeedID The rate feed to be checked.
+   * @return  smoothingFactor The smoothingFactor for the rate feed.
+   */
+  function getSmoothingFactor(address rateFeedID) public view returns (uint256) {
+    uint256 factor = smoothingFactors[rateFeedID].unwrap();
+    if (factor == 0) {
+      return DEFAULT_SMOOTHING_FACTOR;
+    }
+    return factor;
+  }
 
   /**
    * @notice  Check if the current median report rate for a rate feed change, relative
@@ -112,15 +146,21 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   function shouldTrigger(address rateFeedID) public returns (bool triggerBreaker) {
     (uint256 currentMedian, ) = sortedOracles.medianRate(rateFeedID);
 
-    uint256 previousMedian = previousMedianRates[rateFeedID];
-    previousMedianRates[rateFeedID] = currentMedian;
-
-    if (previousMedian == 0) {
-      // Previous median will be 0 the first time rate is checked.
+    uint256 previousRatesEMA = medianRatesEMA[rateFeedID];
+    if (previousRatesEMA == 0) {
+      // Previous recorded EMA will be 0 the first time this rate feed is checked.
+      medianRatesEMA[rateFeedID] = currentMedian;
       return false;
     }
 
-    return exceedsThreshold(previousMedian, currentMedian, rateFeedID);
+    FixidityLib.Fraction memory smoothingFactor = FixidityLib.wrap(getSmoothingFactor(rateFeedID));
+    medianRatesEMA[rateFeedID] = FixidityLib
+      .wrap(currentMedian)
+      .multiply(smoothingFactor)
+      .add(FixidityLib.wrap(previousRatesEMA).multiply(FixidityLib.fixed1().subtract(smoothingFactor)))
+      .unwrap();
+
+    return exceedsThreshold(previousRatesEMA, currentMedian, rateFeedID);
   }
 
   /**
