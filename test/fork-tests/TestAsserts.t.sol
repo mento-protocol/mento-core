@@ -121,7 +121,7 @@ contract TestAsserts is Test {
         " -> ", 
         IERC20Metadata(to).symbol()
       )),
-      "with limit", 
+      "with limit",
       limit.limitString()
     );
     console.log("========================================");
@@ -526,21 +526,21 @@ contract TestAsserts is Test {
     uint256 expectedTradingMode
   ) public {
     address rateFeedID = ctx.getReferenceRateFeedID();
-    (uint256 tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
+    uint256 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
     require(tradingMode == 0, "breaker should be recovered");
 
     ctx.updateOracleMedianRate(newMedian);
-    (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
+    tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
     require(tradingMode == expectedTradingMode, "trading more is different from expected");
   }
 
   function assert_breakerRecovers_withNewMedian(Utils.Context memory ctx, uint256 newMedian) public {
     address rateFeedID = ctx.getReferenceRateFeedID();
-    (uint256 tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
+    uint256 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
     require(tradingMode != 0, "breaker should be triggered");
 
     ctx.updateOracleMedianRate(newMedian);
-    (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
+    tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
     require(tradingMode == 0, "breaker should be recovered");
   }
 
@@ -552,28 +552,49 @@ contract TestAsserts is Test {
     newMedian = currentRate.add(currentRate.div(1000)); // +0.1%
     ctx.updateOracleMedianRate(newMedian);
 
-    (uint64 tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
+    uint256 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
     while (tradingMode != 0) {
       // while the breaker is active, we wait for the cooldown and try to update the median
       console.log(block.timestamp, "Waiting for cooldown to pass");
       console.log("RateFeedID:", rateFeedID);
-      address breaker = ctx.breakerBox.tradingModeBreaker(tradingMode);
-      uint256 cooldown = WithCooldown(breaker).getCooldown(rateFeedID);
+      address[] memory _breakers = ctx.breakerBox.getBreakers();
+      uint256 cooldown = 0;
+      for (uint256 i = 0; i < _breakers.length; i++) {
+        if (ctx.breakerBox.isBreakerEnabled(_breakers[i], rateFeedID)) {
+          (uint256 _tradingMode, , ) = ctx.breakerBox.breakerStatus(rateFeedID, _breakers[i]);
+          if (_tradingMode != 0) {
+            uint256 _cooldown = WithCooldown(_breakers[i]).getCooldown(rateFeedID);
+            if (_cooldown > cooldown) {
+              cooldown = _cooldown;
+            }
+          }
+        }
+      }
       skip(cooldown);
-      newMedian = newMedianToResetBreaker(ctx, tradingMode);
+      newMedian = newMedianToResetBreaker(ctx, uint64(tradingMode));
       ctx.updateOracleMedianRate(newMedian);
-      (tradingMode, , ) = ctx.breakerBox.rateFeedTradingModes(rateFeedID);
+      tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
     }
   }
 
-  function newMedianToResetBreaker(
-    Utils.Context memory ctx,
-    uint64 tradingMode
-  ) internal view returns (uint256 newMedian) {
+  function newMedianToResetBreaker(Utils.Context memory ctx, uint64 tradingMode)
+    internal
+    view
+    returns (uint256 newMedian)
+  {
     address rateFeedID = ctx.getReferenceRateFeedID();
-    address breaker = ctx.breakerBox.tradingModeBreaker(tradingMode);
+    address breaker;
+    address[] memory _breakers = ctx.breakerBox.getBreakers();
+    for (uint256 i = 0; i < _breakers.length; i++) {
+      if (ctx.breakerBox.isBreakerEnabled(_breakers[i], rateFeedID)) {
+        (uint256 _tradingMode, , ) = ctx.breakerBox.breakerStatus(rateFeedID, _breakers[i]);
+        if (_tradingMode == tradingMode) {
+          breaker = _breakers[i];
+        }
+      }
+    }
     if (tradingMode == 1) {
-      (uint256 currentRate,) = ctx.sortedOracles.medianRate(rateFeedID);
+      (uint256 currentRate, ) = ctx.sortedOracles.medianRate(rateFeedID);
       return currentRate.add(currentRate.div(1000)); // +0.1%
     } else if (tradingMode == 2) {
       return ctx.getValueDeltaBreakerReferenceValue(breaker);

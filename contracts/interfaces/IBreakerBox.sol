@@ -8,19 +8,15 @@ pragma solidity ^0.5.13;
 interface IBreakerBox {
   /**
    * @dev Used to track additional info about
-   *      the current trading mode a specific rate feed ID is in.
+   *      the current trading mode a specific breaker of a rate feed ID is in.
+   *      TradingMode is used to determine if a breaker is tripped.
    *      LastUpdatedTime helps to check cooldown.
-   *      LastUpdatedBlock helps to determine if check should be executed.
+   *      Enabled is used to enable/disable breaker for a rate feed.
    */
   struct BreakerStatus {
     uint8 tradingMode;
     uint64 lastUpdatedTime;
     bool enabled;
-  }
-  struct TradingModeInfo {
-    uint64 tradingMode;
-    uint64 lastUpdatedTime;
-    uint128 lastUpdatedBlock;
   }
 
   /**
