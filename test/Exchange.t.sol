@@ -443,7 +443,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
     assertEq(tradableCelo, updatedCeloBucket + amount);
   }
 
-  function test_sellCelo_whenBucketsStaleandReportStale_doesNotUpdateBuckets() public {
+  function test_sellCelo_whenBucketsStaleAndReportStale_doesNotUpdateBuckets() public {
     uint256 amount = 1000;
     mint(celoToken, address(reserve), initialReserveBalance);
     vm.warp(block.timestamp + referenceRateResetFrequency);
@@ -491,7 +491,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
     sell(amount, expectedCelo + 1, false);
   }
 
-  function test_sellStable_whenBucketsStaleandReportFresh_updatesBuckets() public {
+  function test_sellStable_whenBucketsStaleAndReportFresh_updatesBuckets() public {
     uint256 amount = 1000;
     mint(celoToken, address(reserve), initialReserveBalance);
     vm.warp(block.timestamp + referenceRateResetFrequency);
@@ -507,7 +507,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
     assertEq(tradableCelo, updatedCeloBucket - expected);
   }
 
-  function test_sellStable_whenBucketsStaleandReportStale_doesNotUpdateBuckets() public {
+  function test_sellStable_whenBucketsStaleAndReportStale_doesNotUpdateBuckets() public {
     uint256 amount = 1000;
     mint(celoToken, address(reserve), initialReserveBalance);
     vm.warp(block.timestamp + referenceRateResetFrequency);
@@ -700,7 +700,7 @@ contract ExchangeTest_buy is ExchangeTest_stableActivated {
     assertEq(tradableCelo, updatedCeloBucket + expected);
   }
 
-  function test_buyStable_whenBucketsStaleandReportStale_doesNotUpdateBuckets() public {
+  function test_buyStable_whenBucketsStaleAndReportStale_doesNotUpdateBuckets() public {
     uint256 amount = 1000;
     mint(celoToken, address(reserve), initialReserveBalance);
     vm.warp(block.timestamp + referenceRateResetFrequency);
