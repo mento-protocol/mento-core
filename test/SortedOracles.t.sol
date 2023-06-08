@@ -453,11 +453,12 @@ contract SortedOracles_report is SortedOraclesTest {
   }
 
   function test_report_shouldEmitTheOracleReportedAndMedianUpdatedEvent() public {
+    sortedOracles.addOracle(token, oracle);
     vm.expectEmit(true, true, true, true, address(sortedOracles));
     emit OracleReported(token, oracle, block.timestamp, fixed1 * 10);
-    vm.expectEmit(true, true, true, true, address(sortedOracles));
     emit MedianUpdated(token, fixed1 * 10);
-    submitNReports(1);
+    changePrank(oracle);
+    sortedOracles.report(token, fixed1 * 10, address(0), address(0));
   }
 
   function test_report_whenCalledByNonOracle_shouldRevert() public {
