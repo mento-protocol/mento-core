@@ -34,16 +34,18 @@ You can contribute to the development of Mento by suggesting new features to be 
 Code contributions can be made by creating a pull request that addresses an open issue labelled with **good first issue** or **help wanted**. PR's that address styling issues or add unit/integration tests are always welcome. For changes that address core functionality or would require breaking changes, it's best to open an Issue to discuss your proposal first.
 
 ## Naming conventions
+
 Our naming conventions have the goal of making our code cleaner and our lives easier.
 
 ### Git branches
+
 We follow the [Gitflow workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) and allow for the following branch names:
 
 - Production branch: main
 - Develop branch: develop
-- Feature prefix: feature/*
-- Release prefix: release/*
-- Hotfix prefix: hotfix/*
+- Feature prefix: feature/\*
+- Release prefix: release/\*
+- Hotfix prefix: hotfix/\*
 
 ### Git Commit Messages
 
@@ -56,7 +58,7 @@ Below are some guidelines for git commit messages:
 Semantic Commit Messages allow the following commit message style:
 
 `<type>(<scope>): <subject>`
-where 
+where
 `<scope>` is optional and `<type>` can be any of
 
 - feat: (new feature for the user, not a new feature for build script)
@@ -68,6 +70,7 @@ where
 - chore: (updating grunt tasks etc; no production code change)
 
 ### Git Pull Requests
+
 Pull requests should be named as a mix from branch name and commit message style.
 
-`<type>(<scope>): <branch-name>`, for example `docs(contributing): feature/naming-conventions` where `feature/naming-conventions`is the branch name. 
+`<type>(<scope>): <branch-name>`, for example `docs(contributing): feature/naming-conventions` where `feature/naming-conventions`is the branch name.

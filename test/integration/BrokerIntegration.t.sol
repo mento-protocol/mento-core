@@ -32,8 +32,8 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
 
     deal(address(celoToken), trader, 1000 * 10**18); // Gift 10k to trader
 
-    deal(address(celoToken), address(reserve), 10**(6+18)); // Gift 1Mil Celo to reserve
-    deal(address(usdcToken), address(reserve), 10**(6+6)); // Gift 1Mil USDC to reserve
+    deal(address(celoToken), address(reserve), 10**(6 + 18)); // Gift 1Mil Celo to reserve
+    deal(address(usdcToken), address(reserve), 10**(6 + 6)); // Gift 1Mil USDC to reserve
   }
 
   /**
@@ -126,7 +126,7 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
 
   function test_swapIn_cUSDToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k (18 decimals)
-    IERC20 tokenIn = cUSDToken; 
+    IERC20 tokenIn = cUSDToken;
     IERC20 tokenOut = usdcToken;
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
 

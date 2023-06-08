@@ -253,8 +253,8 @@ contract IntegrationSetup is Test, WithRegistry {
     uint256 coolDownTime = 5 minutes;
 
     medianDeltaBreaker = new MedianDeltaBreaker(
-      coolDownTime, 
-      threshold, 
+      coolDownTime,
+      threshold,
       ISortedOracles(address(sortedOracles)),
       rateFeedIDs,
       rateChangeThresholds,

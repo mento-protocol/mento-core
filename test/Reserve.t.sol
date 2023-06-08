@@ -476,11 +476,7 @@ contract ReserveTest_transfers is ReserveTest {
   function test_transferCollateralAsset_whenItExceedsSpendingLimit_shouldRevert() public {
     changePrank(spender);
     vm.expectRevert("Exceeding spending limit");
-    reserve.transferCollateralAsset(
-      address(dummyToken1), 
-      otherReserveAddress, 
-      reserveDummyToken1Balance.add(2)
-    );
+    reserve.transferCollateralAsset(address(dummyToken1), otherReserveAddress, reserveDummyToken1Balance.add(2));
 
     vm.warp(block.timestamp + 24 * 3600);
   }
@@ -541,7 +537,7 @@ contract ReserveTest_transfers is ReserveTest {
     vm.expectRevert("Exceeding spending limit");
     // Spend amount GT remaining daily limit
     reserve.transferCollateralAsset(address(dummyToken3), otherReserveAddress, spendingLimitAfter + 1);
-  } 
+  }
 
   function test_transferCollateralAsset_whenSpendingLimitIsHit_shoudResetNextDay() public {
     changePrank(spender);

@@ -139,7 +139,7 @@ jobs:
         run: "yarn install --immutable"
 
       - name: "Lint the contracts"
-        run: "yarn lint"
+        run: "yarn lint:check"
 
       - name: "Add lint summary"
         run: |

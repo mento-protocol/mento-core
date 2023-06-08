@@ -60,7 +60,7 @@ contract MedianDeltaBreakerTest is Test, WithRegistry {
 
     breaker = new MedianDeltaBreaker(
       defaultCooldownTime,
-      defaultThreshold, 
+      defaultThreshold,
       ISortedOracles(address(sortedOracles)),
       rateFeedIDs,
       rateChangeThresholds,

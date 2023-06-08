@@ -567,16 +567,17 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     vm.warp(1672527600); // 2023-01-01 00:00:00
 
     setupBreakerAndRateFeed(mockBreaker3, 2, 1 seconds, true, false, rateFeedID3);
-    
+
     breakerBox.checkAndSetBreakers(rateFeedID3);
-    (uint256 tradingMode, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
+    (uint256 tradingMode, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.rateFeedTradingModes(
+      rateFeedID3
+    );
 
     assertEq(block.number, 1);
     assertEq(block.timestamp, 1672527600);
     assertEq(tradingMode, 2);
     assertEq(lastUpdatedTime, 1672527600);
     assertEq(lastUpdatedBlock, 1);
-
 
     // block 2
     vm.roll(2);
@@ -593,16 +594,15 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     assertEq(lastUpdatedTime, 1672527600);
     assertEq(lastUpdatedBlock, 1);
 
-
     // block 3
     vm.roll(3);
     vm.warp(1672527610); // 2023-01-01 00:00:10
-        
+
     vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldTrigger.selector), abi.encode(false));
     vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector), abi.encode(true));
     breakerBox.checkAndSetBreakers(rateFeedID3);
     (tradingMode, lastUpdatedTime, lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
-    
+
     assertEq(block.number, 3);
     assertEq(block.timestamp, 1672527610);
     assertEq(tradingMode, 0);
@@ -616,16 +616,17 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     vm.warp(1672527600); // 2023-01-01 00:00:00
 
     setupBreakerAndRateFeed(mockBreaker3, 2, 10 seconds, true, false, rateFeedID3);
-    
+
     breakerBox.checkAndSetBreakers(rateFeedID3);
-    (uint256 tradingMode, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
+    (uint256 tradingMode, uint256 lastUpdatedTime, uint256 lastUpdatedBlock) = breakerBox.rateFeedTradingModes(
+      rateFeedID3
+    );
 
     assertEq(block.number, 1);
     assertEq(block.timestamp, 1672527600);
     assertEq(tradingMode, 2);
     assertEq(lastUpdatedTime, 1672527600);
     assertEq(lastUpdatedBlock, 1);
-
 
     // block 2
     vm.roll(2);
@@ -645,12 +646,12 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     // block 3
     vm.roll(3);
     vm.warp(1672527610); // 2023-01-01 00:00:10
-        
+
     vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldTrigger.selector), abi.encode(false));
     vm.mockCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector), abi.encode(true));
     breakerBox.checkAndSetBreakers(rateFeedID3);
     (tradingMode, lastUpdatedTime, lastUpdatedBlock) = breakerBox.rateFeedTradingModes(rateFeedID3);
-    
+
     assertEq(block.number, 3);
     assertEq(block.timestamp, 1672527610);
     assertEq(tradingMode, 0);

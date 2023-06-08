@@ -100,16 +100,14 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
 
     // Use this by running tests like:
     // env ONLY={exchangeId} yarn fork-tests:baklava
-    (bool success, bytes memory data) = address(vm).call(
-        abi.encodeWithSignature("envBytes32(string)", "ONLY")
-    );
-    bytes32 exchangeIdFilter; 
+    (bool success, bytes memory data) = address(vm).call(abi.encodeWithSignature("envBytes32(string)", "ONLY"));
+    bytes32 exchangeIdFilter;
     if (success) {
       exchangeIdFilter = abi.decode(data, (bytes32));
     }
-    
+
     if (exchangeIdFilter != bytes32(0)) {
-      console.log("🚨 Filtering exchanges by exchangeId:") ;
+      console.log("🚨 Filtering exchanges by exchangeId:");
       console.logBytes32(exchangeIdFilter);
       console.log("------------------------------------------------------------------");
     }
@@ -131,7 +129,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     // XXX: The number of collateral assets 2 is hardcoded here [CELO, USDC]
     for (uint256 i = 0; i < 2; i++) {
       address collateralAsset = reserve.collateralAssets(i);
-      mint(collateralAsset, address(reserve), Utils.toSubunits(10_000_000, collateralAsset ));
+      mint(collateralAsset, address(reserve), Utils.toSubunits(10_000_000, collateralAsset));
       console.log("Minting 10mil %s to reserve", IERC20Metadata(collateralAsset).symbol());
     }
 
@@ -167,7 +165,19 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
 
   function test_reserveCanNotBeReinitialized() public {
     vm.expectRevert("contract already initialized");
-    reserve.initialize(address(10),0 ,0 ,0 ,0 , new bytes32[](0), new uint256[](0), 0, 0, new address[](0), new uint256[](0));
+    reserve.initialize(
+      address(10),
+      0,
+      0,
+      0,
+      0,
+      new bytes32[](0),
+      new uint256[](0),
+      0,
+      0,
+      new address[](0),
+      new uint256[](0)
+    );
   }
 
   function test_stableTokensCanNotBeReinitialized() public {
@@ -210,14 +220,8 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       bool asset0LimitConfigured = ctx.isLimitConfigured(limitIdForAsset0);
       bool asset1LimitConfigured = ctx.isLimitConfigured(limitIdForAsset1);
 
-      require(
-        asset0LimitConfigured || asset1LimitConfigured,
-        "Limit not configured"
-      );
-      require(
-        !asset0LimitConfigured || !asset1LimitConfigured,
-        "Limit configured for both assets"
-      );
+      require(asset0LimitConfigured || asset1LimitConfigured, "Limit not configured");
+      require(!asset0LimitConfigured || !asset1LimitConfigured, "Limit configured for both assets");
     }
   }
 
