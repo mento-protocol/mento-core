@@ -3,6 +3,2627 @@
     "elements": [
       {
         "type": "contract",
+        "name": "BreakerBox",
+        "source_mapping": {
+          "start": 823,
+          "length": 12641,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [
+            19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+            46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
+            73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+            100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120,
+            121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141,
+            142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162,
+            163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183,
+            184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204,
+            205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225,
+            226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246,
+            247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267,
+            268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288,
+            289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309,
+            310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330,
+            331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+          ],
+          "starting_column": 1,
+          "ending_column": 2
+        }
+      },
+      {
+        "type": "node",
+        "name": "rateFeedIDs.push(rateFeedID)",
+        "source_mapping": {
+          "start": 6835,
+          "length": 28,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [164],
+          "starting_column": 5,
+          "ending_column": 33
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "addRateFeed",
+            "source_mapping": {
+              "start": 6577,
+              "length": 366,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [161, 162, 163, 164, 165, 166, 167],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "addRateFeed(address)"
+            }
+          }
+        }
+      }
+    ],
+    "description": "BreakerBox (contracts/BreakerBox.sol#19-340) contract sets array length with a user-controlled value:\n\t- rateFeedIDs.push(rateFeedID) (contracts/BreakerBox.sol#164)\n",
+    "markdown": "[BreakerBox](contracts/BreakerBox.sol#L19-L340) contract sets array length with a user-controlled value:\n\t- [rateFeedIDs.push(rateFeedID)](contracts/BreakerBox.sol#L164)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L19-L340",
+    "id": "2f325973e4ad3ef3009db6a05e6f769de6f5aed269569419ec0d61939581dddd",
+    "check": "controlled-array-length",
+    "impact": "High",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "tryResetBreaker",
+        "source_mapping": {
+          "start": 11944,
+          "length": 828,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "tryResetBreaker(address,address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldReset(rateFeedID)",
+        "source_mapping": {
+          "start": 12325,
+          "length": 31,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [315],
+          "starting_column": 11,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls" }
+      },
+      {
+        "type": "node",
+        "name": "rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = 0",
+        "source_mapping": {
+          "start": 12368,
+          "length": 59,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [316],
+          "starting_column": 9,
+          "ending_column": 68
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "variables_written", "variable_name": "rateFeedBreakerStatus" }
+      },
+      {
+        "type": "node",
+        "name": "rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp)",
+        "source_mapping": {
+          "start": 12437,
+          "length": 85,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [317],
+          "starting_column": 9,
+          "ending_column": 94
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "variables_written", "variable_name": "rateFeedBreakerStatus" }
+      }
+    ],
+    "description": "Reentrancy in BreakerBox.tryResetBreaker(address,address) (contracts/BreakerBox.sol#310-322):\n\tExternal calls:\n\t- breaker.shouldReset(rateFeedID) (contracts/BreakerBox.sol#315)\n\tState variables written after the call(s):\n\t- rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = 0 (contracts/BreakerBox.sol#316)\n\tBreakerBox.rateFeedBreakerStatus (contracts/BreakerBox.sol#27) can be used in cross function reentrancies:\n\t- BreakerBox.calculateTradingMode(address) (contracts/BreakerBox.sol#143-153)\n\t- BreakerBox.checkAndSetBreakers(address) (contracts/BreakerBox.sol#283-292)\n\t- BreakerBox.checkBreaker(address,address) (contracts/BreakerBox.sol#329-339)\n\t- BreakerBox.deleteBreakerStatus(address) (contracts/BreakerBox.sol#221-227)\n\t- BreakerBox.isBreakerEnabled(address,address) (contracts/BreakerBox.sol#271-273)\n\t- BreakerBox.rateFeedBreakerStatus (contracts/BreakerBox.sol#27)\n\t- BreakerBox.removeBreaker(address) (contracts/BreakerBox.sol#86-110)\n\t- BreakerBox.toggleBreaker(address,address,bool) (contracts/BreakerBox.sol#119-136)\n\t- BreakerBox.tryResetBreaker(address,address) (contracts/BreakerBox.sol#310-322)\n\t- BreakerBox.updateBreaker(address,address) (contracts/BreakerBox.sol#299-303)\n\t- rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp) (contracts/BreakerBox.sol#317)\n\tBreakerBox.rateFeedBreakerStatus (contracts/BreakerBox.sol#27) can be used in cross function reentrancies:\n\t- BreakerBox.calculateTradingMode(address) (contracts/BreakerBox.sol#143-153)\n\t- BreakerBox.checkAndSetBreakers(address) (contracts/BreakerBox.sol#283-292)\n\t- BreakerBox.checkBreaker(address,address) (contracts/BreakerBox.sol#329-339)\n\t- BreakerBox.deleteBreakerStatus(address) (contracts/BreakerBox.sol#221-227)\n\t- BreakerBox.isBreakerEnabled(address,address) (contracts/BreakerBox.sol#271-273)\n\t- BreakerBox.rateFeedBreakerStatus (contracts/BreakerBox.sol#27)\n\t- BreakerBox.removeBreaker(address) (contracts/BreakerBox.sol#86-110)\n\t- BreakerBox.toggleBreaker(address,address,bool) (contracts/BreakerBox.sol#119-136)\n\t- BreakerBox.tryResetBreaker(address,address) (contracts/BreakerBox.sol#310-322)\n\t- BreakerBox.updateBreaker(address,address) (contracts/BreakerBox.sol#299-303)\n",
+    "markdown": "Reentrancy in [BreakerBox.tryResetBreaker(address,address)](contracts/BreakerBox.sol#L310-L322):\n\tExternal calls:\n\t- [breaker.shouldReset(rateFeedID)](contracts/BreakerBox.sol#L315)\n\tState variables written after the call(s):\n\t- [rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = 0](contracts/BreakerBox.sol#L316)\n\t[BreakerBox.rateFeedBreakerStatus](contracts/BreakerBox.sol#L27) can be used in cross function reentrancies:\n\t- [BreakerBox.calculateTradingMode(address)](contracts/BreakerBox.sol#L143-L153)\n\t- [BreakerBox.checkAndSetBreakers(address)](contracts/BreakerBox.sol#L283-L292)\n\t- [BreakerBox.checkBreaker(address,address)](contracts/BreakerBox.sol#L329-L339)\n\t- [BreakerBox.deleteBreakerStatus(address)](contracts/BreakerBox.sol#L221-L227)\n\t- [BreakerBox.isBreakerEnabled(address,address)](contracts/BreakerBox.sol#L271-L273)\n\t- [BreakerBox.rateFeedBreakerStatus](contracts/BreakerBox.sol#L27)\n\t- [BreakerBox.removeBreaker(address)](contracts/BreakerBox.sol#L86-L110)\n\t- [BreakerBox.toggleBreaker(address,address,bool)](contracts/BreakerBox.sol#L119-L136)\n\t- [BreakerBox.tryResetBreaker(address,address)](contracts/BreakerBox.sol#L310-L322)\n\t- [BreakerBox.updateBreaker(address,address)](contracts/BreakerBox.sol#L299-L303)\n\t- [rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp)](contracts/BreakerBox.sol#L317)\n\t[BreakerBox.rateFeedBreakerStatus](contracts/BreakerBox.sol#L27) can be used in cross function reentrancies:\n\t- [BreakerBox.calculateTradingMode(address)](contracts/BreakerBox.sol#L143-L153)\n\t- [BreakerBox.checkAndSetBreakers(address)](contracts/BreakerBox.sol#L283-L292)\n\t- [BreakerBox.checkBreaker(address,address)](contracts/BreakerBox.sol#L329-L339)\n\t- [BreakerBox.deleteBreakerStatus(address)](contracts/BreakerBox.sol#L221-L227)\n\t- [BreakerBox.isBreakerEnabled(address,address)](contracts/BreakerBox.sol#L271-L273)\n\t- [BreakerBox.rateFeedBreakerStatus](contracts/BreakerBox.sol#L27)\n\t- [BreakerBox.removeBreaker(address)](contracts/BreakerBox.sol#L86-L110)\n\t- [BreakerBox.toggleBreaker(address,address,bool)](contracts/BreakerBox.sol#L119-L136)\n\t- [BreakerBox.tryResetBreaker(address,address)](contracts/BreakerBox.sol#L310-L322)\n\t- [BreakerBox.updateBreaker(address,address)](contracts/BreakerBox.sol#L299-L303)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L310-L322",
+    "id": "9ec907e1a1e4bf3d2fc96702252cc9283d630c1ac0d144910284d2fe4b8b3e52",
+    "check": "reentrancy-no-eth",
+    "impact": "Medium",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "addRateFeed",
+        "source_mapping": {
+          "start": 6577,
+          "length": 366,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [161, 162, 163, 164, 165, 166, 167],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "addRateFeed(address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "require(bool,string)(sortedOracles.getOracles(rateFeedID).length > 0,Rate feed ID does not exist as it has 0 oracles)",
+        "source_mapping": {
+          "start": 6722,
+          "length": 107,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [163],
+          "starting_column": 5,
+          "ending_column": 112
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "addRateFeed",
+            "source_mapping": {
+              "start": 6577,
+              "length": 366,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [161, 162, 163, 164, 165, 166, 167],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "addRateFeed(address)"
+            }
+          }
+        }
+      }
+    ],
+    "description": "BreakerBox.addRateFeed(address) (contracts/BreakerBox.sol#161-167) has external calls inside a loop: require(bool,string)(sortedOracles.getOracles(rateFeedID).length > 0,Rate feed ID does not exist as it has 0 oracles) (contracts/BreakerBox.sol#163)\n",
+    "markdown": "[BreakerBox.addRateFeed(address)](contracts/BreakerBox.sol#L161-L167) has external calls inside a loop: [require(bool,string)(sortedOracles.getOracles(rateFeedID).length > 0,Rate feed ID does not exist as it has 0 oracles)](contracts/BreakerBox.sol#L163)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L161-L167",
+    "id": "20cec3eca2ca063d39a5e3febbce509b744027b3999d1f40da5e8f9201f0e307",
+    "check": "calls-loop",
+    "impact": "Low",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "tryResetBreaker",
+        "source_mapping": {
+          "start": 11944,
+          "length": 828,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "tryResetBreaker(address,address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "cooldown = breaker.getCooldown(rateFeedID)",
+        "source_mapping": {
+          "start": 12168,
+          "length": 50,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [313],
+          "starting_column": 5,
+          "ending_column": 55
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        }
+      }
+    ],
+    "description": "BreakerBox.tryResetBreaker(address,address) (contracts/BreakerBox.sol#310-322) has external calls inside a loop: cooldown = breaker.getCooldown(rateFeedID) (contracts/BreakerBox.sol#313)\n",
+    "markdown": "[BreakerBox.tryResetBreaker(address,address)](contracts/BreakerBox.sol#L310-L322) has external calls inside a loop: [cooldown = breaker.getCooldown(rateFeedID)](contracts/BreakerBox.sol#L313)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L310-L322",
+    "id": "f3007753b12087bb0aaab20b84e487c197f963f5aaa51bec00e9dc491ffeab06",
+    "check": "calls-loop",
+    "impact": "Low",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "tryResetBreaker",
+        "source_mapping": {
+          "start": 11944,
+          "length": 828,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "tryResetBreaker(address,address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldReset(rateFeedID)",
+        "source_mapping": {
+          "start": 12325,
+          "length": 31,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [315],
+          "starting_column": 11,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        }
+      }
+    ],
+    "description": "BreakerBox.tryResetBreaker(address,address) (contracts/BreakerBox.sol#310-322) has external calls inside a loop: breaker.shouldReset(rateFeedID) (contracts/BreakerBox.sol#315)\n",
+    "markdown": "[BreakerBox.tryResetBreaker(address,address)](contracts/BreakerBox.sol#L310-L322) has external calls inside a loop: [breaker.shouldReset(rateFeedID)](contracts/BreakerBox.sol#L315)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L310-L322",
+    "id": "e5a6041462038c45672cfff644cadefa8d864a6d280cc6213d8044949a11f472",
+    "check": "calls-loop",
+    "impact": "Low",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "checkBreaker",
+        "source_mapping": {
+          "start": 12958,
+          "length": 504,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "checkBreaker(address,address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldTrigger(rateFeedID)",
+        "source_mapping": {
+          "start": 13123,
+          "length": 33,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [332],
+          "starting_column": 9,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        }
+      }
+    ],
+    "description": "BreakerBox.checkBreaker(address,address) (contracts/BreakerBox.sol#329-339) has external calls inside a loop: breaker.shouldTrigger(rateFeedID) (contracts/BreakerBox.sol#332)\n",
+    "markdown": "[BreakerBox.checkBreaker(address,address)](contracts/BreakerBox.sol#L329-L339) has external calls inside a loop: [breaker.shouldTrigger(rateFeedID)](contracts/BreakerBox.sol#L332)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L329-L339",
+    "id": "01249af49def287cd79da013e73b313714f9795d2b7af5ca370beafebb3c5db8",
+    "check": "calls-loop",
+    "impact": "Low",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "checkAndSetBreakers",
+        "source_mapping": {
+          "start": 10855,
+          "length": 412,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [283, 284, 285, 286, 287, 288, 289, 290, 291, 292],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "checkAndSetBreakers(address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "_breakerTradingMode = updateBreaker(rateFeedID,breakers[i])",
+        "source_mapping": {
+          "start": 11071,
+          "length": 66,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [287],
+          "starting_column": 9,
+          "ending_column": 75
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkAndSetBreakers",
+            "source_mapping": {
+              "start": 10855,
+              "length": 412,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [283, 284, 285, 286, 287, 288, 289, 290, 291, 292],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkAndSetBreakers(address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls" }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldTrigger(rateFeedID)",
+        "source_mapping": {
+          "start": 13123,
+          "length": 33,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [332],
+          "starting_column": 9,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls_sending_eth" }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldReset(rateFeedID)",
+        "source_mapping": {
+          "start": 12325,
+          "length": 31,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [315],
+          "starting_column": 11,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls_sending_eth" }
+      },
+      {
+        "type": "node",
+        "name": "_breakerTradingMode = updateBreaker(rateFeedID,breakers[i])",
+        "source_mapping": {
+          "start": 11071,
+          "length": 66,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [287],
+          "starting_column": 9,
+          "ending_column": 75
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkAndSetBreakers",
+            "source_mapping": {
+              "start": 10855,
+              "length": 412,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [283, 284, 285, 286, 287, 288, 289, 290, 291, 292],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkAndSetBreakers(address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls_sending_eth" }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldTrigger(rateFeedID)",
+        "source_mapping": {
+          "start": 13123,
+          "length": 33,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [332],
+          "starting_column": 9,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls_sending_eth" }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldReset(rateFeedID)",
+        "source_mapping": {
+          "start": 12325,
+          "length": 31,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [315],
+          "starting_column": 11,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls_sending_eth" }
+      },
+      {
+        "type": "node",
+        "name": "rateFeedTradingMode[rateFeedID] = _tradingMode",
+        "source_mapping": {
+          "start": 11216,
+          "length": 46,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [291],
+          "starting_column": 5,
+          "ending_column": 51
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkAndSetBreakers",
+            "source_mapping": {
+              "start": 10855,
+              "length": 412,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [283, 284, 285, 286, 287, 288, 289, 290, 291, 292],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkAndSetBreakers(address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "variables_written", "variable_name": "rateFeedTradingMode" }
+      }
+    ],
+    "description": "Reentrancy in BreakerBox.checkAndSetBreakers(address) (contracts/BreakerBox.sol#283-292):\n\tExternal calls:\n\t- _breakerTradingMode = updateBreaker(rateFeedID,breakers[i]) (contracts/BreakerBox.sol#287)\n\t\t- breaker.shouldTrigger(rateFeedID) (contracts/BreakerBox.sol#332)\n\t\t- breaker.shouldReset(rateFeedID) (contracts/BreakerBox.sol#315)\n\tState variables written after the call(s):\n\t- rateFeedTradingMode[rateFeedID] = _tradingMode (contracts/BreakerBox.sol#291)\n",
+    "markdown": "Reentrancy in [BreakerBox.checkAndSetBreakers(address)](contracts/BreakerBox.sol#L283-L292):\n\tExternal calls:\n\t- [_breakerTradingMode = updateBreaker(rateFeedID,breakers[i])](contracts/BreakerBox.sol#L287)\n\t\t- [breaker.shouldTrigger(rateFeedID)](contracts/BreakerBox.sol#L332)\n\t\t- [breaker.shouldReset(rateFeedID)](contracts/BreakerBox.sol#L315)\n\tState variables written after the call(s):\n\t- [rateFeedTradingMode[rateFeedID] = _tradingMode](contracts/BreakerBox.sol#L291)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L283-L292",
+    "id": "be7e3e4f5bab25740a91fffb9855290ab286192c726e758e7cfa7bb0e0015c9f",
+    "check": "reentrancy-benign",
+    "impact": "Low",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "checkBreaker",
+        "source_mapping": {
+          "start": 12958,
+          "length": 504,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "checkBreaker(address,address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldTrigger(rateFeedID)",
+        "source_mapping": {
+          "start": 13123,
+          "length": 33,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [332],
+          "starting_column": 9,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls" }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldTrigger(rateFeedID)",
+        "source_mapping": {
+          "start": 13123,
+          "length": 33,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [332],
+          "starting_column": 9,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls_sending_eth" }
+      },
+      {
+        "type": "node",
+        "name": "rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = tradingMode",
+        "source_mapping": {
+          "start": 13216,
+          "length": 69,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [334],
+          "starting_column": 7,
+          "ending_column": 76
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "variables_written", "variable_name": "rateFeedBreakerStatus" }
+      },
+      {
+        "type": "node",
+        "name": "rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp)",
+        "source_mapping": {
+          "start": 13293,
+          "length": 85,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [335],
+          "starting_column": 7,
+          "ending_column": 92
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "variables_written", "variable_name": "rateFeedBreakerStatus" }
+      }
+    ],
+    "description": "Reentrancy in BreakerBox.checkBreaker(address,address) (contracts/BreakerBox.sol#329-339):\n\tExternal calls:\n\t- breaker.shouldTrigger(rateFeedID) (contracts/BreakerBox.sol#332)\n\tState variables written after the call(s):\n\t- rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = tradingMode (contracts/BreakerBox.sol#334)\n\t- rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp) (contracts/BreakerBox.sol#335)\n",
+    "markdown": "Reentrancy in [BreakerBox.checkBreaker(address,address)](contracts/BreakerBox.sol#L329-L339):\n\tExternal calls:\n\t- [breaker.shouldTrigger(rateFeedID)](contracts/BreakerBox.sol#L332)\n\tState variables written after the call(s):\n\t- [rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = tradingMode](contracts/BreakerBox.sol#L334)\n\t- [rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp)](contracts/BreakerBox.sol#L335)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L329-L339",
+    "id": "41957dd8213454fd86f89add526a58fb420fcae848ac7c65a8263f468c93fc57",
+    "check": "reentrancy-benign",
+    "impact": "Low",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "checkBreaker",
+        "source_mapping": {
+          "start": 12958,
+          "length": 504,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "checkBreaker(address,address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldTrigger(rateFeedID)",
+        "source_mapping": {
+          "start": 13123,
+          "length": 33,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [332],
+          "starting_column": 9,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls" }
+      },
+      {
+        "type": "node",
+        "name": "BreakerTripped(_breaker,rateFeedID)",
+        "source_mapping": {
+          "start": 13386,
+          "length": 41,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [336],
+          "starting_column": 7,
+          "ending_column": 48
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "event" }
+      }
+    ],
+    "description": "Reentrancy in BreakerBox.checkBreaker(address,address) (contracts/BreakerBox.sol#329-339):\n\tExternal calls:\n\t- breaker.shouldTrigger(rateFeedID) (contracts/BreakerBox.sol#332)\n\tEvent emitted after the call(s):\n\t- BreakerTripped(_breaker,rateFeedID) (contracts/BreakerBox.sol#336)\n",
+    "markdown": "Reentrancy in [BreakerBox.checkBreaker(address,address)](contracts/BreakerBox.sol#L329-L339):\n\tExternal calls:\n\t- [breaker.shouldTrigger(rateFeedID)](contracts/BreakerBox.sol#L332)\n\tEvent emitted after the call(s):\n\t- [BreakerTripped(_breaker,rateFeedID)](contracts/BreakerBox.sol#L336)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L329-L339",
+    "id": "c95637995279a5e3439ee39f5a3bd1e803a2bf0af0cf678c8512838ecf78293f",
+    "check": "reentrancy-events",
+    "impact": "Low",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "tryResetBreaker",
+        "source_mapping": {
+          "start": 11944,
+          "length": 828,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "tryResetBreaker(address,address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "breaker.shouldReset(rateFeedID)",
+        "source_mapping": {
+          "start": 12325,
+          "length": 31,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [315],
+          "starting_column": 11,
+          "ending_column": 42
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "external_calls" }
+      },
+      {
+        "type": "node",
+        "name": "ResetSuccessful(rateFeedID,_breaker)",
+        "source_mapping": {
+          "start": 12532,
+          "length": 42,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [318],
+          "starting_column": 9,
+          "ending_column": 51
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "underlying_type": "event" }
+      }
+    ],
+    "description": "Reentrancy in BreakerBox.tryResetBreaker(address,address) (contracts/BreakerBox.sol#310-322):\n\tExternal calls:\n\t- breaker.shouldReset(rateFeedID) (contracts/BreakerBox.sol#315)\n\tEvent emitted after the call(s):\n\t- ResetSuccessful(rateFeedID,_breaker) (contracts/BreakerBox.sol#318)\n",
+    "markdown": "Reentrancy in [BreakerBox.tryResetBreaker(address,address)](contracts/BreakerBox.sol#L310-L322):\n\tExternal calls:\n\t- [breaker.shouldReset(rateFeedID)](contracts/BreakerBox.sol#L315)\n\tEvent emitted after the call(s):\n\t- [ResetSuccessful(rateFeedID,_breaker)](contracts/BreakerBox.sol#L318)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L310-L322",
+    "id": "7ba494a4c272c50f942e376ab505e90bee3a38fefb3bf520cf97667b22edcba1",
+    "check": "reentrancy-events",
+    "impact": "Low",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "function",
+        "name": "tryResetBreaker",
+        "source_mapping": {
+          "start": 11944,
+          "length": 828,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+          "starting_column": 3,
+          "ending_column": 4
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "contract",
+            "name": "BreakerBox",
+            "source_mapping": {
+              "start": 823,
+              "length": 12641,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [
+                19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+                160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+                223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
+                244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+                265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+                286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306,
+                307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340
+              ],
+              "starting_column": 1,
+              "ending_column": 2
+            }
+          },
+          "signature": "tryResetBreaker(address,address)"
+        }
+      },
+      {
+        "type": "node",
+        "name": "(cooldown > 0) && (cooldown.add(_breakerStatus.lastUpdatedTime) <= block.timestamp)",
+        "source_mapping": {
+          "start": 12228,
+          "length": 83,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [314],
+          "starting_column": 9,
+          "ending_column": 92
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        }
+      }
+    ],
+    "description": "BreakerBox.tryResetBreaker(address,address) (contracts/BreakerBox.sol#310-322) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- (cooldown > 0) && (cooldown.add(_breakerStatus.lastUpdatedTime) <= block.timestamp) (contracts/BreakerBox.sol#314)\n",
+    "markdown": "[BreakerBox.tryResetBreaker(address,address)](contracts/BreakerBox.sol#L310-L322) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- [(cooldown > 0) && (cooldown.add(_breakerStatus.lastUpdatedTime) <= block.timestamp)](contracts/BreakerBox.sol#L314)\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L310-L322",
+    "id": "0dac34146f6f44708e8c97cd39a7b9c5b6e16bf2c128dc0402d6984506361779",
+    "check": "timestamp",
+    "impact": "Low",
+    "confidence": "Medium"
+  },
+  {
+    "elements": [
+      {
+        "type": "variable",
+        "name": "_breaker",
+        "source_mapping": {
+          "start": 11989,
+          "length": 16,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [310],
+          "starting_column": 48,
+          "ending_column": 64
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "tryResetBreaker",
+            "source_mapping": {
+              "start": 11944,
+              "length": 828,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "tryResetBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "target": "parameter", "convention": "mixedCase" }
+      }
+    ],
+    "description": "Parameter BreakerBox.tryResetBreaker(address,address)._breaker (contracts/BreakerBox.sol#310) is not in mixedCase\n",
+    "markdown": "Parameter [BreakerBox.tryResetBreaker(address,address)._breaker](contracts/BreakerBox.sol#L310) is not in mixedCase\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L310",
+    "id": "e780b2032d5514e5440bb83867dd8cebf0336e4f308c023f31cd6702887068bf",
+    "check": "naming-convention",
+    "impact": "Informational",
+    "confidence": "High"
+  },
+  {
+    "elements": [
+      {
+        "type": "variable",
+        "name": "_breaker",
+        "source_mapping": {
+          "start": 13000,
+          "length": 16,
+          "filename_relative": "contracts/BreakerBox.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+          "filename_short": "contracts/BreakerBox.sol",
+          "is_dependency": false,
+          "lines": [329],
+          "starting_column": 45,
+          "ending_column": 61
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "checkBreaker",
+            "source_mapping": {
+              "start": 12958,
+              "length": 504,
+              "filename_relative": "contracts/BreakerBox.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+              "filename_short": "contracts/BreakerBox.sol",
+              "is_dependency": false,
+              "lines": [329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "BreakerBox",
+                "source_mapping": {
+                  "start": 823,
+                  "length": 12641,
+                  "filename_relative": "contracts/BreakerBox.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/contracts/BreakerBox.sol",
+                  "filename_short": "contracts/BreakerBox.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                    44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+                    94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+                    135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                    155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+                    175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194,
+                    195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+                    215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+                    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                    255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+                    275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294,
+                    295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334,
+                    335, 336, 337, 338, 339, 340
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "checkBreaker(address,address)"
+            }
+          }
+        },
+        "additional_fields": { "target": "parameter", "convention": "mixedCase" }
+      }
+    ],
+    "description": "Parameter BreakerBox.checkBreaker(address,address)._breaker (contracts/BreakerBox.sol#329) is not in mixedCase\n",
+    "markdown": "Parameter [BreakerBox.checkBreaker(address,address)._breaker](contracts/BreakerBox.sol#L329) is not in mixedCase\n",
+    "first_markdown_element": "contracts/BreakerBox.sol#L329",
+    "id": "951ec13409d03adbe481977a01e1a3dc9c8f4bd2c9c47f853ec2428ebdc9a952",
+    "check": "naming-convention",
+    "impact": "Informational",
+    "confidence": "High"
+  },
+  {
+    "elements": [
+      {
+        "type": "variable",
+        "name": "_cooldown",
+        "source_mapping": {
+          "start": 442,
+          "length": 17,
+          "filename_relative": "test/mocks/MockBreaker.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/test/mocks/MockBreaker.sol",
+          "filename_short": "test/mocks/MockBreaker.sol",
+          "is_dependency": false,
+          "lines": [23],
+          "starting_column": 24,
+          "ending_column": 41
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "setCooldown",
+            "source_mapping": {
+              "start": 421,
+              "length": 80,
+              "filename_relative": "test/mocks/MockBreaker.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/test/mocks/MockBreaker.sol",
+              "filename_short": "test/mocks/MockBreaker.sol",
+              "is_dependency": false,
+              "lines": [23, 24, 25],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "MockBreaker",
+                "source_mapping": {
+                  "start": 71,
+                  "length": 754,
+                  "filename_relative": "test/mocks/MockBreaker.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/test/mocks/MockBreaker.sol",
+                  "filename_short": "test/mocks/MockBreaker.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+                    30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "setCooldown(uint256)"
+            }
+          }
+        },
+        "additional_fields": { "target": "parameter", "convention": "mixedCase" }
+      }
+    ],
+    "description": "Parameter MockBreaker.setCooldown(uint256)._cooldown (test/mocks/MockBreaker.sol#23) is not in mixedCase\n",
+    "markdown": "Parameter [MockBreaker.setCooldown(uint256)._cooldown](test/mocks/MockBreaker.sol#L23) is not in mixedCase\n",
+    "first_markdown_element": "test/mocks/MockBreaker.sol#L23",
+    "id": "e07a3a6bb96544d49d20118f4e9aedb47a99f5bebfa481ddcfda9d314a26f645",
+    "check": "naming-convention",
+    "impact": "Informational",
+    "confidence": "High"
+  },
+  {
+    "elements": [
+      {
+        "type": "variable",
+        "name": "_trigger",
+        "source_mapping": {
+          "start": 615,
+          "length": 13,
+          "filename_relative": "test/mocks/MockBreaker.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/test/mocks/MockBreaker.sol",
+          "filename_short": "test/mocks/MockBreaker.sol",
+          "is_dependency": false,
+          "lines": [31],
+          "starting_column": 23,
+          "ending_column": 36
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "setTrigger",
+            "source_mapping": {
+              "start": 595,
+              "length": 73,
+              "filename_relative": "test/mocks/MockBreaker.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/test/mocks/MockBreaker.sol",
+              "filename_short": "test/mocks/MockBreaker.sol",
+              "is_dependency": false,
+              "lines": [31, 32, 33],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "MockBreaker",
+                "source_mapping": {
+                  "start": 71,
+                  "length": 754,
+                  "filename_relative": "test/mocks/MockBreaker.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/test/mocks/MockBreaker.sol",
+                  "filename_short": "test/mocks/MockBreaker.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+                    30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "setTrigger(bool)"
+            }
+          }
+        },
+        "additional_fields": { "target": "parameter", "convention": "mixedCase" }
+      }
+    ],
+    "description": "Parameter MockBreaker.setTrigger(bool)._trigger (test/mocks/MockBreaker.sol#31) is not in mixedCase\n",
+    "markdown": "Parameter [MockBreaker.setTrigger(bool)._trigger](test/mocks/MockBreaker.sol#L31) is not in mixedCase\n",
+    "first_markdown_element": "test/mocks/MockBreaker.sol#L31",
+    "id": "838a36df1349da8589396f1d469b5611f3da1992356a13dbf863c16deec722bf",
+    "check": "naming-convention",
+    "impact": "Informational",
+    "confidence": "High"
+  },
+  {
+    "elements": [
+      {
+        "type": "variable",
+        "name": "_reset",
+        "source_mapping": {
+          "start": 776,
+          "length": 11,
+          "filename_relative": "test/mocks/MockBreaker.sol",
+          "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/test/mocks/MockBreaker.sol",
+          "filename_short": "test/mocks/MockBreaker.sol",
+          "is_dependency": false,
+          "lines": [39],
+          "starting_column": 21,
+          "ending_column": 32
+        },
+        "type_specific_fields": {
+          "parent": {
+            "type": "function",
+            "name": "setReset",
+            "source_mapping": {
+              "start": 758,
+              "length": 65,
+              "filename_relative": "test/mocks/MockBreaker.sol",
+              "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/test/mocks/MockBreaker.sol",
+              "filename_short": "test/mocks/MockBreaker.sol",
+              "is_dependency": false,
+              "lines": [39, 40, 41],
+              "starting_column": 3,
+              "ending_column": 4
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "MockBreaker",
+                "source_mapping": {
+                  "start": 71,
+                  "length": 754,
+                  "filename_relative": "test/mocks/MockBreaker.sol",
+                  "filename_absolute": "/Users/philipraetsch/Desktop/mento-core/test/mocks/MockBreaker.sol",
+                  "filename_short": "test/mocks/MockBreaker.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+                    30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "setReset(bool)"
+            }
+          }
+        },
+        "additional_fields": { "target": "parameter", "convention": "mixedCase" }
+      }
+    ],
+    "description": "Parameter MockBreaker.setReset(bool)._reset (test/mocks/MockBreaker.sol#39) is not in mixedCase\n",
+    "markdown": "Parameter [MockBreaker.setReset(bool)._reset](test/mocks/MockBreaker.sol#L39) is not in mixedCase\n",
+    "first_markdown_element": "test/mocks/MockBreaker.sol#L39",
+    "id": "73edc88ea76482c61ee1842ff71d7eabc056e2295e6d79ac90702a431c65492b",
+    "check": "naming-convention",
+    "impact": "Informational",
+    "confidence": "High"
+  },
+  {
+    "elements": [
+      {
+        "type": "contract",
         "name": "BiPoolManager",
         "source_mapping": {
           "start": 1015,
