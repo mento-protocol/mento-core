@@ -234,8 +234,7 @@ contract IntegrationSetup is Test, WithRegistry {
     rateFeedIDs[3] = cEUR_bridgedUSDC_referenceRateFeedID;
     rateFeedIDs[4] = cUSD_cEUR_referenceRateFeedID;
 
-    breakerBox = new BreakerBox(true);
-    breakerBox.initialize(rateFeedIDs, ISortedOracles(address(sortedOracles)));
+    breakerBox = new BreakerBox(rateFeedIDs, ISortedOracles(address(sortedOracles)));
 
     /* ========== Deploy Median Delta Breaker =============== */
 
@@ -253,8 +252,8 @@ contract IntegrationSetup is Test, WithRegistry {
     uint256 coolDownTime = 5 minutes;
 
     medianDeltaBreaker = new MedianDeltaBreaker(
-      coolDownTime, 
-      threshold, 
+      coolDownTime,
+      threshold,
       ISortedOracles(address(sortedOracles)),
       rateFeedIDs,
       rateChangeThresholds,

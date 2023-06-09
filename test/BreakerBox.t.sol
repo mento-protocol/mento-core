@@ -57,12 +57,11 @@ contract BreakerBoxTest is Test, WithRegistry {
     mockBreaker3 = new MockBreaker(0, false, false);
     mockBreaker4 = new MockBreaker(0, false, false);
     sortedOracles = new MockSortedOracles();
-    breakerBox = new BreakerBox(true);
 
     sortedOracles.addOracle(rateFeedID1, actor("oracleClient1"));
     sortedOracles.addOracle(rateFeedID2, actor("oracleClient1"));
 
-    breakerBox.initialize(testRateFeedIDs, ISortedOracles(address(sortedOracles)));
+    breakerBox = new BreakerBox(testRateFeedIDs, ISortedOracles(address(sortedOracles)));
     breakerBox.addBreaker(address(mockBreaker1), 1);
   }
 
@@ -126,26 +125,24 @@ contract BreakerBoxTest is Test, WithRegistry {
 contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   /* ---------- Initilizer ---------- */
 
-  function test_initilize_shouldSetOwner() public {
+  function test_constructor_shouldSetOwner() public {
     assertEq(breakerBox.owner(), deployer);
   }
 
-  function test_initilize_shouldSetInitialBreaker() public {
+  function test_constructor_shouldSetInitialBreaker() public {
     assertEq(uint256(breakerBox.breakerTradingMode(address(mockBreaker1))), 1);
     assertTrue(breakerBox.isBreaker(address(mockBreaker1)));
   }
 
-  function test_initilize_shouldSetSortedOracles() public {
+  function test_constructor_shouldSetSortedOracles() public {
     assertEq(address(breakerBox.sortedOracles()), address(sortedOracles));
   }
 
-  function test_initilize_shouldAddRateFeedIdsWithDefaultMode() public {
-    (, , bool enabledA) = breakerBox.breakerStatus(rateFeedID1, address(0));
-    assertTrue(enabledA);
+  function test_constructor_shouldAddRateFeedIdsWithDefaultMode() public {
+    assertTrue(breakerBox.rateFeedStatus(rateFeedID1));
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 0);
 
-    (, , bool enabledB) = breakerBox.breakerStatus(rateFeedID2, address(0));
-    assertTrue(enabledB);
+    assertTrue(breakerBox.rateFeedStatus(rateFeedID2));
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID2)), 0);
   }
 
@@ -177,48 +174,6 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assertTrue(breakerBox.isBreaker(address(mockBreaker2)));
   }
 
-  function test_insertBreaker_canOnlyBeCalledByOwner() public {
-    vm.expectRevert("Ownable: caller is not the owner");
-    changePrank(notDeployer);
-    breakerBox.insertBreaker(address(mockBreaker2), 2, address(0), address(mockBreaker1));
-  }
-
-  function test_insertBreaker_whenBreakerHasAlreadyBeenAdded_shouldRevert() public {
-    vm.expectRevert("This breaker has already been added");
-    breakerBox.insertBreaker(address(mockBreaker1), 1, address(0), address(0));
-  }
-
-  function test_insertBreaker_whenTradingModeIsDefault_shouldRevert_shouldRevert() public {
-    vm.expectRevert("The default trading mode can not have a breaker");
-    breakerBox.insertBreaker(address(mockBreaker2), 0, address(0), address(0));
-  }
-
-  function test_insertBreaker_shouldInsertBreakerAtCorrectPositionAndEmit() public {
-    assertEq(breakerBox.getBreakers().length, 1);
-
-    breakerBox.addBreaker(address(mockBreaker2), 2);
-    breakerBox.addBreaker(address(mockBreaker3), 3);
-
-    address[] memory breakersBefore = breakerBox.getBreakers();
-    assertEq(breakersBefore.length, 3);
-    assertEq(breakersBefore[0], address(mockBreaker1));
-    assertEq(breakersBefore[1], address(mockBreaker2));
-    assertEq(breakersBefore[2], address(mockBreaker3));
-
-    vm.expectEmit(true, false, false, false);
-    emit BreakerAdded(address(mockBreaker4));
-
-    breakerBox.insertBreaker(address(mockBreaker4), 4, address(mockBreaker2), address(mockBreaker1));
-
-    address[] memory breakersAfter = breakerBox.getBreakers();
-    assertEq(breakersAfter.length, 4);
-    assertEq(breakersAfter[0], address(mockBreaker1));
-    assertEq(breakersAfter[1], address(mockBreaker4));
-    assertEq(breakersAfter[2], address(mockBreaker2));
-    assertEq(breakersAfter[3], address(mockBreaker3));
-    assertEq(uint256(breakerBox.breakerTradingMode(address(mockBreaker4))), 4);
-  }
-
   function test_removeBreaker_canOnlyBeCalledByOwner() public {
     vm.expectRevert("Ownable: caller is not the owner");
     changePrank(notDeployer);
@@ -226,7 +181,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_removeBreaker_whenBreakerHasntBeenAdded_shouldRevert() public {
-    vm.expectRevert("This breaker has not been added");
+    vm.expectRevert("Breaker has not been added");
     breakerBox.removeBreaker(address(mockBreaker2));
   }
 
@@ -237,7 +192,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assertTrue(breakerBox.isBreakerEnabled(address(mockBreaker2), rateFeedID3));
     assertEq(uint256(breakerBox.breakerTradingMode(address(mockBreaker2))), 2);
 
-    (uint256 tradingModeBefore, uint256 lastUpdatedTimeBefore, bool enabledBefore) = breakerBox.breakerStatus(
+    (uint256 tradingModeBefore, uint256 lastUpdatedTimeBefore, bool enabledBefore) = breakerBox.rateFeedBreakerStatus(
       rateFeedID3,
       address(mockBreaker2)
     );
@@ -253,7 +208,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assertFalse(breakerBox.isBreakerEnabled(address(mockBreaker2), rateFeedID3));
     assertEq(uint256(breakerBox.breakerTradingMode(address(mockBreaker2))), 0);
 
-    (uint256 tradingModeAfter, uint256 lastUpdatedTimeAfter, bool enabledAfter) = breakerBox.breakerStatus(
+    (uint256 tradingModeAfter, uint256 lastUpdatedTimeAfter, bool enabledAfter) = breakerBox.rateFeedBreakerStatus(
       rateFeedID3,
       address(mockBreaker2)
     );
@@ -320,8 +275,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     uint256 tradingModeBefore = breakerBox.getRateFeedTradingMode(rateFeedID3);
     assertEq(tradingModeBefore, 0);
     assertFalse(isRateFeed(rateFeedID3));
-    (, , bool rateFeedStatusBefore) = breakerBox.breakerStatus(rateFeedID3, address(0));
-    assertFalse(rateFeedStatusBefore);
+    assertFalse(breakerBox.rateFeedStatus(rateFeedID3));
 
     vm.expectEmit(true, true, true, true);
     emit RateFeedAdded(rateFeedID3);
@@ -330,8 +284,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     uint256 tradingModeAfter = breakerBox.getRateFeedTradingMode(rateFeedID3);
     assertEq(tradingModeAfter, 0);
     assertTrue(isRateFeed(rateFeedID3));
-    (, , bool rateFeedStatusAfter) = breakerBox.breakerStatus(rateFeedID3, address(0));
-    assertTrue(rateFeedStatusAfter);
+    assertTrue(breakerBox.rateFeedStatus(rateFeedID3));
   }
 
   function test_removeRateFeed_whenNotOwner_shouldRevert() public {
@@ -358,9 +311,8 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     uint256 tradingModeBefore = breakerBox.getRateFeedTradingMode(rateFeedID1);
     assertEq(tradingModeBefore, 1);
     assertTrue(isRateFeed(rateFeedID1));
-    (, , bool rateFeedStatusBefore) = breakerBox.breakerStatus(rateFeedID1, address(0));
-    assertTrue(rateFeedStatusBefore);
-    (, , bool breakerStatusBefore) = breakerBox.breakerStatus(rateFeedID1, address(mockBreaker1));
+    assertTrue(breakerBox.rateFeedStatus(rateFeedID1));
+    (, , bool breakerStatusBefore) = breakerBox.rateFeedBreakerStatus(rateFeedID1, address(mockBreaker1));
     assertTrue(breakerStatusBefore);
 
     vm.expectEmit(true, true, true, true);
@@ -370,9 +322,8 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     uint256 tradingModeAfter = breakerBox.getRateFeedTradingMode(rateFeedID1);
     assertEq(tradingModeAfter, 0);
     assertFalse(isRateFeed(rateFeedID1));
-    (, , bool rateFeedStatusAfter) = breakerBox.breakerStatus(rateFeedID1, address(0));
-    assertFalse(rateFeedStatusAfter);
-    (, , bool breakerStatusAfter) = breakerBox.breakerStatus(rateFeedID1, address(mockBreaker1));
+    assertFalse(breakerBox.rateFeedStatus(rateFeedID1));
+    (, , bool breakerStatusAfter) = breakerBox.rateFeedBreakerStatus(rateFeedID1, address(mockBreaker1));
     assertFalse(breakerStatusAfter);
   }
 
@@ -516,7 +467,7 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     toggleAndAssertBreaker(address(mockBreaker5), rateFeedID3, true);
 
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID3)), 0);
-    (uint256 breakerTradingModeBefore, , ) = breakerBox.breakerStatus(rateFeedID3, address(mockBreaker5));
+    (uint256 breakerTradingModeBefore, , ) = breakerBox.rateFeedBreakerStatus(rateFeedID3, address(mockBreaker5));
     assertEq(breakerTradingModeBefore, 0);
 
     vm.expectCall(
@@ -528,10 +479,8 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     emit BreakerTripped(address(mockBreaker5), rateFeedID3);
     breakerBox.checkAndSetBreakers(rateFeedID3);
 
-    (uint256 breakerTradingModeAfter, uint256 breakerLastUpdatedTime, bool breakerEnabled) = breakerBox.breakerStatus(
-      rateFeedID3,
-      address(mockBreaker5)
-    );
+    (uint256 breakerTradingModeAfter, uint256 breakerLastUpdatedTime, bool breakerEnabled) = breakerBox
+      .rateFeedBreakerStatus(rateFeedID3, address(mockBreaker5));
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID3)), 3);
     assertEq(breakerTradingModeAfter, 3);
     assertEq(breakerLastUpdatedTime, 1);
@@ -549,7 +498,7 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     assertTrue(breakerBox.isBreaker(address(mockBreaker5)));
 
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID3)), 0);
-    (, , bool breakerEnabled) = breakerBox.breakerStatus(rateFeedID3, address(mockBreaker5));
+    (, , bool breakerEnabled) = breakerBox.rateFeedBreakerStatus(rateFeedID3, address(mockBreaker5));
     assertFalse(breakerEnabled);
 
     breakerBox.checkAndSetBreakers(rateFeedID3);
@@ -562,10 +511,8 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
 
     setupBreakerAndRateFeed(mockBreaker3, 2, 1 seconds, false, true, rateFeedID3);
 
-    (uint256 breakerTradingMode1, uint256 breakerLastUpdatedTime1, bool breakerEnabled1) = breakerBox.breakerStatus(
-      rateFeedID3,
-      address(mockBreaker3)
-    );
+    (uint256 breakerTradingMode1, uint256 breakerLastUpdatedTime1, bool breakerEnabled1) = breakerBox
+      .rateFeedBreakerStatus(rateFeedID3, address(mockBreaker3));
     uint256 tradingMode1 = breakerBox.getRateFeedTradingMode(rateFeedID3);
     assertEq(breakerTradingMode1, 2);
     assertEq(breakerLastUpdatedTime1, 1672527600);
@@ -577,10 +524,8 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     mockBreaker3.setReset(true);
     breakerBox.checkAndSetBreakers(rateFeedID3);
 
-    (uint256 breakerTradingMode2, uint256 breakerLastUpdatedTime2, bool breakerEnabled2) = breakerBox.breakerStatus(
-      rateFeedID3,
-      address(mockBreaker3)
-    );
+    (uint256 breakerTradingMode2, uint256 breakerLastUpdatedTime2, bool breakerEnabled2) = breakerBox
+      .rateFeedBreakerStatus(rateFeedID3, address(mockBreaker3));
     uint256 tradingMode2 = breakerBox.getRateFeedTradingMode(rateFeedID3);
     assertEq(breakerTradingMode2, 0);
     assertEq(breakerLastUpdatedTime2, 1672527605);
@@ -592,10 +537,8 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     mockBreaker3.setReset(false);
     breakerBox.checkAndSetBreakers(rateFeedID3);
 
-    (uint256 breakerTradingMode3, uint256 breakerLastUpdatedTime3, bool breakerEnabled3) = breakerBox.breakerStatus(
-      rateFeedID3,
-      address(mockBreaker3)
-    );
+    (uint256 breakerTradingMode3, uint256 breakerLastUpdatedTime3, bool breakerEnabled3) = breakerBox
+      .rateFeedBreakerStatus(rateFeedID3, address(mockBreaker3));
     uint256 tradingMode3 = breakerBox.getRateFeedTradingMode(rateFeedID3);
     assertEq(breakerTradingMode3, 2);
     assertEq(breakerLastUpdatedTime3, 1672527610);
@@ -608,10 +551,8 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
 
     setupBreakerAndRateFeed(mockBreaker3, 2, 1 seconds, false, true, rateFeedID3);
 
-    (uint256 breakerTradingMode1, uint256 breakerLastUpdatedTime1, bool breakerEnabled1) = breakerBox.breakerStatus(
-      rateFeedID3,
-      address(mockBreaker3)
-    );
+    (uint256 breakerTradingMode1, uint256 breakerLastUpdatedTime1, bool breakerEnabled1) = breakerBox
+      .rateFeedBreakerStatus(rateFeedID3, address(mockBreaker3));
     uint256 tradingMode1 = breakerBox.getRateFeedTradingMode(rateFeedID3);
     assertEq(breakerTradingMode1, 2);
     assertEq(breakerLastUpdatedTime1, 1672527600);
@@ -623,10 +564,8 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     mockBreaker3.setReset(true);
     breakerBox.checkAndSetBreakers(rateFeedID3);
 
-    (uint256 breakerTradingMode2, uint256 breakerLastUpdatedTime2, bool breakerEnabled2) = breakerBox.breakerStatus(
-      rateFeedID3,
-      address(mockBreaker3)
-    );
+    (uint256 breakerTradingMode2, uint256 breakerLastUpdatedTime2, bool breakerEnabled2) = breakerBox
+      .rateFeedBreakerStatus(rateFeedID3, address(mockBreaker3));
     uint256 tradingMode2 = breakerBox.getRateFeedTradingMode(rateFeedID3);
     assertEq(breakerTradingMode2, 0);
     assertEq(breakerLastUpdatedTime2, 1672527605);
@@ -638,10 +577,8 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     mockBreaker3.setReset(false);
     breakerBox.checkAndSetBreakers(rateFeedID3);
 
-    (uint256 breakerTradingMode3, uint256 breakerLastUpdatedTime3, bool breakerEnabled3) = breakerBox.breakerStatus(
-      rateFeedID3,
-      address(mockBreaker3)
-    );
+    (uint256 breakerTradingMode3, uint256 breakerLastUpdatedTime3, bool breakerEnabled3) = breakerBox
+      .rateFeedBreakerStatus(rateFeedID3, address(mockBreaker3));
     uint256 tradingMode3 = breakerBox.getRateFeedTradingMode(rateFeedID3);
     assertEq(breakerTradingMode3, 2);
     assertEq(breakerLastUpdatedTime3, 1672527610);

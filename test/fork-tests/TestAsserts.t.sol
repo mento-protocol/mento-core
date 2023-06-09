@@ -49,11 +49,7 @@ contract TestAsserts is Test {
     FixidityLib.Fraction memory amountOut = ctx.swapIn(from, to, sellAmount).toUnitsFixed(to);
     FixidityLib.Fraction memory expectedAmountOut = amountIn.divide(rate);
 
-    assertApproxEqAbs(
-      amountOut.unwrap(),
-      expectedAmountOut.unwrap(),
-      pc10.multiply(expectedAmountOut).unwrap()
-    );
+    assertApproxEqAbs(amountOut.unwrap(), expectedAmountOut.unwrap(), pc10.multiply(expectedAmountOut).unwrap());
   }
 
   function assert_swapOut(
@@ -67,11 +63,7 @@ contract TestAsserts is Test {
     FixidityLib.Fraction memory amountIn = ctx.swapOut(from, to, buyAmount).toUnitsFixed(from);
     FixidityLib.Fraction memory expectedAmountIn = amountOut.multiply(rate);
 
-    assertApproxEqAbs(
-      amountIn.unwrap(),
-      expectedAmountIn.unwrap(),
-      pc10.multiply(expectedAmountIn).unwrap()
-    );
+    assertApproxEqAbs(amountIn.unwrap(), expectedAmountIn.unwrap(), pc10.multiply(expectedAmountIn).unwrap());
   }
 
   function assert_swapInFails(
@@ -115,17 +107,11 @@ contract TestAsserts is Test {
     TradingLimits.Config memory limitConfigFrom = ctx.tradingLimitsConfig(from);
     TradingLimits.Config memory limitConfigTo = ctx.tradingLimitsConfig(to);
     console.log(
-      string(abi.encodePacked(
-        "Swapping ", 
-        IERC20Metadata(from).symbol(), 
-        " -> ", 
-        IERC20Metadata(to).symbol()
-      )),
+      string(abi.encodePacked("Swapping ", IERC20Metadata(from).symbol(), " -> ", IERC20Metadata(to).symbol())),
       "with limit",
       limit.limitString()
     );
     console.log("========================================");
-
 
     // Always only one limit on a pair
     if (limitConfigFrom.isLimitEnabled(limit)) {
@@ -561,7 +547,7 @@ contract TestAsserts is Test {
       uint256 cooldown = 0;
       for (uint256 i = 0; i < _breakers.length; i++) {
         if (ctx.breakerBox.isBreakerEnabled(_breakers[i], rateFeedID)) {
-          (uint256 _tradingMode, , ) = ctx.breakerBox.breakerStatus(rateFeedID, _breakers[i]);
+          (uint256 _tradingMode, , ) = ctx.breakerBox.rateFeedBreakerStatus(rateFeedID, _breakers[i]);
           if (_tradingMode != 0) {
             uint256 _cooldown = WithCooldown(_breakers[i]).getCooldown(rateFeedID);
             if (_cooldown > cooldown) {
@@ -587,7 +573,7 @@ contract TestAsserts is Test {
     address[] memory _breakers = ctx.breakerBox.getBreakers();
     for (uint256 i = 0; i < _breakers.length; i++) {
       if (ctx.breakerBox.isBreakerEnabled(_breakers[i], rateFeedID)) {
-        (uint256 _tradingMode, , ) = ctx.breakerBox.breakerStatus(rateFeedID, _breakers[i]);
+        (uint256 _tradingMode, , ) = ctx.breakerBox.rateFeedBreakerStatus(rateFeedID, _breakers[i]);
         if (_tradingMode == tradingMode) {
           breaker = _breakers[i];
         }

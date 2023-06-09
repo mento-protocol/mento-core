@@ -9,9 +9,15 @@ interface IBreakerBox {
   /**
    * @dev Used to track additional info about
    *      the current trading mode a specific breaker of a rate feed ID is in.
-   *      TradingMode is used to determine if a breaker is tripped.
-   *      LastUpdatedTime helps to check cooldown.
-   *      Enabled is used to enable/disable breaker for a rate feed.
+   *      TradingMode: is used to determine a rate feeds trading mode,
+   *      by applying a logical OR to all breakers TradingMode of rate feed.
+   *      Possible values:
+   *        0: bidirectional trading.
+   *        1: inflow only.
+   *        2: outflow only.
+   *        3: trading halted
+   *      LastUpdatedTime: helps to check cooldown.
+   *      Enabled: is used to enable/disable breaker for a rate feed.
    */
   struct BreakerStatus {
     uint8 tradingMode;
