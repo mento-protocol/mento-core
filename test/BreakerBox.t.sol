@@ -185,6 +185,26 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     breakerBox.removeBreaker(address(mockBreaker2));
   }
 
+  function test_removeBreaker_whenmultipleBreakers_shouldUpdateArray() public {
+    breakerBox.addBreaker(address(mockBreaker2), 2);
+    breakerBox.addBreaker(address(mockBreaker3), 3);
+    breakerBox.addBreaker(address(mockBreaker4), 4);
+
+    address[] memory allBreakers = breakerBox.getBreakers();
+    assertEq(allBreakers.length, 4);
+    assertEq(allBreakers[0], address(mockBreaker1));
+    assertEq(allBreakers[1], address(mockBreaker2));
+    assertEq(allBreakers[2], address(mockBreaker3));
+    assertEq(allBreakers[3], address(mockBreaker4));
+
+    breakerBox.removeBreaker(address(mockBreaker2));
+    allBreakers = breakerBox.getBreakers();
+    assertEq(allBreakers.length, 3);
+    assertEq(allBreakers[0], address(mockBreaker1));
+    assertEq(allBreakers[1], address(mockBreaker4));
+    assertEq(allBreakers[2], address(mockBreaker3));
+  }
+
   function test_removeBreaker_shouldUpdateStorageAndEmit() public {
     vm.warp(1672527600); // 2023-01-01 00:00:00
     setupBreakerAndRateFeed(mockBreaker2, 2, 10, false, true, rateFeedID3);

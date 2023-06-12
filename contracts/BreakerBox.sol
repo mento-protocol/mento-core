@@ -124,7 +124,6 @@ contract BreakerBox is IBreakerBox, Ownable {
     require(rateFeedStatus[rateFeedID], "This rate feed has not been added to the BreakerBox");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
-    rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled = enable;
     if (enable) {
       rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled = enable;
     } else {
@@ -142,11 +141,9 @@ contract BreakerBox is IBreakerBox, Ownable {
    */
   function calculateTradingMode(address rateFeedId) internal view returns (uint8) {
     uint8 tradingMode = 0;
-    BreakerStatus memory _breakerStatus;
     for (uint256 i = 0; i < breakers.length; i++) {
-      _breakerStatus = rateFeedBreakerStatus[rateFeedId][breakers[i]];
-      if (_breakerStatus.enabled) {
-        tradingMode = tradingMode | _breakerStatus.tradingMode;
+      if (rateFeedBreakerStatus[rateFeedId][breakers[i]].enabled) {
+        tradingMode = tradingMode | rateFeedBreakerStatus[rateFeedId][breakers[i]].tradingMode;
       }
     }
     return tradingMode;
@@ -299,7 +296,8 @@ contract BreakerBox is IBreakerBox, Ownable {
   function updateBreaker(address rateFeedID, address breaker) internal returns (uint8) {
     if (rateFeedBreakerStatus[rateFeedID][breaker].tradingMode != 0) {
       return tryResetBreaker(rateFeedID, breaker);
-    } else return checkBreaker(rateFeedID, breaker);
+    }
+    return checkBreaker(rateFeedID, breaker);
   }
 
   /**
@@ -311,13 +309,19 @@ contract BreakerBox is IBreakerBox, Ownable {
     BreakerStatus memory _breakerStatus = rateFeedBreakerStatus[rateFeedID][_breaker];
     IBreaker breaker = IBreaker(_breaker);
     uint256 cooldown = breaker.getCooldown(rateFeedID);
-    if ((cooldown > 0) && (cooldown.add(_breakerStatus.lastUpdatedTime) <= block.timestamp)) {
+
+    // If the cooldown == 0, then a manual reset is required.
+    if ((cooldown > 0) && (now >= cooldown.add(_breakerStatus.lastUpdatedTime))) {
       if (breaker.shouldReset(rateFeedID)) {
         rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = 0;
         rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp);
         emit ResetSuccessful(rateFeedID, _breaker);
-      } else emit ResetAttemptCriteriaFail(rateFeedID, _breaker);
-    } else emit ResetAttemptNotCool(rateFeedID, _breaker);
+      } else {
+        emit ResetAttemptCriteriaFail(rateFeedID, _breaker);
+      }
+    } else {
+      emit ResetAttemptNotCool(rateFeedID, _breaker);
+    }
     return rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode;
   }
 
