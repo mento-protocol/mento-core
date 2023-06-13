@@ -20,17 +20,24 @@ contract BreakerBox is IBreakerBox, Ownable {
   using SafeMath for uint256;
 
   /* ==================== State Variables ==================== */
+
   address[] public rateFeedIDs;
+
   // Maps a rate feed to a boolean indicating whether it has been added to the BreakerBox.
   mapping(address => bool) public rateFeedStatus;
+
   // Maps a rate feed to it's breakers and their breaker status. (rateFeedID => (breaker => BreakerStatus)
   mapping(address => mapping(address => BreakerStatus)) public rateFeedBreakerStatus;
+
   // Maps a rate feed to the associated trading mode.
   mapping(address => uint8) public rateFeedTradingMode;
+
   // Maps a breaker to the associated trading mode it should activate when triggered.
   mapping(address => uint8) public breakerTradingMode;
+
   // list of breakers to be checked.
   address[] public breakers;
+
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
 
@@ -53,6 +60,7 @@ contract BreakerBox is IBreakerBox, Ownable {
   }
 
   /* ==================== Mutative Functions ==================== */
+
   /**
    * @notice Sets the address of the sortedOracles contract.
    * @param _sortedOracles The new address of the sorted oracles contract.
