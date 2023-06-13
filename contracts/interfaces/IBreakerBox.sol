@@ -7,17 +7,32 @@ pragma solidity ^0.5.13;
  */
 interface IBreakerBox {
   /**
-   * @dev Used to track additional info about
-   *      the current trading mode a specific breaker of a rate feed ID is in.
-   *      TradingMode: is used to determine a rate feeds trading mode,
-   *      by applying a logical OR to all breakers TradingMode of rate feed.
-   *      Possible values:
-   *        0: bidirectional trading.
-   *        1: inflow only.
-   *        2: outflow only.
-   *        3: trading halted
-   *      LastUpdatedTime: helps to check cooldown.
-   *      Enabled: is used to enable/disable breaker for a rate feed.
+   * @dev Used to keep track of the status of a breaker for a specific rate feed.
+   *
+   * - TradingMode: Represents the trading mode the breaker is in for a rate feed.
+   *                This uses a bitmask approach, meaning each bit represents a
+   *                different trading mode. The final trading mode of the rate feed
+   *                is obtained by applying a logical OR operation to the TradingMode
+   *                of all breakers associated with that rate feed. This allows multiple
+   *                breakers to contribute to the final trading mode simultaneously.
+   *                Possible values:
+   *                0: bidirectional trading.
+   *                1: inflow only.
+   *                2: outflow only.
+   *                3: trading halted
+   *
+   * - LastUpdatedTime: Records the last time the breaker status was updated. This is
+   *                    used to manage cooldown periods before the breaker can be reset.
+   *
+   * - Enabled:     Indicates whether the breaker is enabled for the associated rate feed.
+   */
+
+  /**
+   * @dev Used to keep track of the status of a breaker for a specific rate feed.
+   *
+   * tradingMode: Represents the trading mode that the breaker is in for the rate feed.
+   *              This is a bitmask, and multiple breakers contribute
+   *              to the final trading mode of the rate feed.
    */
   struct BreakerStatus {
     uint8 tradingMode;
