@@ -538,7 +538,7 @@ contract TestAsserts is Test {
     newMedian = currentRate.add(currentRate.div(1000)); // +0.1%
     ctx.updateOracleMedianRate(newMedian);
 
-    uint256 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    uint8 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
     while (tradingMode != 0) {
       // while the breaker is active, we wait for the cooldown and try to update the median
       console.log(block.timestamp, "Waiting for cooldown to pass");
@@ -547,7 +547,7 @@ contract TestAsserts is Test {
       uint256 cooldown = 0;
       for (uint256 i = 0; i < _breakers.length; i++) {
         if (ctx.breakerBox.isBreakerEnabled(_breakers[i], rateFeedID)) {
-          (uint256 _tradingMode, , ) = ctx.breakerBox.rateFeedBreakerStatus(rateFeedID, _breakers[i]);
+          (uint8 _tradingMode, , ) = ctx.breakerBox.rateFeedBreakerStatus(rateFeedID, _breakers[i]);
           if (_tradingMode != 0) {
             uint256 _cooldown = WithCooldown(_breakers[i]).getCooldown(rateFeedID);
             if (_cooldown > cooldown) {
@@ -557,13 +557,13 @@ contract TestAsserts is Test {
         }
       }
       skip(cooldown);
-      newMedian = newMedianToResetBreaker(ctx, uint64(tradingMode));
+      newMedian = newMedianToResetBreaker(ctx, tradingMode);
       ctx.updateOracleMedianRate(newMedian);
       tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
     }
   }
 
-  function newMedianToResetBreaker(Utils.Context memory ctx, uint64 tradingMode)
+  function newMedianToResetBreaker(Utils.Context memory ctx, uint8 tradingMode)
     internal
     view
     returns (uint256 newMedian)
