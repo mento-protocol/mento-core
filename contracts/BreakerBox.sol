@@ -35,7 +35,7 @@ contract BreakerBox is IBreakerBox, Ownable {
   // Maps a breaker to the associated trading mode it should activate when triggered.
   mapping(address => uint8) public breakerTradingMode;
 
-  // list of breakers to be checked.
+  // List of breakers to be checked.
   address[] public breakers;
 
   // Address of the Mento SortedOracles contract
