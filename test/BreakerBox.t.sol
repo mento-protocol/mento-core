@@ -292,7 +292,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   function test_addRateFeed_whenRateFeedExistsInOracleList_shouldSetDefaultModeAndEmit() public {
     sortedOracles.addOracle(rateFeedID3, actor("oracleAddress"));
 
-    uint256 tradingModeBefore = breakerBox.getRateFeedTradingMode(rateFeedID3);
+    uint256 tradingModeBefore = breakerBox.rateFeedTradingMode(rateFeedID3);
     assertEq(tradingModeBefore, 0);
     assertFalse(isRateFeed(rateFeedID3));
     assertFalse(breakerBox.rateFeedStatus(rateFeedID3));
@@ -305,6 +305,35 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assertEq(tradingModeAfter, 0);
     assertTrue(isRateFeed(rateFeedID3));
     assertTrue(breakerBox.rateFeedStatus(rateFeedID3));
+  }
+
+  function test_setRateFeedDependencies_whenNotOwner_shouldRevert() public {
+    address[] memory testRateFeedIDs = new address[](2);
+    testRateFeedIDs[0] = rateFeedID2;
+    testRateFeedIDs[1] = rateFeedID3;
+
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    breakerBox.setRateFeedDependencies(rateFeedID1, testRateFeedIDs);
+  }
+
+  function test_setRateFeedDependencies_whenRateFeedHasNotBeenAdded_shouldRevert() public {
+    address[] memory testRateFeedIDs = new address[](2);
+    testRateFeedIDs[0] = rateFeedID2;
+    testRateFeedIDs[1] = rateFeedID3;
+
+    vm.expectRevert("Rate feed ID does not exist");
+    breakerBox.setRateFeedDependencies(actor("notRateFeed"), testRateFeedIDs);
+  }
+
+  function test_setRateFeedDependencies_whenRateFeedsExists_shouldUpdateDependencies() public {
+    address[] memory testRateFeedIDs = new address[](2);
+    testRateFeedIDs[0] = rateFeedID2;
+    testRateFeedIDs[1] = rateFeedID3;
+
+    breakerBox.setRateFeedDependencies(rateFeedID1, testRateFeedIDs);
+    assertEq(breakerBox.rateFeedDependencies(rateFeedID1, 0), rateFeedID2);
+    assertEq(breakerBox.rateFeedDependencies(rateFeedID1, 1), rateFeedID3);
   }
 
   function test_removeRateFeed_whenNotOwner_shouldRevert() public {
@@ -339,7 +368,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     emit RateFeedRemoved(rateFeedID1);
     breakerBox.removeRateFeed(rateFeedID1);
 
-    uint256 tradingModeAfter = breakerBox.getRateFeedTradingMode(rateFeedID1);
+    uint256 tradingModeAfter = breakerBox.rateFeedTradingMode(rateFeedID1);
     assertEq(tradingModeAfter, 0);
     assertFalse(isRateFeed(rateFeedID1));
     assertFalse(breakerBox.rateFeedStatus(rateFeedID1));
@@ -368,6 +397,36 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 
     uint256 tradingModeAfter = breakerBox.getRateFeedTradingMode(rateFeedID1);
     assertEq(tradingModeAfter, 1);
+  }
+
+  function test_getRateFeedTradingMode_whenRateFeedHasNotBeenAdded_shouldRevert() public {
+    vm.expectRevert("Rate feed ID has not been added");
+    breakerBox.getRateFeedTradingMode(actor("notRateFeed"));
+  }
+
+  function test_getRateFeedTradingMode_whenNoDependencies_shouldReturnRateFeedsTradingMode() public {
+    breakerBox.setRateFeedTradingMode(rateFeedID1, 8);
+    uint256 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedID1);
+    assertEq(tradingMode, 8);
+  }
+
+  function test_getRateFeedTradingMode_whenMultipleDependencies_shouldAggregateTradingModes() public {
+    sortedOracles.addOracle(rateFeedID3, actor("oracleClient"));
+    breakerBox.addRateFeed(rateFeedID3);
+    address[] memory testRateFeedIDs = new address[](2);
+    testRateFeedIDs[0] = rateFeedID2;
+    testRateFeedIDs[1] = rateFeedID3;
+    breakerBox.setRateFeedDependencies(rateFeedID1, testRateFeedIDs);
+
+    breakerBox.setRateFeedTradingMode(rateFeedID1, 0);
+    breakerBox.setRateFeedTradingMode(rateFeedID2, 1);
+    breakerBox.setRateFeedTradingMode(rateFeedID3, 2);
+    assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 3);
+
+    breakerBox.setRateFeedTradingMode(rateFeedID1, 1);
+    breakerBox.setRateFeedTradingMode(rateFeedID2, 1);
+    breakerBox.setRateFeedTradingMode(rateFeedID3, 1);
+    assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 1);
   }
 
   /* ---------- Sorted Oracles ---------- */
