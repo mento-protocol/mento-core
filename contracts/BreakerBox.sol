@@ -102,10 +102,9 @@ contract BreakerBox is IBreakerBox, Ownable {
     require(breakers[breakerIndex] == breaker, "Breaker has not been added");
 
     // for each rate feed, if breaker is enabled, disable it by calling toggleBreaker
-    address[] memory activeRateFeeds = rateFeedIDs;
-    for (uint256 i = 0; i < activeRateFeeds.length; i++) {
-      if (rateFeedBreakerStatus[activeRateFeeds[i]][breaker].enabled) {
-        toggleBreaker(breaker, activeRateFeeds[i], false);
+    for (uint256 i = 0; i < rateFeedIDs.length; i++) {
+      if (rateFeedBreakerStatus[rateFeedIDs[i]][breaker].enabled) {
+        toggleBreaker(breaker, rateFeedIDs[i], false);
       }
     }
 
