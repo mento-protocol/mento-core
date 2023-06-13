@@ -108,12 +108,15 @@ contract BreakerBox is IBreakerBox, Ownable {
         toggleBreaker(breaker, activeRateFeeds[i], false);
       }
     }
+
     delete breakerTradingMode[breaker];
+
     uint256 lastIndex = breakers.length.sub(1);
     if (breakerIndex != lastIndex) {
       breakers[breakerIndex] = breakers[lastIndex];
     }
     breakers.pop();
+
     emit BreakerRemoved(breaker);
   }
 
@@ -201,9 +204,11 @@ contract BreakerBox is IBreakerBox, Ownable {
       rateFeedIDs[rateFeedIndex] = rateFeedIDs[lastIndex];
     }
     rateFeedIDs.pop();
+
     delete rateFeedTradingMode[rateFeedID];
     deleteBreakerStatus(rateFeedID);
     rateFeedStatus[rateFeedID] = false;
+
     emit RateFeedRemoved(rateFeedID);
   }
 
