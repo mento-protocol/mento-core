@@ -123,7 +123,7 @@ contract BreakerBoxTest is Test, WithRegistry {
 }
 
 contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
-  /* ---------- Initilizer ---------- */
+  /* ---------- Constructor ---------- */
 
   function test_constructor_shouldSetOwner() public {
     assertEq(breakerBox.owner(), deployer);

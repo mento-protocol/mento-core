@@ -144,8 +144,8 @@ contract BreakerBox is IBreakerBox, Ownable {
   }
 
   /**
-   * @dev This function calculates the trading mode for a given rate feed.
-   *      This is done by applying a logical OR on the trading modes of all enabled breakers.
+   * @dev Calculates the trading mode for a given rate feed by applying
+   *      a logical OR on the trading modes of all enabled breakers.
    * @param rateFeedId The address of the rate feed.
    */
   function calculateTradingMode(address rateFeedId) internal view returns (uint8) {
@@ -183,8 +183,8 @@ contract BreakerBox is IBreakerBox, Ownable {
   }
 
   /**
-   * @notice Removes a rateFeedID from the mapping of monitored rateFeedIDs
-   *          and resets all the BreakerStatus entries for that rateFeed.
+   * @notice Removes a rateFeed from the mapping of monitored rateFeeds
+   *         and resets all the BreakerStatus entries for that rateFeed.
    * @param rateFeedID The address of the rateFeed to be removed.
    */
   function removeRateFeed(address rateFeedID) external onlyOwner {
@@ -211,7 +211,7 @@ contract BreakerBox is IBreakerBox, Ownable {
   }
 
   /**
-   * @notice Sets the trading mode for the specified rateFeedID.
+   * @notice Sets the trading mode for the specified rateFeed.
    * @param rateFeedID The address of the rateFeed.
    * @param tradingMode The trading mode that should be set.
    */
@@ -268,7 +268,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param rateFeedID The address of the rateFeed to retrieve the trading mode for.
    */
   function getRateFeedTradingMode(address rateFeedID) external view returns (uint8 tradingMode) {
-    return (rateFeedTradingMode[rateFeedID]);
+    return rateFeedTradingMode[rateFeedID];
   }
 
   /**
@@ -322,7 +322,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     uint256 cooldown = breaker.getCooldown(rateFeedID);
 
     // If the cooldown == 0, then a manual reset is required.
-    if ((cooldown > 0) && (now >= cooldown.add(_breakerStatus.lastUpdatedTime))) {
+    if ((cooldown > 0) && (block.timestamp >= cooldown.add(_breakerStatus.lastUpdatedTime))) {
       if (breaker.shouldReset(rateFeedID)) {
         rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = 0;
         rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp);

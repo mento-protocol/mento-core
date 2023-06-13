@@ -19,7 +19,7 @@ interface IBreakerBox {
    *                0: bidirectional trading.
    *                1: inflow only.
    *                2: outflow only.
-   *                3: trading halted
+   *                3: trading halted.
    *
    * - LastUpdatedTime: Records the last time the breaker status was updated. This is
    *                    used to manage cooldown periods before the breaker can be reset.
