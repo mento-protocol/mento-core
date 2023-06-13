@@ -20,17 +20,23 @@ contract MockBreaker {
     return cooldown;
   }
 
-  function setCooldown(uint256) external {}
+  function setCooldown(uint256 _cooldown) external {
+    cooldown = _cooldown;
+  }
 
   function shouldTrigger(address) external view returns (bool) {
     return trigger;
   }
 
-  function setTrigger(bool) external {}
+  function setTrigger(bool _trigger) external {
+    trigger = _trigger;
+  }
 
   function shouldReset(address) external view returns (bool) {
     return reset;
   }
 
-  function setReset(bool) external {}
+  function setReset(bool _reset) external {
+    reset = _reset;
+  }
 }

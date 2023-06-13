@@ -7,15 +7,37 @@ pragma solidity ^0.5.13;
  */
 interface IBreakerBox {
   /**
-   * @dev Used to track additional info about
-   *      the current trading mode a specific rate feed ID is in.
-   *      LastUpdatedTime helps to check cooldown.
-   *      LastUpdatedBlock helps to determine if check should be executed.
+   * @dev Used to keep track of the status of a breaker for a specific rate feed.
+   *
+   * - TradingMode: Represents the trading mode the breaker is in for a rate feed.
+   *                This uses a bitmask approach, meaning each bit represents a
+   *                different trading mode. The final trading mode of the rate feed
+   *                is obtained by applying a logical OR operation to the TradingMode
+   *                of all breakers associated with that rate feed. This allows multiple
+   *                breakers to contribute to the final trading mode simultaneously.
+   *                Possible values:
+   *                0: bidirectional trading.
+   *                1: inflow only.
+   *                2: outflow only.
+   *                3: trading halted.
+   *
+   * - LastUpdatedTime: Records the last time the breaker status was updated. This is
+   *                    used to manage cooldown periods before the breaker can be reset.
+   *
+   * - Enabled:     Indicates whether the breaker is enabled for the associated rate feed.
    */
-  struct TradingModeInfo {
-    uint64 tradingMode;
+
+  /**
+   * @dev Used to keep track of the status of a breaker for a specific rate feed.
+   *
+   * tradingMode: Represents the trading mode that the breaker is in for the rate feed.
+   *              This is a bitmask, and multiple breakers contribute
+   *              to the final trading mode of the rate feed.
+   */
+  struct BreakerStatus {
+    uint8 tradingMode;
     uint64 lastUpdatedTime;
-    uint128 lastUpdatedBlock;
+    bool enabled;
   }
 
   /**
@@ -115,5 +137,5 @@ interface IBreakerBox {
    * @notice Gets the trading mode for the specified rateFeedID.
    * @param rateFeedID The address of the rateFeedID to retrieve the trading mode for.
    */
-  function getRateFeedTradingMode(address rateFeedID) external view returns (uint256 tradingMode);
+  function getRateFeedTradingMode(address rateFeedID) external view returns (uint8 tradingMode);
 }

@@ -148,11 +148,6 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     biPoolManager.initialize(address(broker), reserve, sortedOracles, breakerBox);
   }
 
-  function test_breakerBoxCanNotBeReinitialized() public {
-    vm.expectRevert("contract already initialized");
-    breakerBox.initialize(new address[](0), sortedOracles);
-  }
-
   function test_brokerCanNotBeReinitialized() public {
     vm.expectRevert("contract already initialized");
     broker.initialize(new address[](0), address(reserve));

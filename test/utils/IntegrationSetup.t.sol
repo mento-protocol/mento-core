@@ -234,8 +234,7 @@ contract IntegrationSetup is Test, WithRegistry {
     rateFeedIDs[3] = cEUR_bridgedUSDC_referenceRateFeedID;
     rateFeedIDs[4] = cUSD_cEUR_referenceRateFeedID;
 
-    breakerBox = new BreakerBox(true);
-    breakerBox.initialize(rateFeedIDs, ISortedOracles(address(sortedOracles)));
+    breakerBox = new BreakerBox(rateFeedIDs, ISortedOracles(address(sortedOracles)));
 
     /* ========== Deploy Median Delta Breaker =============== */
 
