@@ -317,7 +317,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     breakerBox.setRateFeedDependencies(actor("notRateFeed"), testRateFeedIDs);
   }
 
-  function test_setRateFeedDependencies_whenRateFeedsExists_shouldUpdateDependencies() public {
+  function test_setRateFeedDependencies_whenRateFeedExists_shouldUpdateDependencies() public {
     address[] memory testRateFeedIDs = new address[](2);
     testRateFeedIDs[0] = rateFeedID2;
     testRateFeedIDs[1] = rateFeedID3;
