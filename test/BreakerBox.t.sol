@@ -412,12 +412,12 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     breakerBox.setRateFeedTradingMode(rateFeedID1, 0);
     breakerBox.setRateFeedTradingMode(rateFeedID2, 1);
     breakerBox.setRateFeedTradingMode(rateFeedID3, 2);
-    assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 3);
+    assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), (0 | 1 | 2));
 
     breakerBox.setRateFeedTradingMode(rateFeedID1, 1);
     breakerBox.setRateFeedTradingMode(rateFeedID2, 1);
     breakerBox.setRateFeedTradingMode(rateFeedID3, 1);
-    assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 1);
+    assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), (1 | 1 | 1));
   }
 
   /* ---------- Sorted Oracles ---------- */
@@ -433,7 +433,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     breakerBox.setSortedOracles(ISortedOracles(address(0)));
   }
 
-  function test_setSortedOracles_oracleAddressValid_shouldUpdateAndEmit() public {
+  function test_setSortedOracles_whenValidOracle_shouldUpdateAndEmit() public {
     address newSortedOracles = actor("newSortedOracles");
     vm.expectEmit(true, true, true, true);
     emit SortedOraclesUpdated(newSortedOracles);
