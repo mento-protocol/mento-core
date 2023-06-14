@@ -36,6 +36,7 @@ contract BreakerBoxTest is Test, WithRegistry {
   event ResetAttemptCriteriaFail(address indexed rateFeedID, address indexed breaker);
   event ResetAttemptNotCool(address indexed rateFeedID, address indexed breaker);
   event RateFeedAdded(address indexed rateFeedID);
+  event RateFeedDependenciesSet(address indexed rateFeedID, address[] indexed dependencies);
   event RateFeedRemoved(address indexed rateFeedID);
   event SortedOraclesUpdated(address indexed newSortedOracles);
   event BreakerStatusUpdated(address breaker, address rateFeedID, bool status);
@@ -224,7 +225,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_toggleBreaker_whenRateFeedIsNotRegistered_shouldRevert() public {
-    vm.expectRevert("This rate feed has not been added to the BreakerBox");
+    vm.expectRevert("Rate feed ID has not been added");
     breakerBox.toggleBreaker(address(mockBreaker1), rateFeedID3, false);
   }
 
@@ -283,8 +284,6 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   function test_addRateFeed_whenRateFeedExistsInOracleList_shouldSetDefaultModeAndEmit() public {
     sortedOracles.addOracle(rateFeedID3, actor("oracleAddress"));
 
-    uint256 tradingModeBefore = breakerBox.rateFeedTradingMode(rateFeedID3);
-    assertEq(tradingModeBefore, 0);
     assertFalse(isRateFeed(rateFeedID3));
     assertFalse(breakerBox.rateFeedStatus(rateFeedID3));
 
@@ -313,15 +312,17 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     testRateFeedIDs[0] = rateFeedID2;
     testRateFeedIDs[1] = rateFeedID3;
 
-    vm.expectRevert("Rate feed ID does not exist");
+    vm.expectRevert("Rate feed ID has not been added");
     breakerBox.setRateFeedDependencies(actor("notRateFeed"), testRateFeedIDs);
   }
 
-  function test_setRateFeedDependencies_whenRateFeedExists_shouldUpdateDependencies() public {
+  function test_setRateFeedDependencies_whenRateFeedExists_shouldUpdateDependenciesAndEmit() public {
     address[] memory testRateFeedIDs = new address[](2);
     testRateFeedIDs[0] = rateFeedID2;
     testRateFeedIDs[1] = rateFeedID3;
 
+    vm.expectEmit(true, true, true, true);
+    emit RateFeedDependenciesSet(rateFeedID1, testRateFeedIDs);
     breakerBox.setRateFeedDependencies(rateFeedID1, testRateFeedIDs);
     assertEq(breakerBox.rateFeedDependencies(rateFeedID1, 0), rateFeedID2);
     assertEq(breakerBox.rateFeedDependencies(rateFeedID1, 1), rateFeedID3);

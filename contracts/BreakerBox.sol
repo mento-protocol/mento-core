@@ -26,13 +26,13 @@ contract BreakerBox is IBreakerBox, Ownable {
   // Maps a rate feed to a boolean indicating whether it has been added to the BreakerBox.
   mapping(address => bool) public rateFeedStatus;
 
-  // Maps a rate feed to it's breakers and their breaker status. (rateFeedID => (breaker => BreakerStatus)
+  // Maps a rate feed to its breakers and their breaker status. (rateFeedID => (breaker => BreakerStatus)
   mapping(address => mapping(address => BreakerStatus)) public rateFeedBreakerStatus;
 
   // Maps a rate feed to the associated trading mode.
   mapping(address => uint8) public rateFeedTradingMode;
 
-  // Maps a rate feed to it's dependent rate feeds.
+  // Maps a rate feed to its dependent rate feeds.
   mapping(address => address[]) public rateFeedDependencies;
 
   // Maps a breaker to the associated trading mode it should activate when triggered.
@@ -133,7 +133,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     address rateFeedID,
     bool enable
   ) public onlyOwner {
-    require(rateFeedStatus[rateFeedID], "This rate feed has not been added to the BreakerBox");
+    require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
     if (enable) {
@@ -191,8 +191,9 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param dependencies The array of dependent rate feeds.
    */
   function setRateFeedDependencies(address rateFeedID, address[] memory dependencies) public onlyOwner {
-    require(rateFeedStatus[rateFeedID], "Rate feed ID does not exist");
+    require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
     rateFeedDependencies[rateFeedID] = dependencies;
+    emit RateFeedDependenciesSet(rateFeedID, dependencies);
   }
 
   /**

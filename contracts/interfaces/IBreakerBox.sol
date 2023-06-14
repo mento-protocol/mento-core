@@ -42,39 +42,46 @@ interface IBreakerBox {
 
   /**
    * @notice Emitted when a new breaker is added to the breaker box.
-   * @param breaker The address of the new breaker.
+   * @param breaker The address of the breaker.
    */
   event BreakerAdded(address indexed breaker);
 
   /**
    * @notice Emitted when a breaker is removed from the breaker box.
-   * @param breaker The address of the breaker that was removed.
+   * @param breaker The address of the breaker.
    */
   event BreakerRemoved(address indexed breaker);
 
   /**
    * @notice Emitted when a breaker is tripped by a rate feed.
-   * @param breaker The address of the breaker that was tripped.
+   * @param breaker The address of the breaker.
    * @param rateFeedID The address of the rate feed.
    */
   event BreakerTripped(address indexed breaker, address indexed rateFeedID);
 
   /**
    * @notice Emitted when a new rate feed is added to the breaker box.
-   * @param rateFeedID The address of the rate feed that was added.
+   * @param rateFeedID The address of the rate feed.
    */
   event RateFeedAdded(address indexed rateFeedID);
 
   /**
+   * @notice Emitted when dependencies for a rate feed are set.
+   * @param rateFeedID The address of the rate feed.
+   * @param dependencies The addresses of the dependendent rate feeds.
+   */
+  event RateFeedDependenciesSet(address indexed rateFeedID, address[] indexed dependencies);
+
+  /**
    * @notice Emitted when a rate feed is removed from the breaker box.
-   * @param rateFeedID The rate feed that was removed.
+   * @param rateFeedID The address of the rate feed.
    */
   event RateFeedRemoved(address indexed rateFeedID);
 
   /**
    * @notice Emitted when the trading mode for a rate feed is updated
-   * @param rateFeedID The address of the rataFeedID.
-   * @param tradingMode The new trading mode of the rate feed.
+   * @param rateFeedID The address of the rate feed.
+   * @param tradingMode The new trading mode.
    */
   event TradingModeUpdated(address indexed rateFeedID, uint256 tradingMode);
 
@@ -115,7 +122,7 @@ interface IBreakerBox {
   event BreakerStatusUpdated(address breaker, address rateFeedID, bool status);
 
   /**
-   * @notice Retrives an ordered array of all breaker addresses.
+   * @notice Retrives an array of all breaker addresses.
    */
   function getBreakers() external view returns (address[] memory);
 
@@ -129,13 +136,13 @@ interface IBreakerBox {
   /**
    * @notice Checks breakers for the rateFeedID and sets correct trading mode
    * if any breakers are tripped or need to be reset.
-   * @param rateFeedID The registryId of the rateFeedID to run checks for.
+   * @param rateFeedID The address of the rate feed to run checks for.
    */
   function checkAndSetBreakers(address rateFeedID) external;
 
   /**
    * @notice Gets the trading mode for the specified rateFeedID.
-   * @param rateFeedID The address of the rateFeedID to retrieve the trading mode for.
+   * @param rateFeedID The address of the rate feed to retrieve the trading mode for.
    */
   function getRateFeedTradingMode(address rateFeedID) external view returns (uint8 tradingMode);
 }
