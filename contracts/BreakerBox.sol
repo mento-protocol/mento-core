@@ -26,11 +26,14 @@ contract BreakerBox is IBreakerBox, Ownable {
   // Maps a rate feed to a boolean indicating whether it has been added to the BreakerBox.
   mapping(address => bool) public rateFeedStatus;
 
-  // Maps a rate feed to it's breakers and their breaker status. (rateFeedID => (breaker => BreakerStatus)
+  // Maps a rate feed to its breakers and their breaker status. (rateFeedID => (breaker => BreakerStatus)
   mapping(address => mapping(address => BreakerStatus)) public rateFeedBreakerStatus;
 
   // Maps a rate feed to the associated trading mode.
   mapping(address => uint8) public rateFeedTradingMode;
+
+  // Maps a rate feed to its dependent rate feeds.
+  mapping(address => address[]) public rateFeedDependencies;
 
   // Maps a breaker to the associated trading mode it should activate when triggered.
   mapping(address => uint8) public breakerTradingMode;
@@ -130,7 +133,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     address rateFeedID,
     bool enable
   ) public onlyOwner {
-    require(rateFeedStatus[rateFeedID], "This rate feed has not been added to the BreakerBox");
+    require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
     if (enable) {
@@ -180,6 +183,17 @@ contract BreakerBox is IBreakerBox, Ownable {
     for (uint256 i = 0; i < newRateFeedIDs.length; i++) {
       addRateFeed(newRateFeedIDs[i]);
     }
+  }
+
+  /**
+   * @notice Sets dependent rate feeds for a given rate feed.
+   * @param rateFeedID The address of the rate feed.
+   * @param dependencies The array of dependent rate feeds.
+   */
+  function setRateFeedDependencies(address rateFeedID, address[] memory dependencies) public onlyOwner {
+    require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
+    rateFeedDependencies[rateFeedID] = dependencies;
+    emit RateFeedDependenciesSet(rateFeedID, dependencies);
   }
 
   /**
@@ -267,8 +281,13 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @notice Returns the trading mode for the specified rateFeedID.
    * @param rateFeedID The address of the rateFeed to retrieve the trading mode for.
    */
-  function getRateFeedTradingMode(address rateFeedID) external view returns (uint8 tradingMode) {
-    return rateFeedTradingMode[rateFeedID];
+  function getRateFeedTradingMode(address rateFeedID) external view returns (uint8) {
+    require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
+    uint8 tradingMode = rateFeedTradingMode[rateFeedID];
+    for (uint256 i = 0; i < rateFeedDependencies[rateFeedID].length; i++) {
+      tradingMode = tradingMode | rateFeedTradingMode[rateFeedDependencies[rateFeedID][i]];
+    }
+    return tradingMode;
   }
 
   /**
