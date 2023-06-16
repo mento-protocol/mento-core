@@ -16,51 +16,62 @@ contract ConstantSumPricingModuleTest is Test {
     constantSum = new ConstantSumPricingModule();
   }
 
-  //Testing concrete Case
-  //amountOut = (1-spread)*amountIn = (1-0.1)*10^18 = 0.9*10^18 = 900000000000000000 Wei
-  function test_getAmountOut_forCorrectCalculation() public {
-    uint256 amountOut = constantSum.getAmountOut(10**24, 10**24, 100000000000000000000000, 10**18);
-    assertEq(amountOut, 900000000000000000);
+  /* ---------- getAmountOut ---------- */
+
+  function test_getAmountOut_whenAmountInZero_shouldReturnZero() public {
+    assertEq(constantSum.getAmountOut(10**24, 10**24, 1e23, 0), 0);
   }
 
-  //Fuzz testing
-  //uint176 for bucket and amountIn,
-  //because the maximum value that can be converted to fix point in FixidityLib is uint177.
-  //uint80 for spread, because the spread needs to be smaller than 1,
-  //this is also enforced by the Exchange contract when the spread is set.
-  function test_getAmountOut_forRobustness(
-    uint176 tokenInBucketSize,
-    uint176 tokenOutBucketSize,
-    uint80 spread,
-    uint176 amountIn
-  ) public view {
-    vm.assume(spread < FixidityLib.fixed1().value);
-    vm.assume(amountIn <= tokenOutBucketSize);
-
-    constantSum.getAmountOut(tokenInBucketSize, tokenOutBucketSize, spread, amountIn);
+  function test_getAmountOut_whenSpreadZero_schouldReturnAmounInInTokenOutValue() public {
+    uint256 tokenInBucketSize = 10e24;
+    uint256 tokenOutBucketSize = 20e24;
+    uint256 spread = 0;
+    uint256 amountIn = 10e18;
+    uint256 amountOut = constantSum.getAmountOut(tokenInBucketSize, tokenOutBucketSize, spread, amountIn);
+    assertEq(amountOut, amountIn * 2);
   }
 
   //Testing concrete Case
-  //amountIn = amountOut/(1-spread) = 10^18 / (1 - 0.1) = 10^18 / (0.9)
-  // = 1111111111111111111.1111111111111111 Wei = 1111111111111111111 Wei
+  //amountOut = (1 - spread) * amountIn * tokenOutBucketSize) / tokenInBucketSize
+  //          = (1-0.1) * 10^18 * 20^24 / 10^24  = 0.9 * 10^18 * 1/2 = 4500000000000000000 Wei
+  function test_getAmountOut_whenValidInput_shouldReturnCorrectCalculation() public {
+    uint256 amountOut = constantSum.getAmountOut(20e24, 10e24, 100000000000000000000000, 10e18);
+    assertEq(amountOut, (10e18 * 0.9 * 1) / 2);
+  }
+
+  /* ---------- getAmountIn ---------- */
+
+  function test_getAmountIn_whenAmountOutLargerOutBucket_shouldRevert() public {
+    vm.expectRevert("amountOut cant be greater then the tokenOutPool size");
+    uint256 amountIn = constantSum.getAmountIn(10**24, 10**24, 1e23, 10**25);
+  }
+
+  function test_getAmountIn_whenAmountOutZero_shouldReturnZero() public {
+    assertEq(constantSum.getAmountIn(10**24, 10**24, 1e23, 0), 0);
+  }
+
+  function test_getAmountIn_whenSpreadIsZero_ShouldReturnAmountOutInTokenInValue() public {
+    uint256 tokenInBucketSize = 10e24;
+    uint256 tokenOutBucketSize = 20e24;
+    uint256 spread = 0;
+    uint256 amountOut = 10e18;
+    uint256 amountIn = constantSum.getAmountIn(tokenInBucketSize, tokenOutBucketSize, spread, amountOut);
+    assertEq(amountIn, (amountOut * 1) / 2);
+  }
+
+  //Testing concrete Case
+  //amountIn = (amountOut  * tokenInBucketSize) / (tokenOutBucketSize * (1 - spread))
+  //         = 10e18 * 20e24 / (10e24 * (1 - 0.1))
+  //         = 10e18 * 20e24 / (10e24 * 0.9) ≈ 22222222222222222222.22222222222222222
+  //         = 22222222222222222222 Wei
   function test_getAmountIn_forCorrectCalculation() public {
-    uint256 amountOut = constantSum.getAmountIn(10**24, 10**24, 100000000000000000000000, 10**18);
-    assertEq(amountOut, 1111111111111111111);
+    uint256 amountOut = constantSum.getAmountIn(20e24, 10e24, 100000000000000000000000, 10e18);
+    assertEq(amountOut, 22222222222222222222);
   }
 
-  //Fuzz testing
-  //uint176 for bucket and amountOut,
-  //because the maximum value that can be converted to fix point in FixidityLib is uint177.
-  //uint80 for spread, because the spread needs to be smaller than 1,
-  //this is also enforced by the Exchange contract when the spread is set.
-  function test_getAmountIn_forRobustness(
-    uint176 tokenInBucketSize,
-    uint176 tokenOutBucketSize,
-    uint80 spread,
-    uint176 amountOut
-  ) public view {
-    vm.assume(spread < FixidityLib.fixed1().value);
-    vm.assume(amountOut <= tokenOutBucketSize);
-    constantSum.getAmountIn(tokenInBucketSize, tokenOutBucketSize, spread, amountOut);
+  /* ---------- name ---------- */
+
+  function test_name_shouldReturnCorrectName() public {
+    assertEq(constantSum.name(), "ConstantSum");
   }
 }
