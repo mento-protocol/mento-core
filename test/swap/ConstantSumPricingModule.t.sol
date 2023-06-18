@@ -19,10 +19,15 @@ contract ConstantSumPricingModuleTest is Test {
   /* ---------- getAmountOut ---------- */
 
   function test_getAmountOut_whenAmountInZero_shouldReturnZero() public {
-    assertEq(constantSum.getAmountOut(10**24, 10**24, 1e23, 0), 0);
+    assertEq(constantSum.getAmountOut(10e24, 10e24, 1e23, 0), 0);
   }
 
-  function test_getAmountOut_whenSpreadZero_schouldReturnAmounInInTokenOutValue() public {
+  function test_getAmountOut_whenAmountOutLargerOutBucket_shouldRevert() public {
+    vm.expectRevert("amountOut cant be greater then tokenOutBucketSize");
+    uint256 amountOut = constantSum.getAmountOut(10e24, 10e24, 1e23, 10e25);
+  }
+
+  function test_getAmountOut_whenSpreadZero_shouldReturnAmounInInTokenOutValue() public {
     uint256 tokenInBucketSize = 10e24;
     uint256 tokenOutBucketSize = 20e24;
     uint256 spread = 0;
@@ -33,24 +38,24 @@ contract ConstantSumPricingModuleTest is Test {
 
   //Testing concrete Case
   //amountOut = (1 - spread) * amountIn * tokenOutBucketSize) / tokenInBucketSize
-  //          = (1-0.1) * 10^18 * 20^24 / 10^24  = 0.9 * 10^18 * 1/2 = 4500000000000000000 Wei
+  //          = (1-0.1) * 10e18 * 10e24 / 20e24  = 0.9 * 10e18 * 1/2 = 4500000000000000000 Wei
   function test_getAmountOut_whenValidInput_shouldReturnCorrectCalculation() public {
-    uint256 amountOut = constantSum.getAmountOut(20e24, 10e24, 100000000000000000000000, 10e18);
-    assertEq(amountOut, (10e18 * 0.9 * 1) / 2);
+    uint256 amountOut = constantSum.getAmountOut(20e24, 10e24, 1e23, 10e18);
+    assertEq(amountOut, 4500000000000000000);
   }
 
   /* ---------- getAmountIn ---------- */
 
   function test_getAmountIn_whenAmountOutLargerOutBucket_shouldRevert() public {
-    vm.expectRevert("amountOut cant be greater then the tokenOutPool size");
-    uint256 amountIn = constantSum.getAmountIn(10**24, 10**24, 1e23, 10**25);
+    vm.expectRevert("amountOut cant be greater then tokenOutBucketSize");
+    uint256 amountIn = constantSum.getAmountIn(10e24, 10e24, 1e23, 10e25);
   }
 
   function test_getAmountIn_whenAmountOutZero_shouldReturnZero() public {
-    assertEq(constantSum.getAmountIn(10**24, 10**24, 1e23, 0), 0);
+    assertEq(constantSum.getAmountIn(10e24, 10e24, 1e23, 0), 0);
   }
 
-  function test_getAmountIn_whenSpreadIsZero_ShouldReturnAmountOutInTokenInValue() public {
+  function test_getAmountIn_whenSpreadIsZero_shouldReturnAmountOutInTokenInValue() public {
     uint256 tokenInBucketSize = 10e24;
     uint256 tokenOutBucketSize = 20e24;
     uint256 spread = 0;
@@ -65,7 +70,7 @@ contract ConstantSumPricingModuleTest is Test {
   //         = 10e18 * 20e24 / (10e24 * 0.9) ≈ 22222222222222222222.22222222222222222
   //         = 22222222222222222222 Wei
   function test_getAmountIn_forCorrectCalculation() public {
-    uint256 amountOut = constantSum.getAmountIn(20e24, 10e24, 100000000000000000000000, 10e18);
+    uint256 amountOut = constantSum.getAmountIn(20e24, 10e24, 1e23, 10e18);
     assertEq(amountOut, 22222222222222222222);
   }
 
