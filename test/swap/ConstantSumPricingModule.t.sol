@@ -69,7 +69,7 @@ contract ConstantSumPricingModuleTest is Test {
   //         = 10e18 * 20e24 / (10e24 * (1 - 0.1))
   //         = 10e18 * 20e24 / (10e24 * 0.9) ≈ 22222222222222222222.22222222222222222
   //         = 22222222222222222222 Wei
-  function test_getAmountIn_forCorrectCalculation() public {
+  function test_getAmountIn_whenValidInput_shouldReturnCorrectCalculation() public {
     uint256 amountOut = constantSum.getAmountIn(20e24, 10e24, 1e23, 10e18);
     assertEq(amountOut, 22222222222222222222);
   }
