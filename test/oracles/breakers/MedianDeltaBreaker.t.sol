@@ -14,7 +14,6 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
 import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
 
-
 contract MedianDeltaBreakerTest is BaseTest {
   address notDeployer;
 

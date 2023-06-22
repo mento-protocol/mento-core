@@ -50,7 +50,11 @@ contract StableTokenV2Test is BaseTest {
     token.initializeV2(broker, validators, exchange);
   }
 
-  function mintAndAssert(address minter, address to, uint256 value) public {
+  function mintAndAssert(
+    address minter,
+    address to,
+    uint256 value
+  ) public {
     uint256 balanceBefore = token.balanceOf(to);
     vm.prank(minter);
     token.mint(to, value);

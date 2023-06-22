@@ -92,11 +92,7 @@ contract ExchangeTest is BaseTest, TokenHelpers {
       initialBalances,
       "Exchange"
     );
-    stableToken.initializeV2(
-      address(0),
-      address(0),
-      address(exchange)
-    );
+    stableToken.initializeV2(address(0), address(0), address(exchange));
 
     sortedOracles.setMedianRate(address(stableToken), stableAmountForRate);
     sortedOracles.setMedianTimestampToNow(address(stableToken));
@@ -384,7 +380,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
   }
 
   function approveAndSell(
-    uint256 amount, 
+    uint256 amount,
     bool sellCelo,
     uint256 updatedCeloBucket,
     uint256 updatedStableBucket
@@ -582,7 +578,7 @@ contract ExchangeTest_buy is ExchangeTest_stableActivated {
   }
 
   function approveAndBuy(
-    uint256 amount, 
+    uint256 amount,
     bool buyCelo,
     uint256 updatedCeloBucket,
     uint256 updateStableBucket

@@ -125,7 +125,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
 
   function test_swapIn_cUSDToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k (18 decimals)
-    IERC20 tokenIn = IERC20(address(cUSDToken)); 
+    IERC20 tokenIn = IERC20(address(cUSDToken));
     IERC20 tokenOut = usdcToken;
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
 

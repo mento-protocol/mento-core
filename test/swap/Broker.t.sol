@@ -11,7 +11,6 @@ import { MockExchangeProvider } from "../mocks/MockExchangeProvider.sol";
 import { MockReserve } from "../mocks/MockReserve.sol";
 import { DummyERC20 } from "../utils/DummyErc20.sol";
 
-
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";

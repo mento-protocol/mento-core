@@ -11,7 +11,6 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { WithCooldown } from "./WithCooldown.sol";
 import { WithThreshold } from "./WithThreshold.sol";
 
-
 /**
  * @title   Value Delta Breaker
  * @notice  Breaker contract that will trigger when the current oracle median rate change

@@ -46,7 +46,6 @@ contract IntegrationTest is BaseTest {
 
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
 
-
   mapping(address => uint256) oracleCounts;
 
   Broker broker;
@@ -112,11 +111,7 @@ contract IntegrationTest is BaseTest {
       initialBalances,
       "Exchange"
     );
-    cUSDToken.initializeV2(
-      address(broker),
-      address(0x0),
-      address(0x0)
-    );
+    cUSDToken.initializeV2(address(broker), address(0x0), address(0x0));
 
     cEURToken = IStableTokenV2(factory.create("StableTokenV2", abi.encode(false)));
     cEURToken.initialize(
@@ -130,11 +125,7 @@ contract IntegrationTest is BaseTest {
       initialBalances,
       "Exchange"
     );
-    cEURToken.initializeV2(
-      address(broker),
-      address(0x0),
-      address(0x0)
-    );
+    cEURToken.initializeV2(address(broker), address(0x0), address(0x0));
 
     vm.label(address(cUSDToken), "cUSD");
     vm.label(address(cEURToken), "cEUR");

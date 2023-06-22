@@ -21,7 +21,6 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
 
-
 // forge test --match-contract BiPoolManager -vvv
 contract BiPoolManagerTest is Test {
   using FixidityLib for FixidityLib.Fraction;

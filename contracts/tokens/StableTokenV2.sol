@@ -22,12 +22,9 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2 {
    * @dev Restricts a function so it can only be executed by an address that's allowed to mint.
    * Currently that's the broker, validators, or exchange.
    */
-  modifier onlyMinter {
+  modifier onlyMinter() {
     address sender = _msgSender();
-    require(
-      sender == broker || sender == validators || sender == exchange,
-      "StableTokenV2: not allowed to mint"
-    );
+    require(sender == broker || sender == validators || sender == exchange, "StableTokenV2: not allowed to mint");
     _;
   }
 
@@ -35,12 +32,9 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2 {
    * @dev Restricts a function so it can only be executed by an address that's allowed to burn.
    * Currently that's the broker or exchange.
    */
-  modifier onlyBurner {
+  modifier onlyBurner() {
     address sender = _msgSender();
-    require(
-      sender == broker || sender == exchange,
-      "StableTokenV2: not allowed to burn"
-    );
+    require(sender == broker || sender == exchange, "StableTokenV2: not allowed to burn");
     _;
   }
 
@@ -205,7 +199,11 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2 {
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function transferFrom(address from, address to, uint256 amount) public override(ERC20Upgradeable, IStableTokenV2) returns (bool) {
+  function transferFrom(
+    address from,
+    address to,
+    uint256 amount
+  ) public override(ERC20Upgradeable, IStableTokenV2) returns (bool) {
     return ERC20Upgradeable.transferFrom(from, to, amount);
   }
 
@@ -225,7 +223,12 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2 {
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function allowance(address owner, address spender) public view override(ERC20Upgradeable, IStableTokenV2) returns (uint256) {
+  function allowance(address owner, address spender)
+    public
+    view
+    override(ERC20Upgradeable, IStableTokenV2)
+    returns (uint256)
+  {
     return ERC20Upgradeable.allowance(owner, spender);
   }
 
