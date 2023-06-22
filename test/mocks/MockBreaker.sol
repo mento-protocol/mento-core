@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.5.13;
 
-contract MockBreaker {
+import { IBreaker } from "../../contracts/interfaces/IBreaker.sol";
+
+contract MockBreaker is IBreaker {
   uint256 public cooldown;
   bool public trigger;
   bool public reset;
@@ -24,7 +26,7 @@ contract MockBreaker {
     cooldown = _cooldown;
   }
 
-  function shouldTrigger(address) external view returns (bool) {
+  function shouldTrigger(address) external returns (bool) {
     return trigger;
   }
 
@@ -32,7 +34,7 @@ contract MockBreaker {
     trigger = _trigger;
   }
 
-  function shouldReset(address) external view returns (bool) {
+  function shouldReset(address) external returns (bool) {
     return reset;
   }
 
