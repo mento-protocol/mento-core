@@ -193,7 +193,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param rateFeedID The address of the rate feed.
    * @param dependencies The array of dependent rate feeds.
    */
-  function setRateFeedDependencies(address rateFeedID, address[] memory dependencies) public onlyOwner {
+  function setRateFeedDependencies(address rateFeedID, address[] calldata dependencies) external onlyOwner {
     require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
     rateFeedDependencies[rateFeedID] = dependencies;
     emit RateFeedDependenciesSet(rateFeedID, dependencies);
