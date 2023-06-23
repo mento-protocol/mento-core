@@ -49,6 +49,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   // same precision when calculating vAMM bucket sizes.
   mapping(address => uint256) public tokenPrecisionMultipliers;
 
+  bytes32 public constant CONSTANT_SUM = keccak256(abi.encodePacked("CONSTANT_SUM"));
+  bytes32 public constant CONSTANT_PRODUCT = keccak256(abi.encodePacked("CONSTANT_PRODUCT"));
+
   /* ==================== Constructor ==================== */
 
   /**
@@ -475,19 +478,32 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @return shouldUpdate
    */
   function shouldUpdateBuckets(PoolExchange memory exchange) internal view returns (bool) {
+    bool hasUsableMedian = oracleHasUsableMedian(exchange);
     if (exchange.config.referenceRateResetFrequency == 0) {
+      require(hasUsableMedian, "no usable median");
       return true;
+    } else {
+      // solhint-disable-next-line not-rely-on-time
+      bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
+      // solhint-disable-next-line not-rely-on-time
+      return timePassed && hasUsableMedian;
     }
+  }
 
-    (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
+  function oracleHasUsableMedian(PoolExchange memory exchange) internal view returns (bool) {
     // solhint-disable-next-line not-rely-on-time
-    bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
+    (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
     bool enoughReports = (sortedOracles.numRates(exchange.config.referenceRateFeedID) >=
       exchange.config.minimumReports);
-    // solhint-disable-next-line not-rely-on-time
+
+    uint256 recentWindowSize = exchange.config.referenceRateResetFrequency;
+    if (recentWindowSize == 0) {
+      recentWindowSize = 300;
+    }
+
     bool medianReportRecent = sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID) >
-      now.sub(exchange.config.referenceRateResetFrequency);
-    return timePassed && enoughReports && medianReportRecent && !isReportExpired;
+      now.sub(recentWindowSize);
+    return !isReportExpired && enoughReports && medianReportRecent;
   }
 
   /**
