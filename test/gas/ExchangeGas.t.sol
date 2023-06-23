@@ -5,10 +5,10 @@ pragma experimental ABIEncoderV2;
 
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
-import { StableToken } from "contracts/StableToken.sol";
-import { StableTokenEUR } from "contracts/StableTokenEUR.sol";
+import { StableToken } from "contracts/legacy/StableToken.sol";
+import { StableTokenEUR } from "contracts/legacy/StableTokenEUR.sol";
 import { GoldToken } from "contracts/common/GoldToken.sol";
-import { IExchange } from "contracts/interfaces/IExchange.sol";
+import { IExchange } from "contracts/legacy/interfaces/IExchange.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 

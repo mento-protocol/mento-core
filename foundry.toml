@@ -3,15 +3,15 @@ src = "contracts"
 out = "out"
 test = "test"
 libs = ["lib"]
-auto_detect_solc = false
+auto_detect_solc = true
 bytecode_hash = "none"
 fuzz_runs = 256
 gas_reports = ["*"]
 optimizer = true
 optimizer_runs = 10_000
-solc = "0.5.17"
 legacy = true
 no_match_contract = "ForkTest"
+via_ir = true
 
 [profile.ci]
 fuzz_runs = 1_000

@@ -3,9 +3,10 @@ pragma solidity ^0.5.13;
 
 import "celo-foundry/Test.sol";
 
-import "contracts/StableToken.sol";
+import "contracts/legacy/StableToken.sol";
 import "contracts/common/GoldToken.sol";
 import "contracts/common/interfaces/IRegistry.sol";
+import "contracts/interfaces/IStableTokenV2.sol";
 
 contract TokenHelpers is Test {
   address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
@@ -51,6 +52,17 @@ contract TokenHelpers is Test {
   ) internal {
     address pranker = currentPrank;
     changePrank(stableToken.registry().getAddressForString("GrandaMento"));
+    stableToken.mint(to, amount);
+    changePrank(pranker);
+  }
+
+  function mint(
+    IStableTokenV2 stableToken,
+    address to,
+    uint256 amount
+  ) internal {
+    address pranker = currentPrank;
+    changePrank(stableToken.broker());
     stableToken.mint(to, amount);
     changePrank(pranker);
   }

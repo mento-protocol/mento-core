@@ -2,7 +2,7 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { TradingLimits } from "../common/TradingLimits.sol";
+import { TradingLimits } from "../libraries/TradingLimits.sol";
 
 /*
  * @title Broker Interface for trader functions

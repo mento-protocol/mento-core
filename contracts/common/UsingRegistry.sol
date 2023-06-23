@@ -7,10 +7,10 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IFreezer.sol";
 import "./interfaces/IRegistry.sol";
 
-import "../interfaces/IExchange.sol";
+import "../legacy/interfaces/IExchange.sol";
+import "../legacy/interfaces/IStableToken.sol";
 import "../interfaces/IReserve.sol";
 import "../interfaces/ISortedOracles.sol";
-import "../interfaces/IStableToken.sol";
 
 contract UsingRegistry is Ownable {
   event RegistrySet(address indexed registryAddress);

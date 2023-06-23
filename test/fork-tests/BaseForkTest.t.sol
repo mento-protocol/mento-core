@@ -21,15 +21,13 @@ import { IERC20Metadata } from "contracts/common/interfaces/IERC20Metadata.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { Proxy } from "contracts/common/Proxy.sol";
 
-import { StableToken } from "contracts/StableToken.sol";
-import { StableTokenEUR } from "contracts/StableTokenEUR.sol";
-import { StableTokenBRL } from "contracts/StableTokenBRL.sol";
-import { Broker } from "contracts/Broker.sol";
-import { BreakerBox } from "contracts/BreakerBox.sol";
-import { SortedOracles } from "contracts/SortedOracles.sol";
-import { Reserve } from "contracts/Reserve.sol";
-import { BiPoolManager } from "contracts/BiPoolManager.sol";
-import { TradingLimits } from "contracts/common/TradingLimits.sol";
+import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
+import { Broker } from "contracts/swap/Broker.sol";
+import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
+import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
+import { Reserve } from "contracts/swap/Reserve.sol";
+import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
+import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 
@@ -176,9 +174,9 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   }
 
   function test_stableTokensCanNotBeReinitialized() public {
-    StableToken stableToken = StableToken(registry.getAddressForStringOrDie("StableToken"));
-    StableTokenEUR stableTokenEUR = StableTokenEUR(registry.getAddressForStringOrDie("StableTokenEUR"));
-    StableTokenEUR stableTokenBRL = StableTokenEUR(registry.getAddressForStringOrDie("StableTokenBRL"));
+    IStableTokenV2 stableToken = IStableTokenV2(registry.getAddressForStringOrDie("StableToken"));
+    IStableTokenV2 stableTokenEUR = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenEUR"));
+    IStableTokenV2 stableTokenBRL = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenBRL"));
 
     vm.expectRevert("contract already initialized");
     stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");

@@ -6,24 +6,23 @@ pragma experimental ABIEncoderV2;
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import { IntegrationSetup } from "../utils/IntegrationSetup.t.sol";
+import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
 import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
 
-import { Broker } from "contracts/Broker.sol";
+import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
-import { IStableToken } from "contracts/interfaces/IStableToken.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
 // forge test --match-contract BrokerIntegration -vvv
-contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
+contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
   address trader;
 
   function setUp() public {
-    setUp_mcMint();
+    IntegrationTest.setUp();
 
     trader = actor("trader");
 
@@ -126,7 +125,7 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
 
   function test_swapIn_cUSDToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k (18 decimals)
-    IERC20 tokenIn = cUSDToken;
+    IERC20 tokenIn = IERC20(address(cUSDToken));
     IERC20 tokenOut = usdcToken;
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
 
@@ -160,7 +159,7 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
 
   function test_swapIn_cEURToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k
-    IERC20 tokenIn = cEURToken;
+    IERC20 tokenIn = IERC20(address(cEURToken));
     IERC20 tokenOut = usdcToken;
     bytes32 poolId = pair_cEUR_bridgedUSDC_ID;
 
@@ -193,8 +192,8 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
 
   function test_swapIn_cEURTocUSD() public {
     uint256 amountIn = 1000 * 10**18; // 1k
-    IERC20 tokenIn = cEURToken;
-    IERC20 tokenOut = cUSDToken;
+    IERC20 tokenIn = IERC20(address(cEURToken));
+    IERC20 tokenOut = IERC20(address(cUSDToken));
     bytes32 poolId = pair_cUSD_cEUR_ID;
 
     // Get amounts before swap
@@ -228,8 +227,8 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
 
   function test_swapIn_cUSDTocEUR() public {
     uint256 amountIn = 1000 * 10**18; // 1k
-    IERC20 tokenIn = cUSDToken;
-    IERC20 tokenOut = cEURToken;
+    IERC20 tokenIn = IERC20(address(cUSDToken));
+    IERC20 tokenOut = IERC20(address(cEURToken));
     bytes32 poolId = pair_cUSD_cEUR_ID;
 
     // Get amounts before swap
@@ -264,7 +263,7 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
   function test_swapIn_CELOTocEUR() public {
     uint256 amountIn = 1000 * 10**18; // 1k
     IERC20 tokenIn = celoToken;
-    IERC20 tokenOut = cEURToken;
+    IERC20 tokenOut = IERC20(address(cEURToken));
     bytes32 poolId = pair_cEUR_CELO_ID;
 
     // Get amounts before swap
@@ -299,7 +298,7 @@ contract BrokerIntegrationTest is IntegrationSetup, TokenHelpers {
   function test_swapIn_CELOTocUSD() public {
     uint256 amountIn = 1000 * 10**18; // 1k
     IERC20 tokenIn = celoToken;
-    IERC20 tokenOut = cUSDToken;
+    IERC20 tokenOut = IERC20(address(cUSDToken));
     bytes32 poolId = pair_cUSD_CELO_ID;
 
     // Get amounts before swap
