@@ -475,6 +475,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @return shouldUpdate
    */
   function shouldUpdateBuckets(PoolExchange memory exchange) internal view returns (bool) {
+    if (exchange.config.referenceRateResetFrequency == 0) {
+      return true;
+    }
+
     (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
     // solhint-disable-next-line not-rely-on-time
     bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);

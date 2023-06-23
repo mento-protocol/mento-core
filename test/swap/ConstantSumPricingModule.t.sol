@@ -23,7 +23,7 @@ contract ConstantSumPricingModuleTest is Test {
   }
 
   function test_getAmountOut_whenAmountOutLargerOutBucket_shouldRevert() public {
-    vm.expectRevert("amountOut cant be greater then tokenOutBucketSize");
+    vm.expectRevert("amountOut cant be greater than tokenOutBucketSize");
     constantSum.getAmountOut(10e24, 10e24, 1e23, 10e25);
   }
 
@@ -47,7 +47,7 @@ contract ConstantSumPricingModuleTest is Test {
   /* ---------- getAmountIn ---------- */
 
   function test_getAmountIn_whenAmountOutLargerOutBucket_shouldRevert() public {
-    vm.expectRevert("amountOut cant be greater then tokenOutBucketSize");
+    vm.expectRevert("amountOut cant be greater than tokenOutBucketSize");
     constantSum.getAmountIn(10e24, 10e24, 1e23, 10e25);
   }
 
