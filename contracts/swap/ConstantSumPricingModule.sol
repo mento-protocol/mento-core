@@ -51,10 +51,10 @@ contract ConstantSumPricingModule is IPricingModule {
   /**
    * @notice Calculates the amount of tokens that should be provided in order to receive the desired amount out.
    * @dev amountIn = (amountOut  * tokenInBucketSize) / (tokenOutBucketSize * (1 - spread))
-   * @param tokenInBucketSize The bucket size of the token swapt in.
-   * @param tokenOutBucketSize The bucket size of the token swapt out.
+   * @param tokenInBucketSize The bucket size of the token swapped in.
+   * @param tokenOutBucketSize The bucket size of the token swapped out.
    * @param spread The spread that is applied to a swap.
-   * @param amountOut The amount of tokens in wei that should be swapt out.
+   * @param amountOut The amount of tokens in wei that should be swapped out.
    * @return amountIn The amount of tokens in wei that should be provided.
    */
   function getAmountIn(
