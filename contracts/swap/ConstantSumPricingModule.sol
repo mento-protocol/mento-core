@@ -31,7 +31,7 @@ contract ConstantSumPricingModule is IPricingModule {
     uint256 tokenOutBucketSize,
     uint256 spread,
     uint256 amountIn
-  ) external view returns (uint256) {
+  ) external view returns (uint256 amountOut) {
     if (amountIn == 0) return 0;
 
     FixidityLib.Fraction memory spreadFraction = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
@@ -43,8 +43,8 @@ contract ConstantSumPricingModule is IPricingModule {
     // than maxFixedDivisor.
     // Fortunately, we expect an integer result, so integer division gives us as
     // much precision as we could hope for.
-    uint256 amountOut = numerator.unwrap().div(denominator.unwrap());
-    require(amountOut <= tokenOutBucketSize, "amountOut cant be greater then tokenOutBucketSize");
+    amountOut = numerator.unwrap().div(denominator.unwrap());
+    require(amountOut <= tokenOutBucketSize, "amountOut cant be greater than tokenOutBucketSize");
     return amountOut;
   }
 
@@ -63,7 +63,7 @@ contract ConstantSumPricingModule is IPricingModule {
     uint256 spread,
     uint256 amountOut
   ) external view returns (uint256 amountIn) {
-    require(amountOut <= tokenOutBucketSize, "amountOut cant be greater then tokenOutBucketSize");
+    require(amountOut <= tokenOutBucketSize, "amountOut cant be greater than tokenOutBucketSize");
     if (amountOut == 0) return 0;
 
     FixidityLib.Fraction memory spreadFraction = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
