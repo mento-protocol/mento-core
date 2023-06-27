@@ -184,6 +184,32 @@ contract BiPoolManagerTest is Test {
     return biPoolManager.createExchange(exchange);
   }
 
+  function createExchange(
+    MockERC20 asset0,
+    MockERC20 asset1,
+    IPricingModule pricingModule,
+    address referenceRateFeedID,
+    FixidityLib.Fraction memory spread,
+    uint256 stablePoolResetSize,
+    uint256 minimumReports
+  ) internal returns (bytes32 exchangeId) {
+    BiPoolManager.PoolExchange memory exchange;
+    exchange.asset0 = address(asset0);
+    exchange.asset1 = address(asset1);
+    exchange.pricingModule = pricingModule;
+
+    BiPoolManager.PoolConfig memory config;
+    config.referenceRateFeedID = referenceRateFeedID;
+    config.stablePoolResetSize = stablePoolResetSize;
+    config.referenceRateResetFrequency = 60 * 5; // 5 minutes
+    config.minimumReports = minimumReports;
+    config.spread = spread;
+
+    exchange.config = config;
+
+    return biPoolManager.createExchange(exchange);
+  }
+
   function mockGetAmountIn(IPricingModule pricingModule, uint256 result) internal {
     MockPricingModule(address(pricingModule)).mockNextGetAmountIn(result);
   }
@@ -483,13 +509,15 @@ contract BiPoolManagerTest_withExchange is BiPoolManagerTest {
     address USDUSDC_rateFeedID = address(uint160(uint256(keccak256(abi.encodePacked("USDUSDC")))));
 
     mockOracleRate(USDUSDC_rateFeedID, 1e24);
+    sortedOracles.setMedianTimestampToNow(USDUSDC_rateFeedID);
     exchangeId_cUSD_bridgedUSDC = createExchange(
       cUSD,
       bridgedUSDC,
       constantSum,
       USDUSDC_rateFeedID,
       FixidityLib.wrap(0.1 * 1e24), // spread
-      1e24 // stablePoolResetSize
+      1e24, // stablePoolResetSize
+      0 // minimumReports
     );
   }
 }

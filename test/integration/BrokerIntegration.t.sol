@@ -157,25 +157,6 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(StableAssetSupplyBefore - amountIn, StableAssetSupplyAfter);
   }
 
-  function test_swapIn_cUSDToBridgedUSDC_alwaysUpdatesBucketsWhenConstantSum() public {
-    uint256 amount = 100 * 10**18; // 100 (18 decimals)
-
-    changePrank(trader);
-    IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
-
-    vm.expectEmit(false, false, false, false);
-    emit BucketsUpdated(pair_cUSD_bridgedUSDC_ID, 0, 0);
-    broker.swapIn(address(biPoolManager), pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), amount, 0);
-
-    vm.expectEmit(false, false, false, false);
-    emit BucketsUpdated(pair_cUSD_bridgedUSDC_ID, 0, 0);
-    broker.swapIn(address(biPoolManager), pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), amount, 0);
-
-    vm.expectEmit(false, false, false, false);
-    emit BucketsUpdated(pair_cUSD_bridgedUSDC_ID, 0, 0);
-    broker.swapIn(address(biPoolManager), pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), amount, 0);
-  }
-
   function test_swapIn_cEURToBridgedUSDC() public {
     uint256 amountIn = 1000 * 10**18; // 1k
     IERC20 tokenIn = IERC20(address(cEURToken));

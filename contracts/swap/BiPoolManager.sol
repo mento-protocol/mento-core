@@ -16,6 +16,8 @@ import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 import { Initializable } from "../common/Initializable.sol";
 import { FixidityLib } from "../common/FixidityLib.sol";
 
+import { console2 as console } from "celo-foundry/Test.sol";
+
 /**
  * @title BiPoolExchangeManager
  * @notice An exchange manager that manages asset exchanges consisting of two assets
@@ -49,8 +51,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   // same precision when calculating vAMM bucket sizes.
   mapping(address => uint256) public tokenPrecisionMultipliers;
 
-  bytes32 public constant CONSTANT_SUM = keccak256(abi.encodePacked("CONSTANT_SUM"));
-  bytes32 public constant CONSTANT_PRODUCT = keccak256(abi.encodePacked("CONSTANT_PRODUCT"));
+  bytes32 public constant CONSTANT_SUM = keccak256(abi.encodePacked("ConstantSum"));
+  bytes32 public constant CONSTANT_PRODUCT = keccak256(abi.encodePacked("ConstantProduct"));
 
   /* ==================== Constructor ==================== */
 
@@ -351,12 +353,14 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
       emit BucketsUpdated(exchangeId, exchange.bucket0, exchange.bucket1);
     }
 
-    if (tokenIn == exchange.asset0) {
-      exchanges[exchangeId].bucket0 = exchange.bucket0.add(amountIn);
-      exchanges[exchangeId].bucket1 = exchange.bucket1.sub(amountOut);
-    } else {
-      exchanges[exchangeId].bucket0 = exchange.bucket0.sub(amountOut);
-      exchanges[exchangeId].bucket1 = exchange.bucket1.add(amountIn);
+    if (keccak256(abi.encodePacked(exchange.pricingModule.name())) == CONSTANT_PRODUCT) {
+      if (tokenIn == exchange.asset0) {
+        exchanges[exchangeId].bucket0 = exchange.bucket0.add(amountIn);
+        exchanges[exchangeId].bucket1 = exchange.bucket1.sub(amountOut);
+      } else {
+        exchanges[exchangeId].bucket0 = exchange.bucket0.sub(amountOut);
+        exchanges[exchangeId].bucket1 = exchange.bucket1.add(amountIn);
+      }
     }
   }
 
@@ -479,15 +483,12 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    */
   function shouldUpdateBuckets(PoolExchange memory exchange) internal view returns (bool) {
     bool hasUsableMedian = oracleHasUsableMedian(exchange);
-    if (exchange.config.referenceRateResetFrequency == 0) {
+    if (keccak256(abi.encodePacked(exchange.pricingModule.name())) == CONSTANT_SUM) {
       require(hasUsableMedian, "no usable median");
-      return true;
-    } else {
-      // solhint-disable-next-line not-rely-on-time
-      bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
-      // solhint-disable-next-line not-rely-on-time
-      return timePassed && hasUsableMedian;
     }
+    // solhint-disable-next-line not-rely-on-time
+    bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
+    return timePassed && hasUsableMedian;
   }
 
   function oracleHasUsableMedian(PoolExchange memory exchange) internal view returns (bool) {
@@ -495,14 +496,16 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
     bool enoughReports = (sortedOracles.numRates(exchange.config.referenceRateFeedID) >=
       exchange.config.minimumReports);
-
-    uint256 recentWindowSize = exchange.config.referenceRateResetFrequency;
-    if (recentWindowSize == 0) {
-      recentWindowSize = 300;
-    }
-
+    // solhint-disable-next-line not-rely-on-time
     bool medianReportRecent = sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID) >
-      now.sub(recentWindowSize);
+      now.sub(exchange.config.referenceRateResetFrequency);
+    console.log("isReportExpired: %s", isReportExpired);
+    console.log("enoughReports: %s", enoughReports);
+    console.log("medianReportRecent: %s", medianReportRecent);
+    console.log("medianTimestamp: %s", sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID));
+    console.log("now-ref: %s", now.sub(exchange.config.referenceRateResetFrequency));
+    console.log("now: %s", now);
+    console.log("ref: %s", exchange.config.referenceRateResetFrequency);
     return !isReportExpired && enoughReports && medianReportRecent;
   }
 

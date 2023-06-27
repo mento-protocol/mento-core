@@ -328,7 +328,7 @@ contract IntegrationTest is BaseTest {
     pair_cUSD_bridgedUSDC.pricingModule = constantSum;
     pair_cUSD_bridgedUSDC.lastBucketUpdate = now;
     pair_cUSD_bridgedUSDC.config.spread = FixidityLib.newFixedFraction(5, 1000);
-    pair_cUSD_bridgedUSDC.config.referenceRateResetFrequency = 0;
+    pair_cUSD_bridgedUSDC.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_bridgedUSDC.config.minimumReports = 5;
     pair_cUSD_bridgedUSDC.config.referenceRateFeedID = cUSD_bridgedUSDC_referenceRateFeedID;
     pair_cUSD_bridgedUSDC.config.stablePoolResetSize = 1e24;
@@ -341,7 +341,7 @@ contract IntegrationTest is BaseTest {
     pair_cEUR_bridgedUSDC.pricingModule = constantSum;
     pair_cEUR_bridgedUSDC.lastBucketUpdate = now;
     pair_cEUR_bridgedUSDC.config.spread = FixidityLib.newFixedFraction(5, 100);
-    pair_cEUR_bridgedUSDC.config.referenceRateResetFrequency = 0;
+    pair_cEUR_bridgedUSDC.config.referenceRateResetFrequency = 60 * 5;
     pair_cEUR_bridgedUSDC.config.minimumReports = 5;
     pair_cEUR_bridgedUSDC.config.referenceRateFeedID = cEUR_bridgedUSDC_referenceRateFeedID;
     pair_cEUR_bridgedUSDC.config.stablePoolResetSize = 1e24;
