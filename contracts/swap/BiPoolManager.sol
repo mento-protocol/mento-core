@@ -499,13 +499,6 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     // solhint-disable-next-line not-rely-on-time
     bool medianReportRecent = sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID) >
       now.sub(exchange.config.referenceRateResetFrequency);
-    console.log("isReportExpired: %s", isReportExpired);
-    console.log("enoughReports: %s", enoughReports);
-    console.log("medianReportRecent: %s", medianReportRecent);
-    console.log("medianTimestamp: %s", sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID));
-    console.log("now-ref: %s", now.sub(exchange.config.referenceRateResetFrequency));
-    console.log("now: %s", now);
-    console.log("ref: %s", exchange.config.referenceRateResetFrequency);
     return !isReportExpired && enoughReports && medianReportRecent;
   }
 

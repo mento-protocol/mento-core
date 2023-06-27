@@ -54,7 +54,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
     IERC20(tokenIn).approve(address(broker), amountIn);
 
     // Execute swap
-    actualOut = broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, 1000 * 10**18, 0);
+    actualOut = broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, amountIn, 0);
   }
 
   function test_swap_whenBucketTriggerConditionsAreMet_shouldTriggerBucketUpdate() public {
@@ -155,6 +155,12 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(reserveCollateralBalanceBefore - expectedOut, reserveCollateralBalanceAfter);
     // Stable asset supply decrease from burn
     assertEq(StableAssetSupplyBefore - amountIn, StableAssetSupplyAfter);
+
+    // ensure constantSum prices stay the same in between bucketupdates
+    (expectedOut, actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
+    assertEq(actualOut, 995 * 10**6); // 0.9995k (6 decimals)
+    // getAmountOut == swapOut
+    assertEq(expectedOut, actualOut);
   }
 
   function test_swapIn_cEURToBridgedUSDC() public {
