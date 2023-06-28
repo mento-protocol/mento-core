@@ -3,10 +3,10 @@ pragma solidity ^0.5.13;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
-import { IBreaker } from "contracts/interfaces/IBreaker.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { FixidityLib } from "../../common/FixidityLib.sol";
+import { IBreaker } from "../../interfaces/IBreaker.sol";
+import { ISortedOracles } from "../../interfaces/ISortedOracles.sol";
 
 import { WithCooldown } from "./WithCooldown.sol";
 import { WithThreshold } from "./WithThreshold.sol";
