@@ -2,7 +2,7 @@
 pragma solidity ^0.5.13;
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { FixidityLib } from "contracts/common/FixidityLib.sol";
+import { FixidityLib } from "../../common/FixidityLib.sol";
 
 /**
  * @title   Breaker With Thershold
