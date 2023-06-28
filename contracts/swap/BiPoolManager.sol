@@ -16,8 +16,6 @@ import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 import { Initializable } from "../common/Initializable.sol";
 import { FixidityLib } from "../common/FixidityLib.sol";
 
-import { console2 as console } from "celo-foundry/Test.sol";
-
 /**
  * @title BiPoolExchangeManager
  * @notice An exchange manager that manages asset exchanges consisting of two assets

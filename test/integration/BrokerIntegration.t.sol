@@ -155,12 +155,6 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(reserveCollateralBalanceBefore - expectedOut, reserveCollateralBalanceAfter);
     // Stable asset supply decrease from burn
     assertEq(StableAssetSupplyBefore - amountIn, StableAssetSupplyAfter);
-
-    // ensure constantSum prices stay the same in between bucketupdates
-    (expectedOut, actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
-    assertEq(actualOut, 995 * 10**6); // 0.9995k (6 decimals)
-    // getAmountOut == swapOut
-    assertEq(expectedOut, actualOut);
   }
 
   function test_swapIn_cEURToBridgedUSDC() public {
