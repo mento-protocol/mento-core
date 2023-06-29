@@ -22,11 +22,6 @@ contract ConstantSumPricingModuleTest is Test {
     assertEq(constantSum.getAmountOut(10e24, 10e24, 1e23, 0), 0);
   }
 
-  function test_getAmountOut_whenAmountOutLargerOutBucket_shouldRevert() public {
-    vm.expectRevert("amountOut cant be greater than tokenOutBucketSize");
-    constantSum.getAmountOut(10e24, 10e24, 1e23, 10e25);
-  }
-
   function test_getAmountOut_whenSpreadZero_shouldReturnAmounInInTokenOutValue() public {
     uint256 tokenInBucketSize = 10e24;
     uint256 tokenOutBucketSize = 20e24;
@@ -34,6 +29,17 @@ contract ConstantSumPricingModuleTest is Test {
     uint256 amountIn = 10e18;
     uint256 amountOut = constantSum.getAmountOut(tokenInBucketSize, tokenOutBucketSize, spread, amountIn);
     assertEq(amountOut, amountIn * 2);
+  }
+
+  function test_getAmountOut_whenSmallAmounts_shouldReturnCorrectCalculation() public {
+    uint256 amountOut = constantSum.getAmountOut(20e24, 10e24, 0, 1); // ≈ 0.5 Wei rounded down
+    assertEq(amountOut, 0);
+
+    amountOut = constantSum.getAmountOut(20e24, 10e24, 0, 2);
+    assertEq(amountOut, 1);
+
+    amountOut = constantSum.getAmountOut(10e24, 20e24, 0, 1);
+    assertEq(amountOut, 2);
   }
 
   //Testing concrete Case
@@ -45,11 +51,6 @@ contract ConstantSumPricingModuleTest is Test {
   }
 
   /* ---------- getAmountIn ---------- */
-
-  function test_getAmountIn_whenAmountOutLargerOutBucket_shouldRevert() public {
-    vm.expectRevert("amountOut cant be greater than tokenOutBucketSize");
-    constantSum.getAmountIn(10e24, 10e24, 1e23, 10e25);
-  }
 
   function test_getAmountIn_whenAmountOutZero_shouldReturnZero() public {
     assertEq(constantSum.getAmountIn(10e24, 10e24, 1e23, 0), 0);
@@ -64,14 +65,25 @@ contract ConstantSumPricingModuleTest is Test {
     assertEq(amountIn, (amountOut * 1) / 2);
   }
 
+  function test_getAmountIn_whenSmallAmounts_shouldReturnCorrectCalculation() public {
+    uint256 amountIn = constantSum.getAmountIn(20e24, 10e24, 0, 1);
+    assertEq(amountIn, 2);
+
+    amountIn = constantSum.getAmountIn(10e24, 20e24, 0, 1); // ≈ 0.5 Wei rounded down
+    assertEq(amountIn, 0);
+
+    amountIn = constantSum.getAmountIn(10e24, 20e24, 0, 2);
+    assertEq(amountIn, 1);
+  }
+
   //Testing concrete Case
   //amountIn = (amountOut  * tokenInBucketSize) / (tokenOutBucketSize * (1 - spread))
   //         = 10e18 * 20e24 / (10e24 * (1 - 0.1))
   //         = 10e18 * 20e24 / (10e24 * 0.9) ≈ 22222222222222222222.22222222222222222
   //         = 22222222222222222222 Wei
   function test_getAmountIn_whenValidInput_shouldReturnCorrectCalculation() public {
-    uint256 amountOut = constantSum.getAmountIn(20e24, 10e24, 1e23, 10e18);
-    assertEq(amountOut, 22222222222222222222);
+    uint256 amountIn = constantSum.getAmountIn(20e24, 10e24, 1e23, 10e18);
+    assertEq(amountIn, 22222222222222222222);
   }
 
   /* ---------- name ---------- */

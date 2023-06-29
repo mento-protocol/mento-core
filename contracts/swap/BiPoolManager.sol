@@ -137,23 +137,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountIn
   ) external view returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-    if (tokenIn == exchange.asset0) {
-      (amountOut, ) = _getAmountOut(
-        exchange,
-        tokenIn,
-        tokenOut,
-        amountIn.mul(tokenPrecisionMultipliers[exchange.asset0])
-      );
-      amountOut = amountOut.div(tokenPrecisionMultipliers[exchange.asset1]);
-    } else {
-      (amountOut, ) = _getAmountOut(
-        exchange,
-        tokenIn,
-        tokenOut,
-        amountIn.mul(tokenPrecisionMultipliers[exchange.asset1])
-      );
-      amountOut = amountOut.div(tokenPrecisionMultipliers[exchange.asset0]);
-    }
+    (amountOut, ) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn.mul(tokenPrecisionMultipliers[tokenIn]));
+    return amountOut.div(tokenPrecisionMultipliers[tokenOut]);
   }
 
   /**
@@ -171,23 +156,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountOut
   ) external view returns (uint256 amountIn) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-    if (tokenIn == exchange.asset0) {
-      (amountIn, ) = _getAmountIn(
-        exchange,
-        tokenIn,
-        tokenOut,
-        amountOut.mul(tokenPrecisionMultipliers[exchange.asset1])
-      );
-      amountIn = amountIn.div(tokenPrecisionMultipliers[exchange.asset0]);
-    } else {
-      (amountIn, ) = _getAmountIn(
-        exchange,
-        tokenIn,
-        tokenOut,
-        amountOut.mul(tokenPrecisionMultipliers[exchange.asset0])
-      );
-      amountIn = amountIn.div(tokenPrecisionMultipliers[exchange.asset1]);
-    }
+    (amountIn, ) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut.mul(tokenPrecisionMultipliers[tokenOut]));
+    return amountIn.div(tokenPrecisionMultipliers[tokenIn]);
   }
 
   /* ==================== Mutative Functions ==================== */
@@ -326,17 +296,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     );
     bool bucketsUpdated;
 
-    if (tokenIn == exchange.asset0) {
-      amountIn = amountIn.mul(tokenPrecisionMultipliers[exchange.asset0]);
-      (amountOut, bucketsUpdated) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn);
-      executeSwap(exchangeId, exchange, tokenIn, amountIn, amountOut, bucketsUpdated);
-      amountOut = amountOut.div(tokenPrecisionMultipliers[exchange.asset1]);
-    } else {
-      amountIn = amountIn.mul(tokenPrecisionMultipliers[exchange.asset1]);
-      (amountOut, bucketsUpdated) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn);
-      executeSwap(exchangeId, exchange, tokenIn, amountIn, amountOut, bucketsUpdated);
-      amountOut = amountOut.div(tokenPrecisionMultipliers[exchange.asset0]);
-    }
+    amountIn = amountIn.mul(tokenPrecisionMultipliers[tokenIn]);
+    (amountOut, bucketsUpdated) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn);
+    executeSwap(exchangeId, exchange, tokenIn, amountIn, amountOut, bucketsUpdated);
+    return amountOut.div(tokenPrecisionMultipliers[tokenOut]);
   }
 
   /**
@@ -360,17 +323,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     );
     bool bucketsUpdated;
 
-    if (tokenIn == exchange.asset0) {
-      amountOut = amountOut.mul(tokenPrecisionMultipliers[exchange.asset1]);
-      (amountIn, bucketsUpdated) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);
-      executeSwap(exchangeId, exchange, tokenIn, amountIn, amountOut, bucketsUpdated);
-      amountIn = amountIn.div(tokenPrecisionMultipliers[exchange.asset0]);
-    } else {
-      amountOut = amountOut.mul(tokenPrecisionMultipliers[exchange.asset0]);
-      (amountIn, bucketsUpdated) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);
-      executeSwap(exchangeId, exchange, tokenIn, amountIn, amountOut, bucketsUpdated);
-      amountIn = amountIn.div(tokenPrecisionMultipliers[exchange.asset1]);
-    }
+    amountOut = amountOut.mul(tokenPrecisionMultipliers[tokenOut]);
+    (amountIn, bucketsUpdated) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);
+    executeSwap(exchangeId, exchange, tokenIn, amountIn, amountOut, bucketsUpdated);
+    return amountIn.div(tokenPrecisionMultipliers[tokenIn]);
   }
 
   /* ==================== Private Functions ==================== */
@@ -407,6 +363,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
         exchanges[exchangeId].bucket0 = exchange.bucket0.sub(amountOut);
         exchanges[exchangeId].bucket1 = exchange.bucket1.add(amountIn);
       }
+    } else {
+      exchanges[exchangeId].bucket0 = exchange.bucket0;
+      exchanges[exchangeId].bucket1 = exchange.bucket1;
     }
   }
 
