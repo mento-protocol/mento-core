@@ -545,6 +545,7 @@ contract StableToken is
    * @param feeRecipient Coinbase address
    * @param gatewayFeeRecipient Gateway address
    * @param communityFund Community fund address
+   * @param refund Amount to be refunded by the vm
    * @param tipTxFee Coinbase fee
    * @param baseTxFee Community fund fee
    * @param gatewayFee Gateway fee
