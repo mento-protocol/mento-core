@@ -475,16 +475,21 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @return shouldUpdate
    */
   function shouldUpdateBuckets(PoolExchange memory exchange) internal view returns (bool) {
-    bool hasUsableMedian = oracleHasUsableMedian(exchange);
+    bool hasValidMedian = oracleHasValidMedian(exchange);
     if (keccak256(abi.encodePacked(exchange.pricingModule.name())) == CONSTANT_SUM) {
-      require(hasUsableMedian, "no usable median");
+      require(hasValidMedian, "no valid median");
     }
     // solhint-disable-next-line not-rely-on-time
     bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
-    return timePassed && hasUsableMedian;
+    return timePassed && hasValidMedian;
   }
 
-  function oracleHasUsableMedian(PoolExchange memory exchange) internal view returns (bool) {
+  /**
+   * @notice Determine if the median is valid based on the current oracle rates.
+   * @param exchange The PoolExchange.
+   * @return HasValidMedian.
+   */
+  function oracleHasValidMedian(PoolExchange memory exchange) internal view returns (bool) {
     // solhint-disable-next-line not-rely-on-time
     (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
     bool enoughReports = (sortedOracles.numRates(exchange.config.referenceRateFeedID) >=

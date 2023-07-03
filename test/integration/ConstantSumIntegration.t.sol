@@ -46,7 +46,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     address[] memory exchangeProviders = broker.getExchangeProviders();
     assertEq(exchangeProviders.length, 1);
     if (revert) {
-      vm.expectRevert("no usable median");
+      vm.expectRevert("no valid median");
     }
     expectedOut = broker.getAmountOut(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn);
 
@@ -55,7 +55,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
 
     // Execute swap
     if (revert) {
-      vm.expectRevert("no usable median");
+      vm.expectRevert("no valid median");
     }
     actualOut = broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, amountIn, 0);
   }
@@ -112,7 +112,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(actualOut, 5000 * 0.995 * 10**6); //  4975(6 decimals)
 
     vm.warp(now + exchangeBefore.config.referenceRateResetFrequency); // time travel enable bucket update
-    setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24 * 1.1); // new usable Median that doesnt trip breaker 0.13
+    setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24 * 1.1); // new valid Median that doesnt trip breaker 0.13
 
     // Execute swap cUSD -> USDC
     (, uint256 actualOut2) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), false);
