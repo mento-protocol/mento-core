@@ -299,7 +299,7 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
   /**
    * @notice Gets all elements from the doubly linked list.
    * @param token The rateFeedId for which the collateral asset exchange rate is being reported.
-   * @return keys Keys of nn unpacked list of elements from largest to smallest.
+   * @return keys Keys of an unpacked list of elements from largest to smallest.
    * @return values Values of an unpacked list of elements from largest to smallest.
    * @return relations Relations of an unpacked list of elements from largest to smallest.
    */
