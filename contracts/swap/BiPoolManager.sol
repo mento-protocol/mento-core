@@ -137,8 +137,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountIn
   ) external view returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-    (amountOut, ) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn.mul(tokenPrecisionMultipliers[tokenIn]));
-    return amountOut.div(tokenPrecisionMultipliers[tokenOut]);
+    uint256 scaledAmountIn = amountIn.mul(tokenPrecisionMultipliers[tokenIn]);
+    (uint256 scaledAmountOut, ) = _getAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
+    amountOut = scaledAmountOut.div(tokenPrecisionMultipliers[tokenOut]);
+    return amountOut;
   }
 
   /**
@@ -156,8 +158,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 amountOut
   ) external view returns (uint256 amountIn) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-    (amountIn, ) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut.mul(tokenPrecisionMultipliers[tokenOut]));
-    return amountIn.div(tokenPrecisionMultipliers[tokenIn]);
+    uint256 scaledAmountOut = amountOut.mul(tokenPrecisionMultipliers[tokenOut]);
+    (uint256 scaledAmountIn, ) = _getAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+    amountIn = scaledAmountIn.div(tokenPrecisionMultipliers[tokenIn]);
+    return amountIn;
   }
 
   /* ==================== Mutative Functions ==================== */
@@ -294,12 +298,13 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
       breakerBox.getRateFeedTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
       "Trading is suspended for this reference rate"
     );
-    bool bucketsUpdated;
 
-    amountIn = amountIn.mul(tokenPrecisionMultipliers[tokenIn]);
-    (amountOut, bucketsUpdated) = _getAmountOut(exchange, tokenIn, tokenOut, amountIn);
-    executeSwap(exchangeId, exchange, tokenIn, amountIn, amountOut, bucketsUpdated);
-    return amountOut.div(tokenPrecisionMultipliers[tokenOut]);
+    uint256 scaledAmountIn = amountIn.mul(tokenPrecisionMultipliers[tokenIn]);
+    (uint256 scaledAmountOut, bool bucketsUpdated) = _getAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
+    executeSwap(exchangeId, exchange, tokenIn, scaledAmountIn, scaledAmountOut, bucketsUpdated);
+
+    amountOut = scaledAmountOut.div(tokenPrecisionMultipliers[tokenOut]);
+    return amountOut;
   }
 
   /**
@@ -321,32 +326,36 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
       breakerBox.getRateFeedTradingMode(exchange.config.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
       "Trading is suspended for this reference rate"
     );
-    bool bucketsUpdated;
 
-    amountOut = amountOut.mul(tokenPrecisionMultipliers[tokenOut]);
-    (amountIn, bucketsUpdated) = _getAmountIn(exchange, tokenIn, tokenOut, amountOut);
-    executeSwap(exchangeId, exchange, tokenIn, amountIn, amountOut, bucketsUpdated);
-    return amountIn.div(tokenPrecisionMultipliers[tokenIn]);
+    uint256 scaledAmountOut = amountOut.mul(tokenPrecisionMultipliers[tokenOut]);
+    (uint256 scaledAmountIn, bool bucketsUpdated) = _getAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+    executeSwap(exchangeId, exchange, tokenIn, scaledAmountIn, scaledAmountOut, bucketsUpdated);
+
+    amountIn = scaledAmountIn.div(tokenPrecisionMultipliers[tokenIn]);
+    return amountIn;
   }
 
   /* ==================== Private Functions ==================== */
 
   /**
    * @notice Execute a swap against the in memory exchange and write
-   * the new bucket sizes to storage.
+   *         the new bucket sizes to storage.
+   * @dev In constant sum exchanges, the virtual bucket ratio serve as the reference price
+   *      and should remain constant between bucket updates.
+   *      Thats why the amounts of a swap are only applied for constant product exchanges.
    * @param exchangeId The id of the exchange
    * @param exchange The exchange to operate on
    * @param tokenIn The token to be sold
-   * @param amountIn The amount of tokenIn to be sold
-   * @param amountOut The amount of tokenOut to be bought
-   * @param bucketsUpdated wether the buckets updated during the swap
+   * @param scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
+   * @param scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
+   * @param bucketsUpdated whether the buckets updated during the swap
    */
   function executeSwap(
     bytes32 exchangeId,
     PoolExchange memory exchange,
     address tokenIn,
-    uint256 amountIn,
-    uint256 amountOut,
+    uint256 scaledAmountIn,
+    uint256 scaledAmountOut,
     bool bucketsUpdated
   ) internal {
     if (bucketsUpdated) {
@@ -355,18 +364,18 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
       emit BucketsUpdated(exchangeId, exchange.bucket0, exchange.bucket1);
     }
 
-    if (keccak256(abi.encodePacked(exchange.pricingModule.name())) == CONSTANT_PRODUCT) {
+    if (isConstantProduct(exchange)) {
       if (tokenIn == exchange.asset0) {
-        exchanges[exchangeId].bucket0 = exchange.bucket0.add(amountIn);
-        exchanges[exchangeId].bucket1 = exchange.bucket1.sub(amountOut);
+        exchange.bucket0 = exchange.bucket0.add(scaledAmountIn);
+        exchange.bucket1 = exchange.bucket1.sub(scaledAmountOut);
       } else {
-        exchanges[exchangeId].bucket0 = exchange.bucket0.sub(amountOut);
-        exchanges[exchangeId].bucket1 = exchange.bucket1.add(amountIn);
+        exchange.bucket0 = exchange.bucket0.sub(scaledAmountOut);
+        exchange.bucket1 = exchange.bucket1.add(scaledAmountIn);
       }
-    } else {
-      exchanges[exchangeId].bucket0 = exchange.bucket0;
-      exchanges[exchangeId].bucket1 = exchange.bucket1;
     }
+
+    exchanges[exchangeId].bucket0 = exchange.bucket0;
+    exchanges[exchangeId].bucket1 = exchange.bucket1;
   }
 
   /**
@@ -374,16 +383,16 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @param exchange The exchange to operate on
    * @param tokenIn The token to be sold
    * @param tokenOut The token to be bought
-   * @param amountIn The amount of tokenIn to be sold
-   * @return amountOut The amount of tokenOut to be bought
+   * @param scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
+   * @return scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
    * @return bucketsUpdated Wether the buckets were updated during the quote
    */
   function _getAmountOut(
     PoolExchange memory exchange,
     address tokenIn,
     address tokenOut,
-    uint256 amountIn
-  ) internal view returns (uint256 amountOut, bool bucketsUpdated) {
+    uint256 scaledAmountIn
+  ) internal view returns (uint256 scaledAmountOut, bool bucketsUpdated) {
     require(
       (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
         (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
@@ -393,18 +402,18 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     (exchange, bucketsUpdated) = updateBucketsIfNecessary(exchange);
 
     if (tokenIn == exchange.asset0) {
-      amountOut = exchange.pricingModule.getAmountOut(
+      scaledAmountOut = exchange.pricingModule.getAmountOut(
         exchange.bucket0,
         exchange.bucket1,
         exchange.config.spread.unwrap(),
-        amountIn
+        scaledAmountIn
       );
     } else {
-      amountOut = exchange.pricingModule.getAmountOut(
+      scaledAmountOut = exchange.pricingModule.getAmountOut(
         exchange.bucket1,
         exchange.bucket0,
         exchange.config.spread.unwrap(),
-        amountIn
+        scaledAmountIn
       );
     }
   }
@@ -414,16 +423,16 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @param exchange The exchange to operate on
    * @param tokenIn The token to be sold
    * @param tokenOut The token to be bought
-   * @param amountOut The amount of tokenOut to be bought
-   * @return amountIn The amount of tokenIn to be sold
+   * @param scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
+   * @return scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
    * @return bucketsUpdated Wether the buckets were updated during the quote
    */
   function _getAmountIn(
     PoolExchange memory exchange,
     address tokenIn,
     address tokenOut,
-    uint256 amountOut
-  ) internal view returns (uint256 amountIn, bool bucketsUpdated) {
+    uint256 scaledAmountOut
+  ) internal view returns (uint256 scaledAmountIn, bool bucketsUpdated) {
     require(
       (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
         (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
@@ -433,18 +442,18 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     (exchange, bucketsUpdated) = updateBucketsIfNecessary(exchange);
 
     if (tokenIn == exchange.asset0) {
-      amountIn = exchange.pricingModule.getAmountIn(
+      scaledAmountIn = exchange.pricingModule.getAmountIn(
         exchange.bucket0,
         exchange.bucket1,
         exchange.config.spread.unwrap(),
-        amountOut
+        scaledAmountOut
       );
     } else {
-      amountIn = exchange.pricingModule.getAmountIn(
+      scaledAmountIn = exchange.pricingModule.getAmountIn(
         exchange.bucket1,
         exchange.bucket0,
         exchange.config.spread.unwrap(),
-        amountOut
+        scaledAmountOut
       );
     }
   }
@@ -476,7 +485,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    */
   function shouldUpdateBuckets(PoolExchange memory exchange) internal view returns (bool) {
     bool hasValidMedian = oracleHasValidMedian(exchange);
-    if (keccak256(abi.encodePacked(exchange.pricingModule.name())) == CONSTANT_SUM) {
+    if (isConstantSum(exchange)) {
       require(hasValidMedian, "no valid median");
     }
     // solhint-disable-next-line not-rely-on-time
@@ -543,5 +552,32 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     );
     require(FixidityLib.lte(exchange.config.spread, FixidityLib.fixed1()), "spread must be less than or equal to 1");
     require(exchange.config.referenceRateFeedID != address(0), "referenceRateFeedID must be set");
+  }
+
+  /**
+   * @notice Get the identifier of the pricing module used by a exchange
+   * @param exchange The exchange to get the pricing module identifier for
+   * @return The encoded and hashed identifier of the pricing module
+   */
+  function pricingModuleIdentifier(PoolExchange memory exchange) internal view returns (bytes32) {
+    return keccak256(abi.encodePacked(exchange.pricingModule.name()));
+  }
+
+  /**
+   * @notice Determine whether an exchange is using a constant sum pricing module
+   * @param exchange The exchange to check
+   * @return bool indicating if the exchange is using a constant sum pricing module
+   */
+  function isConstantSum(PoolExchange memory exchange) internal view returns (bool) {
+    return pricingModuleIdentifier(exchange) == CONSTANT_SUM;
+  }
+
+  /**
+   * @notice Determine whether an exchange is using a constant product pricing module
+   * @param exchange The exchange to check
+   * @return bool indicating if the exchange is using a constant product pricing module
+   */
+  function isConstantProduct(PoolExchange memory exchange) internal view returns (bool) {
+    return pricingModuleIdentifier(exchange) == CONSTANT_PRODUCT;
   }
 }

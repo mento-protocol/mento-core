@@ -62,7 +62,7 @@ contract ConstantSumPricingModuleTest is Test {
     uint256 spread = 0;
     uint256 amountOut = 10e18;
     uint256 amountIn = constantSum.getAmountIn(tokenInBucketSize, tokenOutBucketSize, spread, amountOut);
-    assertEq(amountIn, (amountOut * 1) / 2);
+    assertEq(amountIn, amountOut / 2);
   }
 
   function test_getAmountIn_whenSmallAmounts_shouldReturnCorrectCalculation() public {

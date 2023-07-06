@@ -722,7 +722,7 @@ contract BiPoolManagerTest_swap is BiPoolManagerTest_withExchange {
     assertEq(exchangeAfter.bucket1, exchange.bucket1 + amountIn);
   }
 
-  function test_swapIn_whenCSAndValidMedian_shouldntUpdateBuckets() public {
+  function test_swapIn_whenCSAndValidMedian_shouldNotUpdateBuckets() public {
     BiPoolManager.PoolExchange memory exchangeBefore = biPoolManager.getPoolExchange(exchangeId_cUSD_bridgedUSDC);
 
     biPoolManager.swapIn(exchangeId_cUSD_bridgedUSDC, address(bridgedUSDC), address(cUSD), 1e6);
@@ -817,7 +817,7 @@ contract BiPoolManagerTest_swap is BiPoolManagerTest_withExchange {
     assertEq(exchangeAfter.bucket1, exchange.bucket1 + amountIn);
   }
 
-  function test_swapOut_whenCSValidMedian_shouldntUpdateBuckets() public {
+  function test_swapOut_whenCSValidMedian_shouldNotUpdateBuckets() public {
     BiPoolManager.PoolExchange memory exchangeBefore = biPoolManager.getPoolExchange(exchangeId_cUSD_bridgedUSDC);
 
     biPoolManager.swapOut(exchangeId_cUSD_bridgedUSDC, address(bridgedUSDC), address(cUSD), 1e18);
