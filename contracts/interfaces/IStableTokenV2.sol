@@ -91,4 +91,17 @@ interface IStableTokenV2 {
    * @notice Gets the address of the Broker contract.
    */
   function broker() external returns (address);
+
+  function debitGasFees(address from, uint256 value) external;
+
+  function creditGasFees(
+    address from,
+    address feeRecipient,
+    address gatewayFeeRecipient,
+    address communityFund,
+    uint256 refund,
+    uint256 tipTxFee,
+    uint256 gatewayFee,
+    uint256 baseTxFee
+  ) external;
 }
