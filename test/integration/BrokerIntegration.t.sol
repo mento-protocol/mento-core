@@ -54,7 +54,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
     IERC20(tokenIn).approve(address(broker), amountIn);
 
     // Execute swap
-    actualOut = broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, 1000 * 10**18, 0);
+    actualOut = broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, amountIn, 0);
   }
 
   function test_swap_whenBucketTriggerConditionsAreMet_shouldTriggerBucketUpdate() public {

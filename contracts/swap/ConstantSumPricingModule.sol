@@ -19,14 +19,15 @@ contract ConstantSumPricingModule is IPricingModule {
   /* ==================== View Functions ==================== */
   /**
    * @notice Calculates the amount of tokens that should be received based on the given parameters
-   * @dev amountOut = (1 - spread) * amountIn
-   * @param tokenOutBucketSize The bucket size of the token swapt out.
+   * @dev amountOut = (1 - spread) * amountIn * tokenOutBucketSize) / tokenInBucketSize
+   * @param tokenInBucketSize The bucket size of the token swapped in.
+   * @param tokenOutBucketSize The bucket size of the token swapped out.
    * @param spread The spread that is applied to a swap.
-   * @param amountIn The amount of tokens in wei that is swapt in.
+   * @param amountIn The amount of tokens in wei that is swapped in.
    * @return amountOut The amount of tokens in wei that should be received.
    */
   function getAmountOut(
-    uint256,
+    uint256 tokenInBucketSize,
     uint256 tokenOutBucketSize,
     uint256 spread,
     uint256 amountIn
@@ -34,36 +35,42 @@ contract ConstantSumPricingModule is IPricingModule {
     if (amountIn == 0) return 0;
 
     FixidityLib.Fraction memory spreadFraction = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
-    amountOut = spreadFraction.multiply(FixidityLib.newFixed(amountIn)).unwrap();
-    amountOut = amountOut.div(FixidityLib.fixed1().unwrap());
-    require(
-      amountOut <= FixidityLib.newFixed(tokenOutBucketSize).unwrap(),
-      "amountOut cant be greater then the tokenOutPool size"
-    );
+    FixidityLib.Fraction memory netAmountIn = spreadFraction.multiply(FixidityLib.newFixed(amountIn));
+    FixidityLib.Fraction memory numerator = netAmountIn.multiply(FixidityLib.newFixed(tokenOutBucketSize));
+    FixidityLib.Fraction memory denominator = FixidityLib.newFixed(tokenInBucketSize);
+
+    // Can't use FixidityLib.divide because numerator can easily be greater
+    // than maxFixedDivisor.
+    // Fortunately, we expect an integer result, so integer division gives us as
+    // much precision as we could hope for.
+    amountOut = numerator.unwrap().div(denominator.unwrap());
     return amountOut;
   }
 
   /**
    * @notice Calculates the amount of tokens that should be provided in order to receive the desired amount out.
-   * @dev amountIn = amountOut / (1 - spread)
-   * @param tokenOutBucketSize The bucket size of the token swapt out.
+   * @dev amountIn = (amountOut  * tokenInBucketSize) / (tokenOutBucketSize * (1 - spread))
+   * @param tokenInBucketSize The bucket size of the token swapped in.
+   * @param tokenOutBucketSize The bucket size of the token swapped out.
    * @param spread The spread that is applied to a swap.
-   * @param amountOut The amount of tokens in wei that should be swapt out.
+   * @param amountOut The amount of tokens in wei that should be swapped out.
    * @return amountIn The amount of tokens in wei that should be provided.
    */
   function getAmountIn(
-    uint256,
+    uint256 tokenInBucketSize,
     uint256 tokenOutBucketSize,
     uint256 spread,
     uint256 amountOut
   ) external view returns (uint256 amountIn) {
-    require(amountOut <= tokenOutBucketSize, "amountOut cant be greater then the tokenOutPool size");
     if (amountOut == 0) return 0;
 
-    FixidityLib.Fraction memory denominator = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
-    FixidityLib.Fraction memory numerator = FixidityLib.newFixed(amountOut);
+    FixidityLib.Fraction memory spreadFraction = FixidityLib.fixed1().subtract(FixidityLib.wrap(spread));
+    FixidityLib.Fraction memory numerator = FixidityLib.newFixed(amountOut).multiply(
+      FixidityLib.newFixed(tokenInBucketSize)
+    );
+    FixidityLib.Fraction memory denominator = FixidityLib.newFixed(tokenOutBucketSize).multiply(spreadFraction);
 
-    // Can't use FixidityLib.divide because numerator can be greater
+    // Can't use FixidityLib.divide because numerator can easily be greater
     // than maxFixedDivisor.
     // Fortunately, we expect an integer result, so integer division gives us as
     // much precision as we could hope for.

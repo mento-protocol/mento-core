@@ -338,7 +338,7 @@ contract IntegrationTest is BaseTest {
     BiPoolManager.PoolExchange memory pair_cEUR_bridgedUSDC;
     pair_cEUR_bridgedUSDC.asset0 = address(cEURToken);
     pair_cEUR_bridgedUSDC.asset1 = address(usdcToken);
-    pair_cEUR_bridgedUSDC.pricingModule = constantProduct;
+    pair_cEUR_bridgedUSDC.pricingModule = constantSum;
     pair_cEUR_bridgedUSDC.lastBucketUpdate = now;
     pair_cEUR_bridgedUSDC.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cEUR_bridgedUSDC.config.referenceRateResetFrequency = 60 * 5;
