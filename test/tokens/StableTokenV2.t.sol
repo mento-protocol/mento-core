@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity 0.8.18;
+pragma solidity ^0.8.0;
 
 import { console } from "forge-std-next/console.sol";
 import { Arrays } from "../utils/Arrays.sol";
