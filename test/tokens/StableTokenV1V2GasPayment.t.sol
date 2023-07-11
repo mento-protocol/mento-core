@@ -73,10 +73,10 @@ contract StableTokenV1V2GasPaymentTest is BaseTest {
 
   function test_creditGasFees_whenCalledByVM_shouldCreditFees() public {
     uint256 amount = 100;
-    uint256 refund = 25;
-    uint256 tipTxFee = 25;
-    uint256 gatewayFee = 25;
-    uint256 baseTxFee = 25;
+    uint256 refund = 20;
+    uint256 tipTxFee = 30;
+    uint256 gatewayFee = 10;
+    uint256 baseTxFee = 40;
 
     uint256 balanceV1Before = tokenV1.balanceOf(holder0);
     uint256 balanceV2Before = tokenV2.balanceOf(holder0);

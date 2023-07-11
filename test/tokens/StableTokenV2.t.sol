@@ -158,7 +158,7 @@ contract StableTokenV2Test is BaseTest {
     vm.prank(address(0));
     token.debitGasFees(holder0, 100);
 
-    assertEq(1000 - amount, token.balanceOf(holder0));
+    assertEq(token.balanceOf(holder0), 1000 - amount);
   }
 
   function test_creditGasFees_whenCallerNotVM_shouldRevert() public {
@@ -167,10 +167,10 @@ contract StableTokenV2Test is BaseTest {
   }
 
   function test_creditGasFees_whenCalledByVm_shouldCreditFees() public {
-    uint256 refund = 25;
-    uint256 tipTxFee = 25;
-    uint256 gatewayFee = 25;
-    uint256 baseTxFee = 25;
+    uint256 refund = 20;
+    uint256 tipTxFee = 30;
+    uint256 gatewayFee = 10;
+    uint256 baseTxFee = 40;
 
     vm.prank(address(0));
     token.creditGasFees(
@@ -184,10 +184,10 @@ contract StableTokenV2Test is BaseTest {
       baseTxFee
     );
 
-    assertEq(1000 + refund, token.balanceOf(holder0));
-    assertEq(tipTxFee, token.balanceOf(feeRecipient));
-    assertEq(gatewayFee, token.balanceOf(gatewayFeeRecipient));
-    assertEq(baseTxFee, token.balanceOf(conmunityFund));
+    assertEq(token.balanceOf(holder0), 1000 + refund);
+    assertEq(token.balanceOf(feeRecipient), tipTxFee);
+    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
+    assertEq(token.balanceOf(conmunityFund), baseTxFee);
   }
 
   function buildTypedDataHash(
