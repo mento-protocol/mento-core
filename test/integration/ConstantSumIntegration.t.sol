@@ -40,12 +40,12 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     uint256 amountIn,
     address tokenIn,
     address tokenOut,
-    bool revert
+    bool shouldRevert
   ) public returns (uint256 expectedOut, uint256 actualOut) {
     // Get exchange provider from broker
     address[] memory exchangeProviders = broker.getExchangeProviders();
     assertEq(exchangeProviders.length, 1);
-    if (revert) {
+    if (shouldRevert) {
       vm.expectRevert("no valid median");
     }
     expectedOut = broker.getAmountOut(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn);
@@ -54,7 +54,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     IERC20(tokenIn).approve(address(broker), amountIn);
 
     // Execute swap
-    if (revert) {
+    if (shouldRevert) {
       vm.expectRevert("no valid median");
     }
     actualOut = broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, amountIn, 0);
@@ -140,7 +140,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(true, expired);
 
     // Execute swap cUSD -> USDC with revert true
-    (, uint256 actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), true);
+    doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), true);
   }
 
   function test_swap_whenConstantSumAndMedianExpired_shouldRevert() public {
@@ -163,7 +163,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(false, medianReportRecent);
 
     // Execute swap cUSD -> USDC with revert true
-    (, uint256 actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), true);
+    doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), true);
   }
 
   function test_swap_whenConstantSumAndNotEnoughReports_shouldRevert() public {
@@ -186,6 +186,6 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     }
 
     // Execute swap cUSD -> USDC with revert true
-    (, uint256 actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), true);
+    doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), true);
   }
 }
