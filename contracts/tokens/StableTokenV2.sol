@@ -3,12 +3,14 @@ pragma solidity 0.8.18;
 
 import { ERC20PermitUpgradeable } from "./patched/ERC20PermitUpgradeable.sol";
 import { ERC20Upgradeable } from "./patched/ERC20Upgradeable.sol";
+
 import { IStableTokenV2 } from "../interfaces/IStableTokenV2.sol";
+import { CalledByVm } from "../common/CalledByVm.sol";
 
 /**
  * @title ERC20 token with minting and burning permissioned to a broker and validators.
  */
-contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2 {
+contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
   address public validators;
   address public broker;
   address public exchange;
@@ -248,5 +250,50 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2 {
     bytes32 s
   ) public override(ERC20PermitUpgradeable, IStableTokenV2) {
     ERC20PermitUpgradeable.permit(owner, spender, value, deadline, v, r, s);
+  }
+
+  /**
+   * @notice Reserve balance for making payments for gas in this StableToken currency.
+   * @param from The account to reserve balance from
+   * @param value The amount of balance to reserve
+   * @dev Note that this function is called by the protocol when paying for tx fees in this
+   * currency. After the tx is executed, gas is refunded to the sender and credited to the
+   * various tx fee recipients via a call to `creditGasFees`. Note too that the events emitted
+   * by `creditGasFees` reflect the *net* gas fee payments for the transaction.
+   */
+  function debitGasFees(address from, uint256 value) external onlyVm {
+    _burn(from, value);
+  }
+
+  /**
+   * @notice Alternative function to credit balance after making payments
+   * for gas in this StableToken currency.
+   * @param from The account to debit balance from
+   * @param feeRecipient Coinbase address
+   * @param gatewayFeeRecipient Gateway address
+   * @param communityFund Community fund address
+   * @param refund amount to be refunded by the VM
+   * @param tipTxFee Coinbase fee
+   * @param baseTxFee Community fund fee
+   * @param gatewayFee Gateway fee
+   * @dev Note that this function is called by the protocol when paying for tx fees in this
+   * currency. Before the tx is executed, gas is debited from the sender via a call to
+   * `debitGasFees`. Note too that the events emitted by `creditGasFees` reflect the *net* gas fee
+   * payments for the transaction.
+   */
+  function creditGasFees(
+    address from,
+    address feeRecipient,
+    address gatewayFeeRecipient,
+    address communityFund,
+    uint256 refund,
+    uint256 tipTxFee,
+    uint256 gatewayFee,
+    uint256 baseTxFee
+  ) external onlyVm {
+    _mint(from, refund + tipTxFee + gatewayFee + baseTxFee);
+    _transfer(from, feeRecipient, tipTxFee);
+    _transfer(from, gatewayFeeRecipient, gatewayFee);
+    _transfer(from, communityFund, baseTxFee);
   }
 }
