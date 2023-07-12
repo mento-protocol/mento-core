@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.8;
+pragma solidity ^0.8.0;
 
 import { console } from "forge-std-next/console.sol";
 import { Arrays } from "../utils/Arrays.sol";
@@ -11,6 +11,7 @@ import { StableTokenV2 } from "contracts/tokens/StableTokenV2.sol";
 
 contract StableTokenV2Test is BaseTest {
   event TransferComment(string comment);
+
   bytes32 private constant _PERMIT_TYPEHASH =
     keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
   bytes32 private constant _TYPE_HASH =
@@ -26,6 +27,10 @@ contract StableTokenV2Test is BaseTest {
   address holder1 = address(0x2002);
   address holder2;
   uint256 holder2Pk = uint256(0x31337);
+
+  address feeRecipient = address(0x3001);
+  address gatewayFeeRecipient = address(0x3002);
+  address conmunityFund = address(0x3003);
 
   StableTokenV2 private token;
 
@@ -139,6 +144,50 @@ contract StableTokenV2Test is BaseTest {
     vm.prank(holder0);
     token.permit(holder2, holder0, 100, deadline, v, r, s);
     assertEq(100, token.allowance(holder2, holder0));
+  }
+
+  function test_debitGasFees_whenCallerNotVM_shouldRevert() public {
+    vm.expectRevert("Only VM can call");
+    token.debitGasFees(holder0, 100);
+  }
+
+  function test_debitGasFees_whenCallerIsVM_shouldDebitGasFees() public {
+    uint256 amount = 100;
+    assertEq(token.balanceOf(holder0), 1000);
+
+    vm.prank(address(0));
+    token.debitGasFees(holder0, 100);
+
+    assertEq(token.balanceOf(holder0), 1000 - amount);
+  }
+
+  function test_creditGasFees_whenCallerNotVM_shouldRevert() public {
+    vm.expectRevert("Only VM can call");
+    token.creditGasFees(holder0, feeRecipient, gatewayFeeRecipient, conmunityFund, 25, 25, 25, 25);
+  }
+
+  function test_creditGasFees_whenCalledByVm_shouldCreditFees() public {
+    uint256 refund = 20;
+    uint256 tipTxFee = 30;
+    uint256 gatewayFee = 10;
+    uint256 baseTxFee = 40;
+
+    vm.prank(address(0));
+    token.creditGasFees(
+      holder0,
+      feeRecipient,
+      gatewayFeeRecipient,
+      conmunityFund,
+      refund,
+      tipTxFee,
+      gatewayFee,
+      baseTxFee
+    );
+
+    assertEq(token.balanceOf(holder0), 1000 + refund);
+    assertEq(token.balanceOf(feeRecipient), tipTxFee);
+    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
+    assertEq(token.balanceOf(conmunityFund), baseTxFee);
   }
 
   function buildTypedDataHash(
