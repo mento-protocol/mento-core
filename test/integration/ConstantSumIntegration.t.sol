@@ -139,7 +139,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     (expired, ) = sortedOracles.isOldestReportExpired(cUSD_bridgedUSDC_referenceRateFeedID);
     assertEq(true, expired);
 
-    // Execute swap cUSD -> USDC with revert true
+    // Execute swap cUSD -> USDC with shouldRevert true
     doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), true);
   }
 
@@ -162,7 +162,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
       now.sub(exchange.config.referenceRateResetFrequency);
     assertEq(false, medianReportRecent);
 
-    // Execute swap cUSD -> USDC with revert true
+    // Execute swap cUSD -> USDC with shouldRevert true
     doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), true);
   }
 
@@ -185,7 +185,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
       numReports = sortedOracles.numRates(cUSD_bridgedUSDC_referenceRateFeedID);
     }
 
-    // Execute swap cUSD -> USDC with revert true
+    // Execute swap cUSD -> USDC with shouldRevert true
     doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), true);
   }
 }
