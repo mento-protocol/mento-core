@@ -263,7 +263,7 @@ contract IntegrationTest is BaseTest {
       cooldownTimes
     );
 
-    breakerBox.addBreaker(address(medianDeltaBreaker), 1);
+    breakerBox.addBreaker(address(medianDeltaBreaker), 3);
     sortedOracles.setBreakerBox(breakerBox);
 
     // enable breakers
