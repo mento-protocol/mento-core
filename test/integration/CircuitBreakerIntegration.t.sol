@@ -27,15 +27,20 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
 
     trader = actor("trader");
 
-    mint(cUSDToken, trader, 10 ** 22); // Mint 10k to trader
+    mint(cUSDToken, trader, 10**22); // Mint 10k to trader
     deal(address(celoToken), address(reserve), 1e24); // Gift 1Mil Celo to reserve
   }
 
   /**
    * @notice Test helper function to do swap in
    */
-  function doSwapIn(bytes32 poolId, address tokenIn, address tokenOut, bool shouldBreak) public {
-    uint256 amountIn = 10 ** 18;
+  function doSwapIn(
+    bytes32 poolId,
+    address tokenIn,
+    address tokenOut,
+    bool shouldBreak
+  ) public {
+    uint256 amountIn = 10**18;
     address[] memory exchangeProviders = broker.getExchangeProviders();
     assertEq(exchangeProviders.length, 1);
 
