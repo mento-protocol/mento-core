@@ -238,6 +238,23 @@ contract SortedOracles_RemoveOracles is SortedOraclesTest {
     sortedOracles.removeOracle(token, address(6), 1);
   }
 
+  function test_removeOracle_whenMoreThanOneReportExistsAndMedianUpdated_shouldCallCheckAndSetBreakers() public {
+    submitNReports(2);
+    sortedOracles.addOracle(token, address(6));
+    changePrank(address(6));
+
+    vm.warp(now + aReportExpiry);
+    sortedOracles.report(token, fixed1 * 12, oracle, address(0));
+
+    vm.expectEmit(false, false, false, false, address(sortedOracles));
+    emit OracleReportRemoved(token, rando);
+    vm.expectEmit(true, true, true, true, address(sortedOracles));
+    emit MedianUpdated(token, fixed1 * 12);
+    vm.expectCall(address(mockBreakerBox), abi.encodeWithSelector(mockBreakerBox.checkAndSetBreakers.selector));
+
+    sortedOracles.removeExpiredReports(token, 2);
+  }
+
   function test_removeOracle_whenOneReportExists_shouldNotDecreaseNumberOfRates() public {
     submitNReports(1);
     sortedOracles.removeOracle(token, oracle, 0);

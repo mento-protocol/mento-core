@@ -400,6 +400,9 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
     uint256 newMedian = rates[token].getMedianValue();
     if (newMedian != originalMedian) {
       emit MedianUpdated(token, newMedian);
+      if (address(breakerBox) != address(0)) {
+        breakerBox.checkAndSetBreakers(token);
+      }
     }
   }
 }
