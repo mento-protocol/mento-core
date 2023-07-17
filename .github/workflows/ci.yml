@@ -66,7 +66,7 @@ jobs:
       - name: Install Foundry
         uses: onbjerg/foundry-toolchain@v1
         with:
-          version: nightly
+          version: "nightly-d369d2486f85576eec4ca41d277391dfdae21ba7"
       - name: Check storage layout
         uses: Rubilmax/foundry-storage-check@v3.2.1
         with:
@@ -99,7 +99,7 @@ jobs:
       - name: Install Foundry
         uses: onbjerg/foundry-toolchain@v1
         with:
-          version: nightly
+          version: "nightly-d369d2486f85576eec4ca41d277391dfdae21ba7"
       - name: "Build for echidna"
         run: yarn forge:build:slither
 
@@ -124,7 +124,7 @@ jobs:
       - name: "Install Foundry"
         uses: "onbjerg/foundry-toolchain@v1"
         with:
-          version: "nightly"
+          version: "nightly-d369d2486f85576eec4ca41d277391dfdae21ba7"
 
       - name: "Install Node.js"
         uses: "actions/setup-node@v3"
