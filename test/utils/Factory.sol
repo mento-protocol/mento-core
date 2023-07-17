@@ -30,7 +30,7 @@ contract Factory {
     return addr;
   }
 
-  function create(string memory _contract, bytes memory args) public returns (address addr) {
+  function createContract(string memory _contract, bytes memory args) public returns (address addr) {
     string memory path = string(abi.encodePacked("out/", _contract, ".sol", "/", _contract, ".json"));
     addr = createFromPath(path, args);
     console.log("Deployed %s to %s", _contract, addr);
@@ -42,7 +42,7 @@ contract Factory {
     address dest,
     bytes memory args
   ) public {
-    address addr = create(_contract, args);
+    address addr = createContract(_contract, args);
     vm.etch(dest, GetCode.at(addr));
     console.log("Etched %s to %s", _contract, dest);
   }
