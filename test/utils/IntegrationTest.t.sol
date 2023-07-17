@@ -28,6 +28,7 @@ import { Reserve } from "contracts/swap/Reserve.sol";
 import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
 import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
+import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
 import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
 
 import { Token } from "./Token.sol";
@@ -57,6 +58,7 @@ contract IntegrationTest is BaseTest {
   SortedOracles sortedOracles;
   BreakerBox breakerBox;
   MedianDeltaBreaker medianDeltaBreaker;
+  ValueDeltaBreaker valueDeltaBreaker;
 
   Token celoToken;
   Token usdcToken;
@@ -242,21 +244,22 @@ contract IntegrationTest is BaseTest {
     /* ========== Deploy Median Delta Breaker =============== */
 
     // todo change these to correct values
+    
     uint256[] memory rateChangeThresholds = new uint256[](5);
     uint256[] memory cooldownTimes = new uint256[](5);
 
-    rateChangeThresholds[0] = 0.15 * 10**24;
-    rateChangeThresholds[1] = 0.14 * 10**24;
-    rateChangeThresholds[2] = 0.13 * 10**24;
-    rateChangeThresholds[3] = 0.12 * 10**24;
-    rateChangeThresholds[4] = 0.11 * 10**24;
+    rateChangeThresholds[0] = 0.15 * 10 ** 24;
+    rateChangeThresholds[1] = 0.14 * 10 ** 24;
+    rateChangeThresholds[2] = 0.13 * 10 ** 24;
+    rateChangeThresholds[3] = 0.12 * 10 ** 24;
+    rateChangeThresholds[4] = 0.11 * 10 ** 24;
 
-    uint256 threshold = 0.15 * 10**24; // 15%
-    uint256 coolDownTime = 5 minutes;
+    uint256 medianDeltaBreakerThreshold = 0.15 * 10**24; // 15%
+    uint256 medianDeltaBreakerCooldown = 5 minutes;
 
     medianDeltaBreaker = new MedianDeltaBreaker(
-      coolDownTime,
-      threshold,
+      medianDeltaBreakerCooldown,
+      medianDeltaBreakerThreshold,
       ISortedOracles(address(sortedOracles)),
       rateFeedIDs,
       rateChangeThresholds,
@@ -272,6 +275,37 @@ contract IntegrationTest is BaseTest {
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_bridgedUSDC_referenceRateFeedID, true);
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_cEUR_referenceRateFeedID, true);
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_bridgedUSDC_referenceRateFeedID, true);
+
+    /* ============= Value Delta Breaker =============== */
+    address[] memory valueDeltaRateFeeds = new address[](2);
+    valueDeltaRateFeeds[0] = cUSD_bridgedUSDC_referenceRateFeedID;
+    valueDeltaRateFeeds[1] = cEUR_bridgedUSDC_referenceRateFeedID;
+    uint256[] memory referenceValues = new uint256[](2);
+    referenceValues[0] = 1e24;
+    referenceValues[1] = 0.9 * 1e24;
+    address[] memory dependencies = new address[](1);
+    dependencies[0] = cUSD_bridgedUSDC_referenceRateFeedID;
+    
+    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;  // 10%
+    uint256 valueDeltaBreakerDefaultCooldown = 1 seconds;
+    
+
+    valueDeltaBreaker = new ValueDeltaBreaker(
+      valueDeltaBreakerDefaultCooldown,
+      valueDeltaBreakerDefaultThreshold,
+      ISortedOracles(address(sortedOracles)),
+      valueDeltaRateFeeds,
+      new uint256[](2),
+      new uint256[](2)
+    );
+
+    valueDeltaBreaker.setReferenceValues(valueDeltaRateFeeds, referenceValues);
+
+    breakerBox.addBreaker(address(valueDeltaBreaker), 3);
+    breakerBox.setRateFeedDependencies(cEUR_bridgedUSDC_referenceRateFeedID, dependencies);
+
+    breakerBox.toggleBreaker(address(valueDeltaBreaker), cUSD_bridgedUSDC_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(valueDeltaBreaker), cEUR_bridgedUSDC_referenceRateFeedID, true);
   }
 
   function setUp_broker() internal {
