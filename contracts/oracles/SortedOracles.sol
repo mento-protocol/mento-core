@@ -399,8 +399,10 @@ contract SortedOracles is ISortedOracles, ICeloVersionedContract, Ownable, Initi
     emit OracleReportRemoved(token, oracle);
     uint256 newMedian = rates[token].getMedianValue();
     if (newMedian != originalMedian) {
-      breakerBox.checkAndSetBreakers(token);
       emit MedianUpdated(token, newMedian);
+      if (address(breakerBox) != address(0)) {
+        breakerBox.checkAndSetBreakers(token);
+      }
     }
   }
 }
