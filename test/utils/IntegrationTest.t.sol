@@ -244,15 +244,15 @@ contract IntegrationTest is BaseTest {
     /* ========== Deploy Median Delta Breaker =============== */
 
     // todo change these to correct values
-    
+
     uint256[] memory rateChangeThresholds = new uint256[](5);
     uint256[] memory cooldownTimes = new uint256[](5);
 
-    rateChangeThresholds[0] = 0.15 * 10 ** 24;
-    rateChangeThresholds[1] = 0.14 * 10 ** 24;
-    rateChangeThresholds[2] = 0.13 * 10 ** 24;
-    rateChangeThresholds[3] = 0.12 * 10 ** 24;
-    rateChangeThresholds[4] = 0.11 * 10 ** 24;
+    rateChangeThresholds[0] = 0.15 * 10**24;
+    rateChangeThresholds[1] = 0.14 * 10**24;
+    rateChangeThresholds[2] = 0.13 * 10**24;
+    rateChangeThresholds[3] = 0.12 * 10**24;
+    rateChangeThresholds[4] = 0.11 * 10**24;
 
     uint256 medianDeltaBreakerThreshold = 0.15 * 10**24; // 15%
     uint256 medianDeltaBreakerCooldown = 5 minutes;
@@ -285,10 +285,9 @@ contract IntegrationTest is BaseTest {
     referenceValues[1] = 0.9 * 1e24;
     address[] memory dependencies = new address[](1);
     dependencies[0] = cUSD_bridgedUSDC_referenceRateFeedID;
-    
-    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;  // 10%
+
+    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24; // 10%
     uint256 valueDeltaBreakerDefaultCooldown = 1 seconds;
-    
 
     valueDeltaBreaker = new ValueDeltaBreaker(
       valueDeltaBreakerDefaultCooldown,
