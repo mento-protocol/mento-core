@@ -99,7 +99,7 @@ contract IntegrationTest is BaseTest {
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
 
-    cUSDToken = IStableTokenV2(factory.create("StableTokenV2", abi.encode(false)));
+    cUSDToken = IStableTokenV2(factory.createContract("StableTokenV2", abi.encode(false)));
     cUSDToken.initialize(
       "cUSD",
       "cUSD",
@@ -113,7 +113,7 @@ contract IntegrationTest is BaseTest {
     );
     cUSDToken.initializeV2(address(broker), address(0x0), address(0x0));
 
-    cEURToken = IStableTokenV2(factory.create("StableTokenV2", abi.encode(false)));
+    cEURToken = IStableTokenV2(factory.createContract("StableTokenV2", abi.encode(false)));
     cEURToken.initialize(
       "cEUR",
       "cEUR",

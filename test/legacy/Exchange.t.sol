@@ -62,7 +62,7 @@ contract ExchangeTest is BaseTest, TokenHelpers {
     celoToken = new GoldToken(true);
     reserve = new MockReserve();
     exchange = new Exchange(true);
-    stableToken = IStableTokenV2(factory.create("StableTokenV2", abi.encode(false)));
+    stableToken = IStableTokenV2(factory.createContract("StableTokenV2", abi.encode(false)));
     sortedOracles = new MockSortedOracles();
 
     registry.setAddressFor("Freezer", address(freezer));
