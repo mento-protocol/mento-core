@@ -281,7 +281,7 @@ contract IntegrationTest is BaseTest {
 
     /* ============= Value Delta Breaker =============== */
 
-    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24; // 10%
+    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;
     uint256 valueDeltaBreakerDefaultCooldown = 1 seconds;
 
     valueDeltaBreaker = new ValueDeltaBreaker(
@@ -293,14 +293,14 @@ contract IntegrationTest is BaseTest {
       new uint256[](5)
     );
 
-    // set reference values
+    // set reference value
     address[] memory valueDeltaRateFeeds = new address[](1);
     valueDeltaRateFeeds[0] = cUSD_bridgedUSDC_referenceRateFeedID;
     uint256[] memory referenceValues = new uint256[](1);
     referenceValues[0] = 1e24;
     valueDeltaBreaker.setReferenceValues(valueDeltaRateFeeds, referenceValues);
 
-    // add value delta breaker and enable for rate feeds
+    // add value delta breaker and enable for rate feed
     breakerBox.addBreaker(address(valueDeltaBreaker), 3);
     breakerBox.toggleBreaker(address(valueDeltaBreaker), cUSD_bridgedUSDC_referenceRateFeedID, true);
   }
