@@ -241,29 +241,32 @@ contract IntegrationTest is BaseTest {
 
     breakerBox = new BreakerBox(rateFeedIDs, ISortedOracles(address(sortedOracles)));
 
+    // set rate feed dependencies
+    address[] memory dependencies = new address[](1);
+    dependencies[0] = cUSD_bridgedUSDC_referenceRateFeedID;
+    breakerBox.setRateFeedDependencies(cEUR_bridgedUSDC_referenceRateFeedID, dependencies);
+
     /* ========== Deploy Median Delta Breaker =============== */
 
-    // todo change these to correct values
+    uint256[] memory medianDeltaBreakerRateChangeThresholds = new uint256[](5);
+    uint256[] memory medianDeltaBreakerCooldownTimes = new uint256[](5);
 
-    uint256[] memory rateChangeThresholds = new uint256[](5);
-    uint256[] memory cooldownTimes = new uint256[](5);
+    medianDeltaBreakerRateChangeThresholds[0] = 0.15 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[1] = 0.14 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[2] = 0.13 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[3] = 0.12 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[4] = 0.11 * 10**24;
 
-    rateChangeThresholds[0] = 0.15 * 10**24;
-    rateChangeThresholds[1] = 0.14 * 10**24;
-    rateChangeThresholds[2] = 0.13 * 10**24;
-    rateChangeThresholds[3] = 0.12 * 10**24;
-    rateChangeThresholds[4] = 0.11 * 10**24;
-
-    uint256 medianDeltaBreakerThreshold = 0.15 * 10**24; // 15%
-    uint256 medianDeltaBreakerCooldown = 5 minutes;
+    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10**24; // 15%
+    uint256 medianDeltaBreakerDefaultCooldown = 5 minutes;
 
     medianDeltaBreaker = new MedianDeltaBreaker(
-      medianDeltaBreakerCooldown,
-      medianDeltaBreakerThreshold,
+      medianDeltaBreakerDefaultCooldown,
+      medianDeltaBreakerDefaultThreshold,
       ISortedOracles(address(sortedOracles)),
       rateFeedIDs,
-      rateChangeThresholds,
-      cooldownTimes
+      medianDeltaBreakerRateChangeThresholds,
+      medianDeltaBreakerCooldownTimes
     );
 
     breakerBox.addBreaker(address(medianDeltaBreaker), 3);
@@ -277,14 +280,6 @@ contract IntegrationTest is BaseTest {
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_bridgedUSDC_referenceRateFeedID, true);
 
     /* ============= Value Delta Breaker =============== */
-    address[] memory valueDeltaRateFeeds = new address[](2);
-    valueDeltaRateFeeds[0] = cUSD_bridgedUSDC_referenceRateFeedID;
-    valueDeltaRateFeeds[1] = cEUR_bridgedUSDC_referenceRateFeedID;
-    uint256[] memory referenceValues = new uint256[](2);
-    referenceValues[0] = 1e24;
-    referenceValues[1] = 0.9 * 1e24;
-    address[] memory dependencies = new address[](1);
-    dependencies[0] = cUSD_bridgedUSDC_referenceRateFeedID;
 
     uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24; // 10%
     uint256 valueDeltaBreakerDefaultCooldown = 1 seconds;
@@ -293,18 +288,21 @@ contract IntegrationTest is BaseTest {
       valueDeltaBreakerDefaultCooldown,
       valueDeltaBreakerDefaultThreshold,
       ISortedOracles(address(sortedOracles)),
-      valueDeltaRateFeeds,
-      new uint256[](2),
-      new uint256[](2)
+      rateFeedIDs,
+      new uint256[](5),
+      new uint256[](5)
     );
 
+    // set reference values
+    address[] memory valueDeltaRateFeeds = new address[](1);
+    valueDeltaRateFeeds[0] = cUSD_bridgedUSDC_referenceRateFeedID;
+    uint256[] memory referenceValues = new uint256[](1);
+    referenceValues[0] = 1e24;
     valueDeltaBreaker.setReferenceValues(valueDeltaRateFeeds, referenceValues);
 
+    // add value delta breaker and enable for rate feeds
     breakerBox.addBreaker(address(valueDeltaBreaker), 3);
-    breakerBox.setRateFeedDependencies(cEUR_bridgedUSDC_referenceRateFeedID, dependencies);
-
     breakerBox.toggleBreaker(address(valueDeltaBreaker), cUSD_bridgedUSDC_referenceRateFeedID, true);
-    breakerBox.toggleBreaker(address(valueDeltaBreaker), cEUR_bridgedUSDC_referenceRateFeedID, true);
   }
 
   function setUp_broker() internal {
