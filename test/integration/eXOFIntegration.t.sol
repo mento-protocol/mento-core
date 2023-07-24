@@ -35,10 +35,13 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     // set up second ValueDeltaBreaker used for eXOF
     uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;
     uint256 valueDeltaBreakerDefaultCooldown = 0 seconds;
+
     address[] memory rateFeed = new address[](1);
     rateFeed[0] = eXOF_bridgedEUROC_referenceRateFeedID;
+
     uint256[] memory rateChangeThreshold = new uint256[](1);
     rateChangeThreshold[0] = 0.2 * 10**24; // 20% -> potential rebase
+
     uint256[] memory cooldownTime = new uint256[](1);
     cooldownTime[0] = 0 seconds; // 0 seconds cooldown => non-recoverable
 
@@ -50,6 +53,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
       rateChangeThreshold,
       cooldownTime
     );
+
     uint256[] memory referenceValues = new uint256[](1);
     referenceValues[0] = 656 * 1e24; // 1 eXOF ≈  0.001524 EUROC
     valueDeltaBreaker2.setReferenceValues(rateFeed, referenceValues);
@@ -57,21 +61,6 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     vm.startPrank(deployer);
     breakerBox.addBreaker(address(valueDeltaBreaker2), 3);
     breakerBox.toggleBreaker(address(valueDeltaBreaker2), eXOF_bridgedEUROC_referenceRateFeedID, true);
-  }
-
-  function test_setUp_isCorrect() public {
-    assertTrue(breakerBox.isBreakerEnabled(address(valueDeltaBreaker), eXOF_bridgedEUROC_referenceRateFeedID));
-    assertTrue(breakerBox.isBreakerEnabled(address(valueDeltaBreaker2), eXOF_bridgedEUROC_referenceRateFeedID));
-    assertEq(
-      valueDeltaBreaker.rateChangeThreshold(eXOF_bridgedEUROC_referenceRateFeedID),
-      0.15 * 1e24 // 15% recoverable breaker
-    );
-    assertEq(
-      valueDeltaBreaker2.rateChangeThreshold(eXOF_bridgedEUROC_referenceRateFeedID),
-      0.2 * 1e24 // 20% non-recoverable breaker
-    );
-    assertEq(valueDeltaBreaker.getCooldown(eXOF_bridgedEUROC_referenceRateFeedID), 1 seconds);
-    assertEq(valueDeltaBreaker2.getCooldown(eXOF_bridgedEUROC_referenceRateFeedID), 0 seconds);
   }
 
   /**
@@ -129,6 +118,21 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(expectedOut, actualOut);
   }
 
+  function test_setUp_isCorrect() public {
+    assertTrue(breakerBox.isBreakerEnabled(address(valueDeltaBreaker), eXOF_bridgedEUROC_referenceRateFeedID));
+    assertTrue(breakerBox.isBreakerEnabled(address(valueDeltaBreaker2), eXOF_bridgedEUROC_referenceRateFeedID));
+    assertEq(
+      valueDeltaBreaker.rateChangeThreshold(eXOF_bridgedEUROC_referenceRateFeedID),
+      0.15 * 1e24 // 15% recoverable breaker
+    );
+    assertEq(
+      valueDeltaBreaker2.rateChangeThreshold(eXOF_bridgedEUROC_referenceRateFeedID),
+      0.2 * 1e24 // 20% non-recoverable breaker
+    );
+    assertEq(valueDeltaBreaker.getCooldown(eXOF_bridgedEUROC_referenceRateFeedID), 1 seconds);
+    assertEq(valueDeltaBreaker2.getCooldown(eXOF_bridgedEUROC_referenceRateFeedID), 0 seconds);
+  }
+
   function test_eXOFPool_SwapInSwapOutWorkAsExpected() public {
     uint256 eXOFBalance = eXOFToken.balanceOf(trader);
     uint256 eurocBalance = eurocToken.balanceOf(trader);
@@ -149,14 +153,14 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     );
   }
 
-  function test_eXOFPool_whenMedianExceedsBreaker1AndRecovers_shouldBreakAndRecover() public {
-    // New median that exceeds breaker1 threshold: 15%
+  function test_eXOFPool_whenMedianExceedsRecoverableBreakerAndRecovers_shouldBreakAndRecover() public {
+    // New median that exceeds recoverable breaker threshold: 15%
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 + (1e24 * 656 * 0.16));
 
     // Try swap with should revert true
     doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), true);
 
-    // Check breakers: verify that only breaker1 has triggered
+    // Check breakers: verify that only recoverable breaker has triggered
     uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
     (uint8 valueDelta1TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
@@ -170,14 +174,14 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(uint256(valueDelta1TradingMode), 3); // 0 = bidirectional trading
     assertEq(uint256(valueDelta2TradingMode), 0); // 3 = trading halted
 
-    // New median that is below breaker 1 threshold: 15%
+    // New median that is below recoverable breaker threshold: 15%
     vm.warp(now + 1 seconds);
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 - (1e24 * 656 * 0.14));
 
     // Try swap with should revert false
     doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), false);
 
-    // Check breakers: verify that breaker1 has recovered
+    // Check breakers: verify that recoverable breaker has recovered
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
     (valueDelta1TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
@@ -192,8 +196,8 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(uint256(valueDelta2TradingMode), 0); // 0 = bidirectional trading
   }
 
-  function test_eXOFPool_whenMedianExceedsBreaker2AndRecovers_shouldBreakAndNeverRecover() public {
-    // New median that exceeds breaker2 threshold: 20%
+  function test_eXOFPool_whenMedianExceedsNonRecoverableBreakerAndRecovers_shouldBreakAndNeverRecover() public {
+    // New median that exceeds non recoverable breaker threshold: 20%
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 + (1e24 * 656 * 0.21));
 
     // Try swap with should revert true
@@ -213,14 +217,14 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(uint256(valueDelta1TradingMode), 3); // 3 = trading halted
     assertEq(uint256(valueDelta2TradingMode), 3); // 3 = trading halted
 
-    // New median that is below breaker2 threshold: 20%
+    // New median that is below non recoverable breaker threshold: 20%
     vm.warp(now + 5 minutes);
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656);
 
     // Try swap with should revert true
     doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), true);
 
-    // Check breakers: verify that breaker1 has recovered and breaker2 hasnt
+    // Check breakers: verify that recoverable breaker has recovered and non recoverable breaker hasn't
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
     (valueDelta1TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
