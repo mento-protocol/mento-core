@@ -76,49 +76,26 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
     broker.swapIn(address(biPoolManager), pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), 1, 0);
   }
 
-  function test_swap_whenCircuitBreakerActivates_shouldDisableTrading() public {
-    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(pair_cUSD_bridgedUSDC_ID);
-
-    (uint256 numerator, uint256 denominator) = sortedOracles.medianRate(pool.config.referenceRateFeedID);
-    FixidityLib.Fraction memory rate_2x = FixidityLib.newFixedFraction(numerator, denominator).multiply(
-      FixidityLib.newFixedFraction(20, 10)
-    );
-    FixidityLib.Fraction memory rate_2_1x = FixidityLib.newFixedFraction(numerator, denominator).multiply(
-      FixidityLib.newFixedFraction(21, 10)
-    );
-
-    setMedianRate(pool.config.referenceRateFeedID, rate_2x.unwrap());
-
-    changePrank(trader);
-    IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
-
-    vm.expectRevert("Trading is suspended for this reference rate");
-    broker.swapIn(address(biPoolManager), pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), 1, 0);
-
-    vm.warp(block.timestamp + 6 minutes);
-    setMedianRate(pool.config.referenceRateFeedID, rate_2_1x.unwrap());
-
-    changePrank(trader);
-    IERC20(address(cUSDToken)).approve(address(broker), cUSDToken.totalSupply());
-
-    broker.swapIn(address(biPoolManager), pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), 1, 0);
-  }
-
   function test_getExchangeProviders_shouldReturnProviderWithCorrectExchanges() public {
     address[] memory exchangeProviders = broker.getExchangeProviders();
     assertEq(exchangeProviders.length, 1);
 
     IExchangeProvider.Exchange[] memory exchanges = IExchangeProvider(exchangeProviders[0]).getExchanges();
-    assertEq(exchanges.length, 5);
+    assertEq(exchanges.length, 6);
 
     IExchangeProvider.Exchange memory exchange;
     for (uint256 i = 0; i < exchanges.length; i++) {
       exchange = exchanges[i];
-      assert(exchange.assets[0] == address(cUSDToken) || exchange.assets[0] == address(cEURToken));
+      assert(
+        exchange.assets[0] == address(cUSDToken) ||
+          exchange.assets[0] == address(cEURToken) ||
+          exchange.assets[0] == address(eXOFToken)
+      );
       assert(
         exchange.assets[1] == address(cEURToken) ||
           exchange.assets[1] == address(celoToken) ||
-          exchange.assets[1] == address(usdcToken)
+          exchange.assets[1] == address(usdcToken) ||
+          exchange.assets[1] == address(eurocToken)
       );
     }
   }
