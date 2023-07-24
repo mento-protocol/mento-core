@@ -6,7 +6,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { FixidityLib } from "../../common/FixidityLib.sol";
 import { IBreaker } from "../../interfaces/IBreaker.sol";
-import { ISortedOracles } from "../..//interfaces/ISortedOracles.sol";
+import { ISortedOracles } from "../../interfaces/ISortedOracles.sol";
 
 import { WithCooldown } from "./WithCooldown.sol";
 import { WithThreshold } from "./WithThreshold.sol";
