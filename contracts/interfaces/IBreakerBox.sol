@@ -26,14 +26,6 @@ interface IBreakerBox {
    *
    * - Enabled:     Indicates whether the breaker is enabled for the associated rate feed.
    */
-
-  /**
-   * @dev Used to keep track of the status of a breaker for a specific rate feed.
-   *
-   * tradingMode: Represents the trading mode that the breaker is in for the rate feed.
-   *              This is a bitmask, and multiple breakers contribute
-   *              to the final trading mode of the rate feed.
-   */
   struct BreakerStatus {
     uint8 tradingMode;
     uint64 lastUpdatedTime;
