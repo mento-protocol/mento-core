@@ -153,7 +153,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     );
   }
 
-  function test_eXOFPool_whenMedianExceedsRecoverableBreakerAndRecovers_shouldBreakAndRecover() public {
+  function test_eXOFPool_whenMedianExceedsRecoverableBreaker_shouldBreakAndRecover() public {
     // New median that exceeds recoverable breaker threshold: 15%
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 + (1e24 * 656 * 0.16));
 
@@ -196,7 +196,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(uint256(valueDelta2TradingMode), 0); // 0 = bidirectional trading
   }
 
-  function test_eXOFPool_whenMedianExceedsNonRecoverableBreakerAndRecovers_shouldBreakAndNeverRecover() public {
+  function test_eXOFPool_whenMedianExceedsNonRecoverableBreaker_shouldBreakAndNeverRecover() public {
     // New median that exceeds non recoverable breaker threshold: 20%
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 + (1e24 * 656 * 0.21));
 
@@ -270,7 +270,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(uint256(dependencyTradingMode), 0); // 0 = bidirectional trading
   }
 
-  function test_eXOFPool_whenNoRates_shouldHaltTradingAndRecoverOnNewRates() public {
+  function test_eXOFPool_whenNoValidMedian_shouldHaltTradingAndRecoverOnNewValidMedian() public {
     // New median that doesnt exceed breaker thresholds
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 + (1e24 * 656 * 0.05));
 
