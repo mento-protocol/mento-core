@@ -112,7 +112,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(actualOut, 5000 * 0.995 * 10**6); //  4975(6 decimals)
 
     vm.warp(now + exchangeBefore.config.referenceRateResetFrequency); // time travel enable bucket update
-    setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24 * 1.1); // new valid Median that doesnt trip breaker 0.13
+    setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24 * 1.1); // new valid Median that doesnt trigger breaker 0.13
 
     // Execute swap cUSD -> USDC
     (, uint256 actualOut2) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), false);
