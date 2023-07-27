@@ -17,7 +17,7 @@ import { Initializable } from "../common/Initializable.sol";
  *          to determine whether or not buying or selling should be allowed for a
  *          specified rateFeedIDs. The contract stores references to all breakers
  *          that hold criteria to be checked, rateFeedIDs that
- *          can make use of the BreakerBox & their current trading.
+ *          can make use of the BreakerBox & their current trading modes.
  */
 contract BreakerBox is IBreakerBox, Ownable {
   using SafeMath for uint256;
