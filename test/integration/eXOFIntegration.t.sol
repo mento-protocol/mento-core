@@ -9,6 +9,7 @@ import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.
 
 import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
 import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
+import { Arrays } from "../utils/Arrays.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
@@ -36,14 +37,11 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;
     uint256 valueDeltaBreakerDefaultCooldown = 0 seconds;
 
-    address[] memory rateFeed = new address[](1);
-    rateFeed[0] = eXOF_bridgedEUROC_referenceRateFeedID;
+    address[] memory rateFeed = Arrays.addresses(eXOF_bridgedEUROC_referenceRateFeedID);
 
-    uint256[] memory rateChangeThreshold = new uint256[](1);
-    rateChangeThreshold[0] = 0.2 * 10**24; // 20% -> potential rebase
+    uint256[] memory rateChangeThreshold = Arrays.uints(0.2 * 10**24); // 20% -> potential rebase
 
-    uint256[] memory cooldownTime = new uint256[](1);
-    cooldownTime[0] = 0 seconds; // 0 seconds cooldown => non-recoverable
+    uint256[] memory cooldownTime = Arrays.uints(0 seconds); // 0 seconds cooldown -> non-recoverable
 
     valueDeltaBreaker2 = new ValueDeltaBreaker(
       valueDeltaBreakerDefaultCooldown,
@@ -54,13 +52,44 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
       cooldownTime
     );
 
-    uint256[] memory referenceValues = new uint256[](1);
-    referenceValues[0] = 656 * 1e24; // 1 eXOF ≈  0.001524 EUROC
+    uint256[] memory referenceValues = Arrays.uints(656 * 1e24); // 1 eXOF ≈  0.001524 EUROC
     valueDeltaBreaker2.setReferenceValues(rateFeed, referenceValues);
 
     vm.startPrank(deployer);
     breakerBox.addBreaker(address(valueDeltaBreaker2), 3);
     breakerBox.toggleBreaker(address(valueDeltaBreaker2), eXOF_bridgedEUROC_referenceRateFeedID, true);
+  }
+
+  /**
+   * @notice Test helper function to do swap with revert option on quote and swap
+   */
+  function assert_swapIn(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn,
+    bool getAmountOutReverts,
+    string memory getAmountOutRevertMessage,
+    bool swapInReverts,
+    string memory swapInRevertMessage
+  ) internal {
+    bytes32 poolId = pair_eXOF_bridgedEUROC_ID;
+
+    // Get exchange provider from broker
+    address[] memory exchangeProviders = broker.getExchangeProviders();
+    assertEq(exchangeProviders.length, 1);
+
+    if (getAmountOutReverts) {
+      vm.expectRevert(bytes(getAmountOutRevertMessage));
+    }
+    broker.getAmountOut(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn);
+
+    changePrank(trader);
+    IERC20(tokenIn).approve(address(broker), amountIn);
+
+    if (swapInReverts) {
+      vm.expectRevert(bytes(swapInRevertMessage));
+    }
+    broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, amountIn, 0);
   }
 
   /**
@@ -71,21 +100,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     address tokenOut,
     bool shouldRevert
   ) public {
-    bytes32 poolId = pair_eXOF_bridgedEUROC_ID;
-    uint256 amountIn = 1e6;
-
-    // Get exchange provider from broker
-    address[] memory exchangeProviders = broker.getExchangeProviders();
-    assertEq(exchangeProviders.length, 1);
-
-    changePrank(trader);
-    IERC20(tokenIn).approve(address(broker), amountIn);
-
-    if (shouldRevert) {
-      vm.expectRevert("Trading is suspended for this reference rate");
-    }
-    // Execute swap
-    broker.swapIn(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn, 0);
+    assert_swapIn(tokenIn, tokenOut, 1e6, false, "", shouldRevert, "Trading is suspended for this reference rate");
   }
 
   /**
@@ -97,25 +112,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     address tokenOut,
     bool shouldRevert
   ) public {
-    bytes32 poolId = pair_eXOF_bridgedEUROC_ID;
-    address[] memory exchangeProviders = broker.getExchangeProviders();
-    assertEq(exchangeProviders.length, 1);
-
-    //Get quote
-    if (shouldRevert) {
-      vm.expectRevert("no valid median");
-    }
-    uint256 expectedOut = broker.getAmountOut(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn);
-
-    changePrank(trader);
-    IERC20(tokenIn).approve(address(broker), amountIn);
-
-    // Execute swap
-    if (shouldRevert) {
-      vm.expectRevert("no valid median");
-    }
-    uint256 actualOut = broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, amountIn, 0);
-    assertEq(expectedOut, actualOut);
+    assert_swapIn(tokenIn, tokenOut, amountIn, shouldRevert, "no valid median", shouldRevert, "no valid median");
   }
 
   function test_setUp_isCorrect() public {
@@ -171,8 +168,8 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
       address(valueDeltaBreaker2)
     );
     assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
-    assertEq(uint256(valueDelta1TradingMode), 3); // 0 = bidirectional trading
-    assertEq(uint256(valueDelta2TradingMode), 0); // 3 = trading halted
+    assertEq(uint256(valueDelta1TradingMode), 3); // 3 = trading halted
+    assertEq(uint256(valueDelta2TradingMode), 0); // 0 = bidirectional trading
 
     // New median that is below recoverable breaker threshold: 15%
     vm.warp(now + 1 seconds);
@@ -258,7 +255,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     vm.warp(now + 5 seconds);
     setMedianRate(bridgedEUROC_EUR_referenceRateFeedID, 1e24 * 1.04);
 
-    // Try swap with should revert true
+    // Try swap with should revert false
     doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), false);
 
     // Check breakers: verify that EUROC/EURO breaker has recovered
