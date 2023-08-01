@@ -93,26 +93,36 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   /**
-   * @notice Test helper function to do swap in with option to expectRevert on circuit breaker
+   * @notice Test helper function to do a succesful swap
    */
-  function doSwapInRevertBreaker(
+  function assert_swapIn_successful(
+    uint256 amountIn,
     address tokenIn,
-    address tokenOut,
-    bool shouldRevert
+    address tokenOut
   ) public {
-    assert_swapIn(tokenIn, tokenOut, 1e6, false, "", shouldRevert, "Trading is suspended for this reference rate");
+    assert_swapIn(tokenIn, tokenOut, amountIn, false, "", false, "");
   }
 
   /**
-   * @notice Test helper function to do swap in with option to expectRevert on invalid median
+   * @notice Test helper function to do a swap that reverts on circuit breaker
    */
-  function doSwapInRevertValidMedian(
+  function assert_swapIn_tradingSuspended(
     uint256 amountIn,
     address tokenIn,
-    address tokenOut,
-    bool shouldRevert
+    address tokenOut
   ) public {
-    assert_swapIn(tokenIn, tokenOut, amountIn, shouldRevert, "no valid median", shouldRevert, "no valid median");
+    assert_swapIn(tokenIn, tokenOut, amountIn, false, "", true, "Trading is suspended for this reference rate");
+  }
+
+  /**
+   * @notice Test helper function to do a swap that reverts on invalid median
+   */
+  function assert_swapIn_noValidMedian(
+    uint256 amountIn,
+    address tokenIn,
+    address tokenOut
+  ) public {
+    assert_swapIn(tokenIn, tokenOut, amountIn, true, "no valid median", true, "no valid median");
   }
 
   function test_setUp_isCorrect() public {
@@ -134,7 +144,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     uint256 eXOFBalance = eXOFToken.balanceOf(trader);
     uint256 eurocBalance = eurocToken.balanceOf(trader);
 
-    doSwapInRevertValidMedian(1e6, address(eurocToken), address(eXOFToken), false);
+    assert_swapIn_successful(1e6, address(eurocToken), address(eXOFToken));
     // 1 EUROC ≈  656 eXOF
     assertTrue(eXOFBalance < eXOFToken.balanceOf(trader) && eXOFToken.balanceOf(trader) < eXOFBalance + (1e18 * 656));
     assertEq(eurocToken.balanceOf(trader), eurocBalance - 1e6);
@@ -142,7 +152,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     eXOFBalance = eXOFToken.balanceOf(trader);
     eurocBalance = eurocToken.balanceOf(trader);
 
-    doSwapInRevertValidMedian(1e18, address(eXOFToken), address(eurocToken), false);
+    assert_swapIn_successful(1e18, address(eXOFToken), address(eurocToken));
     assertEq(eXOFToken.balanceOf(trader), eXOFBalance - 1e18);
     // 1/656 ≈  0.001524 -> 1 eXOF ≈  0.001524 EUROC
     assertTrue(
@@ -154,8 +164,8 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     // New median that exceeds recoverable breaker threshold: 15%
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 + (1e24 * 656 * 0.16));
 
-    // Try swap with should revert true
-    doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), true);
+    // Try swap that should revert
+    assert_swapIn_tradingSuspended(1e6, address(eurocToken), address(eXOFToken));
 
     // Check breakers: verify that only recoverable breaker has triggered
     uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
@@ -175,8 +185,8 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     vm.warp(now + 1 seconds);
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 - (1e24 * 656 * 0.14));
 
-    // Try swap with should revert false
-    doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), false);
+    // Try succesful swap -> trading should be possible again
+    assert_swapIn_successful(1e6, address(eurocToken), address(eXOFToken));
 
     // Check breakers: verify that recoverable breaker has recovered
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
@@ -197,8 +207,8 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     // New median that exceeds non recoverable breaker threshold: 20%
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 + (1e24 * 656 * 0.21));
 
-    // Try swap with should revert true
-    doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), true);
+    // Try swap that should revert
+    assert_swapIn_tradingSuspended(1e6, address(eurocToken), address(eXOFToken));
 
     // Check breakers: verify that non recoverable breaker has triggered
     uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
@@ -218,8 +228,8 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     vm.warp(now + 5 minutes);
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656);
 
-    // Try swap with should revert true
-    doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), true);
+    // Try swap that should still revert
+    assert_swapIn_tradingSuspended(1e6, address(eurocToken), address(eXOFToken));
 
     // Check breakers: verify that recoverable breaker has recovered and non recoverable breaker hasn't
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
@@ -240,8 +250,8 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     // New median that exceeds EUROC/EUR breaker threshold: 5%
     setMedianRate(bridgedEUROC_EUR_referenceRateFeedID, 1.051 * 1e24);
 
-    // Try swap with should revert true
-    doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), true);
+    // Try swap that should revert
+    assert_swapIn_tradingSuspended(1e6, address(eurocToken), address(eXOFToken));
 
     // Check Breakers: verify that only the EUROC/EURO breaker has triggered
     uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
@@ -255,8 +265,8 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     vm.warp(now + 5 seconds);
     setMedianRate(bridgedEUROC_EUR_referenceRateFeedID, 1e24 * 1.04);
 
-    // Try swap with should revert false
-    doSwapInRevertBreaker(address(eurocToken), address(eXOFToken), false);
+    // Try succesful swap -> trading should be possible again
+    assert_swapIn_successful(1e6, address(eurocToken), address(eXOFToken));
 
     // Check breakers: verify that EUROC/EURO breaker has recovered
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
@@ -271,19 +281,19 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     // New median that doesnt exceed breaker thresholds
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 + (1e24 * 656 * 0.05));
 
-    // Try swap with should revert false -> trading should be possible
-    doSwapInRevertValidMedian(1e6, address(eurocToken), address(eXOFToken), false);
+    // Try succesful swap -> trading should be possible
+    assert_swapIn_successful(1e6, address(eurocToken), address(eXOFToken));
 
     // time jump that expires reports
     vm.warp(now + 5 minutes);
 
-    // Try swap with should revert true -> no valid median
-    doSwapInRevertValidMedian(1e6, address(eurocToken), address(eXOFToken), true);
+    // Try swap that should revert
+    assert_swapIn_noValidMedian(1e6, address(eurocToken), address(eXOFToken));
 
     // New reports
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 - (1e24 * 656 * 0.05));
 
-    // Try swap with should revert false -> trading should be possible again
-    doSwapInRevertValidMedian(1e18, address(eXOFToken), address(eurocToken), false);
+    // Try succesful swap -> trading should be possible again
+    assert_swapIn_successful(1e18, address(eXOFToken), address(eurocToken));
   }
 }
