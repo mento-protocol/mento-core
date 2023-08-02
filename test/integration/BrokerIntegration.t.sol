@@ -81,16 +81,21 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(exchangeProviders.length, 1);
 
     IExchangeProvider.Exchange[] memory exchanges = IExchangeProvider(exchangeProviders[0]).getExchanges();
-    assertEq(exchanges.length, 5);
+    assertEq(exchanges.length, 6);
 
     IExchangeProvider.Exchange memory exchange;
     for (uint256 i = 0; i < exchanges.length; i++) {
       exchange = exchanges[i];
-      assert(exchange.assets[0] == address(cUSDToken) || exchange.assets[0] == address(cEURToken));
+      assert(
+        exchange.assets[0] == address(cUSDToken) ||
+          exchange.assets[0] == address(cEURToken) ||
+          exchange.assets[0] == address(eXOFToken)
+      );
       assert(
         exchange.assets[1] == address(cEURToken) ||
           exchange.assets[1] == address(celoToken) ||
-          exchange.assets[1] == address(usdcToken)
+          exchange.assets[1] == address(usdcToken) ||
+          exchange.assets[1] == address(eurocToken)
       );
     }
   }

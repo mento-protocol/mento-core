@@ -25,8 +25,8 @@ contract StableTokenV1V2GasPaymentTest is BaseTest {
 
   function setUp() public {
     tokenV2 = new StableTokenV2(false);
-    freezer = IFreezer(factory.create("Freezer", abi.encode(true)));
-    tokenV1 = IStableToken(factory.create("StableToken", abi.encode(true)));
+    freezer = IFreezer(factory.createContract("Freezer", abi.encode(true)));
+    tokenV1 = IStableToken(factory.createContract("StableToken", abi.encode(true)));
 
     tokenV2.initialize(
       "cUSD",

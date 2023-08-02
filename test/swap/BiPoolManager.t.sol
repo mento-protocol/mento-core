@@ -1003,19 +1003,9 @@ contract BiPoolManagerTest_ConstantSum is BiPoolManagerTest_withExchange {
     sortedOracles.setMedianTimestamp(USDUSDC_rateFeedID, now - exchange.config.referenceRateResetFrequency);
 
     vm.expectRevert("no valid median");
-    uint256 amountOut = biPoolManager.getAmountOut(
-      exchangeId_cUSD_bridgedUSDC,
-      address(cUSD),
-      address(bridgedUSDC),
-      1e18
-    );
+    biPoolManager.getAmountOut(exchangeId_cUSD_bridgedUSDC, address(cUSD), address(bridgedUSDC), 1e18);
     vm.expectRevert("no valid median");
-    uint256 amountIn = biPoolManager.getAmountIn(
-      exchangeId_cUSD_bridgedUSDC,
-      address(cUSD),
-      address(bridgedUSDC),
-      1e18
-    );
+    biPoolManager.getAmountIn(exchangeId_cUSD_bridgedUSDC, address(cUSD), address(bridgedUSDC), 1e18);
     changePrank(broker);
     vm.expectRevert("no valid median");
     biPoolManager.swapIn(exchangeId_cUSD_bridgedUSDC, address(cUSD), address(bridgedUSDC), 1e18);
@@ -1027,20 +1017,10 @@ contract BiPoolManagerTest_ConstantSum is BiPoolManagerTest_withExchange {
     assertEq(sortedOracles.numRates(EURUSDC_rateFeedID), 0);
 
     vm.expectRevert("no valid median");
-    uint256 amountOut = biPoolManager.getAmountOut(
-      exchangeId_cEUR_bridgedUSDC,
-      address(cEUR),
-      address(bridgedUSDC),
-      1e18
-    );
+    biPoolManager.getAmountOut(exchangeId_cEUR_bridgedUSDC, address(cEUR), address(bridgedUSDC), 1e18);
 
     vm.expectRevert("no valid median");
-    uint256 amountIn = biPoolManager.getAmountIn(
-      exchangeId_cEUR_bridgedUSDC,
-      address(cEUR),
-      address(bridgedUSDC),
-      1e18
-    );
+    biPoolManager.getAmountIn(exchangeId_cEUR_bridgedUSDC, address(cEUR), address(bridgedUSDC), 1e18);
 
     changePrank(broker);
     vm.expectRevert("no valid median");
@@ -1054,19 +1034,9 @@ contract BiPoolManagerTest_ConstantSum is BiPoolManagerTest_withExchange {
     sortedOracles.setOldestReportExpired(USDUSDC_rateFeedID);
 
     vm.expectRevert("no valid median");
-    uint256 amountOut = biPoolManager.getAmountOut(
-      exchangeId_cUSD_bridgedUSDC,
-      address(cUSD),
-      address(bridgedUSDC),
-      1e18
-    );
+    biPoolManager.getAmountOut(exchangeId_cUSD_bridgedUSDC, address(cUSD), address(bridgedUSDC), 1e18);
     vm.expectRevert("no valid median");
-    uint256 amountIn = biPoolManager.getAmountIn(
-      exchangeId_cUSD_bridgedUSDC,
-      address(cUSD),
-      address(bridgedUSDC),
-      1e18
-    );
+    biPoolManager.getAmountIn(exchangeId_cUSD_bridgedUSDC, address(cUSD), address(bridgedUSDC), 1e18);
     changePrank(broker);
     vm.expectRevert("no valid median");
     biPoolManager.swapIn(exchangeId_cUSD_bridgedUSDC, address(cUSD), address(bridgedUSDC), 1e18);

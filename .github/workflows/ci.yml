@@ -27,7 +27,7 @@ jobs:
       - name: "Install Foundry"
         uses: "onbjerg/foundry-toolchain@v1"
         with:
-          version: "nightly"
+          version: "nightly-d369d2486f85576eec4ca41d277391dfdae21ba7"
       - name: "Build the contracts"
         run: |
           forge build --skip test --skip script --build-info
@@ -66,7 +66,7 @@ jobs:
       - name: Install Foundry
         uses: onbjerg/foundry-toolchain@v1
         with:
-          version: nightly
+          version: "nightly-d369d2486f85576eec4ca41d277391dfdae21ba7"
       - name: Check storage layout
         uses: Rubilmax/foundry-storage-check@v3.2.1
         with:
@@ -99,7 +99,7 @@ jobs:
       - name: Install Foundry
         uses: onbjerg/foundry-toolchain@v1
         with:
-          version: nightly
+          version: "nightly-d369d2486f85576eec4ca41d277391dfdae21ba7"
       - name: "Build for echidna"
         run: yarn forge:build:slither
 
@@ -124,7 +124,7 @@ jobs:
       - name: "Install Foundry"
         uses: "onbjerg/foundry-toolchain@v1"
         with:
-          version: "nightly"
+          version: "nightly-d369d2486f85576eec4ca41d277391dfdae21ba7"
 
       - name: "Install Node.js"
         uses: "actions/setup-node@v3"
@@ -157,4 +157,3 @@ jobs:
       - name: "Add test summary"
         run: |
           echo "## Tests" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Passed" >> $GITHUB_STEP_SUMMARY
