@@ -28,6 +28,7 @@ import { Reserve } from "contracts/swap/Reserve.sol";
 import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
 import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
+import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
 import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
 
 import { Token } from "./Token.sol";
@@ -57,11 +58,14 @@ contract IntegrationTest is BaseTest {
   SortedOracles sortedOracles;
   BreakerBox breakerBox;
   MedianDeltaBreaker medianDeltaBreaker;
+  ValueDeltaBreaker valueDeltaBreaker;
 
   Token celoToken;
   Token usdcToken;
+  Token eurocToken;
   IStableTokenV2 cUSDToken;
   IStableTokenV2 cEURToken;
+  IStableTokenV2 eXOFToken;
   Freezer freezer;
 
   address cUSD_CELO_referenceRateFeedID;
@@ -69,12 +73,15 @@ contract IntegrationTest is BaseTest {
   address cUSD_bridgedUSDC_referenceRateFeedID;
   address cEUR_bridgedUSDC_referenceRateFeedID;
   address cUSD_cEUR_referenceRateFeedID;
+  address bridgedEUROC_EUR_referenceRateFeedID;
+  address eXOF_bridgedEUROC_referenceRateFeedID;
 
   bytes32 pair_cUSD_CELO_ID;
   bytes32 pair_cEUR_CELO_ID;
   bytes32 pair_cUSD_bridgedUSDC_ID;
   bytes32 pair_cEUR_bridgedUSDC_ID;
   bytes32 pair_cUSD_cEUR_ID;
+  bytes32 pair_eXOF_bridgedEUROC_ID;
 
   function setUp() public {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
@@ -95,6 +102,7 @@ contract IntegrationTest is BaseTest {
 
     celoToken = new Token("Celo", "cGLD", 18);
     usdcToken = new Token("bridgedUSDC", "bridgedUSDC", 6);
+    eurocToken = new Token("bridgedEUROC", "bridgedEUROC", 6);
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
@@ -127,28 +135,46 @@ contract IntegrationTest is BaseTest {
     );
     cEURToken.initializeV2(address(broker), address(0x0), address(0x0));
 
+    eXOFToken = IStableTokenV2(factory.createContract("StableTokenV2", abi.encode(false)));
+    eXOFToken.initialize(
+      "eXOF",
+      "eXOF",
+      18,
+      REGISTRY_ADDRESS,
+      FixidityLib.unwrap(FixidityLib.fixed1()),
+      60 * 60 * 24 * 7,
+      initialAddresses,
+      initialBalances,
+      "Exchange"
+    );
+    eXOFToken.initializeV2(address(broker), address(0x0), address(0x0));
+
     vm.label(address(cUSDToken), "cUSD");
     vm.label(address(cEURToken), "cEUR");
+    vm.label(address(eXOFToken), "eXOF");
   }
 
   function setUp_reserve() internal {
     changePrank(deployer);
     /* ===== Deploy reserve ===== */
 
-    bytes32[] memory initialAssetAllocationSymbols = new bytes32[](2);
-    uint256[] memory initialAssetAllocationWeights = new uint256[](2);
+    bytes32[] memory initialAssetAllocationSymbols = new bytes32[](3);
+    uint256[] memory initialAssetAllocationWeights = new uint256[](3);
     initialAssetAllocationSymbols[0] = bytes32("cGLD");
     initialAssetAllocationWeights[0] = FixidityLib.newFixedFraction(1, 2).unwrap();
     initialAssetAllocationSymbols[1] = bytes32("bridgedUSDC");
-    initialAssetAllocationWeights[1] = FixidityLib.newFixedFraction(1, 2).unwrap();
+    initialAssetAllocationWeights[1] = FixidityLib.newFixedFraction(1, 4).unwrap();
+    initialAssetAllocationSymbols[2] = bytes32("bridgedEUROC");
+    initialAssetAllocationWeights[2] = FixidityLib.newFixedFraction(1, 4).unwrap();
 
-    address[] memory asse1s = new address[](2);
-    uint256[] memory asse1DailySpendingRatios = new uint256[](2);
-    asse1s[0] = address(celoToken);
-    asse1DailySpendingRatios[0] = 100000000000000000000000;
-    asse1s[1] = address(usdcToken);
-    asse1DailySpendingRatios[1] = 100000000000000000000000;
-
+    address[] memory assets = new address[](3);
+    uint256[] memory assetDailySpendingRatios = new uint256[](3);
+    assets[0] = address(celoToken);
+    assetDailySpendingRatios[0] = 100000000000000000000000;
+    assets[1] = address(usdcToken);
+    assetDailySpendingRatios[1] = 100000000000000000000000;
+    assets[2] = address(eurocToken);
+    assetDailySpendingRatios[2] = 100000000000000000000000;
     reserve = new Reserve(true);
     reserve.initialize(
       REGISTRY_ADDRESS,
@@ -160,12 +186,13 @@ contract IntegrationTest is BaseTest {
       initialAssetAllocationWeights,
       tobinTax,
       tobinTaxReserveRatio,
-      asse1s,
-      asse1DailySpendingRatios
+      assets,
+      assetDailySpendingRatios
     );
 
     reserve.addToken(address(cUSDToken));
     reserve.addToken(address(cEURToken));
+    reserve.addToken(address(eXOFToken));
   }
 
   function setUp_sortedOracles() internal {
@@ -180,6 +207,8 @@ contract IntegrationTest is BaseTest {
     cUSD_bridgedUSDC_referenceRateFeedID = address(bytes20(keccak256("USD/USDC")));
     cEUR_bridgedUSDC_referenceRateFeedID = address(bytes20(keccak256("EUR/USDC")));
     cUSD_cEUR_referenceRateFeedID = address(bytes20(keccak256("USD/EUR")));
+    bridgedEUROC_EUR_referenceRateFeedID = address(bytes20(keccak256("EUROC/EUR")));
+    eXOF_bridgedEUROC_referenceRateFeedID = address(bytes20(keccak256("XOF/EUROC")));
 
     initOracles(cUSD_CELO_referenceRateFeedID, 10);
     setMedianRate(cUSD_CELO_referenceRateFeedID, 5e23);
@@ -195,6 +224,12 @@ contract IntegrationTest is BaseTest {
 
     initOracles(cUSD_cEUR_referenceRateFeedID, 10);
     setMedianRate(cUSD_cEUR_referenceRateFeedID, 1.1 * 1e24);
+
+    initOracles(bridgedEUROC_EUR_referenceRateFeedID, 10);
+    setMedianRate(bridgedEUROC_EUR_referenceRateFeedID, 1 * 1e24);
+
+    initOracles(eXOF_bridgedEUROC_referenceRateFeedID, 10);
+    setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 656 * 1e24);
   }
 
   function initOracles(address rateFeedID, uint256 count) internal {
@@ -230,40 +265,52 @@ contract IntegrationTest is BaseTest {
 
   function setUp_breakers() internal {
     /* ========== Deploy Breaker Box =============== */
-    address[] memory rateFeedIDs = new address[](5);
+    address[] memory rateFeedIDs = new address[](7);
     rateFeedIDs[0] = cUSD_CELO_referenceRateFeedID;
     rateFeedIDs[1] = cEUR_CELO_referenceRateFeedID;
     rateFeedIDs[2] = cUSD_bridgedUSDC_referenceRateFeedID;
     rateFeedIDs[3] = cEUR_bridgedUSDC_referenceRateFeedID;
     rateFeedIDs[4] = cUSD_cEUR_referenceRateFeedID;
+    rateFeedIDs[5] = bridgedEUROC_EUR_referenceRateFeedID;
+    rateFeedIDs[6] = eXOF_bridgedEUROC_referenceRateFeedID;
 
     breakerBox = new BreakerBox(rateFeedIDs, ISortedOracles(address(sortedOracles)));
 
+    // set rate feed dependencies
+    address[] memory cEUR_bridgedUSDC_dependencies = new address[](1);
+    cEUR_bridgedUSDC_dependencies[0] = cUSD_bridgedUSDC_referenceRateFeedID;
+    breakerBox.setRateFeedDependencies(cEUR_bridgedUSDC_referenceRateFeedID, cEUR_bridgedUSDC_dependencies);
+
+    address[] memory eXOF_bridgedEUROC_dependencies = new address[](1);
+    eXOF_bridgedEUROC_dependencies[0] = bridgedEUROC_EUR_referenceRateFeedID;
+    breakerBox.setRateFeedDependencies(eXOF_bridgedEUROC_referenceRateFeedID, eXOF_bridgedEUROC_dependencies);
+
     /* ========== Deploy Median Delta Breaker =============== */
 
-    // todo change these to correct values
-    uint256[] memory rateChangeThresholds = new uint256[](5);
-    uint256[] memory cooldownTimes = new uint256[](5);
+    uint256[] memory medianDeltaBreakerRateChangeThresholds = new uint256[](7);
+    uint256[] memory medianDeltaBreakerCooldownTimes = new uint256[](7);
 
-    rateChangeThresholds[0] = 0.15 * 10**24;
-    rateChangeThresholds[1] = 0.14 * 10**24;
-    rateChangeThresholds[2] = 0.13 * 10**24;
-    rateChangeThresholds[3] = 0.12 * 10**24;
-    rateChangeThresholds[4] = 0.11 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[0] = 0.15 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[1] = 0.14 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[2] = 0.13 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[3] = 0.12 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[4] = 0.11 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[5] = 0.10 * 10**24;
+    medianDeltaBreakerRateChangeThresholds[6] = 0.9 * 10**24;
 
-    uint256 threshold = 0.15 * 10**24; // 15%
-    uint256 coolDownTime = 5 minutes;
+    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10**24; // 15%
+    uint256 medianDeltaBreakerDefaultCooldown = 5 minutes;
 
     medianDeltaBreaker = new MedianDeltaBreaker(
-      coolDownTime,
-      threshold,
+      medianDeltaBreakerDefaultCooldown,
+      medianDeltaBreakerDefaultThreshold,
       ISortedOracles(address(sortedOracles)),
       rateFeedIDs,
-      rateChangeThresholds,
-      cooldownTimes
+      medianDeltaBreakerRateChangeThresholds,
+      medianDeltaBreakerCooldownTimes
     );
 
-    breakerBox.addBreaker(address(medianDeltaBreaker), 1);
+    breakerBox.addBreaker(address(medianDeltaBreaker), 3);
     sortedOracles.setBreakerBox(breakerBox);
 
     // enable breakers
@@ -272,6 +319,41 @@ contract IntegrationTest is BaseTest {
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_bridgedUSDC_referenceRateFeedID, true);
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cUSD_cEUR_referenceRateFeedID, true);
     breakerBox.toggleBreaker(address(medianDeltaBreaker), cEUR_bridgedUSDC_referenceRateFeedID, true);
+
+    /* ============= Value Delta Breaker =============== */
+    address[] memory valueDeltaRateFeeds = new address[](3);
+    valueDeltaRateFeeds[0] = cUSD_bridgedUSDC_referenceRateFeedID;
+    valueDeltaRateFeeds[1] = eXOF_bridgedEUROC_referenceRateFeedID;
+    valueDeltaRateFeeds[2] = bridgedEUROC_EUR_referenceRateFeedID;
+    uint256[] memory rateChangeThresholds = new uint256[](3);
+    rateChangeThresholds[0] = 0.1 * 10**24;
+    rateChangeThresholds[1] = 0.15 * 10**24;
+    rateChangeThresholds[2] = 0.05 * 10**24;
+
+    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;
+    uint256 valueDeltaBreakerDefaultCooldown = 1 seconds;
+
+    valueDeltaBreaker = new ValueDeltaBreaker(
+      valueDeltaBreakerDefaultCooldown,
+      valueDeltaBreakerDefaultThreshold,
+      ISortedOracles(address(sortedOracles)),
+      valueDeltaRateFeeds,
+      rateChangeThresholds,
+      new uint256[](3)
+    );
+
+    // set reference value
+    uint256[] memory referenceValues = new uint256[](3);
+    referenceValues[0] = 1e24;
+    referenceValues[1] = 656 * 1e24;
+    referenceValues[2] = 1e24;
+    valueDeltaBreaker.setReferenceValues(valueDeltaRateFeeds, referenceValues);
+
+    // add value delta breaker and enable for rate feed
+    breakerBox.addBreaker(address(valueDeltaBreaker), 3);
+    breakerBox.toggleBreaker(address(valueDeltaBreaker), cUSD_bridgedUSDC_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(valueDeltaBreaker), eXOF_bridgedEUROC_referenceRateFeedID, true);
+    breakerBox.toggleBreaker(address(valueDeltaBreaker), bridgedEUROC_EUR_referenceRateFeedID, true);
   }
 
   function setUp_broker() internal {
@@ -360,6 +442,19 @@ contract IntegrationTest is BaseTest {
     pair_cUSD_cEUR.config.stablePoolResetSize = 1e24;
 
     pair_cUSD_cEUR_ID = biPoolManager.createExchange(pair_cUSD_cEUR);
+
+    BiPoolManager.PoolExchange memory pair_eXOF_bridgedEUROC;
+    pair_eXOF_bridgedEUROC.asset0 = address(eXOFToken);
+    pair_eXOF_bridgedEUROC.asset1 = address(eurocToken);
+    pair_eXOF_bridgedEUROC.pricingModule = constantSum;
+    pair_eXOF_bridgedEUROC.lastBucketUpdate = now;
+    pair_eXOF_bridgedEUROC.config.spread = FixidityLib.newFixedFraction(5, 1000);
+    pair_eXOF_bridgedEUROC.config.referenceRateResetFrequency = 60 * 5;
+    pair_eXOF_bridgedEUROC.config.minimumReports = 5;
+    pair_eXOF_bridgedEUROC.config.referenceRateFeedID = eXOF_bridgedEUROC_referenceRateFeedID;
+    pair_eXOF_bridgedEUROC.config.stablePoolResetSize = 1e24;
+
+    pair_eXOF_bridgedEUROC_ID = biPoolManager.createExchange(pair_eXOF_bridgedEUROC);
   }
 
   function setUp_freezer() internal {
@@ -377,6 +472,7 @@ contract IntegrationTest is BaseTest {
     broker.configureTradingLimit(pair_cUSD_bridgedUSDC_ID, address(usdcToken), config);
     broker.configureTradingLimit(pair_cEUR_bridgedUSDC_ID, address(usdcToken), config);
     broker.configureTradingLimit(pair_cUSD_cEUR_ID, address(cUSDToken), config);
+    broker.configureTradingLimit(pair_eXOF_bridgedEUROC_ID, address(eXOFToken), config);
   }
 
   function configL0L1LG(
