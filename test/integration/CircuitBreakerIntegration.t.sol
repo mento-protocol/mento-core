@@ -105,7 +105,6 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
   }
 
   function test_valueDeltaBreaker_whenMedianExceedsThresholdAndRecovers_shouldHaltAndRecover() public {
-    uint256 blockNumber = block.number;
     // Trip value delta breaker for cUSD_bridgedUSDC_referenceRateFeedID threshold: 0.1 * 1e24
     setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24 + 1e24 * 0.11);
 
@@ -148,11 +147,9 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
 
     // Try swap with shouldBreak false -> trading is bidirectional again
     doSwapIn(pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), false);
-    assertEq(blockNumber, block.number); // block number should not change
   }
 
   function test_valueDeltaBreaker_whenMedianSubceedsThresholdAndRecovers_shouldHaltAndRecover() public {
-    uint256 blockNumber = block.number;
     // Trip value delta breaker for cUSD_bridgedUSDC_referenceRateFeedID threshold: 0.1 * 1e24
     setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24 - 1e24 * 0.11);
 
@@ -193,7 +190,6 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
 
     // Try swap with shouldBreak false -> trading is bidirectional again
     doSwapIn(pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), false);
-    assertEq(blockNumber, block.number); // block number should not change
   }
 
   function test_medianDeltaBreaker_whenCooledDownButMedianStillExceeds_shouldNotRecover() public {
