@@ -52,6 +52,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   bytes32 public constant CONSTANT_SUM = keccak256(abi.encodePacked("ConstantSum"));
   bytes32 public constant CONSTANT_PRODUCT = keccak256(abi.encodePacked("ConstantProduct"));
 
+  // Maps a pricing module identifier to the address of the pricing module contract.
+  mapping(bytes32 => address) public pricingModules;
+
   /* ==================== Constructor ==================== */
 
   /**
