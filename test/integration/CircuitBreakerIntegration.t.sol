@@ -83,7 +83,6 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
     uint256 newMedian = 5e23 - 5e23 * 0.151;
     // Trip median delta breaker for cUSD_CELO_referenceRateFeedID threshold: 15%
     setMedianRate(cUSD_CELO_referenceRateFeedID, newMedian);
-    // console.log(5e23 - 5e23 * 0.151, "new threshold");
 
     // Try swap with shouldBreak true
     doSwapIn(pair_cUSD_CELO_ID, address(cUSDToken), address(celoToken), true);
@@ -261,6 +260,52 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
 
     // Try swap with shouldBreak true -> median still exceeds threshold
     doSwapIn(pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), true);
+  }
+
+  function test_valueDeltaBreaker_whenCooldownTimeIsZero_shouldNeverRecover() public {
+    // Trip value delta breaker for cUSD_cEUR_referenceRateFeedID  threshold: 0.05 * 1e24 referenceRate = 11e23
+    setMedianRate(cUSD_cEUR_referenceRateFeedID, 11e23 + 11e23 * 0.051);
+
+    // Try swap with shouldBreak true
+    doSwapIn(pair_cUSD_cEUR_ID, address(cUSDToken), address(cEURToken), true);
+
+    // Check trading modes
+    uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cUSD_cEUR_referenceRateFeedID);
+    assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
+
+    // Cool down breaker
+    vm.warp(now + 5 seconds);
+    setMedianRate(cUSD_cEUR_referenceRateFeedID, 11e23 + 11e23 * 0.01);
+
+    // Try swap with shouldBreak true
+    doSwapIn(pair_cUSD_cEUR_ID, address(cEURToken), address(cUSDToken), true);
+
+    // Check trading modes
+    rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cUSD_cEUR_referenceRateFeedID);
+    assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
+  }
+
+  function test_medianDeltaBreaker_whenCooldownTimeIsZero_shouldNeverRecover() public {
+    // Trip median delta breaker for cEUR_CELO_referenceRateFeedID  threshold: 0.14 * 1e24
+    setMedianRate(cEUR_CELO_referenceRateFeedID, 1e24 + 1e24 * 0.141);
+
+    // Try swap with shouldBreak true
+    doSwapIn(pair_cEUR_CELO_ID, address(cEURToken), address(celoToken), true);
+
+    // Check trading modes
+    uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cEUR_CELO_referenceRateFeedID);
+    assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
+
+    // Cool down breaker
+    vm.warp(now + 5 seconds);
+    setMedianRate(cEUR_CELO_referenceRateFeedID, 1e24 + 1e24 * 0.1);
+
+    // Try swap with shouldBreak true
+    doSwapIn(pair_cEUR_CELO_ID, address(cEURToken), address(celoToken), true);
+
+    // Check trading modes
+    rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cEUR_CELO_referenceRateFeedID);
+    assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
   }
 
   function test_dependantRateFeeds_whenDependenciesHalt_shouldHalt() public {

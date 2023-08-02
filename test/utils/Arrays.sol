@@ -112,6 +112,26 @@ library Arrays {
     return arr;
   }
 
+  function addresses(
+    address e0,
+    address e1,
+    address e2,
+    address e3,
+    address e4,
+    address e5,
+    address e6
+  ) internal pure returns (address[] memory arr) {
+    arr = new address[](7);
+    arr[0] = e0;
+    arr[1] = e1;
+    arr[2] = e2;
+    arr[3] = e3;
+    arr[4] = e4;
+    arr[5] = e5;
+    arr[6] = e6;
+    return arr;
+  }
+
   function bytes32s(bytes32 e0) internal pure returns (bytes32[] memory arr) {
     arr = new bytes32[](1);
     arr[0] = e0;
