@@ -443,7 +443,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @param tokenOut The token to be bought
    * @param scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
    * @return scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
-   * @return bucketsUpdated Wether the buckets were updated during the quote
+   * @return bucketsUpdated Whether the buckets were updated during the quote
    */
   function _getAmountIn(
     PoolExchange memory exchange,
