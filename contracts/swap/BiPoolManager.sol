@@ -126,8 +126,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * astronomical values so this is safe gas-wise as is.
    */
   function getExchanges() public view returns (Exchange[] memory _exchanges) {
-    _exchanges = new Exchange[](exchangeIds.length);
-    for (uint256 i = 0; i < exchangeIds.length; i++) {
+    uint256 numExchanges = exchangeIds.length;
+    _exchanges = new Exchange[](numExchanges);
+    for (uint256 i = 0; i < numExchanges; i++) {
       _exchanges[i].exchangeId = exchangeIds[i];
       _exchanges[i].assets = new address[](2);
       _exchanges[i].assets[0] = exchanges[exchangeIds[i]].asset0;
