@@ -88,6 +88,19 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     _;
   }
 
+  modifier verifyExchangeTokens(
+    address tokenIn,
+    address tokenOut,
+    PoolExchange memory exchange
+  ) {
+    require(
+      (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
+        (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
+      "tokenIn and tokenOut must match exchange"
+    );
+    _;
+  }
+
   /* ==================== View Functions ==================== */
 
   /**
@@ -392,13 +405,12 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     address tokenIn,
     address tokenOut,
     uint256 scaledAmountIn
-  ) internal view returns (uint256 scaledAmountOut, bool bucketsUpdated) {
-    require(
-      (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
-        (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
-      "tokenIn and tokenOut must match exchange"
-    );
-
+  )
+    internal
+    view
+    verifyExchangeTokens(tokenIn, tokenOut, exchange)
+    returns (uint256 scaledAmountOut, bool bucketsUpdated)
+  {
     (exchange, bucketsUpdated) = updateBucketsIfNecessary(exchange);
 
     if (tokenIn == exchange.asset0) {
@@ -432,13 +444,12 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     address tokenIn,
     address tokenOut,
     uint256 scaledAmountOut
-  ) internal view returns (uint256 scaledAmountIn, bool bucketsUpdated) {
-    require(
-      (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
-        (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
-      "tokenIn and tokenOut must match exchange"
-    );
-
+  )
+    internal
+    view
+    verifyExchangeTokens(tokenIn, tokenOut, exchange)
+    returns (uint256 scaledAmountIn, bool bucketsUpdated)
+  {
     (exchange, bucketsUpdated) = updateBucketsIfNecessary(exchange);
 
     if (tokenIn == exchange.asset0) {
