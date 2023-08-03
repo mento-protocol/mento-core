@@ -141,6 +141,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
     if (enable) {
       rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled = enable;
+      this.checkAndSetBreakers(rateFeedID);
     } else {
       delete rateFeedBreakerStatus[rateFeedID][breakerAddress];
       uint8 tradingMode = calculateTradingMode(rateFeedID);
