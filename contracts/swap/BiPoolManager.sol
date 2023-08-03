@@ -220,6 +220,21 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   }
 
   /**
+   * @notice Updates the pricing modules for a list of identifiers
+   * @dev This function can only be called by the owner of the contract.
+   *      The number of identifiers and modules provided must be the same.
+   * @param identifiers An array of identifiers for which the pricing modules are to be set.
+   * @param modules An array of module addresses corresponding to each identifier.
+   */
+  function setPricingModules(bytes32[] calldata identifiers, address[] calldata modules) external onlyOwner {
+    require(identifiers.length == modules.length, "identifiers and modules must be the same length");
+    for (uint256 i = 0; i < identifiers.length; i++) {
+      pricingModules[identifiers[i]] = modules[i];
+    }
+    emit PricingModulesUpdated(identifiers, modules);
+  }
+
+  /**
    * @notice Creates a new exchange using the given parameters.
    * @param _exchange the PoolExchange to create.
    * @return exchangeId The id of the newly created exchange.
