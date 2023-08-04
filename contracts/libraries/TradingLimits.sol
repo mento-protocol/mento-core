@@ -70,6 +70,12 @@ library TradingLimits {
     require(self.flags & L1 == 0 || self.flags & L0 != 0, "L1 without L0 not allowed");
     require(self.flags & L0 == 0 || self.timestep0 > 0, "timestep0 can't be zero if active");
     require(self.flags & L1 == 0 || self.timestep1 > 0, "timestep1 can't be zero if active");
+    require(self.flags & L0 == 0 || self.limit0 > 0, "limit0 can't be zero if active");
+    require(self.flags & L1 == 0 || self.limit1 > 0, "limit1 can't be zero if active");
+    require(self.flags & LG == 0 || self.limitGlobal > 0, "limitGlobal can't be zero if active");
+    require(self.flags & (L0 | L1) != 3 || self.limit0 < self.limit1, "limit1 must be greater than limit0");
+    require(self.flags & (L1 | LG) != 6 || self.limit1 < self.limitGlobal, "limitGlobal must be greater than limit1");
+    require(self.flags & (L0 | LG) != 5 || self.limit0 < self.limitGlobal, "limitGlobal must be greater than limit0");
   }
 
   /**
