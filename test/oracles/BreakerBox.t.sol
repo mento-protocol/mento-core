@@ -349,6 +349,8 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     testRateFeedIDs[1] = rateFeedID3;
 
     breakerBox.setRateFeedDependencies(rateFeedID1, testRateFeedIDs);
+    assertEq(breakerBox.rateFeedDependencies(rateFeedID1, 0), rateFeedID2);
+    assertEq(breakerBox.rateFeedDependencies(rateFeedID1, 1), rateFeedID3);
 
     assertTrue(isRateFeed(rateFeedID1));
     breakerBox.removeRateFeed(rateFeedID1);
