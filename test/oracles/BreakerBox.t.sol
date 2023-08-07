@@ -116,7 +116,6 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_constructor_shouldAddRateFeedIdsWithDefaultMode() public {
-    console.log(address(breakerBox), "BREAKEBOX ADDRESS");
     assertTrue(breakerBox.rateFeedStatus(rateFeedID1));
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 0);
 
