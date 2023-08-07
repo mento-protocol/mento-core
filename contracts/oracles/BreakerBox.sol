@@ -311,6 +311,8 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param rateFeedID The address of the rateFeed to run checks for.
    */
   function checkAndSetBreakers(address rateFeedID) external {
+    require(msg.sender == address(sortedOracles), "Caller must be the SortedOracles contract");
+
     uint8 _tradingMode = 0;
     for (uint256 i = 0; i < breakers.length; i++) {
       if (rateFeedBreakerStatus[rateFeedID][breakers[i]].enabled) {
