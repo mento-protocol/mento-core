@@ -630,7 +630,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     vm.warp(1672527600); // 2023-01-01 00:00:00
     setUpBreaker(mockBreaker3, 2, 9, false, true);
     toggleAndAssertBreaker(address(mockBreaker3), rateFeedID1, true);
-    changePrank(address(sortedOracles));
 
     changePrank(address(sortedOracles));
     breakerBox.checkAndSetBreakers(rateFeedID1);
@@ -647,7 +646,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     mockBreaker3.setTrigger(false);
     mockBreaker3.setReset(true);
     changePrank(address(sortedOracles));
-
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     (uint256 breakerTradingMode2, uint256 breakerLastUpdatedTime2, bool breakerEnabled2) = breakerBox
