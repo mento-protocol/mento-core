@@ -343,7 +343,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assertFalse(isRateFeed(rateFeedID1));
   }
 
-  function test_removeRateFeed_whenRateFeedExists_shouldRemoveTheDependencies() public {
+  function test_removeRateFeed_whenRateFeedExists_shouldRemoveFromRateFeedDependencies() public {
     address[] memory testRateFeedIDs = new address[](2);
     testRateFeedIDs[0] = rateFeedID2;
     testRateFeedIDs[1] = rateFeedID3;
@@ -352,6 +352,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 
     assertTrue(isRateFeed(rateFeedID1));
     breakerBox.removeRateFeed(rateFeedID1);
+    assertFalse(isRateFeed(rateFeedID1));
     vm.expectRevert();
     breakerBox.rateFeedDependencies(rateFeedID1, 0);
     vm.expectRevert();
