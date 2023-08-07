@@ -302,7 +302,7 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
     vm.expectCall(address(sortedOracles), abi.encodeWithSelector(sortedOracles.medianRate.selector, _rateFeedID));
   }
 
-  function test_shouldTrigger_whenSenderIsNotBreakerBox_shouldRevert() public {
+  function test_shouldTrigger_whenCallerIsNotBreakerBox_shouldRevert() public {
     vm.expectRevert("Caller must be the BreakerBox contract");
     breaker.shouldTrigger(rateFeedID1);
   }
