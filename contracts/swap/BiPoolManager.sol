@@ -220,16 +220,6 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     emit SortedOraclesUpdated(address(_sortedOracles));
   }
 
-  function setTokenPrecisionMultipliers(address[] calldata tokens, uint256[] calldata precisionMultipliers)
-    external
-    onlyOwner
-  {
-    require(tokens.length == precisionMultipliers.length, "tokens and precisionMultipliers must be the same length");
-    for (uint256 i = 0; i < tokens.length; i++) {
-      tokenPrecisionMultipliers[tokens[i]] = precisionMultipliers[i];
-    }
-  }
-
   /**
    * @notice Creates a new exchange using the given parameters.
    * @param _exchange the PoolExchange to create.
