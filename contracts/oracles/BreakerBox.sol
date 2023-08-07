@@ -213,6 +213,7 @@ contract BreakerBox is IBreakerBox, Ownable {
       }
     }
     require(rateFeedIDs[rateFeedIndex] == rateFeedID, "Rate feed ID has not been added");
+
     uint256 lastIndex = rateFeedIDs.length.sub(1);
     if (rateFeedIndex != lastIndex) {
       rateFeedIDs[rateFeedIndex] = rateFeedIDs[lastIndex];
