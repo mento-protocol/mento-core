@@ -272,7 +272,6 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
   function test_shouldTrigger_whenSenderIsNotBreakerBox_shouldRevert() public {
     vm.expectRevert("Caller must be the BreakerBox contract");
     breaker.shouldTrigger(rateFeedID1);
-    changePrank(deployer);
   }
 
   function test_shouldTrigger_withDefaultThreshold_shouldTrigger() public {
