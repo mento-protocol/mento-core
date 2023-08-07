@@ -318,6 +318,7 @@ contract IntegrationTest is BaseTest {
       medianDeltaBreakerDefaultCooldown,
       medianDeltaBreakerDefaultThreshold,
       ISortedOracles(address(sortedOracles)),
+      address(breakerBox),
       medianDeltaBreakerRateFeedIDs,
       medianDeltaBreakerRateChangeThresholds,
       medianDeltaBreakerCooldownTimes
