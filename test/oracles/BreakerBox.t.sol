@@ -343,6 +343,21 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     assertFalse(isRateFeed(rateFeedID1));
   }
 
+  function test_removeRateFeed_whenRateFeedExists_shouldRemoveTheDependencies() public {
+    address[] memory testRateFeedIDs = new address[](2);
+    testRateFeedIDs[0] = rateFeedID2;
+    testRateFeedIDs[1] = rateFeedID3;
+
+    breakerBox.setRateFeedDependencies(rateFeedID1, testRateFeedIDs);
+
+    assertTrue(isRateFeed(rateFeedID1));
+    breakerBox.removeRateFeed(rateFeedID1);
+    vm.expectRevert();
+    breakerBox.rateFeedDependencies(rateFeedID1, 0);
+    vm.expectRevert();
+    breakerBox.rateFeedDependencies(rateFeedID1, 1);
+  }
+
   function test_removeRateFeed_whenRateFeedExists_shouldResetTradingModeInfoAndEmit() public {
     toggleAndAssertBreaker(address(mockBreaker1), rateFeedID1, true);
     breakerBox.setRateFeedTradingMode(rateFeedID1, 1);
