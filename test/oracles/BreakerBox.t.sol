@@ -448,10 +448,10 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 }
 
 contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
-   function test_checkAndSetBreakers_whenCallerIsNotSortedOracles_shouldRevert() public {
+  function test_checkAndSetBreakers_whenCallerIsNotSortedOracles_shouldRevert() public {
     vm.expectRevert("Caller must be the SortedOracles contract");
     breakerBox.checkAndSetBreakers(rateFeedID1);
-   }
+  }
 
   function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCooldownNotPassed_shouldEmitNotCool() public {
     setUpBreaker(mockBreaker3, 3, 3600, false, true);
