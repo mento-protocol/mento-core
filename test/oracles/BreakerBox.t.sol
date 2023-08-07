@@ -448,6 +448,11 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 }
 
 contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
+   function test_checkAndSetBreakers_whenCallerIsNotSortedOracles_shouldRevert() public {
+    vm.expectRevert("Caller must be the SortedOracles contract");
+    breakerBox.checkAndSetBreakers(rateFeedID1);
+   }
+
   function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCooldownNotPassed_shouldEmitNotCool() public {
     setUpBreaker(mockBreaker3, 3, 3600, false, true);
     toggleAndAssertBreaker(address(mockBreaker3), rateFeedID1, true);
@@ -460,7 +465,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     vm.expectEmit(true, true, true, true);
     emit ResetAttemptNotCool(rateFeedID1, address(mockBreaker3));
 
-    changePrank(address(sortedOracles));
     breakerBox.checkAndSetBreakers(rateFeedID1);
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 3);
   }
@@ -476,7 +480,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     vm.expectCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector, rateFeedID1));
     vm.expectEmit(true, true, true, true);
     emit ResetAttemptCriteriaFail(rateFeedID1, address(mockBreaker3));
-    changePrank(address(sortedOracles));
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 3);
@@ -494,7 +497,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     vm.expectCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.shouldReset.selector, rateFeedID1));
     vm.expectEmit(true, true, true, true);
     emit ResetSuccessful(rateFeedID1, address(mockBreaker3));
-    changePrank(address(sortedOracles));
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 0);
@@ -513,7 +515,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     vm.expectCall(address(mockBreaker3), abi.encodeWithSelector(mockBreaker3.getCooldown.selector));
     vm.expectEmit(true, true, true, true);
     emit ResetAttemptNotCool(rateFeedID1, address(mockBreaker3));
-    changePrank(address(sortedOracles));
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 3);
@@ -598,7 +599,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     vm.warp(1672527605); // 2023-01-01 00:00:05
     mockBreaker3.setTrigger(false);
     mockBreaker3.setReset(true);
-    changePrank(address(sortedOracles));
 
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
@@ -615,7 +615,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     mockBreaker3.setReset(false);
     changePrank(address(sortedOracles));
 
-    changePrank(address(sortedOracles));
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     (uint256 breakerTradingMode3, uint256 breakerLastUpdatedTime3, bool breakerEnabled3) = breakerBox
@@ -649,7 +648,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     mockBreaker3.setReset(true);
     changePrank(address(sortedOracles));
 
-    changePrank(address(sortedOracles));
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     (uint256 breakerTradingMode2, uint256 breakerLastUpdatedTime2, bool breakerEnabled2) = breakerBox
@@ -664,7 +662,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     mockBreaker3.setTrigger(true);
     mockBreaker3.setReset(false);
 
-    changePrank(address(sortedOracles));
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     (uint256 breakerTradingMode3, uint256 breakerLastUpdatedTime3, bool breakerEnabled3) = breakerBox
@@ -696,7 +693,6 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
     mockBreaker3.setReset(true);
     skip(60);
 
-    changePrank(address(sortedOracles));
     breakerBox.checkAndSetBreakers(rateFeedID1);
     uint256 tradingModeAfter2 = breakerBox.getRateFeedTradingMode(rateFeedID1);
     assertEq(tradingModeAfter2, tradingModeBreaker4);

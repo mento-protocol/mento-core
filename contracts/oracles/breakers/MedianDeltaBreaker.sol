@@ -25,6 +25,8 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   event SmoothingFactorSet(address rateFeedId, uint256 smoothingFactor);
   event BreakerBoxUpdated(address breakerBox);
 
+  event MedianRateEMAReset(address rateFeedID);
+
   /* ==================== State Variables ==================== */
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
@@ -133,6 +135,17 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
     require(_newSmoothingFactor.lte(FixidityLib.fixed1()), "Smoothing factor must be <= 1");
     smoothingFactors[rateFeedID] = _newSmoothingFactor;
     emit SmoothingFactorSet(rateFeedID, newSmoothingFactor);
+  }
+
+  /**
+   * @notice Resets the median rates EMA for a rate feed.
+   * @param rateFeedID the targeted rate feed.
+   * @dev Should be called when the breaker is disabled for a rate feed.
+   */
+  function resetMedianRateEMA(address rateFeedID) external onlyOwner {
+    require(rateFeedID != address(0), "RateFeed address must be set");
+    medianRatesEMA[rateFeedID] = 0;
+    emit MedianRateEMAReset(rateFeedID);
   }
 
   /* ==================== View Functions ==================== */

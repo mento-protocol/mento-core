@@ -40,6 +40,7 @@ contract MedianDeltaBreakerTest is BaseTest {
   event RateChangeThresholdUpdated(address rateFeedID1, uint256 rateChangeThreshold);
   event SmoothingFactorSet(address rateFeedId, uint256 newSmoothingFactor);
   event BreakerBoxUpdated(address newBreakerBox);
+  event MedianRateEMAReset(address rateFeedID);
 
   function setUp() public {
     notDeployer = actor("notDeployer");
@@ -229,6 +230,38 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
     breaker.setSmoothingFactor(rateFeedIDs[0], 1 * 1e24);
   }
 
+  function test_resetMedianRateEMA_whenCallerIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    breaker.resetMedianRateEMA(address(0));
+  }
+
+  function test_resetMedianRateEMA_whenRateFeedIdIsNotSet_shouldRevert() public {
+    vm.expectRevert("RateFeed address must be set");
+    breaker.resetMedianRateEMA(address(0));
+  }
+
+  function test_resetMedianRateEMA_whenCallerIsOwner_shouldUpdateAndEmit() public {
+    // Set median rate
+    vm.mockCall(address(sortedOracles), abi.encodeWithSelector(sortedOracles.medianRate.selector), abi.encode(1, 1));
+
+    // Update ema for rate feed
+    changePrank(breakerBox);
+    breaker.shouldTrigger(rateFeedIDs[0]);
+    changePrank(deployer);
+
+    // Verify median is not zero before reset
+    uint256 medianEMABefore = breaker.medianRatesEMA(rateFeedIDs[0]);
+    assertTrue(medianEMABefore > 0);
+
+    vm.expectEmit(true, true, true, true);
+    emit MedianRateEMAReset(rateFeedIDs[0]);
+    breaker.resetMedianRateEMA(rateFeedIDs[0]);
+
+    uint256 medianEMAAfter = breaker.medianRatesEMA(rateFeedIDs[0]);
+    assertEq(medianEMAAfter, 0);
+  }
+
   /* ---------- Getters ---------- */
   function test_getCooldown_withDefault_shouldReturnDefaultCooldown() public {
     assertEq(breaker.getCooldown(rateFeedID1), defaultCooldownTime);
@@ -347,7 +380,6 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
 
     uint256 secondMedian = 1.0164 * 10**24;
     setSortedOraclesMedian(secondMedian);
-    changePrank(breakerBox);
     bool triggered = breaker.shouldTrigger((rateFeed));
 
     // 0.1*1.0164 + (1.05 * 0.9) = 1.04664
@@ -373,7 +405,6 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
 
     uint256 secondMedian = 1.0836 * 10**24;
     setSortedOraclesMedian(secondMedian);
-    changePrank(breakerBox);
     bool triggered = breaker.shouldTrigger((rateFeed));
 
     // 0.1*1.0836 + (1.05 * 0.9) = 1.05336
