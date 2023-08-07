@@ -246,12 +246,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     uint256 asset0Decimals = IERC20Metadata(exchange.asset0).decimals();
     uint256 asset1Decimals = IERC20Metadata(exchange.asset1).decimals();
 
-    if (asset0Decimals > 18) {
-      revert("asset0 decimals must be <= 18");
-    }
-    if (asset1Decimals > 18) {
-      revert("asset1 decimals must be <= 18");
-    }
+    require(asset0Decimals <= 18, "asset0 decimals must be <= 18");
+    require(asset1Decimals <= 18, "asset1 decimals must be <= 18");
 
     tokenPrecisionMultipliers[exchange.asset0] = 10**(18 - uint256(asset0Decimals));
     tokenPrecisionMultipliers[exchange.asset1] = 10**(18 - uint256(asset1Decimals));
