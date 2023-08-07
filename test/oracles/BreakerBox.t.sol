@@ -74,14 +74,24 @@ contract BreakerBoxTest is BaseTest {
     }
   }
 
-  function setUpBreaker(MockBreaker breaker, uint8 tradingMode, uint256 cooldown, bool reset, bool trigger) public {
+  function setUpBreaker(
+    MockBreaker breaker,
+    uint8 tradingMode,
+    uint256 cooldown,
+    bool reset,
+    bool trigger
+  ) public {
     breaker.setCooldown(cooldown);
     breaker.setReset(reset);
     breaker.setTrigger(trigger);
     breakerBox.addBreaker(address(breaker), tradingMode);
   }
 
-  function toggleAndAssertBreaker(address breaker, address rateFeedID, bool status) public {
+  function toggleAndAssertBreaker(
+    address breaker,
+    address rateFeedID,
+    bool status
+  ) public {
     vm.expectEmit(true, true, true, true);
     emit BreakerStatusUpdated(breaker, rateFeedID, status);
     breakerBox.toggleBreaker(breaker, rateFeedID, status);
