@@ -131,11 +131,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param enable Boolean indicating whether the breaker should be
    *               enabled or disabled for the given rateFeed.
    */
-  function toggleBreaker(
-    address breakerAddress,
-    address rateFeedID,
-    bool enable
-  ) public onlyOwner {
+  function toggleBreaker(address breakerAddress, address rateFeedID, bool enable) public onlyOwner {
     require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
@@ -311,7 +307,10 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param rateFeedID The address of the rateFeed to run checks for.
    */
   function checkAndSetBreakers(address rateFeedID) external {
-    require(msg.sender == address(sortedOracles), "Caller must be the SortedOracles contract");
+    require(
+      msg.sender == address(sortedOracles) || msg.sender == address(this),
+      "Caller must be the SortedOracles or BreakerBox contract"
+    );
 
     uint8 _tradingMode = 0;
     for (uint256 i = 0; i < breakers.length; i++) {

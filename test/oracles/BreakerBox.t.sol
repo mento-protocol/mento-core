@@ -74,24 +74,14 @@ contract BreakerBoxTest is BaseTest {
     }
   }
 
-  function setUpBreaker(
-    MockBreaker breaker,
-    uint8 tradingMode,
-    uint256 cooldown,
-    bool reset,
-    bool trigger
-  ) public {
+  function setUpBreaker(MockBreaker breaker, uint8 tradingMode, uint256 cooldown, bool reset, bool trigger) public {
     breaker.setCooldown(cooldown);
     breaker.setReset(reset);
     breaker.setTrigger(trigger);
     breakerBox.addBreaker(address(breaker), tradingMode);
   }
 
-  function toggleAndAssertBreaker(
-    address breaker,
-    address rateFeedID,
-    bool status
-  ) public {
+  function toggleAndAssertBreaker(address breaker, address rateFeedID, bool status) public {
     vm.expectEmit(true, true, true, true);
     emit BreakerStatusUpdated(breaker, rateFeedID, status);
     breakerBox.toggleBreaker(breaker, rateFeedID, status);
@@ -116,6 +106,7 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   }
 
   function test_constructor_shouldAddRateFeedIdsWithDefaultMode() public {
+    console.log(address(breakerBox), "BREAKEBOX ADDRESS");
     assertTrue(breakerBox.rateFeedStatus(rateFeedID1));
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 0);
 
@@ -448,15 +439,16 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
 }
 
 contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
-  function test_checkAndSetBreakers_whenCallerIsNotSortedOracles_shouldRevert() public {
-    vm.expectRevert("Caller must be the SortedOracles contract");
+  function test_checkAndSetBreakers_whenCallerIsNotSortedOraclesOrBreakerBox_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Caller must be the SortedOracles or BreakerBox contract");
     breakerBox.checkAndSetBreakers(rateFeedID1);
   }
 
   function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCooldownNotPassed_shouldEmitNotCool() public {
     setUpBreaker(mockBreaker3, 3, 3600, false, true);
     toggleAndAssertBreaker(address(mockBreaker3), rateFeedID1, true);
-    changePrank(address(sortedOracles));
+    changePrank(address(breakerBox));
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     skip(3599);
@@ -472,7 +464,7 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
   function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCantReset_shouldEmitCriteriaFail() public {
     setUpBreaker(mockBreaker3, 3, 3600, false, true);
     toggleAndAssertBreaker(address(mockBreaker3), rateFeedID1, true);
-    changePrank(address(sortedOracles));
+    changePrank(address(breakerBox));
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     skip(3600);
@@ -488,7 +480,7 @@ contract BreakerBoxTest_checkAndSetBreakers is BreakerBoxTest {
   function test_checkAndSetBreakers_whenRateFeedIsNotInDefaultModeAndCanReset_shouldResetMode() public {
     setUpBreaker(mockBreaker3, 3, 3600, true, true);
     toggleAndAssertBreaker(address(mockBreaker3), rateFeedID1, true);
-    changePrank(address(sortedOracles));
+    changePrank(address(breakerBox));
     breakerBox.checkAndSetBreakers(rateFeedID1);
 
     skip(3600);
