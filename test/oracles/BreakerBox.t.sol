@@ -268,11 +268,8 @@ contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
     setUpBreaker(mockBreaker4, breaker4TradingMode, 10, false, true);
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 0);
 
-    vm.expectCall(
-      address(breakerBox),
-      abi.encodeWithSelector(breakerBox.checkAndSetBreakers.selector, address(rateFeedID1))
-    );
     breakerBox.toggleBreaker(address(mockBreaker3), rateFeedID1, true);
+    assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), breaker3TradingMode);
     breakerBox.toggleBreaker(address(mockBreaker4), rateFeedID1, true);
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), breaker3TradingMode | breaker4TradingMode);
   }
