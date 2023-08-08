@@ -141,6 +141,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
     if (enable) {
       rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled = enable;
+      checkAndSetBreakers(rateFeedID);
     } else {
       delete rateFeedBreakerStatus[rateFeedID][breakerAddress];
       uint8 tradingMode = calculateTradingMode(rateFeedID);
@@ -311,7 +312,7 @@ contract BreakerBox is IBreakerBox, Ownable {
              or need to be reset.
    * @param rateFeedID The address of the rateFeed to run checks for.
    */
-  function checkAndSetBreakers(address rateFeedID) external {
+  function checkAndSetBreakers(address rateFeedID) public {
     uint8 _tradingMode = 0;
     for (uint256 i = 0; i < breakers.length; i++) {
       if (rateFeedBreakerStatus[rateFeedID][breakers[i]].enabled) {
