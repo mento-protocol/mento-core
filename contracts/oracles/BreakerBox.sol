@@ -131,16 +131,13 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param enable Boolean indicating whether the breaker should be
    *               enabled or disabled for the given rateFeed.
    */
-  function toggleBreaker(
-    address breakerAddress,
-    address rateFeedID,
-    bool enable
-  ) public onlyOwner {
+  function toggleBreaker(address breakerAddress, address rateFeedID, bool enable) public onlyOwner {
     require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
     if (enable) {
       rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled = enable;
+      _checkAndSetBreakers(rateFeedID);
     } else {
       delete rateFeedBreakerStatus[rateFeedID][breakerAddress];
       uint8 tradingMode = calculateTradingMode(rateFeedID);
@@ -307,15 +304,22 @@ contract BreakerBox is IBreakerBox, Ownable {
   /**
    * @notice Checks breakers for the rateFeedID with the specified id 
              and sets correct trading mode if any breakers are tripped
-             or need to be reset.
+             or need to be reset. Callable by the SortedOracles contract.
    * @param rateFeedID The address of the rateFeed to run checks for.
    */
   function checkAndSetBreakers(address rateFeedID) external {
-    require(
-      msg.sender == address(sortedOracles) || msg.sender == address(this),
-      "Caller must be the SortedOracles or BreakerBox contract"
-    );
+    require(msg.sender == address(sortedOracles), "Caller must be the SortedOracles contract");
 
+    _checkAndSetBreakers(rateFeedID);
+  }
+
+  /**
+   * @notice Checks breakers for the rateFeedID with the specified id 
+             and sets correct trading mode if any breakers are tripped
+             or need to be reset. 
+   * @param rateFeedID The address of the rateFeed to run checks for.
+   */
+  function _checkAndSetBreakers(address rateFeedID) internal {
     uint8 _tradingMode = 0;
     for (uint256 i = 0; i < breakers.length; i++) {
       if (rateFeedBreakerStatus[rateFeedID][breakers[i]].enabled) {
