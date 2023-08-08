@@ -45,26 +45,28 @@ And which can then be used in `ERC20Permit` and `StableTokenV2` to finally come 
 
 ```
 > ./bin/storage-show.sh StableTokenV2
-0    0   _owner                                t_address
-0    20  _initialized                          t_uint8
-0    21  _initializing                         t_bool
-1    0   __deprecated_registry_storage_slot__  t_address
-2    0   _name                                 t_string_storage
-3    0   _symbol                               t_string_storage
-4    0   __deprecated_decimals_storage_slot__  t_uint8
-5    0   _balances                             t_mapping(t_address,t_uint256)
-6    0   _totalSupply                          t_uint256
-7    0   _allowances                           t_mapping(t_address,t_mapping(t_address,t_uint256))
-8    0   __gap                                 t_array(t_uint256)45_storage
-53   0   _HASHED_NAME                          t_bytes32
-54   0   _HASHED_VERSION                       t_bytes32
-55   0   __gap                                 t_array(t_uint256)50_storage
-105  0   _nonces                               t_mapping(t_address,t_struct(Counter)23999_storage)
-106  0   _PERMIT_TYPEHASH_DEPRECATED_SLOT      t_bytes32
-107  0   __gap                                 t_array(t_uint256)49_storage
-156  0   validators                            t_address
-157  0   broker                                t_address
-158  0   exchange                              t_address
+0    0   _owner                                          t_address
+0    20  _initialized                                    t_uint8
+0    21  _initializing                                   t_bool
+1    0   __deprecated_registry_storage_slot__            t_address
+2    0   _name                                           t_string_storage
+3    0   _symbol                                         t_string_storage
+4    0   __deprecated_decimals_storage_slot__            t_uint8
+5    0   _balances                                       t_mapping(t_address,t_uint256)
+6    0   _totalSupply                                    t_uint256
+7    0   _allowances                                     t_mapping(t_address,t_mapping(t_address,t_uint256))
+8    0   __deeprecated_inflationState_storage_slot__     t_array(t_uint256)4_storage
+12   0   __deprecated_exchangeRegistryId_storage_slot__  t_bytes32
+13   0   __gap                                           t_array(t_uint256)40_storage
+53   0   _HASHED_NAME                                    t_bytes32
+54   0   _HASHED_VERSION                                 t_bytes32
+55   0   __gap                                           t_array(t_uint256)50_storage
+105  0   _nonces                                         t_mapping(t_address,t_struct(Counter)51157_storage)
+106  0   _PERMIT_TYPEHASH_DEPRECATED_SLOT                t_bytes32
+107  0   __gap                                           t_array(t_uint256)49_storage
+156  0   validators                                      t_address
+157  0   broker                                          t_address
+158  0   exchange                                        t_address
 ```
 
 In this new implementation we also remove the dependency on the `Registry` and introduce the 3 new storage variables to store addresses for the dependencies directly.

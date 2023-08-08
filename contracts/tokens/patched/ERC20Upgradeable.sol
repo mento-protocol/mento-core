@@ -13,7 +13,6 @@ import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeab
 import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts-next/contracts/access/Ownable.sol";
-import "../../common/FixidityLib.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -41,7 +40,6 @@ import "../../common/FixidityLib.sol";
  * allowances. See {IERC20-approve}.
  */
 contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20MetadataUpgradeable {
-  using FixidityLib for FixidityLib.Fraction;
   address private __deprecated_registry_storage_slot__;
   string private _name;
   string private _symbol;
@@ -51,15 +49,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
   uint256 private _totalSupply;
   mapping(address => mapping(address => uint256)) private _allowances;
 
-  struct InflationState {
-    FixidityLib.Fraction rate;
-    FixidityLib.Fraction factor;
-    uint256 updatePeriod;
-    uint256 factorLastUpdated;
-  }
-
-  InflationState __deeprecated_inflationState_storage_slot__;
-
+  uint256[4] __deeprecated_inflationState_storage_slot__;
   bytes32 __deprecated_exchangeRegistryId_storage_slot__;
 
   /**
@@ -416,5 +406,5 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
    * variables without shifting down storage in the inheritance chain.
    * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
    */
-  uint256[45] private __gap;
+  uint256[40] private __gap;
 }
