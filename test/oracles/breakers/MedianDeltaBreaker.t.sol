@@ -38,6 +38,7 @@ contract MedianDeltaBreakerTest is BaseTest {
   event SortedOraclesUpdated(address newSortedOracles);
   event RateChangeThresholdUpdated(address rateFeedID1, uint256 rateChangeThreshold);
   event SmoothingFactorSet(address rateFeedId, uint256 newSmoothingFactor);
+  event MedianRateEMAReset(address rateFeedID);
 
   function setUp() public {
     notDeployer = actor("notDeployer");
@@ -198,6 +199,36 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
     vm.expectEmit(true, true, true, true);
     emit SmoothingFactorSet(rateFeedIDs[0], 1 * 1e24);
     breaker.setSmoothingFactor(rateFeedIDs[0], 1 * 1e24);
+  }
+
+  function test_resetMedianRateEMA_whenCallerIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    breaker.resetMedianRateEMA(address(0));
+  }
+
+  function test_resetMedianRateEMA_whenRateFeedIdIsNotSet_shouldRevert() public {
+    vm.expectRevert("RateFeed address must be set");
+    breaker.resetMedianRateEMA(address(0));
+  }
+
+  function test_resetMedianRateEMA_whenCallerIsOwner_shouldUpdateAndEmit() public {
+    // Set median rate
+    vm.mockCall(address(sortedOracles), abi.encodeWithSelector(sortedOracles.medianRate.selector), abi.encode(1, 1));
+
+    // Update ema for rate feed
+    breaker.shouldTrigger(rateFeedIDs[0]);
+
+    // Verify median is not zero before reset
+    uint256 medianEMABefore = breaker.medianRatesEMA(rateFeedIDs[0]);
+    assertTrue(medianEMABefore > 0);
+
+    vm.expectEmit(true, true, true, true);
+    emit MedianRateEMAReset(rateFeedIDs[0]);
+    breaker.resetMedianRateEMA(rateFeedIDs[0]);
+
+    uint256 medianEMAAfter = breaker.medianRatesEMA(rateFeedIDs[0]);
+    assertEq(medianEMAAfter, 0);
   }
 
   /* ---------- Getters ---------- */
