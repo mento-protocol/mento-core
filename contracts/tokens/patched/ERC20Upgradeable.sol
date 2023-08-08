@@ -13,6 +13,7 @@ import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeab
 import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts-next/contracts/access/Ownable.sol";
+import "../../common/FixidityLib.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -40,6 +41,7 @@ import "openzeppelin-contracts-next/contracts/access/Ownable.sol";
  * allowances. See {IERC20-approve}.
  */
 contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20MetadataUpgradeable {
+  using FixidityLib for FixidityLib.Fraction;
   address private __deprecated_registry_storage_slot__;
   string private _name;
   string private _symbol;
@@ -48,6 +50,17 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
   mapping(address => uint256) private _balances;
   uint256 private _totalSupply;
   mapping(address => mapping(address => uint256)) private _allowances;
+
+  struct InflationState {
+    FixidityLib.Fraction rate;
+    FixidityLib.Fraction factor;
+    uint256 updatePeriod;
+    uint256 factorLastUpdated;
+  }
+
+  InflationState __deeprecated_inflationState_storage_slot__;
+
+  bytes32 __deprecated_exchangeRegistryId_storage_slot__;
 
   /**
    * @dev Sets the values for {name} and {symbol}.
@@ -166,11 +179,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
    * - the caller must have allowance for ``from``'s tokens of at least
    * `amount`.
    */
-  function transferFrom(
-    address from,
-    address to,
-    uint256 amount
-  ) public virtual override returns (bool) {
+  function transferFrom(address from, address to, uint256 amount) public virtual override returns (bool) {
     address spender = _msgSender();
     _spendAllowance(from, spender, amount);
     _transfer(from, to, amount);
@@ -234,11 +243,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
    * - `to` cannot be the zero address.
    * - `from` must have a balance of at least `amount`.
    */
-  function _transfer(
-    address from,
-    address to,
-    uint256 amount
-  ) internal virtual {
+  function _transfer(address from, address to, uint256 amount) internal virtual {
     require(from != address(0), "ERC20: transfer from the zero address");
     require(to != address(0), "ERC20: transfer to the zero address");
 
@@ -324,11 +329,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
    * - `owner` cannot be the zero address.
    * - `spender` cannot be the zero address.
    */
-  function _approve(
-    address owner,
-    address spender,
-    uint256 amount
-  ) internal virtual {
+  function _approve(address owner, address spender, uint256 amount) internal virtual {
     require(owner != address(0), "ERC20: approve from the zero address");
     require(spender != address(0), "ERC20: approve to the zero address");
 
@@ -344,11 +345,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
    *
    * Might emit an {Approval} event.
    */
-  function _spendAllowance(
-    address owner,
-    address spender,
-    uint256 amount
-  ) internal virtual {
+  function _spendAllowance(address owner, address spender, uint256 amount) internal virtual {
     uint256 currentAllowance = allowance(owner, spender);
     if (currentAllowance != type(uint256).max) {
       require(currentAllowance >= amount, "ERC20: insufficient allowance");
@@ -372,11 +369,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
    *
    * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
    */
-  function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint256 amount
-  ) internal virtual {}
+  function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {}
 
   /**
    * @dev Hook that is called after any transfer of tokens. This includes
@@ -392,11 +385,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
    *
    * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
    */
-  function _afterTokenTransfer(
-    address from,
-    address to,
-    uint256 amount
-  ) internal virtual {}
+  function _afterTokenTransfer(address from, address to, uint256 amount) internal virtual {}
 
   /**
    * @dev This empty reserved space is put in place to allow future versions to add new
