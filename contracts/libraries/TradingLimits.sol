@@ -44,6 +44,14 @@ library TradingLimits {
   uint8 private constant LG = 4; // 0b100 LimitGlobal
   int48 private constant MAX_INT48 = int48(uint48(-1) / 2);
 
+  /**
+   * @dev The State struct contains the current state of a trading limit config.
+   * @param lastUpdated0 The timestamp of the last reset of netflow0.
+   * @param lastUpdated1 The timestamp of the last reset of netflow1.
+   * @param netflow0 The current netflow of the asset for limit0.
+   * @param netflow1 The current netflow of the asset for limit1.
+   * @param netflowGlobal The current netflow of the asset for limitGlobal.
+   */
   struct State {
     uint32 lastUpdated0;
     uint32 lastUpdated1;
@@ -52,6 +60,15 @@ library TradingLimits {
     int48 netflowGlobal;
   }
 
+  /**
+   * @dev The Config struct contains the configuration of trading limits.
+   * @param timestep0 The time window in seconds for limit0.
+   * @param timestep1 The time window in seconds for limit1.
+   * @param limit0 The limit0 for the asset.
+   * @param limit1 The limit1 for the asset.
+   * @param limitGlobal The global limit for the asset.
+   * @param flags A bitfield of flags to enable/disable the individual limits.
+   */
   struct Config {
     uint32 timestep0;
     uint32 timestep1;
@@ -70,6 +87,12 @@ library TradingLimits {
     require(self.flags & L1 == 0 || self.flags & L0 != 0, "L1 without L0 not allowed");
     require(self.flags & L0 == 0 || self.timestep0 > 0, "timestep0 can't be zero if active");
     require(self.flags & L1 == 0 || self.timestep1 > 0, "timestep1 can't be zero if active");
+    require(self.flags & L0 == 0 || self.limit0 > 0, "limit0 can't be zero if active");
+    require(self.flags & L1 == 0 || self.limit1 > 0, "limit1 can't be zero if active");
+    require(self.flags & LG == 0 || self.limitGlobal > 0, "limitGlobal can't be zero if active");
+    require(self.flags & (L0 | L1) != 3 || self.limit0 < self.limit1, "limit1 must be greater than limit0");
+    require(self.flags & (L1 | LG) != 6 || self.limit1 < self.limitGlobal, "limitGlobal must be greater than limit1");
+    require(self.flags & (L0 | LG) != 5 || self.limit0 < self.limitGlobal, "limitGlobal must be greater than limit0");
   }
 
   /**
