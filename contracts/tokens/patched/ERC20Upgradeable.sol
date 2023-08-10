@@ -49,6 +49,9 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
   uint256 private _totalSupply;
   mapping(address => mapping(address => uint256)) private _allowances;
 
+  uint256[4] private __deprecated_inflationState_storage_slot__;
+  bytes32 private __deprecated_exchangeRegistryId_storage_slot__;
+
   /**
    * @dev Sets the values for {name} and {symbol}.
    *
@@ -403,5 +406,5 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
    * variables without shifting down storage in the inheritance chain.
    * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
    */
-  uint256[45] private __gap;
+  uint256[40] private __gap;
 }
