@@ -141,7 +141,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
     if (enable) {
       rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled = enable;
-      checkAndSetBreakers(rateFeedID);
+      _checkAndSetBreakers(rateFeedID);
     } else {
       delete rateFeedBreakerStatus[rateFeedID][breakerAddress];
       uint8 tradingMode = calculateTradingMode(rateFeedID);
@@ -312,7 +312,19 @@ contract BreakerBox is IBreakerBox, Ownable {
              or need to be reset.
    * @param rateFeedID The address of the rateFeed to run checks for.
    */
-  function checkAndSetBreakers(address rateFeedID) public {
+  function checkAndSetBreakers(address rateFeedID) external {
+    require(msg.sender == address(sortedOracles), "Caller must be the SortedOracles contract");
+
+    _checkAndSetBreakers(rateFeedID);
+  }
+
+  /**
+   * @notice Checks breakers for the rateFeedID with the specified id 
+             and sets correct trading mode if any breakers are tripped
+             or need to be reset. 
+   * @param rateFeedID The address of the rateFeed to run checks for.
+   */
+  function _checkAndSetBreakers(address rateFeedID) internal {
     uint8 _tradingMode = 0;
     for (uint256 i = 0; i < breakers.length; i++) {
       if (rateFeedBreakerStatus[rateFeedID][breakers[i]].enabled) {
