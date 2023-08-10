@@ -23,12 +23,16 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
 
   /* ==================== Events ==================== */
   event SmoothingFactorSet(address rateFeedId, uint256 smoothingFactor);
+  event BreakerBoxUpdated(address breakerBox);
 
   event MedianRateEMAReset(address rateFeedID);
 
   /* ==================== State Variables ==================== */
   // Address of the Mento SortedOracles contract
   ISortedOracles public sortedOracles;
+
+  // Address of the BreakerBox contract
+  address public breakerBox;
 
   // Default smoothing factor for EMA as a Fixidity value
   uint256 public constant DEFAULT_SMOOTHING_FACTOR = 1e24;
@@ -45,12 +49,14 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
     uint256 _defaultCooldownTime,
     uint256 _defaultRateChangeThreshold,
     ISortedOracles _sortedOracles,
+    address _breakerBox,
     address[] memory rateFeedIDs,
     uint256[] memory rateChangeThresholds,
     uint256[] memory cooldownTimes
   ) public {
     _transferOwnership(msg.sender);
     setSortedOracles(_sortedOracles);
+    setBreakerBox(_breakerBox);
 
     _setDefaultCooldownTime(_defaultCooldownTime);
     _setDefaultRateChangeThreshold(_defaultRateChangeThreshold);
@@ -109,6 +115,16 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
     emit SortedOraclesUpdated(address(_sortedOracles));
   }
 
+  /**
+   * @notice Sets the address of the BreakerBox contract.
+   * @param _breakerBox The new address of the breaker box contract.
+   */
+  function setBreakerBox(address _breakerBox) public onlyOwner {
+    require(_breakerBox != address(0), "BreakerBox address must be set");
+    breakerBox = _breakerBox;
+    emit BreakerBoxUpdated(_breakerBox);
+  }
+
   /*
    * @notice Sets the smoothing factor for a rate feed.
    * @param rateFeedID The rate feed to be updated.
@@ -156,6 +172,8 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
    *                          should be tripped for the rate feed.
    */
   function shouldTrigger(address rateFeedID) public returns (bool triggerBreaker) {
+    require(msg.sender == breakerBox, "Caller must be the BreakerBox contract");
+
     (uint256 currentMedian, ) = sortedOracles.medianRate(rateFeedID);
 
     uint256 previousRatesEMA = medianRatesEMA[rateFeedID];

@@ -20,6 +20,7 @@ contract MedianDeltaBreakerTest is BaseTest {
   address rateFeedID1;
   address rateFeedID2;
   address rateFeedID3;
+  address breakerBox;
   MockSortedOracles sortedOracles;
   MedianDeltaBreaker breaker;
 
@@ -38,6 +39,7 @@ contract MedianDeltaBreakerTest is BaseTest {
   event SortedOraclesUpdated(address newSortedOracles);
   event RateChangeThresholdUpdated(address rateFeedID1, uint256 rateChangeThreshold);
   event SmoothingFactorSet(address rateFeedId, uint256 newSmoothingFactor);
+  event BreakerBoxUpdated(address newBreakerBox);
   event MedianRateEMAReset(address rateFeedID);
 
   function setUp() public {
@@ -45,6 +47,7 @@ contract MedianDeltaBreakerTest is BaseTest {
     rateFeedID1 = actor("rateFeedID1");
     rateFeedID2 = actor("rateFeedID2");
     rateFeedID3 = actor("rateFeedID3");
+    breakerBox = actor("breakerBox");
 
     rateFeedIDs[0] = rateFeedID2;
     rateChangeThresholds[0] = 0.9 * 10**24;
@@ -61,6 +64,7 @@ contract MedianDeltaBreakerTest is BaseTest {
       defaultCooldownTime,
       defaultThreshold,
       ISortedOracles(address(sortedOracles)),
+      breakerBox,
       rateFeedIDs,
       rateChangeThresholds,
       cooldownTimes
@@ -85,6 +89,10 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
 
   function test_constructor_shouldSetSortedOracles() public {
     assertEq(address(breaker.sortedOracles()), address(sortedOracles));
+  }
+
+  function test_constructor_shouldSetBreakerBox() public {
+    assertEq(breaker.breakerBox(), breakerBox);
   }
 
   function test_constructor_shouldSetRateChangeThresholds() public {
@@ -153,6 +161,27 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
     assertEq(address(breaker.sortedOracles()), newSortedOracles);
   }
 
+  function test_setBreakerBox_whenSenderIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    breaker.setBreakerBox(address(0));
+  }
+
+  function test_setBreakerBox_whenAddressIsZero_shouldRevert() public {
+    vm.expectRevert("BreakerBox address must be set");
+    breaker.setBreakerBox(address(0));
+  }
+
+  function test_setBreakerBox_whenSenderIsOwner_shouldUpdateAndEmit() public {
+    address newBreakerBox = actor("newBreakerBox");
+    vm.expectEmit(true, true, true, true);
+    emit BreakerBoxUpdated(newBreakerBox);
+
+    breaker.setBreakerBox(newBreakerBox);
+
+    assertEq(address(breaker.breakerBox()), newBreakerBox);
+  }
+
   function test_setRateChangeThreshold_whenSenderIsNotOwner_shouldRevert() public {
     changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
@@ -217,7 +246,9 @@ contract MedianDeltaBreakerTest_constructorAndSetters is MedianDeltaBreakerTest 
     vm.mockCall(address(sortedOracles), abi.encodeWithSelector(sortedOracles.medianRate.selector), abi.encode(1, 1));
 
     // Update ema for rate feed
+    changePrank(breakerBox);
     breaker.shouldTrigger(rateFeedIDs[0]);
+    changePrank(deployer);
 
     // Verify median is not zero before reset
     uint256 medianEMABefore = breaker.medianRatesEMA(rateFeedIDs[0]);
@@ -271,9 +302,15 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
     vm.expectCall(address(sortedOracles), abi.encodeWithSelector(sortedOracles.medianRate.selector, _rateFeedID));
   }
 
+  function test_shouldTrigger_whenCallerIsNotBreakerBox_shouldRevert() public {
+    vm.expectRevert("Caller must be the BreakerBox contract");
+    breaker.shouldTrigger(rateFeedID1);
+  }
+
   function test_shouldTrigger_withDefaultThreshold_shouldTrigger() public {
     assertEq(breaker.rateChangeThreshold(rateFeedID1), 0);
     updatePreviousEMAByPercent(0.7 * 10**24, rateFeedID1);
+    changePrank(breakerBox);
     assertTrue(breaker.shouldTrigger(rateFeedID1));
   }
 
@@ -285,6 +322,7 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     assertEq(breaker.rateChangeThreshold(rateFeedID1), rateChangeThresholds[0]);
 
+    changePrank(breakerBox);
     assertFalse(breaker.shouldTrigger(rateFeedID1));
   }
 
@@ -293,6 +331,7 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
 
     updatePreviousEMAByPercent(1.1 * 10**24, rateFeedID3);
 
+    changePrank(breakerBox);
     assertFalse(breaker.shouldTrigger(rateFeedID3));
   }
 
@@ -303,6 +342,7 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     assertEq(breaker.rateChangeThreshold(rateFeedID3), rateChangeThresholds[0]);
 
+    changePrank(breakerBox);
     assertTrue(breaker.shouldTrigger(rateFeedID3));
   }
 
@@ -319,6 +359,7 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
     (uint256 afterRate, ) = sortedOracles.medianRate(rateFeed);
     assertEq(afterRate, median);
 
+    changePrank(breakerBox);
     assertFalse(breaker.shouldTrigger(rateFeed));
     assertEq(breaker.medianRatesEMA(rateFeed), median);
   }
@@ -333,6 +374,7 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
 
     uint256 firstMedian = 1.05 * 10**24;
     setSortedOraclesMedian(firstMedian);
+    changePrank(breakerBox);
     assertFalse(breaker.shouldTrigger(rateFeed));
     assertEq(breaker.medianRatesEMA(rateFeed), firstMedian);
 
@@ -357,6 +399,7 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
 
     uint256 firstMedian = 1.05 * 10**24;
     setSortedOraclesMedian(firstMedian);
+    changePrank(breakerBox);
     assertFalse(breaker.shouldTrigger(rateFeed));
     assertEq(breaker.medianRatesEMA(rateFeed), firstMedian);
 
@@ -383,6 +426,7 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
 
     for (uint256 i = 0; i < medians.length; i++) {
       setSortedOraclesMedian(medians[i]);
+      changePrank(breakerBox);
       breaker.shouldTrigger(rateFeed);
       assertEq(breaker.medianRatesEMA(rateFeed), medians[i]);
     }
@@ -409,6 +453,7 @@ contract MedianDeltaBreakerTest_shouldTrigger is MedianDeltaBreakerTest {
 
     for (uint256 i = 0; i < medians.length; i++) {
       setSortedOraclesMedian(medians[i]);
+      changePrank(breakerBox);
       breaker.shouldTrigger(rateFeed);
       assertEq(breaker.medianRatesEMA(rateFeed), expectedEMAs[i]);
     }

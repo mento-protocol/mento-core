@@ -12,6 +12,8 @@ import { MockERC20 } from "../mocks/MockERC20.sol";
 import { MockPricingModule } from "../mocks/MockPricingModule.sol";
 import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
 
+import { Arrays } from "../utils/Arrays.sol";
+
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
@@ -44,6 +46,7 @@ contract BiPoolManagerTest is Test {
   event SortedOraclesUpdated(address indexed newSortedOracles);
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
   event BreakerBoxUpdated(address newBreakerBox);
+  event PricingModulesUpdated(bytes32[] newIdentifiers, address[] newAddresses);
 
   /* ------------------------------------------- */
 
@@ -124,6 +127,15 @@ contract BiPoolManagerTest is Test {
       ISortedOracles(address(sortedOracles)),
       IBreakerBox(address(breaker))
     );
+
+    bytes32[] memory pricingModuleIdentifiers = Arrays.bytes32s(
+      keccak256(abi.encodePacked(constantProduct.name())),
+      keccak256(abi.encodePacked(constantSum.name()))
+    );
+
+    address[] memory pricingModules = Arrays.addresses(address(constantProduct), address(constantSum));
+
+    biPoolManager.setPricingModules(pricingModuleIdentifiers, pricingModules);
   }
 
   function mockOracleRate(address target, uint256 rateNumerator) internal {
@@ -323,6 +335,34 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     assertEq(address(biPoolManager.breakerBox()), newBreakerBox);
   }
 
+  function test_setPricingModules_whenCallerIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    biPoolManager.setPricingModules(Arrays.bytes32s(""), Arrays.addresses(address(0)));
+  }
+
+  function test_setPricingModules_whenArrayLengthMismatch_shouldRevert() public {
+    vm.expectRevert("identifiers and modules must be the same length");
+    biPoolManager.setPricingModules(Arrays.bytes32s(""), Arrays.addresses(address(0), address(0xf)));
+  }
+
+  function test_setPricingModules_whenCallerIsOwner_shouldUpdateAndEmit() public {
+    bytes32[] memory newIdentifiers = Arrays.bytes32s(
+      keccak256(abi.encodePacked("TestModuleIdentifier1")),
+      keccak256(abi.encodePacked("TestModuleIdentifier2"))
+    );
+
+    address[] memory newPricingModules = Arrays.addresses(
+      actor("TestModuleIdentifier1"),
+      actor("TestModuleIdentifier2")
+    );
+
+    vm.expectEmit(true, true, true, true);
+    emit PricingModulesUpdated(newIdentifiers, newPricingModules);
+
+    biPoolManager.setPricingModules(newIdentifiers, newPricingModules);
+  }
+
   /* ---------- Getters ---------- */
 
   function test_getPoolExchange_whenExchangeDoesNotExist_shouldRevert() public {
@@ -402,6 +442,27 @@ contract BiPoolManagerTest_createExchange is BiPoolManagerTest {
 
   function test_createExchange_whenSpreadNotLTEOne_shouldRevert() public {
     vm.expectRevert("spread must be less than or equal to 1");
+    createExchange(
+      cUSD,
+      CELO,
+      constantProduct,
+      address(cUSD),
+      FixidityLib.wrap(2 * 1e24), // spread
+      1e26 // stablePoolResetSize
+    );
+  }
+
+  function test_createExchange_whenPricingModuleIsOutdated_shouldRevert() public {
+    bytes32[] memory newIdentifiers = Arrays.bytes32s(
+      keccak256(abi.encodePacked(constantProduct.name())),
+      keccak256(abi.encodePacked(constantSum.name()))
+    );
+
+    address[] memory newPricingModules = Arrays.addresses(actor("ConstantProduct 2.0"), address(constantSum));
+
+    biPoolManager.setPricingModules(newIdentifiers, newPricingModules);
+
+    vm.expectRevert("invalid pricingModule");
     createExchange(
       cUSD,
       CELO,

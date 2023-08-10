@@ -101,14 +101,50 @@ contract TradingLimitsTest is Test {
     config.validate();
   }
 
+  function test_validate_withL0_withoutLimit0_isNotValid() public {
+    TradingLimits.Config memory config = configL0(100, 0);
+    vm.expectRevert(bytes("limit0 can't be zero if active"));
+    config.validate();
+  }
+
   function test_validate_withL0L1_isValid() public pure {
     TradingLimits.Config memory config = configL0L1(100, 1000, 1000, 10000);
+    config.validate();
+  }
+
+  function test_validate_withL1_withoutLimit1_isNotValid() public {
+    TradingLimits.Config memory config = configL0L1(100, 1000, 1000, 0);
+    vm.expectRevert(bytes("limit1 can't be zero if active"));
     config.validate();
   }
 
   function test_validate_withL0L1_withoutTimestape_isNotValid() public {
     TradingLimits.Config memory config = configL0L1(0, 1000, 1000, 10000);
     vm.expectRevert(bytes("timestep0 can't be zero if active"));
+    config.validate();
+  }
+
+  function test_validate_withL0L1_withLimit0LargerLimit1_isNotValid() public {
+    TradingLimits.Config memory config = configL0L1(10000, 10000, 1000, 1000);
+    vm.expectRevert(bytes("limit1 must be greater than limit0"));
+    config.validate();
+  }
+
+  function test_validate_withLG_withoutLimitGlobal_isNotValid() public {
+    TradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 0);
+    vm.expectRevert(bytes("limitGlobal can't be zero if active"));
+    config.validate();
+  }
+
+  function test_validate_withL0LG_withLimit0LargerLimitGlobal_isNotValid() public {
+    TradingLimits.Config memory config = configL0LG(10000, 10000, 1000);
+    vm.expectRevert(bytes("limitGlobal must be greater than limit0"));
+    config.validate();
+  }
+
+  function test_validate_withL1LG_withLimit1LargerLimitGlobal_isNotValid() public {
+    TradingLimits.Config memory config = configL0L1LG(100, 1000, 10000, 10000, 1000);
+    vm.expectRevert(bytes("limitGlobal must be greater than limit1"));
     config.validate();
   }
 

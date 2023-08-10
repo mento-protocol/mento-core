@@ -101,6 +101,13 @@ interface IBiPoolManager {
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
 
   /**
+   * @notice Emitted when the pricing modules have been updated.
+   * @param newIdentifiers The new identifiers.
+   * @param newAddresses The new pricing module addresses.
+   */
+  event PricingModulesUpdated(bytes32[] newIdentifiers, address[] newAddresses);
+
+  /**
    * @notice Retrieves the pool with the specified exchangeId.
    * @param exchangeId The id of the pool to be retrieved.
    * @return exchange The PoolExchange with that ID.

@@ -49,7 +49,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
   uint256 private _totalSupply;
   mapping(address => mapping(address => uint256)) private _allowances;
 
-  uint256[4] private __deeprecated_inflationState_storage_slot__;
+  uint256[4] private __deprecated_inflationState_storage_slot__;
   bytes32 private __deprecated_exchangeRegistryId_storage_slot__;
 
   /**

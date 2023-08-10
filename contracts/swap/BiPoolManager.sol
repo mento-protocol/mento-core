@@ -52,6 +52,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   bytes32 public constant CONSTANT_SUM = keccak256(abi.encodePacked("ConstantSum"));
   bytes32 public constant CONSTANT_PRODUCT = keccak256(abi.encodePacked("ConstantProduct"));
 
+  // Maps a pricing module identifier to the address of the pricing module contract.
+  mapping(bytes32 => address) public pricingModules;
+
   /* ==================== Constructor ==================== */
 
   /**
@@ -221,6 +224,21 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   }
 
   /**
+   * @notice Updates the pricing modules for a list of identifiers
+   * @dev This function can only be called by the owner of the contract.
+   *      The number of identifiers and modules provided must be the same.
+   * @param identifiers An array of identifiers for which the pricing modules are to be set.
+   * @param modules An array of module addresses corresponding to each identifier.
+   */
+  function setPricingModules(bytes32[] calldata identifiers, address[] calldata modules) external onlyOwner {
+    require(identifiers.length == modules.length, "identifiers and modules must be the same length");
+    for (uint256 i = 0; i < identifiers.length; i++) {
+      pricingModules[identifiers[i]] = modules[i];
+    }
+    emit PricingModulesUpdated(identifiers, modules);
+  }
+
+  /**
    * @notice Creates a new exchange using the given parameters.
    * @param _exchange the PoolExchange to create.
    * @return exchangeId The id of the newly created exchange.
@@ -231,6 +249,10 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     require(exchange.asset0 != address(0), "asset0 must be set");
     require(exchange.asset1 != address(0), "asset1 must be set");
     require(exchange.asset0 != exchange.asset1, "exchange assets can't be identical");
+    require(
+      pricingModules[pricingModuleIdentifier(exchange)] == address(exchange.pricingModule),
+      "invalid pricingModule"
+    );
 
     exchangeId = keccak256(
       abi.encodePacked(
@@ -427,7 +449,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @param tokenOut The token to be bought
    * @param scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
    * @return scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
-   * @return bucketsUpdated Wether the buckets were updated during the quote
+   * @return bucketsUpdated Whether the buckets were updated during the quote
    */
   function _getAmountIn(
     PoolExchange memory exchange,
