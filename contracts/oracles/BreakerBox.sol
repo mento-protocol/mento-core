@@ -309,7 +309,7 @@ contract BreakerBox is IBreakerBox, Ownable {
   /**
    * @notice Checks breakers for the rateFeedID with the specified id 
              and sets correct trading mode if any breakers are tripped
-             or need to be reset. Callable by the SortedOracles contract.
+             or need to be reset.
    * @param rateFeedID The address of the rateFeed to run checks for.
    */
   function checkAndSetBreakers(address rateFeedID) external {
