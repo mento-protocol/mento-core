@@ -221,6 +221,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     }
     rateFeedIDs.pop();
 
+    delete rateFeedDependencies[rateFeedID];
     delete rateFeedTradingMode[rateFeedID];
     deleteBreakerStatus(rateFeedID);
     rateFeedStatus[rateFeedID] = false;

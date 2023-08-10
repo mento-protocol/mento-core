@@ -380,6 +380,13 @@ contract IntegrationTest is BaseTest {
     constantSum = new ConstantSumPricingModule();
     biPoolManager = new BiPoolManager(true);
 
+    bytes32[] memory pricingModuleIdentifiers = Arrays.bytes32s(
+      keccak256(abi.encodePacked(constantProduct.name())),
+      keccak256(abi.encodePacked(constantSum.name()))
+    );
+
+    address[] memory pricingModules = Arrays.addresses(address(constantProduct), address(constantSum));
+
     biPoolManager.initialize(
       address(broker),
       IReserve(reserve),
@@ -392,6 +399,7 @@ contract IntegrationTest is BaseTest {
     broker.initialize(exchangeProviders, address(reserve));
     registry.setAddressFor("Broker", address(broker));
     reserve.addExchangeSpender(address(broker));
+    biPoolManager.setPricingModules(pricingModuleIdentifiers, pricingModules);
 
     /* ====== Create pairs for all asset combinations ======= */
 
