@@ -561,7 +561,6 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   {
     (rateNumerator, rateDenominator) = sortedOracles.medianRate(target);
     require(rateDenominator > 0, "exchange rate denominator must be greater than 0");
-    return (rateNumerator, rateDenominator);
   }
 
   /**
