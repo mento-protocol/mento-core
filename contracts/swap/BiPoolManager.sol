@@ -554,12 +554,13 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @return rateNumerator
    * @return rateDenominator
    */
-  function getOracleExchangeRate(address target) internal view returns (uint256, uint256) {
-    uint256 rateNumerator;
-    uint256 rateDenominator;
+  function getOracleExchangeRate(address target)
+    internal
+    view
+    returns (uint256 rateNumerator, uint256 rateDenominator)
+  {
     (rateNumerator, rateDenominator) = sortedOracles.medianRate(target);
     require(rateDenominator > 0, "exchange rate denominator must be greater than 0");
-    return (rateNumerator, rateDenominator);
   }
 
   /**
