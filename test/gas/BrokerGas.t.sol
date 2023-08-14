@@ -9,7 +9,7 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
 import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
 
-// forge test --match-contract BrokerIntegration -vvv
+// forge test --match-contract BrokerGasTest -vvv
 contract BrokerGasTest is IntegrationTest, TokenHelpers {
   address trader;
 

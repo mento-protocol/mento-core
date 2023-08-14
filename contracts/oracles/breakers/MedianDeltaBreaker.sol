@@ -166,7 +166,7 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   /**
    * @notice  Check if the current median report rate for a rate feed change, relative
    *          to the last median report, is greater than the configured threshold.
-   *          If the change is greater than the threshold the breaker will trip.
+   *          If the change is greater than the threshold the breaker will be triggered.
    * @param   rateFeedID The rate feed to be checked.
    * @return  triggerBreaker  A bool indicating whether or not this breaker
    *                          should be tripped for the rate feed.
