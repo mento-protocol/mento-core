@@ -8,6 +8,7 @@ import { console2 } from "forge-std/console2.sol";
 import { console } from "forge-std/console.sol";
 import { PrecompileHandler } from "celo-foundry/PrecompileHandler.sol";
 
+import { Arrays } from "test/utils/Arrays.sol";
 import { TokenHelpers } from "test/utils/TokenHelpers.t.sol";
 import { Chain } from "test/utils/Chain.sol";
 
@@ -124,8 +125,8 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     }
     require(exchanges.length > 0, "No exchanges found");
 
-    // XXX: The number of collateral assets 2 is hardcoded here [CELO, USDC]
-    for (uint256 i = 0; i < 2; i++) {
+    // XXX: The number of collateral assets 3 is hardcoded here [CELO, USDC, EUROC]
+    for (uint256 i = 0; i < 3; i++) {
       address collateralAsset = reserve.collateralAssets(i);
       mint(collateralAsset, address(reserve), Utils.toSubunits(10_000_000, collateralAsset));
       console.log("Minting 10mil %s to reserve", IERC20Metadata(collateralAsset).symbol());
@@ -300,7 +301,10 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       address rateFeedID = ctx.getReferenceRateFeedID();
       for (uint256 j = 0; j < breakers.length; j++) {
         if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
-          assert_breakerBreaks(ctx, breakers[j], breakerBox.breakerTradingMode(breakers[j]));
+          assert_breakerBreaks(ctx, breakers[j], j);
+          // we recover this breaker so that it doesn't affect other exchanges in this test,
+          // since the rateFeed for this exchange could be a dependency for other rateFeeds
+          assert_breakerRecovers(ctx, breakers[j], j);
         }
       }
     }
@@ -314,7 +318,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       address rateFeedID = ctx.getReferenceRateFeedID();
       for (uint256 j = 0; j < breakers.length; j++) {
         if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
-          assert_breakerRecovers(ctx, breakers[j], breakerBox.breakerTradingMode(breakers[j]));
+          assert_breakerRecovers(ctx, breakers[j], j);
         }
       }
     }
@@ -330,7 +334,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
 
       for (uint256 j = 0; j < breakers.length; j++) {
         if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
-          assert_breakerBreaks(ctx, breakers[j], breakerBox.breakerTradingMode(breakers[j]));
+          assert_breakerBreaks(ctx, breakers[j], j);
 
           assert_swapInFails(
             ctx,
@@ -361,6 +365,44 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
             Utils.toSubunits(1000, exchange.assets[0]),
             "Trading is suspended for this reference rate"
           );
+
+          // we recover this breaker so that it doesn't affect other exchanges in this test,
+          // since the rateFeed for this exchange could be a dependency for other rateFeeds
+          assert_breakerRecovers(ctx, breakers[j], j);
+        }
+      }
+    }
+  }
+
+  function test_rateFeedDependencies_haltsDependantTrading() public {
+    address[] memory breakers = breakerBox.getBreakers();
+    /*
+      TODO: Because breakerBox doesn't have a getter that returns an array of dependencies
+      for a given rateFeed, we had to hardcode the rateFeeds that have dependencies. 
+
+      This can be generalized once we add the getter to breakerBox.
+    */
+    uint256[] memory exchangesIndexesWithDependencies = Arrays.uints(4, 5);
+    for (uint256 i = 0; i < exchangesIndexesWithDependencies.length; i++) {
+      Utils.Context memory ctx = Utils.newContext(address(this), exchangesIndexesWithDependencies[i]);
+      address rateFeedID = ctx.getReferenceRateFeedID();
+
+      address dependencyRateFeed = breakerBox.rateFeedDependencies(rateFeedID, 0);
+      Utils.Context memory dependencyContext = Utils.getContextForRateFeedID(address(this), dependencyRateFeed);
+
+      for (uint256 j = 0; j < breakers.length; j++) {
+        if (breakerBox.isBreakerEnabled(breakers[j], dependencyRateFeed)) {
+          assert_breakerBreaks(dependencyContext, breakers[j], j);
+
+          assert_swapInFails(
+            ctx,
+            ctx.exchange.assets[0],
+            ctx.exchange.assets[1],
+            Utils.toSubunits(1000, ctx.exchange.assets[0]),
+            "Trading is suspended for this reference rate"
+          );
+
+          assert_breakerRecovers(dependencyContext, breakers[j], j);
         }
       }
     }

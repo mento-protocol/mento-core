@@ -77,6 +77,19 @@ library Utils {
     );
   }
 
+  function getContextForRateFeedID(address _t, address rateFeedID) public view returns (Context memory) {
+    BaseForkTest t = BaseForkTest(_t);
+    (address biPoolManagerAddr, ) = t.exchanges(0);
+    uint256 nOfExchanges = BiPoolManager(biPoolManagerAddr).getExchanges().length;
+    for (uint256 i = 0; i < nOfExchanges; i++) {
+      Context memory ctx = newContext(_t, i);
+      if (getReferenceRateFeedID(ctx) == rateFeedID) {
+        return ctx;
+      }
+    }
+    revert("No exchange found with that referenceRateFeedID");
+  }
+
   // ========================= Swaps =========================
 
   function swapIn(
