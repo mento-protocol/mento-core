@@ -8,7 +8,6 @@ import { ERC20Burnable } from "openzeppelin-contracts-next/contracts/token/ERC20
  * @title Mento Token
  * @author Mento Labs
  * @notice This contract represents the Mento Protocol Token which is a Burnable ERC20 token.
- * @dev Upon deployment, it mints the total supply of tokens and allocates them among different contracts.
  */
 contract MentoToken is ERC20, ERC20Burnable {
 
