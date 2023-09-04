@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import { console } from "forge-std-next/console.sol";
 import { Test } from "forge-std-next/Test.sol";
 
-import { MentoToken } from "contracts/tokens/MentoToken.sol";
+import { MentoToken } from "contracts/governance/MentoToken.sol";
 
 contract MentoTokenTest is Test {
   MentoToken public mentoToken;
