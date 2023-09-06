@@ -18,10 +18,17 @@ contract MentoTokenTest is Test {
   address public constant ALICE = address(9999);
   address public constant BOB = address(8888);
 
-  uint256 public constant INITIAL_TOTAL_SUPPLY = 1_000_000_000 * 1e18;
+  uint256 public constant INITIAL_TOTAL_SUPPLY = 350_000_000 * 1e18;
 
   function setUp() public {
     mentoToken = new MentoToken(VESTING_CONTRACT, AIRGRAB_CONTRACT, TREASURY_CONTRACT, EMISSION_CONTRACT);
+  }
+
+  /// @dev Test the state initialization post-construction of the MentoToken contract.
+  function test_constructor_shouldSetCorrectState() public {
+    assertEq(mentoToken.emissionContract(), EMISSION_CONTRACT);
+    assertEq(mentoToken.emissionSupply(), 650_000_000 * 1e18);
+    assertEq(mentoToken.emittedAmount(), 0);
   }
 
   /// @dev Test the correct token amounts are minted to respective contracts during initialization.
@@ -36,7 +43,7 @@ contract MentoTokenTest is Test {
     assertEq(vestingAmount, 200_000_000 * 1e18);
     assertEq(airgrabAmount, 50_000_000 * 1e18);
     assertEq(treasuryAmount, 100_000_000 * 1e18);
-    assertEq(emissionAmount, 650_000_000 * 1e18);
+    assertEq(emissionAmount, 0);
 
     // Assert that the total token minted during initialization matches the sum of tokens assigned to each contract
     assertEq(vestingAmount + airgrabAmount + treasuryAmount + emissionAmount, INITIAL_TOTAL_SUPPLY);
@@ -95,5 +102,42 @@ contract MentoTokenTest is Test {
     // BOB tries to burn again, but the allowance is now exhausted. This should fail.
     vm.expectRevert("ERC20: insufficient allowance");
     mentoToken.burnFrom(ALICE, burnAmount);
+  }
+
+  /**
+   * @dev Tests the mint function's access control mechanism.
+   * @dev This test ensures that the mint function can only be called by the emission contract address.
+   * Any other address attempting to mint tokens should have the transaction reverted.
+   */
+  function test_mint_shouldRevert_forUnauthorizedAddresses() public {
+    uint256 mintAmount = 10e18;
+    vm.prank(BOB);
+    vm.expectRevert("MentoToken: OnlyEmissionContract");
+    mentoToken.mint(ALICE, mintAmount);
+  }
+
+  /**
+   * @dev Tests the mint function's logic for the emission contract.
+   * @notice This test checks:
+   * 1. Tokens can be successfully minted to specific addresses when called by the emission contract.
+   * 2. The emittedAmount state variable correctly reflects the total amount of tokens emitted.
+   * 3. If minting causes the emitted amount to exceed the emission supply, it should revert.
+   */
+  function test_mint_shouldEmitTokens_forEmissionContract_upToEmissionSupply() public {
+    uint256 mintAmount = 10e18;
+
+    vm.startPrank(EMISSION_CONTRACT);
+    mentoToken.mint(ALICE, mintAmount);
+
+    assertEq(mentoToken.balanceOf(ALICE), mintAmount);
+    assertEq(mentoToken.emittedAmount(), mintAmount);
+
+    mentoToken.mint(BOB, mintAmount);
+
+    assertEq(mentoToken.balanceOf(BOB), mintAmount);
+    assertEq(mentoToken.emittedAmount(), 2 * mintAmount);
+
+    vm.expectRevert("MentoToken: EmissionSupplyExceeded");
+    mentoToken.mint(ALICE, 649_999_999 * 1e18);
   }
 }
