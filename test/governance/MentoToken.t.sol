@@ -52,9 +52,11 @@ contract MentoTokenTest is Test {
     assertEq(mentoToken.totalSupply(), INITIAL_TOTAL_SUPPLY);
   }
 
-  /// @dev Test the burn functionality for an individual account.
-  /// @notice Even though the burn function comes from OpenZeppelin's library,
-  /// @notice this test assures correct integration.
+  /**
+   * @dev Test the burn functionality for an individual account.
+   * @notice Even though the burn function comes from OpenZeppelin's library,
+   * @notice this test assures correct integration.
+   */
   function test_burn_shouldBurnTokens() public {
     // Set up initial parameters and balances
     uint256 initialBalance = 3e18;
@@ -72,9 +74,11 @@ contract MentoTokenTest is Test {
     assertEq(mentoToken.totalSupply(), INITIAL_TOTAL_SUPPLY - burnAmount);
   }
 
-  /// @dev Test the burnFrom functionality considering allowances.
-  /// @notice Even though the burnFrom function comes from OpenZeppelin's library,
-  /// @notice this test assures correct integration.
+  /**
+   * @dev Test the burnFrom functionality considering allowances.
+   * @notice Even though the burnFrom function comes from OpenZeppelin's library,
+   * @notice this test assures correct integration.
+   */
   function test_burnFrom_shouldBurnTokens_upToAllowance() public {
     // Set up initial parameters and balances
     uint256 initialBalance = 3e18;
@@ -110,7 +114,7 @@ contract MentoTokenTest is Test {
    * @dev This test ensures that the mint function can only be called by the emission contract address.
    * Any other address attempting to mint tokens should have the transaction reverted.
    */
-  function test_mint_shouldRevert_forUnauthorizedAddresses() public {
+  function test_mint_shouldRevert_forUnauthorizedAccounts() public {
     uint256 mintAmount = 10e18;
     vm.prank(BOB);
     vm.expectRevert("MentoToken: OnlyEmissionContract");
@@ -118,11 +122,30 @@ contract MentoTokenTest is Test {
   }
 
   /**
+   * @dev Tests the mint function's behavior when minting amounts that exceed the emission supply.
+   * @notice This test ensures that when the mint function is called with an amount that
+   * exceeds the total emission supply, the transaction should be reverted.
+   */
+  function test_mint_shouldRevert_forAmountsBiggerThanSupply() public {
+    uint256 mintAmount = 10e18;
+
+    vm.startPrank(EMISSION_CONTRACT);
+
+    vm.expectRevert("MentoToken: EmissionSupplyExceeded");
+    mentoToken.mint(ALICE, EMISSION_SUPPLY + 1);
+
+    mentoToken.mint(ALICE, mintAmount);
+
+    vm.expectRevert("MentoToken: EmissionSupplyExceeded");
+    mentoToken.mint(ALICE, EMISSION_SUPPLY - mintAmount + 1);
+  }
+
+  /**
    * @dev Tests the mint function's logic for the emission contract.
    * @notice This test checks:
    * 1. Tokens can be successfully minted to specific addresses when called by the emission contract.
    * 2. The emittedAmount state variable correctly reflects the total amount of tokens emitted.
-   * 3. If minting causes the emitted amount to exceed the emission supply, it should revert.
+   * 3. It can mint up to emission supply
    */
   function test_mint_shouldEmitTokens_forEmissionContract_upToEmissionSupply() public {
     uint256 mintAmount = 10e18;
@@ -138,10 +161,6 @@ contract MentoTokenTest is Test {
     assertEq(mentoToken.balanceOf(BOB), mintAmount);
     assertEq(mentoToken.emittedAmount(), 2 * mintAmount);
 
-    vm.expectRevert("MentoToken: EmissionSupplyExceeded");
-    mentoToken.mint(ALICE, EMISSION_SUPPLY - mintAmount);
-
-    // It should mint up to emission supply
     mentoToken.mint(ALICE, EMISSION_SUPPLY - 2 * mintAmount);
     assertEq(mentoToken.emittedAmount(), EMISSION_SUPPLY);
   }
