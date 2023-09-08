@@ -387,12 +387,21 @@ contract TestAsserts is Test {
     // where the medianDeltaBreaker gets deployed first and the valueDeltaBreaker second.
     bool isMedianDeltaBreaker = breakerIndex == 0;
     bool isValueDeltaBreaker = breakerIndex == 1;
+    bool isNonRecoverableValueDeltaBreaker = breakerIndex == 2;
     if (isMedianDeltaBreaker) {
       assert_medianDeltaBreakerBreaks_onIncrease(ctx, breaker);
       assert_medianDeltaBreakerBreaks_onDecrease(ctx, breaker);
     } else if (isValueDeltaBreaker) {
       assert_valueDeltaBreakerBreaks_onIncrease(ctx, breaker);
+      console.log("\t\t\t\t\t done with onIncrease in normalValueDeltaBreaker");
       assert_valueDeltaBreakerBreaks_onDecrease(ctx, breaker);
+      console.log("\t\t\t\t\t done with onDecrease in normalValueDeltaBreaker");
+    } else if (isNonRecoverableValueDeltaBreaker) {
+      // non recoverable
+      assert_valueDeltaBreakerBreaks_onIncrease(ctx, breaker);
+      console.log("\t\t\t\t\t done with onIncrease in NonRecoverableValueDeltaBreaker");
+      assert_valueDeltaBreakerBreaks_onDecrease(ctx, breaker);
+      console.log("\t\t\t\t\t done with onDecrease in NonRecoverableValueDeltaBreaker");
     } else {
       revert("Unknown trading mode, can't infer breaker type");
     }
@@ -561,7 +570,10 @@ contract TestAsserts is Test {
     newMedian = currentRate.add(currentRate.div(100_000_000)); // a small increase
     ctx.updateOracleMedianRate(newMedian);
     uint8 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
-    while (tradingMode != 0) {
+    uint256 attempts = 0;
+    while (tradingMode != 0 && attempts < 10) {
+      console.log("attempt #%d", attempts);
+      attempts++;
       // while the breaker is active, we wait for the cooldown and try to update the median
       console.log(block.timestamp, "Waiting for cooldown to pass");
       console.log("RateFeedID:", rateFeedID);
@@ -603,10 +615,11 @@ contract TestAsserts is Test {
     }
     bool isMedianDeltaBreaker = breakerIndex == 0;
     bool isValueDeltaBreaker = breakerIndex == 1;
+    bool isNonRecoverableValueDeltaBreaker = breakerIndex == 2;
     if (isMedianDeltaBreaker) {
       uint256 currentEMA = MedianDeltaBreaker(_breakers[breakerIndex]).medianRatesEMA(ctx.getReferenceRateFeedID());
       return currentEMA;
-    } else if (isValueDeltaBreaker) {
+    } else if (isValueDeltaBreaker || isNonRecoverableValueDeltaBreaker) {
       return ctx.getValueDeltaBreakerReferenceValue(_breakers[breakerIndex]);
     } else {
       revert("can't infer corresponding breaker");

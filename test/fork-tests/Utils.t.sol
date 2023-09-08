@@ -182,13 +182,13 @@ library Utils {
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
     (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = shouldUpdateBuckets(ctx);
-    logPool(ctx);
+    // logPool(ctx);
     if (timePassed && (!medianReportRecent || isReportExpired || !enoughReports)) {
       (uint256 newMedian, ) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
       (timePassed, enoughReports, medianReportRecent, isReportExpired, ) = shouldUpdateBuckets(ctx);
       updateOracleMedianRate(ctx, newMedian.mul(1_000_001).div(1_000_000));
 
-      logPool(ctx);
+      // logPool(ctx);
       return;
     }
   }
@@ -301,8 +301,11 @@ library Utils {
       }
 
       changePrank(oracle);
+      console.log("🔮 going to do prank report: ");
       ctx.sortedOracles.report(rateFeedID, newMedian, lesserKey, greaterKey);
+      console.log("🔮 done with prank report");
     }
+    console.log("done with updateOracleMedianRate");
     changePrank(ctx.trader);
   }
 
