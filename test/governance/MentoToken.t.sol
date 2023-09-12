@@ -79,7 +79,7 @@ contract MentoTokenTest is Test {
    * @notice Even though the burnFrom function comes from OpenZeppelin's library,
    * @notice this test assures correct integration.
    */
-  function test_burnFrom_shouldBurnTokens_upToAllowance() public {
+  function test_burnFrom_whenAllowed_shouldBurnTokens() public {
     // Set up initial parameters and balances
     uint256 initialBalance = 3e18;
     uint256 burnAmount = 1e18;
@@ -114,10 +114,10 @@ contract MentoTokenTest is Test {
    * @dev This test ensures that the mint function can only be called by the emission contract address.
    * Any other address attempting to mint tokens should have the transaction reverted.
    */
-  function test_mint_shouldRevert_forUnauthorizedAccounts() public {
+  function test_mint_whenNotEmissionContract_shouldRevert() public {
     uint256 mintAmount = 10e18;
     vm.prank(BOB);
-    vm.expectRevert("MentoToken: OnlyEmissionContract");
+    vm.expectRevert("MentoToken: only emission contract");
     mentoToken.mint(ALICE, mintAmount);
   }
 
@@ -126,17 +126,17 @@ contract MentoTokenTest is Test {
    * @notice This test ensures that when the mint function is called with an amount that
    * exceeds the total emission supply, the transaction should be reverted.
    */
-  function test_mint_shouldRevert_forAmountsBiggerThanSupply() public {
+  function test_mint_whenAmountBiggerThanEmissionSupply_shouldRevert() public {
     uint256 mintAmount = 10e18;
 
     vm.startPrank(EMISSION_CONTRACT);
 
-    vm.expectRevert("MentoToken: EmissionSupplyExceeded");
+    vm.expectRevert("MentoToken: emission supply exceeded");
     mentoToken.mint(ALICE, EMISSION_SUPPLY + 1);
 
     mentoToken.mint(ALICE, mintAmount);
 
-    vm.expectRevert("MentoToken: EmissionSupplyExceeded");
+    vm.expectRevert("MentoToken: emission supply exceeded");
     mentoToken.mint(ALICE, EMISSION_SUPPLY - mintAmount + 1);
   }
 
@@ -147,7 +147,7 @@ contract MentoTokenTest is Test {
    * 2. The emittedAmount state variable correctly reflects the total amount of tokens emitted.
    * 3. It can mint up to emission supply
    */
-  function test_mint_shouldEmitTokens_forEmissionContract_upToEmissionSupply() public {
+  function test_mint_whenEmissionSupplyNotExceeded_shouldEmitTokens() public {
     uint256 mintAmount = 10e18;
 
     vm.startPrank(EMISSION_CONTRACT);
