@@ -57,6 +57,7 @@ contract MentoToken is ERC20, ERC20Burnable {
    */
   function mint(address target, uint256 amount) external {
     require(msg.sender == emissionContract, "MentoToken: only emission contract");
+
     require(emittedAmount + amount <= emissionSupply, "MentoToken: emission supply exceeded");
 
     emittedAmount += amount;
