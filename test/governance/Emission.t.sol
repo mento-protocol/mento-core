@@ -151,13 +151,13 @@ contract EmissionTest is TestSetup {
     vm.warp(MONTH);
     emission.emitTokens();
 
-    assertApproxEqAbs(emission.emittedAmount(), calculatedAmountFor1Month, NEGLIGIBLE_AMOUNT);
+    assertApproxEqAbs(emission.totalEmittedAmount(), calculatedAmountFor1Month, NEGLIGIBLE_AMOUNT);
 
     vm.warp(YEAR);
     uint256 amount = emission.emitTokens();
 
     assertApproxEqAbs(amount, calculatedAmountFor1Year - calculatedAmountFor1Month, NEGLIGIBLE_AMOUNT);
-    assertApproxEqAbs(emission.emittedAmount(), calculatedAmountFor1Year, NEGLIGIBLE_AMOUNT);
+    assertApproxEqAbs(emission.totalEmittedAmount(), calculatedAmountFor1Year, NEGLIGIBLE_AMOUNT);
   }
 
   function test_fuzz_emitTokens_whenMultipleEmits_shouldNotRevert(
@@ -187,7 +187,7 @@ contract EmissionTest is TestSetup {
 
     uint256 totalEmitted = amount1 + amount2 + amount3;
 
-    assertEq(totalEmitted, emission.emittedAmount());
+    assertEq(totalEmitted, emission.totalEmittedAmount());
     assertEq(mentoToken.balanceOf(TREASURY_CONTRACT), totalEmitted + INITIAL_TREASURY_BALANCE);
   }
 

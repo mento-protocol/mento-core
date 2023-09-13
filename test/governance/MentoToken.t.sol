@@ -2,32 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import { console } from "forge-std-next/console.sol";
-import { Test } from "forge-std-next/Test.sol";
-
+import { TestSetup } from "./TestSetup.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
 
-contract MentoTokenTest is Test {
-  MentoToken public mentoToken;
-
-  address public constant VESTING_CONTRACT = address(111);
-  address public constant AIRGRAB_CONTRACT = address(222);
-  address public constant TREASURY_CONTRACT = address(333);
-  address public constant EMISSION_CONTRACT = address(444);
-
-  address public constant ALICE = address(9999);
-  address public constant BOB = address(8888);
-
-  uint256 public constant INITIAL_TOTAL_SUPPLY = 350_000_000 * 1e18;
-  uint256 public constant EMISSION_SUPPLY = 650_000_000 * 1e18;
-
-  function setUp() public {
-    mentoToken = new MentoToken(VESTING_CONTRACT, AIRGRAB_CONTRACT, TREASURY_CONTRACT, EMISSION_CONTRACT);
-  }
-
+contract MentoTokenTest is TestSetup {
   /// @dev Test the state initialization post-construction of the MentoToken contract.
   function test_constructor_shouldSetCorrectState() public {
-    assertEq(mentoToken.emissionContract(), EMISSION_CONTRACT);
+    assertEq(mentoToken.emissionContract(), address(emission));
     assertEq(mentoToken.emissionSupply(), EMISSION_SUPPLY);
     assertEq(mentoToken.emittedAmount(), 0);
   }
@@ -37,7 +18,7 @@ contract MentoTokenTest is Test {
     uint256 vestingAmount = mentoToken.balanceOf(VESTING_CONTRACT);
     uint256 airgrabAmount = mentoToken.balanceOf(AIRGRAB_CONTRACT);
     uint256 treasuryAmount = mentoToken.balanceOf(TREASURY_CONTRACT);
-    uint256 emissionAmount = mentoToken.balanceOf(EMISSION_CONTRACT);
+    uint256 emissionAmount = mentoToken.balanceOf(address(emission));
 
     assertEq(vestingAmount, 200_000_000 * 1e18);
     assertEq(airgrabAmount, 50_000_000 * 1e18);
@@ -116,7 +97,7 @@ contract MentoTokenTest is Test {
   function test_mint_whenAmountBiggerThanEmissionSupply_shouldRevert() public {
     uint256 mintAmount = 10e18;
 
-    vm.startPrank(EMISSION_CONTRACT);
+    vm.startPrank(address(emission));
 
     vm.expectRevert("MentoToken: emission supply exceeded");
     mentoToken.mint(ALICE, EMISSION_SUPPLY + 1);
@@ -137,7 +118,7 @@ contract MentoTokenTest is Test {
   function test_mint_whenEmissionSupplyNotExceeded_shouldEmitTokens() public {
     uint256 mintAmount = 10e18;
 
-    vm.startPrank(EMISSION_CONTRACT);
+    vm.startPrank(address(emission));
     mentoToken.mint(ALICE, mintAmount);
 
     assertEq(mentoToken.balanceOf(ALICE), mintAmount);
