@@ -40,6 +40,12 @@ contract Emission is Ownable {
     mentoToken.mint(emissionTarget, amount);
   }
 
+  /* we use the Maclaurin series to create a simpler approximation of exponential decaying formula
+   * original formula: E(t) = supply * exp(-A * t)
+   * approximate: E(t) = supply * (1 - (t / A) + (t^2 / 2A^2) - (t^3 / 6A^3) + (t^4 / 24A^4) - (t^5 / 120A^5))
+   * where A = HALF_LIFE / ln(e)
+   * note: we added a 5th term to mint the whole supply around 31.5 years
+   */
   function _releasableAmount() internal view returns (uint256 amount) {
     uint256 t = (block.timestamp - emissionStart);
 
@@ -52,8 +58,17 @@ contract Emission is Ownable {
     uint256 term4 = (t * t * t * t * SCALER) / (24 * A * A * A * A);
     // console.log(term4);
     // console.log("h1");
+    uint256 term5 = (t * t * t * t * t * SCALER) / (120 * A * A * A * A * A);
 
-    uint256 scheduledAmount = (EMISSION_SUPPLY * (SCALER + term2 + term4 - term1 - term3)) / SCALER;
+    uint256 addition = SCALER + term2 + term4;
+    uint256 subtraction = term1 + term3 + term5;
+
+    // avoiding underflow
+    if (addition < subtraction) {
+      return EMISSION_SUPPLY - emittedAmount;
+    }
+
+    uint256 scheduledAmount = (EMISSION_SUPPLY * (addition - subtraction)) / SCALER;
 
     // console.log("2");
     // console.log(scheduledAmount);

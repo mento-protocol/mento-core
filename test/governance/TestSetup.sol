@@ -23,6 +23,9 @@ contract TestSetup is Test {
   uint256 public constant INITIAL_TOTAL_SUPPLY = 350_000_000 * 1e18;
   uint256 public constant EMISSION_SUPPLY = 650_000_000 * 1e18;
 
+  uint256 public constant MONTH = 30 days;
+  uint256 public constant YEAR = 365 days;
+
   function setUp() public {
     vm.startPrank(OWNER);
     emission = new Emission();
