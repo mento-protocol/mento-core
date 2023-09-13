@@ -168,9 +168,9 @@ contract EmissionTest is TestSetup {
     _setupEmissionContract();
 
     // using duration as days to avoid "cheatcode rejected too many inputs" error
-    vm.assume(duration1 < 10 * 365);
-    vm.assume(duration2 < 10 * 365);
-    vm.assume(duration3 < 10 * 365);
+    vm.assume(duration1 < 15 * 365);
+    vm.assume(duration2 < 15 * 365);
+    vm.assume(duration3 < 15 * 365);
 
     vm.assume(duration1 > 0);
     vm.assume(duration2 > 0);
@@ -179,10 +179,10 @@ contract EmissionTest is TestSetup {
     vm.warp(duration1 * 1 days);
     uint256 amount1 = emission.emitTokens();
 
-    vm.warp(duration1 * 1 days + duration2 * 1 days);
+    vm.warp((duration1 + duration2) * 1 days);
     uint256 amount2 = emission.emitTokens();
 
-    vm.warp(duration1 * 1 days + duration2 * 1 days + duration3 * 1 days);
+    vm.warp((duration1 + duration2 + duration3) * 1 days);
     uint256 amount3 = emission.emitTokens();
 
     uint256 totalEmitted = amount1 + amount2 + amount3;
