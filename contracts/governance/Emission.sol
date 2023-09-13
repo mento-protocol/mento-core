@@ -57,6 +57,7 @@ contract Emission is Ownable {
 
     // console.log("2");
     // console.log(scheduledAmount);
+    // console.log(emittedAmount);
     // console.log("a");
     amount = EMISSION_SUPPLY - scheduledAmount - emittedAmount;
   }
