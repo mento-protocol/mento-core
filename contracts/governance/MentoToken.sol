@@ -32,24 +32,18 @@ contract MentoToken is ERC20, ERC20Burnable {
     address airgrabContract,
     address treasuryContract,
     address emissionContract_
-  )
-    ERC20("Mento Token", "MENTO") // Initializes the ERC20 token with name and symbol
-  {
-    // Define the initial total supply as 1 billion tokens
+  ) ERC20("Mento Token", "MENTO") {
     uint256 supply = 1_000_000_000 * 10**decimals();
 
-    // Calculate the allocations for different purposes based on initial supply
-    uint256 vestingSupply = (supply * 20) / 100; // 20%
-    uint256 airgrabSupply = (supply * 5) / 100; // 5%
-    uint256 treasurySupply = (supply * 10) / 100; // 10%
-    uint256 emissionSupply_ = (supply * 65) / 100; // 65%
+    uint256 vestingSupply = (supply * 20) / 100;
+    uint256 airgrabSupply = (supply * 5) / 100;
+    uint256 treasurySupply = (supply * 10) / 100;
+    uint256 emissionSupply_ = (supply * 65) / 100;
 
-    // Mint the tokens to respective contracts
     _mint(vestingContract, vestingSupply);
     _mint(airgrabContract, airgrabSupply);
     _mint(treasuryContract, treasurySupply);
 
-    // Set state variables
     emissionContract = emissionContract_;
     emissionSupply = emissionSupply_;
   }
@@ -62,9 +56,7 @@ contract MentoToken is ERC20, ERC20Burnable {
    * @param amount Amount of tokens to be minted.
    */
   function mint(address target, uint256 amount) external {
-    // Only the emission contract can call this function
     require(msg.sender == emissionContract, "MentoToken: only emission contract");
-    // The total amount emitted doesn't exceed the emission supply
     require(emittedAmount + amount <= emissionSupply, "MentoToken: emission supply exceeded");
 
     emittedAmount += amount;

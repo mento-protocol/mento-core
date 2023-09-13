@@ -34,21 +34,17 @@ contract MentoTokenTest is Test {
 
   /// @dev Test the correct token amounts are minted to respective contracts during initialization.
   function test_constructor_shouldMintCorrectAmounts() public {
-    // Fetch the balances of all the addresses set during contract initialization
     uint256 vestingAmount = mentoToken.balanceOf(VESTING_CONTRACT);
     uint256 airgrabAmount = mentoToken.balanceOf(AIRGRAB_CONTRACT);
     uint256 treasuryAmount = mentoToken.balanceOf(TREASURY_CONTRACT);
     uint256 emissionAmount = mentoToken.balanceOf(EMISSION_CONTRACT);
 
-    // Assert that each contract has the expected amount of tokens
     assertEq(vestingAmount, 200_000_000 * 1e18);
     assertEq(airgrabAmount, 50_000_000 * 1e18);
     assertEq(treasuryAmount, 100_000_000 * 1e18);
     assertEq(emissionAmount, 0);
 
-    // Assert that the total token minted during initialization matches the sum of tokens assigned to each contract
     assertEq(vestingAmount + airgrabAmount + treasuryAmount + emissionAmount, INITIAL_TOTAL_SUPPLY);
-    // Assert that the token's total supply matches the predefined initial total supply
     assertEq(mentoToken.totalSupply(), INITIAL_TOTAL_SUPPLY);
   }
 
@@ -58,17 +54,14 @@ contract MentoTokenTest is Test {
    * @notice this test assures correct integration.
    */
   function test_burn_shouldBurnTokens() public {
-    // Set up initial parameters and balances
     uint256 initialBalance = 3e18;
     uint256 burnAmount = 1e18;
     deal(address(mentoToken), ALICE, initialBalance);
 
-    // Expect a revert since ALICE is trying to burn more tokens than their balance
     vm.startPrank(ALICE);
     vm.expectRevert("ERC20: burn amount exceeds balance");
     mentoToken.burn(initialBalance + 1);
 
-    // Successfully burn tokens and assert the results
     mentoToken.burn(burnAmount);
     assertEq(mentoToken.balanceOf(ALICE), initialBalance - burnAmount);
     assertEq(mentoToken.totalSupply(), INITIAL_TOTAL_SUPPLY - burnAmount);
@@ -80,31 +73,25 @@ contract MentoTokenTest is Test {
    * @notice this test assures correct integration.
    */
   function test_burnFrom_whenAllowed_shouldBurnTokens() public {
-    // Set up initial parameters and balances
     uint256 initialBalance = 3e18;
     uint256 burnAmount = 1e18;
     deal(address(mentoToken), ALICE, initialBalance);
 
-    // BOB tries to burn ALICE's tokens without any allowance. This should fail.
     vm.prank(BOB);
     vm.expectRevert("ERC20: insufficient allowance");
     mentoToken.burnFrom(ALICE, burnAmount);
 
-    // ALICE approves BOB for a specific amount of their tokens
     vm.prank(ALICE);
     mentoToken.approve(BOB, burnAmount);
 
-    // BOB tries to burn more tokens than the allowance. This should fail.
     vm.startPrank(BOB);
     vm.expectRevert("ERC20: insufficient allowance");
     mentoToken.burnFrom(ALICE, burnAmount + 1);
 
-    // BOB successfully burns up to the allowed amount of ALICE's tokens and asserts the results
     mentoToken.burnFrom(ALICE, burnAmount);
     assertEq(mentoToken.balanceOf(ALICE), initialBalance - burnAmount);
     assertEq(mentoToken.totalSupply(), INITIAL_TOTAL_SUPPLY - burnAmount);
 
-    // BOB tries to burn again, but the allowance is now exhausted. This should fail.
     vm.expectRevert("ERC20: insufficient allowance");
     mentoToken.burnFrom(ALICE, burnAmount);
   }
