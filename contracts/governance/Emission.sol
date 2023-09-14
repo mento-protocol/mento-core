@@ -76,7 +76,7 @@ contract Emission is Ownable {
    * The Maclaurin series is used to create a simpler approximation of the exponential decay formula.
    * Original formula: E(t) = supply * exp(-A * t)
    * Approximation: E(t) = supply * (1 - (t / A) + (t^2 / 2A^2) - (t^3 / 6A^3) + (t^4 / 24A^4))
-   * where A = HALF_LIFE / ln(e)
+   * where A = HALF_LIFE / ln(2)
    * @dev A 5th term (t^5 / 120A^5) is added to ensure the entire supply is minted around 31.5 years.
    * @return amount Number of tokens that can be emitted.
    */
