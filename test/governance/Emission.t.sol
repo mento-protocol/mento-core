@@ -130,6 +130,16 @@ contract EmissionTest is TestSetup {
     assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
   }
 
+  function test_emitTokens_whenAfter30Years_shouldMintCorrectAmountToTarget() public {
+    _setupEmissionContract();
+    uint256 calculatedAmountFor30Years = 624_618_096_854971046875365376;
+
+    vm.warp(30 * YEAR);
+    uint256 amount = emission.emitTokens();
+    assertApproxEqAbs(amount, calculatedAmountFor30Years, NEGLIGIBLE_AMOUNT);
+    assertEq(mentoToken.balanceOf(TREASURY_CONTRACT), amount + INITIAL_TREASURY_BALANCE);
+  }
+
   function test_emitTokens_whenAfter40Years_shouldMintCorrectAmountToTarget() public {
     _setupEmissionContract();
     uint256 calculatedAmountFor40Years = EMISSION_SUPPLY;
