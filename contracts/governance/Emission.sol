@@ -54,7 +54,6 @@ contract Emission is Ownable {
    */
   function setEmissionTarget(address emissionTarget_) external onlyOwner {
     emissionTarget = emissionTarget_;
-
     emit EmissionTargetSet(emissionTarget_);
   }
 
@@ -65,6 +64,7 @@ contract Emission is Ownable {
   function emitTokens() external returns (uint256 amount) {
     amount = calculateEmission();
     require(amount > 0, "Emission: no tokens to emit");
+
     totalEmittedAmount += amount;
 
     emit TokensEmitted(emissionTarget, amount);
