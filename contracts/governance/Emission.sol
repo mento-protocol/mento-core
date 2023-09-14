@@ -63,7 +63,7 @@ contract Emission is Ownable {
    * @return amount The number of tokens emitted.
    */
   function emitTokens() external returns (uint256 amount) {
-    amount = calculateReleasableAmount();
+    amount = calculateEmission();
     require(amount > 0, "Emission: no tokens to emit");
     totalEmittedAmount += amount;
 
@@ -80,7 +80,7 @@ contract Emission is Ownable {
    * @dev A 5th term (t^5 / 120A^5) is added to ensure the entire supply is minted around 31.5 years.
    * @return amount Number of tokens that can be emitted.
    */
-  function calculateReleasableAmount() public view returns (uint256 amount) {
+  function calculateEmission() public view returns (uint256 amount) {
     uint256 t = (block.timestamp - emissionStartTime);
 
     uint256 term1 = (SCALER * t) / A;

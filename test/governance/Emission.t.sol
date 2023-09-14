@@ -110,7 +110,6 @@ contract EmissionTest is TestSetup {
     assertEq(mentoToken.balanceOf(TREASURY_CONTRACT), amount + INITIAL_TREASURY_BALANCE);
   }
 
-  // Note: It does not work after 50 years
   function test_emitTokens_whenAfter25Years_shouldMintCorrectAmountToTarget() public {
     _setupEmissionContract();
     uint256 calculatedAmountFor25Years = 554_584_121_845194220594266112;
@@ -118,6 +117,16 @@ contract EmissionTest is TestSetup {
     vm.warp(25 * YEAR);
     uint256 amount = emission.emitTokens();
     assertApproxEqAbs(amount, calculatedAmountFor25Years, NEGLIGIBLE_AMOUNT);
+    assertEq(mentoToken.balanceOf(TREASURY_CONTRACT), amount + INITIAL_TREASURY_BALANCE);
+  }
+
+  function test_emitTokens_whenAfter30Years_shouldMintCorrectAmountToTarget() public {
+    _setupEmissionContract();
+    uint256 calculatedAmountFor30Years = 624_618_096_854971046875365376;
+
+    vm.warp(30 * YEAR);
+    uint256 amount = emission.emitTokens();
+    assertApproxEqAbs(amount, calculatedAmountFor30Years, NEGLIGIBLE_AMOUNT);
     assertEq(mentoToken.balanceOf(TREASURY_CONTRACT), amount + INITIAL_TREASURY_BALANCE);
   }
 
@@ -158,6 +167,30 @@ contract EmissionTest is TestSetup {
 
     assertApproxEqAbs(amount, calculatedAmountFor1Year - calculatedAmountFor1Month, NEGLIGIBLE_AMOUNT);
     assertApproxEqAbs(emission.totalEmittedAmount(), calculatedAmountFor1Year, NEGLIGIBLE_AMOUNT);
+  }
+
+  function test_emitTokens_whenMultipleEmitsWithShortIntervals_shouldEmitCorrectAmounts() public {
+    _setupEmissionContract();
+    uint256 calculatedAmountFor1Hour = 5_143_195032781921976320;
+    uint256 calculatedAmountFor2Hours = 10_286_349369339965079552;
+    uint256 calculatedAmountFor3Hours = 15_429_463010223885123584;
+
+    vm.warp(1 hours);
+    emission.emitTokens();
+
+    assertApproxEqAbs(emission.totalEmittedAmount(), calculatedAmountFor1Hour, NEGLIGIBLE_AMOUNT);
+
+    vm.warp(2 hours);
+    uint256 amount2 = emission.emitTokens();
+
+    assertApproxEqAbs(amount2, calculatedAmountFor2Hours - calculatedAmountFor1Hour, NEGLIGIBLE_AMOUNT);
+    assertApproxEqAbs(emission.totalEmittedAmount(), calculatedAmountFor2Hours, NEGLIGIBLE_AMOUNT);
+
+    vm.warp(3 hours);
+    uint256 amount3 = emission.emitTokens();
+
+    assertApproxEqAbs(amount3, calculatedAmountFor3Hours - calculatedAmountFor2Hours, NEGLIGIBLE_AMOUNT);
+    assertApproxEqAbs(emission.totalEmittedAmount(), calculatedAmountFor3Hours, NEGLIGIBLE_AMOUNT);
   }
 
   function test_fuzz_emitTokens_whenMultipleEmits_shouldNotRevert(
