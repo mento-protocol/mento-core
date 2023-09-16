@@ -262,7 +262,7 @@ contract Airdrop {
    * @dev Check if the account has allowed KYC parameters
    * @notice This function checks the kyc parameters, see: https://docs.developer.fractal.id/did-credentials
    * @param kycType The type of kyc
-   * @param countryOfResidence The country of residence, see: https://bit.ly/46fC5Cq
+   * @param countryOfResidence The country of residence tier, see: https://bit.ly/46fC5Cq
    */
   function isValidKyc(
     uint8 kycType,
