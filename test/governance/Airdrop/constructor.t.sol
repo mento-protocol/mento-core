@@ -28,7 +28,6 @@ contract Constructor_Airdrop_Test is Airdrop_Test {
     assertEq(airdrop.requiredSlopePeriod(), requiredSlopePeriod);
   }
 
-
   /// @notice Checks the merke root
   function test_Constructor_InvalidMerkleRoot() external {
     merkleRoot = bytes32(0);

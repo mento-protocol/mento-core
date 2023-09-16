@@ -315,7 +315,7 @@ contract Claim_Airdrop_Test is Airdrop_Test {
     expectClaimAndLock(claimer0Amount * 45 / 100); // 45%
   }
 
-  /// @notice When the claimer doesn't lock at all, they instantly get
+  /// @notice When the claimer doesn't lock, they instantly get
   /// 20% of their allocation transfered.
   function test_Claim_withoutLocking() 
     whenKycSignatureValid()
@@ -328,7 +328,7 @@ contract Claim_Airdrop_Test is Airdrop_Test {
     emit TokensClaimed(claimer0, expectedUnlockedAmount, 0, 0);
     uint256 unlockedAmount = subject();
     assertEq(unlockedAmount, expectedUnlockedAmount);
-    assertEq(token.balanceOf(claimer0), unlockedAmount);
+    assertEq(token.balanceOf(claimer0), expectedUnlockedAmount);
   }
 
   /// @notice Fuzz test for arbitrary locks, ensures that the
@@ -346,10 +346,8 @@ contract Claim_Airdrop_Test is Airdrop_Test {
     require(unlockedAmount >= amount * 20/100);
   }
 
-  /**
-   * @notice Helper expectations for claiming and locking
-   * @param expectedUnlockedAmount The expected amount to be alocated based on cliff and slope
-   */
+  /// @notice Helper expectations for claiming and locking
+  /// @param expectedUnlockedAmount The expected amount to be alocated based on cliff and slope
   function expectClaimAndLock(uint256 expectedUnlockedAmount) internal {
     vm.expectEmit(true, true, true, true);
     emit TokensClaimed(account, expectedUnlockedAmount, slope, cliff);
