@@ -13,31 +13,35 @@ contract HasAirdrop_Airdrop_Test is Airdrop_Test {
 
   function setUp() override public {
     super.setUp();
-    setAirdrop();
+    initAirdrop();
 
     account = claimer0;
     amount = claimer0Amount;
     merkleProof = claimer0Proof;
   }
 
-  function subject() internal returns (bool) {
+  function subject() internal view returns (bool) {
     return airdrop.hasAirdrop(account, amount, merkleProof);
   }
 
+  /// @notice With default params, returns true
   function test_HasAirdrop_Valid() external {
     assertEq(subject(), true);
   }
 
+  /// @notice With an invalidClaimer, returns false 
   function test_HasAirdrop_InvalidAccount() external {
     account = invalidClaimer;
     assertEq(subject(), false);
   }
 
+  /// @notice With an invalide amount, returns false
   function test_HasAirdrop_InvalidAmount() external {
     amount = 2*claimer0Amount;
     assertEq(subject(), false);
   }
 
+  /// @notice With an invalid proof, returns false
   function test_HasAirdrop_InvalidProof() external {
     merkleProof = invalidMerkleProof;
     assertEq(subject(), false);

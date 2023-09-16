@@ -60,7 +60,7 @@ contract Airdrop_Test is Test {
     vm.label(tokenAddress, "MENTO");
   }
 
-  function setAirdrop() internal {
+  function initAirdrop() internal {
     airdrop = new Airdrop(
       merkleRoot,
       fractalIssuer,

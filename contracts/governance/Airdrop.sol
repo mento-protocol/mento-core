@@ -33,6 +33,22 @@ contract Airdrop {
   uint32 public constant MAX_CLIFF_PERIOD = 103;
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
+  /**
+   * @notice Emitted when tokens are claimed 
+   * @param claimer The account claiming the tokens
+   * @param amount The amount of tokens being claimed
+   * @param cliff The selected cliff duration
+   * @param slope The selected slope duration
+   */
+  event TokensClaimed(address indexed claimer, uint256 indexed amount, uint32 cliff, uint32 slope);
+
+  /**
+   * @notice Emitted when tokens are drained
+   * @param token The token addresses that was drained
+   * @param amount The amount drained
+   */
+  event TokensDrained(address indexed token, uint256 amount);
+
   /// @notice The root of the merkle tree.
   bytes32 public immutable root;
   /// @notice The Fractal.id message signer for KYC/KYB.
@@ -89,7 +105,7 @@ contract Airdrop {
     require(root_ != bytes32(0), "Airdrop: invalid root");
     require(fractalIssuer_ != address(0), "Airdrop: invalid fractal issuer");
     require(token_ != address(0), "Airdrop: invalid token");
-    require (lockingContract_ != address(0), "Airdrop: invalid locking contract");
+    require(lockingContract_ != address(0), "Airdrop: invalid locking contract");
     require(treasury_ != address(0), "Airdrop: invalid treasury");
     require(endTimestamp_ > block.timestamp, "Airdrop: invalid end timestamp");
     require(basePercentage_ + cliffPercentage_ + slopePercentage_ == PRECISION, "Airdrop: unlock percentages must add up to 1");
@@ -137,15 +153,15 @@ contract Airdrop {
     bytes calldata issuerSignature,
     uint32 slope,
     uint32 cliff
-  ) external {
+  ) external returns (uint256 unlockedAmount) {
     require(block.timestamp <= endTimestamp, "Airdrop: finished");
     require(hasAirdrop(account, amount, merkleProof), "Airdrop: not in tree");
-    require(hasValidKycSignature(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash, issuerSignature), "Airdrop: invalid kyc");
-    require(hasValidKycParameters(kycType, countryOfResidence), "Airdrop: invalid kyc params");
+    require(isValidKycSignature(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash, issuerSignature), "Airdrop: invalid kyc signer");
+    require(isValidKyc(kycType, countryOfResidence), "Airdrop: invalid kyc params");
     require(!claimed[account], "Airdrop: already claimed");
     require(IERC20(token).balanceOf(address(this)) >= amount, "Airdrop: insufficient balance");
 
-    uint256 unlockedAmount = getUnlockedAmount(amount, slope, cliff);
+    unlockedAmount = getUnlockedAmount(amount, slope, cliff);
     require(unlockedAmount <= type(uint96).max, "Airdrop: amount too large");
 
     claimed[account] = true;
@@ -155,6 +171,8 @@ contract Airdrop {
     } else {
       lockingContract.lock(account, address(0), uint96(unlockedAmount), slope, cliff);
     }
+
+    emit TokensClaimed(account, unlockedAmount, slope, cliff);
   }
 
   /**
@@ -164,10 +182,11 @@ contract Airdrop {
    * tokens other than the airdrop token.
    */
   function drain(address tokenToDrain) external {
-    require(block.timestamp > endTimestamp, "Airdrop: in progress");
+    require(block.timestamp > endTimestamp, "Airdrop: not finished");
     uint256 balance = IERC20(tokenToDrain).balanceOf(address(this));
-    require(balance > 0, "Airdrop: Nothing to drain");
+    require(balance > 0, "Airdrop: nothing to drain");
     IERC20(tokenToDrain).safeTransfer(treasury, balance);
+    emit TokensDrained(tokenToDrain, balance);
   }
 
   /**
@@ -233,14 +252,14 @@ contract Airdrop {
    * @param rootHash The root hash of the kyc.
    * @param issuerSignature The signature of the issuer.
    */
-  function hasValidKycSignature(
+  function isValidKycSignature(
     address account,
     uint8 kycType,
     uint8 countryOfIDIssuance,
     uint8 countryOfResidence,
     bytes32 rootHash,
     bytes calldata issuerSignature
-  ) internal view returns (bool) {
+  ) public view returns (bool) {
     bytes32 signedMessageHash = ECDSA.toEthSignedMessageHash(
       keccak256(abi.encodePacked(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash))
     );
@@ -253,12 +272,15 @@ contract Airdrop {
    * @param kycType The type of kyc
    * @param countryOfResidence The country of residence, see: https://bit.ly/46fC5Cq
    */
-  function hasValidKycParameters(
+  function isValidKyc(
     uint8 kycType,
     uint8 countryOfResidence
-  ) internal view returns (bool) {
+  ) public pure returns (bool) {
     return (
-      kycType == 1 && countryOfResidence != 7
+      kycType == 1 && 
+      countryOfResidence != 7 && 
+      countryOfResidence < 9 && 
+      countryOfResidence > 0
     );
   }
 }
