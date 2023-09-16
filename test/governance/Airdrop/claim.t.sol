@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import { MerkleTreeKYCAirdrop_Test } from "./Base.t.sol";
+import { Airdrop_Test } from "./Base.t.sol";
 
-contract Claim_MerkleTreeKYCAirdrop_Test is MerkleTreeKYCAirdrop_Test {
+contract Claim_Airdrop_Test is Airdrop_Test {
   address public account;
   uint256 public amount;
   bytes32[] public merkleProof;
@@ -12,9 +12,16 @@ contract Claim_MerkleTreeKYCAirdrop_Test is MerkleTreeKYCAirdrop_Test {
   uint8 public countryOfIDIssuance;
   uint8 public countryOfResidence;
   bytes32 public rootHash;
-  bytes public IssuerSignature;
+  bytes public issuerSignature;
+  uint32 public slope;
+  uint32 public cliff;
 
   bytes32[] public invalidMerkleProof = new bytes32[](0);
+
+  function setUp() override public {
+    super.setUp();
+    setAirdrop();
+  }
 
   modifier whenAirdropEnded() {
     vm.warp(endTimestamp + 1);
@@ -71,7 +78,9 @@ contract Claim_MerkleTreeKYCAirdrop_Test is MerkleTreeKYCAirdrop_Test {
       countryOfIDIssuance,
       countryOfResidence,
       rootHash,
-      IssuerSignature
+      issuerSignature,
+      slope,
+      cliff
     );
   }
 }
