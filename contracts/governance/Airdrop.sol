@@ -218,21 +218,13 @@ contract Airdrop {
     if (cliff >= requiredCliffPeriod) {
       unlockedPercentage += cliffPercentage;
     } else {
-      unlockedPercentage += (
-        (
-          (uint256(cliff) * PRECISION) / uint256(requiredCliffPeriod)
-        ) * cliffPercentage
-      ) / PRECISION;
+      unlockedPercentage += uint256(cliff) * cliffPercentage / uint256(requiredCliffPeriod);
     }
 
     if (slope >= requiredSlopePeriod) {
       unlockedPercentage += slopePercentage;
     } else {
-      unlockedPercentage +=  (
-        (
-          (uint256(slope) * PRECISION) / uint256(requiredSlopePeriod)
-        ) * slopePercentage
-      ) / PRECISION;
+      unlockedPercentage +=  uint256(slope) * slopePercentage / uint256(requiredSlopePeriod);
     }
 
     if (unlockedPercentage >= PRECISION) {
