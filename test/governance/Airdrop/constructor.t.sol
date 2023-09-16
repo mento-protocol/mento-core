@@ -6,9 +6,6 @@ import { Airdrop_Test } from "./Base.t.sol";
 import { Airdrop } from "contracts/governance/Airdrop.sol";
 
 contract Constructor_Airdrop_Test is Airdrop_Test {
-  uint32 public constant MAX_CLIFF_PERIOD = 103;
-  uint32 public constant MAX_SLOPE_PERIOD = 104;
-
   function subject() internal {
     initAirdrop();
   }

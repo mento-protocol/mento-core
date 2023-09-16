@@ -6,9 +6,10 @@ import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/
 import { ILocking } from "locking-contracts/ILocking.sol";
 
 import { Airdrop_Test } from "./Base.t.sol";
+import { console } from "forge-std-next/console.sol";
 
 contract Claim_Airdrop_Test is Airdrop_Test {
-  event TokensClaimed(address indexed claimer, uint256 indexed amount, uint32 cliff, uint32 slope);
+  event TokensClaimed(address indexed claimer, uint256 indexed amount, uint32 slope, uint32 cliff);
 
   bytes32[] public invalidMerkleProof = new bytes32[](0);
   uint256 fractalIssuerPk;
@@ -17,7 +18,7 @@ contract Claim_Airdrop_Test is Airdrop_Test {
   /// @notice Subject params:
   address public account = claimer0;
   uint256 public amount = claimer0Amount;
-  bytes32[] public merkleProof;
+  bytes32[] public merkleProof = claimer0Proof;
   uint8 public kycType = 1;
   uint8 public countryOfIDIssuance = 2;
   uint8 public countryOfResidence = 2;
@@ -28,12 +29,20 @@ contract Claim_Airdrop_Test is Airdrop_Test {
 
   function setUp() public override {
     super.setUp();
-    merkleProof = claimer0Proof; // gets set during setup
+    // merkleProof = claimer0Proof; // gets set during setup
 
     (fractalIssuer, fractalIssuerPk) = makeAddrAndKey("FractalIssuer");
     (,otherIssuerPk) = makeAddrAndKey("OtherIssuer");
 
     initAirdrop();
+
+    vm.mockCall(
+      lockingContract, 
+      abi.encodeWithSelector(
+        ILocking(lockingContract).lock.selector
+      ),
+      abi.encode(0)
+    );
   }
 
   function subject() internal returns (uint256) {
@@ -204,6 +213,96 @@ contract Claim_Airdrop_Test is Airdrop_Test {
   }
     
 
+  /// @notice When the claimer locks for full cliff and full slope 
+  /// they get 100% of their allocation locked.
+  function test_Claim_withLockingFullCliffAndFullSlope() 
+    whenKycSignatureValid()
+    whenTokenBalance(1e30)
+    whenLockingFor(14, 14)
+    external
+  {
+    expectClaimAndLock(claimer0Amount); // 100%
+  }
+
+  /// @notice When the claimer locks for full cliff and partial slope
+  /// they get 75% of their allocation locked.
+  function test_Claim_withLockingFullCliffAndHalfSlope() 
+    whenKycSignatureValid()
+    whenTokenBalance(1e30)
+    whenLockingFor(14, 7)
+    external
+  {
+    expectClaimAndLock(claimer0Amount * 75 / 100); // 75%
+  }
+
+  /// @notice When the claimer locks for full cliff and no slope
+  /// they get 50% of their allocation locked.
+  function test_Claim_withLockingFullCliffAndNoSlope()
+    whenKycSignatureValid()
+    whenTokenBalance(1e30)
+    whenLockingFor(14, 0)
+    external
+  {
+    expectClaimAndLock(claimer0Amount * 50 / 100); // 50%
+  }
+  
+  /// @notice When the claimer locks for half cliff and full slope
+  /// they get 85% of their allocation locked.
+  function test_Claim_withLockingHalfCliffAndFullSlope() 
+    whenKycSignatureValid()
+    whenTokenBalance(1e30)
+    whenLockingFor(7, 14)
+    external
+  {
+    expectClaimAndLock(claimer0Amount * 85 / 100); // 85%
+  }
+
+
+  /// @notice When the claimer locks for half the cliff and half the slope, 
+  /// they get 60% of their allocation locked.
+  function test_Claim_withLockingHalfCliffAndHalfSlope() 
+    whenKycSignatureValid()
+    whenTokenBalance(1e30)
+    whenLockingFor(7, 7)
+    external
+  {
+    expectClaimAndLock(claimer0Amount * 6 / 10); // 60%
+  }
+
+
+  /// @notice When the claimer locks for full cliff and no slope
+  /// they get 35% of their allocation locked.
+  function test_Claim_withLockingHalfCliffAndNoSlope() 
+    whenKycSignatureValid()
+    whenTokenBalance(1e30)
+    whenLockingFor(7, 0)
+    external
+  {
+    expectClaimAndLock(claimer0Amount * 35 / 100); // 35%
+  }
+
+  /// @notice When the claimer locks for full cliff and full slope 
+  /// they get 70% of their allocation locked.
+  function test_Claim_withLockingNoCliffAndFullSlope() 
+    whenKycSignatureValid()
+    whenTokenBalance(1e30)
+    whenLockingFor(0, 14)
+    external
+  {
+    expectClaimAndLock(claimer0Amount * 70 / 100); // 70%
+  }
+
+  /// @notice When the claimer locks for full cliff and partial slope
+  /// they get 45% of their allocation locked.
+  function test_Claim_withLockingNoCliffAndHalfSlope() 
+    whenKycSignatureValid()
+    whenTokenBalance(1e30)
+    whenLockingFor(0, 7)
+    external
+  {
+    expectClaimAndLock(claimer0Amount * 45 / 100); // 45%
+  }
+
   /// @notice When the claimer doesn't lock at all, they instantly get
   /// 20% of their allocation transfered.
   function test_Claim_withoutLocking() 
@@ -214,65 +313,47 @@ contract Claim_Airdrop_Test is Airdrop_Test {
   {
     uint256 expectedUnlockedAmount = claimer0Amount * 20 / 100;
     vm.expectEmit(true, true, true, true);
-    emit TokensClaimed(claimer0, expectedUnlockedAmount, 0 ,0);
+    emit TokensClaimed(claimer0, expectedUnlockedAmount, 0, 0);
     uint256 unlockedAmount = subject();
     assertEq(unlockedAmount, expectedUnlockedAmount);
     assertEq(token.balanceOf(claimer0), unlockedAmount);
   }
 
-  /// @notice When the claimer locks for the full period, they get 100%
-  /// of their allocation locked.
-  function test_Claim_withFullLocking() 
+  /// @notice Fuzz test for arbitrary locks, ensures that the
+  /// unlocked amount is always between 20%-100% of what's allocated
+  function test_Claim_fuzzLockDuration(uint32 slope_, uint32 cliff_)
     whenKycSignatureValid()
     whenTokenBalance(1e30)
-    whenLockingFor(14, 14)
+    whenLockingFor(slope_, cliff_)
     external
   {
-    vm.mockCall(
-      lockingContract, 
-      abi.encodeWithSelector(
-        ILocking(lockingContract).lock.selector,
-        claimer0, // account
-        address(0), // delegate
-        uint96(claimer0Amount), // amount to lock
-        slope,  
-        cliff
-      ),
-      abi.encode(0)
-    );
-
-    vm.expectEmit(true, true, true, true);
-    emit TokensClaimed(claimer0, claimer0Amount, 14, 14);
+    vm.assume(slope_ <= MAX_SLOPE_PERIOD);
+    vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     uint256 unlockedAmount = subject();
-    assertEq(unlockedAmount, claimer0Amount);
+    require(unlockedAmount <= amount);
+    require(unlockedAmount >= amount * 20/100);
   }
 
-  /// @notice When the claimer locks for partial period, they get 60%
-  /// of their allocation locked.
-  function test_Claim_withPartialLocking() 
-    whenKycSignatureValid()
-    whenTokenBalance(1e30)
-    whenLockingFor(7, 7)
-    external
-  {
-    uint256 expectedUnlockedAmount = claimer0Amount * 60 / 100;
-    vm.mockCall(
+  /**
+   * @notice Helper expectations for claiming and locking
+   * @param expectedUnlockedAmount The expected amount to be alocated based on cliff and slope
+   */
+  function expectClaimAndLock(uint256 expectedUnlockedAmount) internal {
+    vm.expectEmit(true, true, true, true);
+    emit TokensClaimed(account, expectedUnlockedAmount, slope, cliff);
+    vm.expectCall(
       lockingContract, 
       abi.encodeWithSelector(
         ILocking(lockingContract).lock.selector,
-        claimer0, // account
+        account,
         address(0), // delegate
-        uint96(expectedUnlockedAmount), // amount to lock
+        uint96(expectedUnlockedAmount),
         slope,
         cliff
-      ),
-      abi.encode(0)
+      )
     );
-
-    vm.expectEmit(true, true, true, true);
-    emit TokensClaimed(claimer0, expectedUnlockedAmount, 7, 7);
-    uint256 unlockedAmount = subject();
-    assertEq(unlockedAmount, expectedUnlockedAmount);
+    uint256 actualUnlockedAmount = subject();
+    assertEq(actualUnlockedAmount, expectedUnlockedAmount);
   }
 
   /// @notice build the KYC message hash and sign it with the provided pk

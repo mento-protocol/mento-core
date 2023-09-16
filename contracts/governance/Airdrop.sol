@@ -40,7 +40,7 @@ contract Airdrop {
    * @param cliff The selected cliff duration
    * @param slope The selected slope duration
    */
-  event TokensClaimed(address indexed claimer, uint256 indexed amount, uint32 cliff, uint32 slope);
+  event TokensClaimed(address indexed claimer, uint256 indexed amount, uint32 slope, uint32 cliff);
 
   /**
    * @notice Emitted when tokens are drained
