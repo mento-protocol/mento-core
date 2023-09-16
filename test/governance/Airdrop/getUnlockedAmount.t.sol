@@ -5,10 +5,13 @@ pragma solidity 0.8.18;
 import { Airdrop_Test } from "./Base.t.sol";
 
 contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
+  /// @notice Test subject parameters
   uint256 amount;
   uint32 slope;
   uint32 cliff;
+  /// ----------------------------------
 
+  /// @notice Test subject `getUnlockedAmount`
   function subject() internal view returns (uint256) {
     return airdrop.getUnlockedAmount(amount, slope, cliff);
   }

@@ -5,11 +5,18 @@ pragma solidity 0.8.18;
 import { Airdrop_Test } from "./Base.t.sol";
 
 contract HasAirdrop_Airdrop_Test is Airdrop_Test {
+  bytes32[] public invalidMerkleProof = new bytes32[](0);
+
+  /// @notice Test subject parameters
   address public account;
   uint256 amount;
   bytes32[] merkleProof;
+  /// ----------------------------------
 
-  bytes32[] public invalidMerkleProof = new bytes32[](0);
+  /// @notice Test subject `hasAirdrop`
+  function subject() internal view returns (bool) {
+    return airdrop.hasAirdrop(account, amount, merkleProof);
+  }
 
   function setUp() override public {
     super.setUp();
@@ -18,10 +25,6 @@ contract HasAirdrop_Airdrop_Test is Airdrop_Test {
     account = claimer0;
     amount = claimer0Amount;
     merkleProof = claimer0Proof;
-  }
-
-  function subject() internal view returns (bool) {
-    return airdrop.hasAirdrop(account, amount, merkleProof);
   }
 
   /// @notice With default params, returns true

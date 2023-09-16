@@ -6,10 +6,12 @@ import { Airdrop_Test } from "./Base.t.sol";
 import { Airdrop } from "contracts/governance/Airdrop.sol";
 
 contract Constructor_Airdrop_Test is Airdrop_Test {
+  /// @notice Subject of the test: Airdrop constructor
   function subject() internal {
     initAirdrop();
   }
 
+  /// @notice Check that all parameters are set correctly during initialization
   function test_Constructor() external {
     subject();
 

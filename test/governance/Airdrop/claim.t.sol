@@ -15,7 +15,7 @@ contract Claim_Airdrop_Test is Airdrop_Test {
   uint256 fractalIssuerPk;
   uint256 otherIssuerPk;
 
-  /// @notice Subject params:
+  /// @notice Test subject parameters
   address public account = claimer0;
   uint256 public amount = claimer0Amount;
   bytes32[] public merkleProof = claimer0Proof;
@@ -26,25 +26,9 @@ contract Claim_Airdrop_Test is Airdrop_Test {
   bytes public issuerSignature;
   uint32 public slope;
   uint32 public cliff;
+  /// ----------------------------------
 
-  function setUp() public override {
-    super.setUp();
-    // merkleProof = claimer0Proof; // gets set during setup
-
-    (fractalIssuer, fractalIssuerPk) = makeAddrAndKey("FractalIssuer");
-    (,otherIssuerPk) = makeAddrAndKey("OtherIssuer");
-
-    initAirdrop();
-
-    vm.mockCall(
-      lockingContract, 
-      abi.encodeWithSelector(
-        ILocking(lockingContract).lock.selector
-      ),
-      abi.encode(0)
-    );
-  }
-
+  /// @notice Test subject `claim`
   function subject() internal returns (uint256) {
     return airdrop.claim(
       account,
@@ -60,57 +44,85 @@ contract Claim_Airdrop_Test is Airdrop_Test {
     );
   }
 
+  function setUp() public override {
+    super.setUp();
+
+    (fractalIssuer, fractalIssuerPk) = makeAddrAndKey("FractalIssuer");
+    (,otherIssuerPk) = makeAddrAndKey("OtherIssuer");
+
+    initAirdrop();
+
+    vm.mockCall(
+      lockingContract, 
+      abi.encodeWithSelector(
+        ILocking(lockingContract).lock.selector
+      ),
+      abi.encode(0)
+    );
+  }
+
+  /// @notice Warp to after endTimestamp
   modifier whenAirdropEnded() {
     vm.warp(endTimestamp + 1);
     _;
   }
 
+  /// @notice Sets the claimer
   modifier whenClaimer(address claimer) {
     account = claimer;
     _;
   }
 
+  /// @notice Sets the claim amount
   modifier whenAmount(uint256 _amount) {
     amount = _amount;
     _;
   }
 
+  /// @notice Sets the merkle proof for the claim
   modifier whenMerkleProof(bytes32[] memory _merkleProof) {
     merkleProof = _merkleProof;
     _;
   }
 
+  /// @notice Sets an invalid KYC type
   modifier whenKycTypeInvalid() {
     kycType = 2;
     _;
   }
 
+  /// @notice Sets an invalid country tier
   modifier whenKycCountryInvalid() {
     countryOfResidence = 7;
     _;
   }
 
+  /// @notice Sets the issuerSignature correctly
   modifier whenKycSignatureValid() {
     issuerSignature = validKycSignature(fractalIssuerPk);
     _;
   }
 
+  /// @notice Sets an invalid KYC issuer signature
   modifier whenKycSignatureInvalid() {
     issuerSignature = abi.encodePacked(uint8(2), keccak256("random"), keccak256("random"));
     _;
   }
 
+  /// @notice Sets a valid issuer signature but by the wrong signer
   modifier whenKycSignerInvalid() {
     issuerSignature = validKycSignature(otherIssuerPk);
     _;
   }
 
+  /// @notice Sets cliff and slope for the claim
   modifier whenLockingFor(uint32 cliff_, uint32 slope_) {
     cliff = cliff_;
     slope = slope_;
     _;
   }
 
+  /// @notice Sets the airdrop contract's token balance.
   modifier whenTokenBalance(uint256 amount_) {
     deal(tokenAddress, address(airdrop), amount_);
     _;

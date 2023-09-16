@@ -6,25 +6,19 @@ import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/
 import { Airdrop_Test } from "./Base.t.sol";
 
 contract IsValidKycSignature_Airdrop_Test is Airdrop_Test {
+  uint256 fractalIssuerPk;
+  uint256 otherIssuerPk;
+
+  /// @notice Test subject parameters
   address account = claimer0;
   uint8 kycType = 1;
   uint8 countryOfIDIssuance = 2;
   uint8 countryOfResidence = 2;
   bytes32 rootHash = keccak256("ROOTHASH");
   bytes issuerSignature;
+  /// ----------------------------------
 
-  uint256 fractalIssuerPk;
-  uint256 otherIssuerPk;
-
-  function setUp() public override {
-    super.setUp();
-
-    (fractalIssuer, fractalIssuerPk) = makeAddrAndKey("FractalIssuer");
-    (,otherIssuerPk) = makeAddrAndKey("OtherIssuer");
-
-    initAirdrop();
-  }
-
+  /// @notice Test subject `isValidKycSignature`
   function subject() internal view returns (bool) {
     return airdrop.isValidKycSignature(
       account,
@@ -34,6 +28,15 @@ contract IsValidKycSignature_Airdrop_Test is Airdrop_Test {
       rootHash,
       issuerSignature
     );
+  }
+
+  function setUp() public override {
+    super.setUp();
+
+    (fractalIssuer, fractalIssuerPk) = makeAddrAndKey("FractalIssuer");
+    (,otherIssuerPk) = makeAddrAndKey("OtherIssuer");
+
+    initAirdrop();
   }
 
   /// @notice When the signature is malformed

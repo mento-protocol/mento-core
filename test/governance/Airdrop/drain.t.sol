@@ -7,8 +7,11 @@ import { Airdrop_Test, ERC20 } from "./Base.t.sol";
 contract Drain_Airdrop_Test is Airdrop_Test {
   event TokensDrained(address indexed token, uint256 amount);
 
+  /// @notice Test subject parameters
   address tokenToDrain;
+  /// ----------------------------------
 
+  /// @notice Test subject `drain`
   function subject() internal {
     airdrop.drain(tokenToDrain);
   }
