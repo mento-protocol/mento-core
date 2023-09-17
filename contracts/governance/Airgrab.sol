@@ -135,6 +135,9 @@ contract Airgrab is Ownable {
 
   /**
    * @dev Allows `account` to claim `amount` tokens if the merkle proof and kyc is valid.
+   * The function will either calcualte what portions of tokens gets unlocked depending on
+   * the provided cliff and slope, and they either transfer dirrectly if the claimer
+   * has chose no cliff and no slpe, or lock the tokens in the locking contract.
    * @notice This function can only be called by the Fractal.id message signer and
    * only if the airgrab hasn't ended yet.
    * @param account The address of the account to claim tokens for.
