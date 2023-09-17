@@ -11,6 +11,7 @@ contract HasAirdrop_Airdrop_Test is Airdrop_Test {
   address public account;
   uint256 amount;
   bytes32[] merkleProof;
+
   /// @notice Test subject `hasAirdrop`
   function subject() internal view returns (bool) {
     return airdrop.hasAirdrop(account, amount, merkleProof);
