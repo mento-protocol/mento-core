@@ -222,23 +222,23 @@ contract Airgrab is Ownable {
    *
    * <------------------------- 100% ----------------------------->
    * | basePercentage |   cliffPercentage    |   slopePercentage  |
-   * 
+   *
    * The base percentage is always unlocked, and the cliff and slope percentages are scaled
    * linearly by the duration of the cliff and slope lock periods.
    *
-   * unlockedPercentage = 
+   * unlockedPercentage =
    *   basePercentage +
    *   (cliff/requiredCliffPeriod) * cliffPercentage +
    *   (slope/requiredSlopePeriod) * slopePercentage
    * unlockedAmount = amount * unlockedPercentage
    *
    * Examples:
-   * basePercentage = 20% 
-   * cliffPercentage = 30% 
+   * basePercentage = 20%
+   * cliffPercentage = 30%
    * slopePercentage = 50%
    * requiredSlopePeriod = 14 (~3months)
    * requiredCliffPeriod = 14 (~3months)
-   * 
+   *
    * (1) cliff = 0 and slope = 0 -> claimer gets (20% + 0% + 0%) of their amount
    * (2) cliff = 0 and slope = 7 -> claimer gets (20% + 0% + 25%) of their amount
    * (3) cliff = 14 and slope = 0 -> claimer gets (20% + 30% + 0%) of their amount
