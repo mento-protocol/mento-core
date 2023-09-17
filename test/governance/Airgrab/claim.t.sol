@@ -55,129 +55,81 @@ contract Claim_Airgrab_Test is Airgrab_Test {
     vm.mockCall(lockingContract, abi.encodeWithSelector(ILocking(lockingContract).lock.selector), abi.encode(0));
   }
 
-  /// @notice Warp to after endTimestamp
-  modifier whenAirgrabEnded() {
-    vm.warp(endTimestamp + 1);
-    _;
-  }
-
-  /// @notice Sets the claimer
-  modifier whenClaimer(address claimer) {
-    account = claimer;
-    _;
-  }
-
-  /// @notice Sets the claim amount
-  modifier whenAmount(uint256 _amount) {
-    amount = _amount;
-    _;
-  }
-
-  /// @notice Sets the merkle proof for the claim
-  modifier whenMerkleProof(bytes32[] memory _merkleProof) {
-    merkleProof = _merkleProof;
-    _;
-  }
-
-  /// @notice Sets an invalid KYC type
-  modifier whenKycTypeInvalid() {
-    kycType = 2;
-    _;
-  }
-
-  /// @notice Sets an invalid country tier
-  modifier whenKycCountryInvalid() {
-    countryOfResidence = 7;
-    _;
-  }
-
-  /// @notice Sets the issuerSignature correctly
-  modifier whenKycSignatureValid() {
+  /// @notice Sets the issuer signature and gives enough balance to the airgrab
+  modifier whenValidClaim() {
     issuerSignature = validKycSignature(fractalIssuerPk);
-    _;
-  }
-
-  /// @notice Sets an invalid KYC issuer signature
-  modifier whenKycSignatureInvalid() {
-    issuerSignature = abi.encodePacked(uint8(2), keccak256("random"), keccak256("random"));
-    _;
-  }
-
-  /// @notice Sets a valid issuer signature but by the wrong signer
-  modifier whenKycSignerInvalid() {
-    issuerSignature = validKycSignature(otherIssuerPk);
-    _;
-  }
-
-  /// @notice Sets cliff and slope for the claim
-  modifier whenLockingFor(uint32 cliff_, uint32 slope_) {
-    cliff = cliff_;
-    slope = slope_;
-    _;
-  }
-
-  /// @notice Sets the airgrab contract's token balance.
-  modifier whenTokenBalance(uint256 amount_) {
-    deal(tokenAddress, address(airgrab), amount_);
+    deal(tokenAddress, address(airgrab), 1000e18);
     _;
   }
 
   /// @notice After the airgrab ends, it reverts
-  function test_Claim_afterAirgrab() external whenAirgrabEnded {
+  function test_Claim_afterAirgrab() external {
+    vm.warp(endTimestamp + 1);
     vm.expectRevert("Airgrab: finished");
     subject();
   }
 
   /// @notice When the claimer is not in the tree, it reverts
-  function test_Claim_invalidClaimer() external whenClaimer(invalidClaimer) {
+  function test_Claim_invalidClaimer() external {
+    account = invalidClaimer;
     vm.expectRevert("Airgrab: not in tree");
     subject();
   }
 
   /// @notice When the amount is not the right one for the claimer, it reverts
-  function test_Claim_invalidClaimAmount() external whenAmount(123124124) {
+  function test_Claim_invalidClaimAmount() external {
+    amount = 123124124;
     vm.expectRevert("Airgrab: not in tree");
     subject();
   }
 
   /// @notice When the submitted proof is invalid, it reverts
-  function test_Claim_invalidProof() external whenMerkleProof(invalidMerkleProof) {
+  function test_Claim_invalidProof() external {
+    merkleProof = invalidMerkleProof;
     vm.expectRevert("Airgrab: not in tree");
     subject();
   }
 
   /// @notice When the KYC signature is invalid
-  function test_Claim_whenInvalidKYCSignature() external whenKycSignatureInvalid {
+  function test_Claim_whenInvalidKYCSignature() external {
+    issuerSignature = abi.encodePacked(uint8(2), keccak256("random"), keccak256("random"));
     vm.expectRevert("ECDSA: invalid signature");
     subject();
   }
 
   /// @notice When the KYC signature belongs to the wrong signer
-  function test_Claim_whenInvalidKYCSigner() external whenKycSignerInvalid {
+  function test_Claim_whenInvalidKYCSigner() external {
+    issuerSignature = validKycSignature(otherIssuerPk);
     vm.expectRevert("Airgrab: invalid kyc signer");
     subject();
   }
 
   /// @notice When the KYC is the wrong type
-  function test_Claim_whenInvalidKycType() external whenKycTypeInvalid whenKycSignatureValid {
+  function test_Claim_whenInvalidKycType() external {
+    kycType = 2;
+    issuerSignature = validKycSignature(fractalIssuerPk);
     vm.expectRevert("Airgrab: invalid kyc params");
     subject();
   }
 
   /// @notice When the KYC Country Tier is not supported
-  function test_Claim_whenInvalidKycCountry() external whenKycCountryInvalid whenKycSignatureValid {
+  function test_Claim_whenInvalidKycCountry() external {
+    countryOfResidence = 7;
+    issuerSignature = validKycSignature(fractalIssuerPk);
     vm.expectRevert("Airgrab: invalid kyc params");
     subject();
   }
 
   /// @notice When the airgrab contract has insufficient token balance
-  function test_Claim_whenInsufficientBalance() external whenKycSignatureValid whenTokenBalance(1e18) {
+  function test_Claim_whenInsufficientBalance() external {
+    issuerSignature = validKycSignature(fractalIssuerPk);
+    deal(tokenAddress, address(airgrab), 1e18);
     vm.expectRevert("Airgrab: insufficient balance");
     subject();
   }
 
   /// @notice When the claimer has already claimed
-  function test_Claim_whenAlreadyClaimed() external whenKycSignatureValid whenTokenBalance(1e30) whenLockingFor(0, 0) {
+  function test_Claim_whenAlreadyClaimed() external whenValidClaim {
     subject();
     vm.expectRevert("Airgrab: already claimed");
     subject();
@@ -185,95 +137,71 @@ contract Claim_Airgrab_Test is Airgrab_Test {
 
   /// @notice When the claimer locks for full cliff and full slope
   /// they get 100% of their allocation locked.
-  function test_Claim_withLockingFullCliffAndFullSlope()
-    external
-    whenKycSignatureValid
-    whenTokenBalance(1e30)
-    whenLockingFor(14, 14)
-  {
+  function test_Claim_withLockingFullCliffAndFullSlope() external whenValidClaim {
+    cliff = 14;
+    slope = 14;
     expectClaimAndLock(claimer0Amount); // 100%
   }
 
   /// @notice When the claimer locks for full cliff and partial slope
   /// they get 75% of their allocation locked.
-  function test_Claim_withLockingFullCliffAndHalfSlope()
-    external
-    whenKycSignatureValid
-    whenTokenBalance(1e30)
-    whenLockingFor(14, 7)
-  {
+  function test_Claim_withLockingFullCliffAndHalfSlope() external whenValidClaim {
+    cliff = 14;
+    slope = 7;
     expectClaimAndLock((claimer0Amount * 75) / 100); // 75%
   }
 
   /// @notice When the claimer locks for full cliff and no slope
   /// they get 50% of their allocation locked.
-  function test_Claim_withLockingFullCliffAndNoSlope()
-    external
-    whenKycSignatureValid
-    whenTokenBalance(1e30)
-    whenLockingFor(14, 0)
-  {
+  function test_Claim_withLockingFullCliffAndNoSlope() external whenValidClaim {
+    cliff = 14;
+    slope = 0;
     expectClaimAndLock((claimer0Amount * 50) / 100); // 50%
   }
 
   /// @notice When the claimer locks for half cliff and full slope
   /// they get 85% of their allocation locked.
-  function test_Claim_withLockingHalfCliffAndFullSlope()
-    external
-    whenKycSignatureValid
-    whenTokenBalance(1e30)
-    whenLockingFor(7, 14)
-  {
+  function test_Claim_withLockingHalfCliffAndFullSlope() external whenValidClaim {
+    cliff = 7;
+    slope = 14;
     expectClaimAndLock((claimer0Amount * 85) / 100); // 85%
   }
 
   /// @notice When the claimer locks for half the cliff and half the slope,
   /// they get 60% of their allocation locked.
-  function test_Claim_withLockingHalfCliffAndHalfSlope()
-    external
-    whenKycSignatureValid
-    whenTokenBalance(1e30)
-    whenLockingFor(7, 7)
-  {
+  function test_Claim_withLockingHalfCliffAndHalfSlope() external whenValidClaim {
+    cliff = 7;
+    slope = 7;
     expectClaimAndLock((claimer0Amount * 6) / 10); // 60%
   }
 
   /// @notice When the claimer locks for full cliff and no slope
   /// they get 35% of their allocation locked.
-  function test_Claim_withLockingHalfCliffAndNoSlope()
-    external
-    whenKycSignatureValid
-    whenTokenBalance(1e30)
-    whenLockingFor(7, 0)
-  {
+  function test_Claim_withLockingHalfCliffAndNoSlope() external whenValidClaim {
+    cliff = 7;
+    slope = 0;
     expectClaimAndLock((claimer0Amount * 35) / 100); // 35%
   }
 
   /// @notice When the claimer locks for full cliff and full slope
   /// they get 70% of their allocation locked.
-  function test_Claim_withLockingNoCliffAndFullSlope()
-    external
-    whenKycSignatureValid
-    whenTokenBalance(1e30)
-    whenLockingFor(0, 14)
-  {
+  function test_Claim_withLockingNoCliffAndFullSlope() external whenValidClaim {
+    cliff = 0;
+    slope = 14;
     expectClaimAndLock((claimer0Amount * 70) / 100); // 70%
   }
 
   /// @notice When the claimer locks for full cliff and partial slope
   /// they get 45% of their allocation locked.
-  function test_Claim_withLockingNoCliffAndHalfSlope()
-    external
-    whenKycSignatureValid
-    whenTokenBalance(1e30)
-    whenLockingFor(0, 7)
-  {
+  function test_Claim_withLockingNoCliffAndHalfSlope() external whenValidClaim {
+    cliff = 0;
+    slope = 7;
     expectClaimAndLock((claimer0Amount * 45) / 100); // 45%
   }
 
   /// @notice When the claimer doesn't lock, they instantly get
   /// 20% of their allocation transfered.
-  function test_Claim_withoutLocking() external whenKycSignatureValid whenTokenBalance(1e30) whenLockingFor(0, 0) {
+  function test_Claim_withoutLocking() external whenValidClaim {
     uint256 expectedUnlockedAmount = (claimer0Amount * 20) / 100;
     vm.expectEmit(true, true, true, true);
     emit TokensClaimed(claimer0, expectedUnlockedAmount, 0, 0);
@@ -284,14 +212,11 @@ contract Claim_Airgrab_Test is Airgrab_Test {
 
   /// @notice Fuzz test for arbitrary locks, ensures that the
   /// unlocked amount is always between 20%-100% of what's allocated
-  function test_Claim_fuzzLockDuration(uint32 slope_, uint32 cliff_)
-    external
-    whenKycSignatureValid
-    whenTokenBalance(1e30)
-    whenLockingFor(slope_, cliff_)
-  {
+  function test_Claim_fuzzLockDuration(uint32 slope_, uint32 cliff_) external whenValidClaim {
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
+    slope = slope_;
+    cliff = cliff_;
     uint256 unlockedAmount = subject();
     require(unlockedAmount <= amount);
     require(unlockedAmount >= (amount * 20) / 100);
