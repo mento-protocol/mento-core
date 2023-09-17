@@ -215,16 +215,16 @@ contract Airgrab is Ownable {
   }
 
   /**
-   * @dev Calculate the total unlocked amount based on the selected values for slope and cliff
-   * and the percentage settings that the contract was deployed with.
-   * The logic behind this is that the unlocked amount has three components:
+   * @notice Calculate the total unlocked amount based on the selected values for
+   * slope and cliff and the percentage settings that the contract was deployed with.
+   * @dev The logic behind this is that the unlocked amount has three components:
    * the base, cliff and slope percentages, which add up to 100%.
    *
-   * <------------------------- 100% ----------------------------->
+   *  <------------------------ 100% ---------------------------->
    * | basePercentage |   cliffPercentage    |   slopePercentage  |
    *
-   * The base percentage is always unlocked, and the cliff and slope percentages are scaled
-   * linearly by the duration of the cliff and slope lock periods.
+   * The base percentage is always unlocked, and the cliff and slope percentages
+   * are scaled linearly by the duration of the cliff and slope lock periods.
    *
    * unlockedPercentage =
    *   basePercentage +
@@ -232,16 +232,20 @@ contract Airgrab is Ownable {
    *   (slope/requiredSlopePeriod) * slopePercentage
    * unlockedAmount = amount * unlockedPercentage
    *
-   * Examples:
+   * **Example:**
    * basePercentage = 20%
    * cliffPercentage = 30%
    * slopePercentage = 50%
    * requiredSlopePeriod = 14 (~3months)
    * requiredCliffPeriod = 14 (~3months)
    *
-   * (1) cliff = 0 and slope = 0 -> claimer gets (20% + 0% + 0%) of their amount
-   * (2) cliff = 0 and slope = 7 -> claimer gets (20% + 0% + 25%) of their amount
-   * (3) cliff = 14 and slope = 0 -> claimer gets (20% + 30% + 0%) of their amount
+   * | cliff | slope | unlockedPercentage     |
+   * |-------|-------|------------------------|
+   * | 0     | 0     | 20% +  0% +  0% =  20% |
+   *  | 0     | 7     | 20% +  0% + 25% =  45% |
+   *  | 14    | 0     | 20% + 30% +  0% =  50% |
+   *  | 14    | 14    | 20% + 30% + 50% = 100% |
+   *
    * @param amount The total amount that can be unlocked
    * @param slope The selected slope period
    * @param cliff The selected cliff period
