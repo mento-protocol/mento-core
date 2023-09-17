@@ -164,7 +164,7 @@ contract Airgrab is Ownable {
     uint32 cliff
   ) external returns (uint256 unlockedAmount) {
     require(block.timestamp <= endTimestamp, "Airgrab: finished");
-    require(hasAirgrab(account, amount, merkleProof), "Airgrab: not in tree");
+    require(hasClaim(account, amount, merkleProof), "Airgrab: not in tree");
     require(
       isValidKycSignature(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash, issuerSignature),
       "Airgrab: invalid kyc signer"
@@ -209,7 +209,7 @@ contract Airgrab is Ownable {
    * @param amount The amount of tokens to be claimed.
    * @param merkleProof The merkle proof for the account.
    */
-  function hasAirgrab(
+  function hasClaim(
     address account,
     uint256 amount,
     bytes32[] calldata merkleProof
@@ -246,9 +246,9 @@ contract Airgrab is Ownable {
    * | cliff | slope | unlockedPercentage     |
    * |-------|-------|------------------------|
    * | 0     | 0     | 20% +  0% +  0% =  20% |
-   *  | 0     | 7     | 20% +  0% + 25% =  45% |
-   *  | 14    | 0     | 20% + 30% +  0% =  50% |
-   *  | 14    | 14    | 20% + 30% + 50% = 100% |
+   * | 0     | 7     | 20% +  0% + 25% =  45% |
+   * | 14    | 0     | 20% + 30% +  0% =  50% |
+   * | 14    | 14    | 20% + 30% + 50% = 100% |
    *
    * @param amount The total amount that can be unlocked
    * @param slope The selected slope period

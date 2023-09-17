@@ -4,7 +4,7 @@ pragma solidity 0.8.18;
 
 import { Airgrab_Test } from "./Base.t.sol";
 
-contract HasAirgrab_Airgrab_Test is Airgrab_Test {
+contract HasClaim_Airgrab_Test is Airgrab_Test {
   bytes32[] public invalidMerkleProof = new bytes32[](0);
 
   /// @notice Test subject parameters
@@ -12,9 +12,9 @@ contract HasAirgrab_Airgrab_Test is Airgrab_Test {
   uint256 amount;
   bytes32[] merkleProof;
 
-  /// @notice Test subject `hasAirgrab`
+  /// @notice Test subject `hasClaim`
   function subject() internal view returns (bool) {
-    return airgrab.hasAirgrab(account, amount, merkleProof);
+    return airgrab.hasClaim(account, amount, merkleProof);
   }
 
   function setUp() public override {
@@ -27,24 +27,24 @@ contract HasAirgrab_Airgrab_Test is Airgrab_Test {
   }
 
   /// @notice With default params, returns true
-  function test_HasAirgrab_Valid() external {
+  function test_HasClaim_Valid() external {
     assertEq(subject(), true);
   }
 
   /// @notice With an invalidClaimer, returns false
-  function test_HasAirgrab_InvalidAccount() external {
+  function test_HasClaim_InvalidAccount() external {
     account = invalidClaimer;
     assertEq(subject(), false);
   }
 
   /// @notice With an invalide amount, returns false
-  function test_HasAirgrab_InvalidAmount() external {
+  function test_HasClaim_InvalidAmount() external {
     amount = 2 * claimer0Amount;
     assertEq(subject(), false);
   }
 
   /// @notice With an invalid proof, returns false
-  function test_HasAirgrab_InvalidProof() external {
+  function test_HasClaim_InvalidProof() external {
     merkleProof = invalidMerkleProof;
     assertEq(subject(), false);
   }
