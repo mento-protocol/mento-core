@@ -3,9 +3,9 @@
 pragma solidity 0.8.18;
 
 import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
-import { Airdrop_Test } from "./Base.t.sol";
+import { Airgrab_Test } from "./Base.t.sol";
 
-contract IsValidKycSignature_Airdrop_Test is Airdrop_Test {
+contract IsValidKycSignature_Airgrab_Test is Airgrab_Test {
   uint256 fractalIssuerPk;
   uint256 otherIssuerPk;
 
@@ -20,7 +20,7 @@ contract IsValidKycSignature_Airdrop_Test is Airdrop_Test {
   /// @notice Test subject `isValidKycSignature`
   function subject() internal view returns (bool) {
     return
-      airdrop.isValidKycSignature(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash, issuerSignature);
+      airgrab.isValidKycSignature(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash, issuerSignature);
   }
 
   function setUp() public override {
@@ -29,7 +29,7 @@ contract IsValidKycSignature_Airdrop_Test is Airdrop_Test {
     (fractalIssuer, fractalIssuerPk) = makeAddrAndKey("FractalIssuer");
     (, otherIssuerPk) = makeAddrAndKey("OtherIssuer");
 
-    initAirdrop();
+    initAirgrab();
   }
 
   /// @notice When the signature is malformed

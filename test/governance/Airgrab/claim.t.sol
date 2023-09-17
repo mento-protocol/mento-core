@@ -5,10 +5,10 @@ pragma solidity 0.8.18;
 import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
 import { ILocking } from "locking-contracts/ILocking.sol";
 
-import { Airdrop_Test } from "./Base.t.sol";
+import { Airgrab_Test } from "./Base.t.sol";
 import { console } from "forge-std-next/console.sol";
 
-contract Claim_Airdrop_Test is Airdrop_Test {
+contract Claim_Airgrab_Test is Airgrab_Test {
   event TokensClaimed(address indexed claimer, uint256 indexed amount, uint32 slope, uint32 cliff);
 
   bytes32[] public invalidMerkleProof = new bytes32[](0);
@@ -30,7 +30,7 @@ contract Claim_Airdrop_Test is Airdrop_Test {
   /// @notice Test subject `claim`
   function subject() internal returns (uint256) {
     return
-      airdrop.claim(
+      airgrab.claim(
         account,
         amount,
         merkleProof,
@@ -50,13 +50,13 @@ contract Claim_Airdrop_Test is Airdrop_Test {
     (fractalIssuer, fractalIssuerPk) = makeAddrAndKey("FractalIssuer");
     (, otherIssuerPk) = makeAddrAndKey("OtherIssuer");
 
-    initAirdrop();
+    initAirgrab();
 
     vm.mockCall(lockingContract, abi.encodeWithSelector(ILocking(lockingContract).lock.selector), abi.encode(0));
   }
 
   /// @notice Warp to after endTimestamp
-  modifier whenAirdropEnded() {
+  modifier whenAirgrabEnded() {
     vm.warp(endTimestamp + 1);
     _;
   }
@@ -116,33 +116,33 @@ contract Claim_Airdrop_Test is Airdrop_Test {
     _;
   }
 
-  /// @notice Sets the airdrop contract's token balance.
+  /// @notice Sets the airgrab contract's token balance.
   modifier whenTokenBalance(uint256 amount_) {
-    deal(tokenAddress, address(airdrop), amount_);
+    deal(tokenAddress, address(airgrab), amount_);
     _;
   }
 
-  /// @notice After the airdrop ends, it reverts
-  function test_Claim_afterAirdrop() external whenAirdropEnded {
-    vm.expectRevert("Airdrop: finished");
+  /// @notice After the airgrab ends, it reverts
+  function test_Claim_afterAirgrab() external whenAirgrabEnded {
+    vm.expectRevert("Airgrab: finished");
     subject();
   }
 
   /// @notice When the claimer is not in the tree, it reverts
   function test_Claim_invalidClaimer() external whenClaimer(invalidClaimer) {
-    vm.expectRevert("Airdrop: not in tree");
+    vm.expectRevert("Airgrab: not in tree");
     subject();
   }
 
   /// @notice When the amount is not the right one for the claimer, it reverts
   function test_Claim_invalidClaimAmount() external whenAmount(123124124) {
-    vm.expectRevert("Airdrop: not in tree");
+    vm.expectRevert("Airgrab: not in tree");
     subject();
   }
 
   /// @notice When the submitted proof is invalid, it reverts
   function test_Claim_invalidProof() external whenMerkleProof(invalidMerkleProof) {
-    vm.expectRevert("Airdrop: not in tree");
+    vm.expectRevert("Airgrab: not in tree");
     subject();
   }
 
@@ -154,32 +154,32 @@ contract Claim_Airdrop_Test is Airdrop_Test {
 
   /// @notice When the KYC signature belongs to the wrong signer
   function test_Claim_whenInvalidKYCSigner() external whenKycSignerInvalid {
-    vm.expectRevert("Airdrop: invalid kyc signer");
+    vm.expectRevert("Airgrab: invalid kyc signer");
     subject();
   }
 
   /// @notice When the KYC is the wrong type
   function test_Claim_whenInvalidKycType() external whenKycTypeInvalid whenKycSignatureValid {
-    vm.expectRevert("Airdrop: invalid kyc params");
+    vm.expectRevert("Airgrab: invalid kyc params");
     subject();
   }
 
   /// @notice When the KYC Country Tier is not supported
   function test_Claim_whenInvalidKycCountry() external whenKycCountryInvalid whenKycSignatureValid {
-    vm.expectRevert("Airdrop: invalid kyc params");
+    vm.expectRevert("Airgrab: invalid kyc params");
     subject();
   }
 
-  /// @notice When the airdrop contract has insufficient token balance
+  /// @notice When the airgrab contract has insufficient token balance
   function test_Claim_whenInsufficientBalance() external whenKycSignatureValid whenTokenBalance(1e18) {
-    vm.expectRevert("Airdrop: insufficient balance");
+    vm.expectRevert("Airgrab: insufficient balance");
     subject();
   }
 
   /// @notice When the claimer has already claimed
   function test_Claim_whenAlreadyClaimed() external whenKycSignatureValid whenTokenBalance(1e30) whenLockingFor(0, 0) {
     subject();
-    vm.expectRevert("Airdrop: already claimed");
+    vm.expectRevert("Airgrab: already claimed");
     subject();
   }
 

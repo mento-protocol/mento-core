@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import { Airdrop_Test } from "./Base.t.sol";
+import { Airgrab_Test } from "./Base.t.sol";
 
-contract HasAirdrop_Airdrop_Test is Airdrop_Test {
+contract HasAirgrab_Airgrab_Test is Airgrab_Test {
   bytes32[] public invalidMerkleProof = new bytes32[](0);
 
   /// @notice Test subject parameters
@@ -12,14 +12,14 @@ contract HasAirdrop_Airdrop_Test is Airdrop_Test {
   uint256 amount;
   bytes32[] merkleProof;
 
-  /// @notice Test subject `hasAirdrop`
+  /// @notice Test subject `hasAirgrab`
   function subject() internal view returns (bool) {
-    return airdrop.hasAirdrop(account, amount, merkleProof);
+    return airgrab.hasAirgrab(account, amount, merkleProof);
   }
 
   function setUp() public override {
     super.setUp();
-    initAirdrop();
+    initAirgrab();
 
     account = claimer0;
     amount = claimer0Amount;
@@ -27,24 +27,24 @@ contract HasAirdrop_Airdrop_Test is Airdrop_Test {
   }
 
   /// @notice With default params, returns true
-  function test_HasAirdrop_Valid() external {
+  function test_HasAirgrab_Valid() external {
     assertEq(subject(), true);
   }
 
   /// @notice With an invalidClaimer, returns false
-  function test_HasAirdrop_InvalidAccount() external {
+  function test_HasAirgrab_InvalidAccount() external {
     account = invalidClaimer;
     assertEq(subject(), false);
   }
 
   /// @notice With an invalide amount, returns false
-  function test_HasAirdrop_InvalidAmount() external {
+  function test_HasAirgrab_InvalidAmount() external {
     amount = 2 * claimer0Amount;
     assertEq(subject(), false);
   }
 
   /// @notice With an invalid proof, returns false
-  function test_HasAirdrop_InvalidProof() external {
+  function test_HasAirgrab_InvalidProof() external {
     merkleProof = invalidMerkleProof;
     assertEq(subject(), false);
   }

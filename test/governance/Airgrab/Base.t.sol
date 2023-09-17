@@ -7,7 +7,7 @@ import { Test } from "forge-std-next/Test.sol";
 import { Arrays } from "test/utils/Arrays.sol";
 
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
-import { Airdrop } from "contracts/governance/Airdrop.sol";
+import { Airgrab } from "contracts/governance/Airgrab.sol";
 
 /**
  * A merkle tree was generated based on the following CSV file:
@@ -19,11 +19,11 @@ import { Airdrop } from "contracts/governance/Airdrop.sol";
  * Proof[0x5..] = [ 0xf213211627972cf2d02a11f800ed3f60110c1d11d04ec1ea8cb1366611efdaa3 ]
  * Proof[0x6..] = [ 0x0294d3fc355e136dd6fea7f5c2934dd7cb67c2b4607110780e5fbb23d65d7ac4 ]
  */
-contract Airdrop_Test is Test {
+contract Airgrab_Test is Test {
   uint32 public constant MAX_CLIFF_PERIOD = 103;
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
-  Airdrop public airdrop;
+  Airgrab public airgrab;
   ERC20 public token;
 
   address payable public treasury = payable(makeAddr("Treasury"));
@@ -57,9 +57,9 @@ contract Airdrop_Test is Test {
     vm.label(tokenAddress, "MENTO");
   }
 
-  /// @notice Create a new Airdrop, but don't initialize it.
-  function newAirdrop() internal {
-    airdrop = new Airdrop(
+  /// @notice Create a new Airgrab, but don't initialize it.
+  function newAirgrab() internal {
+    airgrab = new Airgrab(
       merkleRoot,
       fractalIssuer,
       lockingContract,
@@ -73,9 +73,9 @@ contract Airdrop_Test is Test {
     );
   }
 
-  /// @notice Create and initialize an Airdrop.
-  function initAirdrop() internal {
-    newAirdrop();
-    airdrop.initialize(tokenAddress);
+  /// @notice Create and initialize an Airgrab.
+  function initAirgrab() internal {
+    newAirgrab();
+    airgrab.initialize(tokenAddress);
   }
 }

@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import { Airdrop_Test } from "./Base.t.sol";
+import { Airgrab_Test } from "./Base.t.sol";
 
-contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
+contract GetUnlockedAmount_Airgrab_Test is Airgrab_Test {
   /// @notice Test subject parameters
   uint256 amount;
   uint32 slope;
@@ -12,7 +12,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
 
   /// @notice Test subject `getUnlockedAmount`
   function subject() internal view returns (uint256) {
-    return airdrop.getUnlockedAmount(amount, slope, cliff);
+    return airgrab.getUnlockedAmount(amount, slope, cliff);
   }
 
   /// @notice With only base as 100%, does not scale down the amount
@@ -20,7 +20,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     basePercentage = 1e18; // 100%
     cliffPercentage = 0;
     slopePercentage = 0;
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     assertEq(subject(), 1e18);
@@ -32,7 +32,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     basePercentage = 20 * 1e16; // 20%
     cliffPercentage = 30 * 1e16; // 30%
     slopePercentage = 50 * 1e16; // 50%
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     assertEq(subject(), 2e17); // 20% * 1e18
@@ -46,7 +46,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     cliffPercentage = 80 * 1e16; // 80%
     slopePercentage = 0; // 0%
     requiredCliffPeriod = 14;
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     cliff = 14; // -0%
@@ -61,7 +61,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     cliffPercentage = 80 * 1e16; // 80%
     slopePercentage = 0; // 0%
     requiredCliffPeriod = 14;
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     cliff = 20; // -0%
@@ -76,7 +76,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     cliffPercentage = 80 * 1e16; // 80%
     slopePercentage = 0; // 0%
     requiredCliffPeriod = 14;
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     cliff = 7; // -40%
@@ -91,7 +91,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     cliffPercentage = 80 * 1e16; // 80%
     slopePercentage = 0; // 0%
     requiredCliffPeriod = 14;
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     cliff = 2; // -(80/7)%
@@ -108,7 +108,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     slopePercentage = 50 * 1e16; // 30%
     requiredCliffPeriod = 14;
     requiredSlopePeriod = 14;
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     cliff = 14; // -0%
@@ -125,7 +125,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     slopePercentage = 50 * 1e16; // 30%
     requiredCliffPeriod = 14;
     requiredSlopePeriod = 14;
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     cliff = 14; // -0%
@@ -142,7 +142,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     slopePercentage = 50 * 1e16; // 30%
     requiredCliffPeriod = 14;
     requiredSlopePeriod = 14;
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     cliff = 20; // -0%
@@ -160,7 +160,7 @@ contract GetUnlockedAmount_Airdrop_Test is Airdrop_Test {
     slopePercentage = 50 * 1e16; // 30%
     requiredCliffPeriod = 14;
     requiredSlopePeriod = 14;
-    initAirdrop();
+    initAirgrab();
 
     amount = 1e18;
     cliff = 7; // -15%

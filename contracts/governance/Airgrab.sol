@@ -10,28 +10,17 @@ import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.so
 import { ILocking } from "locking-contracts/ILocking.sol";
 
 /**
- * @title Airdrop
+ * @title Airgrab
  * @author Mento Labs
- * @notice This contract implements a token airdrop gated by a MerkeTree and KYC using fractal.
- * The airdrop also forces claimers to immediately lock their tokens as veTokens otherwise
+ * @notice This contract implements a token airgrab gated by a MerkeTree and KYC using fractal.
+ * The airgrab also forces claimers to immediately lock their tokens as veTokens otherwise
  * their amount to claim gets scaled depending on the chosen cliff and slope periods,
- * and the configuration of the contract:
- * basePercentage     Base percentage received irrespective of cliff and slope periods.
- * cliffPercentage        The max percantage received if the cliff requirement is met.
- * requiredCliffPeriod  The cliff period which unlocks 100% of cliffPercentage,
- *                        if user's cliff < requiredCliffPeriod, the cliffPercentage
- *                        is scaled by cliff/requiredCliffPeriod
- * slopePercentage        The max percentage received if the slope requirement is met.
- * requiredSlopePeriod The slope period which unlocks 100% of slopePercentage,
- *                        if user's slope < requiredSlopePeriod, the slopePercentage
- *                        is scaled by cliff/requiredSlopePeriod
- * slopePercentage        The max percentage received if the slope requirement is met.
- * basePercentage + cliffPercentage + slopePercentage must equal 100
+ * see the `getUnlockedAmount` for more details.
  * @dev The contract is only Ownable and Initializable because of the circular dependency
- * between Token and Airdrop. We use the initialize method to set the token address
+ * between Token and Airgrab. We use the initialize method to set the token address
  * after the Token contract has been deployed, and renounce ownership.
  */
-contract Airdrop is Ownable {
+contract Airgrab is Ownable {
   using SafeERC20 for IERC20;
 
   uint256 public constant PRECISION = 1e18;
@@ -62,7 +51,7 @@ contract Airdrop is Ownable {
   ILocking public immutable lockingContract;
   /// @notice The treasury address where the tokens will be refunded.
   address payable public immutable treasury;
-  /// @notice The timestamp when the airdrop ends.
+  /// @notice The timestamp when the airgrab ends.
   uint256 public immutable endTimestamp;
   /// @notice The minimum percentage that will be received irrespective of locking
   uint256 public immutable basePercentage;
@@ -76,17 +65,17 @@ contract Airdrop is Ownable {
   uint32 public immutable requiredSlopePeriod;
   /// @notice The map of addresses that have claimed
   mapping(address => bool) public claimed;
-  /// @notice The token in the airdrop.
+  /// @notice The token in the airgrab.
   IERC20 public token;
 
   /**
-   * @dev Constructor for the Airdrop contract.
+   * @dev Constructor for the Airgrab contract.
    * @notice It checks and configures all immutable params and gives infinite approval to the
    * locking contract.
    * @param root_ The root of the merkle tree.
    * @param fractalIssuer_ The Fractal.id message signer for KYC/KYB.
    * @param treasury_ The treasury address where the tokens will be refunded.
-   * @param endTimestamp_ The timestamp when the airdrop ends.
+   * @param endTimestamp_ The timestamp when the airgrab ends.
    * @param basePercentage_ The percentage that will be received based on the cliff period
    * @param cliffPercentage_ The minimum cliff period required to receive the full cliffPercentage
    * @param requiredCliffPeriod_ The precentage that will be received based on the slop period
@@ -105,17 +94,17 @@ contract Airdrop is Ownable {
     uint256 slopePercentage_,
     uint32 requiredSlopePeriod_
   ) {
-    require(root_ != bytes32(0), "Airdrop: invalid root");
-    require(fractalIssuer_ != address(0), "Airdrop: invalid fractal issuer");
-    require(lockingContract_ != address(0), "Airdrop: invalid locking contract");
-    require(treasury_ != address(0), "Airdrop: invalid treasury");
-    require(endTimestamp_ > block.timestamp, "Airdrop: invalid end timestamp");
+    require(root_ != bytes32(0), "Airgrab: invalid root");
+    require(fractalIssuer_ != address(0), "Airgrab: invalid fractal issuer");
+    require(lockingContract_ != address(0), "Airgrab: invalid locking contract");
+    require(treasury_ != address(0), "Airgrab: invalid treasury");
+    require(endTimestamp_ > block.timestamp, "Airgrab: invalid end timestamp");
     require(
       basePercentage_ + cliffPercentage_ + slopePercentage_ == PRECISION,
-      "Airdrop: unlock percentages must add up to 1"
+      "Airgrab: unlock percentages must add up to 1"
     );
-    require(requiredCliffPeriod_ <= MAX_CLIFF_PERIOD, "Airdrop: required cliff period too large");
-    require(requiredSlopePeriod_ <= MAX_SLOPE_PERIOD, "Airdrop: required slope period too large");
+    require(requiredCliffPeriod_ <= MAX_CLIFF_PERIOD, "Airgrab: required cliff period too large");
+    require(requiredSlopePeriod_ <= MAX_SLOPE_PERIOD, "Airgrab: required slope period too large");
 
     root = root_;
     fractalIssuer = fractalIssuer_;
@@ -132,13 +121,13 @@ contract Airdrop is Ownable {
   /**
    * @dev Initializer for setting the token address, will be called
    * immediately during deployment, but is intended only as a workaround
-   * for the circular dependency between Token and Airdrop.
+   * for the circular dependency between Token and Airgrab.
    * @notice Sets the token address, gives infinite approval to the locking contract
    * and renounces ownership.
-   * @param token_ The token in the airdrop.
+   * @param token_ The token in the airgrab.
    */
   function initialize(address token_) external onlyOwner {
-    require(token_ != address(0), "Airdrop: invalid token");
+    require(token_ != address(0), "Airgrab: invalid token");
     token = IERC20(token_);
     token.approve(address(lockingContract), type(uint256).max);
     _transferOwnership(address(0));
@@ -147,7 +136,7 @@ contract Airdrop is Ownable {
   /**
    * @dev Allows `account` to claim `amount` tokens if the merkle proof and kyc is valid.
    * @notice This function can only be called by the Fractal.id message signer and
-   * only if the airdrop hasn't ended yet.
+   * only if the airgrab hasn't ended yet.
    * @param account The address of the account to claim tokens for.
    * @param amount The amount of tokens to be claimed.
    * @param merkleProof The merkle proof for the account.
@@ -171,18 +160,18 @@ contract Airdrop is Ownable {
     uint32 slope,
     uint32 cliff
   ) external returns (uint256 unlockedAmount) {
-    require(block.timestamp <= endTimestamp, "Airdrop: finished");
-    require(hasAirdrop(account, amount, merkleProof), "Airdrop: not in tree");
+    require(block.timestamp <= endTimestamp, "Airgrab: finished");
+    require(hasAirgrab(account, amount, merkleProof), "Airgrab: not in tree");
     require(
       isValidKycSignature(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash, issuerSignature),
-      "Airdrop: invalid kyc signer"
+      "Airgrab: invalid kyc signer"
     );
-    require(isValidKyc(kycType, countryOfResidence), "Airdrop: invalid kyc params");
-    require(!claimed[account], "Airdrop: already claimed");
-    require(IERC20(token).balanceOf(address(this)) >= amount, "Airdrop: insufficient balance");
+    require(isValidKyc(kycType, countryOfResidence), "Airgrab: invalid kyc params");
+    require(!claimed[account], "Airgrab: already claimed");
+    require(IERC20(token).balanceOf(address(this)) >= amount, "Airgrab: insufficient balance");
 
     unlockedAmount = getUnlockedAmount(amount, slope, cliff);
-    require(unlockedAmount <= type(uint96).max, "Airdrop: amount too large");
+    require(unlockedAmount <= type(uint96).max, "Airgrab: amount too large");
 
     claimed[account] = true;
 
@@ -197,26 +186,26 @@ contract Airdrop is Ownable {
 
   /**
    * @dev Allows the treasury to reclaim any tokens left
-   * @notice This function can only be called if the airdrop has ended.
+   * @notice This function can only be called if the airgrab has ended.
    * The function takes a token as a param in case the contract has been sent
-   * tokens other than the airdrop token.
+   * tokens other than the airgrab token.
    */
   function drain(address tokenToDrain) external {
-    require(block.timestamp > endTimestamp, "Airdrop: not finished");
+    require(block.timestamp > endTimestamp, "Airgrab: not finished");
     uint256 balance = IERC20(tokenToDrain).balanceOf(address(this));
-    require(balance > 0, "Airdrop: nothing to drain");
+    require(balance > 0, "Airgrab: nothing to drain");
     IERC20(tokenToDrain).safeTransfer(treasury, balance);
     emit TokensDrained(tokenToDrain, balance);
   }
 
   /**
-   * @dev Check if the account is included in the airdrop.
+   * @dev Check if the account is included in the airgrab.
    * @notice This function checks the merkletree with the data provided.
    * @param account The address of the account to check.
    * @param amount The amount of tokens to be claimed.
    * @param merkleProof The merkle proof for the account.
    */
-  function hasAirdrop(
+  function hasAirgrab(
     address account,
     uint256 amount,
     bytes32[] calldata merkleProof
@@ -226,8 +215,33 @@ contract Airdrop is Ownable {
   }
 
   /**
-   * @dev Calculate the total unlocked amount depending based on the selected values for slope and cliff
+   * @dev Calculate the total unlocked amount based on the selected values for slope and cliff
    * and the percentage settings that the contract was deployed with.
+   * The logic behind this is that the unlocked amount has three components:
+   * the base, cliff and slope percentages, which add up to 100%.
+   *
+   * <------------------------- 100% ----------------------------->
+   * | basePercentage |   cliffPercentage    |   slopePercentage  |
+   * 
+   * The base percentage is always unlocked, and the cliff and slope percentages are scaled
+   * linearly by the duration of the cliff and slope lock periods.
+   *
+   * unlockedPercentage = 
+   *   basePercentage +
+   *   (cliff/requiredCliffPeriod) * cliffPercentage +
+   *   (slope/requiredSlopePeriod) * slopePercentage
+   * unlockedAmount = amount * unlockedPercentage
+   *
+   * Examples:
+   * basePercentage = 20% 
+   * cliffPercentage = 30% 
+   * slopePercentage = 50%
+   * requiredSlopePeriod = 14 (~3months)
+   * requiredCliffPeriod = 14 (~3months)
+   * 
+   * (1) cliff = 0 and slope = 0 -> claimer gets (20% + 0% + 0%) of their amount
+   * (2) cliff = 0 and slope = 7 -> claimer gets (20% + 0% + 25%) of their amount
+   * (3) cliff = 14 and slope = 0 -> claimer gets (20% + 30% + 0%) of their amount
    * @param amount The total amount that can be unlocked
    * @param slope The selected slope period
    * @param cliff The selected cliff period
