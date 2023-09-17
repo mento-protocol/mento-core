@@ -171,10 +171,11 @@ contract Airgrab is Ownable {
     );
     require(isValidKyc(kycType, countryOfResidence), "Airgrab: invalid kyc params");
     require(!claimed[account], "Airgrab: already claimed");
-    require(IERC20(token).balanceOf(address(this)) >= amount, "Airgrab: insufficient balance");
 
     unlockedAmount = getUnlockedAmount(amount, slope, cliff);
+
     require(unlockedAmount <= type(uint96).max, "Airgrab: amount too large");
+    require(IERC20(token).balanceOf(address(this)) >= unlockedAmount, "Airgrab: insufficient balance");
 
     claimed[account] = true;
 
