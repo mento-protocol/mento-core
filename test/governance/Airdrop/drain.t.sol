@@ -9,14 +9,13 @@ contract Drain_Airdrop_Test is Airdrop_Test {
 
   /// @notice Test subject parameters
   address tokenToDrain;
-  /// ----------------------------------
 
   /// @notice Test subject `drain`
   function subject() internal {
     airdrop.drain(tokenToDrain);
   }
 
-  function setUp() override public {
+  function setUp() public override {
     super.setUp();
     initAirdrop();
     tokenToDrain = tokenAddress;
@@ -42,14 +41,8 @@ contract Drain_Airdrop_Test is Airdrop_Test {
     vm.expectEmit(true, true, true, true);
     emit TokensDrained(tokenAddress, 100e18);
     subject();
-    assertEq(
-      token.balanceOf(treasury),
-      100e18
-    );
-    assertEq(
-      token.balanceOf(address(airdrop)),
-      0
-    );
+    assertEq(token.balanceOf(treasury), 100e18);
+    assertEq(token.balanceOf(address(airdrop)), 0);
   }
 
   /// @notice Drains all arbitrary tokens to the treasury if the airdrop has ended
@@ -62,13 +55,7 @@ contract Drain_Airdrop_Test is Airdrop_Test {
     vm.expectEmit(true, true, true, true);
     emit TokensDrained(address(otherToken), 100e18);
     subject();
-    assertEq(
-      otherToken.balanceOf(treasury),
-      100e18
-    );
-    assertEq(
-      otherToken.balanceOf(address(airdrop)),
-      0
-    );
+    assertEq(otherToken.balanceOf(treasury), 100e18);
+    assertEq(otherToken.balanceOf(address(airdrop)), 0);
   }
 }

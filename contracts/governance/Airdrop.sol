@@ -39,7 +39,7 @@ contract Airdrop is Ownable {
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
   /**
-   * @notice Emitted when tokens are claimed 
+   * @notice Emitted when tokens are claimed
    * @param claimer The account claiming the tokens
    * @param amount The amount of tokens being claimed
    * @param cliff The selected cliff duration
@@ -110,7 +110,10 @@ contract Airdrop is Ownable {
     require(lockingContract_ != address(0), "Airdrop: invalid locking contract");
     require(treasury_ != address(0), "Airdrop: invalid treasury");
     require(endTimestamp_ > block.timestamp, "Airdrop: invalid end timestamp");
-    require(basePercentage_ + cliffPercentage_ + slopePercentage_ == PRECISION, "Airdrop: unlock percentages must add up to 1");
+    require(
+      basePercentage_ + cliffPercentage_ + slopePercentage_ == PRECISION,
+      "Airdrop: unlock percentages must add up to 1"
+    );
     require(requiredCliffPeriod_ <= MAX_CLIFF_PERIOD, "Airdrop: required cliff period too large");
     require(requiredSlopePeriod_ <= MAX_SLOPE_PERIOD, "Airdrop: required slope period too large");
 
@@ -124,11 +127,10 @@ contract Airdrop is Ownable {
     requiredCliffPeriod = requiredCliffPeriod_;
     slopePercentage = slopePercentage_;
     requiredSlopePeriod = requiredSlopePeriod_;
-
   }
 
   /**
-   * @dev Initializer for setting the token address, will be called 
+   * @dev Initializer for setting the token address, will be called
    * immediately during deployment, but is intended only as a workaround
    * for the circular dependency between Token and Airdrop.
    * @notice Sets the token address, gives infinite approval to the locking contract
@@ -141,7 +143,6 @@ contract Airdrop is Ownable {
     token.approve(address(lockingContract), type(uint256).max);
     _transferOwnership(address(0));
   }
-
 
   /**
    * @dev Allows `account` to claim `amount` tokens if the merkle proof and kyc is valid.
@@ -161,7 +162,7 @@ contract Airdrop is Ownable {
   function claim(
     address account,
     uint256 amount,
-    bytes32[] calldata merkleProof, 
+    bytes32[] calldata merkleProof,
     uint8 kycType,
     uint8 countryOfIDIssuance,
     uint8 countryOfResidence,
@@ -172,7 +173,10 @@ contract Airdrop is Ownable {
   ) external returns (uint256 unlockedAmount) {
     require(block.timestamp <= endTimestamp, "Airdrop: finished");
     require(hasAirdrop(account, amount, merkleProof), "Airdrop: not in tree");
-    require(isValidKycSignature(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash, issuerSignature), "Airdrop: invalid kyc signer");
+    require(
+      isValidKycSignature(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash, issuerSignature),
+      "Airdrop: invalid kyc signer"
+    );
     require(isValidKyc(kycType, countryOfResidence), "Airdrop: invalid kyc params");
     require(!claimed[account], "Airdrop: already claimed");
     require(IERC20(token).balanceOf(address(this)) >= amount, "Airdrop: insufficient balance");
@@ -227,20 +231,24 @@ contract Airdrop is Ownable {
    * @param amount The total amount that can be unlocked
    * @param slope The selected slope period
    * @param cliff The selected cliff period
-   */ 
-  function getUnlockedAmount(uint256 amount, uint32 slope, uint32 cliff) public view returns (uint256 unlockedAmount) {
+   */
+  function getUnlockedAmount(
+    uint256 amount,
+    uint32 slope,
+    uint32 cliff
+  ) public view returns (uint256 unlockedAmount) {
     uint256 unlockedPercentage = basePercentage;
-    
+
     if (cliff >= requiredCliffPeriod) {
       unlockedPercentage += cliffPercentage;
     } else {
-      unlockedPercentage += uint256(cliff) * cliffPercentage / uint256(requiredCliffPeriod);
+      unlockedPercentage += (uint256(cliff) * cliffPercentage) / uint256(requiredCliffPeriod);
     }
 
     if (slope >= requiredSlopePeriod) {
       unlockedPercentage += slopePercentage;
     } else {
-      unlockedPercentage +=  uint256(slope) * slopePercentage / uint256(requiredSlopePeriod);
+      unlockedPercentage += (uint256(slope) * slopePercentage) / uint256(requiredSlopePeriod);
     }
 
     if (unlockedPercentage >= PRECISION) {
@@ -280,15 +288,7 @@ contract Airdrop is Ownable {
    * @param kycType The type of kyc
    * @param countryOfResidence The country of residence tier, see: https://bit.ly/46fC5Cq
    */
-  function isValidKyc(
-    uint8 kycType,
-    uint8 countryOfResidence
-  ) public pure returns (bool) {
-    return (
-      kycType == 1 && 
-      countryOfResidence != 7 && 
-      countryOfResidence < 9 && 
-      countryOfResidence > 0
-    );
+  function isValidKyc(uint8 kycType, uint8 countryOfResidence) public pure returns (bool) {
+    return (kycType == 1 && countryOfResidence != 7 && countryOfResidence < 9 && countryOfResidence > 0);
   }
 }

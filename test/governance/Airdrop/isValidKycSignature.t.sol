@@ -16,25 +16,18 @@ contract IsValidKycSignature_Airdrop_Test is Airdrop_Test {
   uint8 countryOfResidence = 2;
   bytes32 rootHash = keccak256("ROOTHASH");
   bytes issuerSignature;
-  /// ----------------------------------
 
   /// @notice Test subject `isValidKycSignature`
   function subject() internal view returns (bool) {
-    return airdrop.isValidKycSignature(
-      account,
-      kycType,
-      countryOfIDIssuance,
-      countryOfResidence,
-      rootHash,
-      issuerSignature
-    );
+    return
+      airdrop.isValidKycSignature(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash, issuerSignature);
   }
 
   function setUp() public override {
     super.setUp();
 
     (fractalIssuer, fractalIssuerPk) = makeAddrAndKey("FractalIssuer");
-    (,otherIssuerPk) = makeAddrAndKey("OtherIssuer");
+    (, otherIssuerPk) = makeAddrAndKey("OtherIssuer");
 
     initAirdrop();
   }
@@ -65,6 +58,6 @@ contract IsValidKycSignature_Airdrop_Test is Airdrop_Test {
       keccak256(abi.encodePacked(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash))
     );
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, signedMessageHash);
-    return abi.encodePacked(r,s,v);
+    return abi.encodePacked(r, s, v);
   }
 }

@@ -16,7 +16,7 @@ contract Initialize_Airdrop_Test is Airdrop_Test {
     airdrop.initialize(tokenAddress);
   }
 
-  function setUp() override public {
+  function setUp() public override {
     super.setUp();
     newAirdrop();
   }

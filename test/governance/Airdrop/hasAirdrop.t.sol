@@ -11,14 +11,12 @@ contract HasAirdrop_Airdrop_Test is Airdrop_Test {
   address public account;
   uint256 amount;
   bytes32[] merkleProof;
-  /// ----------------------------------
-
   /// @notice Test subject `hasAirdrop`
   function subject() internal view returns (bool) {
     return airdrop.hasAirdrop(account, amount, merkleProof);
   }
 
-  function setUp() override public {
+  function setUp() public override {
     super.setUp();
     initAirdrop();
 
@@ -32,7 +30,7 @@ contract HasAirdrop_Airdrop_Test is Airdrop_Test {
     assertEq(subject(), true);
   }
 
-  /// @notice With an invalidClaimer, returns false 
+  /// @notice With an invalidClaimer, returns false
   function test_HasAirdrop_InvalidAccount() external {
     account = invalidClaimer;
     assertEq(subject(), false);
@@ -40,7 +38,7 @@ contract HasAirdrop_Airdrop_Test is Airdrop_Test {
 
   /// @notice With an invalide amount, returns false
   function test_HasAirdrop_InvalidAmount() external {
-    amount = 2*claimer0Amount;
+    amount = 2 * claimer0Amount;
     assertEq(subject(), false);
   }
 

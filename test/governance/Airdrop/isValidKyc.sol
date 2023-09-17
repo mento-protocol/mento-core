@@ -16,33 +16,18 @@ contract IsValidKyc_Airdrop_Test is Airdrop_Test {
 
   /// @notice When kycType = 1 and countryOfResidence != 7, returns true
   function test_IsValidKyc_whenValid() public {
-    assertEq(
-      airdrop.isValidKyc(1, 2),
-      true
-    );
+    assertEq(airdrop.isValidKyc(1, 2), true);
   }
 
   /// @notice When kycType != 1, returns false
   function test_IsValidKyc_whenKycTypeInvalid() public {
-    assertEq(
-      airdrop.isValidKyc(2, 2),
-      false
-    );
+    assertEq(airdrop.isValidKyc(2, 2), false);
   }
 
   /// @notice When country of residence is invalid, returns false
   function test_IsValidKyc_whenCountryOfResidenceIsInvalid() public {
-    assertEq(
-      airdrop.isValidKyc(1, 7),
-      false
-    );
-    assertEq(
-      airdrop.isValidKyc(1, 9),
-      false
-    );
-    assertEq(
-      airdrop.isValidKyc(1, 0),
-      false
-    );
+    assertEq(airdrop.isValidKyc(1, 7), false);
+    assertEq(airdrop.isValidKyc(1, 9), false);
+    assertEq(airdrop.isValidKyc(1, 0), false);
   }
 }

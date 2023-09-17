@@ -20,7 +20,7 @@ contract Constructor_Airdrop_Test is Airdrop_Test {
     emit OwnershipTransferred(address(0), address(this));
     subject();
 
-    assertEq(airdrop.root(), merkleRoot); 
+    assertEq(airdrop.root(), merkleRoot);
     assertEq(airdrop.fractalIssuer(), fractalIssuer);
     assertEq(address(airdrop.token()), address(0));
     assertEq(address(airdrop.owner()), address(this));
