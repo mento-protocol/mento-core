@@ -5,6 +5,8 @@ import { MerkleProof } from "openzeppelin-contracts-next/contracts/utils/cryptog
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
+import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
+
 import { ILocking } from "locking-contracts/ILocking.sol";
 
 /**
@@ -25,8 +27,11 @@ import { ILocking } from "locking-contracts/ILocking.sol";
  *                        is scaled by cliff/requiredSlopePeriod
  * slopePercentage        The max percentage received if the slope requirement is met.
  * basePercentage + cliffPercentage + slopePercentage must equal 100
+ * @dev The contract is only Ownable and Initializable because of the circular dependency
+ * between Token and Airdrop. We use the initialize method to set the token address
+ * after the Token contract has been deployed, and renounce ownership.
  */
-contract Airdrop {
+contract Airdrop is Ownable {
   using SafeERC20 for IERC20;
 
   uint256 public constant PRECISION = 1e18;
@@ -53,8 +58,6 @@ contract Airdrop {
   bytes32 public immutable root;
   /// @notice The Fractal.id message signer for KYC/KYB.
   address public immutable fractalIssuer;
-  /// @notice The token in the airdrop.
-  IERC20 public immutable token;
   /// @notice The locking contract for veToken.
   ILocking public immutable lockingContract;
   /// @notice The treasury address where the tokens will be refunded.
@@ -73,6 +76,8 @@ contract Airdrop {
   uint32 public immutable requiredSlopePeriod;
   /// @notice The map of addresses that have claimed
   mapping(address => bool) public claimed;
+  /// @notice The token in the airdrop.
+  IERC20 public token;
 
   /**
    * @dev Constructor for the Airdrop contract.
@@ -80,7 +85,6 @@ contract Airdrop {
    * locking contract.
    * @param root_ The root of the merkle tree.
    * @param fractalIssuer_ The Fractal.id message signer for KYC/KYB.
-   * @param token_ The token in the airdrop.
    * @param treasury_ The treasury address where the tokens will be refunded.
    * @param endTimestamp_ The timestamp when the airdrop ends.
    * @param basePercentage_ The percentage that will be received based on the cliff period
@@ -92,7 +96,6 @@ contract Airdrop {
   constructor(
     bytes32 root_,
     address fractalIssuer_,
-    address token_,
     address lockingContract_,
     address payable treasury_,
     uint256 endTimestamp_,
@@ -104,7 +107,6 @@ contract Airdrop {
   ) {
     require(root_ != bytes32(0), "Airdrop: invalid root");
     require(fractalIssuer_ != address(0), "Airdrop: invalid fractal issuer");
-    require(token_ != address(0), "Airdrop: invalid token");
     require(lockingContract_ != address(0), "Airdrop: invalid locking contract");
     require(treasury_ != address(0), "Airdrop: invalid treasury");
     require(endTimestamp_ > block.timestamp, "Airdrop: invalid end timestamp");
@@ -114,7 +116,6 @@ contract Airdrop {
 
     root = root_;
     fractalIssuer = fractalIssuer_;
-    token = IERC20(token_);
     lockingContract = ILocking(lockingContract_);
     treasury = treasury_;
     endTimestamp = endTimestamp_;
@@ -124,8 +125,23 @@ contract Airdrop {
     slopePercentage = slopePercentage_;
     requiredSlopePeriod = requiredSlopePeriod_;
 
-    token.approve(address(lockingContract), type(uint256).max);
   }
+
+  /**
+   * @dev Initializer for setting the token address, will be called 
+   * immediately during deployment, but is intended only as a workaround
+   * for the circular dependency between Token and Airdrop.
+   * @notice Sets the token address, gives infinite approval to the locking contract
+   * and renounces ownership.
+   * @param token_ The token in the airdrop.
+   */
+  function initialize(address token_) external onlyOwner {
+    require(token_ != address(0), "Airdrop: invalid token");
+    token = IERC20(token_);
+    token.approve(address(lockingContract), type(uint256).max);
+    _transferOwnership(address(0));
+  }
+
 
   /**
    * @dev Allows `account` to claim `amount` tokens if the merkle proof and kyc is valid.

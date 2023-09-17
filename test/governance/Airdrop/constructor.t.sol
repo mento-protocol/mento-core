@@ -6,18 +6,24 @@ import { Airdrop_Test } from "./Base.t.sol";
 import { Airdrop } from "contracts/governance/Airdrop.sol";
 
 contract Constructor_Airdrop_Test is Airdrop_Test {
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
   /// @notice Subject of the test: Airdrop constructor
   function subject() internal {
-    initAirdrop();
+    newAirdrop();
   }
 
   /// @notice Check that all parameters are set correctly during initialization
+  /// and that ownership is transferred to the caller.
   function test_Constructor() external {
+    vm.expectEmit(true, true, true, true);
+    emit OwnershipTransferred(address(0), address(this));
     subject();
 
     assertEq(airdrop.root(), merkleRoot); 
     assertEq(airdrop.fractalIssuer(), fractalIssuer);
-    assertEq(address(airdrop.token()), address(token));
+    assertEq(address(airdrop.token()), address(0));
+    assertEq(address(airdrop.owner()), address(this));
     assertEq(address(airdrop.lockingContract()), address(lockingContract));
     assertEq(airdrop.treasury(), treasury);
     assertEq(airdrop.endTimestamp(), endTimestamp);
@@ -39,13 +45,6 @@ contract Constructor_Airdrop_Test is Airdrop_Test {
   function test_Constructor_InvalidFractalIssuer() external {
     fractalIssuer = address(0);
     vm.expectRevert("Airdrop: invalid fractal issuer");
-    subject();
-  }
-
-  /// @notice Checks the token address
-  function test_Constructor_InvalidToken() external {
-    tokenAddress = address(0);
-    vm.expectRevert("Airdrop: invalid token");
     subject();
   }
 

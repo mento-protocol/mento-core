@@ -54,12 +54,6 @@ contract Airdrop_Test is Test {
   uint32 requiredSlopePeriod = 14; // 14 weeks ~= 3months 
 
   function setUp() virtual public {
-    // claimer0Proof = Arrays.bytes32s(
-    //   0xf213211627972cf2d02a11f800ed3f60110c1d11d04ec1ea8cb1366611efdaa3
-    // );
-    // claimer1Proof = Arrays.bytes32s(
-    //   0x0294d3fc355e136dd6fea7f5c2934dd7cb67c2b4607110780e5fbb23d65d7ac4
-    // );
     vm.label(claimer0, "Claimer0");
     vm.label(claimer1, "Claimer1");
     token = new ERC20("Mento Token", "MENTO");
@@ -67,11 +61,11 @@ contract Airdrop_Test is Test {
     vm.label(tokenAddress, "MENTO");
   }
 
-  function initAirdrop() internal {
+  /// @notice Create a new Airdrop, but don't initialize it.
+  function newAirdrop() internal {
     airdrop = new Airdrop(
       merkleRoot,
       fractalIssuer,
-      tokenAddress,
       lockingContract,
       treasury,
       endTimestamp,
@@ -81,6 +75,12 @@ contract Airdrop_Test is Test {
       slopePercentage,
       requiredSlopePeriod
     );
+  }
+
+  /// @notice Create and initialize an Airdrop.
+  function initAirdrop() internal {
+    newAirdrop();
+    airdrop.initialize(tokenAddress);
   }
 }
 
