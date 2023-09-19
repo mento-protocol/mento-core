@@ -77,17 +77,17 @@ contract Emission is Ownable {
    * Original formula: E(t) = supply * exp(-A * t)
    * Approximation: E(t) = supply * (1 - (t / A) + (t^2 / 2A^2) - (t^3 / 6A^3) + (t^4 / 24A^4))
    * where A = HALF_LIFE / ln(2)
-   * @dev A 5th term (t^5 / 120A^5) is added to ensure the entire supply is minted around 31.5 years.
+   * @dev A 5th term (t^5 / 120A^5) is added to ensure the entire supply is minted within around 31.5 years.
    * @return amount Number of tokens that can be emitted.
    */
   function calculateEmission() public view returns (uint256 amount) {
     uint256 t = (block.timestamp - emissionStartTime);
 
     uint256 term1 = (SCALER * t) / A;
-    uint256 term2 = (SCALER * t**2) / (2 * A**2);
-    uint256 term3 = (SCALER * t**3) / (6 * A**3);
-    uint256 term4 = (SCALER * t**4) / (24 * A**4);
-    uint256 term5 = (SCALER * t**5) / (120 * A**5);
+    uint256 term2 = (term1 * t) / (2 * A);
+    uint256 term3 = (term2 * t) / (3 * A);
+    uint256 term4 = (term3 * t) / (4 * A);
+    uint256 term5 = (term4 * t) / (5 * A);
 
     uint256 positiveAggregate = SCALER + term2 + term4;
     uint256 negativeAggregate = term1 + term3 + term5;
