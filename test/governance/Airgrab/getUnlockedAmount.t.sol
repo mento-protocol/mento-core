@@ -17,7 +17,11 @@ contract GetUnlockedAmount_Airgrab_Test is Airgrab_Test {
   }
 
   /// @notice When there's no required cliff and slope, returns the full amount
-  function test_GetUnlockedAmount_whenNoLockRequired_Fuzz(uint256 amount_, uint32 cliff_, uint32 slope_) public {
+  function test_GetUnlockedAmount_whenNoLockRequired_Fuzz(
+    uint256 amount_,
+    uint32 cliff_,
+    uint32 slope_
+  ) public {
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
 
@@ -32,7 +36,11 @@ contract GetUnlockedAmount_Airgrab_Test is Airgrab_Test {
   }
 
   /// @notice When there's a required cliff and slope, uses the percentage to scale the amount
-  function test_GetUnlockedAmount_whenLockRequired_Fuzz(uint256 amount_, uint32 cliff_, uint32 slope_) public {
+  function test_GetUnlockedAmount_whenLockRequired_Fuzz(
+    uint256 amount_,
+    uint32 cliff_,
+    uint32 slope_
+  ) public {
     vm.assume(amount_ <= type(uint96).max);
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
@@ -46,6 +54,6 @@ contract GetUnlockedAmount_Airgrab_Test is Airgrab_Test {
     amount = amount_;
     slope = slope_;
     cliff = cliff_;
-    assertEq(subject(), amount_ * unlockedPercentage / 1e18);
+    assertEq(subject(), (amount_ * unlockedPercentage) / 1e18);
   }
 }

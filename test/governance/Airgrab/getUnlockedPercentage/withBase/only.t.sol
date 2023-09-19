@@ -5,12 +5,12 @@ pragma solidity 0.8.18;
 import { GetUnlockedPercentage_Airgrab_Test } from "../Base.t.sol";
 
 contract GetUnlockedPercentage_Base_Airgrab_Test is GetUnlockedPercentage_Airgrab_Test {
-  function setUp() override public {
+  function setUp() public override {
     super.setUp();
-    basePercentage      = 100e16;
-    lockPercentage      = 0;
-    cliffPercentage     = 0;
-    slopePercentage     = 0;
+    basePercentage = 100e16;
+    lockPercentage = 0;
+    cliffPercentage = 0;
+    slopePercentage = 0;
     requiredCliffPeriod = 0;
     requiredSlopePeriod = 0;
     initAirgrab();
@@ -27,11 +27,10 @@ contract GetUnlockedPercentage_Base_Airgrab_Test is GetUnlockedPercentage_Airgra
   function test_GetUnlockedPercentage_Base() public {
     TestCase[] memory testCases = new TestCase[](4);
     //---------------------| Cliff | Slope | Expected % |
-    testCases[0] = TestCase( 0,      0,      100e16      ); // no lock
-    testCases[1] = TestCase( 1,      0,      100e16     ); // cliff lock
-    testCases[2] = TestCase( 0,      1,      100e16     ); // slope lock
-    testCases[3] = TestCase( 1,      1,      100e16     ); // both
+    testCases[0] = TestCase(0, 0, 100e16); // no lock
+    testCases[1] = TestCase(1, 0, 100e16); // cliff lock
+    testCases[2] = TestCase(0, 1, 100e16); // slope lock
+    testCases[3] = TestCase(1, 1, 100e16); // both
     run(testCases);
   }
 }
-

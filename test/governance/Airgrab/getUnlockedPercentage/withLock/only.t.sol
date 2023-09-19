@@ -6,12 +6,12 @@ import { GetUnlockedPercentage_Airgrab_Test } from "../Base.t.sol";
 
 contract GetUnlockedPercentage_Lock_Airgrab_Test is GetUnlockedPercentage_Airgrab_Test {
   // solhint-disable-next-line no-empty-blocks
-  function setUp() override public {
+  function setUp() public override {
     super.setUp();
-    basePercentage      = 0;
-    lockPercentage      = 100e16;
-    cliffPercentage     = 0;
-    slopePercentage     = 0;
+    basePercentage = 0;
+    lockPercentage = 100e16;
+    cliffPercentage = 0;
+    slopePercentage = 0;
     requiredCliffPeriod = 14;
     requiredSlopePeriod = 14;
     initAirgrab();
@@ -28,11 +28,10 @@ contract GetUnlockedPercentage_Lock_Airgrab_Test is GetUnlockedPercentage_Airgra
   function test_GetUnlockedPercentage_Lock() public {
     TestCase[] memory testCases = new TestCase[](4);
     //---------------------| Cliff | Slope | Expected % |
-    testCases[0] = TestCase( 0,      0,      0          ); // no lock
-    testCases[1] = TestCase( 1,      0,      100e16     ); // cliff lock
-    testCases[2] = TestCase( 0,      1,      100e16     ); // slope lock
-    testCases[3] = TestCase( 1,      1,      100e16     ); // both
+    testCases[0] = TestCase(0, 0, 0); // no lock
+    testCases[1] = TestCase(1, 0, 100e16); // cliff lock
+    testCases[2] = TestCase(0, 1, 100e16); // slope lock
+    testCases[3] = TestCase(1, 1, 100e16); // both
     run(testCases);
   }
 }
-

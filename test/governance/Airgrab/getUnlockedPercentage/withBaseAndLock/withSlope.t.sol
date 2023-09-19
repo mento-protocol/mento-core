@@ -6,12 +6,12 @@ import { GetUnlockedPercentage_Airgrab_Test } from "../Base.t.sol";
 
 contract GetUnlockedPercentage_BaseLockSlope_Airgrab_Test is GetUnlockedPercentage_Airgrab_Test {
   /// @notice With only cliff reward as 100%
-  function setUp() override public {
+  function setUp() public override {
     super.setUp();
-    basePercentage      = 10e16;
-    lockPercentage      = 10e16;
-    cliffPercentage     = 0;
-    slopePercentage     = 80e16;
+    basePercentage = 10e16;
+    lockPercentage = 10e16;
+    cliffPercentage = 0;
+    slopePercentage = 80e16;
     requiredSlopePeriod = 0;
     requiredSlopePeriod = 14; // weeks ~= 3 months
     initAirgrab();
@@ -36,12 +36,11 @@ contract GetUnlockedPercentage_BaseLockSlope_Airgrab_Test is GetUnlockedPercenta
   function test_GetUnlockedPercentage_BaseLockSlope() public {
     TestCase[] memory testCases = new TestCase[](5);
     //---------------------| Cliff | Slope | Expected %         |
-    testCases[0] = TestCase( 0,      0,      10e16              ); // no slope
-    testCases[1] = TestCase( 0,      2,      314285714285714285 ); // fractional slope
-    testCases[2] = TestCase( 0,      7,      60e16              ); // half slope
-    testCases[3] = TestCase( 0,      14,     100e16             ); // full slope
-    testCases[4] = TestCase( 0,      20,     100e16             ); // excede slope
+    testCases[0] = TestCase(0, 0, 10e16); // no slope
+    testCases[1] = TestCase(0, 2, 314285714285714285); // fractional slope
+    testCases[2] = TestCase(0, 7, 60e16); // half slope
+    testCases[3] = TestCase(0, 14, 100e16); // full slope
+    testCases[4] = TestCase(0, 20, 100e16); // excede slope
     run(testCases);
   }
 }
-

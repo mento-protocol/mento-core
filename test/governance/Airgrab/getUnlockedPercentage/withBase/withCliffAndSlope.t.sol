@@ -6,12 +6,12 @@ import { GetUnlockedPercentage_Airgrab_Test } from "../Base.t.sol";
 
 contract GetUnlockedPercentage_BaseCliffSlope_Airgrab_Test is GetUnlockedPercentage_Airgrab_Test {
   /// @notice With base reward as 20% and cliff reward as 100%
-  function setUp() override virtual public {
+  function setUp() public virtual override {
     super.setUp();
-    basePercentage      = 20e16;
-    lockPercentage      = 0;
-    cliffPercentage     = 30e16;
-    slopePercentage     = 50e16;
+    basePercentage = 20e16;
+    lockPercentage = 0;
+    cliffPercentage = 30e16;
+    slopePercentage = 50e16;
     requiredCliffPeriod = 14; // weeks ~= 3 months
     requiredSlopePeriod = 14;
     initAirgrab();
@@ -28,11 +28,11 @@ contract GetUnlockedPercentage_BaseCliffSlope_Airgrab_Test is GetUnlockedPercent
   function test_GetUnlockedPercentage_BaseCliffSlope_NoCliff() public {
     TestCase[] memory testCases = new TestCase[](5);
     //---------------------| Cliff | Slope | Expected %         |
-    testCases[0] = TestCase( 0,      0,      20e16              ); // no slope
-    testCases[1] = TestCase( 0,      2,      271428571428571428 ); // fractional slope
-    testCases[2] = TestCase( 0,      7,      45e16              ); // half slope
-    testCases[3] = TestCase( 0,      14,     70e16              ); // full slope
-    testCases[4] = TestCase( 0,      20,     70e16              ); // excede slope
+    testCases[0] = TestCase(0, 0, 20e16); // no slope
+    testCases[1] = TestCase(0, 2, 271428571428571428); // fractional slope
+    testCases[2] = TestCase(0, 7, 45e16); // half slope
+    testCases[3] = TestCase(0, 14, 70e16); // full slope
+    testCases[4] = TestCase(0, 20, 70e16); // excede slope
     run(testCases);
   }
 
@@ -40,11 +40,11 @@ contract GetUnlockedPercentage_BaseCliffSlope_Airgrab_Test is GetUnlockedPercent
   function test_GetUnlockedPercentage_BaseCliffSlope_FractionalCliff() public {
     TestCase[] memory testCases = new TestCase[](5);
     //---------------------| Cliff | Slope | Expected %         |
-    testCases[0] = TestCase( 2,      0,      242857142857142857 ); // no slope
-    testCases[1] = TestCase( 2,      2,      314285714285714285 ); // fractional slope
-    testCases[2] = TestCase( 2,      7,      492857142857142857 ); // half slope
-    testCases[3] = TestCase( 2,      14,     742857142857142857 ); // full slope
-    testCases[4] = TestCase( 2,      20,     742857142857142857 ); // excede slope
+    testCases[0] = TestCase(2, 0, 242857142857142857); // no slope
+    testCases[1] = TestCase(2, 2, 314285714285714285); // fractional slope
+    testCases[2] = TestCase(2, 7, 492857142857142857); // half slope
+    testCases[3] = TestCase(2, 14, 742857142857142857); // full slope
+    testCases[4] = TestCase(2, 20, 742857142857142857); // excede slope
     run(testCases);
   }
 
@@ -52,24 +52,23 @@ contract GetUnlockedPercentage_BaseCliffSlope_Airgrab_Test is GetUnlockedPercent
   function test_GetUnlockedPercentage_BaseCliffSlope_HalfCliff() public {
     TestCase[] memory testCases = new TestCase[](5);
     //---------------------| Cliff | Slope | Expected %         |
-    testCases[0] = TestCase( 7,      0,      35e16              ); // no slope
-    testCases[1] = TestCase( 7,      2,      421428571428571428 ); // fractional slope
-    testCases[2] = TestCase( 7,      7,      60e16              ); // half slope
-    testCases[3] = TestCase( 7,      14,     85e16              ); // full slope
-    testCases[4] = TestCase( 7,      20,     85e16              ); // excede slope
+    testCases[0] = TestCase(7, 0, 35e16); // no slope
+    testCases[1] = TestCase(7, 2, 421428571428571428); // fractional slope
+    testCases[2] = TestCase(7, 7, 60e16); // half slope
+    testCases[3] = TestCase(7, 14, 85e16); // full slope
+    testCases[4] = TestCase(7, 20, 85e16); // excede slope
     run(testCases);
   }
-
 
   /// @notice full cliff and variations of slope
   function test_GetUnlockedPercentage_BaseCliffSlope_FullCliff() public {
     TestCase[] memory testCases = new TestCase[](5);
     //---------------------| Cliff | Slope | Expected %         |
-    testCases[0] = TestCase( 14,     0,      50e16              ); // no slope
-    testCases[1] = TestCase( 14,     2,      571428571428571428 ); // fractional slope
-    testCases[2] = TestCase( 14,     7,      75e16              ); // half slope
-    testCases[3] = TestCase( 14,     14,     100e16             ); // full slope
-    testCases[4] = TestCase( 14,     20,     100e16             ); // excede slope
+    testCases[0] = TestCase(14, 0, 50e16); // no slope
+    testCases[1] = TestCase(14, 2, 571428571428571428); // fractional slope
+    testCases[2] = TestCase(14, 7, 75e16); // half slope
+    testCases[3] = TestCase(14, 14, 100e16); // full slope
+    testCases[4] = TestCase(14, 20, 100e16); // excede slope
     run(testCases);
   }
 
@@ -77,11 +76,11 @@ contract GetUnlockedPercentage_BaseCliffSlope_Airgrab_Test is GetUnlockedPercent
   function test_GetUnlockedPercentage_BaseCliffSlope_ExceedCliff() public {
     TestCase[] memory testCases = new TestCase[](5);
     //---------------------| Cliff | Slope | Expected %         |
-    testCases[0] = TestCase( 14,     0,      50e16              ); // no slope
-    testCases[1] = TestCase( 14,     2,      571428571428571428 ); // fractional slope
-    testCases[2] = TestCase( 14,     7,      75e16              ); // half slope
-    testCases[3] = TestCase( 14,     14,     100e16             ); // full slope
-    testCases[4] = TestCase( 14,     20,     100e16             ); // excede slope
+    testCases[0] = TestCase(14, 0, 50e16); // no slope
+    testCases[1] = TestCase(14, 2, 571428571428571428); // fractional slope
+    testCases[2] = TestCase(14, 7, 75e16); // half slope
+    testCases[3] = TestCase(14, 14, 100e16); // full slope
+    testCases[4] = TestCase(14, 20, 100e16); // excede slope
     run(testCases);
   }
 }

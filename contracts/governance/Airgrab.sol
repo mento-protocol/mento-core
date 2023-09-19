@@ -310,7 +310,7 @@ contract Airgrab is Ownable {
       }
     }
 
-    if (slopePercentage > 0 ) {
+    if (slopePercentage > 0) {
       if (slope >= requiredSlopePeriod) {
         unlockedPercentage += slopePercentage;
       } else if (slope != 0) {

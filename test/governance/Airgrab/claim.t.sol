@@ -196,7 +196,7 @@ contract Claim_Airgrab_Test is Airgrab_Test {
   function test_Claim_withLockingNoCliffAndHalfSlope() external whenValidClaim {
     cliff = 0;
     slope = 7;
-    expectClaimAndLock((claimer0Amount * 50) / 100); 
+    expectClaimAndLock((claimer0Amount * 50) / 100);
   }
 
   /// @notice When the claimer doesn't lock, they instantly get
