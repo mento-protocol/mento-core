@@ -143,7 +143,7 @@ contract Airgrab is Ownable {
    * the provided cliff and slope, and then either transfer dirrectly if the claimer
    * has chosen no cliff and no slope, or lock the tokens in the locking contract.
    * @notice This function can be called by anybody, but the (account, amount) pair
-   * must be in the merkle tree, has to not have claimed yet, and must have 
+   * must be in the merkle tree, has to not have claimed yet, and must have
    * an associated KYC signature from Fractal. And the airgrab must not have ended.
    * @param account The address of the account to claim tokens for.
    * @param amount The amount of tokens to be claimed.
