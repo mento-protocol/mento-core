@@ -53,16 +53,18 @@ contract Airgrab is Ownable {
   address payable public immutable treasury;
   /// @notice The timestamp when the airgrab ends.
   uint256 public immutable endTimestamp;
-  /// @notice The minimum percentage that will be received irrespective of locking
-  uint256 public immutable basePercentage;
-  /// @notice The percentage that will be received based on the cliff period
-  uint256 public immutable cliffPercentage;
-  /// @notice The minimum cliff period required to receive the full cliffPercentage
-  uint32 public immutable requiredCliffPeriod;
-  /// @notice The precentage that will be received based on the slop period
-  uint256 public immutable slopePercentage;
   /// @notice The minimum slope period required to receive the full slopePercentage
   uint32 public immutable requiredSlopePeriod;
+  /// @notice The minimum cliff period required to receive the full cliffPercentage
+  uint32 public immutable requiredCliffPeriod;
+  /// @notice The minimum percentage that will be received irrespective of locking
+  uint256 public immutable basePercentage;
+  /// @notice The percentage that will be received if tokens are locked for any period
+  uint256 public immutable lockPercentage;
+  /// @notice The percentage that will be received based on the cliff period
+  uint256 public immutable cliffPercentage;
+  /// @notice The precentage that will be received based on the slop period
+  uint256 public immutable slopePercentage;
   /// @notice The map of addresses that have claimed
   mapping(address => bool) public claimed;
   /// @notice The token in the airgrab.
@@ -89,9 +91,10 @@ contract Airgrab is Ownable {
     address payable treasury_,
     uint256 endTimestamp_,
     uint256 basePercentage_,
+    uint256 lockPercentage_,
     uint256 cliffPercentage_,
-    uint32 requiredCliffPeriod_,
     uint256 slopePercentage_,
+    uint32 requiredCliffPeriod_,
     uint32 requiredSlopePeriod_
   ) {
     require(root_ != bytes32(0), "Airgrab: invalid root");
@@ -100,11 +103,14 @@ contract Airgrab is Ownable {
     require(treasury_ != address(0), "Airgrab: invalid treasury");
     require(endTimestamp_ > block.timestamp, "Airgrab: invalid end timestamp");
     require(
-      basePercentage_ + cliffPercentage_ + slopePercentage_ == PRECISION,
+      basePercentage_ + lockPercentage_ + cliffPercentage_ + slopePercentage_ == PRECISION,
       "Airgrab: unlock percentages must add up to 1"
     );
     require(requiredCliffPeriod_ <= MAX_CLIFF_PERIOD, "Airgrab: required cliff period too large");
     require(requiredSlopePeriod_ <= MAX_SLOPE_PERIOD, "Airgrab: required slope period too large");
+    // require(requiredCliffPeriod_ + requiredSlopePeriod_ > 0 || lockPercentage_ == 0, "Airgrab: lock percentage set without requirement");
+    // require(requiredSlopePeriod_ > 0 || slopePercentage_ == 0, "Airgrab: slope percentage set without requirement");
+    // require(requiredCliffPeriod_ > 0 || cliffPercentage_ == 0, "Airgrab: cliff percentage set without requirement");
 
     root = root_;
     fractalIssuer = fractalIssuer_;
@@ -112,9 +118,10 @@ contract Airgrab is Ownable {
     treasury = treasury_;
     endTimestamp = endTimestamp_;
     basePercentage = basePercentage_;
+    lockPercentage = lockPercentage_;
     cliffPercentage = cliffPercentage_;
-    requiredCliffPeriod = requiredCliffPeriod_;
     slopePercentage = slopePercentage_;
+    requiredCliffPeriod = requiredCliffPeriod_;
     requiredSlopePeriod = requiredSlopePeriod_;
   }
 
@@ -180,7 +187,9 @@ contract Airgrab is Ownable {
     claimed[account] = true;
 
     if (slope + cliff == 0) {
-      token.safeTransfer(account, unlockedAmount);
+      if (unlockedAmount > 0) {
+        token.safeTransfer(account, unlockedAmount);
+      }
     } else {
       lockingContract.lock(account, address(0), uint96(unlockedAmount), slope, cliff);
     }
@@ -221,35 +230,10 @@ contract Airgrab is Ownable {
   /**
    * @notice Calculate the total unlocked amount based on the selected values for
    * slope and cliff and the percentage settings that the contract was deployed with.
-   * @dev The logic behind this is that the unlocked amount has three components:
-   * the base, cliff and slope percentages, which add up to 100%.
-   *
-   *  <------------------------ 100% ---------------------------->
-   * | basePercentage |   cliffPercentage    |   slopePercentage  |
-   *
-   * The base percentage is always unlocked, and the cliff and slope percentages
-   * are scaled linearly by the duration of the cliff and slope lock periods.
-   *
-   * unlockedPercentage =
-   *   basePercentage +
-   *   (cliff/requiredCliffPeriod) * cliffPercentage +
-   *   (slope/requiredSlopePeriod) * slopePercentage
-   * unlockedAmount = amount * unlockedPercentage
-   *
-   * **Example:**
-   * basePercentage = 20%
-   * cliffPercentage = 30%
-   * slopePercentage = 50%
-   * requiredSlopePeriod = 14 (~3months)
-   * requiredCliffPeriod = 14 (~3months)
-   *
-   * | cliff | slope | unlockedPercentage     |
-   * |-------|-------|------------------------|
-   * | 0     | 0     | 20% +  0% +  0% =  20% |
-   * | 0     | 7     | 20% +  0% + 25% =  45% |
-   * | 14    | 0     | 20% + 30% +  0% =  50% |
-   * | 14    | 14    | 20% + 30% + 50% = 100% |
-   *
+   * @dev If there's no cliff and slope requirement the total amount is unlocked,
+   * otherwise the unlocked percentage is calculated and the total amount is scaled
+   * according to that. See `getUnlockedPercentage` for details on the percentage
+   * calculation.
    * @param amount The total amount that can be unlocked
    * @param slope The selected slope period
    * @param cliff The selected cliff period
@@ -259,24 +243,79 @@ contract Airgrab is Ownable {
     uint32 slope,
     uint32 cliff
   ) public view returns (uint256 unlockedAmount) {
-    uint256 unlockedPercentage = basePercentage;
-
-    if (cliff >= requiredCliffPeriod) {
-      unlockedPercentage += cliffPercentage;
-    } else {
-      unlockedPercentage += (uint256(cliff) * cliffPercentage) / uint256(requiredCliffPeriod);
+    if (requiredCliffPeriod + requiredSlopePeriod == 0) {
+      return amount;
     }
 
-    if (slope >= requiredSlopePeriod) {
-      unlockedPercentage += slopePercentage;
-    } else {
-      unlockedPercentage += (uint256(slope) * slopePercentage) / uint256(requiredSlopePeriod);
-    }
+    uint256 unlockedPercentage = getUnlockedPercentage(slope, cliff);
 
     if (unlockedPercentage >= PRECISION) {
       unlockedAmount = amount;
     } else {
       unlockedAmount = (amount * unlockedPercentage) / PRECISION;
+    }
+  }
+
+  /**
+   * @notice Calculate the unlocked percentage based on the selected values for
+   * slope and cliff and the percentage settings that the contract was deployed with.
+   * @dev The logic behind this is that the total percentage is composed of
+   * the base, lock, cliff and slope percentages, which add up to 100%.
+   *
+   *  <------------------------ 100% ---------------------------->
+   * | basePct | lockPct    | cliffPct      |   slopePct          |
+   *
+   * The base percentage is always unlocked, the lockPct is unlocked if the there's
+   * any slope or cliff duration, i.e. any lock, and the cliff and slope percentages
+   * are scaled linearly by the duration of the cliff and slope lock periods.
+   *
+   * unlockedPercentage =
+   *   basePercentage +
+   *   lockPercentage * (cliff + slope > 0 ? 1 : 0) +
+   *   cliffPercentage * (cliff/requiredCliffPeriod) +
+   *   slopePercentage * (slope/requiredSlopePeriod)
+   *
+   * **Example:**
+   * basePercentage = 20%
+   * lockPercentage = 10%
+   * cliffPercentage = 30%
+   * slopePercentage = 40%
+   * requiredSlopePeriod = 14 (~3months)
+   * requiredCliffPeriod = 14 (~3months)
+   *
+   * | cliff | slope | unlockedPercentage           |
+   * |-------|-------|------------------------------|
+   * | 0     | 0     | 20% +  0% +  0% +  0% =  20% |
+   * | 0     | 7     | 20% + 10% +  0% + 20% =  50% |
+   * | 14    | 0     | 20% + 10% + 30% +  0% =  60% |
+   * | 14    | 14    | 20% + 10% + 30% + 50% = 100% |
+   *
+   * @param slope The selected slope period
+   * @param cliff The selected cliff period
+   */
+  function getUnlockedPercentage(uint32 slope, uint32 cliff) public view returns (uint256 unlockedPercentage) {
+    unlockedPercentage = basePercentage;
+
+    if (cliff + slope == 0) {
+      return unlockedPercentage;
+    }
+
+    unlockedPercentage += lockPercentage;
+
+    if (cliffPercentage > 0) {
+      if (cliff >= requiredCliffPeriod) {
+        unlockedPercentage += cliffPercentage;
+      } else if (cliff != 0) {
+        unlockedPercentage += (uint256(cliff) * cliffPercentage) / uint256(requiredCliffPeriod);
+      }
+    }
+
+    if (slopePercentage > 0 ) {
+      if (slope >= requiredSlopePeriod) {
+        unlockedPercentage += slopePercentage;
+      } else if (slope != 0) {
+        unlockedPercentage += (uint256(slope) * slopePercentage) / uint256(requiredSlopePeriod);
+      }
     }
   }
 

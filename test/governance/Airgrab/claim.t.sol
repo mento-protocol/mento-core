@@ -148,7 +148,7 @@ contract Claim_Airgrab_Test is Airgrab_Test {
   function test_Claim_withLockingFullCliffAndHalfSlope() external whenValidClaim {
     cliff = 14;
     slope = 7;
-    expectClaimAndLock((claimer0Amount * 75) / 100); // 75%
+    expectClaimAndLock((claimer0Amount * 80) / 100);
   }
 
   /// @notice When the claimer locks for full cliff and no slope
@@ -156,7 +156,7 @@ contract Claim_Airgrab_Test is Airgrab_Test {
   function test_Claim_withLockingFullCliffAndNoSlope() external whenValidClaim {
     cliff = 14;
     slope = 0;
-    expectClaimAndLock((claimer0Amount * 50) / 100); // 50%
+    expectClaimAndLock((claimer0Amount * 60) / 100);
   }
 
   /// @notice When the claimer locks for half cliff and full slope
@@ -164,7 +164,7 @@ contract Claim_Airgrab_Test is Airgrab_Test {
   function test_Claim_withLockingHalfCliffAndFullSlope() external whenValidClaim {
     cliff = 7;
     slope = 14;
-    expectClaimAndLock((claimer0Amount * 85) / 100); // 85%
+    expectClaimAndLock((claimer0Amount * 85) / 100);
   }
 
   /// @notice When the claimer locks for half the cliff and half the slope,
@@ -172,7 +172,7 @@ contract Claim_Airgrab_Test is Airgrab_Test {
   function test_Claim_withLockingHalfCliffAndHalfSlope() external whenValidClaim {
     cliff = 7;
     slope = 7;
-    expectClaimAndLock((claimer0Amount * 6) / 10); // 60%
+    expectClaimAndLock((claimer0Amount * 65) / 100);
   }
 
   /// @notice When the claimer locks for full cliff and no slope
@@ -180,7 +180,7 @@ contract Claim_Airgrab_Test is Airgrab_Test {
   function test_Claim_withLockingHalfCliffAndNoSlope() external whenValidClaim {
     cliff = 7;
     slope = 0;
-    expectClaimAndLock((claimer0Amount * 35) / 100); // 35%
+    expectClaimAndLock((claimer0Amount * 45) / 100);
   }
 
   /// @notice When the claimer locks for full cliff and full slope
@@ -188,7 +188,7 @@ contract Claim_Airgrab_Test is Airgrab_Test {
   function test_Claim_withLockingNoCliffAndFullSlope() external whenValidClaim {
     cliff = 0;
     slope = 14;
-    expectClaimAndLock((claimer0Amount * 70) / 100); // 70%
+    expectClaimAndLock((claimer0Amount * 70) / 100);
   }
 
   /// @notice When the claimer locks for full cliff and partial slope
@@ -196,7 +196,7 @@ contract Claim_Airgrab_Test is Airgrab_Test {
   function test_Claim_withLockingNoCliffAndHalfSlope() external whenValidClaim {
     cliff = 0;
     slope = 7;
-    expectClaimAndLock((claimer0Amount * 45) / 100); // 45%
+    expectClaimAndLock((claimer0Amount * 50) / 100); 
   }
 
   /// @notice When the claimer doesn't lock, they instantly get

@@ -3,6 +3,7 @@
 pragma solidity 0.8.18;
 
 import { Airgrab_Test } from "./Base.t.sol";
+import { console } from "forge-std-next/console.sol";
 
 contract GetUnlockedAmount_Airgrab_Test is Airgrab_Test {
   /// @notice Test subject parameters
@@ -15,156 +16,36 @@ contract GetUnlockedAmount_Airgrab_Test is Airgrab_Test {
     return airgrab.getUnlockedAmount(amount, slope, cliff);
   }
 
-  /// @notice With only base as 100%, does not scale down the amount
-  function test_GetUnlockedAmount_BaseAt100pc() public {
-    basePercentage = 1e18; // 100%
-    cliffPercentage = 0;
-    slopePercentage = 0;
+  /// @notice When there's no required cliff and slope, returns the full amount
+  function test_GetUnlockedAmount_whenNoLockRequired_Fuzz(uint256 amount_, uint32 cliff_, uint32 slope_) public {
+    vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
+    vm.assume(slope_ <= MAX_SLOPE_PERIOD);
+
+    requiredCliffPeriod = 0;
+    requiredSlopePeriod = 0;
     initAirgrab();
 
-    amount = 1e18;
-    assertEq(subject(), 1e18);
+    amount = amount_;
+    slope = slope_;
+    cliff = cliff_;
+    assertEq(subject(), amount_);
   }
 
-  /// @notice When base:20% cliff:30% slope:50 and tokens are not
-  /// being locked at all, it returns 20% of the claimable amount.
-  function test_GetUnlockedAmount_BaseAt20pc() public {
-    basePercentage = 20 * 1e16; // 20%
-    cliffPercentage = 30 * 1e16; // 30%
-    slopePercentage = 50 * 1e16; // 50%
-    initAirgrab();
+  /// @notice When there's a required cliff and slope, uses the percentage to scale the amount
+  function test_GetUnlockedAmount_whenLockRequired_Fuzz(uint256 amount_, uint32 cliff_, uint32 slope_) public {
+    vm.assume(amount_ <= type(uint96).max);
+    vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
+    vm.assume(slope_ <= MAX_SLOPE_PERIOD);
 
-    amount = 1e18;
-    assertEq(subject(), 2e17); // 20% * 1e18
-  }
-
-  /// @notice When base:20% cliff:80% slope:0% and tokens are
-  /// getting locked for the full cliff requirement, it
-  /// returns 100% of the claimable amount.
-  function test_GetUnlockedAmount_BaseAt20pcAndFullCliff() public {
-    basePercentage = 20 * 1e16; // 20%
-    cliffPercentage = 80 * 1e16; // 80%
-    slopePercentage = 0; // 0%
-    requiredCliffPeriod = 14;
-    initAirgrab();
-
-    amount = 1e18;
-    cliff = 14; // -0%
-    assertEq(subject(), 1e18);
-  }
-
-  /// @notice When base:20% cliff:80% slope:0% and tokens are
-  /// getting locked for more than the cliff requirement, it
-  /// returns 100% of the claimable amount.
-  function test_GetUnlockedAmount_BaseAt20pcAndMoreThenCliff() public {
-    basePercentage = 20 * 1e16; // 20%
-    cliffPercentage = 80 * 1e16; // 80%
-    slopePercentage = 0; // 0%
-    requiredCliffPeriod = 14;
-    initAirgrab();
-
-    amount = 1e18;
-    cliff = 20; // -0%
-    assertEq(subject(), 1e18);
-  }
-
-  /// @notice When base:20% cliff:80% slope:0% and tokens are
-  /// being locked for half of the cliff requirement, it
-  /// returns 60% (= base + 1/2*cliff) of the claimable tokens.
-  function test_GetUnlockedAmount_BaseAt20pcAndHalfCliff() public {
-    basePercentage = 20 * 1e16; // 20%
-    cliffPercentage = 80 * 1e16; // 80%
-    slopePercentage = 0; // 0%
-    requiredCliffPeriod = 14;
-    initAirgrab();
-
-    amount = 1e18;
-    cliff = 7; // -40%
-    assertEq(subject(), 6e17); // 60%
-  }
-
-  /// @notice When base:20% cliff:80% slope:0% and tokens are
-  /// being locked for 2/14 of the cliff requirement, it
-  /// returns ~31.428% (= base + 2/14*cliff) of the claimable tokens.
-  function test_GetUnlockedAmount_BaseAt20pcAndSmallCliff() public {
-    basePercentage = 20 * 1e16; // 20%
-    cliffPercentage = 80 * 1e16; // 80%
-    slopePercentage = 0; // 0%
-    requiredCliffPeriod = 14;
-    initAirgrab();
-
-    amount = 1e18;
-    cliff = 2; // -(80/7)%
-    assertEq(subject(), 314285714285714285);
-  }
-
-  /// @notice When base:20% cliff:30% slope:50% and tokens are
-  /// being locked for the full cliff requirement and half of the slope
-  /// requirement, it returns 75% (= base + cliff + 1/2 slope)
-  //// of the claimable tokens.
-  function test_GetUnlockedAmount_BaseAt20pcFullCliffAndPartialSlope() public {
-    basePercentage = 20 * 1e16; // 20%
-    cliffPercentage = 30 * 1e16; // 30%
-    slopePercentage = 50 * 1e16; // 30%
     requiredCliffPeriod = 14;
     requiredSlopePeriod = 14;
     initAirgrab();
 
-    amount = 1e18;
-    cliff = 14; // -0%
-    slope = 7; // -25%
-    assertEq(subject(), 75 * 1e16);
-  }
+    uint256 unlockedPercentage = airgrab.getUnlockedPercentage(slope_, cliff_);
 
-  /// @notice When base:20% cliff:30% slope:50% and tokens are
-  /// being locked for the full cliff requirement and the full
-  /// slope requirement, it returns 100% of the claimable tokens.
-  function test_GetUnlockedAmount_BaseAt20pcFullCliffAndFullSlope() public {
-    basePercentage = 20 * 1e16; // 20%
-    cliffPercentage = 30 * 1e16; // 30%
-    slopePercentage = 50 * 1e16; // 30%
-    requiredCliffPeriod = 14;
-    requiredSlopePeriod = 14;
-    initAirgrab();
-
-    amount = 1e18;
-    cliff = 14; // -0%
-    slope = 14; // -0%
-    assertEq(subject(), 1e18);
-  }
-
-  /// @notice When base:20% cliff:30% slope:50% and tokens are
-  /// being locked for more than the cliff requirement and more than
-  /// the slope requirement, it returns 100% of the claimable tokens.
-  function test_GetUnlockedAmount_BaseAt20pcOverCliffAndOverSlope() public {
-    basePercentage = 20 * 1e16; // 20%
-    cliffPercentage = 30 * 1e16; // 30%
-    slopePercentage = 50 * 1e16; // 30%
-    requiredCliffPeriod = 14;
-    requiredSlopePeriod = 14;
-    initAirgrab();
-
-    amount = 1e18;
-    cliff = 20; // -0%
-    slope = 20; // -0%
-    assertEq(subject(), 1e18);
-  }
-
-  /// @notice When base:20% cliff:30% slope:50% and tokens are
-  /// being locked for half of the cliff requirement and half of
-  /// the slope requirement, it returns 60% (= base + 1/2 cliff + 1/2 slope)
-  // of the claimable tokens;
-  function test_GetUnlockedAmount_BaseAt20pcParialCliffParialSlope() public {
-    basePercentage = 20 * 1e16; // 20%
-    cliffPercentage = 30 * 1e16; // 30%
-    slopePercentage = 50 * 1e16; // 30%
-    requiredCliffPeriod = 14;
-    requiredSlopePeriod = 14;
-    initAirgrab();
-
-    amount = 1e18;
-    cliff = 7; // -15%
-    slope = 7; // -25%
-    assertEq(subject(), 6 * 1e17); // -40%
+    amount = amount_;
+    slope = slope_;
+    cliff = cliff_;
+    assertEq(subject(), amount_ * unlockedPercentage / 1e18);
   }
 }

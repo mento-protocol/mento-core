@@ -43,8 +43,9 @@ contract Airgrab_Test is Test {
   uint256 public endTimestamp = block.timestamp + 1 days;
 
   uint256 basePercentage = 20 * 1e16; // 20% with 1e18 precission
+  uint256 lockPercentage = 10 * 1e16; // 10% with 1e18 precision
   uint256 cliffPercentage = 30 * 1e16; // 30% with 1e18 precision
-  uint256 slopePercentage = 50 * 1e16; // 50% with 1e18 precision
+  uint256 slopePercentage = 40 * 1e16; // 40% with 1e18 precision
 
   uint32 requiredCliffPeriod = 14; // 14 weeks ~= 3months
   uint32 requiredSlopePeriod = 14; // 14 weeks ~= 3months
@@ -66,9 +67,10 @@ contract Airgrab_Test is Test {
       treasury,
       endTimestamp,
       basePercentage,
+      lockPercentage,
       cliffPercentage,
-      requiredCliffPeriod,
       slopePercentage,
+      requiredCliffPeriod,
       requiredSlopePeriod
     );
   }
