@@ -72,8 +72,7 @@ contract Airgrab is Ownable {
 
   /**
    * @dev Constructor for the Airgrab contract.
-   * @notice It checks and configures all immutable params and gives infinite approval to the
-   * locking contract.
+   * @notice It checks and configures all immutable params
    * @param root_ The root of the merkle tree.
    * @param fractalIssuer_ The Fractal.id message signer for KYC/KYB.
    * @param treasury_ The treasury address where the tokens will be refunded.
