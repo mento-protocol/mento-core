@@ -108,9 +108,6 @@ contract Airgrab is Ownable {
     );
     require(requiredCliffPeriod_ <= MAX_CLIFF_PERIOD, "Airgrab: required cliff period too large");
     require(requiredSlopePeriod_ <= MAX_SLOPE_PERIOD, "Airgrab: required slope period too large");
-    // require(requiredCliffPeriod_ + requiredSlopePeriod_ > 0 || lockPercentage_ == 0, "Airgrab: lock percentage set without requirement");
-    // require(requiredSlopePeriod_ > 0 || slopePercentage_ == 0, "Airgrab: slope percentage set without requirement");
-    // require(requiredCliffPeriod_ > 0 || cliffPercentage_ == 0, "Airgrab: cliff percentage set without requirement");
 
     root = root_;
     fractalIssuer = fractalIssuer_;
