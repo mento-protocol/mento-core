@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-
-import { GovernorUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/GovernorUpgradeable.sol";
+// solhint-disable max-line-length
+import { GovernorUpgradeable, IGovernorUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/GovernorUpgradeable.sol";
 import { GovernorCompatibilityBravoUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/compatibility/GovernorCompatibilityBravoUpgradeable.sol";
-import { GovernorVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
+import { GovernorVotesUpgradeable, IVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
 import { GovernorVotesQuorumFractionUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesQuorumFractionUpgradeable.sol";
 import { GovernorTimelockControlUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorTimelockControlUpgradeable.sol";
-import { TimelockControllerUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/TimelockControllerUpgradeable.sol";
-import { IVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/utils/IVotesUpgradeable.sol";
-import { IGovernorUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/IGovernorUpgradeable.sol";
-import { IERC165Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/interfaces/IERC165Upgradeable.sol";
+import { TimelockControllerUpgradeable, IERC165Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/TimelockControllerUpgradeable.sol";
 
 contract MentoGovernor is
   GovernorUpgradeable,
