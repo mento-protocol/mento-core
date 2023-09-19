@@ -139,11 +139,12 @@ contract Airgrab is Ownable {
 
   /**
    * @dev Allows `account` to claim `amount` tokens if the merkle proof and kyc is valid.
-   * The function will either calcualte what portions of tokens gets unlocked depending on
-   * the provided cliff and slope, and they either transfer dirrectly if the claimer
-   * has chose no cliff and no slpe, or lock the tokens in the locking contract.
-   * @notice This function can only be called by the Fractal.id message signer and
-   * only if the airgrab hasn't ended yet.
+   * The function will calculate what portions of tokens gets unlocked depending on
+   * the provided cliff and slope, and then either transfer dirrectly if the claimer
+   * has chosen no cliff and no slope, or lock the tokens in the locking contract.
+   * @notice This function can be called by anybody, but the (account, amount) pair
+   * must be in the merkle tree, has to not have claimed yet, and must have 
+   * an associated KYC signature from Fractal. And the airgrab must not have ended.
    * @param account The address of the account to claim tokens for.
    * @param amount The amount of tokens to be claimed.
    * @param merkleProof The merkle proof for the account.
@@ -195,7 +196,7 @@ contract Airgrab is Ownable {
   }
 
   /**
-   * @dev Allows the treasury to reclaim any tokens left
+   * @dev Allows the treasury to reclaim any tokens after the airgrab has ended.
    * @notice This function can only be called if the airgrab has ended.
    * The function takes a token as a param in case the contract has been sent
    * tokens other than the airgrab token.
@@ -210,7 +211,7 @@ contract Airgrab is Ownable {
 
   /**
    * @dev Check if the account is included in the airgrab.
-   * @notice This function checks the merkletree with the data provided.
+   * @notice This function checks the MerkleTree for the (account, ammount) pair.
    * @param account The address of the account to check.
    * @param amount The amount of tokens to be claimed.
    * @param merkleProof The merkle proof for the account.
