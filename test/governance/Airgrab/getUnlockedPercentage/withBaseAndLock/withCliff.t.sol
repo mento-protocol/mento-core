@@ -35,7 +35,7 @@ contract GetUnlockedPercentage_BaseLockCliff_Airgrab_Test is GetUnlockedPercenta
   /// @notice variations of cliff
   function test_GetUnlockedPercentage_BaseLockCliff() public {
     TestCase[] memory testCases = new TestCase[](5);
-    //---------------------| Cliff | Slope | Expected %         |
+    // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 10e16); // no cliff
     testCases[1] = TestCase(2, 0, 314285714285714285); // fractional cliff
     testCases[2] = TestCase(7, 0, 60e16); // half cliff

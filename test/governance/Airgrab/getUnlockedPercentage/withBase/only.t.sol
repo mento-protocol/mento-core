@@ -26,7 +26,7 @@ contract GetUnlockedPercentage_Base_Airgrab_Test is GetUnlockedPercentage_Airgra
   /// @notice variatons of lock
   function test_GetUnlockedPercentage_Base() public {
     TestCase[] memory testCases = new TestCase[](4);
-    //---------------------| Cliff | Slope | Expected % |
+    // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 100e16); // no lock
     testCases[1] = TestCase(1, 0, 100e16); // cliff lock
     testCases[2] = TestCase(0, 1, 100e16); // slope lock

@@ -30,7 +30,7 @@ contract GetUnlockedPercentage_Slope_Airgrab_Test is GetUnlockedPercentage_Airgr
   /// @notice variations of slope
   function test_GetUnlockedPercentage_Slope() public {
     TestCase[] memory testCases = new TestCase[](5);
-    //---------------------| Cliff | Slope | Expected %         |
+    // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 0); // no slope
     testCases[1] = TestCase(0, 2, 142857142857142857); // fractional slope
     testCases[2] = TestCase(0, 7, 50e16); // half slope

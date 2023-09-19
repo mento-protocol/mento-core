@@ -30,14 +30,12 @@ contract GetUnlockedPercentage_Cliff_Airgrab_Test is GetUnlockedPercentage_Airgr
   /// @notice variations of cliff
   function test_GetUnlockedPercentage_Cliff() public {
     TestCase[] memory testCases = new TestCase[](5);
-    //---------------------| Cliff | Slope | Expected % |
-    // prettier-ignore-start
-    testCases[0] = TestCase( 0,      0,     0           ); // no cliff
+    // TestCase(cliff, slope, expectedPercentage)
+    testCases[0] = TestCase(0, 0, 0); // no cliff
     testCases[1] = TestCase(2, 0, 142857142857142857); // fractional cliff
     testCases[2] = TestCase(7, 0, 50e16); // half cliff
     testCases[3] = TestCase(14, 0, 100e16); // full cliff
     testCases[4] = TestCase(20, 0, 100e16); // excede cliff
-    // prettier-ignore-end
     run(testCases);
   }
 }
