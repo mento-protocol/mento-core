@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable max-line-length
 import { GovernorUpgradeable, IGovernorUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/GovernorUpgradeable.sol";
+import { GovernorSettingsUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorSettingsUpgradeable.sol";
 import { GovernorCompatibilityBravoUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/compatibility/GovernorCompatibilityBravoUpgradeable.sol";
 import { GovernorVotesUpgradeable, IVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
 import { GovernorVotesQuorumFractionUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesQuorumFractionUpgradeable.sol";
@@ -10,6 +11,7 @@ import { TimelockControllerUpgradeable, IERC165Upgradeable } from "openzeppelin-
 
 contract MentoGovernor is
   GovernorUpgradeable,
+  GovernorSettingsUpgradeable,
   GovernorCompatibilityBravoUpgradeable,
   GovernorVotesUpgradeable,
   GovernorVotesQuorumFractionUpgradeable,
@@ -20,22 +22,33 @@ contract MentoGovernor is
     initializer
   {
     __Governor_init("MentoGovernor");
+    __GovernorSettings_init(
+      17280, // 1 day in Celo TBD
+      120960, // 1 week in Celo TBD
+      1000e18 // proposal threashold TBD
+    );
+
     __GovernorCompatibilityBravo_init();
     __GovernorVotes_init(token_);
-    __GovernorVotesQuorumFraction_init(10);
+    __GovernorVotesQuorumFraction_init(10); //  10% TBD
     __GovernorTimelockControl_init(timelock_);
   }
 
-  function votingDelay() public view virtual override returns (uint256) {
-    return 0; // TBD
+  function votingDelay() public view override(IGovernorUpgradeable, GovernorSettingsUpgradeable) returns (uint256) {
+    return super.votingDelay();
   }
 
-  function votingPeriod() public pure virtual override returns (uint256) {
-    return 120960; // TBD: week
+  function votingPeriod() public view override(IGovernorUpgradeable, GovernorSettingsUpgradeable) returns (uint256) {
+    return super.votingPeriod();
   }
 
-  function proposalThreshold() public pure virtual override returns (uint256) {
-    return 1337 * 1e18; // TBD
+  function proposalThreshold()
+    public
+    view
+    override(GovernorUpgradeable, GovernorSettingsUpgradeable)
+    returns (uint256)
+  {
+    return super.proposalThreshold();
   }
 
   // The functions below are overrides required by Solidity.
