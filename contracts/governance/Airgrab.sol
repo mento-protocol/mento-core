@@ -16,7 +16,7 @@ import { ILocking } from "locking-contracts/ILocking.sol";
  * The airgrab also forces claimers to immediately lock their tokens as veTokens otherwise
  * their amount to claim gets scaled depending on the chosen cliff and slope periods,
  * see the `getUnlockedAmount` for more details.
- * @dev The contract is only Ownable and Initializable because of the circular dependency
+ * @dev The contract is only Ownable because of the circular dependency
  * between Token and Airgrab. We use the initialize method to set the token address
  * after the Token contract has been deployed, and renounce ownership.
  */
