@@ -76,11 +76,11 @@ contract GetUnlockedPercentage_CliffSlope_Airgrab_Test is GetUnlockedPercentage_
   function test_GetUnlockedPercentage_CliffSlope_ExceedCliff() public {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
-    testCases[0] = TestCase(14, 0, 40e16); // no slope
-    testCases[1] = TestCase(14, 2, 485714285714285714); // fractional slope
-    testCases[2] = TestCase(14, 7, 70e16); // half slope
-    testCases[3] = TestCase(14, 14, 100e16); // full slope
-    testCases[4] = TestCase(14, 20, 100e16); // excede slope
+    testCases[0] = TestCase(20, 0, 40e16); // no slope
+    testCases[1] = TestCase(20, 2, 485714285714285714); // fractional slope
+    testCases[2] = TestCase(20, 7, 70e16); // half slope
+    testCases[3] = TestCase(20, 14, 100e16); // full slope
+    testCases[4] = TestCase(20, 20, 100e16); // excede slope
     run(testCases);
   }
 }
