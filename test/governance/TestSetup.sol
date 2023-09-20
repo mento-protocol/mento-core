@@ -3,13 +3,20 @@
 pragma solidity 0.8.18;
 
 import { Test } from "forge-std-next/Test.sol";
-
+import { IVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
 import { Emission } from "contracts/governance/Emission.sol";
+import { TimelockController } from "contracts/governance/TimelockController.sol";
+import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
+import { MockVeMento } from "../mocks/MockVeMento.sol";
 
 contract TestSetup is Test {
   MentoToken public mentoToken;
   Emission public emission;
+  TimelockController public timelockController;
+  MentoGovernor public mentoGovernor;
+
+  MockVeMento public mockVeMento; // TODO: change mock with locking contracts
 
   address public immutable vestingContract = makeAddr("vestingContract");
   address public immutable airgrabContract = makeAddr("airgrabContract");

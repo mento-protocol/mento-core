@@ -4,7 +4,7 @@ pragma solidity 0.8.18;
 
 import { TimelockControllerUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/TimelockControllerUpgradeable.sol";
 
-contract MentoTimelockController is TimelockControllerUpgradeable {
+contract TimelockController is TimelockControllerUpgradeable {
   function __MentoTimelockController_init(
     uint256 minDelay, // TBD
     address[] memory proposers,

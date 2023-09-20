@@ -23,9 +23,9 @@ contract MentoGovernor is
   {
     __Governor_init("MentoGovernor");
     __GovernorSettings_init(
-      17280, // 1 day in Celo TBD
-      120960, // 1 week in Celo TBD
-      1000e18 // proposal threashold TBD
+      17_280, // 1 day in Celo TBD
+      120_960, // 1 week in Celo TBD
+      1_000e18 // proposal threshold TBD
     );
 
     __GovernorCompatibilityBravo_init();
