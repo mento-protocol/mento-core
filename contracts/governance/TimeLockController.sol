@@ -6,10 +6,10 @@ import { TimelockControllerUpgradeable } from "openzeppelin-contracts-upgradeabl
 
 contract MentoTimelockController is TimelockControllerUpgradeable {
   function __MentoTimelockController_init(
-    uint256 minDelay,
+    uint256 minDelay, // TBD
     address[] memory proposers,
     address[] memory executors,
-    address admin
+    address admin // optional account to be granted admin role; disable with zero address
   ) external initializer {
     __TimelockController_init(minDelay, proposers, executors, admin);
   }

@@ -17,7 +17,7 @@ contract MentoGovernor is
   GovernorVotesQuorumFractionUpgradeable,
   GovernorTimelockControlUpgradeable
 {
-  function __MentoGovernor_init(IVotesUpgradeable token_, TimelockControllerUpgradeable timelock_)
+  function __MentoGovernor_init(IVotesUpgradeable veToken_, TimelockControllerUpgradeable timelock_)
     external
     initializer
   {
@@ -29,7 +29,7 @@ contract MentoGovernor is
     );
 
     __GovernorCompatibilityBravo_init();
-    __GovernorVotes_init(token_);
+    __GovernorVotes_init(veToken_);
     __GovernorVotesQuorumFraction_init(10); //  10% TBD
     __GovernorTimelockControl_init(timelock_);
   }
@@ -51,7 +51,6 @@ contract MentoGovernor is
     return super.proposalThreshold();
   }
 
-  // The functions below are overrides required by Solidity.
   function quorum(uint256 blockNumber)
     public
     view
