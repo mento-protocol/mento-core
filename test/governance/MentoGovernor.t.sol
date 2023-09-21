@@ -278,6 +278,51 @@ contract MentoGovernorTest is TestSetup {
     assertEq(address(emission.mentoToken()), address(mentoToken));
   }
 
+  function test_queueAndexecute_shouldRevert_whenRetried() public {
+    mockVeMento.mint(ALICE, _threshold);
+    mockVeMento.mint(BOB, 1_000e18);
+    mockVeMento.mint(CHARLIE, 2_000e18);
+
+    vm.prank(ALICE);
+    (
+      uint256 proposalId,
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      string memory description
+    ) = _proposeSetTokenContractOnEmission();
+
+    // keeping block.ts and block.number in sync
+    vm.roll(block.number + _votingDelay + 1);
+    vm.warp(block.timestamp + 1 days);
+
+    vm.prank(BOB);
+    mentoGovernor.castVote(proposalId, 0);
+
+    vm.prank(CHARLIE);
+    mentoGovernor.castVote(proposalId, 1);
+
+    vm.roll(block.number + _votingPeriod);
+    vm.warp(block.timestamp + 7 days);
+
+    mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
+
+    vm.expectRevert("Governor: proposal not successful");
+    mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
+
+    vm.roll(block.number + _votingDelay);
+    vm.warp(block.timestamp + 1 days);
+
+    assertEq(address(emission.mentoToken()), address(0));
+
+    mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
+
+    vm.expectRevert("Governor: proposal not successful");
+    mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
+
+    assertEq(address(emission.mentoToken()), address(mentoToken));
+  }
+
   function _proposeSetTokenContractOnEmission()
     private
     returns (
