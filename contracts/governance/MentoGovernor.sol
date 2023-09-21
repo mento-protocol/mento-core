@@ -25,10 +25,10 @@ contract MentoGovernor is
 {
   /**
    * @notice Initializes the MentoGovernor with voting, settings, compatibility, and timelock configurations.
-   * @param veToken_ The escrowed Mento Token used for voting.
-   * @param timelock_ The timelock controller used by the governor.
+   * @param veToken The escrowed Mento Token used for voting.
+   * @param timelockController The timelock controller used by the governor.
    */
-  function __MentoGovernor_init(IVotesUpgradeable veToken_, TimelockControllerUpgradeable timelock_)
+  function __MentoGovernor_init(IVotesUpgradeable veToken, TimelockControllerUpgradeable timelockController)
     external
     initializer
   {
@@ -40,9 +40,9 @@ contract MentoGovernor is
     );
 
     __GovernorCompatibilityBravo_init();
-    __GovernorVotes_init(veToken_);
+    __GovernorVotes_init(veToken);
     __GovernorVotesQuorumFraction_init(10); //  10% TBD
-    __GovernorTimelockControl_init(timelock_);
+    __GovernorTimelockControl_init(timelockController);
   }
 
   function votingDelay() public view override(IGovernorUpgradeable, GovernorSettingsUpgradeable) returns (uint256) {
