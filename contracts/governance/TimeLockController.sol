@@ -9,7 +9,7 @@ contract TimelockController is TimelockControllerUpgradeable {
     uint256 minDelay, // TBD
     address[] memory proposers,
     address[] memory executors,
-    address admin // optional account to be granted admin role; disable with zero address
+    address admin // will be used to set proposer role and then will be renounced
   ) external initializer {
     __TimelockController_init(minDelay, proposers, executors, admin);
   }
