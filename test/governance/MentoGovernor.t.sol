@@ -12,7 +12,7 @@ contract MentoGovernorTest is TestSetup {
 
   function setUp() public override {
     super.setUp();
-    vm.startPrank(OWNER);
+    vm.startPrank(owner);
 
     emission.transferOwnership(address(timelockController));
 
@@ -22,7 +22,7 @@ contract MentoGovernorTest is TestSetup {
 
     timelockController.grantRole(proposerRole, address(mentoGovernor));
     timelockController.grantRole(executorRole, address(0));
-    timelockController.revokeRole(adminRole, OWNER);
+    timelockController.revokeRole(adminRole, owner);
 
     vm.stopPrank();
 
@@ -40,16 +40,16 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_propose_shouldRevert_whenProposerBelowThreshold() public {
-    vm.startPrank(ALICE);
+    vm.startPrank(alice);
 
     vm.expectRevert("Governor: proposer votes below proposal threshold");
     _proposeSetTokenContractOnEmission();
 
-    mockVeMento.mint(ALICE, _threshold - 1e18);
+    mockVeMento.mint(alice, _threshold - 1e18);
     vm.expectRevert("Governor: proposer votes below proposal threshold");
     _proposeSetTokenContractOnEmission();
 
-    mockVeMento.mint(ALICE, 1e18 - 1);
+    mockVeMento.mint(alice, 1e18 - 1);
     vm.expectRevert("Governor: proposer votes below proposal threshold");
     _proposeSetTokenContractOnEmission();
 
@@ -57,9 +57,9 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_propose_shouldCreateProposal_whenProposerAboveThreshold() public {
-    mockVeMento.mint(ALICE, _threshold);
+    mockVeMento.mint(alice, _threshold);
 
-    vm.prank(ALICE);
+    vm.prank(alice);
     (
       uint256 proposalId,
       address[] memory targets,
@@ -74,19 +74,19 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_castVote_shouldRevert_whenInVotinDelay() public {
-    mockVeMento.mint(ALICE, _threshold);
+    mockVeMento.mint(alice, _threshold);
 
-    vm.prank(ALICE);
+    vm.prank(alice);
     (uint256 proposalId, , , , ) = _proposeSetTokenContractOnEmission();
 
     vm.expectRevert("Governor: vote not currently active");
-    vm.prank(BOB);
+    vm.prank(bob);
     mentoGovernor.castVote(proposalId, 1);
   }
 
   function test_castVote_shouldRevert_when_votingPeriodEnds() public {
-    mockVeMento.mint(ALICE, _threshold);
-    vm.prank(ALICE);
+    mockVeMento.mint(alice, _threshold);
+    vm.prank(alice);
     (uint256 proposalId, , , , ) = _proposeSetTokenContractOnEmission();
 
     vm.roll(block.number + _votingDelay + _votingPeriod + 1);
@@ -94,23 +94,23 @@ contract MentoGovernorTest is TestSetup {
     assertEq(uint256(mentoGovernor.state(proposalId)), 3); // defeated
 
     vm.expectRevert("Governor: vote not currently active");
-    vm.prank(BOB);
+    vm.prank(bob);
     mentoGovernor.castVote(proposalId, 1);
   }
 
   function test_castVote_shouldDefeatProposal_whenNotEnoughForVotes() public {
-    mockVeMento.mint(ALICE, _threshold);
-    mockVeMento.mint(BOB, 1_000e18);
-    mockVeMento.mint(CHARLIE, 1_001e18);
+    mockVeMento.mint(alice, _threshold);
+    mockVeMento.mint(bob, 1_000e18);
+    mockVeMento.mint(charlie, 1_001e18);
 
-    vm.prank(ALICE);
+    vm.prank(alice);
     (uint256 proposalId, , , , ) = _proposeSetTokenContractOnEmission();
 
     vm.roll(block.number + _votingDelay + 1);
 
-    vm.prank(BOB);
+    vm.prank(bob);
     mentoGovernor.castVote(proposalId, 1);
-    vm.prank(CHARLIE);
+    vm.prank(charlie);
     mentoGovernor.castVote(proposalId, 0);
 
     vm.roll(block.number + _votingPeriod);
@@ -118,15 +118,15 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_castVote_shouldDefeatProposal_whenNoQuorum() public {
-    mockVeMento.mint(ALICE, _threshold);
-    mockVeMento.mint(BOB, 100e18);
+    mockVeMento.mint(alice, _threshold);
+    mockVeMento.mint(bob, 100e18);
 
-    vm.prank(ALICE);
+    vm.prank(alice);
     (uint256 proposalId, , , , ) = _proposeSetTokenContractOnEmission();
 
     vm.roll(block.number + _votingDelay + 1);
 
-    vm.prank(BOB);
+    vm.prank(bob);
     mentoGovernor.castVote(proposalId, 1);
 
     vm.roll(block.number + _votingPeriod);
@@ -134,20 +134,20 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_castVote_shouldSucceedProposal_whenEnoughQuorumAndVotes() public {
-    mockVeMento.mint(ALICE, _threshold);
-    mockVeMento.mint(BOB, 1_000e18);
-    mockVeMento.mint(CHARLIE, 2_000e18);
+    mockVeMento.mint(alice, _threshold);
+    mockVeMento.mint(bob, 1_000e18);
+    mockVeMento.mint(charlie, 2_000e18);
 
-    vm.prank(ALICE);
+    vm.prank(alice);
     (uint256 proposalId, , , , ) = _proposeSetTokenContractOnEmission();
 
     vm.roll(block.number + _votingDelay + 1);
 
     assertEq(uint256(mentoGovernor.state(proposalId)), 1); // active
 
-    vm.prank(BOB);
+    vm.prank(bob);
     mentoGovernor.castVote(proposalId, 0);
-    vm.prank(CHARLIE);
+    vm.prank(charlie);
     mentoGovernor.castVote(proposalId, 1);
 
     vm.roll(block.number + _votingPeriod);
@@ -155,11 +155,11 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_queueAndExecute_shouldRevert_whenNotCorrectState() public {
-    mockVeMento.mint(ALICE, _threshold);
-    mockVeMento.mint(BOB, 1_000e18);
-    mockVeMento.mint(CHARLIE, 2_000e18);
+    mockVeMento.mint(alice, _threshold);
+    mockVeMento.mint(bob, 1_000e18);
+    mockVeMento.mint(charlie, 2_000e18);
 
-    vm.prank(ALICE);
+    vm.prank(alice);
     (
       uint256 proposalId,
       address[] memory targets,
@@ -184,10 +184,10 @@ contract MentoGovernorTest is TestSetup {
     vm.expectRevert("Governor: proposal not successful");
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
-    vm.prank(BOB);
+    vm.prank(bob);
     mentoGovernor.castVote(proposalId, 1);
 
-    vm.prank(CHARLIE);
+    vm.prank(charlie);
     mentoGovernor.castVote(proposalId, 0);
 
     vm.expectRevert("Governor: proposal not successful");
@@ -207,11 +207,11 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_execute_shouldRevert_whenTimelocked() public {
-    mockVeMento.mint(ALICE, _threshold);
-    mockVeMento.mint(BOB, 1_000e18);
-    mockVeMento.mint(CHARLIE, 2_000e18);
+    mockVeMento.mint(alice, _threshold);
+    mockVeMento.mint(bob, 1_000e18);
+    mockVeMento.mint(charlie, 2_000e18);
 
-    vm.prank(ALICE);
+    vm.prank(alice);
     (
       uint256 proposalId,
       address[] memory targets,
@@ -224,10 +224,10 @@ contract MentoGovernorTest is TestSetup {
     vm.roll(block.number + _votingDelay + 1);
     vm.warp(block.timestamp + 1 days);
 
-    vm.prank(BOB);
+    vm.prank(bob);
     mentoGovernor.castVote(proposalId, 0);
 
-    vm.prank(CHARLIE);
+    vm.prank(charlie);
     mentoGovernor.castVote(proposalId, 1);
 
     vm.roll(block.number + _votingPeriod);
@@ -240,11 +240,11 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_execute_shouldExecuteProposal_whenTimelockExpires() public {
-    mockVeMento.mint(ALICE, _threshold);
-    mockVeMento.mint(BOB, 1_000e18);
-    mockVeMento.mint(CHARLIE, 2_000e18);
+    mockVeMento.mint(alice, _threshold);
+    mockVeMento.mint(bob, 1_000e18);
+    mockVeMento.mint(charlie, 2_000e18);
 
-    vm.prank(ALICE);
+    vm.prank(alice);
     (
       uint256 proposalId,
       address[] memory targets,
@@ -257,10 +257,10 @@ contract MentoGovernorTest is TestSetup {
     vm.roll(block.number + _votingDelay + 1);
     vm.warp(block.timestamp + 1 days);
 
-    vm.prank(BOB);
+    vm.prank(bob);
     mentoGovernor.castVote(proposalId, 0);
 
-    vm.prank(CHARLIE);
+    vm.prank(charlie);
     mentoGovernor.castVote(proposalId, 1);
 
     vm.roll(block.number + _votingPeriod);
@@ -268,7 +268,7 @@ contract MentoGovernorTest is TestSetup {
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
-    vm.roll(block.number + _votingDelay);
+    vm.roll(block.number + BLOCKS_DAY);
     vm.warp(block.timestamp + 1 days);
 
     assertEq(address(emission.mentoToken()), address(0));
@@ -279,11 +279,11 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_queueAndexecute_shouldRevert_whenRetried() public {
-    mockVeMento.mint(ALICE, _threshold);
-    mockVeMento.mint(BOB, 1_000e18);
-    mockVeMento.mint(CHARLIE, 2_000e18);
+    mockVeMento.mint(alice, _threshold);
+    mockVeMento.mint(bob, 1_000e18);
+    mockVeMento.mint(charlie, 2_000e18);
 
-    vm.prank(ALICE);
+    vm.prank(alice);
     (
       uint256 proposalId,
       address[] memory targets,
@@ -296,10 +296,10 @@ contract MentoGovernorTest is TestSetup {
     vm.roll(block.number + _votingDelay + 1);
     vm.warp(block.timestamp + 1 days);
 
-    vm.prank(BOB);
+    vm.prank(bob);
     mentoGovernor.castVote(proposalId, 0);
 
-    vm.prank(CHARLIE);
+    vm.prank(charlie);
     mentoGovernor.castVote(proposalId, 1);
 
     vm.roll(block.number + _votingPeriod);
@@ -310,7 +310,7 @@ contract MentoGovernorTest is TestSetup {
     vm.expectRevert("Governor: proposal not successful");
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
-    vm.roll(block.number + _votingDelay);
+    vm.roll(block.number + BLOCKS_DAY);
     vm.warp(block.timestamp + 1 days);
 
     assertEq(address(emission.mentoToken()), address(0));
