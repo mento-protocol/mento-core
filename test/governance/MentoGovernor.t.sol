@@ -98,7 +98,7 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.castVote(proposalId, 1);
   }
 
-  function test_castVote_shouldDefeatProposal_whenNotEnougForVotes() public {
+  function test_castVote_shouldDefeatProposal_whenNotEnoughForVotes() public {
     mockVeMento.mint(ALICE, _threshold);
     mockVeMento.mint(BOB, 1_000e18);
     mockVeMento.mint(CHARLIE, 1_001e18);
@@ -117,7 +117,7 @@ contract MentoGovernorTest is TestSetup {
     assertEq(uint256(mentoGovernor.state(proposalId)), 3); // defeated
   }
 
-  function test_castVote_shouldDefatProposal_whenNoQuorum() public {
+  function test_castVote_shouldDefeatProposal_whenNoQuorum() public {
     mockVeMento.mint(ALICE, _threshold);
     mockVeMento.mint(BOB, 100e18);
 
@@ -133,7 +133,7 @@ contract MentoGovernorTest is TestSetup {
     assertEq(uint256(mentoGovernor.state(proposalId)), 3); // defeated
   }
 
-  function test_castVote_shouldSucceedProposoal_whenEnoughQuorumAndVotes() public {
+  function test_castVote_shouldSucceedProposal_whenEnoughQuorumAndVotes() public {
     mockVeMento.mint(ALICE, _threshold);
     mockVeMento.mint(BOB, 1_000e18);
     mockVeMento.mint(CHARLIE, 2_000e18);

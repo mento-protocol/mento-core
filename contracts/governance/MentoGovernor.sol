@@ -24,7 +24,7 @@ contract MentoGovernor is
 {
   /**
    * @notice Initializes the MentoGovernor with voting, settings, compatibility, and timelock configurations.
-   * @param veToken_ The escroved Mento Token used for voting.
+   * @param veToken_ The escrowed Mento Token used for voting.
    * @param timelock_ The timelock controller used by the governor.
    */
   function __MentoGovernor_init(IVotesUpgradeable veToken_, TimelockControllerUpgradeable timelock_)
