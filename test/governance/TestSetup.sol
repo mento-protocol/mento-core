@@ -11,13 +11,13 @@ contract TestSetup is Test {
   MentoToken public mentoToken;
   Emission public emission;
 
-  address public constant VESTING_CONTRACT = address(111);
-  address public constant AIRGRAB_CONTRACT = address(222);
-  address public constant TREASURY_CONTRACT = address(333);
+  address public constant VESTING_CONTRACT = makeAddr("VESTING_CONTRACT");
+  address public constant AIRGRAB_CONTRACT = makeAddr("AIRGRAB_CONTRACT");
+  address public constant TREASURY_CONTRACT = makeAddr("TREASURY_CONTRACT");
 
-  address public constant OWNER = address(1111);
-  address public constant ALICE = address(9999);
-  address public constant BOB = address(8888);
+  address public constant OWNER = makeAddr("OWNER");
+  address public constant ALICE = makeAddr("ALICE");
+  address public constant BOB = makeAddr("BOB");
 
   uint256 public constant INITIAL_TOTAL_SUPPLY = 350_000_000 * 1e18;
   uint256 public constant EMISSION_SUPPLY = 650_000_000 * 1e18;

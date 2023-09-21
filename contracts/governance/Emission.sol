@@ -97,8 +97,8 @@ contract Emission is Ownable {
       return TOTAL_EMISSION_SUPPLY - totalEmittedAmount;
     }
 
-    uint256 scheduledAmount = (TOTAL_EMISSION_SUPPLY * (positiveAggregate - negativeAggregate)) / SCALER;
+    uint256 scheduledRemainigSupply = (TOTAL_EMISSION_SUPPLY * (positiveAggregate - negativeAggregate)) / SCALER;
 
-    amount = TOTAL_EMISSION_SUPPLY - scheduledAmount - totalEmittedAmount;
+    amount = TOTAL_EMISSION_SUPPLY - scheduledRemainigSupply - totalEmittedAmount;
   }
 }
