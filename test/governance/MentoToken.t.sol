@@ -15,9 +15,9 @@ contract MentoTokenTest is TestSetup {
 
   /// @dev Test the correct token amounts are minted to respective contracts during initialization.
   function test_constructor_shouldMintCorrectAmounts() public {
-    uint256 vestingAmount = mentoToken.balanceOf(VESTING_CONTRACT);
-    uint256 airgrabAmount = mentoToken.balanceOf(AIRGRAB_CONTRACT);
-    uint256 treasuryAmount = mentoToken.balanceOf(TREASURY_CONTRACT);
+    uint256 vestingAmount = mentoToken.balanceOf(vestingContract);
+    uint256 airgrabAmount = mentoToken.balanceOf(airgrabContract);
+    uint256 treasuryAmount = mentoToken.balanceOf(treasuryContract);
     uint256 emissionAmount = mentoToken.balanceOf(address(emission));
 
     assertEq(vestingAmount, 200_000_000 * 1e18);
@@ -37,14 +37,14 @@ contract MentoTokenTest is TestSetup {
   function test_burn_shouldBurnTokens() public {
     uint256 initialBalance = 3e18;
     uint256 burnAmount = 1e18;
-    deal(address(mentoToken), ALICE, initialBalance);
+    deal(address(mentoToken), alice, initialBalance);
 
-    vm.startPrank(ALICE);
+    vm.startPrank(alice);
     vm.expectRevert("ERC20: burn amount exceeds balance");
     mentoToken.burn(initialBalance + 1);
 
     mentoToken.burn(burnAmount);
-    assertEq(mentoToken.balanceOf(ALICE), initialBalance - burnAmount);
+    assertEq(mentoToken.balanceOf(alice), initialBalance - burnAmount);
     assertEq(mentoToken.totalSupply(), INITIAL_TOTAL_SUPPLY - burnAmount);
   }
 
@@ -56,25 +56,25 @@ contract MentoTokenTest is TestSetup {
   function test_burnFrom_whenAllowed_shouldBurnTokens() public {
     uint256 initialBalance = 3e18;
     uint256 burnAmount = 1e18;
-    deal(address(mentoToken), ALICE, initialBalance);
+    deal(address(mentoToken), alice, initialBalance);
 
-    vm.prank(BOB);
+    vm.prank(bob);
     vm.expectRevert("ERC20: insufficient allowance");
-    mentoToken.burnFrom(ALICE, burnAmount);
+    mentoToken.burnFrom(alice, burnAmount);
 
-    vm.prank(ALICE);
-    mentoToken.approve(BOB, burnAmount);
+    vm.prank(alice);
+    mentoToken.approve(bob, burnAmount);
 
-    vm.startPrank(BOB);
+    vm.startPrank(bob);
     vm.expectRevert("ERC20: insufficient allowance");
-    mentoToken.burnFrom(ALICE, burnAmount + 1);
+    mentoToken.burnFrom(alice, burnAmount + 1);
 
-    mentoToken.burnFrom(ALICE, burnAmount);
-    assertEq(mentoToken.balanceOf(ALICE), initialBalance - burnAmount);
+    mentoToken.burnFrom(alice, burnAmount);
+    assertEq(mentoToken.balanceOf(alice), initialBalance - burnAmount);
     assertEq(mentoToken.totalSupply(), INITIAL_TOTAL_SUPPLY - burnAmount);
 
     vm.expectRevert("ERC20: insufficient allowance");
-    mentoToken.burnFrom(ALICE, burnAmount);
+    mentoToken.burnFrom(alice, burnAmount);
   }
 
   /**
@@ -84,9 +84,9 @@ contract MentoTokenTest is TestSetup {
    */
   function test_mint_whenNotEmissionContract_shouldRevert() public {
     uint256 mintAmount = 10e18;
-    vm.prank(BOB);
+    vm.prank(bob);
     vm.expectRevert("MentoToken: only emission contract");
-    mentoToken.mint(ALICE, mintAmount);
+    mentoToken.mint(alice, mintAmount);
   }
 
   /**
@@ -100,12 +100,12 @@ contract MentoTokenTest is TestSetup {
     vm.startPrank(address(emission));
 
     vm.expectRevert("MentoToken: emission supply exceeded");
-    mentoToken.mint(ALICE, EMISSION_SUPPLY + 1);
+    mentoToken.mint(alice, EMISSION_SUPPLY + 1);
 
-    mentoToken.mint(ALICE, mintAmount);
+    mentoToken.mint(alice, mintAmount);
 
     vm.expectRevert("MentoToken: emission supply exceeded");
-    mentoToken.mint(ALICE, EMISSION_SUPPLY - mintAmount + 1);
+    mentoToken.mint(alice, EMISSION_SUPPLY - mintAmount + 1);
   }
 
   /**
@@ -119,17 +119,17 @@ contract MentoTokenTest is TestSetup {
     uint256 mintAmount = 10e18;
 
     vm.startPrank(address(emission));
-    mentoToken.mint(ALICE, mintAmount);
+    mentoToken.mint(alice, mintAmount);
 
-    assertEq(mentoToken.balanceOf(ALICE), mintAmount);
+    assertEq(mentoToken.balanceOf(alice), mintAmount);
     assertEq(mentoToken.emittedAmount(), mintAmount);
 
-    mentoToken.mint(BOB, mintAmount);
+    mentoToken.mint(bob, mintAmount);
 
-    assertEq(mentoToken.balanceOf(BOB), mintAmount);
+    assertEq(mentoToken.balanceOf(bob), mintAmount);
     assertEq(mentoToken.emittedAmount(), 2 * mintAmount);
 
-    mentoToken.mint(ALICE, EMISSION_SUPPLY - 2 * mintAmount);
+    mentoToken.mint(alice, EMISSION_SUPPLY - 2 * mintAmount);
     assertEq(mentoToken.emittedAmount(), EMISSION_SUPPLY);
   }
 }

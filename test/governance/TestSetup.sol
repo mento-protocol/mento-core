@@ -11,13 +11,13 @@ contract TestSetup is Test {
   MentoToken public mentoToken;
   Emission public emission;
 
-  address public constant VESTING_CONTRACT = makeAddr("VESTING_CONTRACT");
-  address public constant AIRGRAB_CONTRACT = makeAddr("AIRGRAB_CONTRACT");
-  address public constant TREASURY_CONTRACT = makeAddr("TREASURY_CONTRACT");
+  address public immutable vestingContract = makeAddr("vestingContract");
+  address public immutable airgrabContract = makeAddr("airgrabContract");
+  address public immutable treasuryContract = makeAddr("treasuryContract");
 
-  address public constant OWNER = makeAddr("OWNER");
-  address public constant ALICE = makeAddr("ALICE");
-  address public constant BOB = makeAddr("BOB");
+  address public immutable owner = makeAddr("owner");
+  address public immutable alice = makeAddr("alice");
+  address public immutable bob = makeAddr("bob");
 
   uint256 public constant INITIAL_TOTAL_SUPPLY = 350_000_000 * 1e18;
   uint256 public constant EMISSION_SUPPLY = 650_000_000 * 1e18;
@@ -26,9 +26,9 @@ contract TestSetup is Test {
   uint256 public constant YEAR = 365 days;
 
   function setUp() public {
-    vm.startPrank(OWNER);
+    vm.startPrank(owner);
     emission = new Emission();
-    mentoToken = new MentoToken(VESTING_CONTRACT, AIRGRAB_CONTRACT, TREASURY_CONTRACT, address(emission));
+    mentoToken = new MentoToken(vestingContract, airgrabContract, treasuryContract, address(emission));
     vm.stopPrank();
   }
 }
