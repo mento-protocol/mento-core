@@ -9,6 +9,11 @@ import { GovernorVotesQuorumFractionUpgradeable } from "openzeppelin-contracts-u
 import { GovernorTimelockControlUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorTimelockControlUpgradeable.sol";
 import { TimelockControllerUpgradeable, IERC165Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/TimelockControllerUpgradeable.sol";
 
+/**
+ * @title Mento Governor
+ * @author Mento Labs
+ * @notice Governor contract extending on OpenZeppelin's upgradeable governance contracts.
+ */
 contract MentoGovernor is
   GovernorUpgradeable,
   GovernorSettingsUpgradeable,
@@ -17,6 +22,11 @@ contract MentoGovernor is
   GovernorVotesQuorumFractionUpgradeable,
   GovernorTimelockControlUpgradeable
 {
+  /**
+   * @notice Initializes the MentoGovernor with voting, settings, compatibility, and timelock configurations.
+   * @param veToken_ The escroved Mento Token used for voting.
+   * @param timelock_ The timelock controller used by the governor.
+   */
   function __MentoGovernor_init(IVotesUpgradeable veToken_, TimelockControllerUpgradeable timelock_)
     external
     initializer
