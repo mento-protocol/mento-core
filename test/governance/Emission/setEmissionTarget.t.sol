@@ -1,11 +1,11 @@
-// solhint-disable func-name-mixedcase
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-
+// solhint-disable func-name-mixedcase
+// solhint-disable contract-name-camelcase
 import { Emission_Test } from "./Base.t.sol";
 
 contract SetEmissionTarget_Emission_Test is Emission_Test {
-  address newEmissionTarget = makeAddr("NewEmissionTarget");
+  address public newEmissionTarget = makeAddr("NewEmissionTarget");
 
   function setUp() public {
     _newEmission();

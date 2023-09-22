@@ -1,7 +1,7 @@
-// solhint-disable func-name-mixedcase
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-
+// solhint-disable func-name-mixedcas
+//  solhint-disable contract-name-camelcase
 import { MentoToken_Test } from "./Base.t.sol";
 
 /**
@@ -9,8 +9,8 @@ import { MentoToken_Test } from "./Base.t.sol";
  * @notice this test assures correct integration.
  */
 contract Mint_MentoToken_Test is MentoToken_Test {
-  uint256 mintAmount;
-  address target;
+  uint256 public mintAmount;
+  address public target;
 
   function setUp() public {
     _newMentoToken();
