@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase
-// solhint-disable max-line-length
-// solhint-disable contract-name-camelcase
+// solhint-disable func-name-mixedcase, max-line-length, contract-name-camelcase
+
 import { MentoGovernor_Test } from "./Base.t.sol";
 
 contract Execute_MentoGovernor_Test is MentoGovernor_Test {

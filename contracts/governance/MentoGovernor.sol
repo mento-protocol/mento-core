@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable max-line-length
 // solhint-disable func-name-mixedcase
+
 import { GovernorUpgradeable, IGovernorUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/GovernorUpgradeable.sol";
 import { GovernorSettingsUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorSettingsUpgradeable.sol";
 import { GovernorCompatibilityBravoUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/compatibility/GovernorCompatibilityBravoUpgradeable.sol";
