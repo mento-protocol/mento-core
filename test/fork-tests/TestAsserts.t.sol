@@ -115,8 +115,53 @@ contract TestAsserts is Test {
     );
     console.log("========================================");
 
-    // Always only one limit on a pair
-    if (limitConfigFrom.isLimitEnabled(limit)) {
+
+    if (limitConfigFrom.isLimitEnabled(limit) && limitConfigTo.isLimitEnabled(limit)) {
+      console.log("Both Limits enabled");
+      FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(to);
+      TradingLimits.Config memory toLimitConfig = ctx.tradingLimitsConfig(to);
+      TradingLimits.Config memory fromLimitConfig = ctx.tradingLimitsConfig(from);
+      skip(toLimitConfig.timestep1 + fromLimitConfig.timestep1 + 1);
+      ensureRateActive(ctx);
+      TradingLimits.State memory toLimitState = ctx.refreshedTradingLimitsState(to);
+      TradingLimits.State memory fromLimitState = ctx.refreshedTradingLimitsState(from);
+
+      uint256 toLimit;
+      uint256 fromLimit;
+      int256 toNetflow;
+      int256 fromNetflow;
+
+      if (limit == L0) {
+        toLimit = uint256(toLimitConfig.limit0);
+        fromLimit = uint256(fromLimitConfig.limit0);
+        toNetflow = int256(toLimitState.netflow0);
+        fromNetflow = int256(fromLimitState.netflow0);
+      } else if (limit == L1) {
+        toLimit = uint256(toLimitConfig.limit1);
+        fromLimit = uint256(fromLimitConfig.limit1);
+        toNetflow = int256(toLimitState.netflow1);
+        fromNetflow = int256(fromLimitState.netflow1);
+      } else if (limit == LG) {
+        toLimit = uint256(toLimitConfig.limitGlobal);
+        fromLimit = uint256(fromLimitConfig.limitGlobal);
+        toNetflow = int256(toLimitState.netflowGlobal);
+        fromNetflow = int256(fromLimitState.netflowGlobal);
+      }
+
+      console.log("toLimit: %d fromLimit: %d", toLimit, fromLimit);
+      console.logInt(toNetflow);
+      console.logInt(fromNetflow);
+
+      fromLimit = rate.multiply(FixidityLib.newFixed(uint256(fromLimit))).fromFixed();
+
+      console.log("toLimit: %d fromLimit: %d", toLimit, fromLimit);
+      if (toLimit > fromLimit) {
+        assert_swapOverLimitFails_onInflow(ctx, from, to, limit);
+      } else {
+        assert_swapOverLimitFails_onOutflow(ctx, from, to, limit);
+      }
+      // If both limits are enabled we choose the one that is more restrictive
+    }  else if (limitConfigFrom.isLimitEnabled(limit)) {
       assert_swapOverLimitFails_onInflow(ctx, from, to, limit);
     } else if (limitConfigTo.isLimitEnabled(limit)) {
       assert_swapOverLimitFails_onOutflow(ctx, from, to, limit);
