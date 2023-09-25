@@ -219,7 +219,6 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       bool asset1LimitConfigured = ctx.isLimitConfigured(limitIdForAsset1);
 
       require(asset0LimitConfigured || asset1LimitConfigured, "Limit not configured");
-      require(!asset0LimitConfigured || !asset1LimitConfigured, "Limit configured for both assets");
     }
   }
 
@@ -378,55 +377,55 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     }
   }
 
+  mapping(address => uint256) depsCount;
   function test_rateFeedDependencies_haltsDependantTrading() public {
+    // Hardcoded number of dependencies for each ratefeed
+    depsCount[registry.getAddressForStringOrDie("StableToken")] = 0;
+    depsCount[registry.getAddressForStringOrDie("StableTokenEUR")] = 0;
+    depsCount[registry.getAddressForStringOrDie("StableTokenBRL")] = 0;
+    depsCount[registry.getAddressForStringOrDie("StableTokenXOF")] = 2;
+    depsCount[0xA1A8003936862E7a15092A91898D69fa8bCE290c] = 0;
+    depsCount[0x206B25Ea01E188Ee243131aFdE526bA6E131a016] = 1;
+    depsCount[0x25F21A1f97607Edf6852339fad709728cffb9a9d] = 1;
+    depsCount[0x26076B9702885d475ac8c3dB3Bd9F250Dc5A318B] = 0;
+
     address[] memory breakers = breakerBox.getBreakers();
-    /*
-      TODO: Because breakerBox doesn't have a getter that returns an array of dependencies
-      for a given rateFeed, we had to hardcode the rateFeeds that have dependencies.
 
-      Current order of exchanges (* = has dependencies):
-      0 -> CELO/USD
-      1 -> CELO/EURO
-      2 -> CELO/BRL
-      3 -> USDC/cUSD
-      4 -> USDC/cEURO *
-      5 -> USDC/cBRL *
-      6 -> EUROC/cEUR
-      7 -> CELO/XOF * 
-      8 -> EUROC/XOF *
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      console.log("\n\nexchangeIndex: %d [%d]", i, gasleft());
+      Utils.Context memory ctx = Utils.newContext(address(this), i);
+      address[] memory dependencies = new address[](depsCount[ctx.getReferenceRateFeedID()]);
+      for(uint d = 0; d < dependencies.length; d++) {
+        dependencies[d] = ctx.breakerBox.rateFeedDependencies(ctx.getReferenceRateFeedID(), d);
+      }
+      if (dependencies.length == 0) {
+        continue;
+      }
 
-      This can be generalized once we add the getter to breakerBox.
-    */
-    uint256[] memory exchangesIndexesWithDependencies = Arrays.uints(4, 5, 7, 8);
-    for (uint256 i = 0; i < exchangesIndexesWithDependencies.length; i++) {
-      console.log("\n\n");
-      Utils.Context memory ctx = Utils.newContext(address(this), exchangesIndexesWithDependencies[i]);
       Utils.logPool(ctx);
       address rateFeedID = ctx.getReferenceRateFeedID();
-      console.log("\t exchangeIndexWithDeps: %d | rateFeedId: %s", exchangesIndexesWithDependencies[i], rateFeedID);
-      console.log("\t\t ------ dependency");
+      console.log("\t exchangeIndex: %d | rateFeedId: %s | %s dependencies", i, rateFeedID, dependencies.length);
 
-      address dependencyRateFeed = breakerBox.rateFeedDependencies(rateFeedID, 0); // assume only 1 dependency
-      Utils.Context memory dependencyContext = Utils.getContextForRateFeedID(address(this), dependencyRateFeed);
-      Utils.logPool(dependencyContext);
+      for (uint256 k = 0; k < dependencies.length; k++) {
+        console.log("\t\t\t dependency %d: %s", k, dependencies[k]);
+        Utils.Context memory dependencyContext = Utils.getContextForRateFeedID(address(this), dependencies[k]);
+        Utils.logPool(dependencyContext);
 
-      for (uint256 j = 0; j < breakers.length; j++) {
-        console.log("\t\t\t checking breaker with index %d", j);
-        if (breakerBox.isBreakerEnabled(breakers[j], dependencyRateFeed)) {
-          console.log("\t\t\t\t enabled!!");
-          assert_breakerBreaks(dependencyContext, breakers[j], j);
-          console.log("\t\t\t\t\t 🙏🏽 done with breakerBreaks");
+        for (uint256 j = 0; j < breakers.length; j++) {
+          console.log("\t\t\t checking breaker with index %d", j);
+          if (breakerBox.isBreakerEnabled(breakers[j], dependencies[k])) { console.log("\t\t\t\t enabled!!");
+            assert_breakerBreaks(dependencyContext, breakers[j], j);
+            console.log("\t\t\t\t\t 🙏🏽 done with breakerBreaks");
 
-          assert_swapInFails(
-            ctx,
-            ctx.exchange.assets[0],
-            ctx.exchange.assets[1],
-            Utils.toSubunits(1000, ctx.exchange.assets[0]),
-            "Trading is suspended for this reference rate"
-          );
+            assert_swapInFails(
+              ctx,
+              ctx.exchange.assets[0],
+              ctx.exchange.assets[1],
+              Utils.toSubunits(1000, ctx.exchange.assets[0]),
+              "Trading is suspended for this reference rate"
+            );
 
-          console.log("\t\t\t\t\t 🎉done with swapInFails");
-          if (j != 2) {
+            console.log("\t\t\t\t\t 🎉done with swapInFails");
             console.log("\t\t\t\t\t attempt recover for index %d", j);
             assert_breakerRecovers(dependencyContext, breakers[j], j);
             console.log("\t\t\t\t\t 🤡 done with breakrecovers");

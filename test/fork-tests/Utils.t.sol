@@ -56,6 +56,7 @@ library Utils {
     BreakerBox breakerBox;
     address exchangeProvider;
     bytes32 exchangeId;
+    address rateFeedID;
     IExchangeProvider.Exchange exchange;
     address trader;
   }
@@ -72,7 +73,25 @@ library Utils {
       t.breakerBox(),
       exchangeProvider,
       exchange.exchangeId,
+      address(0),
       exchange,
+      t.trader()
+    );
+  }
+
+  function newRateFeedContext(address _t, address rateFeed) public view returns (Context memory ctx) {
+    BaseForkTest t = BaseForkTest(_t);
+
+    ctx = Context(
+      t,
+      t.broker(),
+      IBrokerWithCasts(address(t.broker())),
+      t.sortedOracles(),
+      t.breakerBox(),
+      address(0),
+      bytes32(0),
+      rateFeed,
+      IExchangeProvider.Exchange(0, new address[](0)),
       t.trader()
     );
   }
@@ -87,7 +106,7 @@ library Utils {
         return ctx;
       }
     }
-    revert("No exchange found with that referenceRateFeedID");
+    return newRateFeedContext(_t, rateFeedID);
   }
 
   // ========================= Swaps =========================
@@ -147,6 +166,8 @@ library Utils {
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
 
+    console.log(exchange.config.referenceRateFeedID);
+    console.log(ctx.sortedOracles.numRates(exchange.config.referenceRateFeedID));
     (bool isReportExpired, ) = ctx.sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
     // solhint-disable-next-line not-rely-on-time
     bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
@@ -259,6 +280,9 @@ library Utils {
   }
 
   function getReferenceRateFeedID(Context memory ctx) internal view returns (address) {
+    if (ctx.rateFeedID != address(0)) {
+      return ctx.rateFeedID;
+    }
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
@@ -301,9 +325,7 @@ library Utils {
       }
 
       changePrank(oracle);
-      console.log("🔮 going to do prank report: ");
       ctx.sortedOracles.report(rateFeedID, newMedian, lesserKey, greaterKey);
-      console.log("🔮 done with prank report");
     }
     console.log("done with updateOracleMedianRate");
     changePrank(ctx.trader);
@@ -488,6 +510,10 @@ library Utils {
   }
 
   function logPool(Context memory ctx) internal view {
+    if (ctx.exchangeId == 0) {
+      console.log("🎱 RateFeed: %s", ctx.rateFeedID);
+      return;
+    }     
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
 
