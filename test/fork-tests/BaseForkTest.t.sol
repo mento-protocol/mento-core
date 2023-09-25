@@ -378,6 +378,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   }
 
   mapping(address => uint256) depsCount;
+
   function test_rateFeedDependencies_haltsDependantTrading() public {
     // Hardcoded number of dependencies for each ratefeed
     depsCount[registry.getAddressForStringOrDie("StableToken")] = 0;
@@ -395,7 +396,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       console.log("\n\nexchangeIndex: %d [%d]", i, gasleft());
       Utils.Context memory ctx = Utils.newContext(address(this), i);
       address[] memory dependencies = new address[](depsCount[ctx.getReferenceRateFeedID()]);
-      for(uint d = 0; d < dependencies.length; d++) {
+      for (uint256 d = 0; d < dependencies.length; d++) {
         dependencies[d] = ctx.breakerBox.rateFeedDependencies(ctx.getReferenceRateFeedID(), d);
       }
       if (dependencies.length == 0) {
@@ -413,7 +414,8 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
 
         for (uint256 j = 0; j < breakers.length; j++) {
           console.log("\t\t\t checking breaker with index %d", j);
-          if (breakerBox.isBreakerEnabled(breakers[j], dependencies[k])) { console.log("\t\t\t\t enabled!!");
+          if (breakerBox.isBreakerEnabled(breakers[j], dependencies[k])) {
+            console.log("\t\t\t\t enabled!!");
             assert_breakerBreaks(dependencyContext, breakers[j], j);
             console.log("\t\t\t\t\t 🙏🏽 done with breakerBreaks");
 

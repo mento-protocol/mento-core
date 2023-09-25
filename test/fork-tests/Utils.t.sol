@@ -513,7 +513,7 @@ library Utils {
     if (ctx.exchangeId == 0) {
       console.log("🎱 RateFeed: %s", ctx.rateFeedID);
       return;
-    }     
+    }
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
 

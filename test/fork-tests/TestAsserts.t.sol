@@ -115,7 +115,6 @@ contract TestAsserts is Test {
     );
     console.log("========================================");
 
-
     if (limitConfigFrom.isLimitEnabled(limit) && limitConfigTo.isLimitEnabled(limit)) {
       console.log("Both Limits enabled");
       FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(to);
@@ -161,7 +160,7 @@ contract TestAsserts is Test {
         assert_swapOverLimitFails_onOutflow(ctx, from, to, limit);
       }
       // If both limits are enabled we choose the one that is more restrictive
-    }  else if (limitConfigFrom.isLimitEnabled(limit)) {
+    } else if (limitConfigFrom.isLimitEnabled(limit)) {
       assert_swapOverLimitFails_onInflow(ctx, from, to, limit);
     } else if (limitConfigTo.isLimitEnabled(limit)) {
       assert_swapOverLimitFails_onOutflow(ctx, from, to, limit);
