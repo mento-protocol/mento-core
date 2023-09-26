@@ -32,7 +32,8 @@ contract InCliff_Relock_Locking_Test is Relock_Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100);
   }
 
-  // TODO: These tests always withdraw after lock expires, it might be usefull to have tests that checks partial expiration
+  // TODO: These tests always withdraw after lock expires,
+  // it might be usefull to have tests that checks partial expiration
   function test_relock_shouldUpdateSlopeAndCliff_AndContinueReleasingByNewSchedule() public {
     newAmount = 30;
     newSlopePeriod = 3;

@@ -44,9 +44,7 @@ contract InSlope_MultipleLines_Relock_Locking_Test is MultipleLines_Relock_Locki
     assertEq(mentoToken.balanceOf(alice), 100);
   }
 
-  function test_relock_shouldUpdateParams_AndContinueReleasingByNewSchedule_whenTransferNotNeeded_becauseWithdrawBeforeRelock()
-    public
-  {
+  function test_relock_shouldUpdateParams_AndContinueReleasingByNewSchedule_whenTransferNotNeeded() public {
     vm.prank(alice);
     lockingContract.withdraw();
 
