@@ -12,7 +12,7 @@ contract InTail_Relock_Locking_Test is Relock_Locking_Test {
 
     super.setUp();
 
-    vm.roll(block.number + 4 * weekInBlocks);
+    _incrementBlock(4 * weekInBlocks);
   }
 
   function test_relock_shouldChangeAllParams_AndContinueReleasingByNewSchedule() public {
@@ -28,13 +28,13 @@ contract InTail_Relock_Locking_Test is Relock_Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 10);
     assertEq(mentoToken.balanceOf(alice), 90);
 
-    vm.roll(block.number + 2 * weekInBlocks);
+    _incrementBlock(2 * weekInBlocks);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 10);
     assertEq(mentoToken.balanceOf(alice), 90);
 
-    vm.roll(block.number + 2 * weekInBlocks);
+    _incrementBlock(2 * weekInBlocks);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 0);
@@ -58,13 +58,13 @@ contract InTail_Relock_Locking_Test is Relock_Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 10);
     assertEq(mentoToken.balanceOf(alice), 90);
 
-    vm.roll(block.number + 2 * weekInBlocks);
+    _incrementBlock(2 * weekInBlocks);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 10);
     assertEq(mentoToken.balanceOf(alice), 90);
 
-    vm.roll(block.number + 2 * weekInBlocks);
+    _incrementBlock(2 * weekInBlocks);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 0);

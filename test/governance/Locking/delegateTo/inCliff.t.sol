@@ -14,7 +14,7 @@ contract InCliff_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
   }
 
   function test_delegateTo_shouldReDelegateVotes_toNewDelegate() public {
-    vm.roll(block.number + 20 * weekInBlocks);
+    _incrementBlock(20 * weekInBlocks);
 
     assertEq(lockingContract.balanceOf(bob), 6303);
 
@@ -33,7 +33,7 @@ contract InCliff_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
 
     assertEq(lockingContract.balanceOf(charlie), 6303);
 
-    vm.roll(block.number + 10 * weekInBlocks);
+    _incrementBlock(10 * weekInBlocks);
 
     assertEq(lockingContract.balanceOf(charlie), 0);
 
@@ -45,7 +45,7 @@ contract InCliff_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
   }
 
   function test_delegateTo_shouldReDelegateVotes_whenMultipleReDelegates() public {
-    vm.roll(block.number + 20 * weekInBlocks);
+    _incrementBlock(20 * weekInBlocks);
 
     vm.prank(alice);
     lockingContract.withdraw();
@@ -55,7 +55,7 @@ contract InCliff_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
     vm.prank(alice);
     _subject();
 
-    vm.roll(block.number + 5 * weekInBlocks);
+    _incrementBlock(5 * weekInBlocks);
 
     delegate = bob;
 
@@ -71,7 +71,7 @@ contract InCliff_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 10000);
     assertEq(mentoToken.balanceOf(alice), 90000);
 
-    vm.roll(block.number + 5 * weekInBlocks);
+    _incrementBlock(5 * weekInBlocks);
 
     vm.prank(alice);
     lockingContract.withdraw();

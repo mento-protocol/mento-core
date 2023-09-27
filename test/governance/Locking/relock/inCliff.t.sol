@@ -24,7 +24,7 @@ contract InCliff_Relock_Locking_Test is Relock_Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 45);
     assertEq(mentoToken.balanceOf(alice), 55);
 
-    vm.roll(block.number + 9 * weekInBlocks);
+    _incrementBlock(9 * weekInBlocks);
     vm.prank(alice);
     lockingContract.withdraw();
 
@@ -45,7 +45,7 @@ contract InCliff_Relock_Locking_Test is Relock_Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 30);
     assertEq(mentoToken.balanceOf(alice), 70);
 
-    vm.roll(block.number + 7 * weekInBlocks);
+    _incrementBlock(7 * weekInBlocks);
     vm.prank(alice);
     lockingContract.withdraw();
 
@@ -64,7 +64,7 @@ contract InCliff_Relock_Locking_Test is Relock_Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 35);
     assertEq(mentoToken.balanceOf(alice), 65);
 
-    vm.roll(block.number + 18 * weekInBlocks);
+    _incrementBlock(18 * weekInBlocks);
     vm.prank(alice);
     lockingContract.withdraw();
 
@@ -83,14 +83,14 @@ contract InCliff_Relock_Locking_Test is Relock_Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 80);
     assertEq(mentoToken.balanceOf(alice), 20);
 
-    vm.roll(block.number + 6 * weekInBlocks);
+    _incrementBlock(6 * weekInBlocks);
     vm.prank(alice);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 80);
     assertEq(mentoToken.balanceOf(alice), 20);
 
-    vm.roll(block.number + 16 * weekInBlocks);
+    _incrementBlock(16 * weekInBlocks);
     vm.prank(alice);
     lockingContract.withdraw();
 

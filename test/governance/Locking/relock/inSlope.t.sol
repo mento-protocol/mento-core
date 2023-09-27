@@ -24,13 +24,13 @@ contract InSlope_Relock_Locking_Test is Relock_Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 80);
     assertEq(mentoToken.balanceOf(alice), 20);
 
-    vm.roll(block.number + 6 * weekInBlocks);
+    _incrementBlock(6 * weekInBlocks);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 80);
     assertEq(mentoToken.balanceOf(alice), 20);
 
-    vm.roll(block.number + 16 * weekInBlocks);
+    _incrementBlock(16 * weekInBlocks);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 0);
@@ -52,13 +52,13 @@ contract InSlope_Relock_Locking_Test is Relock_Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 80);
     assertEq(mentoToken.balanceOf(alice), 20);
 
-    vm.roll(block.number + 6 * weekInBlocks);
+    _incrementBlock(6 * weekInBlocks);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 80);
     assertEq(mentoToken.balanceOf(alice), 20);
 
-    vm.roll(block.number + 16 * weekInBlocks);
+    _incrementBlock(16 * weekInBlocks);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 0);

@@ -6,7 +6,6 @@ import { Locking_Test } from "./Base.t.sol";
 
 contract Withdraw_Locking_Test is Locking_Test {
   uint256 public aliceBalance = 100;
-  uint256 public weekInBlocks;
 
   address public account = alice;
   address public delegate = alice;
@@ -31,9 +30,9 @@ contract Withdraw_Locking_Test is Locking_Test {
     vm.prank(alice);
     mentoToken.approve(address(lockingContract), type(uint256).max);
 
-    weekInBlocks = lockingContract.WEEK();
+    weekInBlocks = uint32(lockingContract.WEEK());
 
-    vm.roll(2 * weekInBlocks + 1);
+    _incrementBlock(2 * weekInBlocks + 1);
   }
 
   function test_withdraw_shouldReleaseCorrectAmount_whenInCliff() public {
@@ -43,7 +42,7 @@ contract Withdraw_Locking_Test is Locking_Test {
     vm.prank(alice);
     _lock();
 
-    vm.roll(block.number + 3 * weekInBlocks);
+    _incrementBlock(3 * weekInBlocks);
 
     vm.prank(alice);
     _subject();
@@ -51,7 +50,7 @@ contract Withdraw_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 30);
     assertEq(mentoToken.balanceOf(alice), 70);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     _subject();
@@ -68,7 +67,7 @@ contract Withdraw_Locking_Test is Locking_Test {
     vm.prank(alice);
     _lock();
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     vm.prank(bob);
     _subject();
@@ -86,7 +85,7 @@ contract Withdraw_Locking_Test is Locking_Test {
     vm.prank(alice);
     _lock();
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     _subject();
@@ -104,7 +103,7 @@ contract Withdraw_Locking_Test is Locking_Test {
     vm.prank(alice);
     _lock();
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     vm.prank(bob);
     _subject();
@@ -130,14 +129,14 @@ contract Withdraw_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 800);
     assertEq(lockingContract.balanceOf(alice), 4220);
 
-    vm.roll(block.number + 103 * weekInBlocks);
+    _incrementBlock(103 * weekInBlocks);
 
     vm.prank(alice);
     _subject();
 
     assertEq(lockingContract.balanceOf(alice), 120);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     _subject();
@@ -146,7 +145,7 @@ contract Withdraw_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 5900);
     assertEq(lockingContract.balanceOf(alice), 38);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     _subject();
@@ -172,7 +171,7 @@ contract Withdraw_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 80000);
     assertEq(lockingContract.balanceOf(alice), 224776);
 
-    vm.roll(block.number + 20 * weekInBlocks);
+    _incrementBlock(20 * weekInBlocks);
 
     vm.prank(alice);
     _subject();
@@ -181,7 +180,7 @@ contract Withdraw_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 80000);
     assertEq(lockingContract.balanceOf(alice), 224776);
 
-    vm.roll(block.number + 20 * weekInBlocks);
+    _incrementBlock(20 * weekInBlocks);
     vm.prank(alice);
     _subject();
 

@@ -14,7 +14,7 @@ contract InTail_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
   }
 
   function test_delegateTo_shouldReDelegateVotes_toNewDelegate() public {
-    vm.roll(block.number + 6 * weekInBlocks);
+    _incrementBlock(6 * weekInBlocks);
 
     assertEq(lockingContract.balanceOf(bob), 199);
 
@@ -32,7 +32,7 @@ contract InTail_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
     assertEq(lockingContract.balanceOf(bob), 0);
     assertEq(lockingContract.balanceOf(charlie), 199);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     assertEq(lockingContract.balanceOf(charlie), 0);
 

@@ -6,7 +6,6 @@ import { Locking_Test } from "./Base.t.sol";
 
 contract Lock_Locking_Test is Locking_Test {
   uint256 public aliceBalance = 1500;
-  uint256 public weekInBlocks;
 
   address public account;
   address public delegate;
@@ -27,9 +26,9 @@ contract Lock_Locking_Test is Locking_Test {
     vm.prank(alice);
     mentoToken.approve(address(lockingContract), type(uint256).max);
 
-    weekInBlocks = lockingContract.WEEK();
+    weekInBlocks = uint32(lockingContract.WEEK());
 
-    vm.roll(2 * weekInBlocks + 1);
+    _incrementBlock(2 * weekInBlocks + 1);
   }
 
   function test_lock_shouldRevert_whenSlopeIsLarge() public {

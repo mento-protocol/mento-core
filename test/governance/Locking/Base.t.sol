@@ -3,24 +3,26 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
 import { TestSetup } from "../TestSetup.sol";
-import { Locking } from "contracts/governance/Locking.sol";
+import { LockingHarness } from "../../mocks/LockingHarness.sol";
 import { MockMentoToken } from "../../mocks/MockMentoToken.sol";
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
 contract Locking_Test is TestSetup {
-  Locking public lockingContract;
+  LockingHarness public lockingContract;
   MockMentoToken public mentoToken;
 
   uint32 public startingPointWeek;
   uint32 public minCliffPeriod;
   uint32 public minSlopePeriod;
 
+  uint32 public weekInBlocks;
+
   function setUp() public virtual {
     mentoToken = new MockMentoToken();
   }
 
   function _newLocking() internal {
-    lockingContract = new Locking();
+    lockingContract = new LockingHarness();
   }
 
   function _initLocking() internal {
@@ -33,5 +35,9 @@ contract Locking_Test is TestSetup {
       minCliffPeriod,
       minSlopePeriod
     );
+  }
+
+  function _incrementBlock(uint32 _amount) internal {
+    lockingContract.incrementBlock(_amount);
   }
 }

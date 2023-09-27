@@ -6,7 +6,6 @@ import { Locking_Test } from "./Base.t.sol";
 
 contract GetAvailableForWithdraw_Locking_Test is Locking_Test {
   uint256 public aliceBalance = 100;
-  uint256 public weekInBlocks;
 
   address public account = alice;
   address public delegate = alice;
@@ -30,16 +29,16 @@ contract GetAvailableForWithdraw_Locking_Test is Locking_Test {
 
     vm.prank(alice);
     mentoToken.approve(address(lockingContract), type(uint256).max);
-    weekInBlocks = lockingContract.WEEK();
+    weekInBlocks = uint32(lockingContract.WEEK());
 
-    vm.roll(2 * weekInBlocks + 1);
+    _incrementBlock(2 * weekInBlocks + 1);
   }
 
   function test_getAvailableForWithdraw_shouldReturnCorrectAmount() public {
     vm.prank(alice);
     _lock();
 
-    vm.roll(block.number + 2 * weekInBlocks);
+    _incrementBlock(2 * weekInBlocks);
 
     vm.prank(alice);
     uint256 availableForWithdraw = _subject();

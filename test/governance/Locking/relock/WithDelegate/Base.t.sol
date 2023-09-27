@@ -6,7 +6,6 @@ import { Locking_Test } from "../../Base.t.sol";
 
 contract WithDelegate_Relock_Locking_Test is Locking_Test {
   uint256 public aliceBalance = 100000;
-  uint256 public weekInBlocks;
 
   address public account = alice;
   address public delegate = bob;
@@ -28,14 +27,14 @@ contract WithDelegate_Relock_Locking_Test is Locking_Test {
     super.setUp();
     _initLocking();
 
-    weekInBlocks = lockingContract.WEEK();
+    weekInBlocks = uint32(lockingContract.WEEK());
 
     mentoToken.mint(alice, aliceBalance);
 
     vm.prank(alice);
     mentoToken.approve(address(lockingContract), type(uint256).max);
 
-    vm.roll(2 * weekInBlocks + 1);
+    _incrementBlock(2 * weekInBlocks + 1);
 
     amount = 60000;
     slopePeriod = 30;
@@ -50,7 +49,7 @@ contract WithDelegate_Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 60000);
     assertEq(mentoToken.balanceOf(alice), 40000);
 
-    vm.roll(block.number + 29 * weekInBlocks);
+    _incrementBlock(29 * weekInBlocks);
 
     assertEq(lockingContract.balanceOf(bob), 624);
 
@@ -60,7 +59,7 @@ contract WithDelegate_Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 2000);
     assertEq(mentoToken.balanceOf(alice), 98000);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     lockingContract.withdraw();
@@ -71,7 +70,7 @@ contract WithDelegate_Relock_Locking_Test is Locking_Test {
   }
 
   function test_relock_accountsDelegatesCorrectly() public {
-    vm.roll(block.number + 20 * weekInBlocks);
+    _incrementBlock(20 * weekInBlocks);
 
     assertEq(lockingContract.balanceOf(bob), 6303);
 
@@ -92,7 +91,7 @@ contract WithDelegate_Relock_Locking_Test is Locking_Test {
     assertEq(lockingContract.balanceOf(bob), 0);
     assertEq(lockingContract.balanceOf(charlie), 4769);
 
-    vm.roll(block.number + 10 * weekInBlocks);
+    _incrementBlock(10 * weekInBlocks);
 
     assertEq(lockingContract.balanceOf(bob), 0);
     assertEq(lockingContract.balanceOf(charlie), 0);
@@ -105,7 +104,7 @@ contract WithDelegate_Relock_Locking_Test is Locking_Test {
   }
 
   function test_relock_reverts_whenUnknownLock() public {
-    vm.roll(block.number + 20 * weekInBlocks);
+    _incrementBlock(20 * weekInBlocks);
 
     assertEq(lockingContract.balanceOf(bob), 6303);
 

@@ -16,7 +16,7 @@ contract MixPeriod_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
 
   // TODO: this test should be moved to correct place
   function test_delegateTo_shouldReDelegateVotes_whenFirstDelegateWasInCliff() public {
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     assertEq(lockingContract.balanceOf(bob), 152747);
 
@@ -34,11 +34,11 @@ contract MixPeriod_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
     assertEq(lockingContract.balanceOf(bob), 0);
     assertEq(lockingContract.balanceOf(charlie), 152747);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     assertEq(lockingContract.balanceOf(charlie), 152747);
 
-    vm.roll(block.number + 7 * weekInBlocks);
+    _incrementBlock(7 * weekInBlocks);
     assertEq(lockingContract.balanceOf(charlie), 0);
 
     vm.prank(alice);
@@ -49,7 +49,7 @@ contract MixPeriod_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
   }
 
   function test_delegateTo_shouldReDelegateVotes_whenCliffBiggerThan0AfterRedelegate() public {
-    vm.roll(block.number + 4 * weekInBlocks);
+    _incrementBlock(4 * weekInBlocks);
 
     vm.prank(alice);
     lockingContract.withdraw();
@@ -65,7 +65,7 @@ contract MixPeriod_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
     assertEq(lockingContract.balanceOf(bob), 0);
     assertEq(lockingContract.balanceOf(charlie), 109105);
 
-    vm.roll(block.number + 5 * weekInBlocks);
+    _incrementBlock(5 * weekInBlocks);
 
     assertEq(lockingContract.balanceOf(charlie), 0);
 
@@ -77,7 +77,7 @@ contract MixPeriod_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
   }
 
   function test_delegateTo_shouldReDelegateVotes_whenInTail() public {
-    vm.roll(block.number + 8 * weekInBlocks);
+    _incrementBlock(8 * weekInBlocks);
 
     vm.prank(alice);
     lockingContract.withdraw();
@@ -93,7 +93,7 @@ contract MixPeriod_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
     assertEq(lockingContract.balanceOf(bob), 0);
     assertEq(lockingContract.balanceOf(charlie), 21821);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     assertEq(lockingContract.balanceOf(charlie), 0);
 
@@ -105,7 +105,7 @@ contract MixPeriod_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
   }
 
   function test_delegateTo_shouldRevert_whenAfterFinishTime() public {
-    vm.roll(block.number + 10 * weekInBlocks);
+    _incrementBlock(10 * weekInBlocks);
 
     delegate = charlie;
 

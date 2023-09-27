@@ -14,7 +14,7 @@ contract Reverts_Relock_Locking_Test is Relock_Locking_Test {
   }
 
   function test_relock_shouldRevert_whenAmountLessThanNow() public {
-    vm.roll(block.number + 4 * weekInBlocks);
+    _incrementBlock(4 * weekInBlocks);
 
     newAmount = 5;
     newSlopePeriod = 1;

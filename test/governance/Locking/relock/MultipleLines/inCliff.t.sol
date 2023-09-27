@@ -29,14 +29,14 @@ contract InCliff_MultipleLines_Relock_Locking_Test is MultipleLines_Relock_Locki
     assertEq(mentoToken.balanceOf(address(lockingContract)), 90);
     assertEq(mentoToken.balanceOf(alice), 10);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
     vm.prank(alice);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 80);
     assertEq(mentoToken.balanceOf(alice), 20);
 
-    vm.roll(block.number + 5 * weekInBlocks);
+    _incrementBlock(5 * weekInBlocks);
     vm.prank(alice);
     lockingContract.withdraw();
 
@@ -56,14 +56,14 @@ contract InCliff_MultipleLines_Relock_Locking_Test is MultipleLines_Relock_Locki
     assertEq(mentoToken.balanceOf(address(lockingContract)), 100);
     assertEq(mentoToken.balanceOf(alice), 0);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
     vm.prank(alice);
     lockingContract.withdraw();
 
     assertEq(mentoToken.balanceOf(address(lockingContract)), 95);
     assertEq(mentoToken.balanceOf(alice), 5);
 
-    vm.roll(block.number + 9 * weekInBlocks);
+    _incrementBlock(9 * weekInBlocks);
     vm.prank(alice);
     lockingContract.withdraw();
 

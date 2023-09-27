@@ -6,7 +6,6 @@ import { Locking_Test } from "../../Base.t.sol";
 
 contract MultipleAccounts_Relock_Locking_Test is Locking_Test {
   uint256 public balance = 100;
-  uint256 public weekInBlocks;
 
   address public account1 = alice;
   address public delegate1 = alice;
@@ -44,7 +43,7 @@ contract MultipleAccounts_Relock_Locking_Test is Locking_Test {
     super.setUp();
     _initLocking();
 
-    weekInBlocks = lockingContract.WEEK();
+    weekInBlocks = uint32(lockingContract.WEEK());
 
     mentoToken.mint(alice, balance);
     mentoToken.mint(bob, balance);
@@ -57,7 +56,7 @@ contract MultipleAccounts_Relock_Locking_Test is Locking_Test {
     vm.prank(charlie);
     mentoToken.approve(address(lockingContract), type(uint256).max);
 
-    vm.roll(2 * weekInBlocks + 1);
+    _incrementBlock(2 * weekInBlocks + 1);
 
     vm.prank(alice);
     lockId1 = lockingContract.lock(account1, delegate1, amount1, slopePeriod1, cliff1);
@@ -68,6 +67,6 @@ contract MultipleAccounts_Relock_Locking_Test is Locking_Test {
     vm.prank(charlie);
     lockId3 = lockingContract.lock(account3, delegate3, amount3, slopePeriod3, cliff3);
 
-    vm.roll(block.number + 2 * weekInBlocks);
+    _incrementBlock(2 * weekInBlocks);
   }
 }

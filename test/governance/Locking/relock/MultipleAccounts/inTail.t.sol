@@ -20,7 +20,7 @@ contract InTail_MultipleAccounts_Relock_Locking_Test is MultipleAccounts_Relock_
 
     super.setUp();
 
-    vm.roll(block.number + 4 * weekInBlocks);
+    _incrementBlock(4 * weekInBlocks);
   }
 
   function test_relock_shouldAccountCorrectly_whenMultipleAccounts() public {
@@ -45,7 +45,7 @@ contract InTail_MultipleAccounts_Relock_Locking_Test is MultipleAccounts_Relock_
     assertEq(mentoToken.balanceOf(bob), 78);
     assertEq(mentoToken.balanceOf(charlie), 80);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     lockingContract.withdraw();
@@ -59,7 +59,7 @@ contract InTail_MultipleAccounts_Relock_Locking_Test is MultipleAccounts_Relock_
     assertEq(mentoToken.balanceOf(bob), 78);
     assertEq(mentoToken.balanceOf(charlie), 90);
 
-    vm.roll(block.number + weekInBlocks);
+    _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     lockingContract.withdraw();
@@ -73,7 +73,7 @@ contract InTail_MultipleAccounts_Relock_Locking_Test is MultipleAccounts_Relock_
     assertEq(mentoToken.balanceOf(bob), 83);
     assertEq(mentoToken.balanceOf(charlie), 100);
 
-    vm.roll(block.number + 4 * weekInBlocks);
+    _incrementBlock(4 * weekInBlocks);
 
     vm.prank(alice);
     lockingContract.withdraw();
