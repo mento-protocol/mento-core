@@ -25,7 +25,7 @@ contract Lock_Locking_Test is Locking_Test {
     mentoToken.mint(alice, aliceBalance);
 
     vm.prank(alice);
-    mentoToken.approve(address(lockingContract), aliceBalance);
+    mentoToken.approve(address(lockingContract), type(uint256).max);
 
     weekInBlocks = lockingContract.WEEK();
 

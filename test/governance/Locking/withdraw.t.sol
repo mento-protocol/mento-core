@@ -29,7 +29,7 @@ contract Withdraw_Locking_Test is Locking_Test {
     mentoToken.mint(alice, aliceBalance);
 
     vm.prank(alice);
-    mentoToken.approve(address(lockingContract), aliceBalance);
+    mentoToken.approve(address(lockingContract), type(uint256).max);
 
     weekInBlocks = lockingContract.WEEK();
 
@@ -112,5 +112,81 @@ contract Withdraw_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(address(lockingContract)), 20);
     assertEq(mentoToken.balanceOf(alice), 70);
     assertEq(mentoToken.balanceOf(bob), 10);
+  }
+
+  function test_withdraw_shouldReleaseCorrectAmounts_whenWithdarMultipleTimes_andWithTail() public {
+    mentoToken.mint(alice, 6000 - aliceBalance); // top up account
+
+    account = alice;
+    delegate = alice;
+    amount = 5200;
+    slopePeriod = 52;
+    cliff = 53;
+
+    vm.prank(alice);
+    _lock();
+
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 5200);
+    assertEq(mentoToken.balanceOf(alice), 800);
+    assertEq(lockingContract.balanceOf(alice), 4220);
+
+    vm.roll(block.number + 103 * weekInBlocks);
+
+    vm.prank(alice);
+    _subject();
+
+    assertEq(lockingContract.balanceOf(alice), 120);
+
+    vm.roll(block.number + weekInBlocks);
+
+    vm.prank(alice);
+    _subject();
+
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 100);
+    assertEq(mentoToken.balanceOf(alice), 5900);
+    assertEq(lockingContract.balanceOf(alice), 38);
+
+    vm.roll(block.number + weekInBlocks);
+
+    vm.prank(alice);
+    _subject();
+
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 0);
+    assertEq(mentoToken.balanceOf(alice), 6000);
+    assertEq(lockingContract.balanceOf(alice), 0);
+  }
+
+  function test_withdraw_shouldReleaseCorrectAmounts_whenWithdarMultipleTimes_andNoTail() public {
+    mentoToken.mint(alice, 600000 - aliceBalance); // top up account
+
+    account = alice;
+    delegate = alice;
+    amount = 520000;
+    slopePeriod = 20;
+    cliff = 20;
+
+    vm.prank(alice);
+    _lock();
+
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 520000);
+    assertEq(mentoToken.balanceOf(alice), 80000);
+    assertEq(lockingContract.balanceOf(alice), 224776);
+
+    vm.roll(block.number + 20 * weekInBlocks);
+
+    vm.prank(alice);
+    _subject();
+
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 520000);
+    assertEq(mentoToken.balanceOf(alice), 80000);
+    assertEq(lockingContract.balanceOf(alice), 224776);
+
+    vm.roll(block.number + 20 * weekInBlocks);
+    vm.prank(alice);
+    _subject();
+
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 0);
+    assertEq(mentoToken.balanceOf(alice), 600000);
+    assertEq(lockingContract.balanceOf(alice), 0);
   }
 }

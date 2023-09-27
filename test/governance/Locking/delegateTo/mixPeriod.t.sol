@@ -110,7 +110,7 @@ contract MixPeriod_DelegateTo_Locking_Test is DelegateTo_Locking_Test {
     delegate = charlie;
 
     vm.prank(alice);
-    vm.expectRevert("unacceptable value for slope");
+    vm.expectRevert("Slope == 0, unacceptable value for slope");
     _subject();
   }
 }
