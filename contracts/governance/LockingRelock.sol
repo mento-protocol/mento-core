@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+
 import "./LockingBase.sol";
 
 abstract contract LockingRelock is LockingBase {
