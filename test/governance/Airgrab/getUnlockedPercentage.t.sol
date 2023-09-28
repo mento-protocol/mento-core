@@ -45,7 +45,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_Cliff_Fuzz(uint32 cliff, uint32 slope) c_setUp public {
+  function test_GetUnlockedPercentage_Cliff_Fuzz(uint32 cliff, uint32 slope) public c_setUp {
     vm.assume(cliff <= MAX_CLIFF_PERIOD);
     vm.assume(slope <= MAX_SLOPE_PERIOD);
     uint256 pctWithCliff = airgrab.getUnlockedPercentage(0, cliff);
@@ -55,7 +55,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice variations of cliff
-  function test_GetUnlockedPercentage_Cliff() c_setUp public {
+  function test_GetUnlockedPercentage_Cliff() public c_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 0); // no cliff
@@ -84,7 +84,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_Slope_Fuzz(uint32 cliff, uint32 slope) s_setUp public {
+  function test_GetUnlockedPercentage_Slope_Fuzz(uint32 cliff, uint32 slope) public s_setUp {
     vm.assume(cliff <= MAX_CLIFF_PERIOD);
     vm.assume(slope <= MAX_SLOPE_PERIOD);
     uint256 pctWithSlope = airgrab.getUnlockedPercentage(slope, 0);
@@ -94,7 +94,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice variations of slope
-  function test_GetUnlockedPercentage_Slope() s_setUp public {
+  function test_GetUnlockedPercentage_Slope() public s_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 0); // no slope
@@ -123,14 +123,14 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_CliffSlope_Fuzz(uint32 cliff, uint32 slope) cs_setUp public {
+  function test_GetUnlockedPercentage_CliffSlope_Fuzz(uint32 cliff, uint32 slope) public cs_setUp {
     vm.assume(cliff <= MAX_CLIFF_PERIOD);
     vm.assume(slope <= MAX_SLOPE_PERIOD);
     require(airgrab.getUnlockedPercentage(slope, cliff) <= 100e16);
   }
 
   /// @notice no cliff and varitations of slope
-  function test_GetUnlockedPercentage_CliffSlope_NoCliff() cs_setUp public {
+  function test_GetUnlockedPercentage_CliffSlope_NoCliff() public cs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 0); // no slope
@@ -142,7 +142,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fractional cliff and variation on slope
-  function test_GetUnlockedPercentage_CliffSlope_FractionalCliff() cs_setUp public {
+  function test_GetUnlockedPercentage_CliffSlope_FractionalCliff() public cs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(2, 0, 57142857142857142); // no slope
@@ -154,7 +154,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice half cliff and variations of slope
-  function test_GetUnlockedPercentage_CliffSlope_HalfCliff() cs_setUp public {
+  function test_GetUnlockedPercentage_CliffSlope_HalfCliff() public cs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(7, 0, 20e16); // no slope
@@ -166,7 +166,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice full cliff and variations of slope
-  function test_GetUnlockedPercentage_CliffSlope_FullCliff() cs_setUp public {
+  function test_GetUnlockedPercentage_CliffSlope_FullCliff() public cs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(14, 0, 40e16); // no slope
@@ -178,7 +178,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice exceed cliff and variations of slope
-  function test_GetUnlockedPercentage_CliffSlope_ExceedCliff() cs_setUp public {
+  function test_GetUnlockedPercentage_CliffSlope_ExceedCliff() public cs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(20, 0, 40e16); // no slope
@@ -207,14 +207,14 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_Lock_Fuzz(uint32 cliff, uint32 slope) l_setUp public {
+  function test_GetUnlockedPercentage_Lock_Fuzz(uint32 cliff, uint32 slope) public l_setUp {
     vm.assume(cliff <= MAX_CLIFF_PERIOD);
     vm.assume(slope <= MAX_SLOPE_PERIOD);
     require(airgrab.getUnlockedPercentage(slope, cliff) <= 100e16);
   }
 
   /// @notice variatons of lock
-  function test_GetUnlockedPercentage_Lock() l_setUp public {
+  function test_GetUnlockedPercentage_Lock() public l_setUp {
     TestCase[] memory testCases = new TestCase[](4);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 0); // no lock
@@ -242,7 +242,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_LockCliff_Fuzz(uint32 cliff, uint32 slope) lc_setUp public {
+  function test_GetUnlockedPercentage_LockCliff_Fuzz(uint32 cliff, uint32 slope) public lc_setUp {
     vm.assume(cliff <= MAX_CLIFF_PERIOD);
     vm.assume(slope <= MAX_SLOPE_PERIOD);
     uint256 pctWithCliff = airgrab.getUnlockedPercentage(0, cliff);
@@ -257,7 +257,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice variations of cliff
-  function test_GetUnlockedPercentage_LockCliff() lc_setUp public {
+  function test_GetUnlockedPercentage_LockCliff() public lc_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 0); // no cliff
@@ -286,7 +286,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_LockSlope_Fuzz(uint32 cliff, uint32 slope) ls_setUp public {
+  function test_GetUnlockedPercentage_LockSlope_Fuzz(uint32 cliff, uint32 slope) public ls_setUp {
     vm.assume(cliff <= MAX_CLIFF_PERIOD);
     vm.assume(slope <= MAX_SLOPE_PERIOD);
     uint256 pctWithSlope = airgrab.getUnlockedPercentage(slope, 0);
@@ -301,7 +301,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice variations of slope
-  function test_GetUnlockedPercentage_LockSlope() ls_setUp public {
+  function test_GetUnlockedPercentage_LockSlope() public ls_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 0); // no slope
@@ -330,14 +330,14 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_LockCliffslopeFuzz(uint32 cliff, uint32 slope) lcs_setUp public {
+  function test_GetUnlockedPercentage_LockCliffslopeFuzz(uint32 cliff, uint32 slope) public lcs_setUp {
     vm.assume(cliff <= MAX_CLIFF_PERIOD);
     vm.assume(slope <= MAX_SLOPE_PERIOD);
     require(airgrab.getUnlockedPercentage(slope, cliff) <= 100e16);
   }
 
   /// @notice no cliff and varitations of slope
-  function test_GetUnlockedPercentage_LockCliffslopeNoCliff() lcs_setUp public {
+  function test_GetUnlockedPercentage_LockCliffslopeNoCliff() public lcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 0); // no slope
@@ -349,7 +349,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fractional cliff and variation on slope
-  function test_GetUnlockedPercentage_LockCliffslopeFractionalCliff() lcs_setUp public {
+  function test_GetUnlockedPercentage_LockCliffslopeFractionalCliff() public lcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(2, 0, 157142857142857142); // no slope
@@ -361,7 +361,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice half cliff and variations of slope
-  function test_GetUnlockedPercentage_LockCliffslopeHalfCliff() lcs_setUp public {
+  function test_GetUnlockedPercentage_LockCliffslopeHalfCliff() public lcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(7, 0, 30e16); // no slope
@@ -373,7 +373,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice full cliff and variations of slope
-  function test_GetUnlockedPercentage_LockCliffslopeFullCliff() lcs_setUp public {
+  function test_GetUnlockedPercentage_LockCliffslopeFullCliff() public lcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(14, 0, 50e16); // no slope
@@ -385,7 +385,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice exceed cliff and variations of slope
-  function test_GetUnlockedPercentage_LockCliffslopeExceedCliff() lcs_setUp public {
+  function test_GetUnlockedPercentage_LockCliffslopeExceedCliff() public lcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(20, 0, 50e16); // no slope
@@ -414,14 +414,14 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_Base_Fuzz(uint32 cliff_, uint32 slope_) b_setUp public {
+  function test_GetUnlockedPercentage_Base_Fuzz(uint32 cliff_, uint32 slope_) public b_setUp {
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
     require(airgrab.getUnlockedPercentage(slope_, cliff_) <= 100e16);
   }
 
   /// @notice variatons of lock
-  function test_GetUnlockedPercentage_Base() b_setUp public {
+  function test_GetUnlockedPercentage_Base() public b_setUp {
     TestCase[] memory testCases = new TestCase[](4);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 100e16); // no lock
@@ -449,7 +449,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_BaseCliff_Fuzz(uint32 cliff_, uint32 slope_) bc_setUp public {
+  function test_GetUnlockedPercentage_BaseCliff_Fuzz(uint32 cliff_, uint32 slope_) public bc_setUp {
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
     uint256 pctWithCliff = airgrab.getUnlockedPercentage(0, cliff_);
@@ -459,7 +459,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice variations of cliff
-  function test_GetUnlockedPercentage_BaseCliff() bc_setUp public {
+  function test_GetUnlockedPercentage_BaseCliff() public bc_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     //---------------------| Cliff | Slope | Expected %         |
     testCases[0] = TestCase(0, 0, 20e16); // no cliff
@@ -488,7 +488,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_BaseSlope_Fuzz(uint32 cliff_, uint32 slope_) bs_setUp public {
+  function test_GetUnlockedPercentage_BaseSlope_Fuzz(uint32 cliff_, uint32 slope_) public bs_setUp {
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
     uint256 pctWithSlope = airgrab.getUnlockedPercentage(slope_, 0);
@@ -498,7 +498,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice variations of slope
-  function test_GetUnlockedPercentage_BaseSlope() bs_setUp public {
+  function test_GetUnlockedPercentage_BaseSlope() public bs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 20e16); // no slope
@@ -511,7 +511,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
 
   // ======================================
   // with: Base Cliff Slope
-  // without: Lock 
+  // without: Lock
   // ======================================
 
   /// @notice With base reward at 20%, cliff reward at 30% and slope reward at 50%
@@ -527,14 +527,14 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_BaseCliffSlope_Fuzz(uint32 cliff_, uint32 slope_) bcs_setUp public {
+  function test_GetUnlockedPercentage_BaseCliffSlope_Fuzz(uint32 cliff_, uint32 slope_) public bcs_setUp {
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
     require(airgrab.getUnlockedPercentage(slope_, cliff_) <= 100e16);
   }
 
   /// @notice no cliff and varitations of slope
-  function test_GetUnlockedPercentage_BaseCliffSlope_NoCliff() bcs_setUp public {
+  function test_GetUnlockedPercentage_BaseCliffSlope_NoCliff() public bcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 20e16); // no slope
@@ -546,7 +546,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fractional cliff and variation on slope
-  function test_GetUnlockedPercentage_BaseCliffSlope_FractionalCliff() bcs_setUp public {
+  function test_GetUnlockedPercentage_BaseCliffSlope_FractionalCliff() public bcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(2, 0, 242857142857142857); // no slope
@@ -558,7 +558,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice half cliff and variations of slope
-  function test_GetUnlockedPercentage_BaseCliffSlope_HalfCliff() bcs_setUp public {
+  function test_GetUnlockedPercentage_BaseCliffSlope_HalfCliff() public bcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(7, 0, 35e16); // no slope
@@ -570,7 +570,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice full cliff and variations of slope
-  function test_GetUnlockedPercentage_BaseCliffSlope_FullCliff() bcs_setUp public {
+  function test_GetUnlockedPercentage_BaseCliffSlope_FullCliff() public bcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(14, 0, 50e16); // no slope
@@ -582,7 +582,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice exceed cliff and variations of slope
-  function test_GetUnlockedPercentage_BaseCliffSlope_ExceedCliff() bcs_setUp public {
+  function test_GetUnlockedPercentage_BaseCliffSlope_ExceedCliff() public bcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(20, 0, 50e16); // no slope
@@ -594,7 +594,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   // ======================================
-  // with: Base Lock 
+  // with: Base Lock
   // without: Cliff Slope
   // ======================================
 
@@ -611,14 +611,14 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_BaseLock_Fuzz(uint32 cliff_, uint32 slope_) bl_setUp public {
+  function test_GetUnlockedPercentage_BaseLock_Fuzz(uint32 cliff_, uint32 slope_) public bl_setUp {
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
     require(airgrab.getUnlockedPercentage(slope_, cliff_) <= 100e16);
   }
 
   /// @notice variatons of lock
-  function test_GetUnlockedPercentage_BaseLock() bl_setUp public {
+  function test_GetUnlockedPercentage_BaseLock() public bl_setUp {
     TestCase[] memory testCases = new TestCase[](4);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 50e16); // no lock
@@ -646,7 +646,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_BaseLockCliff_Fuzz(uint32 cliff_, uint32 slope_) blc_setUp public {
+  function test_GetUnlockedPercentage_BaseLockCliff_Fuzz(uint32 cliff_, uint32 slope_) public blc_setUp {
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
     uint256 pctWithCliff = airgrab.getUnlockedPercentage(0, cliff_);
@@ -661,7 +661,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice variations of cliff
-  function test_GetUnlockedPercentage_BaseLockCliff() blc_setUp public {
+  function test_GetUnlockedPercentage_BaseLockCliff() public blc_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 10e16); // no cliff
@@ -690,7 +690,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_BaseLockSlope_Fuzz(uint32 cliff_, uint32 slope_) bls_setUp public {
+  function test_GetUnlockedPercentage_BaseLockSlope_Fuzz(uint32 cliff_, uint32 slope_) public bls_setUp {
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
     uint256 pctWithSlope = airgrab.getUnlockedPercentage(slope_, 0);
@@ -705,7 +705,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice variations of slope
-  function test_GetUnlockedPercentage_BaseLockSlope() bls_setUp public {
+  function test_GetUnlockedPercentage_BaseLockSlope() public bls_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 10e16); // no slope
@@ -720,7 +720,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   // with: Base Lock Cliff Slope
   // ======================================
 
-  /// @notice With base reward at 10%, lock reward at 10%, 
+  /// @notice With base reward at 10%, lock reward at 10%,
   /// slope reward at 30%, and cliff reward at 50%
   modifier blcs_setUp() {
     basePercentage = 10e16;
@@ -732,16 +732,16 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
     initAirgrab();
     _;
   }
-  
+
   /// @notice fuzz on cliff and slope
-  function test_GetUnlockedPercentage_BaseLockCliffSlope_Fuzz(uint32 cliff_, uint32 slope_) blcs_setUp public {
+  function test_GetUnlockedPercentage_BaseLockCliffSlope_Fuzz(uint32 cliff_, uint32 slope_) public blcs_setUp {
     vm.assume(cliff_ <= MAX_CLIFF_PERIOD);
     vm.assume(slope_ <= MAX_SLOPE_PERIOD);
     require(airgrab.getUnlockedPercentage(slope_, cliff_) <= 100e16);
   }
 
   /// @notice no cliff and varitations of slope
-  function test_GetUnlockedPercentage_BaseLockCliffSlope_NoCliff() blcs_setUp public {
+  function test_GetUnlockedPercentage_BaseLockCliffSlope_NoCliff() public blcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(0, 0, 10e16); // no slope
@@ -753,7 +753,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice fractional cliff and variation on slope
-  function test_GetUnlockedPercentage_BaseLockCliffSlope_FractionalCliff() blcs_setUp public {
+  function test_GetUnlockedPercentage_BaseLockCliffSlope_FractionalCliff() public blcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(2, 0, 242857142857142857); // no slope
@@ -765,7 +765,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice half cliff and variations of slope
-  function test_GetUnlockedPercentage_BaseLockCliffSlope_HalfCliff() blcs_setUp public {
+  function test_GetUnlockedPercentage_BaseLockCliffSlope_HalfCliff() public blcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(7, 0, 35e16); // no slope
@@ -777,7 +777,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice full cliff and variations of slope
-  function test_GetUnlockedPercentage_BaseLockCliffSlope_FullCliff() blcs_setUp public {
+  function test_GetUnlockedPercentage_BaseLockCliffSlope_FullCliff() public blcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(14, 0, 50e16); // no slope
@@ -789,7 +789,7 @@ contract GetUnlockedPercentage_Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice exceed cliff and variations of slope
-  function test_GetUnlockedPercentage_BaseLockCliffSlope_ExceedCliff() blcs_setUp public {
+  function test_GetUnlockedPercentage_BaseLockCliffSlope_ExceedCliff() public blcs_setUp {
     TestCase[] memory testCases = new TestCase[](5);
     // TestCase(cliff, slope, expectedPercentage)
     testCases[0] = TestCase(20, 0, 50e16); // no slope

@@ -104,14 +104,14 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice Checks the token address
-  function test_Initialize_InvalidToken() i_setUp external {
+  function test_Initialize_InvalidToken() external i_setUp {
     tokenAddress = address(0);
     vm.expectRevert("Airgrab: invalid token");
     i_subject();
   }
 
   /// @notice Renounces ownership and sets token
-  function test_Initialize_TransfersOwnershipAndSetsToken() i_setUp external {
+  function test_Initialize_TransfersOwnershipAndSetsToken() external i_setUp {
     vm.expectEmit(true, true, true, true);
     emit Approval(address(airgrab), lockingContract, type(uint256).max);
     vm.expectEmit(true, true, true, true);
@@ -122,14 +122,14 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice Reverts if called two times, because ownership is renounced
-  function test_Initialize_OnlyCallableOnce() i_setUp external {
+  function test_Initialize_OnlyCallableOnce() external i_setUp {
     i_subject();
     vm.expectRevert("Ownable: caller is not the owner");
     i_subject();
   }
 
   /// @notice Reverts if not the owner
-  function test_Initialize_OnlyCallableByOwner() i_setUp external {
+  function test_Initialize_OnlyCallableByOwner() external i_setUp {
     vm.prank(address(1));
     vm.expectRevert("Ownable: caller is not the owner");
     i_subject();
@@ -148,11 +148,7 @@ contract Airgrab_Test is Airgrab_Base_Test {
 
   /// @notice Test subject `hasClaim`
   function hc_subject() internal view returns (bool) {
-    return airgrab.hasClaim(
-      params.account, 
-      params.amount, 
-      params.merkleProof
-    );
+    return airgrab.hasClaim(params.account, params.amount, params.merkleProof);
   }
 
   /// @notice setup for hasClaim tests
@@ -166,24 +162,24 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice With default params, returns true
-  function test_HasClaim_Valid() hc_setUp external {
+  function test_HasClaim_Valid() external hc_setUp {
     assertEq(hc_subject(), true);
   }
 
   /// @notice With an invalidClaimer, returns false
-  function test_HasClaim_InvalidAccount() hc_setUp external {
+  function test_HasClaim_InvalidAccount() external hc_setUp {
     params.account = invalidClaimer;
     assertEq(hc_subject(), false);
   }
 
   /// @notice With an invalide amount, returns false
-  function test_HasClaim_InvalidAmount() hc_setUp external {
+  function test_HasClaim_InvalidAmount() external hc_setUp {
     params.amount = 2 * claimer0Amount;
     assertEq(hc_subject(), false);
   }
 
   /// @notice With an invalid proof, returns false
-  function test_HasClaim_InvalidProof() hc_setUp external {
+  function test_HasClaim_InvalidProof() external hc_setUp {
     params.merkleProof = new bytes32[](0);
     assertEq(hc_subject(), false);
   }
@@ -194,10 +190,9 @@ contract Airgrab_Test is Airgrab_Base_Test {
   event TokensDrained(address indexed token, uint256 amount);
 
   /// @notice Test subject parameters
-  struct DrainParams{
+  struct DrainParams {
     address token;
     function() subject;
-
   }
   DrainParams d_params;
 
@@ -214,20 +209,20 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice Reverts if airgrab hasn't ended
-  function test_Drain_beforeAirgrabEnds() d_setUp public {
+  function test_Drain_beforeAirgrabEnds() public d_setUp {
     vm.expectRevert("Airgrab: not finished");
     d_subject();
   }
 
   /// @notice Reverts if the airgrab contract doesn't have balance
-  function test_Drain_afterAirgrabEndsWhenNoBalance() d_setUp public {
+  function test_Drain_afterAirgrabEndsWhenNoBalance() public d_setUp {
     vm.warp(airgrab.endTimestamp() + 1);
     vm.expectRevert("Airgrab: nothing to drain");
     d_subject();
   }
 
   /// @notice Drains all tokens to the treasury if the airgrab has ended
-  function test_Drain_afterAirgrabEndsWithSomeBalance() d_setUp public {
+  function test_Drain_afterAirgrabEndsWithSomeBalance() public d_setUp {
     vm.warp(airgrab.endTimestamp() + 1);
     deal(tokenAddress, address(airgrab), 100e18);
     vm.expectEmit(true, true, true, true);
@@ -238,7 +233,7 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice Drains all arbitrary tokens to the treasury if the airgrab has ended
-  function test_Drain_afterAirgrabEndsWithSomeOtherTokenBalance() d_setUp public {
+  function test_Drain_afterAirgrabEndsWithSomeOtherTokenBalance() public d_setUp {
     ERC20 otherToken = new ERC20("Other Token", "OTT");
     d_params.token = address(otherToken);
 
@@ -296,14 +291,15 @@ contract Airgrab_Test is Airgrab_Base_Test {
 
   /// @notice Test subject `isValidKycSignature`
   function ivks_subject() internal view returns (bool) {
-    return airgrab.isValidKycSignature(
-      ivks_params.account, 
-      ivks_params.kycType, 
-      ivks_params.countryOfIDIssuance, 
-      ivks_params.countryOfResidence, 
-      ivks_params.rootHash, 
-      ivks_params.issuerSignature
-    );
+    return
+      airgrab.isValidKycSignature(
+        ivks_params.account,
+        ivks_params.kycType,
+        ivks_params.countryOfIDIssuance,
+        ivks_params.countryOfResidence,
+        ivks_params.rootHash,
+        ivks_params.issuerSignature
+      );
   }
 
   /// @notice setup for isValidKycSignature tests
@@ -323,20 +319,20 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice When the signature is malformed
-  function test_IsValidKycSignature_whenMalformed() ivks_setUp public {
+  function test_IsValidKycSignature_whenMalformed() public ivks_setUp {
     ivks_params.issuerSignature = abi.encodePacked(uint8(2), keccak256("random"), keccak256("random"));
     vm.expectRevert("ECDSA: invalid signature");
     ivks_subject();
   }
 
   /// @notice When the signature is correct and from the expected issuer
-  function test_IsValidKycSignature_whenValidAndCorrectIssuer() ivks_setUp public {
+  function test_IsValidKycSignature_whenValidAndCorrectIssuer() public ivks_setUp {
     ivks_params.issuerSignature = ivks_validKycSignature(fractalIssuerPk);
     assertEq(ivks_subject(), true);
   }
 
   /// @notice When the signature is correct but from an unexpected issuer
-  function test_IsValidKycSignature_whenValidAndIncorrectIssuer() ivks_setUp public {
+  function test_IsValidKycSignature_whenValidAndIncorrectIssuer() public ivks_setUp {
     ivks_params.issuerSignature = ivks_validKycSignature(otherIssuerPk);
     assertEq(ivks_subject(), false);
   }
@@ -345,13 +341,15 @@ contract Airgrab_Test is Airgrab_Base_Test {
   /// @param signer The PK to sign the message with
   function ivks_validKycSignature(uint256 signer) internal view returns (bytes memory) {
     bytes32 signedMessageHash = ECDSA.toEthSignedMessageHash(
-      keccak256(abi.encodePacked(
-        ivks_params.account, 
-        ivks_params.kycType, 
-        ivks_params.countryOfIDIssuance, 
-        ivks_params.countryOfResidence, 
-        ivks_params.rootHash
-      ))
+      keccak256(
+        abi.encodePacked(
+          ivks_params.account,
+          ivks_params.kycType,
+          ivks_params.countryOfIDIssuance,
+          ivks_params.countryOfResidence,
+          ivks_params.rootHash
+        )
+      )
     );
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, signedMessageHash);
     return abi.encodePacked(r, s, v);
@@ -395,7 +393,7 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice setup for claim tests
-  modifier cl_setUp()  {
+  modifier cl_setUp() {
     (fractalIssuer, fractalIssuerPk) = makeAddrAndKey("FractalIssuer");
     (, otherIssuerPk) = makeAddrAndKey("OtherIssuer");
 
@@ -420,13 +418,15 @@ contract Airgrab_Test is Airgrab_Base_Test {
   /// @param signer The PK to sign the message with
   function cl_validKycSignature(uint256 signer) internal view returns (bytes memory) {
     bytes32 signedMessageHash = ECDSA.toEthSignedMessageHash(
-      keccak256(abi.encodePacked(
-        cl_params.account, 
-        cl_params.kycType, 
-        cl_params.countryOfIDIssuance, 
-        cl_params.countryOfResidence, 
-        cl_params.rootHash
-      ))
+      keccak256(
+        abi.encodePacked(
+          cl_params.account,
+          cl_params.kycType,
+          cl_params.countryOfIDIssuance,
+          cl_params.countryOfResidence,
+          cl_params.rootHash
+        )
+      )
     );
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, signedMessageHash);
     return abi.encodePacked(r, s, v);
@@ -440,49 +440,49 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice After the airgrab ends, it reverts
-  function test_Claim_afterAirgrab() cl_setUp external {
+  function test_Claim_afterAirgrab() external cl_setUp {
     vm.warp(endTimestamp + 1);
     vm.expectRevert("Airgrab: finished");
     cl_subject();
   }
 
   /// @notice When the claimer is not in the tree, it reverts
-  function test_Claim_invalidClaimer() cl_setUp external {
+  function test_Claim_invalidClaimer() external cl_setUp {
     cl_params.account = invalidClaimer;
     vm.expectRevert("Airgrab: not in tree");
     cl_subject();
   }
 
   /// @notice When the amount is not the right one for the claimer, it reverts
-  function test_Claim_invalidClaimAmount() cl_setUp external {
+  function test_Claim_invalidClaimAmount() external cl_setUp {
     cl_params.amount = 123124124;
     vm.expectRevert("Airgrab: not in tree");
     cl_subject();
   }
 
   /// @notice When the submitted proof is invalid, it reverts
-  function test_Claim_invalidProof() cl_setUp external {
+  function test_Claim_invalidProof() external cl_setUp {
     cl_params.merkleProof = new bytes32[](0);
     vm.expectRevert("Airgrab: not in tree");
     cl_subject();
   }
 
   /// @notice When the KYC signature is invalid
-  function test_Claim_whenInvalidKYCSignature() cl_setUp external {
+  function test_Claim_whenInvalidKYCSignature() external cl_setUp {
     cl_params.issuerSignature = abi.encodePacked(uint8(2), keccak256("random"), keccak256("random"));
     vm.expectRevert("ECDSA: invalid signature");
     cl_subject();
   }
 
   /// @notice When the KYC signature belongs to the wrong signer
-  function test_Claim_whenInvalidKYCSigner() cl_setUp external {
+  function test_Claim_whenInvalidKYCSigner() external cl_setUp {
     cl_params.issuerSignature = cl_validKycSignature(otherIssuerPk);
     vm.expectRevert("Airgrab: invalid kyc signer");
     cl_subject();
   }
 
   /// @notice When the KYC is the wrong type
-  function test_Claim_whenInvalidKycType() cl_setUp external {
+  function test_Claim_whenInvalidKycType() external cl_setUp {
     cl_params.kycType = 2;
     cl_params.issuerSignature = cl_validKycSignature(fractalIssuerPk);
     vm.expectRevert("Airgrab: invalid kyc params");
@@ -490,7 +490,7 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice When the KYC Country Tier is not supported
-  function test_Claim_whenInvalidKycCountry() cl_setUp external {
+  function test_Claim_whenInvalidKycCountry() external cl_setUp {
     cl_params.countryOfResidence = 7;
     cl_params.issuerSignature = cl_validKycSignature(fractalIssuerPk);
     vm.expectRevert("Airgrab: invalid kyc params");
@@ -498,7 +498,7 @@ contract Airgrab_Test is Airgrab_Base_Test {
   }
 
   /// @notice When the airgrab contract has insufficient token balance
-  function test_Claim_whenInsufficientBalance() cl_setUp external {
+  function test_Claim_whenInsufficientBalance() external cl_setUp {
     cl_params.issuerSignature = cl_validKycSignature(fractalIssuerPk);
     deal(tokenAddress, address(airgrab), 1e18);
     vm.expectRevert("Airgrab: insufficient balance");
