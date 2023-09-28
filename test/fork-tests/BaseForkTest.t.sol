@@ -385,10 +385,10 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     depsCount[registry.getAddressForStringOrDie("StableTokenEUR")] = 0;
     depsCount[registry.getAddressForStringOrDie("StableTokenBRL")] = 0;
     depsCount[registry.getAddressForStringOrDie("StableTokenXOF")] = 2;
-    depsCount[0xA1A8003936862E7a15092A91898D69fa8bCE290c] = 0;
-    depsCount[0x206B25Ea01E188Ee243131aFdE526bA6E131a016] = 1;
-    depsCount[0x25F21A1f97607Edf6852339fad709728cffb9a9d] = 1;
-    depsCount[0x26076B9702885d475ac8c3dB3Bd9F250Dc5A318B] = 0;
+    depsCount[0xA1A8003936862E7a15092A91898D69fa8bCE290c] = 0; // USDC/USD
+    depsCount[0x206B25Ea01E188Ee243131aFdE526bA6E131a016] = 1; // USDC/EUR
+    depsCount[0x25F21A1f97607Edf6852339fad709728cffb9a9d] = 1; // USDC/BRL
+    depsCount[0x26076B9702885d475ac8c3dB3Bd9F250Dc5A318B] = 0; // EUROC/EUR
 
     address[] memory breakers = breakerBox.getBreakers();
 
