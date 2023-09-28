@@ -19,7 +19,7 @@ import { Airgrab } from "contracts/governance/Airgrab.sol";
  * Proof[0x5..] = [ 0xf213211627972cf2d02a11f800ed3f60110c1d11d04ec1ea8cb1366611efdaa3 ]
  * Proof[0x6..] = [ 0x0294d3fc355e136dd6fea7f5c2934dd7cb67c2b4607110780e5fbb23d65d7ac4 ]
  */
-contract Airgrab_Test is Test {
+contract Airgrab_Base_Test is Test {
   uint32 public constant MAX_CLIFF_PERIOD = 103;
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
