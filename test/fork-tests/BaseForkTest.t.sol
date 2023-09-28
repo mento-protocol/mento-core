@@ -393,7 +393,6 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     address[] memory breakers = breakerBox.getBreakers();
 
     for (uint256 i = 0; i < exchanges.length; i++) {
-      console.log("\n\nexchangeIndex: %d [%d]", i, gasleft());
       Utils.Context memory ctx = Utils.newContext(address(this), i);
       address[] memory dependencies = new address[](depsCount[ctx.getReferenceRateFeedID()]);
       for (uint256 d = 0; d < dependencies.length; d++) {
@@ -408,16 +407,11 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       console.log("\t exchangeIndex: %d | rateFeedId: %s | %s dependencies", i, rateFeedID, dependencies.length);
 
       for (uint256 k = 0; k < dependencies.length; k++) {
-        console.log("\t\t\t dependency %d: %s", k, dependencies[k]);
         Utils.Context memory dependencyContext = Utils.getContextForRateFeedID(address(this), dependencies[k]);
-        Utils.logPool(dependencyContext);
 
         for (uint256 j = 0; j < breakers.length; j++) {
-          console.log("\t\t\t checking breaker with index %d", j);
           if (breakerBox.isBreakerEnabled(breakers[j], dependencies[k])) {
-            console.log("\t\t\t\t enabled!!");
             assert_breakerBreaks(dependencyContext, breakers[j], j);
-            console.log("\t\t\t\t\t 🙏🏽 done with breakerBreaks");
 
             assert_swapInFails(
               ctx,
@@ -427,10 +421,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
               "Trading is suspended for this reference rate"
             );
 
-            console.log("\t\t\t\t\t 🎉done with swapInFails");
-            console.log("\t\t\t\t\t attempt recover for index %d", j);
             assert_breakerRecovers(dependencyContext, breakers[j], j);
-            console.log("\t\t\t\t\t 🤡 done with breakrecovers");
           }
         }
       }

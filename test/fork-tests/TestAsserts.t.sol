@@ -396,22 +396,17 @@ contract TestAsserts is Test {
       assert_medianDeltaBreakerBreaks_onDecrease(ctx, breaker);
     } else if (isValueDeltaBreaker) {
       assert_valueDeltaBreakerBreaks_onIncrease(ctx, breaker);
-      console.log("\t\t\t\t\t done with onIncrease in normalValueDeltaBreaker");
       assert_valueDeltaBreakerBreaks_onDecrease(ctx, breaker);
-      console.log("\t\t\t\t\t done with onDecrease in normalValueDeltaBreaker");
     } else if (isNonRecoverableValueDeltaBreaker) {
       // non recoverable
       assert_valueDeltaBreakerBreaks_onIncrease(ctx, breaker);
-      console.log("\t\t\t\t\t done with onIncrease in NonRecoverableValueDeltaBreaker");
       assert_valueDeltaBreakerBreaks_onDecrease(ctx, breaker);
-      console.log("\t\t\t\t\t done with onDecrease in NonRecoverableValueDeltaBreaker");
     } else {
       revert("Unknown trading mode, can't infer breaker type");
     }
   }
 
   function assert_medianDeltaBreakerBreaks_onIncrease(Utils.Context memory ctx, address _breaker) public {
-    console.log("MedianDeltaBreaker breaks on price increase");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to ema - (threshold + 0.001% buffer)
@@ -428,7 +423,6 @@ contract TestAsserts is Test {
   }
 
   function assert_medianDeltaBreakerBreaks_onDecrease(Utils.Context memory ctx, address _breaker) public {
-    console.log("MedianDeltaBreaker breaks on price decrease");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to ema + (threshold + 0.001% buffer)
@@ -445,7 +439,6 @@ contract TestAsserts is Test {
   }
 
   function assert_valueDeltaBreakerBreaks_onIncrease(Utils.Context memory ctx, address _breaker) public {
-    console.log("ValueDeltaBreaker breaks on price increase");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to reference value + threshold + 1
@@ -462,7 +455,6 @@ contract TestAsserts is Test {
   }
 
   function assert_valueDeltaBreakerBreaks_onDecrease(Utils.Context memory ctx, address _breaker) public {
-    console.log("ValueDeltaBreaker breaks on price decrease");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to reference value - threshold - 1
@@ -498,7 +490,6 @@ contract TestAsserts is Test {
   }
 
   function assert_medianDeltaBreakerRecovers(Utils.Context memory ctx, address _breaker) internal {
-    console.log("MedianDeltaBreaker recovers");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to ema + threshold + 0.001%
@@ -525,7 +516,6 @@ contract TestAsserts is Test {
   }
 
   function assert_valueDeltaBreakerRecovers(Utils.Context memory ctx, address _breaker) internal {
-    console.log("ValueDeltaBreaker recovers");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to reference value + threshold + 1
