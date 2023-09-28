@@ -115,10 +115,6 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     for (uint256 i = 0; i < exchangeProviders.length; i++) {
       IExchangeProvider.Exchange[] memory _exchanges = IExchangeProvider(exchangeProviders[i]).getExchanges();
       for (uint256 j = 0; j < _exchanges.length; j++) {
-        // bytes32 celoXOF = 0x269dcbdbc07fff1a4aaab9c7c03b3f629cd9bbed49aa0efebab874e4da1ffd07;
-        // bytes32 EUROCXOF = 0x66c5917862c8dc589e789d43752aa17ad251126276ce88ea20d89865e67bdabe;
-        // if (_exchanges[j].exchangeId != celoXOF && _exchanges[j].exchangeId != EUROCXOF) continue;
-
         if (exchangeIdFilter != bytes32(0) && _exchanges[j].exchangeId != exchangeIdFilter) continue;
         exchanges.push(ExchangeWithProvider(exchangeProviders[i], _exchanges[j]));
         exchangeMap[exchangeProviders[i]][_exchanges[j].exchangeId] = ExchangeWithProvider(
