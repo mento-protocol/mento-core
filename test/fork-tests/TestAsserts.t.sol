@@ -390,15 +390,10 @@ contract TestAsserts is Test {
     // where the medianDeltaBreaker gets deployed first and the valueDeltaBreaker second.
     bool isMedianDeltaBreaker = breakerIndex == 0;
     bool isValueDeltaBreaker = breakerIndex == 1;
-    bool isNonRecoverableValueDeltaBreaker = breakerIndex == 2;
     if (isMedianDeltaBreaker) {
       assert_medianDeltaBreakerBreaks_onIncrease(ctx, breaker);
       assert_medianDeltaBreakerBreaks_onDecrease(ctx, breaker);
     } else if (isValueDeltaBreaker) {
-      assert_valueDeltaBreakerBreaks_onIncrease(ctx, breaker);
-      assert_valueDeltaBreakerBreaks_onDecrease(ctx, breaker);
-    } else if (isNonRecoverableValueDeltaBreaker) {
-      // non recoverable
       assert_valueDeltaBreakerBreaks_onIncrease(ctx, breaker);
       assert_valueDeltaBreakerBreaks_onDecrease(ctx, breaker);
     } else {
@@ -613,11 +608,10 @@ contract TestAsserts is Test {
     address[] memory _breakers = ctx.breakerBox.getBreakers();
     bool isMedianDeltaBreaker = breakerIndex == 0;
     bool isValueDeltaBreaker = breakerIndex == 1;
-    bool isNonRecoverableValueDeltaBreaker = breakerIndex == 2;
     if (isMedianDeltaBreaker) {
       uint256 currentEMA = MedianDeltaBreaker(_breakers[breakerIndex]).medianRatesEMA(ctx.getReferenceRateFeedID());
       return currentEMA;
-    } else if (isValueDeltaBreaker || isNonRecoverableValueDeltaBreaker) {
+    } else if (isValueDeltaBreaker) {
       return ctx.getValueDeltaBreakerReferenceValue(_breakers[breakerIndex]);
     } else {
       revert("can't infer corresponding breaker");
