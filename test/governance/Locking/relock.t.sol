@@ -376,7 +376,7 @@ contract Relock_Locking_Test is Locking_Test {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
-    uint256 lockId1 = lockingContract.lock(alice, alice, 30, 3, 3);
+    lockingContract.lock(alice, alice, 30, 3, 3);
 
     vm.prank(alice);
     uint256 lockId2 = lockingContract.lock(alice, alice, 50, 5, 3);
@@ -411,7 +411,7 @@ contract Relock_Locking_Test is Locking_Test {
     uint256 lockId1 = lockingContract.lock(alice, alice, 30, 3, 3);
 
     vm.prank(alice);
-    uint256 lockId2 = lockingContract.lock(alice, alice, 50, 5, 3);
+    lockingContract.lock(alice, alice, 50, 5, 3);
 
     _incrementBlock(2 * weekInBlocks);
 
@@ -440,7 +440,7 @@ contract Relock_Locking_Test is Locking_Test {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
-    uint256 lockId1 = lockingContract.lock(alice, alice, 30, 3, 3);
+    lockingContract.lock(alice, alice, 30, 3, 3);
 
     vm.prank(alice);
     uint256 lockId2 = lockingContract.lock(alice, alice, 50, 5, 3);
@@ -458,7 +458,7 @@ contract Relock_Locking_Test is Locking_Test {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
-    uint256 lockId1 = lockingContract.lock(alice, alice, 30, 3, 0);
+    lockingContract.lock(alice, alice, 30, 3, 0);
 
     vm.prank(alice);
     uint256 lockId2 = lockingContract.lock(alice, alice, 30, 3, 0);
@@ -490,7 +490,7 @@ contract Relock_Locking_Test is Locking_Test {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
-    uint256 lockId1 = lockingContract.lock(alice, alice, 30, 3, 0);
+    lockingContract.lock(alice, alice, 30, 3, 0);
 
     vm.prank(alice);
     uint256 lockId2 = lockingContract.lock(alice, alice, 30, 3, 0);
@@ -537,13 +537,13 @@ contract Relock_Locking_Test is Locking_Test {
     mentoToken.approve(address(lockingContract), type(uint256).max);
 
     vm.prank(alice);
-    uint256 lockId1 = lockingContract.lock(alice, alice, 20, 4, 2);
+    lockingContract.lock(alice, alice, 20, 4, 2);
 
     vm.prank(bob);
     uint256 lockId2 = lockingContract.lock(bob, bob, 30, 3, 3);
 
     vm.prank(charlie);
-    uint256 lockId3 = lockingContract.lock(charlie, charlie, 40, 4, 4);
+    lockingContract.lock(charlie, charlie, 40, 4, 4);
 
     _incrementBlock(4 * weekInBlocks);
 
@@ -632,13 +632,13 @@ contract Relock_Locking_Test is Locking_Test {
     mentoToken.approve(address(lockingContract), type(uint256).max);
 
     vm.prank(alice);
-    uint256 lockId1 = lockingContract.lock(alice, alice, 20, 4, 2);
+    lockingContract.lock(alice, alice, 20, 4, 2);
 
     vm.prank(bob);
     uint256 lockId2 = lockingContract.lock(bob, bob, 32, 4, 3);
 
     vm.prank(charlie);
-    uint256 lockId3 = lockingContract.lock(charlie, charlie, 40, 4, 4);
+    lockingContract.lock(charlie, charlie, 40, 4, 4);
 
     _incrementBlock(6 * weekInBlocks);
 

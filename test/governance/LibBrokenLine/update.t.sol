@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 pragma experimental ABIEncoderV2;
+// solhint-disable func-name-mixedcase, contract-name-camelcase
 
 import { console } from "forge-std-next/console.sol";
 import { LibBrokenLine_Test } from "./Base.t.sol";
