@@ -45,8 +45,10 @@ contract Airgrab is Ownable {
 
   /// @notice The root of the merkle tree.
   bytes32 public immutable root;
-  /// @notice The Fractal.id message signer for KYC/KYB.
-  address public immutable fractalIssuer;
+  /// @notice The Fractal Credential message hash for KYC/KYB.
+  bytes32 public immutable fractalCredentialHash;
+  /// @notice The Fractal Credential message signer for KYC/KYB.
+  address public immutable fractalSigner;
   /// @notice The locking contract for veToken.
   ILocking public immutable lockingContract;
   /// @notice The treasury address where the tokens will be refunded.
@@ -69,12 +71,15 @@ contract Airgrab is Ownable {
   mapping(address => bool) public claimed;
   /// @notice The token in the airgrab.
   IERC20 public token;
+  /// @notice The fractal credential that must be signed to allow access to the airgrab.
+  string public expectedCredential;
 
   /**
    * @dev Constructor for the Airgrab contract.
    * @notice It checks and configures all immutable params
    * @param root_ The root of the merkle tree.
-   * @param fractalIssuer_ The Fractal.id message signer for KYC/KYB.
+   * @param fractalCredentialHash_ The Fractal message hash for KYC/KYB.
+   * @param fractalSigner_ The Fractal message signer for KYC/KYB.
    * @param treasury_ The treasury address where the tokens will be refunded.
    * @param endTimestamp_ The timestamp when the airgrab ends.
    * @param basePercentage_ The percentage that will be received based on the cliff period
@@ -85,7 +90,8 @@ contract Airgrab is Ownable {
    */
   constructor(
     bytes32 root_,
-    address fractalIssuer_,
+    bytes32 fractalCredentialHash_,
+    address fractalSigner_,
     address lockingContract_,
     address payable treasury_,
     uint256 endTimestamp_,
@@ -97,7 +103,8 @@ contract Airgrab is Ownable {
     uint32 requiredSlopePeriod_
   ) {
     require(root_ != bytes32(0), "Airgrab: invalid root");
-    require(fractalIssuer_ != address(0), "Airgrab: invalid fractal issuer");
+    require(fractalCredentialHash_ != bytes32(0), "Airgrab: invalid fractal credential hash");
+    require(fractalSigner_ != address(0), "Airgrab: invalid fractal issuer");
     require(lockingContract_ != address(0), "Airgrab: invalid locking contract");
     require(treasury_ != address(0), "Airgrab: invalid treasury");
     require(endTimestamp_ > block.timestamp, "Airgrab: invalid end timestamp");
@@ -109,7 +116,8 @@ contract Airgrab is Ownable {
     require(requiredSlopePeriod_ <= MAX_SLOPE_PERIOD, "Airgrab: required slope period too large");
 
     root = root_;
-    fractalIssuer = fractalIssuer_;
+    fractalCredentialHash = fractalCredentialHash_;
+    fractalSigner = fractalSigner_;
     lockingContract = ILocking(lockingContract_);
     treasury = treasury_;
     endTimestamp = endTimestamp_;
@@ -158,14 +166,15 @@ contract Airgrab is Ownable {
   function claim(
     address account,
     uint256 amount,
-    bytes32[] calldata merkleProof,
-    uint8 kycType,
-    uint8 countryOfIDIssuance,
-    uint8 countryOfResidence,
-    bytes32 rootHash,
-    bytes calldata issuerSignature,
     uint32 slope,
-    uint32 cliff
+    uint32 cliff,
+    bytes32[] calldata merkleProof,
+    string memory fractalCredential,
+    bytes calldata fractalProof,
+    uint256 validUntil,
+    uint256 approvedAt,
+    uint256 maxAge,
+    string memory fractalId
   ) external returns (uint256 unlockedAmount) {
     require(block.timestamp <= endTimestamp, "Airgrab: finished");
     require(hasClaim(account, amount, merkleProof), "Airgrab: not in tree");
@@ -337,7 +346,7 @@ contract Airgrab is Ownable {
     bytes32 signedMessageHash = ECDSA.toEthSignedMessageHash(
       keccak256(abi.encodePacked(account, kycType, countryOfIDIssuance, countryOfResidence, rootHash))
     );
-    return ECDSA.recover(signedMessageHash, issuerSignature) == fractalIssuer;
+    return ECDSA.recover(signedMessageHash, issuerSignature) == fractalSigner;
   }
 
   /**
