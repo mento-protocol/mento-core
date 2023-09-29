@@ -11,7 +11,7 @@ import "./interfaces/IVotesUpgradeable.sol";
 abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
 
-  uint32 public constant WEEK = 50400; //blocks one week = 50400, day = 7200, goerli = 50
+  uint32 public constant WEEK = 120_960; //blocks one week = 120_960, day = 17_280 in CELO
 
   uint32 constant MAX_CLIFF_PERIOD = 103;
   uint32 constant MAX_SLOPE_PERIOD = 104;
@@ -242,12 +242,10 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
 
   /**
    * @notice method returns the amount of blocks to shift locking epoch to.
-   * By the time of development, the default weekly-epoch calculated by main-net block number
-   * would start at about 11-35 UTC on Tuesday
-   * we move it to 00-00 UTC Thursday by adding 10800 blocks (approx)
+   * we move it to 00-00 UTC Friday by shifting 3564 blocks (approx) (CELO)
    */
   function getEpochShift() internal view virtual returns (uint32) {
-    return 10800;
+    return 3564;
   }
 
   function verifyLockOwner(uint256 id) internal view returns (address account) {

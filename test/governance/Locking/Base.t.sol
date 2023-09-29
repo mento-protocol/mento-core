@@ -301,21 +301,21 @@ contract Locking_Test is TestSetup {
   }
 
   function test_getWeek_shouldReturnCorrectWeekNo() public {
-    uint32 currentBlock = 15691519;
-    uint32 epochShift = 39725;
+    uint32 dayInBlocks = weekInBlocks / 7;
+    uint32 currentBlock = 21664044; // (Sep-29-2023 11:59:59 AM +UTC) Friday
 
-    lockingContract.setEpochShift(epochShift);
     lockingContract.setBlock(currentBlock);
+    lockingContract.setEpochShift(3564);
 
-    assertEq(lockingContract.getWeek(), 310);
-    assertEq(lockingContract.blockTillNextPeriod(), 22606);
+    assertEq(lockingContract.getWeek(), 179);
+    assertEq(lockingContract.blockTillNextPeriod(), 112320); // 6.5 days in blocks CELO
 
-    _incrementBlock(22000);
-    assertEq(lockingContract.getWeek(), 310);
-    _incrementBlock(600);
-    assertEq(lockingContract.getWeek(), 310);
-    _incrementBlock(10);
-    assertEq(lockingContract.getWeek(), 311);
+    _incrementBlock(5 * dayInBlocks);
+    assertEq(lockingContract.getWeek(), 179);
+    _incrementBlock(dayInBlocks);
+    assertEq(lockingContract.getWeek(), 179);
+    _incrementBlock(dayInBlocks);
+    assertEq(lockingContract.getWeek(), 180);
   }
 
   function test_getAvailableForWithdraw_shouldReturnCorrectAmount() public {
