@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
 import { TestSetup } from "../TestSetup.sol";
-import { LibBrokenLine } from "contracts/governance/libs/LibBrokenLine.sol";
+import { LibBrokenLine } from "contracts/governance/locking/libs/LibBrokenLine.sol";
 
 contract LibBrokenLine_Test is TestSetup {
   LibBrokenLine.BrokenLine public brokenLine;

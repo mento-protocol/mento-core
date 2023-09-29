@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import { console } from "forge-std-next/console.sol";
 import { LibBrokenLine_Test } from "./Base.t.sol";
-import { LibBrokenLine } from "contracts/governance/libs/LibBrokenLine.sol";
+import { LibBrokenLine } from "contracts/governance/locking/libs/LibBrokenLine.sol";
 
 contract addOneLine_LibBrokenLine_Test is LibBrokenLine_Test {
   function _subject(

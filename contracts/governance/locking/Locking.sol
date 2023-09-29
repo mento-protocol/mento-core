@@ -156,11 +156,11 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
   }
 
   function name() public view virtual returns (string memory) {
-    return "Rarible Vote-Escrow";
+    return "Mento Vote-Escrow";
   }
 
   function symbol() public view virtual returns (string memory) {
-    return "veRARI";
+    return "veMENTO";
   }
 
   function decimals() public view virtual returns (uint8) {

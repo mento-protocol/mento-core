@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../../contracts/governance/Locking.sol";
+import "../../contracts/governance/locking/Locking.sol";
 
 contract TestLocking is Locking {
   uint32 public blockNumberMocked;
