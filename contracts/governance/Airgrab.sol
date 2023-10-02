@@ -15,7 +15,7 @@ import { ILocking } from "locking-contracts/ILocking.sol";
  * @title Airgrab
  * @author Mento Labs
  * @notice This contract implements a token airgrab gated by a MerkeTree and KYC using fractal.
- * The airgrab also forces claimers to immediately lock their tokens as veTokens for a 
+ * The airgrab also forces claimers to immediately lock their tokens as veTokens for a
  * predetermined period.
  * @dev The contract is only Ownable because of the circular dependency
  * between Token and Airgrab. We use the initialize method to set the token address
@@ -67,7 +67,9 @@ contract Airgrab is Ownable {
   IERC20 public token;
 
   /**
-   * @dev Check if the account has a valid kyc signature. See: https://docs.developer.fractal.id/did-credentials
+   * @dev Check if the account has a valid kyc signature.
+   * See: https://docs.developer.fractal.id/fractal-credentials-api
+   *      https://github.com/trustfractal/credentials-api-verifiers
    * @notice This function checks the kyc signature with the data provided.
    * @param account The address of the account to check.
    * @param proof The kyc proof for the account.
@@ -83,45 +85,31 @@ contract Airgrab is Ownable {
     string memory fractalId
   ) {
     require(block.timestamp < validUntil, "Airgrab: KYC no longer valid");
-    require(
-      fractalMaxAge == 0 || block.timestamp < approvedAt + fractalMaxAge,
-      "Airgrab: KYC not recent enough"
-    );
-    string memory sender = Strings.toHexString(
-        uint256(uint160(account)),
-        20
+    require(fractalMaxAge == 0 || block.timestamp < approvedAt + fractalMaxAge, "Airgrab: KYC not recent enough");
+    string memory sender = Strings.toHexString(uint256(uint160(account)), 20);
+
+    bytes32 signedMessageHash = ECDSA.toEthSignedMessageHash(
+      abi.encodePacked(
+        sender,
+        ";",
+        fractalId,
+        ";",
+        Strings.toString(approvedAt),
+        ";",
+        Strings.toString(validUntil),
+        ";",
+        //  TODO: if we parameterize this at the contract level
+        // it has to go in storage because solidity only supports
+        // immutable base types. One way to work around this would
+        // be to record a hash of this string as an immutable
+        // value during initialization and then pass the actual
+        // string from the caller and just verify its hash.
+        // Otherwise we can just keep it static here.
+        "level:plus;residency_not:ca,us"
+      )
     );
 
-    bytes32 signedMessageHash = 
-      ECDSA.toEthSignedMessageHash(
-        abi.encodePacked(
-          sender,
-          ";",
-          fractalId,
-          ";",
-          Strings.toString(approvedAt),
-          ";",
-          Strings.toString(validUntil),
-          ";",
-          //  TODO: if we parameterize this at the contract level
-          // it has to go in storage because solidity only supports
-          // immutable base types. One way to work around this would
-          // be to record a hash of this string as an immutable
-          // value during initialization and then pass the actual
-          // string from the caller and just verify its hash.
-          // Otherwise we can just keep it static here.
-          "level:plus;residency_not:ca,us" 
-        )
-      );
-
-    require(
-      SignatureChecker.isValidSignatureNow(
-        fractalSigner,
-        signedMessageHash,
-        proof
-      ),
-      "Airgrab: Invalid KYC"
-    );
+    require(SignatureChecker.isValidSignatureNow(fractalSigner, signedMessageHash, proof), "Airgrab: Invalid KYC");
 
     _;
   }
@@ -146,7 +134,6 @@ contract Airgrab is Ownable {
     require(MerkleProof.verify(merkleProof, root, leaf), "Airgrab: not in tree");
     _;
   }
-
 
   /**
    * @dev Constructor for the Airgrab contract.
@@ -226,10 +213,10 @@ contract Airgrab is Ownable {
     uint256 fractalProofValidUntil,
     uint256 fractalProofApprovedAt,
     string memory fractalId
-  ) 
+  )
+    external
     hasValidKyc(account, fractalProof, fractalProofValidUntil, fractalProofApprovedAt, fractalId)
     canClaim(account, amount, merkleProof)
-    external 
   {
     require(IERC20(token).balanceOf(address(this)) >= amount, "Airgrab: insufficient balance");
 

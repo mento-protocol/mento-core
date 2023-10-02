@@ -31,7 +31,7 @@ contract Airgrab_Test is Test {
   uint32 public constant MAX_CLIFF_PERIOD = 103;
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
-  string constant EXPECTED_CREDENTIAL = 
+  string constant EXPECTED_CREDENTIAL =
     "I authorize Mento (dc3aa1910acbb7ff4d22c07e43a6926adc3a81305a9355a304410048c9a91afd) to get a proof from Fractal that:\n"
     "- I passed KYC level plus+liveness\n"
     "- I am not a citizen of the following countries: Germany (DE)\n"
@@ -41,7 +41,6 @@ contract Airgrab_Test is Test {
     "I authorize Mento (dc3aa1910acbb7ff4d22c07e43a6926adc3a81305a9355a304410048c9a91afd) to get a proof from Fractal that:\n"
     "- I passed KYC level plus\n"
     "- I am not a citizen of the following countries: Germany (DE)";
-
 
   Airgrab public airgrab;
   ERC20 public token;
@@ -356,7 +355,7 @@ contract Airgrab_Test is Test {
         ";",
         Strings.toString(cl_params.fractalProofValidUntil),
         ";",
-        "level:plus;residency_not:ca,us" 
+        "level:plus;residency_not:ca,us"
       )
     );
 
