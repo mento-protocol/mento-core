@@ -16,3 +16,6 @@
 [submodule "lib/locking-contracts"]
 	path = lib/locking-contracts
 	url = https://github.com/rarible/locking-contracts
+[submodule "lib/credentials-api-verifiers"]
+	path = lib/credentials-api-verifiers
+	url = https://github.com/trustfractal/credentials-api-verifiers
