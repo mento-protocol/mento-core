@@ -31,16 +31,9 @@ contract Airgrab_Test is Test {
   uint32 public constant MAX_CLIFF_PERIOD = 103;
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
-  string constant EXPECTED_CREDENTIAL =
-    "I authorize Mento (dc3aa1910acbb7ff4d22c07e43a6926adc3a81305a9355a304410048c9a91afd) to get a proof from Fractal that:\n"
-    "- I passed KYC level plus+liveness\n"
-    "- I am not a citizen of the following countries: Germany (DE)\n"
-    "- I am not a resident of the following countries: Germany (DE)";
-
-  string constant OTHER_CREDENTIAL =
-    "I authorize Mento (dc3aa1910acbb7ff4d22c07e43a6926adc3a81305a9355a304410048c9a91afd) to get a proof from Fractal that:\n"
-    "- I passed KYC level plus\n"
-    "- I am not a citizen of the following countries: Germany (DE)";
+  /// @notice see https://github.com/trustfractal/credentials-api-verifiers#setup
+  string constant EXPECTED_CREDENTIAL = "level:plus;residency_not:ca,us";
+  string constant OTHER_CREDENTIAL = "level:plus;residency_not:de";
 
   Airgrab public airgrab;
   ERC20 public token;
@@ -177,15 +170,15 @@ contract Airgrab_Test is Test {
   // ========================================
   event Approval(address indexed owner, address indexed spender, uint256 value);
 
-  /// @notice Test subject `initialize`
-  function i_subject() internal {
-    airgrab.initialize(tokenAddress);
-  }
-
   /// @notice setup for initialize tests
   modifier i_setUp() {
     newAirgrab();
     _;
+  }
+
+  /// @notice Test subject `initialize`
+  function i_subject() internal {
+    airgrab.initialize(tokenAddress);
   }
 
   /// @notice Checks the token address
@@ -225,36 +218,23 @@ contract Airgrab_Test is Test {
   // ========================================
   event TokensDrained(address indexed token, uint256 amount);
 
-  /// @notice Test subject parameters
-  struct DrainParams {
-    address token;
-    function() subject;
-  }
-  DrainParams d_params;
-
-  /// @notice Test subject `drain`
-  function d_subject() internal {
-    airgrab.drain(d_params.token);
-  }
-
   /// @notice setup for drain tests
   modifier d_setUp() {
     initAirgrab();
-    d_params.token = tokenAddress;
     _;
   }
 
   /// @notice Reverts if airgrab hasn't ended
   function test_Drain_beforeAirgrabEnds() public d_setUp {
     vm.expectRevert("Airgrab: not finished");
-    d_subject();
+    airgrab.drain(tokenAddress);
   }
 
   /// @notice Reverts if the airgrab contract doesn't have balance
   function test_Drain_afterAirgrabEndsWhenNoBalance() public d_setUp {
     vm.warp(airgrab.endTimestamp() + 1);
     vm.expectRevert("Airgrab: nothing to drain");
-    d_subject();
+    airgrab.drain(tokenAddress);
   }
 
   /// @notice Drains all tokens to the treasury if the airgrab has ended
@@ -263,7 +243,7 @@ contract Airgrab_Test is Test {
     deal(tokenAddress, address(airgrab), 100e18);
     vm.expectEmit(true, true, true, true);
     emit TokensDrained(tokenAddress, 100e18);
-    d_subject();
+    airgrab.drain(tokenAddress);
     assertEq(token.balanceOf(treasury), 100e18);
     assertEq(token.balanceOf(address(airgrab)), 0);
   }
@@ -271,13 +251,14 @@ contract Airgrab_Test is Test {
   /// @notice Drains all arbitrary tokens to the treasury if the airgrab has ended
   function test_Drain_afterAirgrabEndsWithSomeOtherTokenBalance() public d_setUp {
     ERC20 otherToken = new ERC20("Other Token", "OTT");
-    d_params.token = address(otherToken);
 
     vm.warp(airgrab.endTimestamp() + 1);
     deal(address(otherToken), address(airgrab), 100e18);
     vm.expectEmit(true, true, true, true);
+
     emit TokensDrained(address(otherToken), 100e18);
-    d_subject();
+    airgrab.drain(address(otherToken));
+
     assertEq(otherToken.balanceOf(treasury), 100e18);
     assertEq(otherToken.balanceOf(address(airgrab)), 0);
   }
@@ -331,7 +312,7 @@ contract Airgrab_Test is Test {
 
   /// @notice sets a valid fractal proof in the claim params
   modifier validKyc() {
-    cl_params.fractalProof = validKycSignature(fractalSignerPk, cl_params.account);
+    cl_params.fractalProof = validKycSignature(fractalSignerPk, cl_params.account, EXPECTED_CREDENTIAL);
     _;
   }
 
@@ -344,7 +325,11 @@ contract Airgrab_Test is Test {
   /// @notice build the KYC message hash and sign it with the provided pk
   /// @param signer The PK to sign the message with
   /// @param account The account to sign the message for
-  function validKycSignature(uint256 signer, address account) internal view returns (bytes memory) {
+  function validKycSignature(
+    uint256 signer,
+    address account,
+    string memory credential
+  ) internal view returns (bytes memory) {
     bytes32 signedMessageHash = ECDSA.toEthSignedMessageHash(
       abi.encodePacked(
         Strings.toHexString(uint256(uint160(account)), 20),
@@ -355,7 +340,7 @@ contract Airgrab_Test is Test {
         ";",
         Strings.toString(cl_params.fractalProofValidUntil),
         ";",
-        "level:plus;residency_not:ca,us"
+        credential
       )
     );
 
@@ -390,7 +375,14 @@ contract Airgrab_Test is Test {
 
   /// @notice when the KYC signed by the wrong signer, it reverts
   function test_Claim_hasValidKyc_whenWrongSigner() public cl_setUp {
-    cl_params.fractalProof = validKycSignature(otherSignerPk, cl_params.account);
+    cl_params.fractalProof = validKycSignature(otherSignerPk, cl_params.account, EXPECTED_CREDENTIAL);
+    vm.expectRevert("Airgrab: Invalid KYC");
+    cl_subject();
+  }
+
+  /// @notice when the KYC credential is not the right one
+  function test_Claim_hasValidKyc_whenWrongCredential() public cl_setUp {
+    cl_params.fractalProof = validKycSignature(otherSignerPk, cl_params.account, OTHER_CREDENTIAL);
     vm.expectRevert("Airgrab: Invalid KYC");
     cl_subject();
   }
@@ -408,7 +400,7 @@ contract Airgrab_Test is Test {
 
   /// @notice when not in tree, it reverts
   function test_Claim_canClaim_whenNotInTree() public cl_setUp {
-    cl_params.fractalProof = validKycSignature(fractalSignerPk, invalidClaimer);
+    cl_params.fractalProof = validKycSignature(fractalSignerPk, invalidClaimer, EXPECTED_CREDENTIAL);
     cl_params.account = invalidClaimer;
     vm.expectRevert("Airgrab: not in tree");
     cl_subject();
