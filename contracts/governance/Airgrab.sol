@@ -32,10 +32,8 @@ contract Airgrab is Ownable {
    * @notice Emitted when tokens are claimed
    * @param claimer The account claiming the tokens
    * @param amount The amount of tokens being claimed
-   * @param cliff The selected cliff period
-   * @param slope The selected slope period
    */
-  event TokensClaimed(address indexed claimer, uint256 indexed amount, uint32 slope, uint32 cliff);
+  event TokensClaimed(address indexed claimer, uint256 indexed amount);
 
   /**
    * @notice Emitted when tokens are drained
@@ -222,7 +220,7 @@ contract Airgrab is Ownable {
 
     claimed[account] = true;
     lockingContract.lock(account, address(0), amount, slopePeriod, cliffPeriod);
-    emit TokensClaimed(account, amount, slopePeriod, cliffPeriod);
+    emit TokensClaimed(account, amount);
   }
 
   /**

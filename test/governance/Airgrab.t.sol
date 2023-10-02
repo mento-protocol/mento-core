@@ -266,7 +266,7 @@ contract Airgrab_Test is Test {
   // ========================================
   // Airgrab.claim
   // ========================================
-  event TokensClaimed(address indexed claimer, uint256 indexed amount, uint32 slope, uint32 cliff);
+  event TokensClaimed(address indexed claimer, uint256 indexed amount);
 
   /// @notice Test subject parameters
   struct ClaimParams {
@@ -440,7 +440,7 @@ contract Airgrab_Test is Test {
   /// @notice happy path
   function test_Claim_locksTokens() public cl_setUp validKyc hasBalance {
     vm.expectEmit(true, true, true, true);
-    emit TokensClaimed(cl_params.account, cl_params.amount, slopePeriod, cliffPeriod);
+    emit TokensClaimed(cl_params.account, cl_params.amount);
     vm.expectCall(
       lockingContract,
       abi.encodeWithSelector(
