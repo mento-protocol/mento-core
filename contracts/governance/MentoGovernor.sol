@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 // solhint-disable max-line-length
-// solhint-disable func-name-mixedcase
 
 import { GovernorUpgradeable, IGovernorUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/GovernorUpgradeable.sol";
 import { GovernorSettingsUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorSettingsUpgradeable.sol";
@@ -29,6 +28,7 @@ contract MentoGovernor is
    * @param veToken The escrowed Mento Token used for voting.
    * @param timelockController The timelock controller used by the governor.
    */
+  // solhint-disable-next-line func-name-mixedcase
   function __MentoGovernor_init(IVotesUpgradeable veToken, TimelockControllerUpgradeable timelockController)
     external
     initializer

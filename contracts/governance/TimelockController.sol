@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-// solhint-disable max-line-length
-// solhint-disable func-name-mixedcase
 
+// solhint-disable-next-line max-line-length
 import { TimelockControllerUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/TimelockControllerUpgradeable.sol";
 
 /**
@@ -16,10 +15,11 @@ contract TimelockController is TimelockControllerUpgradeable {
    * @notice Initializes the TimelockController with the provided parameters.
    * @param minDelay The minimum delay before a proposal can be executed.
    * @param proposers List of addresses that are allowed to queue and cancel operations.
-   * @param executors List of addresses that are allowed to execute proposals. address(0) can be used to allow any account.
+   * @param executors List of addresses that are allowed to execute proposals. 0 can be used to allow any account.
    * @param admin The admin address that will be used to set the proposer role and then will be renounced.
    * @param canceller The community multisig that will have the rights to cancel awaiting proposals.
    */
+  // solhint-disable-next-line func-name-mixedcase
   function __MentoTimelockController_init(
     uint256 minDelay,
     address[] memory proposers,
