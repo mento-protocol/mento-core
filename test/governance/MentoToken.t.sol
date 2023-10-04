@@ -1,6 +1,6 @@
-// solhint-disable func-name-mixedcase
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
+// solhint-disable func-name-mixedcase
 
 import { TestSetup } from "./TestSetup.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
