@@ -18,13 +18,16 @@ contract TimelockController is TimelockControllerUpgradeable {
    * @param proposers List of addresses that are allowed to queue and cancel operations.
    * @param executors List of addresses that are allowed to execute proposals. address(0) can be used to allow any account.
    * @param admin The admin address that will be used to set the proposer role and then will be renounced.
+   * @param canceller The community multisig that will have the rights to cancel awaiting proposals.
    */
   function __MentoTimelockController_init(
     uint256 minDelay,
     address[] memory proposers,
     address[] memory executors,
-    address admin
+    address admin,
+    address canceller
   ) external initializer {
     __TimelockController_init(minDelay, proposers, executors, admin);
+    _setupRole(CANCELLER_ROLE, canceller);
   }
 }

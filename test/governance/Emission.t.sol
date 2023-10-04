@@ -19,8 +19,6 @@ contract EmissionTest is TestSetup {
   event TokensEmitted(address indexed target, uint256 amount);
 
   function setUp() public {
-    vm.warp(MONTH);
-
     vm.prank(owner);
     emission = new Emission();
   }
@@ -30,7 +28,7 @@ contract EmissionTest is TestSetup {
   }
 
   function test_constructor_shouldSetStartTime() public {
-    assertEq(emission.emissionStartTime(), MONTH);
+    assertEq(emission.emissionStartTime(), 1);
   }
 
   function test_setToken_whenNotOwner_shouldRevert() public {

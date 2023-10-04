@@ -20,6 +20,8 @@ contract MentoGovernorTest is TestSetup {
   uint256 private _votingPeriod;
   uint256 private _threshold;
 
+  address public communityMultisig = makeAddr("communityMultisig");
+
   function setUp() public {
     vm.startPrank(owner);
 
@@ -32,7 +34,7 @@ contract MentoGovernorTest is TestSetup {
     address[] memory proposers;
     address[] memory executors;
 
-    timelockController.__MentoTimelockController_init(1 days, proposers, executors, owner);
+    timelockController.__MentoTimelockController_init(1 days, proposers, executors, owner, communityMultisig);
     mentoGovernor.__MentoGovernor_init(IVotesUpgradeable(address(mockVeMento)), timelockController);
 
     mockOwnable.transferOwnership(address(timelockController));
@@ -57,6 +59,18 @@ contract MentoGovernorTest is TestSetup {
     assertEq(_votingPeriod, BLOCKS_WEEK);
     assertEq(_threshold, 1_000e18);
     assertEq(timelockController.getMinDelay(), 1 days);
+  }
+
+  function test_hasRole_shouldReturnCorrectRoles() public {
+    bytes32 proposerRole = timelockController.PROPOSER_ROLE();
+    bytes32 executorRole = timelockController.EXECUTOR_ROLE();
+    bytes32 adminRole = timelockController.TIMELOCK_ADMIN_ROLE();
+    bytes32 cancellerRole = timelockController.CANCELLER_ROLE();
+
+    assert(timelockController.hasRole(proposerRole, address(mentoGovernor)));
+    assert(timelockController.hasRole(executorRole, (address(0))));
+    assertFalse(timelockController.hasRole(adminRole, owner));
+    assert(timelockController.hasRole(cancellerRole, communityMultisig));
   }
 
   function test_propose_whenProposerBelowThreshold_shouldRevert() public {
@@ -341,6 +355,97 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
     assertEq(mockOwnable.protected(), 1337);
+  }
+
+  function test_cancel_whenCalledByCanceller_shouldBlockQueuedProposal() public {
+    mockVeMento.mint(alice, _threshold);
+    mockVeMento.mint(bob, 1_000e18);
+    mockVeMento.mint(charlie, 2_000e18);
+
+    vm.prank(alice);
+    (
+      uint256 proposalId,
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      string memory description
+    ) = _proposeCallProtectedFunction();
+
+    bytes32 tlId = timelockController.hashOperationBatch(targets, values, calldatas, 0, keccak256(bytes(description)));
+
+    // keeping block.ts and block.number in sync
+    vm.roll(block.number + _votingDelay + 1);
+    vm.warp(block.timestamp + 1 days);
+
+    vm.prank(bob);
+    mentoGovernor.castVote(proposalId, 0);
+
+    vm.prank(charlie);
+    mentoGovernor.castVote(proposalId, 1);
+
+    vm.roll(block.number + _votingPeriod);
+    vm.warp(block.timestamp + 7 days);
+
+    mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
+
+    vm.prank(alice);
+    vm.expectRevert();
+    timelockController.cancel(tlId);
+
+    vm.prank(communityMultisig);
+    timelockController.cancel(tlId);
+
+    vm.roll(block.number + BLOCKS_DAY);
+    vm.warp(block.timestamp + 1 days);
+
+    vm.expectRevert("Governor: proposal not successful");
+    mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
+  }
+
+  function test_cancel_whenCalledBeforeQueue_shouldRevert() public {
+    mockVeMento.mint(alice, _threshold);
+    mockVeMento.mint(bob, 1_000e18);
+    mockVeMento.mint(charlie, 2_000e18);
+
+    vm.prank(alice);
+    (
+      uint256 proposalId,
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      string memory description
+    ) = _proposeCallProtectedFunction();
+
+    bytes32 tlId = timelockController.hashOperationBatch(targets, values, calldatas, 0, keccak256(bytes(description)));
+
+    vm.prank(communityMultisig);
+    vm.expectRevert("TimelockController: operation cannot be cancelled");
+    timelockController.cancel(tlId);
+
+    // keeping block.ts and block.number in sync
+    vm.roll(block.number + _votingDelay + 1);
+    vm.warp(block.timestamp + 1 days);
+
+    vm.prank(communityMultisig);
+    vm.expectRevert("TimelockController: operation cannot be cancelled");
+    timelockController.cancel(tlId);
+
+    vm.prank(bob);
+    mentoGovernor.castVote(proposalId, 0);
+
+    vm.prank(charlie);
+    mentoGovernor.castVote(proposalId, 1);
+
+    vm.prank(communityMultisig);
+    vm.expectRevert("TimelockController: operation cannot be cancelled");
+    timelockController.cancel(tlId);
+
+    vm.roll(block.number + _votingPeriod);
+    vm.warp(block.timestamp + 7 days);
+
+    vm.prank(communityMultisig);
+    vm.expectRevert("TimelockController: operation cannot be cancelled");
+    timelockController.cancel(tlId);
   }
 
   function _proposeCallProtectedFunction()
