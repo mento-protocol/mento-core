@@ -1,5 +1,4 @@
 openzeppelin-solidity/=lib/openzeppelin-contracts/
-openzeppelin-solidity-upgradeable/=lib/openzeppelin-contracts-upgradeable/
 celo-foundry/=lib/celo-foundry/src/
 forge-std/=lib/celo-foundry/lib/forge-std/src/
 ds-test/=lib/celo-foundry/lib/forge-std/lib/ds-test/src/
