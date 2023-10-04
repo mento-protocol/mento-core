@@ -19,6 +19,8 @@ contract EmissionTest is TestSetup {
   event TokensEmitted(address indexed target, uint256 amount);
 
   function setUp() public {
+    vm.warp(MONTH);
+
     vm.prank(owner);
     emission = new Emission();
   }
@@ -27,7 +29,11 @@ contract EmissionTest is TestSetup {
     assertEq(emission.owner(), owner);
   }
 
-  function test_setToken_whenNoOwner_shouldRevert() public {
+  function test_constructor_shouldSetStartTime() public {
+    assertEq(emission.emissionStartTime(), MONTH);
+  }
+
+  function test_setToken_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     emission.setTokenContract(address(mentoToken));
   }
@@ -39,7 +45,7 @@ contract EmissionTest is TestSetup {
     assertEq(address(emission.mentoToken()), address(mentoToken));
   }
 
-  function test_setEmissionTarget_whenNoOwner_shouldRevert() public {
+  function test_setEmissionTarget_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     emission.setEmissionTarget(emissionTarget);
   }
@@ -51,7 +57,7 @@ contract EmissionTest is TestSetup {
     assertEq(emission.emissionTarget(), emissionTarget);
   }
 
-  function test_transferOwnership_whenNoOwner_shouldRevert() public {
+  function test_transferOwnership_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     emission.transferOwnership(alice);
   }

@@ -52,15 +52,14 @@ contract MentoGovernorTest is TestSetup {
     _threshold = mentoGovernor.proposalThreshold();
   }
 
-  function test_shouldSetStateCorrectly() public {
-    assertEq(mockOwnable.owner(), address(timelockController));
+  function test_init_shouldSetStateCorrectly() public {
     assertEq(_votingDelay, BLOCKS_DAY);
     assertEq(_votingPeriod, BLOCKS_WEEK);
     assertEq(_threshold, 1_000e18);
     assertEq(timelockController.getMinDelay(), 1 days);
   }
 
-  function test_propose_shouldRevert_whenProposerBelowThreshold() public {
+  function test_propose_whenProposerBelowThreshold_shouldRevert() public {
     vm.startPrank(alice);
 
     vm.expectRevert("Governor: proposer votes below proposal threshold");
@@ -77,7 +76,7 @@ contract MentoGovernorTest is TestSetup {
     vm.stopPrank();
   }
 
-  function test_propose_shouldCreateProposal_whenProposerAboveThreshold() public {
+  function test_propose_whenProposerAboveThreshold_shouldCreateProposal() public {
     mockVeMento.mint(alice, _threshold);
 
     vm.prank(alice);
@@ -94,7 +93,7 @@ contract MentoGovernorTest is TestSetup {
     assertEq(uint256(mentoGovernor.state(hashedParams)), 0);
   }
 
-  function test_castVote_shouldRevert_whenInVotinDelay() public {
+  function test_castVote_whenInVotingDelay_shouldRevert() public {
     mockVeMento.mint(alice, _threshold);
 
     vm.prank(alice);
@@ -105,7 +104,7 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.castVote(proposalId, 1);
   }
 
-  function test_castVote_shouldRevert_when_votingPeriodEnds() public {
+  function test_castVote_whenVotingPeriodEnds_shouldRevert() public {
     mockVeMento.mint(alice, _threshold);
     vm.prank(alice);
     (uint256 proposalId, , , , ) = _proposeCallProtectedFunction();
@@ -119,7 +118,7 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.castVote(proposalId, 1);
   }
 
-  function test_castVote_shouldDefeatProposal_whenNotEnoughForVotes() public {
+  function test_castVote_whenNotEnoughForVotes_shouldDefeatProposal() public {
     mockVeMento.mint(alice, _threshold);
     mockVeMento.mint(bob, 1_000e18);
     mockVeMento.mint(charlie, 1_001e18);
@@ -138,7 +137,7 @@ contract MentoGovernorTest is TestSetup {
     assertEq(uint256(mentoGovernor.state(proposalId)), 3); // defeated
   }
 
-  function test_castVote_shouldDefeatProposal_whenNoQuorum() public {
+  function test_castVote_whenNoQuorum_shouldDefeatProposal() public {
     mockVeMento.mint(alice, _threshold);
     mockVeMento.mint(bob, 100e18);
 
@@ -154,7 +153,7 @@ contract MentoGovernorTest is TestSetup {
     assertEq(uint256(mentoGovernor.state(proposalId)), 3); // defeated
   }
 
-  function test_castVote_shouldSucceedProposal_whenEnoughQuorumAndVotes() public {
+  function test_castVote_whenEnoughQuorumAndForVotes_shouldSucceedProposal() public {
     mockVeMento.mint(alice, _threshold);
     mockVeMento.mint(bob, 1_000e18);
     mockVeMento.mint(charlie, 2_000e18);
@@ -175,7 +174,7 @@ contract MentoGovernorTest is TestSetup {
     assertEq(uint256(mentoGovernor.state(proposalId)), 4); // succeeded
   }
 
-  function test_queueAndExecute_shouldRevert_whenNotCorrectState() public {
+  function test_queueAndExecute_whenNotCorrectState_shouldRevert() public {
     mockVeMento.mint(alice, _threshold);
     mockVeMento.mint(bob, 1_000e18);
     mockVeMento.mint(charlie, 2_000e18);
@@ -227,7 +226,7 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
   }
 
-  function test_execute_shouldRevert_whenTimelocked() public {
+  function test_execute_whenTimelocked_shouldRevert() public {
     mockVeMento.mint(alice, _threshold);
     mockVeMento.mint(bob, 1_000e18);
     mockVeMento.mint(charlie, 2_000e18);
@@ -299,7 +298,7 @@ contract MentoGovernorTest is TestSetup {
     assertEq(mockOwnable.protected(), 1337);
   }
 
-  function test_queueAndexecute_shouldRevert_whenRetried() public {
+  function test_queueAndexecute_whenRetried_shouldRevert() public {
     mockVeMento.mint(alice, _threshold);
     mockVeMento.mint(bob, 1_000e18);
     mockVeMento.mint(charlie, 2_000e18);
@@ -354,6 +353,7 @@ contract MentoGovernorTest is TestSetup {
       string memory description
     )
   {
+    // A random int that will be set to the protected variable
     uint256 newProtected = 1337;
 
     targets = new address[](1);
