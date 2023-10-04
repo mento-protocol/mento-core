@@ -19,7 +19,7 @@ contract MentoTokenTest is TestSetup {
 
   /// @dev Test the state initialization post-construction of the MentoToken contract.
   function test_constructor_shouldSetCorrectState() public {
-    assertEq(mentoToken.emissionContract(), address(emissionContract));
+    assertEq(mentoToken.emissionContract(), emissionContract);
     assertEq(mentoToken.emissionSupply(), EMISSION_SUPPLY);
     assertEq(mentoToken.emittedAmount(), 0);
   }
@@ -29,7 +29,7 @@ contract MentoTokenTest is TestSetup {
     uint256 vestingAmount = mentoToken.balanceOf(vestingContract);
     uint256 airgrabAmount = mentoToken.balanceOf(airgrabContract);
     uint256 treasuryAmount = mentoToken.balanceOf(treasuryContract);
-    uint256 emissionAmount = mentoToken.balanceOf(address(emissionContract));
+    uint256 emissionAmount = mentoToken.balanceOf(emissionContract);
 
     assertEq(vestingAmount, 200_000_000 * 1e18);
     assertEq(airgrabAmount, 50_000_000 * 1e18);
@@ -108,7 +108,7 @@ contract MentoTokenTest is TestSetup {
   function test_mint_whenAmountBiggerThanEmissionSupply_shouldRevert() public {
     uint256 mintAmount = 10e18;
 
-    vm.startPrank(address(emissionContract));
+    vm.startPrank(emissionContract);
 
     vm.expectRevert("MentoToken: emission supply exceeded");
     mentoToken.mint(alice, EMISSION_SUPPLY + 1);
@@ -129,7 +129,7 @@ contract MentoTokenTest is TestSetup {
   function test_mint_whenEmissionSupplyNotExceeded_shouldEmitTokens() public {
     uint256 mintAmount = 10e18;
 
-    vm.startPrank(address(emissionContract));
+    vm.startPrank(emissionContract);
     mentoToken.mint(alice, mintAmount);
 
     assertEq(mentoToken.balanceOf(alice), mintAmount);
