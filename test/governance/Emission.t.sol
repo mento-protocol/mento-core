@@ -1,18 +1,37 @@
-// solhint-disable func-name-mixedcase
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
+// solhint-disable func-name-mixedcase
 
 import { TestSetup } from "./TestSetup.sol";
+import { Emission } from "contracts/governance/Emission.sol";
+import { MockMentoToken } from "../mocks/MockMentoToken.sol";
 
 contract EmissionTest is TestSetup {
-  uint256 public constant INITIAL_TREASURY_BALANCE = 100_000_000 * 1e18;
+  Emission public emission;
+
+  MockMentoToken public mentoToken;
+  address public emissionTarget;
+
   uint256 public constant NEGLIGIBLE_AMOUNT = 2e18;
+
+  event TokenContractSet(address newTokenAddress);
+  event EmissionTargetSet(address newTargetAddress);
+  event TokensEmitted(address indexed target, uint256 amount);
+
+  function setUp() public {
+    vm.prank(owner);
+    emission = new Emission();
+  }
 
   function test_constructor_shouldSetOwner() public {
     assertEq(emission.owner(), owner);
   }
 
-  function test_setToken_whenNoOwner_shouldRevert() public {
+  function test_constructor_shouldSetStartTime() public {
+    assertEq(emission.emissionStartTime(), 1);
+  }
+
+  function test_setToken_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     emission.setTokenContract(address(mentoToken));
   }
@@ -24,19 +43,19 @@ contract EmissionTest is TestSetup {
     assertEq(address(emission.mentoToken()), address(mentoToken));
   }
 
-  function test_setEmissionTarget_whenNoOwner_shouldRevert() public {
+  function test_setEmissionTarget_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
-    emission.setEmissionTarget(treasuryContract);
+    emission.setEmissionTarget(emissionTarget);
   }
 
   function test_setEmissionTarget_whenOwner_shouldSetEmissionTargetAddress() public {
     vm.prank(owner);
-    emission.setEmissionTarget(treasuryContract);
+    emission.setEmissionTarget(emissionTarget);
 
-    assertEq(emission.emissionTarget(), treasuryContract);
+    assertEq(emission.emissionTarget(), emissionTarget);
   }
 
-  function test_transferOwnership_whenNoOwner_shouldRevert() public {
+  function test_transferOwnership_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     emission.transferOwnership(alice);
   }
@@ -63,7 +82,7 @@ contract EmissionTest is TestSetup {
     uint256 amount = emission.emitTokens();
 
     assertApproxEqAbs(amount, calculatedAmountFor1Month, NEGLIGIBLE_AMOUNT);
-    assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), amount);
   }
 
   function test_emitTokens_whenAfter6Months_shouldMintCorrectAmountToTarget() public {
@@ -74,7 +93,7 @@ contract EmissionTest is TestSetup {
     uint256 amount = emission.emitTokens();
 
     assertApproxEqAbs(amount, calculatedAmountFor6Months, NEGLIGIBLE_AMOUNT);
-    assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), amount);
   }
 
   function test_emitTokens_whenAfter1Year_shouldMintCorrectAmountToTarget() public {
@@ -85,7 +104,7 @@ contract EmissionTest is TestSetup {
     uint256 amount = emission.emitTokens();
 
     assertApproxEqAbs(amount, calculatedAmountFor1Year, NEGLIGIBLE_AMOUNT);
-    assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), amount);
   }
 
   function test_emitTokens_whenAfter10Years_shouldMintCorrectAmountToTarget() public {
@@ -96,7 +115,7 @@ contract EmissionTest is TestSetup {
     uint256 amount = emission.emitTokens();
 
     assertApproxEqAbs(amount, calculatedAmountFor10Years, NEGLIGIBLE_AMOUNT);
-    assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), amount);
   }
 
   function test_emitTokens_whenAfter15Years_shouldMintCorrectAmountToTarget() public {
@@ -107,7 +126,7 @@ contract EmissionTest is TestSetup {
     uint256 amount = emission.emitTokens();
 
     assertApproxEqAbs(amount, calculatedAmountFor15Years, NEGLIGIBLE_AMOUNT);
-    assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), amount);
   }
 
   function test_emitTokens_whenAfter25Years_shouldMintCorrectAmountToTarget() public {
@@ -117,7 +136,7 @@ contract EmissionTest is TestSetup {
     vm.warp(25 * YEAR);
     uint256 amount = emission.emitTokens();
     assertApproxEqAbs(amount, calculatedAmountFor25Years, NEGLIGIBLE_AMOUNT);
-    assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), amount);
   }
 
   function test_emitTokens_whenAfter30Years_shouldMintCorrectAmountToTarget() public {
@@ -127,7 +146,7 @@ contract EmissionTest is TestSetup {
     vm.warp(30 * YEAR);
     uint256 amount = emission.emitTokens();
     assertApproxEqAbs(amount, calculatedAmountFor30Years, NEGLIGIBLE_AMOUNT);
-    assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), amount);
   }
 
   function test_emitTokens_whenAfter40Years_shouldMintCorrectAmountToTarget() public {
@@ -137,7 +156,7 @@ contract EmissionTest is TestSetup {
     vm.warp(40 * YEAR);
     uint256 amount = emission.emitTokens();
     assertEq(amount, calculatedAmountFor40Years);
-    assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), amount);
   }
 
   function test_fuzz_emitTokens_shouldNotRevert(uint256 duration) public {
@@ -149,7 +168,7 @@ contract EmissionTest is TestSetup {
     vm.warp(duration);
     uint256 amount = emission.emitTokens();
 
-    assertEq(mentoToken.balanceOf(treasuryContract), amount + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), amount);
   }
 
   function test_emitTokens_whenMultipleEmits_shouldTakePreviousMintsIntoAccount() public {
@@ -221,13 +240,16 @@ contract EmissionTest is TestSetup {
     uint256 totalEmitted = amount1 + amount2 + amount3;
 
     assertEq(totalEmitted, emission.totalEmittedAmount());
-    assertEq(mentoToken.balanceOf(treasuryContract), totalEmitted + INITIAL_TREASURY_BALANCE);
+    assertEq(mentoToken.balanceOf(emissionTarget), totalEmitted);
   }
 
   function _setupEmissionContract() internal {
+    emissionTarget = makeAddr("EmissionTarget");
+    mentoToken = new MockMentoToken();
+
     vm.startPrank(owner);
     emission.setTokenContract(address(mentoToken));
-    emission.setEmissionTarget(treasuryContract);
+    emission.setEmissionTarget(emissionTarget);
     vm.stopPrank();
   }
 }

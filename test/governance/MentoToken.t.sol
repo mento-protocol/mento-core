@@ -1,14 +1,25 @@
-// solhint-disable func-name-mixedcase
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
+// solhint-disable func-name-mixedcase
 
 import { TestSetup } from "./TestSetup.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
 
 contract MentoTokenTest is TestSetup {
+  MentoToken public mentoToken;
+
+  address public vestingContract = makeAddr("vestingContract");
+  address public airgrabContract = makeAddr("airgrabContract");
+  address public treasuryContract = makeAddr("treasuryContract");
+  address public emissionContract = makeAddr("emissionContract");
+
+  function setUp() public {
+    mentoToken = new MentoToken(vestingContract, airgrabContract, treasuryContract, emissionContract);
+  }
+
   /// @dev Test the state initialization post-construction of the MentoToken contract.
   function test_constructor_shouldSetCorrectState() public {
-    assertEq(mentoToken.emissionContract(), address(emission));
+    assertEq(mentoToken.emissionContract(), emissionContract);
     assertEq(mentoToken.emissionSupply(), EMISSION_SUPPLY);
     assertEq(mentoToken.emittedAmount(), 0);
   }
@@ -18,7 +29,7 @@ contract MentoTokenTest is TestSetup {
     uint256 vestingAmount = mentoToken.balanceOf(vestingContract);
     uint256 airgrabAmount = mentoToken.balanceOf(airgrabContract);
     uint256 treasuryAmount = mentoToken.balanceOf(treasuryContract);
-    uint256 emissionAmount = mentoToken.balanceOf(address(emission));
+    uint256 emissionAmount = mentoToken.balanceOf(emissionContract);
 
     assertEq(vestingAmount, 200_000_000 * 1e18);
     assertEq(airgrabAmount, 50_000_000 * 1e18);
@@ -97,7 +108,7 @@ contract MentoTokenTest is TestSetup {
   function test_mint_whenAmountBiggerThanEmissionSupply_shouldRevert() public {
     uint256 mintAmount = 10e18;
 
-    vm.startPrank(address(emission));
+    vm.startPrank(emissionContract);
 
     vm.expectRevert("MentoToken: emission supply exceeded");
     mentoToken.mint(alice, EMISSION_SUPPLY + 1);
@@ -118,7 +129,7 @@ contract MentoTokenTest is TestSetup {
   function test_mint_whenEmissionSupplyNotExceeded_shouldEmitTokens() public {
     uint256 mintAmount = 10e18;
 
-    vm.startPrank(address(emission));
+    vm.startPrank(emissionContract);
     mentoToken.mint(alice, mintAmount);
 
     assertEq(mentoToken.balanceOf(alice), mintAmount);
