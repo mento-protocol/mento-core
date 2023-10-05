@@ -8,6 +8,7 @@ import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { SignatureChecker } from "openzeppelin-contracts-next/contracts/utils/cryptography/SignatureChecker.sol";
 import { Strings } from "openzeppelin-contracts-next/contracts/utils/Strings.sol";
+import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
 
 import { ILocking } from "locking-contracts/ILocking.sol";
 
@@ -21,7 +22,7 @@ import { ILocking } from "locking-contracts/ILocking.sol";
  * between Token and Airgrab. We use the initialize method to set the token address
  * after the Token contract has been deployed, and renounce ownership.
  */
-contract Airgrab is Ownable {
+contract Airgrab is Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   uint256 public constant PRECISION = 1e18;
@@ -32,8 +33,9 @@ contract Airgrab is Ownable {
    * @notice Emitted when tokens are claimed
    * @param claimer The account claiming the tokens
    * @param amount The amount of tokens being claimed
+   * @param votingPower The amount of voting power the claimer will have
    */
-  event TokensClaimed(address indexed claimer, uint256 indexed amount);
+  event TokensClaimed(address indexed claimer, uint256 amount, uint256 votingPower);
 
   /**
    * @notice Emitted when tokens are drained
@@ -158,6 +160,7 @@ contract Airgrab is Ownable {
     require(fractalSigner_ != address(0), "Airgrab: invalid fractal issuer");
     require(lockingContract_ != address(0), "Airgrab: invalid locking contract");
     require(treasury_ != address(0), "Airgrab: invalid treasury");
+    // slither-disable-next-line timestamp
     require(endTimestamp_ > block.timestamp, "Airgrab: invalid end timestamp");
     require(cliffPeriod_ <= MAX_CLIFF_PERIOD, "Airgrab: cliff period too large");
     require(slopePeriod_ <= MAX_SLOPE_PERIOD, "Airgrab: slope period too large");
@@ -182,9 +185,12 @@ contract Airgrab is Ownable {
    */
   function initialize(address token_) external onlyOwner {
     require(token_ != address(0), "Airgrab: invalid token");
-    token = IERC20(token_);
-    token.approve(address(lockingContract), type(uint256).max);
     _transferOwnership(address(0));
+    token = IERC20(token_);
+    require(
+      token.approve(address(lockingContract), type(uint256).max),
+      "Airgrab: approval failed"
+    );
   }
 
   /**
@@ -215,12 +221,13 @@ contract Airgrab is Ownable {
     external
     hasValidKyc(account, fractalProof, fractalProofValidUntil, fractalProofApprovedAt, fractalId)
     canClaim(account, amount, merkleProof)
+    nonReentrant
   {
     require(IERC20(token).balanceOf(address(this)) >= amount, "Airgrab: insufficient balance");
 
     claimed[account] = true;
-    lockingContract.lock(account, address(0), amount, slopePeriod, cliffPeriod);
-    emit TokensClaimed(account, amount);
+    uint256 votingPower = lockingContract.lock(account, address(0), amount, slopePeriod, cliffPeriod);
+    emit TokensClaimed(account, amount, votingPower);
   }
 
   /**
@@ -229,7 +236,8 @@ contract Airgrab is Ownable {
    * The function takes a token as a param in case the contract has been sent
    * tokens other than the airgrab token.
    */
-  function drain(address tokenToDrain) external {
+  function drain(address tokenToDrain) external nonReentrant {
+    // slither-disable-next-line timestamp
     require(block.timestamp > endTimestamp, "Airgrab: not finished");
     uint256 balance = IERC20(tokenToDrain).balanceOf(address(this));
     require(balance > 0, "Airgrab: nothing to drain");

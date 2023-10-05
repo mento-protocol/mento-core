@@ -266,7 +266,7 @@ contract Airgrab_Test is Test {
   // ========================================
   // Airgrab.claim
   // ========================================
-  event TokensClaimed(address indexed claimer, uint256 indexed amount);
+  event TokensClaimed(address indexed claimer, uint256 amount, uint256 votingPower);
 
   /// @notice Test subject parameters
   struct ClaimParams {
@@ -296,8 +296,6 @@ contract Airgrab_Test is Test {
   /// @notice setup for claim tests
   modifier cl_setUp() {
     initAirgrab();
-
-    vm.mockCall(lockingContract, abi.encodeWithSelector(ILocking(lockingContract).lock.selector), abi.encode(0));
 
     cl_params.account = claimer0;
     cl_params.amount = claimer0Amount;
@@ -439,8 +437,15 @@ contract Airgrab_Test is Test {
 
   /// @notice happy path
   function test_Claim_locksTokens() public cl_setUp validKyc hasBalance {
+    vm.mockCall(
+      lockingContract, 
+      abi.encodeWithSelector(ILocking(lockingContract).lock.selector), 
+      abi.encode(cl_params.amount * 2)
+    );
+
     vm.expectEmit(true, true, true, true);
-    emit TokensClaimed(cl_params.account, cl_params.amount);
+    emit TokensClaimed(cl_params.account, cl_params.amount, cl_params.amount * 2);
+
     vm.expectCall(
       lockingContract,
       abi.encodeWithSelector(
@@ -452,6 +457,7 @@ contract Airgrab_Test is Test {
         cliffPeriod
       )
     );
+
     cl_subject();
   }
 }
