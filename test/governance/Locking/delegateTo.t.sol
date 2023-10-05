@@ -7,7 +7,7 @@ import { Locking_Test } from "./Base.t.sol";
 contract DelegateTo_Locking_Test is Locking_Test {
   uint256 public lockId;
 
-  function test_delegateTo_shouldReDelegateVotes_toNewDelegate_inCliff() public {
+  function test_delegateTo_whenReDelegateToDifferentAccount_shouldDelegateCorrectly() public {
     mentoToken.mint(alice, 100000);
 
     vm.prank(alice);
@@ -27,7 +27,6 @@ contract DelegateTo_Locking_Test is Locking_Test {
     lockingContract.delegateTo(lockId, charlie);
 
     assertEq(lockingContract.balanceOf(bob), 0);
-
     assertEq(lockingContract.balanceOf(charlie), 6303);
 
     _incrementBlock(10 * weekInBlocks);
@@ -41,16 +40,13 @@ contract DelegateTo_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100000);
   }
 
-  function test_delegateTo_shouldReDelegateVotes_whenMultipleReDelegates_inCliff() public {
+  function test_delegateTo_whenRedelegateToSameAccount_shouldDelegateCorrectly() public {
     mentoToken.mint(alice, 100000);
 
     vm.prank(alice);
     lockId = lockingContract.lock(alice, bob, 60000, 30, 0);
 
     _incrementBlock(20 * weekInBlocks);
-
-    vm.prank(alice);
-    lockingContract.withdraw();
 
     vm.prank(alice);
     lockingContract.withdraw();
@@ -79,7 +75,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     assertEq(lockingContract.totalSupply(), 0);
   }
 
-  function test_delegateTo_shouldReDelegateVotes_toNewDelegate_inTail() public {
+  function test_delegateTo_whenInTail_shouldReDelegateVotesToNewDelegate() public {
     mentoToken.mint(alice, 100000);
 
     vm.prank(alice);
@@ -112,7 +108,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100000);
   }
 
-  function test_delegateTo_shouldReDelegateVotes_whenFirstDelegateWasInCliff() public {
+  function test_delegateTo_whenInCliff_shouldReDelegateVotes() public {
     mentoToken.mint(alice, 1000000);
 
     vm.prank(alice);
@@ -148,7 +144,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 1000000);
   }
 
-  function test_delegateTo_shouldReDelegateVotes_whenCliffBiggerThan0AfterRedelegate() public {
+  function test_delegateTo_wheninSlope_shouldReDelegateVotes() public {
     mentoToken.mint(alice, 1000000);
 
     vm.prank(alice);
@@ -179,7 +175,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 1000000);
   }
 
-  function test_delegateTo_shouldReDelegateVotes_whenInTail() public {
+  function test_delegateTo_whenInTail_shouldReDelegateVotes() public {
     mentoToken.mint(alice, 1000000);
 
     vm.prank(alice);
@@ -210,7 +206,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 1000000);
   }
 
-  function test_delegateTo_shouldRevert_whenAfterFinishTime() public {
+  function test_delegateTo_whenAfterFinishTime_shouldRevert() public {
     mentoToken.mint(alice, 1000000);
 
     vm.prank(alice);

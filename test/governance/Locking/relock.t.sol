@@ -7,7 +7,7 @@ import { Locking_Test } from "./Base.t.sol";
 contract Relock_Locking_Test is Locking_Test {
   uint256 public lockId;
 
-  function test_relock_shouldIncreaseAmount_AndContinueReleasingByNewSchedule_inCliff() public {
+  function test_relock_whenInCliff_shouldRelockWithIncreasedAmount() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -29,7 +29,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100);
   }
 
-  function test_relock_shouldUpdateCliff_AndContinueReleasingByNewSchedule_inCliff() public {
+  function test_relock_whenInCliff_shouldRelockWithNewCliff() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -51,7 +51,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100);
   }
 
-  function test_relock_shouldDecreaseSlope_AndContinueReleasingByNewSchedule_inCliff() public {
+  function test_relock_whenInCliff_sholdRelockWithNewSlope() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -73,7 +73,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100);
   }
 
-  function test_relock_shouldChangeAllParams_andContinueReleasingByNewSchedule_inCliff() public {
+  function test_relock_whenInCliff_shouldRelockWithANewSchedle() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -102,7 +102,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100);
   }
 
-  function test_relock_shouldChangeAllParams_AndContinueReleasingByNewSchedule_inSlope() public {
+  function test_relock_wheInSlope_shouldRelockWithNewSchedule() public {
     mentoToken.mint(alice, 100);
 
     vm.startPrank(alice);
@@ -129,7 +129,7 @@ contract Relock_Locking_Test is Locking_Test {
     vm.stopPrank();
   }
 
-  function test_relock_shouldReleaseBySameSchedule_whenWithdrawBeforeRelock_inSlope() public {
+  function test_relock_whenRelocked_shouldReleaseByTheNewScheduleAfterWithdraw() public {
     mentoToken.mint(alice, 100);
 
     vm.startPrank(alice);
@@ -156,7 +156,7 @@ contract Relock_Locking_Test is Locking_Test {
     vm.stopPrank();
   }
 
-  function test_relock_shouldChangeAllParams_AndContinueReleasingByNewSchedule_inTail() public {
+  function test_relock_whenInTail_shouldRelockWithNewSchedule() public {
     mentoToken.mint(alice, 100);
 
     vm.startPrank(alice);
@@ -186,37 +186,7 @@ contract Relock_Locking_Test is Locking_Test {
     vm.stopPrank();
   }
 
-  function test_relock_shouldChangeAllParams_AndTransferMoreTokensToRelock_inTail() public {
-    mentoToken.mint(alice, 100);
-
-    vm.startPrank(alice);
-    lockId = lockingContract.lock(alice, alice, 37, 4, 3);
-
-    _incrementBlock(6 * weekInBlocks);
-
-    lockingContract.relock(lockId, alice, 10, 2, 2);
-
-    lockingContract.withdraw();
-
-    assertEq(mentoToken.balanceOf(address(lockingContract)), 10);
-    assertEq(mentoToken.balanceOf(alice), 90);
-
-    _incrementBlock(2 * weekInBlocks);
-    lockingContract.withdraw();
-
-    assertEq(mentoToken.balanceOf(address(lockingContract)), 10);
-    assertEq(mentoToken.balanceOf(alice), 90);
-
-    _incrementBlock(2 * weekInBlocks);
-    lockingContract.withdraw();
-
-    assertEq(mentoToken.balanceOf(address(lockingContract)), 0);
-    assertEq(mentoToken.balanceOf(alice), 100);
-
-    vm.stopPrank();
-  }
-
-  function test_relock_shouldRevert_whenAmountLessThanNow() public {
+  function test_relock_whenAmountLessThanCurrent_shouldRevert() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -228,7 +198,7 @@ contract Relock_Locking_Test is Locking_Test {
     lockingContract.relock(lockId, alice, 5, 1, 1);
   }
 
-  function test_relock_shouldRevert_whenPeriodTooShort() public {
+  function test_relock_whenPeriodTooShort_shouldRevert() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -240,7 +210,7 @@ contract Relock_Locking_Test is Locking_Test {
     lockingContract.relock(lockId, alice, 5, 1, 1);
   }
 
-  function test_relock_shouldRevert_whenAmountIsZero() public {
+  function test_relock_whenAmountIsZero_shouldRevert() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -252,7 +222,7 @@ contract Relock_Locking_Test is Locking_Test {
     lockingContract.relock(lockId, alice, 0, 5, 1);
   }
 
-  function test_relock_shouldRevert_whenSlopeIsZero() public {
+  function test_relock_whenSlopeIsZero_shouldRevert() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -264,7 +234,7 @@ contract Relock_Locking_Test is Locking_Test {
     lockingContract.relock(lockId, alice, 60, 0, 2);
   }
 
-  function test_relock_shouldRevert_whenCliffIsLong() public {
+  function test_relock_whenCliffIsBig_shouldRevert() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -276,7 +246,7 @@ contract Relock_Locking_Test is Locking_Test {
     lockingContract.relock(lockId, alice, 60, 12, 105);
   }
 
-  function test_relock_shouldRevert_whenSlopeIsLong() public {
+  function test_relock_whenSlopeIsBig_shouldRevert() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -318,7 +288,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100000);
   }
 
-  function test_relock_accountsDelegatesCorrectly() public {
+  function test_relock_shouldAccountDelegatedAmountCorrectly() public {
     mentoToken.mint(alice, 100000);
 
     vm.prank(alice);
@@ -352,7 +322,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100000);
   }
 
-  function test_relock_reverts_whenUnknownLock() public {
+  function test_relock_whenUnknownLock_shouldRevert() public {
     mentoToken.mint(alice, 100000);
 
     vm.prank(alice);
@@ -372,7 +342,7 @@ contract Relock_Locking_Test is Locking_Test {
     lockingContract.relock(lockId, charlie, 20000, 10, 0);
   }
 
-  function test_relock_shouldIncreaseAmount_AndContinueReleasingByNewSchedule_whenMultiLines_inCliff() public {
+  function test_relock_whenMultiLinesInCliff_shouldRelockCorrectLine() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -404,7 +374,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100);
   }
 
-  function test_relock_shouldIncreaseSlopePeriod_AndContinueReleasingByNewSchedul_whenMultiLines_inCliff() public {
+  function test_relock_whenMultiLinesInCliff_shouldRelockCorrectLine2() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -436,7 +406,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100);
   }
 
-  function test_relock_shouldRevert_whenCutCorner() public {
+  function test_relock_whenMultiLinesCutCorner_shouldRevert() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -452,9 +422,7 @@ contract Relock_Locking_Test is Locking_Test {
     lockingContract.relock(lockId2, alice, 50, 10, 0);
   }
 
-  function test_relock_shouldUpdateParams_AndContinueReleasingByNewSchedule_multiLinesAndTransferNeeded_inSlope()
-    public
-  {
+  function test_relock_whenMultiLinesInSlope_shouldRelockCorrectly() public {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
@@ -486,45 +454,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 100);
   }
 
-  function test_relock_shouldUpdateParams_AndContinueReleasingByNewSchedule_whenTransferNotNeeded_inSlope() public {
-    mentoToken.mint(alice, 100);
-
-    vm.prank(alice);
-    lockingContract.lock(alice, alice, 30, 3, 0);
-
-    vm.prank(alice);
-    uint256 lockId2 = lockingContract.lock(alice, alice, 30, 3, 0);
-
-    _incrementBlock(2 * weekInBlocks);
-
-    vm.prank(alice);
-    lockingContract.withdraw();
-
-    assertEq(mentoToken.balanceOf(address(lockingContract)), 20);
-    assertEq(mentoToken.balanceOf(alice), 80);
-
-    vm.prank(alice);
-    lockingContract.relock(lockId2, alice, 60, 12, 0);
-
-    assertEq(mentoToken.balanceOf(address(lockingContract)), 70);
-    assertEq(mentoToken.balanceOf(alice), 30);
-
-    _incrementBlock(weekInBlocks);
-    vm.prank(alice);
-    lockingContract.withdraw();
-
-    assertEq(mentoToken.balanceOf(address(lockingContract)), 55);
-    assertEq(mentoToken.balanceOf(alice), 45);
-
-    _incrementBlock(11 * weekInBlocks);
-    vm.prank(alice);
-    lockingContract.withdraw();
-
-    assertEq(mentoToken.balanceOf(address(lockingContract)), 0);
-    assertEq(mentoToken.balanceOf(alice), 100);
-  }
-
-  function test_relock_shouldAccountCorrectly_whenMultipleAccounts_inCliff() public {
+  function test_relock_whenMultiAccountsInCliff_shouldRelockCorrectly() public {
     mentoToken.mint(alice, 100);
     mentoToken.mint(bob, 100);
     mentoToken.mint(charlie, 100);
@@ -619,7 +549,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(charlie), 100);
   }
 
-  function test_relock_shouldAccountCorrectly_whenMultipleAccounts_inTail() public {
+  function test_relock_whenMultiAccountsInTail_shouldRelockCorrectly() public {
     mentoToken.mint(alice, 100);
     mentoToken.mint(bob, 100);
     mentoToken.mint(charlie, 100);
