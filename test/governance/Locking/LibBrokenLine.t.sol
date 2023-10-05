@@ -8,8 +8,6 @@ import { LibBrokenLine } from "contracts/governance/locking/libs/LibBrokenLine.s
 contract LibBrokenLine_Test is TestSetup {
   LibBrokenLine.BrokenLine public brokenLine;
 
-  function setUp() public {}
-
   function assertLineEq(LibBrokenLine.Line memory a, LibBrokenLine.Line memory b) internal {
     assertEq(a.start, b.start);
     assertEq(a.bias, b.bias);

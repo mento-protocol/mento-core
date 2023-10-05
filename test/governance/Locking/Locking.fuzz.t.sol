@@ -7,6 +7,9 @@ import { TestLocking } from "../../utils/TestLocking.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { DSTest } from "ds-test/test.sol";
 
+/**
+ * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb
+ */
 contract FuzzTestLocking is TestLocking, DSTest {
   Vm internal immutable vm = Vm(HEVM_ADDRESS);
 
