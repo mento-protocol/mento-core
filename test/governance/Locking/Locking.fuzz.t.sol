@@ -2,8 +2,6 @@
 pragma solidity 0.8.18;
 // solhint-disable state-visibility
 
-import "forge-std/Test.sol";
-
 import { TestERC20 } from "../../utils/TestERC20.sol";
 import { TestLocking } from "../../utils/TestLocking.sol";
 import { Vm } from "forge-std/Vm.sol";
