@@ -191,9 +191,9 @@ contract Airgrab_Test is Test {
   /// @notice Renounces ownership and sets token
   function test_Initialize_TransfersOwnershipAndSetsToken() external i_setUp {
     vm.expectEmit(true, true, true, true);
-    emit Approval(address(airgrab), lockingContract, type(uint256).max);
-    vm.expectEmit(true, true, true, true);
     emit OwnershipTransferred(address(this), address(0));
+    vm.expectEmit(true, true, true, true);
+    emit Approval(address(airgrab), lockingContract, type(uint256).max);
     i_subject();
     assertEq(address(airgrab.token()), tokenAddress);
     assertEq(airgrab.owner(), address(0));
@@ -346,6 +346,16 @@ contract Airgrab_Test is Test {
     return abi.encodePacked(r, s, v);
   }
 
+  /// @notice mock the locking contract to return the provided voting power
+  /// @param votingPower The voting power to return
+  function mockLockReturns(uint256 votingPower) internal {
+    vm.mockCall(
+      lockingContract,
+      abi.encodeWithSelector(ILocking(lockingContract).lock.selector),
+      abi.encode(votingPower)
+    );
+  }
+
   // ========================================
   // Airgrab.claim {hasValidKyc}
   // ========================================
@@ -420,6 +430,7 @@ contract Airgrab_Test is Test {
 
   /// @notice when already claimed
   function test_Claim_canClaim_whenAlreadyClaimed() public cl_setUp validKyc hasBalance {
+    mockLockReturns(0);
     cl_subject();
     vm.expectRevert("Airgrab: already claimed");
     cl_subject();
@@ -437,12 +448,7 @@ contract Airgrab_Test is Test {
 
   /// @notice happy path
   function test_Claim_locksTokens() public cl_setUp validKyc hasBalance {
-    vm.mockCall(
-      lockingContract,
-      abi.encodeWithSelector(ILocking(lockingContract).lock.selector),
-      abi.encode(cl_params.amount * 2)
-    );
-
+    mockLockReturns(cl_params.amount * 2);
     vm.expectEmit(true, true, true, true);
     emit TokensClaimed(cl_params.account, cl_params.amount, cl_params.amount * 2);
 
