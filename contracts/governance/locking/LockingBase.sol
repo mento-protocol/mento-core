@@ -9,6 +9,9 @@ import "./libs/LibBrokenLine.sol";
 
 import "./interfaces/IVotesUpgradeable.sol";
 
+/**
+ * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb
+ */
 abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
 

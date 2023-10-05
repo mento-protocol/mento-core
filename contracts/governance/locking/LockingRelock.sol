@@ -3,6 +3,9 @@ pragma solidity 0.8.18;
 
 import "./LockingBase.sol";
 
+/**
+ * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb
+ */
 abstract contract LockingRelock is LockingBase {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
 
