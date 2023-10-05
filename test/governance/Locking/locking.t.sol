@@ -3,6 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
 import { Locking_Test } from "./Base.t.sol";
+import { MockLocking } from "../../mocks/MockLocking.sol";
 
 contract Lock_Locking_Test is Locking_Test {
   function test_init_shouldSetState() public {
@@ -370,5 +371,97 @@ contract Lock_Locking_Test is Locking_Test {
 
     vm.expectRevert("block not yet mined");
     lockingContract.getPastTotalSupply(currentBlock);
+  }
+
+  function test_migrate_shouldMigrateLocks() public {
+    MockLocking mockLockingContract = new MockLocking();
+
+    mentoToken.mint(alice, 100000);
+    vm.prank(alice);
+    uint256 lockId = lockingContract.lock(alice, alice, 60000, 30, 0);
+
+    uint256[] memory ids = new uint256[](1);
+    ids[0] = lockId;
+
+    vm.prank(owner);
+    lockingContract.startMigration(address(mockLockingContract));
+
+    assertEq(lockingContract.balanceOf(alice), 18923);
+    assertEq(lockingContract.totalSupply(), 18923);
+
+    vm.prank(alice);
+    lockingContract.migrate(ids);
+
+    assertEq(lockingContract.balanceOf(alice), 0);
+    assertEq(lockingContract.totalSupply(), 0);
+
+    assertEq(mentoToken.balanceOf(address(mockLockingContract)), 60000);
+    assertEq(lockingContract.totalSupply(), 0);
+  }
+
+  function test_migrate_whenDelegatedAndInSlope_shouldMigrateLocks() public {
+    MockLocking newLockingContract = new MockLocking();
+
+    mentoToken.mint(alice, 100000);
+    vm.prank(alice);
+    uint256 lockId = lockingContract.lock(alice, bob, 60000, 30, 0);
+
+    uint256[] memory ids = new uint256[](1);
+    ids[0] = lockId;
+
+    _incrementBlock(10 * weekInBlocks);
+
+    vm.prank(owner);
+    lockingContract.startMigration(address(newLockingContract));
+
+    vm.prank(alice);
+    lockingContract.migrate(ids);
+
+    assertEq(lockingContract.balanceOf(bob), 0);
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 20000);
+    assertEq(mentoToken.balanceOf(address(newLockingContract)), 40000);
+    assertEq(mentoToken.balanceOf(alice), 40000);
+
+    assertEq(lockingContract.totalSupply(), 0);
+
+    vm.prank(alice);
+    lockingContract.withdraw();
+
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 0);
+    assertEq(lockingContract.totalSupply(), 0);
+  }
+
+  function test_migrate_whenDelegatedAndInTail_shouldMigrateLocks() public {
+    MockLocking newLockingContract = new MockLocking();
+
+    mentoToken.mint(alice, 100);
+    vm.prank(alice);
+    uint256 lockId = lockingContract.lock(alice, bob, 65, 11, 0);
+
+    uint256[] memory ids = new uint256[](1);
+    ids[0] = lockId;
+
+    _incrementBlock(10 * weekInBlocks);
+
+    vm.prank(owner);
+    lockingContract.startMigration(address(newLockingContract));
+
+    vm.prank(alice);
+    lockingContract.migrate(ids);
+
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 60);
+    assertEq(mentoToken.balanceOf(address(newLockingContract)), 5);
+    assertEq(mentoToken.balanceOf(alice), 35);
+
+    vm.prank(alice);
+    lockingContract.withdraw();
+    assertEq(mentoToken.balanceOf(address(lockingContract)), 0);
+    assertEq(mentoToken.balanceOf(address(newLockingContract)), 5);
+    assertEq(mentoToken.balanceOf(alice), 95);
+  }
+
+  function test_startMigration_whenNotOwner_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    lockingContract.startMigration(address(1));
   }
 }

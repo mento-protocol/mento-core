@@ -65,21 +65,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     address delegate;
   }
 
-  /**
-   * @dev describes state of accounts's balance.
-   *      balance - broken line describes lock
-   *      locked - broken line describes how many tokens are locked
-   *      amount - total currently locked tokens (including tokens which can be withdrawed)
-   */
-  struct AccountOld {
-    LibBrokenLine.BrokenLineOld balance;
-    LibBrokenLine.BrokenLineOld locked;
-    uint256 amount;
-  }
-
-  mapping(address => AccountOld) accountsOld;
   mapping(uint256 => Lock) locks;
-  LibBrokenLine.BrokenLineOld public totalSupplyLineOld;
 
   struct Account {
     LibBrokenLine.BrokenLine balance;
@@ -280,45 +266,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-        @notice checks if the line is relevant and needs to be copied to the new data structure
-     */
-  function isRelevant(uint256 id)
-    external
-    view
-    returns (
-      bool,
-      uint256,
-      address,
-      uint256,
-      address
-    )
-  {
-    uint32 currentBlock = getBlockNumber();
-    uint32 currentEpoch = roundTimestamp(currentBlock);
-
-    address delegate = locks[id].delegate;
-    LibBrokenLine.LineDataOld storage oldLineBalance = accountsOld[delegate].balance.initiatedLines[id];
-
-    address account = locks[id].account;
-    LibBrokenLine.LineDataOld storage oldLineLocked = accountsOld[account].locked.initiatedLines[id];
-
-    //line adds at time start + cliff + slopePeriod + 1(mod)
-    uint256 slopeLocked = (oldLineLocked.line.bias / oldLineLocked.line.slope);
-    uint256 slopeBalance = (oldLineBalance.line.bias / oldLineBalance.line.slope);
-    uint256 slope = slopeLocked > slopeBalance ? slopeLocked : slopeBalance;
-
-    uint256 finishTime = oldLineLocked.line.start + oldLineLocked.cliff + slope + 1;
-
-    return (
-      (finishTime < currentEpoch) ? false : true,
-      oldLineBalance.line.start,
-      delegate,
-      oldLineLocked.line.start,
-      account
-    );
-  }
-
-  /**
    * @dev Throws if stopped
    */
   modifier notStopped() {
@@ -363,73 +310,5 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     updateTotalSupplyLine(time);
   }
 
-  function migrateBalanceLines(uint256[] calldata ids) external onlyOwner {
-    uint256 len = ids.length;
-    for (uint256 i = 0; i < len; i++) {
-      uint256 id = ids[i];
-      Lock storage lock = locks[id];
-      address user = lock.delegate;
-      LibBrokenLine.LineDataOld storage oldLine = accountsOld[user].balance.initiatedLines[id];
-
-      LibBrokenLine.Line memory line = LibBrokenLine.Line({
-        start: uint32(oldLine.line.start),
-        bias: uint96(oldLine.line.bias),
-        slope: uint96(oldLine.line.slope),
-        cliff: uint32(oldLine.cliff)
-      });
-
-      //adding the line to balance broken line
-      accounts[user].balance._addOneLine(id, line);
-      //adding the line to totalSupply broken line
-      totalSupplyLine._addOneLine(id, line);
-    }
-  }
-
-  function migrateLockedLines(uint256[] calldata ids) external onlyOwner {
-    uint256 len = ids.length;
-    for (uint256 i = 0; i < len; i++) {
-      uint256 id = ids[i];
-      Lock storage lock = locks[id];
-      address user = lock.account;
-      LibBrokenLine.LineDataOld storage oldLine = accountsOld[user].locked.initiatedLines[id];
-
-      LibBrokenLine.Line memory line = LibBrokenLine.Line({
-        start: uint32(oldLine.line.start),
-        bias: uint96(oldLine.line.bias),
-        slope: uint96(oldLine.line.slope),
-        cliff: uint32(oldLine.cliff)
-      });
-
-      //adding the line to balance broken line
-      accounts[user].locked._addOneLine(id, line);
-    }
-  }
-
-  function copyAmountMakeSnapshots(address[] calldata users) external onlyOwner {
-    uint32 currentBlock = getBlockNumber();
-    uint32 currentEpoch = roundTimestamp(currentBlock);
-    uint256 len = users.length;
-    for (uint256 i = 0; i < len; i++) {
-      Account storage newData = accounts[users[i]];
-      AccountOld storage oldData = accountsOld[users[i]];
-
-      //copy amount
-      newData.amount = uint96(oldData.amount);
-
-      if (newData.balance.initial.bias > 0) {
-        newData.balance.update(currentEpoch);
-        newData.balance.saveSnapshot(currentEpoch, currentBlock);
-      }
-
-      if (newData.locked.initial.bias > 0) {
-        newData.locked.update(currentEpoch);
-        newData.locked.saveSnapshot(currentEpoch, currentBlock);
-      }
-    }
-
-    totalSupplyLine.saveSnapshot(currentEpoch, currentBlock);
-  }
-
-  //48 => 43 add new accounts and totalSupplyLine
-  uint256[43] private __gap;
+  uint256[50] private __gap;
 }

@@ -14,27 +14,6 @@ import "./LibIntMapping.sol";
 library LibBrokenLine {
   using LibIntMapping for mapping(uint256 => int96);
 
-  // OldStructs
-  struct LineOld {
-    uint256 start;
-    uint256 bias;
-    uint256 slope;
-  }
-
-  struct LineDataOld {
-    //all data about line
-    LineOld line;
-    uint256 cliff;
-  }
-
-  struct BrokenLineOld {
-    mapping(uint256 => int256) slopeChanges; //change of slope applies to the next time point
-    mapping(uint256 => int256) biasChanges; //change of bias applies to the next time point
-    mapping(uint256 => LineDataOld) initiatedLines; //initiated (successfully added) Lines
-    LineOld initial;
-  }
-  // end of the old structs
-
   struct Line {
     uint32 start;
     uint96 bias;
