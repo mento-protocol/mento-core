@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
+// solhint-disable state-visibility, func-name-mixedcase
 
 import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
