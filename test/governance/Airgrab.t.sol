@@ -438,8 +438,8 @@ contract Airgrab_Test is Test {
   /// @notice happy path
   function test_Claim_locksTokens() public cl_setUp validKyc hasBalance {
     vm.mockCall(
-      lockingContract, 
-      abi.encodeWithSelector(ILocking(lockingContract).lock.selector), 
+      lockingContract,
+      abi.encodeWithSelector(ILocking(lockingContract).lock.selector),
       abi.encode(cl_params.amount * 2)
     );
 

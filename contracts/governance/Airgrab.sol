@@ -187,10 +187,7 @@ contract Airgrab is Ownable, ReentrancyGuard {
     require(token_ != address(0), "Airgrab: invalid token");
     _transferOwnership(address(0));
     token = IERC20(token_);
-    require(
-      token.approve(address(lockingContract), type(uint256).max),
-      "Airgrab: approval failed"
-    );
+    require(token.approve(address(lockingContract), type(uint256).max), "Airgrab: approval failed");
   }
 
   /**
