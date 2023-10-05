@@ -4,27 +4,24 @@ pragma solidity 0.8.18;
 
 import "forge-std/Test.sol";
 
-import { TestERC20 } from "../utils/TestERC20.sol";
-import { TestLocking } from "../utils/TestLocking.sol";
-import { Utilities } from "../utils/Utilities.sol";
+import { TestERC20 } from "../../utils/TestERC20.sol";
+import { TestLocking } from "../../utils/TestLocking.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { DSTest } from "ds-test/test.sol";
 
-contract TestLockingFoundry is TestLocking, DSTest {
+contract FuzzTestLocking is TestLocking, DSTest {
   Vm internal immutable vm = Vm(HEVM_ADDRESS);
 
-  Utilities internal utils;
-  address payable[] internal users;
   TestERC20 public testERC20;
 
-  address payable user0;
-  address payable user1;
+  address user0;
+  address user1;
 
   function setUp() public {
-    utils = new Utilities();
-    users = utils.createUsers(5);
-    user0 = users[0];
-    user1 = users[1];
+    user0 = address(100);
+    vm.deal(user0, 100 ether);
+    user1 = address(200);
+    vm.deal(user1, 100 ether);
     testERC20 = new TestERC20();
     this.__Locking_init(testERC20, 0, 1, 3);
 
