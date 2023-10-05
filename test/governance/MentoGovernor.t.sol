@@ -210,7 +210,7 @@ contract MentoGovernorTest is TestSetup {
 
     // keeping block.ts and block.number in sync
     vm.roll(block.number + votingDelay + 1);
-    vm.warp(block.timestamp + 1 days);
+    skip(1 days);
 
     vm.expectRevert("Governor: proposal not successful");
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
@@ -231,7 +231,7 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
     vm.roll(block.number + votingPeriod);
-    vm.warp(block.timestamp + 7 days);
+    skip(7 days);
 
     vm.expectRevert("Governor: proposal not successful");
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
@@ -256,7 +256,7 @@ contract MentoGovernorTest is TestSetup {
 
     // keeping block.ts and block.number in sync
     vm.roll(block.number + votingDelay + 1);
-    vm.warp(block.timestamp + 1 days);
+    skip(1 days);
 
     vm.prank(bob);
     mentoGovernor.castVote(proposalId, 0);
@@ -265,7 +265,7 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.castVote(proposalId, 1);
 
     vm.roll(block.number + votingPeriod);
-    vm.warp(block.timestamp + 7 days);
+    skip(7 days);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
@@ -289,7 +289,7 @@ contract MentoGovernorTest is TestSetup {
 
     // keeping block.ts and block.number in sync
     vm.roll(block.number + votingDelay + 1);
-    vm.warp(block.timestamp + 1 days);
+    skip(1 days);
 
     vm.prank(bob);
     mentoGovernor.castVote(proposalId, 0);
@@ -298,12 +298,12 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.castVote(proposalId, 1);
 
     vm.roll(block.number + votingPeriod);
-    vm.warp(block.timestamp + 7 days);
+    skip(7 days);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
     vm.roll(block.number + BLOCKS_DAY);
-    vm.warp(block.timestamp + 1 days);
+    skip(1 days);
 
     assertEq(mockOwnable.protected(), 0);
 
@@ -328,7 +328,7 @@ contract MentoGovernorTest is TestSetup {
 
     // keeping block.ts and block.number in sync
     vm.roll(block.number + votingDelay + 1);
-    vm.warp(block.timestamp + 1 days);
+    skip(1 days);
 
     vm.prank(bob);
     mentoGovernor.castVote(proposalId, 0);
@@ -337,7 +337,7 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.castVote(proposalId, 1);
 
     vm.roll(block.number + votingPeriod);
-    vm.warp(block.timestamp + 7 days);
+    skip(7 days);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
@@ -345,7 +345,7 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
     vm.roll(block.number + BLOCKS_DAY);
-    vm.warp(block.timestamp + 1 days);
+    skip(1 days);
 
     assertEq(mockOwnable.protected(), 0);
 
@@ -375,7 +375,7 @@ contract MentoGovernorTest is TestSetup {
 
     // keeping block.ts and block.number in sync
     vm.roll(block.number + votingDelay + 1);
-    vm.warp(block.timestamp + 1 days);
+    skip(1 days);
 
     vm.prank(bob);
     mentoGovernor.castVote(proposalId, 0);
@@ -384,7 +384,7 @@ contract MentoGovernorTest is TestSetup {
     mentoGovernor.castVote(proposalId, 1);
 
     vm.roll(block.number + votingPeriod);
-    vm.warp(block.timestamp + 7 days);
+    skip(7 days);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
@@ -396,7 +396,7 @@ contract MentoGovernorTest is TestSetup {
     timelockController.cancel(tlId);
 
     vm.roll(block.number + BLOCKS_DAY);
-    vm.warp(block.timestamp + 1 days);
+    skip(1 days);
 
     vm.expectRevert("Governor: proposal not successful");
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
@@ -424,7 +424,7 @@ contract MentoGovernorTest is TestSetup {
 
     // keeping block.ts and block.number in sync
     vm.roll(block.number + votingDelay + 1);
-    vm.warp(block.timestamp + 1 days);
+    skip(1 days);
 
     vm.prank(communityMultisig);
     vm.expectRevert("TimelockController: operation cannot be cancelled");
@@ -441,7 +441,7 @@ contract MentoGovernorTest is TestSetup {
     timelockController.cancel(tlId);
 
     vm.roll(block.number + votingPeriod);
-    vm.warp(block.timestamp + 7 days);
+    skip(7 days);
 
     vm.prank(communityMultisig);
     vm.expectRevert("TimelockController: operation cannot be cancelled");
