@@ -25,7 +25,6 @@ import { ILocking } from "locking-contracts/ILocking.sol";
 contract Airgrab is Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
-  uint256 public constant PRECISION = 1e18;
   uint32 public constant MAX_CLIFF_PERIOD = 103;
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
@@ -33,9 +32,9 @@ contract Airgrab is Ownable, ReentrancyGuard {
    * @notice Emitted when tokens are claimed
    * @param claimer The account claiming the tokens
    * @param amount The amount of tokens being claimed
-   * @param votingPower The amount of voting power the claimer will have
+   * @param lockId The ID of the resulting veMento lock
    */
-  event TokensClaimed(address indexed claimer, uint256 amount, uint256 votingPower);
+  event TokensClaimed(address indexed claimer, uint256 amount, uint256 lockId);
 
   /**
    * @notice Emitted when tokens are drained
@@ -86,11 +85,11 @@ contract Airgrab is Ownable, ReentrancyGuard {
   ) {
     require(block.timestamp < validUntil, "Airgrab: KYC no longer valid");
     require(fractalMaxAge == 0 || block.timestamp < approvedAt + fractalMaxAge, "Airgrab: KYC not recent enough");
-    string memory sender = Strings.toHexString(uint256(uint160(account)), 20);
+    string memory accountString = Strings.toHexString(uint256(uint160(account)), 20);
 
     bytes32 signedMessageHash = ECDSA.toEthSignedMessageHash(
       abi.encodePacked(
-        sender,
+        accountString,
         ";",
         fractalId,
         ";",
@@ -185,21 +184,19 @@ contract Airgrab is Ownable, ReentrancyGuard {
    */
   function initialize(address token_) external onlyOwner {
     require(token_ != address(0), "Airgrab: invalid token");
-    _transferOwnership(address(0));
+    renounceOwnership();
     token = IERC20(token_);
     require(token.approve(address(lockingContract), type(uint256).max), "Airgrab: approval failed");
   }
 
   /**
    * @dev Allows `account` to claim `amount` tokens if the merkle proof and kyc is valid.
-   * The function will calculate what portions of tokens gets unlocked depending on
-   * the provided cliff and slope, and then either transfer dirrectly if the claimer
-   * has chosen no cliff and no slope, or lock the tokens in the locking contract.
    * @notice This function can be called by anybody, but the (account, amount) pair
    * must be in the merkle tree, has to not have claimed yet, and must have
    * an associated KYC signature from Fractal. And the airgrab must not have ended.
-   * @param account The address of the account to claim tokens for.
+   * The tokens will be locked for the cliff and slope configured at the contract level.
    * @param amount The amount of tokens to be claimed.
+   * @param delegate The address of the account that gets voting power delegated
    * @param merkleProof The merkle proof for the account.
    * @param fractalProof The Fractal KYC proof for the account.
    * @param fractalProofValidUntil The Fractal KYC proof valid until timestamp.
@@ -207,8 +204,8 @@ contract Airgrab is Ownable, ReentrancyGuard {
    * @param fractalId The Fractal KYC ID.
    */
   function claim(
-    address account,
     uint96 amount,
+    address delegate,
     bytes32[] calldata merkleProof,
     bytes calldata fractalProof,
     uint256 fractalProofValidUntil,
@@ -216,15 +213,15 @@ contract Airgrab is Ownable, ReentrancyGuard {
     string memory fractalId
   )
     external
-    hasValidKyc(account, fractalProof, fractalProofValidUntil, fractalProofApprovedAt, fractalId)
-    canClaim(account, amount, merkleProof)
+    hasValidKyc(msg.sender, fractalProof, fractalProofValidUntil, fractalProofApprovedAt, fractalId)
+    canClaim(msg.sender, amount, merkleProof)
     nonReentrant
   {
-    require(IERC20(token).balanceOf(address(this)) >= amount, "Airgrab: insufficient balance");
+    require(token.balanceOf(address(this)) >= amount, "Airgrab: insufficient balance");
 
-    claimed[account] = true;
-    uint256 votingPower = lockingContract.lock(account, address(0), amount, slopePeriod, cliffPeriod);
-    emit TokensClaimed(account, amount, votingPower);
+    claimed[msg.sender] = true;
+    uint256 lockId = lockingContract.lock(msg.sender, delegate, amount, slopePeriod, cliffPeriod);
+    emit TokensClaimed(msg.sender, amount, lockId);
   }
 
   /**

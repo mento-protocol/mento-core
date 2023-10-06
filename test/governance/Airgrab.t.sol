@@ -108,7 +108,7 @@ contract Airgrab_Test is Test {
 
   /// @notice Check that all parameters are set correctly during initialization
   /// and that ownership is transferred to the caller.
-  function test_Constructor() external {
+  function test_Constructor_setsAttributes() public {
     vm.expectEmit(true, true, true, true);
     emit OwnershipTransferred(address(0), address(this));
     c_subject();
@@ -124,42 +124,42 @@ contract Airgrab_Test is Test {
   }
 
   /// @notice Checks the merke root
-  function test_Constructor_InvalidMerkleRoot() external {
+  function test_Constructor_whenMerkleRootInvalid_reverts() public {
     merkleRoot = bytes32(0);
     vm.expectRevert("Airgrab: invalid root");
     c_subject();
   }
 
   /// @notice Checks the fractal issuer address
-  function test_Constructor_InvalidFractalSigner() external {
+  function test_Constructor_whenFractalSignerInvalid_reverts() public {
     fractalSigner = address(0);
     vm.expectRevert("Airgrab: invalid fractal issuer");
     c_subject();
   }
 
   /// @notice Checks th treasury address
-  function test_Constructor_InvalidTreasury() external {
+  function test_Constructor_whenTreasuryInvalid_reverts() public {
     treasury = payable(address(0));
     vm.expectRevert("Airgrab: invalid treasury");
     c_subject();
   }
 
   /// @notice Checks the airgrab end time
-  function test_Constructor_InvalidEndTimestamp() external {
+  function test_Constructor_whenEndTimestampInvalid_reverts() public {
     endTimestamp = block.timestamp;
     vm.expectRevert("Airgrab: invalid end timestamp");
     c_subject();
   }
 
   /// @notice Checks the cliff period based on MAX_CLIF_PERIOD
-  function test_Constructor_InvalidCliffPeriod() external {
+  function test_Constructor_whenCliffPeriodInvalid_reverts() public {
     cliffPeriod = MAX_CLIFF_PERIOD + 1;
     vm.expectRevert("Airgrab: cliff period too large");
     c_subject();
   }
 
   /// @notice Checks the slope period based on MAX_SLOPE_PERIOD
-  function test_Constructor_InvalidSlopePeriod() external {
+  function test_Constructor_whenSlopePeriodInvalid_reverts() public {
     slopePeriod = MAX_SLOPE_PERIOD + 1;
     vm.expectRevert("Airgrab: slope period too large");
     c_subject();
@@ -182,14 +182,14 @@ contract Airgrab_Test is Test {
   }
 
   /// @notice Checks the token address
-  function test_Initialize_InvalidToken() external i_setUp {
+  function test_Initialize_whenInvalidToken_reverts() public i_setUp {
     tokenAddress = address(0);
     vm.expectRevert("Airgrab: invalid token");
     i_subject();
   }
 
   /// @notice Renounces ownership and sets token
-  function test_Initialize_TransfersOwnershipAndSetsToken() external i_setUp {
+  function test_Initialize_TransfersOwnershipAndSetsToken() public i_setUp {
     vm.expectEmit(true, true, true, true);
     emit OwnershipTransferred(address(this), address(0));
     vm.expectEmit(true, true, true, true);
@@ -200,14 +200,14 @@ contract Airgrab_Test is Test {
   }
 
   /// @notice Reverts if called two times, because ownership is renounced
-  function test_Initialize_OnlyCallableOnce() external i_setUp {
+  function test_Initialize_whenCalledTwice_reverts() public i_setUp {
     i_subject();
     vm.expectRevert("Ownable: caller is not the owner");
     i_subject();
   }
 
   /// @notice Reverts if not the owner
-  function test_Initialize_OnlyCallableByOwner() external i_setUp {
+  function test_Initialize_whenCalledByNotOwner_reverts() public i_setUp {
     vm.prank(address(1));
     vm.expectRevert("Ownable: caller is not the owner");
     i_subject();
@@ -225,20 +225,20 @@ contract Airgrab_Test is Test {
   }
 
   /// @notice Reverts if airgrab hasn't ended
-  function test_Drain_beforeAirgrabEnds() public d_setUp {
+  function test_Drain_whenCalledBeforeAirgrabEnds_reverts() public d_setUp {
     vm.expectRevert("Airgrab: not finished");
     airgrab.drain(tokenAddress);
   }
 
   /// @notice Reverts if the airgrab contract doesn't have balance
-  function test_Drain_afterAirgrabEndsWhenNoBalance() public d_setUp {
+  function test_Drain_whenNoBalance_reverts() public d_setUp {
     vm.warp(airgrab.endTimestamp() + 1);
     vm.expectRevert("Airgrab: nothing to drain");
     airgrab.drain(tokenAddress);
   }
 
   /// @notice Drains all tokens to the treasury if the airgrab has ended
-  function test_Drain_afterAirgrabEndsWithSomeBalance() public d_setUp {
+  function test_Drain_drains() public d_setUp {
     vm.warp(airgrab.endTimestamp() + 1);
     deal(tokenAddress, address(airgrab), 100e18);
     vm.expectEmit(true, true, true, true);
@@ -249,7 +249,7 @@ contract Airgrab_Test is Test {
   }
 
   /// @notice Drains all arbitrary tokens to the treasury if the airgrab has ended
-  function test_Drain_afterAirgrabEndsWithSomeOtherTokenBalance() public d_setUp {
+  function test_Drain_drainsOtherTokens() public d_setUp {
     ERC20 otherToken = new ERC20("Other Token", "OTT");
 
     vm.warp(airgrab.endTimestamp() + 1);
@@ -266,12 +266,13 @@ contract Airgrab_Test is Test {
   // ========================================
   // Airgrab.claim
   // ========================================
-  event TokensClaimed(address indexed claimer, uint256 amount, uint256 votingPower);
+  event TokensClaimed(address indexed claimer, uint256 amount, uint256 lockId);
 
   /// @notice Test subject parameters
   struct ClaimParams {
     address account;
     uint96 amount;
+    address delegate;
     bytes32[] merkleProof;
     bytes fractalProof;
     uint256 fractalProofValidUntil;
@@ -282,9 +283,10 @@ contract Airgrab_Test is Test {
 
   /// @notice Test subject `claim`
   function cl_subject() internal {
+    vm.prank(cl_params.account);
     airgrab.claim(
-      cl_params.account,
       cl_params.amount,
+      cl_params.delegate,
       cl_params.merkleProof,
       cl_params.fractalProof,
       cl_params.fractalProofValidUntil,
@@ -299,6 +301,7 @@ contract Airgrab_Test is Test {
 
     cl_params.account = claimer0;
     cl_params.amount = claimer0Amount;
+    cl_params.delegate = claimer0;
     cl_params.merkleProof = claimer0Proof;
     cl_params.fractalProof = abi.encodePacked("");
     cl_params.fractalProofValidUntil = block.timestamp + 2 days;
@@ -347,13 +350,9 @@ contract Airgrab_Test is Test {
   }
 
   /// @notice mock the locking contract to return the provided voting power
-  /// @param votingPower The voting power to return
-  function mockLockReturns(uint256 votingPower) internal {
-    vm.mockCall(
-      lockingContract,
-      abi.encodeWithSelector(ILocking(lockingContract).lock.selector),
-      abi.encode(votingPower)
-    );
+  /// @param lockId The lockId of the veMento lock
+  function mockLockReturns(uint256 lockId) internal {
+    vm.mockCall(lockingContract, abi.encodeWithSelector(ILocking(lockingContract).lock.selector), abi.encode(lockId));
   }
 
   // ========================================
@@ -361,35 +360,35 @@ contract Airgrab_Test is Test {
   // ========================================
 
   /// @notice When the KYC has expired, it reverts
-  function test_Claim_hasValidKyc_whenNotLongerValid() public cl_setUp {
+  function test_Claim_hasValidKyc_whenNotLongerValid_reverts() public cl_setUp {
     cl_params.fractalProofValidUntil = block.timestamp - 100;
     vm.expectRevert("Airgrab: KYC no longer valid");
     cl_subject();
   }
 
   /// @notice when the KYC is not recent enough, it reverts
-  function test_Claim_hasValidKyc_whenNotRecentEnough() public cl_setUp {
+  function test_Claim_hasValidKyc_whenNotRecentEnough_reverts() public cl_setUp {
     cl_params.fractalProofApprovedAt = block.timestamp - fractalMaxAge - 1;
     vm.expectRevert("Airgrab: KYC not recent enough");
     cl_subject();
   }
 
   /// @notice when the KYC signature is not valid, it reverts
-  function test_Claim_hasValidKyc_whenInvalidSignature() public cl_setUp {
+  function test_Claim_hasValidKyc_whenInvalidSignature_reverts() public cl_setUp {
     cl_params.fractalProof = abi.encodePacked(uint8(2), keccak256("random"), keccak256("random"));
     vm.expectRevert("Airgrab: Invalid KYC");
     cl_subject();
   }
 
   /// @notice when the KYC signed by the wrong signer, it reverts
-  function test_Claim_hasValidKyc_whenWrongSigner() public cl_setUp {
+  function test_Claim_hasValidKyc_whenWrongSigner_reverts() public cl_setUp {
     cl_params.fractalProof = validKycSignature(otherSignerPk, cl_params.account, EXPECTED_CREDENTIAL);
     vm.expectRevert("Airgrab: Invalid KYC");
     cl_subject();
   }
 
   /// @notice when the KYC credential is not the right one
-  function test_Claim_hasValidKyc_whenWrongCredential() public cl_setUp {
+  function test_Claim_hasValidKyc_whenWrongCredential_reverts() public cl_setUp {
     cl_params.fractalProof = validKycSignature(otherSignerPk, cl_params.account, OTHER_CREDENTIAL);
     vm.expectRevert("Airgrab: Invalid KYC");
     cl_subject();
@@ -400,14 +399,14 @@ contract Airgrab_Test is Test {
   // ========================================
 
   /// @notice when airgrab finished, it reverts
-  function test_Claim_canClaim_whenAirgrabFinished() public cl_setUp validKyc {
+  function test_Claim_canClaim_whenAirgrabFinished_reverts() public cl_setUp validKyc {
     vm.warp(endTimestamp + 1);
     vm.expectRevert("Airgrab: finished");
     cl_subject();
   }
 
   /// @notice when not in tree, it reverts
-  function test_Claim_canClaim_whenNotInTree() public cl_setUp {
+  function test_Claim_canClaim_whenNotInTree_reverts() public cl_setUp {
     cl_params.fractalProof = validKycSignature(fractalSignerPk, invalidClaimer, EXPECTED_CREDENTIAL);
     cl_params.account = invalidClaimer;
     vm.expectRevert("Airgrab: not in tree");
@@ -415,22 +414,22 @@ contract Airgrab_Test is Test {
   }
 
   /// @notice When the amount is not the right one for the claimer, it reverts
-  function test_Claim_canClaim_invalidClaimAmount() external cl_setUp validKyc {
+  function test_Claim_canClaim_whenInvalidClaimAmount_reverts() public cl_setUp validKyc {
     cl_params.amount = 123124124;
     vm.expectRevert("Airgrab: not in tree");
     cl_subject();
   }
 
   /// @notice When the submitted proof is invalid, it reverts
-  function test_Claim_canClaim_invalidProof() external cl_setUp validKyc {
+  function test_Claim_canClaim_whenInvalidProof_reverts() public cl_setUp validKyc {
     cl_params.merkleProof = new bytes32[](0);
     vm.expectRevert("Airgrab: not in tree");
     cl_subject();
   }
 
   /// @notice when already claimed
-  function test_Claim_canClaim_whenAlreadyClaimed() public cl_setUp validKyc hasBalance {
-    mockLockReturns(0);
+  function test_Claim_canClaim_whenAlreadyClaimed_reverts() public cl_setUp validKyc hasBalance {
+    mockLockReturns(1);
     cl_subject();
     vm.expectRevert("Airgrab: already claimed");
     cl_subject();
@@ -441,23 +440,45 @@ contract Airgrab_Test is Test {
   // ========================================
 
   /// @notice when the claimer has not enough balance
-  function test_Claim_whenNotEnoughBalance() public cl_setUp validKyc {
+  function test_Claim_whenNotEnoughBalance_reverts() public cl_setUp validKyc {
     vm.expectRevert("Airgrab: insufficient balance");
     cl_subject();
   }
 
   /// @notice happy path
   function test_Claim_locksTokens() public cl_setUp validKyc hasBalance {
-    mockLockReturns(cl_params.amount * 2);
+    mockLockReturns(1);
     vm.expectEmit(true, true, true, true);
-    emit TokensClaimed(cl_params.account, cl_params.amount, cl_params.amount * 2);
+    emit TokensClaimed(cl_params.account, cl_params.amount, 1);
 
     vm.expectCall(
       lockingContract,
       abi.encodeWithSelector(
         ILocking(lockingContract).lock.selector,
         cl_params.account,
-        address(0), // delegate
+        cl_params.account,
+        cl_params.amount,
+        slopePeriod,
+        cliffPeriod
+      )
+    );
+
+    cl_subject();
+  }
+
+  /// @notice happy path
+  function test_Claim_withDifferentDelegate_locksTokens() public cl_setUp validKyc hasBalance {
+    mockLockReturns(1);
+    cl_params.delegate = makeAddr("Delegate");
+    vm.expectEmit(true, true, true, true);
+    emit TokensClaimed(cl_params.account, cl_params.amount, 1);
+
+    vm.expectCall(
+      lockingContract,
+      abi.encodeWithSelector(
+        ILocking(lockingContract).lock.selector,
+        cl_params.account,
+        cl_params.delegate,
         cl_params.amount,
         slopePeriod,
         cliffPeriod
