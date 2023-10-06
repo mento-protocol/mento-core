@@ -179,7 +179,7 @@ contract Airgrab is Ownable, ReentrancyGuard {
    * immediately during deployment, but is intended only as a workaround
    * for the circular dependency between Token and Airgrab.
    * @notice Sets the token address, gives infinite approval to the locking contract
-   * and renounces ownership.q
+   * and renounces ownership.
    * @param token_ The token in the airgrab.
    */
   function initialize(address token_) external onlyOwner {
