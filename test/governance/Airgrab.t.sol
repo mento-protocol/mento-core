@@ -439,7 +439,7 @@ contract Airgrab_Test is Test {
   // Airgrab.claim {claim}
   // ========================================
 
-  /// @notice when the claimer has not enough balance
+  /// @notice when the Airgrab doesn't have enough balance
   function test_Claim_whenNotEnoughBalance_reverts() public cl_setUp validKyc {
     vm.expectRevert("Airgrab: insufficient balance");
     cl_subject();
