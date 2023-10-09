@@ -190,8 +190,8 @@ contract Airgrab is Ownable, ReentrancyGuard {
   }
 
   /**
-   * @dev Allows `account` to claim `amount` tokens if the merkle proof and kyc is valid.
-   * @notice This function can be called by anybody, but the (account, amount) pair
+   * @dev Allows `msg.sender` to claim `amount` tokens if the merkle proof and kyc is valid.
+   * @notice This function can be called by anybody, but the (msg.sender, amount) pair
    * must be in the merkle tree, has to not have claimed yet, and must have
    * an associated KYC signature from Fractal. And the airgrab must not have ended.
    * The tokens will be locked for the cliff and slope configured at the contract level.
