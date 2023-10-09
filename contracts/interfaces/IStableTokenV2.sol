@@ -92,6 +92,16 @@ interface IStableTokenV2 {
    */
   function broker() external returns (address);
 
+  /**
+   * @notice Gets the address of the Validators contract.
+   */
+  function validators() external returns (address);
+
+  /**
+   * @notice Gets the address of the Exchange contract.
+   */
+  function exchange() external returns (address);
+
   function debitGasFees(address from, uint256 value) external;
 
   function creditGasFees(
