@@ -1,6 +1,6 @@
-// solhint-disable func-name-mixedcase
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
+// solhint-disable func-name-mixedcase, contract-name-camelcase, state-visibility, max-states-count, var-name-mixedcase
 
 import { console } from "forge-std-next/console.sol";
 import { Test } from "forge-std-next/Test.sol";
