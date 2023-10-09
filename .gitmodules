@@ -13,3 +13,6 @@
 [submodule "lib/forge-std-next"]
 	path = lib/forge-std-next
 	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/locking-contracts"]
+	path = lib/locking-contracts
+	url = https://github.com/rarible/locking-contracts
