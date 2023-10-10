@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
+// solhint-disable max-line-length
 
 import { MentoToken } from "./MentoToken.sol";
 import { Emission } from "./Emission.sol";
