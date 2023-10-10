@@ -49,10 +49,6 @@ contract Airgrab is Ownable, ReentrancyGuard {
   address public immutable fractalSigner;
   /// @notice The Fractal Credential maximum age in seconds
   uint256 public immutable fractalMaxAge;
-  /// @notice The locking contract for veToken.
-  ILocking public immutable lockingContract;
-  /// @notice The treasury address where the tokens will be refunded.
-  address payable public immutable treasury;
   /// @notice The timestamp when the airgrab ends.
   uint256 public immutable endTimestamp;
   /// @notice The slope period that the airgrab will be locked for.
@@ -64,7 +60,10 @@ contract Airgrab is Ownable, ReentrancyGuard {
   mapping(address => bool) public claimed;
   /// @notice The token in the airgrab.
   IERC20 public token;
-
+  /// @notice The locking contract for veToken.
+  ILocking public lockingContract;
+  /// @notice The treasury address where the tokens will be refunded.
+  address payable public treasury;
   /**
    * @dev Check if the account has a valid kyc signature.
    * See: https://docs.developer.fractal.id/fractal-credentials-api
@@ -140,7 +139,6 @@ contract Airgrab is Ownable, ReentrancyGuard {
    * @param root_ The root of the merkle tree.
    * @param fractalSigner_ The Fractal message signer for KYC/KYB.
    * @param fractalMaxAge_ The Fractal Credential maximum age in seconds.
-   * @param treasury_ The treasury address where the tokens will be refunded.
    * @param endTimestamp_ The timestamp when the airgrab ends.
    * @param cliffPeriod_ The cliff period that the airgrab will be locked for.
    * @param slopePeriod_ The slope period that the airgrab will be locked for.
@@ -149,16 +147,12 @@ contract Airgrab is Ownable, ReentrancyGuard {
     bytes32 root_,
     address fractalSigner_,
     uint256 fractalMaxAge_,
-    address lockingContract_,
-    address payable treasury_,
     uint256 endTimestamp_,
     uint32 cliffPeriod_,
     uint32 slopePeriod_
   ) {
     require(root_ != bytes32(0), "Airgrab: invalid root");
     require(fractalSigner_ != address(0), "Airgrab: invalid fractal issuer");
-    require(lockingContract_ != address(0), "Airgrab: invalid locking contract");
-    require(treasury_ != address(0), "Airgrab: invalid treasury");
     // slither-disable-next-line timestamp
     require(endTimestamp_ > block.timestamp, "Airgrab: invalid end timestamp");
     require(cliffPeriod_ <= MAX_CLIFF_PERIOD, "Airgrab: cliff period too large");
@@ -167,8 +161,6 @@ contract Airgrab is Ownable, ReentrancyGuard {
     root = root_;
     fractalSigner = fractalSigner_;
     fractalMaxAge = fractalMaxAge_;
-    lockingContract = ILocking(lockingContract_);
-    treasury = treasury_;
     endTimestamp = endTimestamp_;
     cliffPeriod = cliffPeriod_;
     slopePeriod = slopePeriod_;
@@ -182,11 +174,22 @@ contract Airgrab is Ownable, ReentrancyGuard {
    * and renounces ownership.
    * @param token_ The token in the airgrab.
    */
-  function initialize(address token_) external onlyOwner {
+  function initialize(
+    address token_,
+    address lockingContract_,
+    address treasury_
+  ) external onlyOwner {
     require(token_ != address(0), "Airgrab: invalid token");
+    require(lockingContract_ != address(0), "Airgrab: invalid locking contract");
+    require(treasury_ != address(0), "Airgrab: invalid treasury");
+
     renounceOwnership();
+
     token = IERC20(token_);
-    require(token.approve(address(lockingContract), type(uint256).max), "Airgrab: approval failed");
+    lockingContract = ILocking(lockingContract_);
+    treasury = payable(treasury_);
+
+    require(token.approve(lockingContract_, type(uint256).max), "Airgrab: approval failed");
   }
 
   /**

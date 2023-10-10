@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase, contract-name-camelcase, state-visibility, max-states-count, var-name-mixedcase
+// solhint-disable func-name-mixedcase, state-visibility, max-states-count, var-name-mixedcase
 
 import { console } from "forge-std-next/console.sol";
 import { Test } from "forge-std-next/Test.sol";
@@ -13,7 +13,7 @@ import { ILocking } from "locking-contracts/ILocking.sol";
 
 import { Airgrab } from "contracts/governance/Airgrab.sol";
 
-contract Airgrab_Test is Test {
+contract AirgrabTest is Test {
   // ========================================
   // Test Setup
   // ========================================
@@ -78,22 +78,13 @@ contract Airgrab_Test is Test {
 
   /// @notice Create a new Airgrab, but don't initialize it.
   function newAirgrab() internal {
-    airgrab = new Airgrab(
-      merkleRoot,
-      fractalSigner,
-      fractalMaxAge,
-      lockingContract,
-      treasury,
-      endTimestamp,
-      cliffPeriod,
-      slopePeriod
-    );
+    airgrab = new Airgrab(merkleRoot, fractalSigner, fractalMaxAge, endTimestamp, cliffPeriod, slopePeriod);
   }
 
   /// @notice Create and initialize an Airgrab.
   function initAirgrab() internal {
     newAirgrab();
-    airgrab.initialize(tokenAddress);
+    airgrab.initialize(tokenAddress, lockingContract, treasury);
   }
 
   // ========================================
@@ -117,8 +108,6 @@ contract Airgrab_Test is Test {
     assertEq(airgrab.fractalSigner(), fractalSigner);
     assertEq(address(airgrab.token()), address(0));
     assertEq(address(airgrab.owner()), address(this));
-    assertEq(address(airgrab.lockingContract()), address(lockingContract));
-    assertEq(airgrab.treasury(), treasury);
     assertEq(airgrab.cliffPeriod(), cliffPeriod);
     assertEq(airgrab.slopePeriod(), slopePeriod);
   }
@@ -134,13 +123,6 @@ contract Airgrab_Test is Test {
   function test_Constructor_whenFractalSignerInvalid_reverts() public {
     fractalSigner = address(0);
     vm.expectRevert("Airgrab: invalid fractal issuer");
-    c_subject();
-  }
-
-  /// @notice Checks th treasury address
-  function test_Constructor_whenTreasuryInvalid_reverts() public {
-    treasury = payable(address(0));
-    vm.expectRevert("Airgrab: invalid treasury");
     c_subject();
   }
 
@@ -178,7 +160,7 @@ contract Airgrab_Test is Test {
 
   /// @notice Test subject `initialize`
   function i_subject() internal {
-    airgrab.initialize(tokenAddress);
+    airgrab.initialize(tokenAddress, lockingContract, treasury);
   }
 
   /// @notice Checks the token address
