@@ -11,14 +11,9 @@ contract FactoryTest is TestSetup {
   address public vestingContract = makeAddr("VestingContract");
   address public mentoMultisig = makeAddr("MentoMultisig");
   address public treasuryContract = makeAddr("TreasuryContract");
-  address public emissionContract = makeAddr("EmissionContract");
   address public fractalSigner = makeAddr("FractalSigner");
 
   bytes32 public merkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809; // Mock root
-  uint256 public fractalSignerPk = 0x482884244ee9b1395a512003ca42e05c2af40cd8d3eeeb375db4759a17c58437; // Mock PK;
-  uint256 public fractalMaxAge = 15724800; // ~6 months
-  uint32 public cliffPeriod = 14;
-  uint32 public slopePeriod = 14;
 
   function setUp() public {
     skip(30 days);
