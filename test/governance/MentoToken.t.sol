@@ -9,12 +9,13 @@ contract MentoTokenTest is TestSetup {
   MentoToken public mentoToken;
 
   address public vestingContract = makeAddr("vestingContract");
+  address public mentoMultisig = makeAddr("mentoMultisig");
   address public airgrabContract = makeAddr("airgrabContract");
   address public treasuryContract = makeAddr("treasuryContract");
   address public emissionContract = makeAddr("emissionContract");
 
   function setUp() public {
-    mentoToken = new MentoToken(vestingContract, airgrabContract, treasuryContract, emissionContract);
+    mentoToken = new MentoToken(vestingContract, mentoMultisig, airgrabContract, treasuryContract, emissionContract);
   }
 
   /// @dev Test the state initialization post-construction of the MentoToken contract.
@@ -27,16 +28,18 @@ contract MentoTokenTest is TestSetup {
   /// @dev Test the correct token amounts are minted to respective contracts during initialization.
   function test_constructor_shouldMintCorrectAmounts() public {
     uint256 vestingAmount = mentoToken.balanceOf(vestingContract);
+    uint256 multisigAmount = mentoToken.balanceOf(mentoMultisig);
     uint256 airgrabAmount = mentoToken.balanceOf(airgrabContract);
     uint256 treasuryAmount = mentoToken.balanceOf(treasuryContract);
     uint256 emissionAmount = mentoToken.balanceOf(emissionContract);
 
-    assertEq(vestingAmount, 200_000_000 * 1e18);
+    assertEq(vestingAmount, 80_000_000 * 1e18);
+    assertEq(multisigAmount, 120_000_000 * 1e18);
     assertEq(airgrabAmount, 50_000_000 * 1e18);
     assertEq(treasuryAmount, 100_000_000 * 1e18);
     assertEq(emissionAmount, 0);
 
-    assertEq(vestingAmount + airgrabAmount + treasuryAmount + emissionAmount, INITIAL_TOTAL_SUPPLY);
+    assertEq(vestingAmount + multisigAmount + airgrabAmount + treasuryAmount + emissionAmount, INITIAL_TOTAL_SUPPLY);
     assertEq(mentoToken.totalSupply(), INITIAL_TOTAL_SUPPLY);
   }
 

@@ -29,18 +29,21 @@ contract MentoToken is ERC20, ERC20Burnable {
    */
   constructor(
     address vestingContract,
+    address mentoMultisig,
     address airgrabContract,
     address treasuryContract,
     address emissionContract_
   ) ERC20("Mento Token", "MENTO") {
     uint256 supply = 1_000_000_000 * 10**decimals();
 
-    uint256 vestingSupply = (supply * 20) / 100; /// TODO: 12 % goes to multisig
+    uint256 vestingSupply = (supply * 8) / 100;
+    uint256 multisigSupply = (supply * 12) / 100;
     uint256 airgrabSupply = (supply * 5) / 100;
     uint256 treasurySupply = (supply * 10) / 100;
     uint256 emissionSupply_ = (supply * 65) / 100;
 
     _mint(vestingContract, vestingSupply);
+    _mint(mentoMultisig, multisigSupply);
     _mint(airgrabContract, airgrabSupply);
     _mint(treasuryContract, treasurySupply);
 

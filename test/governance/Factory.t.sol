@@ -9,6 +9,7 @@ contract FactoryTest is TestSetup {
 
   address public communityMultisig = makeAddr("CommunityMultisig");
   address public vestingContract = makeAddr("VestingContract");
+  address public mentoMultisig = makeAddr("MentoMultisig");
   address public treasuryContract = makeAddr("TreasuryContract");
   address public emissionContract = makeAddr("EmissionContract");
   address public fractalSigner = makeAddr("FractalSigner");
@@ -29,7 +30,14 @@ contract FactoryTest is TestSetup {
 
   /// @notice Create and initialize an Airgrab.
   function _createGovernance() internal {
-    factory.createGovernance(vestingContract, treasuryContract, communityMultisig, merkleRoot, fractalSigner);
+    factory.createGovernance(
+      vestingContract,
+      mentoMultisig,
+      treasuryContract,
+      communityMultisig,
+      merkleRoot,
+      fractalSigner
+    );
   }
 
   // ========================================
@@ -83,6 +91,7 @@ contract FactoryTest is TestSetup {
     assertEq(factory.locking().symbol(), "veMENTO");
 
     assertEq(factory.vesting(), vestingContract);
+    assertEq(factory.mentoMultisig(), mentoMultisig);
     assertEq(factory.treasury(), treasuryContract);
     assertEq(factory.initialized(), true);
   }

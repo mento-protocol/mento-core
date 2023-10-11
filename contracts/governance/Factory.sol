@@ -41,6 +41,7 @@ contract Factory is Ownable {
 
   bool public initialized; // Indicates if the governance system has been created
   address public vesting;
+  address public mentoMultisig;
   address public treasury;
 
   // Airgrab configuration
@@ -73,6 +74,7 @@ contract Factory is Ownable {
   /// @dev This can only be called by the owner and only once
   function createGovernance(
     address vesting_,
+    address mentoMultisig_,
     address treasury_,
     address communityMultisig,
     bytes32 airgrabRoot,
@@ -86,6 +88,8 @@ contract Factory is Ownable {
     treasury = treasury_;
     // ---------------------------------- //
 
+    mentoMultisig = mentoMultisig_;
+
     // Creation
     emission = new Emission();
     uint256 airgrabEnds = block.timestamp + AIRGRAB_DURATION;
@@ -97,7 +101,7 @@ contract Factory is Ownable {
       AIRGRAB_LOCK_CLIFF,
       AIRGRAB_LOCK_SLOPE
     );
-    mentoToken = new MentoToken(vesting, address(airgrab), treasury, address(emission));
+    mentoToken = new MentoToken(vesting, mentoMultisig, address(airgrab), treasury, address(emission));
     timelockController = new TimelockController();
     mentoGovernor = new MentoGovernor();
     locking = new Locking();
