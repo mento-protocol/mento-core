@@ -78,7 +78,7 @@ contract FactoryTest is TestSetup {
     assertEq(factory.mentoToken().symbol(), "MENTO");
     assertEq(factory.emission().TOTAL_EMISSION_SUPPLY(), 650_000_000 * 10**18);
     assertEq(factory.airgrab().root(), merkleRoot);
-    assertEq(factory.timelockController().getMinDelay(), 7 days);
+    assertEq(factory.timelockController().getMinDelay(), 2 days);
     assertEq(factory.mentoGovernor().votingPeriod(), BLOCKS_WEEK);
     assertEq(factory.locking().symbol(), "veMENTO");
 

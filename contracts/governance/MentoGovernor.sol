@@ -39,7 +39,6 @@ contract MentoGovernor is
   ) external initializer {
     __Governor_init("MentoGovernor");
     __GovernorSettings_init(votingDelay_, votingPeriod_, threshold_);
-
     __GovernorCompatibilityBravo_init();
     __GovernorVotes_init(veToken);
     __GovernorVotesQuorumFraction_init(quorum_);

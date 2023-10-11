@@ -16,8 +16,8 @@ import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/
 /**
  * @title Factory
  * @author Mento Labs
- * @notice  Factory for creating and initializing the entire governance system
- * including the token, emission, airgrab, and governance contracts.
+ * @notice Factory for creating and initializing the entire governance system
+ * including the token, emission, airgrab, and governance related contracts.
  **/
 contract Factory is Ownable {
   /// @dev Event emitted when the governance system is successfully created
@@ -44,19 +44,19 @@ contract Factory is Ownable {
   address public treasury;
 
   // Airgrab configuration
-  uint32 public constant AIRGRAB_LOCK_SLOPE = 104; // Slope duration for the airgrabed tokens
+  uint32 public constant AIRGRAB_LOCK_SLOPE = 104; // Slope duration for the airgrabed tokens in weeks
   uint32 public constant AIRGRAB_LOCK_CLIFF = 0; // Cliff duration for the airgrabed tokens
   uint256 public constant AIRGRAB_DURATION = 365 days; // Duration for the airgrab
   uint256 public constant FRACTAL_MAX_AGE = 180 days; // Maximum age of the kyc for the airgrab
 
   // Timelock configuration
-  uint256 public constant TIMELOCK_DELAY = 7 days; // Delay duration for the timelock
+  uint256 public constant TIMELOCK_DELAY = 2 days; // Delay duration for the timelock
 
   // Governor configuration
-  uint256 public constant GOVERNOR_VOTING_DELAY = 17_280; // Voting delay for the governor (1 day in blocks)
-  uint256 public constant GOVERNOR_VOTING_PERIOD = 120_960; // Voting period for the governor (7 days in blocks)
+  uint256 public constant GOVERNOR_VOTING_DELAY = 1; // Voting start the next block
+  uint256 public constant GOVERNOR_VOTING_PERIOD = 120_960; // Voting period for the governor (7 days in blocks CELO)
   uint256 public constant GOVERNOR_PROPOSAL_THRESHOLD = 1_000e18; // Proposal threshold for the governor
-  uint256 public constant GOVERNOR_QUORUM = 10; // Quorum percentage for the governor
+  uint256 public constant GOVERNOR_QUORUM = 2; // Quorum percentage for the governor
 
   /// @notice Creates the factory with the owner address
   /// @param owner_ Address of the owner, Celo governance
@@ -109,13 +109,13 @@ contract Factory is Ownable {
     locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), uint32(locking.getWeek()), 0, 0);
     address[] memory proposers = new address[](1);
     address[] memory executors = new address[](1);
-    proposers[0] = address(mentoGovernor);
-    executors[0] = address(0);
+    proposers[0] = address(mentoGovernor); // Governor can propose and cancel
+    executors[0] = address(0); // Anyone can execute
     timelockController.__MentoTimelockController_init(
       TIMELOCK_DELAY,
       proposers,
       executors,
-      address(0),
+      address(0), // no admin, other roles are preset
       communityMultisig
     );
     mentoGovernor.__MentoGovernor_init(
