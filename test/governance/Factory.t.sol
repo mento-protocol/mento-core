@@ -13,10 +13,10 @@ contract FactoryTest is TestSetup {
   address public fractalSigner = makeAddr("FractalSigner");
 
   bytes32 public merkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809; // Mock root
-  uint256 public fractalSignerPk = 0x482884244ee9b1395a512003ca42e05c2af40cd8d3eeeb375db4759a17c58437; // Mock PK;
 
   function setUp() public {
     skip(30 days);
+    vm.roll(30 * BLOCKS_DAY);
   }
 
   function _newFactory() internal {

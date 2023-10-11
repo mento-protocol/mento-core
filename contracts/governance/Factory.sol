@@ -106,7 +106,8 @@ contract Factory is Ownable {
     airgrab.initialize(address(mentoToken), address(locking), treasury);
     emission.setTokenContract(address(mentoToken));
     emission.setEmissionTarget(treasury);
-    locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), uint32(locking.getWeek()), 0, 0);
+    // we start the locking contract from week 1 with min slope duration of 1
+    locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), uint32(locking.getWeek() - 1), 0, 1);
     address[] memory proposers = new address[](1);
     address[] memory executors = new address[](1);
     proposers[0] = address(mentoGovernor); // Governor can propose and cancel
@@ -126,6 +127,9 @@ contract Factory is Ownable {
       GOVERNOR_PROPOSAL_THRESHOLD,
       GOVERNOR_QUORUM
     );
+
+    emission.transferOwnership(address(timelockController));
+    locking.transferOwnership(address(timelockController));
 
     initialized = true;
 

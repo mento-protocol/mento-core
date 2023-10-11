@@ -59,9 +59,10 @@ contract MentoGovernorTest is TestSetup {
   }
 
   function test_init_shouldSetStateCorrectly() public {
-    assertEq(votingDelay, BLOCKS_DAY);
-    assertEq(votingPeriod, BLOCKS_WEEK);
-    assertEq(threshold, 1_000e18);
+    assertEq(mentoGovernor.votingDelay(), BLOCKS_DAY);
+    assertEq(mentoGovernor.votingPeriod(), BLOCKS_WEEK);
+    assertEq(mentoGovernor.proposalThreshold(), 1_000e18);
+    assertEq(mentoGovernor.quorumNumerator(), 10);
     assertEq(timelockController.getMinDelay(), 1 days);
   }
 
