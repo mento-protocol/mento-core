@@ -74,7 +74,6 @@ contract FactoryTest is TestSetup {
     cg_subject();
   }
 
-  /// @dev tests if the contracts are created
   function test_createGovernance_whenCallerOwner_shoulCreateAndSetContracts() public i_setUp {
     vm.prank(owner);
     cg_subject();
@@ -99,5 +98,14 @@ contract FactoryTest is TestSetup {
     vm.prank(owner);
     vm.expectRevert("Factory: governance already created");
     cg_subject();
+  }
+
+  function test_createGovernance_shouldSetOwners() public i_setUp {
+    vm.prank(owner);
+    cg_subject();
+    address timelock = address(factory.timelockController());
+    assertEq(factory.emission().owner(), timelock);
+    assertEq(factory.locking().owner(), timelock);
+    assertEq(factory.airgrab().owner(), address(0));
   }
 }

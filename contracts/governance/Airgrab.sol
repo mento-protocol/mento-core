@@ -10,7 +10,7 @@ import { SignatureChecker } from "openzeppelin-contracts-next/contracts/utils/cr
 import { Strings } from "openzeppelin-contracts-next/contracts/utils/Strings.sol";
 import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
 
-import { ILocking } from "locking-contracts/ILocking.sol";
+import { ILocking } from "./locking/interfaces/ILocking.sol";
 
 /**
  * @title Airgrab

@@ -4,8 +4,8 @@ pragma solidity 0.8.18;
 
 import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/governance/utils/IVotesUpgradeable.sol";
 import "./libs/LibBrokenLine.sol";
-import "./interfaces/IVotesUpgradeable.sol";
 
 /**
  * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb

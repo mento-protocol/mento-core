@@ -25,6 +25,10 @@ contract Factory is Ownable {
     address mentoToken,
     address emission,
     address airgrab,
+<<<<<<< HEAD
+=======
+    address mentoMultisig,
+>>>>>>> feat/tokenWork
     address vesting,
     address treasury,
     address locking,
@@ -46,17 +50,18 @@ contract Factory is Ownable {
 
   // Airgrab configuration
   uint32 public constant AIRGRAB_LOCK_SLOPE = 104; // Slope duration for the airgrabed tokens in weeks
-  uint32 public constant AIRGRAB_LOCK_CLIFF = 0; // Cliff duration for the airgrabed tokens
-  uint256 public constant AIRGRAB_DURATION = 365 days; // Duration for the airgrab
+
+  uint32 public constant AIRGRAB_LOCK_CLIFF = 0; // Cliff duration for the airgrabed tokens in weeks
+  uint256 public constant AIRGRAB_DURATION = 365 days;
   uint256 public constant FRACTAL_MAX_AGE = 180 days; // Maximum age of the kyc for the airgrab
 
   // Timelock configuration
-  uint256 public constant TIMELOCK_DELAY = 2 days; // Delay duration for the timelock
+  uint256 public constant TIMELOCK_DELAY = 2 days;
 
   // Governor configuration
-  uint256 public constant GOVERNOR_VOTING_DELAY = 0; // Voting starts the next block
+  uint256 public constant GOVERNOR_VOTING_DELAY = 1; // Voting start the next block
   uint256 public constant GOVERNOR_VOTING_PERIOD = 120_960; // Voting period for the governor (7 days in blocks CELO)
-  uint256 public constant GOVERNOR_PROPOSAL_THRESHOLD = 1_000e18; // Proposal threshold for the governor
+  uint256 public constant GOVERNOR_PROPOSAL_THRESHOLD = 1_000e18;
   uint256 public constant GOVERNOR_QUORUM = 2; // Quorum percentage for the governor
 
   /// @notice Creates the factory with the owner address
@@ -66,9 +71,10 @@ contract Factory is Ownable {
   }
 
   /// @notice Creates and initializes the governance system contracts
-  /// @param vesting_ Address for the vesting contract
-  /// @param treasury_ Address for the treasury
-  /// @param communityMultisig Address for the community's multisig wallet with the veto rights
+  /// @param vesting_ Address of the vesting contract
+  /// @param mentoMultisig_ Address of the mento multisig
+  /// @param treasury_ Address of the treasury
+  /// @param communityMultisig Address of the community's multisig wallet with the veto rights
   /// @param airgrabRoot Root hash for the airgrab Merkle tree
   /// @param fractalSigner Signer of fractal kyc
   /// @dev This can only be called by the owner and only once
@@ -81,6 +87,7 @@ contract Factory is Ownable {
     address fractalSigner
   ) external onlyOwner {
     require(!initialized, "Factory: governance already created");
+    initialized = true;
 
     // ---------------------------------- //
     // TODO: Replace with actual contracts
@@ -110,7 +117,9 @@ contract Factory is Ownable {
     airgrab.initialize(address(mentoToken), address(locking), treasury);
     emission.setTokenContract(address(mentoToken));
     emission.setEmissionTarget(treasury);
-    locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), uint32(locking.getWeek() - 1), 0, 0);
+    // we start the locking contract from week 1 with min slope duration of 1
+    locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), uint32(locking.getWeek() - 1), 0, 1);
+
     address[] memory proposers = new address[](1);
     address[] memory executors = new address[](1);
     proposers[0] = address(mentoGovernor); // Governor can propose and cancel
@@ -133,13 +142,12 @@ contract Factory is Ownable {
 
     emission.transferOwnership(address(timelockController));
     locking.transferOwnership(address(timelockController));
-
-    initialized = true;
-
+    
     emit GovernanceCreated(
       address(mentoToken),
       address(emission),
       address(airgrab),
+      mentoMultisig,
       vesting,
       treasury,
       address(locking),

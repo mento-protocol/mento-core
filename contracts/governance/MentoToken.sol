@@ -22,7 +22,8 @@ contract MentoToken is ERC20, ERC20Burnable {
   /**
    * @dev Constructor for the MentoToken contract.
    * @notice It mints and allocates the initial token supply among several contracts.
-   * @param vestingContract The address of the vesting contract where 20% of the total supply will be sent.
+   * @param vestingContract The address of the vesting contract where 8% of the total supply will be sent.
+   * @param mentoMultisig The address of the mento multisig with a timelock where 12% of the total supply will be sent.
    * @param airgrabContract The address of the airgrab contract where 5% of the total supply will be sent.
    * @param treasuryContract The address of the treasury contract where 10% of the total supply will be sent.
    * @param emissionContract_ The address of the emission contract where the rest of the supply will be emitted.
