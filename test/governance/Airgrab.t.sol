@@ -9,7 +9,7 @@ import { Arrays } from "test/utils/Arrays.sol";
 import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
 import { Strings } from "openzeppelin-contracts-next/contracts/utils/Strings.sol";
-import { ILocking } from "locking-contracts/ILocking.sol";
+import { ILocking } from "contracts/governance/locking/interfaces/ILocking.sol";
 
 import { Airgrab } from "contracts/governance/Airgrab.sol";
 
