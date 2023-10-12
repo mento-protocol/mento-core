@@ -17,6 +17,7 @@ contract FactoryTest is TestSetup {
 
   function setUp() public {
     skip(30 days);
+    vm.roll(30 * BLOCKS_DAY);
   }
 
   function _newFactory() internal {

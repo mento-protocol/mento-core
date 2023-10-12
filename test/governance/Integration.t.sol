@@ -72,8 +72,16 @@ contract GovernanceIntegrationTest is TestSetup {
     timelockController = factory.timelockController();
     mentoGovernor = factory.mentoGovernor();
     locking = factory.locking();
+
+    vm.prank(alice);
+    mentoToken.approve(address(locking), type(uint256).max);
+    vm.prank(bob);
+    mentoToken.approve(address(locking), type(uint256).max);
+    vm.prank(charlie);
+    mentoToken.approve(address(locking), type(uint256).max);
   }
 
+  // Factory + All
   function test_factory_shouldCreateAndSetupContracts() public {
     assertEq(mentoToken.balanceOf(address(vestingContract)), 80_000_000 * 10**18);
     assertEq(mentoToken.balanceOf(address(mentoMultisig)), 120_000_000 * 10**18);
@@ -108,7 +116,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assert(timelockController.hasRole(cancellerRole, communityMultisig));
 
     assertEq(address(mentoGovernor.token()), address(locking));
-    assertEq(mentoGovernor.votingDelay(), 1);
+    assertEq(mentoGovernor.votingDelay(), 0);
     assertEq(mentoGovernor.votingPeriod(), BLOCKS_WEEK);
     assertEq(mentoGovernor.proposalThreshold(), 1_000e18);
     assertEq(mentoGovernor.quorumNumerator(), 2);
@@ -117,9 +125,73 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(address(locking.token()), address(mentoToken));
     assertEq(locking.startingPointWeek(), 179);
     assertEq(locking.minCliffPeriod(), 0);
-    assertEq(locking.minSlopePeriod(), 1);
+    assertEq(locking.minSlopePeriod(), 0);
     assertEq(locking.owner(), address(timelockController));
     assertEq(locking.getWeek(), 1);
+  }
+
+  // MentoToken + Locking
+  function test_locking_whenLocked_shouldMintveMentoInExchangeForMentoAndReleaseBySchedule() public {
+    vm.prank(treasuryContract);
+    mentoToken.transfer(alice, 1000e18);
+
+    vm.prank(treasuryContract);
+    mentoToken.transfer(bob, 1000e18);
+    // Alice locks for ~6 months
+    vm.prank(alice);
+    locking.lock(alice, alice, 1000e18, 26, 0);
+
+    // Bob locks for ~1 year
+    vm.prank(bob);
+    uint256 lockId = locking.lock(bob, bob, 1000e18, 52, 0);
+
+    // Difference between voting powers accounted correctly
+    assertEq(locking.balanceOf(alice), 300e18);
+    assertEq(locking.balanceOf(bob), 400e18);
+
+    timeTravel(13 * BLOCKS_WEEK);
+
+    // Alice withdraws after ~3 months
+    vm.prank(alice);
+    locking.withdraw();
+
+    // Half of the tokens should be released, half of the voting power should be revoked
+    assertApproxEqAbs(locking.balanceOf(alice), 150e18, 10);
+    assertApproxEqAbs(mentoToken.balanceOf(alice), 500e18, 10);
+
+    // Bob's voting power is 3/4 of the initial votin power
+    assertApproxEqAbs(locking.balanceOf(bob), 300e18, 10);
+    assertEq(mentoToken.balanceOf(bob), 0);
+
+    timeTravel(13 * BLOCKS_WEEK);
+
+    // Bob relocks and delegates to alice
+    vm.prank(bob);
+    lockId = locking.relock(lockId, alice, 1000e18, 26, 0);
+
+    // Alice has the voting power from Bob's lock
+    assertEq(locking.balanceOf(alice), 300e18);
+    assertEq(locking.balanceOf(bob), 0);
+
+    timeTravel(13 * BLOCKS_WEEK);
+
+    // Bob delegates the lock without relocking
+    vm.prank(bob);
+    locking.delegateTo(lockId, charlie);
+
+    assertEq(locking.balanceOf(alice), 0);
+    assertEq(locking.balanceOf(bob), 0);
+    assertApproxEqAbs(locking.balanceOf(charlie), 150e18, 10);
+
+    // End of the locking period
+    timeTravel(13 * BLOCKS_WEEK);
+
+    vm.prank(bob);
+    locking.withdraw();
+
+    assertEq(locking.balanceOf(alice), 0);
+    assertEq(locking.balanceOf(bob), 0);
+    assertEq(locking.balanceOf(charlie), 0);
   }
 
   // MentoToken + Airgrab + Locking + Governor + Timelock
@@ -149,6 +221,7 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(claimer1);
     airgrab.claim(claimer1Amount, claimer1, claimer1Proof, fractalProof1, validUntil, approvedAt, "fractalId");
 
+    // claimed amounts are locked automatically
     assertEq(locking.balanceOf(claimer0), 60e18);
     assertEq(locking.balanceOf(claimer1), 12_000e18);
 
@@ -156,6 +229,7 @@ contract GovernanceIntegrationTest is TestSetup {
 
     address newEmissionTarget = makeAddr("NewEmissionTarget");
 
+    // claimer0 is under threshold
     vm.expectRevert("Governor: proposer votes below proposal threshold");
     vm.prank(claimer0);
     (
@@ -166,24 +240,29 @@ contract GovernanceIntegrationTest is TestSetup {
       string memory description
     ) = proposeChangeEmissionTarget(newEmissionTarget);
 
+    // claimer 1 can propose
     vm.prank(claimer1);
     (proposalId, targets, values, calldatas, description) = proposeChangeEmissionTarget(newEmissionTarget);
 
     timeTravel(1);
 
+    // both claimers cast vote
     vm.prank(claimer0);
     mentoGovernor.castVote(proposalId, 0);
 
+    // majority of the votes are in favor
     vm.prank(claimer1);
     mentoGovernor.castVote(proposalId, 1);
 
     vm.expectRevert("Governor: proposal not successful");
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
+    // voting period ends
     timeTravel(BLOCKS_WEEK);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
+    // timelock blocks for the lock delay
     vm.expectRevert("TimelockController: operation is not ready");
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
@@ -191,9 +270,94 @@ contract GovernanceIntegrationTest is TestSetup {
 
     assertEq(emission.emissionTarget(), address(treasuryContract));
 
+    // anyone can execute the proposal
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
+    // protected function is called by the owner after execution
     assertEq(emission.emissionTarget(), newEmissionTarget);
+  }
+
+  // MentoToken + Emission + Locking + Governance + Timelock
+  function test_emission_whenEmitted_shouldBeSentToTreasury_canBeUsedInGovernanceAfterLocking() public {
+    assertEq(mentoToken.balanceOf(treasuryContract), 100_000_000e18);
+
+    // emit tokens after a year
+    timeTravel(365 * BLOCKS_DAY);
+    uint256 amount = emission.emitTokens();
+
+    assertEq(mentoToken.balanceOf(treasuryContract), amount + 100_000_000e18);
+
+    // treasury distrubutes tokens to users
+    vm.prank(treasuryContract);
+    mentoToken.transfer(alice, 5000e18);
+
+    vm.prank(treasuryContract);
+    mentoToken.transfer(bob, 5000e18);
+
+    vm.prank(treasuryContract);
+    mentoToken.transfer(charlie, 5000e18);
+
+    // users locks= tokens
+    vm.prank(alice);
+    locking.lock(alice, alice, 5000e18, 20, 10);
+
+    vm.prank(bob);
+    locking.lock(bob, bob, 5000e18, 40, 10);
+
+    vm.prank(charlie);
+    locking.lock(charlie, charlie, 5000e18, 30, 10);
+
+    timeTravel(1);
+
+    address newEmissionTarget = makeAddr("NewEmissionTarget");
+
+    // alice proposes to change the emission target
+    vm.prank(alice);
+    (
+      uint256 proposalId,
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      string memory description
+    ) = proposeChangeEmissionTarget(newEmissionTarget);
+
+    timeTravel(1);
+
+    // majority votes in favor of the proposal
+    vm.prank(alice);
+    mentoGovernor.castVote(proposalId, 1);
+
+    vm.prank(bob);
+    mentoGovernor.castVote(proposalId, 1);
+
+    vm.prank(charlie);
+    mentoGovernor.castVote(proposalId, 0);
+
+    timeTravel(BLOCKS_WEEK);
+
+    mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
+
+    // still time locked
+    timeTravel(BLOCKS_DAY);
+
+    bytes32 timelockId = timelockController.hashOperationBatch(
+      targets,
+      values,
+      calldatas,
+      0,
+      keccak256(bytes(description))
+    );
+
+    // multi sig cancels the proposal in the time lock
+    vm.prank(communityMultisig);
+    timelockController.cancel(timelockId);
+
+    // timelock delay is over
+    timeTravel(BLOCKS_DAY);
+
+    // proposal can not be executed
+    vm.expectRevert("Governor: proposal not successful");
+    mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
   }
 
   /// @notice build the KYC message hash and sign it with the provided pk
