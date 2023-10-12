@@ -9,19 +9,14 @@ contract FactoryTest is TestSetup {
 
   address public communityMultisig = makeAddr("CommunityMultisig");
   address public vestingContract = makeAddr("VestingContract");
-  address public mentoMultisig = makeAddr("MentoMultisig");
   address public treasuryContract = makeAddr("TreasuryContract");
-  address public emissionContract = makeAddr("EmissionContract");
   address public fractalSigner = makeAddr("FractalSigner");
 
   bytes32 public merkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809; // Mock root
-  uint256 public fractalSignerPk = 0x482884244ee9b1395a512003ca42e05c2af40cd8d3eeeb375db4759a17c58437; // Mock PK;
-  uint256 public fractalMaxAge = 15724800; // ~6 months
-  uint32 public cliffPeriod = 14;
-  uint32 public slopePeriod = 14;
 
   function setUp() public {
     skip(30 days);
+    vm.roll(30 * BLOCKS_DAY);
   }
 
   function _newFactory() internal {
@@ -30,14 +25,7 @@ contract FactoryTest is TestSetup {
 
   /// @notice Create and initialize an Airgrab.
   function _createGovernance() internal {
-    factory.createGovernance(
-      vestingContract,
-      mentoMultisig,
-      treasuryContract,
-      communityMultisig,
-      merkleRoot,
-      fractalSigner
-    );
+    factory.createGovernance(vestingContract, treasuryContract, communityMultisig, merkleRoot, fractalSigner);
   }
 
   // ========================================
@@ -78,7 +66,6 @@ contract FactoryTest is TestSetup {
     cg_subject();
   }
 
-  /// @dev tests if the contracts are created
   function test_createGovernance_whenCallerOwner_shoulCreateAndSetContracts() public i_setUp {
     vm.prank(owner);
     cg_subject();
@@ -91,7 +78,6 @@ contract FactoryTest is TestSetup {
     assertEq(factory.locking().symbol(), "veMENTO");
 
     assertEq(factory.vesting(), vestingContract);
-    assertEq(factory.mentoMultisig(), mentoMultisig);
     assertEq(factory.treasury(), treasuryContract);
     assertEq(factory.initialized(), true);
   }
@@ -103,5 +89,14 @@ contract FactoryTest is TestSetup {
     vm.prank(owner);
     vm.expectRevert("Factory: governance already created");
     cg_subject();
+  }
+
+  function test_createGovernance_shouldSetOwners() public i_setUp {
+    vm.prank(owner);
+    cg_subject();
+    address timelock = address(factory.timelockController());
+    assertEq(factory.emission().owner(), timelock);
+    assertEq(factory.locking().owner(), timelock);
+    assertEq(factory.airgrab().owner(), address(0));
   }
 }
