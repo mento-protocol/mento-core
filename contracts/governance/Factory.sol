@@ -25,6 +25,7 @@ contract Factory is Ownable {
     address mentoToken,
     address emission,
     address airgrab,
+    address mentoMultisig,
     address vesting,
     address treasury,
     address locking,
@@ -41,6 +42,7 @@ contract Factory is Ownable {
 
   bool public initialized; // Indicates if the governance system has been created
   address public vesting;
+  address public mentoMultisig;
   address public treasury;
 
   // Airgrab configuration
@@ -65,14 +67,16 @@ contract Factory is Ownable {
   }
 
   /// @notice Creates and initializes the governance system contracts
-  /// @param vesting_ Address for the vesting contract
-  /// @param treasury_ Address for the treasury
-  /// @param communityMultisig Address for the community's multisig wallet with the veto rights
+  /// @param vesting_ Address of the vesting contract
+  /// @param mentoMultisig_ Address of the mento multisig
+  /// @param treasury_ Address of the treasury
+  /// @param communityMultisig Address of the community's multisig wallet with the veto rights
   /// @param airgrabRoot Root hash for the airgrab Merkle tree
   /// @param fractalSigner Signer of fractal kyc
   /// @dev This can only be called by the owner and only once
   function createGovernance(
     address vesting_,
+    address mentoMultisig_,
     address treasury_,
     address communityMultisig,
     bytes32 airgrabRoot,
@@ -87,6 +91,8 @@ contract Factory is Ownable {
     treasury = treasury_;
     // ---------------------------------- //
 
+    mentoMultisig = mentoMultisig_;
+
     // Creation
     emission = new Emission();
     uint256 airgrabEnds = block.timestamp + AIRGRAB_DURATION;
@@ -98,7 +104,7 @@ contract Factory is Ownable {
       AIRGRAB_LOCK_CLIFF,
       AIRGRAB_LOCK_SLOPE
     );
-    mentoToken = new MentoToken(vesting, address(airgrab), treasury, address(emission));
+    mentoToken = new MentoToken(vesting, mentoMultisig, address(airgrab), treasury, address(emission));
     timelockController = new TimelockController();
     mentoGovernor = new MentoGovernor();
     locking = new Locking();
@@ -136,6 +142,7 @@ contract Factory is Ownable {
       address(mentoToken),
       address(emission),
       address(airgrab),
+      mentoMultisig,
       vesting,
       treasury,
       address(locking),
