@@ -25,10 +25,7 @@ contract Factory is Ownable {
     address mentoToken,
     address emission,
     address airgrab,
-<<<<<<< HEAD
-=======
     address mentoMultisig,
->>>>>>> feat/tokenWork
     address vesting,
     address treasury,
     address locking,
@@ -142,7 +139,7 @@ contract Factory is Ownable {
 
     emission.transferOwnership(address(timelockController));
     locking.transferOwnership(address(timelockController));
-    
+
     emit GovernanceCreated(
       address(mentoToken),
       address(emission),

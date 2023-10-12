@@ -116,7 +116,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assert(timelockController.hasRole(cancellerRole, communityMultisig));
 
     assertEq(address(mentoGovernor.token()), address(locking));
-    assertEq(mentoGovernor.votingDelay(), 0);
+    assertEq(mentoGovernor.votingDelay(), 1);
     assertEq(mentoGovernor.votingPeriod(), BLOCKS_WEEK);
     assertEq(mentoGovernor.proposalThreshold(), 1_000e18);
     assertEq(mentoGovernor.quorumNumerator(), 2);
@@ -125,13 +125,15 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(address(locking.token()), address(mentoToken));
     assertEq(locking.startingPointWeek(), 179);
     assertEq(locking.minCliffPeriod(), 0);
-    assertEq(locking.minSlopePeriod(), 0);
+    assertEq(locking.minSlopePeriod(), 1);
     assertEq(locking.owner(), address(timelockController));
     assertEq(locking.getWeek(), 1);
   }
 
   // MentoToken + Locking
   function test_locking_whenLocked_shouldMintveMentoInExchangeForMentoAndReleaseBySchedule() public {
+    // Since we use the min slope period of 1, calculations are slightly off as expected
+    uint256 negligibleAmount = 3e18;
     vm.prank(treasuryContract);
     mentoToken.transfer(alice, 1000e18);
 
@@ -146,8 +148,8 @@ contract GovernanceIntegrationTest is TestSetup {
     uint256 lockId = locking.lock(bob, bob, 1000e18, 52, 0);
 
     // Difference between voting powers accounted correctly
-    assertEq(locking.balanceOf(alice), 300e18);
-    assertEq(locking.balanceOf(bob), 400e18);
+    assertApproxEqAbs(locking.balanceOf(alice), 300e18, negligibleAmount);
+    assertApproxEqAbs(locking.balanceOf(bob), 400e18, negligibleAmount);
 
     timeTravel(13 * BLOCKS_WEEK);
 
@@ -156,11 +158,11 @@ contract GovernanceIntegrationTest is TestSetup {
     locking.withdraw();
 
     // Half of the tokens should be released, half of the voting power should be revoked
-    assertApproxEqAbs(locking.balanceOf(alice), 150e18, 10);
-    assertApproxEqAbs(mentoToken.balanceOf(alice), 500e18, 10);
+    assertApproxEqAbs(locking.balanceOf(alice), 150e18, negligibleAmount);
+    assertApproxEqAbs(mentoToken.balanceOf(alice), 500e18, negligibleAmount);
 
-    // Bob's voting power is 3/4 of the initial votin power
-    assertApproxEqAbs(locking.balanceOf(bob), 300e18, 10);
+    // Bob's voting power is 3/4 of the initial voting power
+    assertApproxEqAbs(locking.balanceOf(bob), 300e18, negligibleAmount);
     assertEq(mentoToken.balanceOf(bob), 0);
 
     timeTravel(13 * BLOCKS_WEEK);
@@ -170,7 +172,7 @@ contract GovernanceIntegrationTest is TestSetup {
     lockId = locking.relock(lockId, alice, 1000e18, 26, 0);
 
     // Alice has the voting power from Bob's lock
-    assertEq(locking.balanceOf(alice), 300e18);
+    assertApproxEqAbs(locking.balanceOf(alice), 300e18, negligibleAmount);
     assertEq(locking.balanceOf(bob), 0);
 
     timeTravel(13 * BLOCKS_WEEK);
@@ -181,7 +183,7 @@ contract GovernanceIntegrationTest is TestSetup {
 
     assertEq(locking.balanceOf(alice), 0);
     assertEq(locking.balanceOf(bob), 0);
-    assertApproxEqAbs(locking.balanceOf(charlie), 150e18, 10);
+    assertApproxEqAbs(locking.balanceOf(charlie), 150e18, negligibleAmount);
 
     // End of the locking period
     timeTravel(13 * BLOCKS_WEEK);
@@ -244,7 +246,8 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(claimer1);
     (proposalId, targets, values, calldatas, description) = proposeChangeEmissionTarget(newEmissionTarget);
 
-    timeTravel(1);
+    // ~10 mins
+    timeTravel(120);
 
     // both claimers cast vote
     vm.prank(claimer0);
@@ -321,7 +324,8 @@ contract GovernanceIntegrationTest is TestSetup {
       string memory description
     ) = proposeChangeEmissionTarget(newEmissionTarget);
 
-    timeTravel(1);
+    // ~10 mins
+    timeTravel(120);
 
     // majority votes in favor of the proposal
     vm.prank(alice);
