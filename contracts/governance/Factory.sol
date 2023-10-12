@@ -45,17 +45,17 @@ contract Factory is Ownable {
 
   // Airgrab configuration
   uint32 public constant AIRGRAB_LOCK_SLOPE = 104; // Slope duration for the airgrabed tokens in weeks
-  uint32 public constant AIRGRAB_LOCK_CLIFF = 0; // Cliff duration for the airgrabed tokens
-  uint256 public constant AIRGRAB_DURATION = 365 days; // Duration for the airgrab
+  uint32 public constant AIRGRAB_LOCK_CLIFF = 0; // Cliff duration for the airgrabed tokens in weeks
+  uint256 public constant AIRGRAB_DURATION = 365 days;
   uint256 public constant FRACTAL_MAX_AGE = 180 days; // Maximum age of the kyc for the airgrab
 
   // Timelock configuration
-  uint256 public constant TIMELOCK_DELAY = 2 days; // Delay duration for the timelock
+  uint256 public constant TIMELOCK_DELAY = 2 days;
 
   // Governor configuration
   uint256 public constant GOVERNOR_VOTING_DELAY = 1; // Voting start the next block
   uint256 public constant GOVERNOR_VOTING_PERIOD = 120_960; // Voting period for the governor (7 days in blocks CELO)
-  uint256 public constant GOVERNOR_PROPOSAL_THRESHOLD = 1_000e18; // Proposal threshold for the governor
+  uint256 public constant GOVERNOR_PROPOSAL_THRESHOLD = 1_000e18;
   uint256 public constant GOVERNOR_QUORUM = 2; // Quorum percentage for the governor
 
   /// @notice Creates the factory with the owner address
@@ -79,6 +79,7 @@ contract Factory is Ownable {
     address fractalSigner
   ) external onlyOwner {
     require(!initialized, "Factory: governance already created");
+    initialized = true;
 
     // ---------------------------------- //
     // TODO: Replace with actual contracts
@@ -130,8 +131,6 @@ contract Factory is Ownable {
 
     emission.transferOwnership(address(timelockController));
     locking.transferOwnership(address(timelockController));
-
-    initialized = true;
 
     emit GovernanceCreated(
       address(mentoToken),

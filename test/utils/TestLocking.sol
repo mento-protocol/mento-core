@@ -5,7 +5,7 @@ import "../../contracts/governance/locking/Locking.sol";
 
 contract TestLocking is Locking {
   uint32 public blockNumberMocked;
-  uint32 public epocShift;
+  uint32 public epochShift;
 
   function incrementBlock(uint32 _amount) external {
     blockNumberMocked = blockNumberMocked + _amount;
@@ -24,11 +24,11 @@ contract TestLocking is Locking {
   }
 
   function getEpochShift() internal view override returns (uint32) {
-    return epocShift;
+    return epochShift;
   }
 
-  function setEpochShift(uint32 _epocShift) external {
-    epocShift = _epocShift;
+  function setEpochShift(uint32 _epochShift) external {
+    epochShift = _epochShift;
   }
 
   function setBlock(uint32 _block) external {
