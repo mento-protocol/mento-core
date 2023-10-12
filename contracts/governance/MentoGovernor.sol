@@ -29,20 +29,19 @@ contract MentoGovernor is
    * @param timelockController The timelock controller used by the governor.
    */
   // solhint-disable-next-line func-name-mixedcase
-  function __MentoGovernor_init(IVotesUpgradeable veToken, TimelockControllerUpgradeable timelockController)
-    external
-    initializer
-  {
+  function __MentoGovernor_init(
+    IVotesUpgradeable veToken,
+    TimelockControllerUpgradeable timelockController,
+    uint256 votingDelay_,
+    uint256 votingPeriod_,
+    uint256 threshold_,
+    uint256 quorum_
+  ) external initializer {
     __Governor_init("MentoGovernor");
-    __GovernorSettings_init(
-      17_280, // 1 day in Celo TBD
-      120_960, // 1 week in Celo TBD
-      1_000e18 // proposal threshold TBD
-    );
-
+    __GovernorSettings_init(votingDelay_, votingPeriod_, threshold_);
     __GovernorCompatibilityBravo_init();
     __GovernorVotes_init(veToken);
-    __GovernorVotesQuorumFraction_init(10); //  10% TBD
+    __GovernorVotesQuorumFraction_init(quorum_);
     __GovernorTimelockControl_init(timelockController);
   }
 

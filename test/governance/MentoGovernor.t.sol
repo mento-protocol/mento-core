@@ -16,9 +16,10 @@ contract MentoGovernorTest is TestSetup {
   MockOwnable public mockOwnable;
   MockVeMento public mockVeMento;
 
-  uint256 public votingDelay;
-  uint256 public votingPeriod;
-  uint256 public threshold;
+  uint256 public votingDelay = BLOCKS_DAY;
+  uint256 public votingPeriod = BLOCKS_WEEK;
+  uint256 public threshold = 1_000e18;
+  uint256 public quorum = 10;
 
   address public communityMultisig = makeAddr("communityMultisig");
 
@@ -35,7 +36,14 @@ contract MentoGovernorTest is TestSetup {
     address[] memory executors;
 
     timelockController.__MentoTimelockController_init(1 days, proposers, executors, owner, communityMultisig);
-    mentoGovernor.__MentoGovernor_init(IVotesUpgradeable(address(mockVeMento)), timelockController);
+    mentoGovernor.__MentoGovernor_init(
+      IVotesUpgradeable(address(mockVeMento)),
+      timelockController,
+      votingDelay,
+      votingPeriod,
+      threshold,
+      quorum
+    );
 
     mockOwnable.transferOwnership(address(timelockController));
 
@@ -48,16 +56,13 @@ contract MentoGovernorTest is TestSetup {
     timelockController.revokeRole(adminRole, owner);
 
     vm.stopPrank();
-
-    votingDelay = mentoGovernor.votingDelay();
-    votingPeriod = mentoGovernor.votingPeriod();
-    threshold = mentoGovernor.proposalThreshold();
   }
 
   function test_init_shouldSetStateCorrectly() public {
-    assertEq(votingDelay, BLOCKS_DAY);
-    assertEq(votingPeriod, BLOCKS_WEEK);
-    assertEq(threshold, 1_000e18);
+    assertEq(mentoGovernor.votingDelay(), BLOCKS_DAY);
+    assertEq(mentoGovernor.votingPeriod(), BLOCKS_WEEK);
+    assertEq(mentoGovernor.proposalThreshold(), 1_000e18);
+    assertEq(mentoGovernor.quorumNumerator(), 10);
     assertEq(timelockController.getMinDelay(), 1 days);
   }
 

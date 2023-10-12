@@ -35,7 +35,7 @@ contract MentoToken is ERC20, ERC20Burnable {
   ) ERC20("Mento Token", "MENTO") {
     uint256 supply = 1_000_000_000 * 10**decimals();
 
-    uint256 vestingSupply = (supply * 20) / 100;
+    uint256 vestingSupply = (supply * 20) / 100; /// TODO: 12 % goes to multisig
     uint256 airgrabSupply = (supply * 5) / 100;
     uint256 treasurySupply = (supply * 10) / 100;
     uint256 emissionSupply_ = (supply * 65) / 100;
