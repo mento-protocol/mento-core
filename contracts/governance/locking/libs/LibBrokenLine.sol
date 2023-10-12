@@ -215,8 +215,7 @@ library LibBrokenLine {
       }
     }
     if (toTime > fromTime) {
-      return
-        actualValueForward(brokenLine, fromTime, toTime, brokenLine.initial.bias, brokenLine.initial.slope, toBlock);
+      return actualValueForward(brokenLine, fromTime, toTime, brokenLine.initial.bias, brokenLine.initial.slope);
     }
     return actualValueBack(brokenLine, toTime, toBlock);
   }
@@ -226,8 +225,7 @@ library LibBrokenLine {
     uint32 fromTime,
     uint32 toTime,
     uint96 bias,
-    uint96 slope,
-    uint32 toBlock
+    uint96 slope
   ) internal view returns (uint96) {
     if ((bias == 0)) {
       return (bias);
@@ -252,7 +250,7 @@ library LibBrokenLine {
     uint32 toBlock
   ) internal view returns (uint96) {
     (uint96 bias, uint96 slope, uint32 fromTime) = binarySearch(brokenLine.history, toBlock);
-    return actualValueForward(brokenLine, fromTime, toTime, bias, slope, toBlock);
+    return actualValueForward(brokenLine, fromTime, toTime, bias, slope);
   }
 
   function safeInt(uint96 value) internal pure returns (int96 result) {
