@@ -54,7 +54,7 @@ contract Factory is Ownable {
   uint256 public constant TIMELOCK_DELAY = 2 days; // Delay duration for the timelock
 
   // Governor configuration
-  uint256 public constant GOVERNOR_VOTING_DELAY = 1; // Voting start the next block
+  uint256 public constant GOVERNOR_VOTING_DELAY = 0; // Voting starts the next block
   uint256 public constant GOVERNOR_VOTING_PERIOD = 120_960; // Voting period for the governor (7 days in blocks CELO)
   uint256 public constant GOVERNOR_PROPOSAL_THRESHOLD = 1_000e18; // Proposal threshold for the governor
   uint256 public constant GOVERNOR_QUORUM = 2; // Quorum percentage for the governor
