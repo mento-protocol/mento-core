@@ -218,6 +218,8 @@ contract GovernanceIntegrationTest is TestSetup {
     uint256 newThreshold = 5000e18;
     uint256 newQuorum = 10; //10%
     uint256 newMinDelay = 3 days;
+    uint32 newMinCliff = 6;
+    uint32 newMinSlope = 12;
 
     vm.prank(alice);
     (
@@ -226,7 +228,15 @@ contract GovernanceIntegrationTest is TestSetup {
       uint256[] memory values,
       bytes[] memory calldatas,
       string memory description
-    ) = proposeChangeGovernorSettings(newVotingDelay, newVotingPeriod, newThreshold, newQuorum, newMinDelay);
+    ) = proposeChangeSettings(
+        newVotingDelay,
+        newVotingPeriod,
+        newThreshold,
+        newQuorum,
+        newMinDelay,
+        newMinCliff,
+        newMinSlope
+      );
 
     // ~10 mins
     timeTravel(120);
@@ -255,11 +265,25 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(mentoGovernor.proposalThreshold(), newThreshold);
     assertEq(mentoGovernor.quorumNumerator(), newQuorum);
     assertEq(timelockController.getMinDelay(), newMinDelay);
+    assertEq(locking.minCliffPeriod(), newMinCliff);
+    assertEq(locking.minSlopePeriod(), newMinSlope);
 
     // Proposal reverts because new threshold is higher
     vm.prank(alice);
     vm.expectRevert("Governor: proposer votes below proposal threshold");
-    proposeChangeGovernorSettings(newVotingDelay, newVotingPeriod, newThreshold, newQuorum, newMinDelay);
+    proposeChangeSettings(
+      newVotingDelay,
+      newVotingPeriod,
+      newThreshold,
+      newQuorum,
+      newMinDelay,
+      newMinCliff,
+      newMinSlope
+    );
+    // Lock reverts because new min period is higher
+    vm.prank(alice);
+    vm.expectRevert("cliff period < minimal lock period");
+    locking.lock(alice, alice, 2000e18, 5, 5);
   }
 
   // MentoToken + Airgrab + Locking + Governor + Timelock
@@ -398,10 +422,10 @@ contract GovernanceIntegrationTest is TestSetup {
     mentoGovernor.castVote(proposalId, 1);
 
     vm.prank(bob);
-    mentoGovernor.castVote(proposalId, 1);
+    mentoGovernor.castVote(proposalId, 0);
 
     vm.prank(charlie);
-    mentoGovernor.castVote(proposalId, 0);
+    mentoGovernor.castVote(proposalId, 1);
 
     timeTravel(BLOCKS_WEEK);
 
@@ -430,9 +454,12 @@ contract GovernanceIntegrationTest is TestSetup {
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
   }
 
-  /// @notice build the KYC message hash and sign it with the provided pk
+  /// @dev build the KYC message hash and sign it with the provided pk
   /// @param signer The PK to sign the message with
   /// @param account The account to sign the message for
+  /// @param credential KYC credentials
+  /// @param validUntil KYC valid until this ts
+  /// @param approvedAt KYC approved at this ts
   function validKycSignature(
     uint256 signer,
     address account,
@@ -458,6 +485,8 @@ contract GovernanceIntegrationTest is TestSetup {
     return abi.encodePacked(r, s, v);
   }
 
+  /// @dev propose to change the emission target
+  /// @param newTarget The new emission target address
   function proposeChangeEmissionTarget(address newTarget)
     internal
     returns (
@@ -482,12 +511,22 @@ contract GovernanceIntegrationTest is TestSetup {
     proposalId = mentoGovernor.propose(targets, values, calldatas, description);
   }
 
-  function proposeChangeGovernorSettings(
+  /// @dev propose to change the governance settings
+  /// @param votingDelay The new voting delay
+  /// @param votingPeriod The new voting period
+  /// @param threshold The new threshold
+  /// @param quorum The new quorum
+  /// @param minDelay The new min delay
+  /// @param minCliff The new min cliff period
+  /// @param minSlope The new min slope period
+  function proposeChangeSettings(
     uint256 votingDelay,
     uint256 votingPeriod,
     uint256 threshold,
     uint256 quorum,
-    uint256 minDelay
+    uint256 minDelay,
+    uint32 minCliff,
+    uint32 minSlope
   )
     internal
     returns (
@@ -498,32 +537,40 @@ contract GovernanceIntegrationTest is TestSetup {
       string memory description
     )
   {
-    targets = new address[](5);
+    targets = new address[](7);
     targets[0] = address(mentoGovernor);
     targets[1] = address(mentoGovernor);
     targets[2] = address(mentoGovernor);
     targets[3] = address(mentoGovernor);
     targets[4] = address(timelockController);
+    targets[5] = address(locking);
+    targets[6] = address(locking);
 
-    values = new uint256[](5);
+    values = new uint256[](7);
     values[0] = 0;
     values[1] = 0;
     values[2] = 0;
     values[3] = 0;
     values[4] = 0;
+    values[5] = 0;
+    values[6] = 0;
 
-    calldatas = new bytes[](5);
+    calldatas = new bytes[](7);
     calldatas[0] = abi.encodeWithSelector(mentoGovernor.setVotingDelay.selector, votingDelay);
     calldatas[1] = abi.encodeWithSelector(mentoGovernor.setVotingPeriod.selector, votingPeriod);
     calldatas[2] = abi.encodeWithSelector(mentoGovernor.setProposalThreshold.selector, threshold);
     calldatas[3] = abi.encodeWithSelector(mentoGovernor.updateQuorumNumerator.selector, quorum);
     calldatas[4] = abi.encodeWithSelector(timelockController.updateDelay.selector, minDelay);
+    calldatas[5] = abi.encodeWithSelector(locking.setMinCliffPeriod.selector, minCliff);
+    calldatas[6] = abi.encodeWithSelector(locking.setMinSlopePeriod.selector, minSlope);
 
     description = "Change governance config";
 
     proposalId = mentoGovernor.propose(targets, values, calldatas, description);
   }
 
+  /// @dev moves block.number and block.timestamp in sync
+  /// @param blocks The number of blocks that will be moved
   function timeTravel(uint256 blocks) internal {
     uint256 time = blocks * 5;
     vm.roll(block.number + blocks);

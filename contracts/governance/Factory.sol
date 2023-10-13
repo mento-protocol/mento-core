@@ -47,7 +47,6 @@ contract Factory is Ownable {
 
   // Airgrab configuration
   uint32 public constant AIRGRAB_LOCK_SLOPE = 104; // Slope duration for the airgrabed tokens in weeks
-
   uint32 public constant AIRGRAB_LOCK_CLIFF = 0; // Cliff duration for the airgrabed tokens in weeks
   uint256 public constant AIRGRAB_DURATION = 365 days;
   uint256 public constant FRACTAL_MAX_AGE = 180 days; // Maximum age of the kyc for the airgrab
@@ -116,7 +115,6 @@ contract Factory is Ownable {
     emission.setEmissionTarget(treasury);
     // we start the locking contract from week 1 with min slope duration of 1
     locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), uint32(locking.getWeek() - 1), 0, 1);
-
     address[] memory proposers = new address[](1);
     address[] memory executors = new address[](1);
     proposers[0] = address(mentoGovernor); // Governor can propose and cancel
