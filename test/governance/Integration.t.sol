@@ -196,6 +196,72 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(locking.balanceOf(charlie), 0);
   }
 
+  // MentoToken + Locking + Governor
+  function test_governor_whenUsedByLockedAccounts_shouldUpdateSettings() public {
+    vm.prank(treasuryContract);
+    mentoToken.transfer(alice, 10_000e18);
+
+    vm.prank(treasuryContract);
+    mentoToken.transfer(bob, 10_000e18);
+    // Alice locks for max cliff
+    vm.prank(alice);
+    locking.lock(alice, alice, 2000e18, 1, 103);
+
+    // Bob locks a small amount for max cliff
+    vm.prank(bob);
+    locking.lock(bob, bob, 1500e18, 1, 103);
+
+    timeTravel(BLOCKS_DAY);
+
+    uint256 newVotingDelay = BLOCKS_DAY;
+    uint256 newVotingPeriod = 2 * BLOCKS_WEEK;
+    uint256 newThreshold = 5000e18;
+    uint256 newQuorum = 10; //10%
+    uint256 newMinDelay = 3 days;
+
+    vm.prank(alice);
+    (
+      uint256 proposalId,
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      string memory description
+    ) = proposeChangeGovernorSettings(newVotingDelay, newVotingPeriod, newThreshold, newQuorum, newMinDelay);
+
+    // ~10 mins
+    timeTravel(120);
+
+    // both users cast vote, majority in favor
+    vm.prank(alice);
+    mentoGovernor.castVote(proposalId, 1);
+
+    vm.prank(bob);
+    mentoGovernor.castVote(proposalId, 0);
+
+    // voting period ends
+    timeTravel(BLOCKS_WEEK);
+
+    mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
+
+    // timelock ends
+    timeTravel(2 * BLOCKS_DAY);
+
+    // anyone can execute the proposal
+    mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
+
+    // settings are updated
+    assertEq(mentoGovernor.votingDelay(), newVotingDelay);
+    assertEq(mentoGovernor.votingPeriod(), newVotingPeriod);
+    assertEq(mentoGovernor.proposalThreshold(), newThreshold);
+    assertEq(mentoGovernor.quorumNumerator(), newQuorum);
+    assertEq(timelockController.getMinDelay(), newMinDelay);
+
+    // Proposal reverts because new threshold is higher
+    vm.prank(alice);
+    vm.expectRevert("Governor: proposer votes below proposal threshold");
+    proposeChangeGovernorSettings(newVotingDelay, newVotingPeriod, newThreshold, newQuorum, newMinDelay);
+  }
+
   // MentoToken + Airgrab + Locking + Governor + Timelock
   function test_airgrab_whenClaimedByUser_shouldBeLocked_canBeUsedInGovernance() public {
     uint256 validUntil = block.timestamp + 60 days;
@@ -412,6 +478,48 @@ contract GovernanceIntegrationTest is TestSetup {
     calldatas[0] = abi.encodeWithSelector(emission.setEmissionTarget.selector, newTarget);
 
     description = "Change emission target";
+
+    proposalId = mentoGovernor.propose(targets, values, calldatas, description);
+  }
+
+  function proposeChangeGovernorSettings(
+    uint256 votingDelay,
+    uint256 votingPeriod,
+    uint256 threshold,
+    uint256 quorum,
+    uint256 minDelay
+  )
+    internal
+    returns (
+      uint256 proposalId,
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      string memory description
+    )
+  {
+    targets = new address[](5);
+    targets[0] = address(mentoGovernor);
+    targets[1] = address(mentoGovernor);
+    targets[2] = address(mentoGovernor);
+    targets[3] = address(mentoGovernor);
+    targets[4] = address(timelockController);
+
+    values = new uint256[](5);
+    values[0] = 0;
+    values[1] = 0;
+    values[2] = 0;
+    values[3] = 0;
+    values[4] = 0;
+
+    calldatas = new bytes[](5);
+    calldatas[0] = abi.encodeWithSelector(mentoGovernor.setVotingDelay.selector, votingDelay);
+    calldatas[1] = abi.encodeWithSelector(mentoGovernor.setVotingPeriod.selector, votingPeriod);
+    calldatas[2] = abi.encodeWithSelector(mentoGovernor.setProposalThreshold.selector, threshold);
+    calldatas[3] = abi.encodeWithSelector(mentoGovernor.updateQuorumNumerator.selector, quorum);
+    calldatas[4] = abi.encodeWithSelector(timelockController.updateDelay.selector, minDelay);
+
+    description = "Change governance config";
 
     proposalId = mentoGovernor.propose(targets, values, calldatas, description);
   }
