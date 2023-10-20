@@ -2,12 +2,18 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase
 
 import { TestSetup } from "./TestSetup.sol";
-import { Factory } from "contracts/governance/Factory.sol";
+import { TokenFactory } from "contracts/governance/TokenFactory.sol";
+import { Locking } from "contracts/governance/locking/Locking.sol";
+import { TransparentUpgradeableProxy, ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
-contract FactoryTest is TestSetup {
-  Factory public factory;
+import { MockOwnable } from "../mocks/MockOwnable.sol";
 
-  address public communityMultisig = makeAddr("CommunityMultisig");
+contract TokenFactoryTest is TestSetup {
+  TokenFactory public factory;
+  address public lockingImplementation;
+  MockOwnable public mockImplementation;
+
   address public vestingContract = makeAddr("VestingContract");
   address public mentoMultisig = makeAddr("MentoMultisig");
   address public treasuryContract = makeAddr("TreasuryContract");
@@ -18,30 +24,32 @@ contract FactoryTest is TestSetup {
   function setUp() public {
     skip(30 days);
     vm.roll(30 * BLOCKS_DAY);
+    lockingImplementation = address(new Locking());
+    mockImplementation = new MockOwnable();
   }
 
   function _newFactory() internal {
-    factory = new Factory(owner);
+    factory = new TokenFactory(owner);
   }
 
   /// @notice Create and initialize an Airgrab.
-  function _createGovernance() internal {
-    factory.createGovernance(
+  function _createTokenContracts() internal {
+    factory.createTokenContracts(
       vestingContract,
       mentoMultisig,
       treasuryContract,
-      communityMultisig,
       merkleRoot,
-      fractalSigner
+      fractalSigner,
+      lockingImplementation
     );
   }
 
   // ========================================
-  // Factory.constructor
+  // TokenFactory.constructor
   // ========================================
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-  /// @notice Subject of the section: Factory constructor
+  /// @notice Subject of the section: TokenFactory constructor
   function c_subject() internal {
     _newFactory();
   }
@@ -56,9 +64,9 @@ contract FactoryTest is TestSetup {
   }
 
   // ========================================
-  // Factory.createGovernance
+  // TokenFactory.createTokenContracts
   // ========================================
-  /// @notice Subject of the section: Factory createGovernance
+  /// @notice Subject of the section: TokenFactory createTokenContracts
   /// @notice setup for initialize tests
   modifier i_setUp() {
     _newFactory();
@@ -66,23 +74,21 @@ contract FactoryTest is TestSetup {
   }
 
   function cg_subject() internal {
-    _createGovernance();
+    _createTokenContracts();
   }
 
-  function test_createGovernance_whenCallerNotOwner_shouldRevert() public i_setUp {
+  function test_createTokenContracts_whenCallerNotOwner_shouldRevert() public i_setUp {
     vm.expectRevert("Ownable: caller is not the owner");
     cg_subject();
   }
 
-  function test_createGovernance_whenCallerOwner_shoulCreateAndSetContracts() public i_setUp {
+  function test_createTokenContracts_whenCallerOwner_shoulCreateAndSetContracts() public i_setUp {
     vm.prank(owner);
     cg_subject();
 
     assertEq(factory.mentoToken().symbol(), "MENTO");
     assertEq(factory.emission().TOTAL_EMISSION_SUPPLY(), 650_000_000 * 10**18);
     assertEq(factory.airgrab().root(), merkleRoot);
-    assertEq(factory.timelockController().getMinDelay(), 2 days);
-    assertEq(factory.mentoGovernor().votingPeriod(), BLOCKS_WEEK);
     assertEq(factory.locking().symbol(), "veMENTO");
 
     assertEq(factory.vesting(), vestingContract);
@@ -91,21 +97,20 @@ contract FactoryTest is TestSetup {
     assertEq(factory.initialized(), true);
   }
 
-  function test_createGovernance_whenCalledTwice_shouldRevert() public i_setUp {
+  function test_createTokenContracts_whenCalledTwice_shouldRevert() public i_setUp {
     vm.prank(owner);
     cg_subject();
 
     vm.prank(owner);
-    vm.expectRevert("Factory: governance already created");
+    vm.expectRevert("TokenFactory: token already created");
     cg_subject();
   }
 
-  function test_createGovernance_shouldSetOwners() public i_setUp {
+  function test_createTokenContracts_shouldSetOwners() public i_setUp {
     vm.prank(owner);
     cg_subject();
-    address timelock = address(factory.timelockController());
-    assertEq(factory.emission().owner(), timelock);
-    assertEq(factory.locking().owner(), timelock);
+    assertEq(factory.emission().owner(), owner);
+    assertEq(factory.locking().owner(), owner);
     assertEq(factory.airgrab().owner(), address(0));
   }
 }
