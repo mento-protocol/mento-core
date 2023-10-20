@@ -1,5 +1,5 @@
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase
+// solhint-disable func-name-mixedcase, max-line-length
 
 import { TestSetup } from "./TestSetup.sol";
 import { TokenFactory } from "contracts/governance/TokenFactory.sol";
