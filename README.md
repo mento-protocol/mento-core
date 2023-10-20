@@ -13,7 +13,7 @@ The Mento protocol is a smart contract platform built on the Celo blockchain tha
 
 ## Documentation
 
-- [Protocol Documentation](https://docs.mento.org/mento-protocol/core/overview)
+- [Protocol Documentation](https://docs.mento.org/mento/mento-protocol/readme)
 - [Stability Whitepaper](https://celo.org/papers/stability)
 
 ## Getting Started
