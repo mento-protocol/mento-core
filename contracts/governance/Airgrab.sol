@@ -5,7 +5,6 @@ import { MerkleProof } from "openzeppelin-contracts-next/contracts/utils/cryptog
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
-import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { SignatureChecker } from "openzeppelin-contracts-next/contracts/utils/cryptography/SignatureChecker.sol";
 import { Strings } from "openzeppelin-contracts-next/contracts/utils/Strings.sol";
 import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
@@ -22,7 +21,7 @@ import { ILocking } from "./locking/interfaces/ILocking.sol";
  * between Token and Airgrab. We use the initialize method to set the token address
  * after the Token contract has been deployed, and renounce ownership.
  */
-contract Airgrab is Ownable, ReentrancyGuard {
+contract Airgrab is ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   uint32 public constant MAX_CLIFF_PERIOD = 103;
@@ -55,15 +54,16 @@ contract Airgrab is Ownable, ReentrancyGuard {
   uint32 public immutable slopePeriod;
   /// @notice The cliff period that the airgrab will be locked for.
   uint32 public immutable cliffPeriod;
+  /// @notice The token in the airgrab.
+  IERC20 public immutable token;
+  /// @notice The locking contract for veToken.
+  ILocking public immutable locking;
+  /// @notice The treasury address where the tokens will be refunded.
+  address payable public immutable treasury;
 
   /// @notice The map of addresses that have claimed
   mapping(address => bool) public claimed;
-  /// @notice The token in the airgrab.
-  IERC20 public token;
-  /// @notice The locking contract for veToken.
-  ILocking public lockingContract;
-  /// @notice The treasury address where the tokens will be refunded.
-  address payable public treasury;
+
   /**
    * @dev Check if the account has a valid kyc signature.
    * See: https://docs.developer.fractal.id/fractal-credentials-api
@@ -142,6 +142,9 @@ contract Airgrab is Ownable, ReentrancyGuard {
    * @param endTimestamp_ The timestamp when the airgrab ends.
    * @param cliffPeriod_ The cliff period that the airgrab will be locked for.
    * @param slopePeriod_ The slope period that the airgrab will be locked for.
+   * @param token_ The token address in the airgrab.
+   * @param locking_ The locking contract for veToken.
+   * @param treasury_ The treasury address where the tokens will be refunded.
    */
   constructor(
     bytes32 root_,
@@ -149,7 +152,10 @@ contract Airgrab is Ownable, ReentrancyGuard {
     uint256 fractalMaxAge_,
     uint256 endTimestamp_,
     uint32 cliffPeriod_,
-    uint32 slopePeriod_
+    uint32 slopePeriod_,
+    address token_,
+    address locking_,
+    address payable treasury_
   ) {
     require(root_ != bytes32(0), "Airgrab: invalid root");
     require(fractalSigner_ != address(0), "Airgrab: invalid fractal issuer");
@@ -157,6 +163,9 @@ contract Airgrab is Ownable, ReentrancyGuard {
     require(endTimestamp_ > block.timestamp, "Airgrab: invalid end timestamp");
     require(cliffPeriod_ <= MAX_CLIFF_PERIOD, "Airgrab: cliff period too large");
     require(slopePeriod_ <= MAX_SLOPE_PERIOD, "Airgrab: slope period too large");
+    require(token_ != address(0), "Airgrab: invalid token");
+    require(locking_ != address(0), "Airgrab: invalid locking");
+    require(treasury_ != address(0), "Airgrab: invalid treasury");
 
     root = root_;
     fractalSigner = fractalSigner_;
@@ -164,32 +173,11 @@ contract Airgrab is Ownable, ReentrancyGuard {
     endTimestamp = endTimestamp_;
     cliffPeriod = cliffPeriod_;
     slopePeriod = slopePeriod_;
-  }
-
-  /**
-   * @dev Initializer for setting the token address, will be called
-   * immediately during deployment, but is intended only as a workaround
-   * for the circular dependency between Token and Airgrab.
-   * @notice Sets the token address, gives infinite approval to the locking contract
-   * and renounces ownership.
-   * @param token_ The token in the airgrab.
-   */
-  function initialize(
-    address token_,
-    address lockingContract_,
-    address treasury_
-  ) external onlyOwner {
-    require(token_ != address(0), "Airgrab: invalid token");
-    require(lockingContract_ != address(0), "Airgrab: invalid locking contract");
-    require(treasury_ != address(0), "Airgrab: invalid treasury");
-
-    renounceOwnership();
-
     token = IERC20(token_);
-    lockingContract = ILocking(lockingContract_);
-    treasury = payable(treasury_);
+    locking = ILocking(locking_);
+    treasury = treasury_;
 
-    require(token.approve(lockingContract_, type(uint256).max), "Airgrab: approval failed");
+    require(token.approve(locking_, type(uint256).max), "Airgrab: approval failed");
   }
 
   /**
@@ -223,7 +211,7 @@ contract Airgrab is Ownable, ReentrancyGuard {
     require(token.balanceOf(address(this)) >= amount, "Airgrab: insufficient balance");
 
     claimed[msg.sender] = true;
-    uint256 lockId = lockingContract.lock(msg.sender, delegate, amount, slopePeriod, cliffPeriod);
+    uint256 lockId = locking.lock(msg.sender, delegate, amount, slopePeriod, cliffPeriod);
     emit TokensClaimed(msg.sender, amount, lockId);
   }
 

@@ -8,8 +8,7 @@ contract FactoryTest is TestSetup {
   Factory public factory;
 
   address public communityMultisig = makeAddr("CommunityMultisig");
-  address public vestingContract = makeAddr("VestingContract");
-  address public mentoMultisig = makeAddr("MentoMultisig");
+  address public mentolabsVestingMultisig = makeAddr("MentoLabsVestingMultisig");
   address public treasuryContract = makeAddr("TreasuryContract");
   address public fractalSigner = makeAddr("FractalSigner");
 
@@ -24,12 +23,9 @@ contract FactoryTest is TestSetup {
     factory = new Factory(owner);
   }
 
-  /// @notice Create and initialize an Airgrab.
   function _createGovernance() internal {
     factory.createGovernance(
-      vestingContract,
-      mentoMultisig,
-      treasuryContract,
+      mentolabsVestingMultisig,
       communityMultisig,
       merkleRoot,
       fractalSigner
@@ -85,8 +81,7 @@ contract FactoryTest is TestSetup {
     assertEq(factory.mentoGovernor().votingPeriod(), BLOCKS_WEEK);
     assertEq(factory.locking().symbol(), "veMENTO");
 
-    assertEq(factory.vesting(), vestingContract);
-    assertEq(factory.mentoMultisig(), mentoMultisig);
+    assertEq(factory.mentolabsVestingMultisig(), mentolabsVestingMultisig);
     assertEq(factory.treasury(), treasuryContract);
     assertEq(factory.initialized(), true);
   }
@@ -106,6 +101,5 @@ contract FactoryTest is TestSetup {
     address timelock = address(factory.timelockController());
     assertEq(factory.emission().owner(), timelock);
     assertEq(factory.locking().owner(), timelock);
-    assertEq(factory.airgrab().owner(), address(0));
   }
 }
