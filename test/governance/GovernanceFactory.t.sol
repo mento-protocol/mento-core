@@ -2,10 +2,10 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase
 
 import { TestSetup } from "./TestSetup.sol";
-import { Factory } from "contracts/governance/Factory.sol";
+import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 
-contract FactoryTest is TestSetup {
-  Factory public factory;
+contract GovernanceFactoryTest is TestSetup {
+  GovernanceFactory public factory;
 
   address public communityMultisig = makeAddr("CommunityMultisig");
   address public mentolabsVestingMultisig = makeAddr("MentoLabsVestingMultisig");
@@ -20,7 +20,7 @@ contract FactoryTest is TestSetup {
   }
 
   function _newFactory() internal {
-    factory = new Factory(owner);
+    factory = new GovernanceFactory(owner, address(0), address(0));
   }
 
   function _createGovernance() internal {
@@ -33,11 +33,11 @@ contract FactoryTest is TestSetup {
   }
 
   // ========================================
-  // Factory.constructor
+  // GovernanceFactory.constructor
   // ========================================
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-  /// @notice Subject of the section: Factory constructor
+  /// @notice Subject of the section: GovernanceFactory constructor
   function c_subject() internal {
     _newFactory();
   }
@@ -52,9 +52,9 @@ contract FactoryTest is TestSetup {
   }
 
   // ========================================
-  // Factory.createGovernance
+  // GovernanceFactory.createGovernance
   // ========================================
-  /// @notice Subject of the section: Factory createGovernance
+  /// @notice Subject of the section: GovernanceFactory createGovernance
   /// @notice setup for initialize tests
   modifier i_setUp() {
     _newFactory();
