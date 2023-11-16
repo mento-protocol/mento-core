@@ -3,7 +3,6 @@ pragma solidity ^0.5.13;
 
 import "celo-foundry/Test.sol";
 
-import "contracts/legacy/StableToken.sol";
 import "contracts/common/GoldToken.sol";
 import "contracts/common/interfaces/IRegistry.sol";
 import "contracts/interfaces/IStableTokenV2.sol";
@@ -20,13 +19,13 @@ contract TokenHelpers is Test {
     if (token == registry.getAddressForString("GoldToken")) {
       mint(GoldToken(token), to, amount);
     } else if (token == registry.getAddressForStringOrDie("StableToken")) {
-      mint(StableToken(token), to, amount);
+      mint(IStableTokenV2(token), to, amount);
     } else if (token == registry.getAddressForStringOrDie("StableTokenEUR")) {
-      mint(StableToken(token), to, amount);
+      mint(IStableTokenV2(token), to, amount);
     } else if (token == registry.getAddressForStringOrDie("StableTokenBRL")) {
-      mint(StableToken(token), to, amount);
+      mint(IStableTokenV2(token), to, amount);
     } else if (token == registry.getAddressForStringOrDie("StableTokenXOF")) {
-      mint(StableToken(token), to, amount);
+      mint(IStableTokenV2(token), to, amount);
     } else {
       deal(token, to, amount);
     }
@@ -44,17 +43,6 @@ contract TokenHelpers is Test {
     address pranker = currentPrank;
     changePrank(address(0));
     celoToken.mint(to, amount);
-    changePrank(pranker);
-  }
-
-  function mint(
-    StableToken stableToken,
-    address to,
-    uint256 amount
-  ) internal {
-    address pranker = currentPrank;
-    changePrank(stableToken.registry().getAddressForString("GrandaMento"));
-    stableToken.mint(to, amount);
     changePrank(pranker);
   }
 
