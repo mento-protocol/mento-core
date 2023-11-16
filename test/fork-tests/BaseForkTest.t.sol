@@ -179,13 +179,13 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     IStableTokenV2 stableTokenEUR = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenEUR"));
     IStableTokenV2 stableTokenBRL = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenBRL"));
 
-    vm.expectRevert("contract already initialized");
+    vm.expectRevert("Initializable: contract is already initialized");
     stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
-    vm.expectRevert("contract already initialized");
+    vm.expectRevert("Initializable: contract is already initialized");
     stableTokenEUR.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
-    vm.expectRevert("contract already initialized");
+    vm.expectRevert("Initializable: contract is already initialized");
     stableTokenBRL.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
   }
 
