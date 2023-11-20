@@ -5,9 +5,10 @@ pragma experimental ABIEncoderV2;
 
 import { Test, console2 as console } from "celo-foundry/Test.sol";
 import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
+import { StableToken } from "contracts/legacy/StableToken.sol";
+import { StableTokenEUR } from "contracts/legacy/StableTokenEUR.sol";
 import { GoldToken } from "contracts/common/GoldToken.sol";
 import { IExchange } from "contracts/legacy/interfaces/IExchange.sol";
-import "contracts/interfaces/IStableTokenV2.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 
@@ -18,8 +19,8 @@ contract ExchangeGasTest is Test, TokenHelpers {
   IExchange exchangeCUSD;
   IExchange exchangeCEUR;
 
-  IStableTokenV2 cUSDToken;
-  IStableTokenV2 cEURToken;
+  StableToken cUSDToken;
+  StableTokenEUR cEURToken;
   GoldToken celoToken;
 
   function setUp() public {
@@ -30,8 +31,9 @@ contract ExchangeGasTest is Test, TokenHelpers {
     exchangeCUSD = IExchange(0x67316300f17f063085Ca8bCa4bd3f7a5a3C66275);
     exchangeCEUR = IExchange(0xE383394B913d7302c49F794C7d3243c429d53D1d);
 
-    cUSDToken = IStableTokenV2(0x765DE816845861e75A25fCA122bb6898B8B1282a);
-    cEURToken = IStableTokenV2(0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73);
+    // TODO: convert to StableTokenV2 after mainnet migration
+    cUSDToken = StableToken(0x765DE816845861e75A25fCA122bb6898B8B1282a);
+    cEURToken = StableTokenEUR(0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73);
     celoToken = GoldToken(0x471EcE3750Da237f93B8E339c536989b8978a438);
 
     trader = actor("trader");

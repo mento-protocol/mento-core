@@ -3,6 +3,7 @@ pragma solidity ^0.5.13;
 
 import "celo-foundry/Test.sol";
 
+import "contracts/legacy/StableToken.sol";
 import "contracts/common/GoldToken.sol";
 import "contracts/common/interfaces/IRegistry.sol";
 import "contracts/interfaces/IStableTokenV2.sol";
@@ -43,6 +44,18 @@ contract TokenHelpers is Test {
     address pranker = currentPrank;
     changePrank(address(0));
     celoToken.mint(to, amount);
+    changePrank(pranker);
+  }
+
+  // TODO: delete after the migration to StableTokenV2 is done on mainnet
+  function mint(
+    StableToken stableToken,
+    address to,
+    uint256 amount
+  ) internal {
+    address pranker = currentPrank;
+    changePrank(stableToken.registry().getAddressForString("Broker"));
+    stableToken.mint(to, amount);
     changePrank(pranker);
   }
 
