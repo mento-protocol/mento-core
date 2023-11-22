@@ -291,9 +291,29 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
     uint256 gatewayFee,
     uint256 baseTxFee
   ) external onlyVm {
+    uint256 amountToBurn = 0;
     _mint(from, refund + tipTxFee + gatewayFee + baseTxFee);
-    _transfer(from, feeRecipient, tipTxFee);
-    _transfer(from, gatewayFeeRecipient, gatewayFee);
-    _transfer(from, communityFund, baseTxFee);
+
+    if (feeRecipient != address(0)) {
+      _transfer(from, feeRecipient, tipTxFee);
+    } else if (tipTxFee > 0) {
+      amountToBurn += tipTxFee;
+    }
+
+    if (gatewayFeeRecipient != address(0)) {
+      _transfer(from, gatewayFeeRecipient, gatewayFee);
+    } else if (gatewayFee > 0) {
+      amountToBurn += gatewayFee;
+    }
+
+    if (communityFund != address(0)) {
+      _transfer(from, communityFund, baseTxFee);
+    } else if (baseTxFee > 0) {
+      amountToBurn += baseTxFee;
+    }
+
+    if (amountToBurn > 0) {
+      _burn(from, amountToBurn);
+    }
   }
 }

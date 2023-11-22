@@ -11,6 +11,7 @@ import { StableTokenV2 } from "contracts/tokens/StableTokenV2.sol";
 
 contract StableTokenV2Test is BaseTest {
   event TransferComment(string comment);
+  event Transfer(address indexed from, address indexed to, uint256 value);
 
   bytes32 private constant _PERMIT_TYPEHASH =
     keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
@@ -188,6 +189,130 @@ contract StableTokenV2Test is BaseTest {
     assertEq(token.balanceOf(feeRecipient), tipTxFee);
     assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
     assertEq(token.balanceOf(conmunityFund), baseTxFee);
+  }
+
+  function test_creditGasFees_whenCalledByVm_with0xFeeRecipient_shouldBurnTipTxFee() public {
+    uint256 refund = 20;
+    uint256 tipTxFee = 30;
+    uint256 gatewayFee = 10;
+    uint256 baseTxFee = 40;
+    uint256 holder0InitialBalance = token.balanceOf(holder0);
+
+    vm.prank(address(0));
+    token.creditGasFees(
+      holder0,
+      address(0),
+      gatewayFeeRecipient,
+      conmunityFund,
+      refund,
+      tipTxFee,
+      gatewayFee,
+      baseTxFee
+    );
+
+    assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
+    assertEq(token.balanceOf(feeRecipient), 0);
+    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
+    assertEq(token.balanceOf(conmunityFund), baseTxFee);
+  }
+
+  function test_creditGasFees_whenCalledByVm_with0xGatewayFeeRecipient_shouldBurnGateWayFee() public {
+    uint256 refund = 20;
+    uint256 tipTxFee = 30;
+    uint256 gatewayFee = 10;
+    uint256 baseTxFee = 40;
+    uint256 holder0InitialBalance = token.balanceOf(holder0);
+
+    vm.prank(address(0));
+    token.creditGasFees(
+      holder0,
+      feeRecipient,
+      address(0),
+      conmunityFund,
+      refund,
+      tipTxFee,
+      gatewayFee,
+      baseTxFee
+    );
+
+    assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
+    assertEq(token.balanceOf(feeRecipient), tipTxFee);
+    assertEq(token.balanceOf(gatewayFeeRecipient), 0);
+    assertEq(token.balanceOf(conmunityFund), baseTxFee);
+  }
+
+  function test_creditGasFees_whenCalledByVm_with0xCommunityFund_shouldBurnBaseTxFee() public {
+    uint256 refund = 20;
+    uint256 tipTxFee = 30;
+    uint256 gatewayFee = 10;
+    uint256 baseTxFee = 40;
+    uint256 holder0InitialBalance = token.balanceOf(holder0);
+
+    vm.prank(address(0));
+    token.creditGasFees(
+      holder0,
+      feeRecipient,
+      gatewayFeeRecipient,
+      address(0),
+      refund,
+      tipTxFee,
+      gatewayFee,
+      baseTxFee
+    );
+
+    assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
+    assertEq(token.balanceOf(feeRecipient), tipTxFee);
+    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
+    assertEq(token.balanceOf(conmunityFund), 0);
+  }
+
+  function test_creditGasFees_whenCalledByVm_withMultiple0xRecipients_shouldBurnTheirRespectiveFees() public {
+    uint256 refund = 20;
+    uint256 tipTxFee = 30;
+    uint256 gatewayFee = 10;
+    uint256 baseTxFee = 40;
+    uint256 holder0InitialBalance = token.balanceOf(holder0);
+
+    vm.prank(address(0));
+    // gateWayFeeRecipient and conmunityFund both 0x
+    token.creditGasFees(
+      holder0,
+      feeRecipient,
+      address(0),
+      address(0),
+      refund,
+      tipTxFee,
+      gatewayFee,
+      baseTxFee
+    );
+
+    assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
+    assertEq(token.balanceOf(feeRecipient), tipTxFee);
+    assertEq(token.balanceOf(gatewayFeeRecipient), 0);
+    assertEq(token.balanceOf(conmunityFund), 0);
+
+    // case with both feeRecipient and conmunityFund both 0x
+    uint256 holder1InitialBalance = token.balanceOf(holder1);
+    uint256 feeRecipientBalance = token.balanceOf(feeRecipient);
+    uint256 gatewayFeeRecipientBalance = token.balanceOf(gatewayFeeRecipient);
+    uint256 conmunityFundBalance = token.balanceOf(conmunityFund);
+    vm.prank(address(0));
+    token.creditGasFees(
+      holder1,
+      address(0),
+      gatewayFeeRecipient,
+      address(0),
+      refund,
+      tipTxFee,
+      gatewayFee,
+      baseTxFee
+    );
+
+    assertEq(token.balanceOf(holder1), holder1InitialBalance + refund);
+    assertEq(token.balanceOf(feeRecipient), feeRecipientBalance);
+    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFeeRecipientBalance + gatewayFee);
+    assertEq(token.balanceOf(conmunityFund), conmunityFundBalance);
+
   }
 
   function buildTypedDataHash(
