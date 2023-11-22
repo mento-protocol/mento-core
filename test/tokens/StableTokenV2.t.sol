@@ -31,7 +31,7 @@ contract StableTokenV2Test is BaseTest {
 
   address feeRecipient = address(0x3001);
   address gatewayFeeRecipient = address(0x3002);
-  address conmunityFund = address(0x3003);
+  address communityFund = address(0x3003);
 
   StableTokenV2 private token;
 
@@ -164,7 +164,7 @@ contract StableTokenV2Test is BaseTest {
 
   function test_creditGasFees_whenCallerNotVM_shouldRevert() public {
     vm.expectRevert("Only VM can call");
-    token.creditGasFees(holder0, feeRecipient, gatewayFeeRecipient, conmunityFund, 25, 25, 25, 25);
+    token.creditGasFees(holder0, feeRecipient, gatewayFeeRecipient, communityFund, 25, 25, 25, 25);
   }
 
   function test_creditGasFees_whenCalledByVm_shouldCreditFees() public {
@@ -178,7 +178,7 @@ contract StableTokenV2Test is BaseTest {
       holder0,
       feeRecipient,
       gatewayFeeRecipient,
-      conmunityFund,
+      communityFund,
       refund,
       tipTxFee,
       gatewayFee,
@@ -188,7 +188,7 @@ contract StableTokenV2Test is BaseTest {
     assertEq(token.balanceOf(holder0), 1000 + refund);
     assertEq(token.balanceOf(feeRecipient), tipTxFee);
     assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
-    assertEq(token.balanceOf(conmunityFund), baseTxFee);
+    assertEq(token.balanceOf(communityFund), baseTxFee);
   }
 
   function test_creditGasFees_whenCalledByVm_with0xFeeRecipient_shouldBurnTipTxFee() public {
@@ -203,7 +203,7 @@ contract StableTokenV2Test is BaseTest {
       holder0,
       address(0),
       gatewayFeeRecipient,
-      conmunityFund,
+      communityFund,
       refund,
       tipTxFee,
       gatewayFee,
@@ -213,7 +213,7 @@ contract StableTokenV2Test is BaseTest {
     assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
     assertEq(token.balanceOf(feeRecipient), 0);
     assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
-    assertEq(token.balanceOf(conmunityFund), baseTxFee);
+    assertEq(token.balanceOf(communityFund), baseTxFee);
   }
 
   function test_creditGasFees_whenCalledByVm_with0xGatewayFeeRecipient_shouldBurnGateWayFee() public {
@@ -228,7 +228,7 @@ contract StableTokenV2Test is BaseTest {
       holder0,
       feeRecipient,
       address(0),
-      conmunityFund,
+      communityFund,
       refund,
       tipTxFee,
       gatewayFee,
@@ -238,7 +238,7 @@ contract StableTokenV2Test is BaseTest {
     assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
     assertEq(token.balanceOf(feeRecipient), tipTxFee);
     assertEq(token.balanceOf(gatewayFeeRecipient), 0);
-    assertEq(token.balanceOf(conmunityFund), baseTxFee);
+    assertEq(token.balanceOf(communityFund), baseTxFee);
   }
 
   function test_creditGasFees_whenCalledByVm_with0xCommunityFund_shouldBurnBaseTxFee() public {
@@ -263,7 +263,7 @@ contract StableTokenV2Test is BaseTest {
     assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
     assertEq(token.balanceOf(feeRecipient), tipTxFee);
     assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
-    assertEq(token.balanceOf(conmunityFund), 0);
+    assertEq(token.balanceOf(communityFund), 0);
   }
 
   function test_creditGasFees_whenCalledByVm_withMultiple0xRecipients_shouldBurnTheirRespectiveFees() public {
@@ -274,7 +274,7 @@ contract StableTokenV2Test is BaseTest {
     uint256 holder0InitialBalance = token.balanceOf(holder0);
 
     vm.prank(address(0));
-    // gateWayFeeRecipient and conmunityFund both 0x
+    // gateWayFeeRecipient and communityFund both 0x
     token.creditGasFees(
       holder0,
       feeRecipient,
@@ -289,13 +289,13 @@ contract StableTokenV2Test is BaseTest {
     assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
     assertEq(token.balanceOf(feeRecipient), tipTxFee);
     assertEq(token.balanceOf(gatewayFeeRecipient), 0);
-    assertEq(token.balanceOf(conmunityFund), 0);
+    assertEq(token.balanceOf(communityFund), 0);
 
-    // case with both feeRecipient and conmunityFund both 0x
+    // case with both feeRecipient and communityFund both 0x
     uint256 holder1InitialBalance = token.balanceOf(holder1);
     uint256 feeRecipientBalance = token.balanceOf(feeRecipient);
     uint256 gatewayFeeRecipientBalance = token.balanceOf(gatewayFeeRecipient);
-    uint256 conmunityFundBalance = token.balanceOf(conmunityFund);
+    uint256 communityFundBalance = token.balanceOf(communityFund);
     vm.prank(address(0));
     token.creditGasFees(
       holder1,
@@ -311,7 +311,7 @@ contract StableTokenV2Test is BaseTest {
     assertEq(token.balanceOf(holder1), holder1InitialBalance + refund);
     assertEq(token.balanceOf(feeRecipient), feeRecipientBalance);
     assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFeeRecipientBalance + gatewayFee);
-    assertEq(token.balanceOf(conmunityFund), conmunityFundBalance);
+    assertEq(token.balanceOf(communityFund), communityFundBalance);
 
   }
 
