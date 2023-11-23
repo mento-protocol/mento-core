@@ -79,14 +79,14 @@ contract AirgrabTest is Test {
   /// @notice Create a new Airgrab, but don't initialize it.
   function newAirgrab() internal {
     airgrab = new Airgrab(
-      merkleRoot, 
-      fractalSigner, 
+      merkleRoot,
+      fractalSigner,
       fractalMaxAge,
       endTimestamp,
-      cliffPeriod, 
+      cliffPeriod,
       slopePeriod,
-      tokenAddress, 
-      locking, 
+      tokenAddress,
+      locking,
       treasury
     );
   }
@@ -171,7 +171,6 @@ contract AirgrabTest is Test {
     vm.expectRevert("Airgrab: invalid locking");
     c_subject();
   }
-
 
   /// @notice Sets approval for locking on token
   function test_Constructor_SetsApprovalForToken() public {

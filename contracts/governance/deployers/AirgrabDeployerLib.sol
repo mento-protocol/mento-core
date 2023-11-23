@@ -29,16 +29,17 @@ library AirgrabDeployerLib {
     address locking_,
     address payable treasury_
   ) external returns (Airgrab) {
-    return new Airgrab(
-      airgrabRoot,
-      fractalSigner,
-      fractalMaxAge,
-      airgrabEnds,
-      airgrabLockCliff,
-      airgrabLockSlope,
-      token_,
-      locking_,
-      treasury_
-    );
+    return
+      new Airgrab(
+        airgrabRoot,
+        fractalSigner,
+        fractalMaxAge,
+        airgrabEnds,
+        airgrabLockCliff,
+        airgrabLockSlope,
+        token_,
+        locking_,
+        treasury_
+      );
   }
 }

@@ -105,14 +105,18 @@ contract GovernanceFactory is Ownable {
   uint256 public constant GOVERNOR_QUORUM = 2; // Quorum percentage for the governor
 
   // MentoLabs Treasury Timelock configuration
-// TODO: Discuss value, 7 days (gov) + 2 days (gov timelock) + 2 days? (buffer)
-  uint256 public constant MENTOLABS_TREASURY_TIMELOCK_DELAY = 11 days; 
+  // TODO: Discuss value, 7 days (gov) + 2 days (gov timelock) + 2 days? (buffer)
+  uint256 public constant MENTOLABS_TREASURY_TIMELOCK_DELAY = 11 days;
 
   /// @notice Creates the factory with the owner address
   /// @param owner_ Address of the owner, Celo governance
   /// @param gnosisSafeSingleton_ Address of the Gnosis Safe singleton
   /// @param gnosisSafeProxyFactory_ Address of the Gnosis Safe proxy factory
-  constructor(address owner_, address gnosisSafeSingleton_, address gnosisSafeProxyFactory_) {
+  constructor(
+    address owner_,
+    address gnosisSafeSingleton_,
+    address gnosisSafeProxyFactory_
+  ) {
     transferOwnership(owner_);
     gnosisSafeSingleton = gnosisSafeSingleton_;
     gnosisSafeProxyFactory = IGnosisProxyFactory(gnosisSafeProxyFactory_);
@@ -158,10 +162,7 @@ contract GovernanceFactory is Ownable {
       address(0)
     );
     uint256 treasurySalt = uint256(keccak256(abi.encodePacked("mentolabsTreasury")));
-    address payable treasuryPrecalculated = payable(calculateSafeProxyAddress(
-      treasuryInitializer,
-      treasurySalt
-    ));
+    address payable treasuryPrecalculated = payable(calculateSafeProxyAddress(treasuryInitializer, treasurySalt));
 
     // ========== Deploy: ProxyAdmin =========
     proxyAdmin = ProxyDeployerLib.deployAdmin(); // NONCE:1
@@ -175,7 +176,7 @@ contract GovernanceFactory is Ownable {
       mentolabsVestingMultisig,
       mentolabsTreasuryPrecalculated,
       airgrabPrecalculated,
-      treasuryPrecalculated, 
+      treasuryPrecalculated,
       address(emission)
     );
     assert(address(mentoToken) == tokenPrecalculated);
@@ -189,16 +190,15 @@ contract GovernanceFactory is Ownable {
       airgrabEnds,
       AIRGRAB_LOCK_CLIFF,
       AIRGRAB_LOCK_SLOPE,
-      tokenPrecalculated, 
-      lockingPrecalculated, 
+      tokenPrecalculated,
+      lockingPrecalculated,
       treasuryPrecalculated
     );
     assert(address(airgrab) == airgrabPrecalculated);
 
-
     // ========== Deploy: Locking ===========
     Locking lockingImpl = LockingDeployerLib.deploy(); // NONCE:5
-    TransparentUpgradeableProxy lockingProxy = ProxyDeployerLib.deployProxy(// NONCE:6
+    TransparentUpgradeableProxy lockingProxy = ProxyDeployerLib.deployProxy( // NONCE:6
       address(lockingImpl),
       address(proxyAdmin),
       abi.encodeWithSelector(
@@ -220,7 +220,7 @@ contract GovernanceFactory is Ownable {
     proposers[0] = address(addressForNonce(10)); // Governor can propose and cancel
     executors[0] = address(0); // Anyone can execute
 
-    TransparentUpgradeableProxy timelockControllerProxy = ProxyDeployerLib.deployProxy(// NONCE:8
+    TransparentUpgradeableProxy timelockControllerProxy = ProxyDeployerLib.deployProxy( // NONCE:8
       address(timelockControllerImpl),
       address(proxyAdmin),
       abi.encodeWithSelector(
@@ -253,11 +253,7 @@ contract GovernanceFactory is Ownable {
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
 
     // =========== Deploy: Mento Treasury =============
-    treasury = gnosisSafeProxyFactory.createProxyWithNonce(
-      gnosisSafeSingleton,
-      treasuryInitializer,
-      treasurySalt
-    );
+    treasury = gnosisSafeProxyFactory.createProxyWithNonce(gnosisSafeSingleton, treasuryInitializer, treasurySalt);
     assert(address(treasury) == treasuryPrecalculated);
 
     // =========== Deploy: MentoLabs Treasury =============
@@ -266,7 +262,7 @@ contract GovernanceFactory is Ownable {
     proposers[0] = address(mentolabsVestingMultisig); // Governor can propose and cancel
     executors[0] = address(0); // Anyone can execute
 
-    TransparentUpgradeableProxy mltreasuryTimelockControllerProxy = ProxyDeployerLib.deployProxy(// NONCE:11
+    TransparentUpgradeableProxy mltreasuryTimelockControllerProxy = ProxyDeployerLib.deployProxy( // NONCE:11
       address(timelockControllerImpl),
       address(proxyAdmin),
       abi.encodeWithSelector(
@@ -299,20 +295,14 @@ contract GovernanceFactory is Ownable {
   }
 
   function addressForNonce(uint256 nonce) internal view returns (address) {
-    return address(
-      uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), address(this), bytes1(uint8(nonce))))))
-    );
+    return
+      address(
+        uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), address(this), bytes1(uint8(nonce))))))
+      );
   }
 
-  function calculateSafeProxyAddress(
-    bytes memory initializer,
-    uint256 saltNonce
-  ) internal returns (address proxy) {
-    try gnosisSafeProxyFactory.calculateCreateProxyWithNonceAddress(
-      gnosisSafeSingleton,
-      initializer,
-      saltNonce
-    ) {
+  function calculateSafeProxyAddress(bytes memory initializer, uint256 saltNonce) internal returns (address proxy) {
+    try gnosisSafeProxyFactory.calculateCreateProxyWithNonceAddress(gnosisSafeSingleton, initializer, saltNonce) {
       assert(false);
     } catch Error(string memory reason) {
       proxy = bytesToAddress(bytes(reason));
@@ -321,7 +311,7 @@ contract GovernanceFactory is Ownable {
 
   function bytesToAddress(bytes memory bys) private pure returns (address addr) {
     assembly {
-      addr := mload(add(bys,20))
-    } 
+      addr := mload(add(bys, 20))
+    }
   }
 }

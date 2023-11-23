@@ -11,13 +11,7 @@ library EmissionDeployerLib {
    * @param emissionTarget The address of the emission target
    * @return The address of the new Emission contract
    */
-  function deploy(
-    address mentoToken,
-    address emissionTarget
-  ) external returns (Emission) {
-    return new Emission(
-      mentoToken,
-      emissionTarget
-    );
+  function deploy(address mentoToken, address emissionTarget) external returns (Emission) {
+    return new Emission(mentoToken, emissionTarget);
   }
 }

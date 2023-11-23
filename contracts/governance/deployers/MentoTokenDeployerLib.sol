@@ -21,12 +21,6 @@ library MentoTokenDeployerLib {
     address treasury,
     address emission
   ) external returns (MentoToken) {
-    return new MentoToken(
-      vesting,
-      mentoMultisig,
-      airgrab,
-      treasury,
-      emission
-    );
+    return new MentoToken(vesting, mentoMultisig, airgrab, treasury, emission);
   }
 }

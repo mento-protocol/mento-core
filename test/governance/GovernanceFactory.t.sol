@@ -24,12 +24,7 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function _createGovernance() internal {
-    factory.createGovernance(
-      mentolabsVestingMultisig,
-      communityMultisig,
-      merkleRoot,
-      fractalSigner
-    );
+    factory.createGovernance(mentolabsVestingMultisig, communityMultisig, merkleRoot, fractalSigner);
   }
 
   // ========================================

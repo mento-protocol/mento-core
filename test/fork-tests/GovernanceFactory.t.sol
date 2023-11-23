@@ -42,4 +42,3 @@ contract GovernanceFactoryTest is BaseTest {
     );
   }
 }
-
