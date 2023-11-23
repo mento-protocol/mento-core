@@ -258,8 +258,7 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
    * @param value The amount of balance to reserve
    * @dev Note that this function is called by the protocol when paying for tx fees in this
    * currency. After the tx is executed, gas is refunded to the sender and credited to the
-   * various tx fee recipients via a call to `creditGasFees`. Note too that the events emitted
-   * by `creditGasFees` reflect the *net* gas fee payments for the transaction.
+   * various tx fee recipients via a call to `creditGasFees`.
    */
   function debitGasFees(address from, uint256 value) external onlyVm {
     _burn(from, value);
@@ -278,8 +277,7 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
    * @param gatewayFee Gateway fee
    * @dev Note that this function is called by the protocol when paying for tx fees in this
    * currency. Before the tx is executed, gas is debited from the sender via a call to
-   * `debitGasFees`. Note too that the events emitted by `creditGasFees` reflect the *net* gas fee
-   * payments for the transaction.
+   * `debitGasFees`.
    */
   function creditGasFees(
     address from,
