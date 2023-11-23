@@ -122,12 +122,15 @@ contract GovernanceFactory is Ownable {
     gnosisSafeProxyFactory = IGnosisProxyFactory(gnosisSafeProxyFactory_);
   }
 
+  /// TODO:: Maybe fix the max-lines thing by splitting this into multiple functions
+
   /// @notice Creates and initializes the governance system contracts
   /// @param mentolabsVestingMultisig_ Address of the multisig from where current allocation will be vested
   /// @param watchdogMultisig_ Address of the community's multisig wallet with the veto rights
   /// @param airgrabRoot Root hash for the airgrab Merkle tree
   /// @param fractalSigner Signer of fractal kyc
   /// @dev This can only be called by the owner and only once
+  //solhint-disable-next-line function-max-lines
   function createGovernance(
     address mentolabsVestingMultisig_,
     address watchdogMultisig_,
