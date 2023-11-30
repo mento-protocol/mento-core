@@ -20,13 +20,13 @@ contract TokenHelpers is Test {
     if (token == registry.getAddressForString("GoldToken")) {
       mint(GoldToken(token), to, amount);
     } else if (token == registry.getAddressForStringOrDie("StableToken")) {
-      mint(StableToken(token), to, amount);
+      mint(IStableTokenV2(token), to, amount);
     } else if (token == registry.getAddressForStringOrDie("StableTokenEUR")) {
-      mint(StableToken(token), to, amount);
+      mint(IStableTokenV2(token), to, amount);
     } else if (token == registry.getAddressForStringOrDie("StableTokenBRL")) {
-      mint(StableToken(token), to, amount);
+      mint(IStableTokenV2(token), to, amount);
     } else if (token == registry.getAddressForStringOrDie("StableTokenXOF")) {
-      mint(StableToken(token), to, amount);
+      mint(IStableTokenV2(token), to, amount);
     } else {
       deal(token, to, amount);
     }
@@ -47,13 +47,14 @@ contract TokenHelpers is Test {
     changePrank(pranker);
   }
 
+  // TODO: delete after the migration to StableTokenV2 is done on mainnet
   function mint(
     StableToken stableToken,
     address to,
     uint256 amount
   ) internal {
     address pranker = currentPrank;
-    changePrank(stableToken.registry().getAddressForString("GrandaMento"));
+    changePrank(stableToken.registry().getAddressForString("Broker"));
     stableToken.mint(to, amount);
     changePrank(pranker);
   }

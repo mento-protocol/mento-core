@@ -128,8 +128,8 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     // XXX: The number of collateral assets 3 is hardcoded here [CELO, USDC, EUROC]
     for (uint256 i = 0; i < 3; i++) {
       address collateralAsset = reserve.collateralAssets(i);
-      mint(collateralAsset, address(reserve), Utils.toSubunits(10_000_000, collateralAsset));
-      console.log("Minting 10mil %s to reserve", IERC20Metadata(collateralAsset).symbol());
+      mint(collateralAsset, address(reserve), Utils.toSubunits(25_000_000, collateralAsset));
+      console.log("Minting 25mil %s to reserve", IERC20Metadata(collateralAsset).symbol());
     }
 
     console.log("Exchanges(%d): ", exchanges.length);
@@ -178,15 +178,19 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     IStableTokenV2 stableToken = IStableTokenV2(registry.getAddressForStringOrDie("StableToken"));
     IStableTokenV2 stableTokenEUR = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenEUR"));
     IStableTokenV2 stableTokenBRL = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenBRL"));
+    IStableTokenV2 stableTokenXOF = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenXOF"));
 
-    vm.expectRevert("contract already initialized");
+    vm.expectRevert("Initializable: contract is already initialized");
     stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
-    vm.expectRevert("contract already initialized");
+    vm.expectRevert("Initializable: contract is already initialized");
     stableTokenEUR.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
-    vm.expectRevert("contract already initialized");
+    vm.expectRevert("Initializable: contract is already initialized");
     stableTokenBRL.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+    vm.expectRevert("Initializable: contract is already initialized");
+    stableTokenXOF.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
   }
 
   function test_swapsHappenInBothDirections() public {
