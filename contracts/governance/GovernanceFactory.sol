@@ -57,7 +57,7 @@ contract GovernanceFactory is Ownable {
   MentoGovernor public mentoGovernor;
   Locking public locking;
   address public treasury;
-  TimelockController mentolabsTreasury;
+  TimelockController public mentolabsTreasury;
 
   address public mentolabsVestingMultisig;
   address public watchdogMultisig;
@@ -87,7 +87,11 @@ contract GovernanceFactory is Ownable {
   /// @param owner_ Address of the owner, Celo governance
   /// @param gnosisSafeSingleton_ Address of the Gnosis Safe singleton
   /// @param gnosisSafeProxyFactory_ Address of the Gnosis Safe proxy factory
-  constructor(address owner_, address gnosisSafeSingleton_, address gnosisSafeProxyFactory_) {
+  constructor(
+    address owner_,
+    address gnosisSafeSingleton_,
+    address gnosisSafeProxyFactory_
+  ) {
     transferOwnership(owner_);
     gnosisSafeSingleton = gnosisSafeSingleton_;
     gnosisSafeProxyFactory = IGnosisSafeProxyFactory(gnosisSafeProxyFactory_);
