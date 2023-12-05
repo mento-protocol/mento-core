@@ -8,6 +8,8 @@ import { Airgrab } from "./Airgrab.sol";
 import { TimelockController } from "./TimelockController.sol";
 import { MentoGovernor } from "./MentoGovernor.sol";
 import { Locking } from "./locking/Locking.sol";
+import { IGnosisSafeProxyFactory } from "./interfaces/IGnosisSafeProxyFactory.sol";
+import { IGnosisSafe } from "./interfaces/IGnosisSafe.sol";
 
 import { AirgrabDeployerLib } from "./deployers/AirgrabDeployerLib.sol";
 import { EmissionDeployerLib } from "./deployers/EmissionDeployerLib.sol";
@@ -24,32 +26,6 @@ import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.so
 import { IVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
-interface IGnosisProxyFactory {
-  function calculateCreateProxyWithNonceAddress(
-    address _singleton,
-    bytes calldata initializer,
-    uint256 saltNonce
-  ) external returns (address proxy);
-
-  function createProxyWithNonce(
-    address _singleton,
-    bytes memory initializer,
-    uint256 saltNonce
-  ) external returns (address proxy);
-}
-
-interface IGnosisSafe {
-  function setup(
-    address[] calldata _owners,
-    uint256 _threshold,
-    address to,
-    bytes calldata data,
-    address fallbackHandler,
-    address paymentToken,
-    uint256 payment,
-    address payable paymentReceiver
-  ) external;
-}
 
 /**
  * @title Factory
@@ -71,7 +47,7 @@ contract GovernanceFactory is Ownable {
     address governor
   );
 
-  IGnosisProxyFactory private gnosisSafeProxyFactory;
+  IGnosisSafeProxyFactory private gnosisSafeProxyFactory;
   address private gnosisSafeSingleton;
 
   ProxyAdmin public proxyAdmin;
@@ -119,7 +95,7 @@ contract GovernanceFactory is Ownable {
   ) {
     transferOwnership(owner_);
     gnosisSafeSingleton = gnosisSafeSingleton_;
-    gnosisSafeProxyFactory = IGnosisProxyFactory(gnosisSafeProxyFactory_);
+    gnosisSafeProxyFactory = IGnosisSafeProxyFactory(gnosisSafeProxyFactory_);
   }
 
   /// TODO:: Maybe fix the max-lines thing by splitting this into multiple functions
