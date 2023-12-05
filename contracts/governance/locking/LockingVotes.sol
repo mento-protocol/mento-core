@@ -44,14 +44,18 @@ contract LockingVotes is LockingBase {
   /**
    * @dev Returns the delegate that `account` has chosen.
    */
-  function delegates(address /* account */) external pure override returns (address) {
+  function delegates(
+    address /* account */
+  ) external pure override returns (address) {
     revert("not implemented");
   }
 
   /**
    * @dev Delegates votes from the sender to `delegatee`.
    */
-  function delegate(address /* delegatee */) external pure override {
+  function delegate(
+    address /* delegatee */
+  ) external pure override {
     revert("not implemented");
   }
 

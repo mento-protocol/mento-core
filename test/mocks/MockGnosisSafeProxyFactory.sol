@@ -8,16 +8,16 @@ contract MockGnosisSafeProxyFactory is IGnosisSafeProxyFactory {
   address public constant GNOSIS_SAFE_SINGLETON_ADDRESS = address(0x7513eC655cA916B5712cA762f2989ca495ef976C);
 
   function calculateCreateProxyWithNonceAddress(
-    address /* _singleton */,
-    bytes calldata /* initializer */,
+    address, /* _singleton */
+    bytes calldata, /* initializer */
     uint256 /* saltNonce */
   ) external pure returns (address) {
     revert(string(abi.encodePacked(GNOSIS_SAFE_SINGLETON_ADDRESS)));
   }
 
   function createProxyWithNonce(
-    address /* _singleton */,
-    bytes memory /* memory initializer */,
+    address, /* _singleton */
+    bytes memory, /* memory initializer */
     uint256 /* saltNonce */
   ) external pure returns (address proxy) {
     return GNOSIS_SAFE_SINGLETON_ADDRESS;

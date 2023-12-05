@@ -104,7 +104,7 @@ contract GovernanceFactoryTest is TestSetup {
     vm.prank(owner);
     _createGovernance();
 
-    uint256 totalSupply = 1_000_000_000 * 10 ** 18;
+    uint256 totalSupply = 1_000_000_000 * 10**18;
     uint256 emissionSupply = (totalSupply * 65) / 100;
     uint256 totalSupplyLessEmissions = totalSupply - emissionSupply;
 
