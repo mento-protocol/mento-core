@@ -19,7 +19,8 @@ contract GovernanceFactoryTest is TestSetup {
   bytes32 public airgrabMerkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809; // Mock root
 
   // TODO: Document why this is necessary
-  // If we take this out, there'll be underflow errors, supposedly linked to some signature being valid only at a certain time and requiring some buffer
+  // If we take this out, there'll be underflow errors, supposedly linked to some signature being
+  // valid only at a certain time and requiring some buffer
   function setUp() public {
     skip(30 days);
     vm.roll(30 * BLOCKS_DAY);
