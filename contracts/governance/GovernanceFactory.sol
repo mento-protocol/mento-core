@@ -26,15 +26,14 @@ import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.so
 import { IVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
-
 /**
- * @title Factory
+ * @title GovernanceFactory
  * @author Mento Labs
  * @notice Factory for creating and initializing the entire governance system
- * including the token, emission, airgrab, and governance related contracts.
+ * including the MENTO token, locking, emission, airgrab, and governance-related contracts.
  **/
 contract GovernanceFactory is Ownable {
-  /// @dev Event emitted when the governance system is successfully created
+  /// @dev Event emitted when the governance system has been successfully created
   event GovernanceCreated(
     address mentoToken,
     address emission,
@@ -88,11 +87,7 @@ contract GovernanceFactory is Ownable {
   /// @param owner_ Address of the owner, Celo governance
   /// @param gnosisSafeSingleton_ Address of the Gnosis Safe singleton
   /// @param gnosisSafeProxyFactory_ Address of the Gnosis Safe proxy factory
-  constructor(
-    address owner_,
-    address gnosisSafeSingleton_,
-    address gnosisSafeProxyFactory_
-  ) {
+  constructor(address owner_, address gnosisSafeSingleton_, address gnosisSafeProxyFactory_) {
     transferOwnership(owner_);
     gnosisSafeSingleton = gnosisSafeSingleton_;
     gnosisSafeProxyFactory = IGnosisSafeProxyFactory(gnosisSafeProxyFactory_);
@@ -119,7 +114,7 @@ contract GovernanceFactory is Ownable {
     mentolabsVestingMultisig = mentolabsVestingMultisig_;
     watchdogMultisig = watchdogMultisig_;
 
-    // Precalculatedd conract addresses:
+    // Precalculatedd contract addresses:
     address emissionPrecalculated = addressForNonce(2);
     address tokenPrecalculated = addressForNonce(3);
     address airgrabPrecalculated = addressForNonce(4);
@@ -143,14 +138,20 @@ contract GovernanceFactory is Ownable {
     uint256 treasurySalt = uint256(keccak256(abi.encodePacked("mentolabsTreasury")));
     address payable treasuryPrecalculated = payable(calculateSafeProxyAddress(treasuryInitializer, treasurySalt));
 
+    // =======================================
     // ========== Deploy: ProxyAdmin =========
+    // =======================================
     proxyAdmin = ProxyDeployerLib.deployAdmin(); // NONCE:1
 
+    // =======================================
     // ========== Deploy: Emission ===========
+    // =======================================
     emission = EmissionDeployerLib.deploy(tokenPrecalculated, treasuryPrecalculated); // NONCE:2
     assert(address(emission) == emissionPrecalculated);
 
+    // =========================================
     // ========== Deploy: MentoToken ===========
+    // =========================================
     mentoToken = MentoTokenDeployerLib.deploy( // NONCE:3
       mentolabsVestingMultisig,
       mentolabsTreasuryPrecalculated,
@@ -158,9 +159,12 @@ contract GovernanceFactory is Ownable {
       treasuryPrecalculated,
       address(emission)
     );
+
     assert(address(mentoToken) == tokenPrecalculated);
 
+    // ======================================
     // ========== Deploy: Airgrab ===========
+    // ======================================
     uint256 airgrabEnds = block.timestamp + AIRGRAB_DURATION;
     airgrab = AirgrabDeployerLib.deploy( // NONCE:4
       airgrabRoot,
@@ -175,7 +179,9 @@ contract GovernanceFactory is Ownable {
     );
     assert(address(airgrab) == airgrabPrecalculated);
 
+    // ======================================
     // ========== Deploy: Locking ===========
+    // ======================================
     Locking lockingImpl = LockingDeployerLib.deploy(); // NONCE:5
     TransparentUpgradeableProxy lockingProxy = ProxyDeployerLib.deployProxy( // NONCE:6
       address(lockingImpl),
@@ -192,7 +198,9 @@ contract GovernanceFactory is Ownable {
     locking = Locking(address(lockingProxy));
     assert(address(locking) == lockingPrecalculated);
 
+    // =================================================
     // ========== Deploy: TimelockController ===========
+    // =================================================
     TimelockController timelockControllerImpl = TimelockControllerDeployerLib.deploy(); // NONCE:7
     address[] memory proposers = new address[](1);
     address[] memory executors = new address[](1);
@@ -214,7 +222,9 @@ contract GovernanceFactory is Ownable {
     timelockController = TimelockController(payable(timelockControllerProxy));
     assert(address(timelockController) == governanceTimelockPrecalculated);
 
+    // ============================================
     // ========== Deploy: MentoGovernor ===========
+    // ============================================
     MentoGovernor mentoGovernorImpl = MentoGovernorDeployerLib.deploy(); // NONCE:9
     TransparentUpgradeableProxy mentoGovernorProxy = ProxyDeployerLib.deployProxy( // NONCE: 10
       address(mentoGovernorImpl),
@@ -231,11 +241,15 @@ contract GovernanceFactory is Ownable {
     );
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
 
+    // ================================================
     // =========== Deploy: Mento Treasury =============
+    // ================================================
     treasury = gnosisSafeProxyFactory.createProxyWithNonce(gnosisSafeSingleton, treasuryInitializer, treasurySalt);
     assert(address(treasury) == treasuryPrecalculated);
 
+    // ====================================================
     // =========== Deploy: MentoLabs Treasury =============
+    // ====================================================
     address[] memory treasuryProposers = new address[](1);
     address[] memory treasuryExecutors = new address[](1);
     proposers[0] = address(mentolabsVestingMultisig); // Governor can propose and cancel
@@ -280,6 +294,7 @@ contract GovernanceFactory is Ownable {
       );
   }
 
+  // Taken from official Gnosis Safe Factory contract https://celoscan.io/address/0xC22834581EbC8527d974F8a1c97E1bEA4EF910BC#code
   function calculateSafeProxyAddress(bytes memory initializer, uint256 saltNonce) internal returns (address proxy) {
     try gnosisSafeProxyFactory.calculateCreateProxyWithNonceAddress(gnosisSafeSingleton, initializer, saltNonce) {
       assert(false);
