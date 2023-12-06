@@ -7,6 +7,8 @@ import { TestLocking } from "../utils/TestLocking.sol";
 import { MockGnosisSafeProxyFactory } from "../mocks/MockGnosisSafeProxyFactory.sol";
 
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
+
+// solhint-disable-next-line max-line-length
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
