@@ -230,10 +230,10 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
 
   /**
    * @notice method returns the amount of blocks to shift locking epoch to.
-   * we move it to 00-00 UTC Friday by shifting 3564 blocks (approx) (CELO)
+   * we move it to 00-00 UTC Wednesday (approx) by shifting 89964 blocks (CELO)
    */
   function getEpochShift() internal view virtual returns (uint32) {
-    return 3564;
+    return 89964;
   }
 
   function verifyLockOwner(uint256 id) internal view returns (address account) {
