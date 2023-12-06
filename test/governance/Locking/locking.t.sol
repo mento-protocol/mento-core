@@ -249,7 +249,7 @@ contract Lock_Locking_Test is Locking_Test {
 
     lockingContract.setEpochShift(89_964);
 
-    // since we shift more than reminder(89_964 > 12_204), we are now in the previos week, #178
+    // since we shift more than remainder(89_964 > 12_204), we are now in the previous week, #178
     assertEq(lockingContract.getWeek(), 178);
 
     // FRI 12:00 -> WED 00:00 = 4.5 days
