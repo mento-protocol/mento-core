@@ -62,7 +62,8 @@ contract GovernanceFactory is Ownable {
   address public mentolabsVestingMultisig;
   address public watchdogMultisig;
 
-  bool public initialized; // Indicates if the governance system has been created
+  // Indicates if the governance system has been created
+  bool public initialized;
 
   // Airgrab configuration
   uint32 public constant AIRGRAB_LOCK_SLOPE = 104; // Slope duration for the airgrabed tokens in weeks
@@ -105,7 +106,7 @@ contract GovernanceFactory is Ownable {
   /// @param airgrabRoot Root hash for the airgrab Merkle tree
   /// @param fractalSigner Signer of fractal kyc
   /// @dev This can only be called by the owner and only once
-  //solhint-disable-next-line function-max-lines
+  // solhint-disable-next-line function-max-lines
   function createGovernance(
     address mentolabsVestingMultisig_,
     address watchdogMultisig_,
@@ -128,16 +129,19 @@ contract GovernanceFactory is Ownable {
 
     address[] memory owners = new address[](1);
     owners[0] = governanceTimelockPrecalculated;
+
+    // Encoded arguments for Gnosis Safe's setup() function
+    // https://github.com/safe-global/safe-contracts/blob/v1.3.0/contracts/GnosisSafe.sol#L66-L97
     bytes memory treasuryInitializer = abi.encodeWithSelector(
       IGnosisSafe.setup.selector,
-      owners,
-      1,
-      address(0),
-      "",
-      address(0),
-      address(0),
-      0,
-      address(0)
+      owners, ///     @param _owners List of Safe owners.
+      1, ///          @param _threshold Number of required confirmations for a Safe transaction.
+      address(0), /// @param to Contract address for optional delegate call.
+      "", ///         @param data Data payload for optional delegate call.
+      address(0), /// @param fallbackHandler Handler for fallback calls to this contract
+      address(0), /// @param paymentToken Token that should be used for the payment (0 is ETH)
+      0, ///          @param payment Value that should be paid
+      address(0) ///  @param paymentReceiver Adddress that should receive the payment (or 0 if tx.origin)
     );
     uint256 treasurySalt = uint256(keccak256(abi.encodePacked("mentolabsTreasury")));
     address payable treasuryPrecalculated = payable(calculateSafeProxyAddress(treasuryInitializer, treasurySalt));
@@ -291,6 +295,11 @@ contract GovernanceFactory is Ownable {
     );
   }
 
+  /**
+   * @notice Calculates a deterministic address based on a given nonce.
+   * @param nonce The nonce used to generate the address.
+   * @return The generated address.
+   */
   function addressForNonce(uint256 nonce) internal view returns (address) {
     return
       address(
@@ -298,16 +307,30 @@ contract GovernanceFactory is Ownable {
       );
   }
 
-  // Taken from official Gnosis Safe Factory contract https://celoscan.io/address/0xC22834581EbC8527d974F8a1c97E1bEA4EF910BC#code
+  /**
+   * @notice Calculates the address of a Gnosis Safe proxy contract with a given initializer and salt nonce.
+   * @dev Implementation for calculateCreateProxyWithNonceAddress can be found here:
+   *      https://github.com/safe-global/safe-contracts/blob/v1.3.0/contracts/proxies/GnosisSafeProxyFactory.sol#L93-L106
+   * @param initializer The initializer data for the proxy contract.
+   * @param saltNonce The salt nonce used to calculate the address.
+   * @return proxy The address of the Gnosis Safe proxy contract.
+   */
   function calculateSafeProxyAddress(bytes memory initializer, uint256 saltNonce) internal returns (address proxy) {
     try gnosisSafeProxyFactory.calculateCreateProxyWithNonceAddress(gnosisSafeSingleton, initializer, saltNonce) {
       assert(false);
     } catch Error(string memory reason) {
+      // `reason` will be the proxy address in string format which we can then convert to an address
       proxy = bytesToAddress(bytes(reason));
     }
   }
 
+  /**
+   * @notice Converts a bytes array to an address.
+   * @param bys The bytes array to convert.
+   * @return addr The converted address.
+   */
   function bytesToAddress(bytes memory bys) private pure returns (address addr) {
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       addr := mload(add(bys, 20))
     }
