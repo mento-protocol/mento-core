@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
+// solhint-disable func-name-mixedcase
 
-import { console } from "forge-std-next/console.sol";
 import { BaseTest } from "../utils/BaseTest.next.sol";
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 
