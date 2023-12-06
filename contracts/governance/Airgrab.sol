@@ -128,7 +128,7 @@ contract Airgrab is Ownable, ReentrancyGuard {
   ) {
     require(block.timestamp <= endTimestamp, "Airgrab: finished");
     require(!claimed[account], "Airgrab: already claimed");
-    bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(account, uint256(amount)))));
+    bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(account, amount))));
     require(MerkleProof.verify(merkleProof, root, leaf), "Airgrab: not in tree");
     _;
   }
