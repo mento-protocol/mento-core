@@ -240,20 +240,27 @@ contract Lock_Locking_Test is Locking_Test {
 
   function test_getWeek_shouldReturnCorrectWeekNo() public {
     uint32 dayInBlocks = weekInBlocks / 7;
+
     uint32 currentBlock = 21664044; // (Sep-29-2023 11:59:59 AM +UTC) Friday
-
     lockingContract.setBlock(currentBlock);
-    lockingContract.setEpochShift(3564);
 
+    // without shifting, it is week #179 with 12_204 blocks reminder
     assertEq(lockingContract.getWeek(), 179);
-    assertEq(lockingContract.blockTillNextPeriod(), 112320); // 6.5 days in blocks CELO
 
-    _incrementBlock(5 * dayInBlocks);
-    assertEq(lockingContract.getWeek(), 179);
+    lockingContract.setEpochShift(89_964);
+
+    // since we shift more than remainder(89_964 > 12_204), we are now in the previous week, #178
+    assertEq(lockingContract.getWeek(), 178);
+
+    // FRI 12:00 -> WED 00:00 = 4.5 days
+    assertEq(lockingContract.blockTillNextPeriod(), (9 * dayInBlocks) / 2);
+
+    _incrementBlock(3 * dayInBlocks);
+    assertEq(lockingContract.getWeek(), 178);
+    _incrementBlock(dayInBlocks);
+    assertEq(lockingContract.getWeek(), 178);
     _incrementBlock(dayInBlocks);
     assertEq(lockingContract.getWeek(), 179);
-    _incrementBlock(dayInBlocks);
-    assertEq(lockingContract.getWeek(), 180);
   }
 
   function test_getAvailableForWithdraw_shouldReturnCorrectAmount() public {
