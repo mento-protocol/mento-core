@@ -119,7 +119,7 @@ contract GovernanceFactory is Ownable {
     mentolabsVestingMultisig = mentolabsVestingMultisig_;
     watchdogMultisig = watchdogMultisig_;
 
-    // Precalculatedd contract addresses:
+    // Precalculated contract addresses:
     address emissionPrecalculated = addressForNonce(2);
     address tokenPrecalculated = addressForNonce(3);
     address airgrabPrecalculated = addressForNonce(4);
