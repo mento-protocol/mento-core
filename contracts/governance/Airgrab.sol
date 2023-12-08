@@ -15,7 +15,7 @@ import { ILocking } from "./locking/interfaces/ILocking.sol";
 /**
  * @title Airgrab
  * @author Mento Labs
- * @notice This contract implements a token airgrab gated by a MerkeTree and KYC using fractal.
+ * @notice This contract implements a token airgrab gated by a MerkleTree and KYC using fractal.
  * The airgrab also forces claimers to immediately lock their tokens as veTokens for a
  * predetermined period.
  * @dev The contract is only Ownable because of the circular dependency
@@ -113,9 +113,9 @@ contract Airgrab is Ownable, ReentrancyGuard {
   }
 
   /**
-   * @dev Check if the account can cliam
+   * @dev Check if the account can claim
    * @notice This modifier checks if the airgrab is still active,
-   * if the account hasn't already claimed and if it's incldued
+   * if the account hasn't already claimed and if it's included
    * in the MerkleTree.
    * @param account The address of the account to check.
    * @param amount The amount of tokens to be claimed.
@@ -128,7 +128,7 @@ contract Airgrab is Ownable, ReentrancyGuard {
   ) {
     require(block.timestamp <= endTimestamp, "Airgrab: finished");
     require(!claimed[account], "Airgrab: already claimed");
-    bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(account, uint256(amount)))));
+    bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(account, amount))));
     require(MerkleProof.verify(merkleProof, root, leaf), "Airgrab: not in tree");
     _;
   }

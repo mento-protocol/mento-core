@@ -92,13 +92,13 @@ contract Emission is Ownable {
     uint256 positiveAggregate = SCALER + term2 + term4;
     uint256 negativeAggregate = term1 + term3 + term5;
 
-    // Avoiding underflow in case the scheduled amount it bigger than the total supply
+    // Avoiding underflow in case the scheduled amount is bigger than the total supply
     if (positiveAggregate < negativeAggregate) {
       return TOTAL_EMISSION_SUPPLY - totalEmittedAmount;
     }
 
-    uint256 scheduledRemainigSupply = (TOTAL_EMISSION_SUPPLY * (positiveAggregate - negativeAggregate)) / SCALER;
+    uint256 scheduledRemainingSupply = (TOTAL_EMISSION_SUPPLY * (positiveAggregate - negativeAggregate)) / SCALER;
 
-    amount = TOTAL_EMISSION_SUPPLY - scheduledRemainigSupply - totalEmittedAmount;
+    amount = TOTAL_EMISSION_SUPPLY - scheduledRemainingSupply - totalEmittedAmount;
   }
 }
