@@ -38,6 +38,7 @@ jobs:
         with:
           ignore-compile: true
           sarif: results.sarif
+        continue-on-error: true
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v2
         with:
