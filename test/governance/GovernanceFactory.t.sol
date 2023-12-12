@@ -153,6 +153,7 @@ contract GovernanceFactoryTest is TestSetup {
 
     address newImpl = proxyAdmin.getProxyImplementation(proxy);
     assertFalse(initialImpl == newImpl, "Factory: LockingProxy should have a new implementation");
+    assertTrue(newImpl == address(newImplContract), "Factory: LockingProxy implementation should equal newImpl");
   }
 
   // ========================================
@@ -183,6 +184,10 @@ contract GovernanceFactoryTest is TestSetup {
 
     address newImpl = proxyAdmin.getProxyImplementation(proxy);
     assertFalse(initialImpl == newImpl, "Factory: timelockControllerProxy should have a new implementation");
+    assertTrue(
+      newImpl == address(newImplContract),
+      "Factory: timelockControllerProxy implementation should equal newImpl"
+    );
   }
 
   // ==================================
@@ -213,6 +218,7 @@ contract GovernanceFactoryTest is TestSetup {
 
     address newImpl = proxyAdmin.getProxyImplementation(proxy);
     assertFalse(initialImpl == newImpl, "Factory: mentoGovernorProxy should have a new implementation");
+    assertTrue(newImpl == address(newImplContract), "Factory: mentoGovernorProxy implementation should equal newImpl");
   }
 
   // ========================================
@@ -243,6 +249,10 @@ contract GovernanceFactoryTest is TestSetup {
 
     address newImpl = proxyAdmin.getProxyImplementation(proxy);
     assertFalse(initialImpl == newImpl, "Factory: mentolabsTreasuryProxy should have a new implementation");
+    assertTrue(
+      newImpl == address(newImplContract),
+      "Factory: mentolabsTreasuryProxy implementation should equal newImpl"
+    );
   }
 
   // ========================================
