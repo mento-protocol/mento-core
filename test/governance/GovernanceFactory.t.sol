@@ -13,7 +13,7 @@ import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contra
 
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { GovernanceFactoryHarness } from "./GovernanceFactoryHarness.t.sol";
-import { IGnosisSafe } from "contracts/governance/interfaces/IGnosisSafe.sol";
+import { GnosisSafe } from "safe-contracts/GnosisSafe.sol";
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
 
@@ -279,7 +279,7 @@ contract GovernanceFactoryTest is TestSetup {
     _createGovernance();
     address[] memory owners = new address[](1);
     bytes memory treasuryInitializer = abi.encodeWithSelector(
-      IGnosisSafe.setup.selector,
+      GnosisSafe.setup.selector,
       owners,
       1,
       address(0),
@@ -292,7 +292,7 @@ contract GovernanceFactoryTest is TestSetup {
 
     uint256 saltNonce = uint256(keccak256(abi.encodePacked("mentolabsTreasury")));
     address result = factory.exposed_calculateSafeProxyAddress(treasuryInitializer, saltNonce);
-    assertEq(factory.treasury(), result, "calculateSafeProxyAddress: Should return correct address");
+    assertEq(address(factory.treasury()), result, "calculateSafeProxyAddress: Should return correct address");
   }
 
   // ==================================

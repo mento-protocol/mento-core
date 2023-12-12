@@ -5,20 +5,6 @@ pragma solidity 0.8.18;
 import { BaseTest } from "../utils/BaseTest.next.sol";
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 
-interface IGnosisProxyFactory {
-  function calculateCreateProxyWithNonceAddress(
-    address _singleton,
-    bytes calldata initializer,
-    uint256 saltNonce
-  ) external returns (address proxy);
-
-  function createProxyWithNonce(
-    address _singleton,
-    bytes memory initializer,
-    uint256 saltNonce
-  ) external returns (address proxy);
-}
-
 contract GovernanceFactoryTest is BaseTest {
   string public constant NETWORK_CELO_RPC = "celo_mainnet";
   string public constant NETWORK_ALFAJORES_RPC = "alfajores";

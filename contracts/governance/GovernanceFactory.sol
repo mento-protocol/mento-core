@@ -8,8 +8,9 @@ import { Airgrab } from "./Airgrab.sol";
 import { TimelockController } from "./TimelockController.sol";
 import { MentoGovernor } from "./MentoGovernor.sol";
 import { Locking } from "./locking/Locking.sol";
-import { IGnosisSafeProxyFactory } from "./interfaces/IGnosisSafeProxyFactory.sol";
-import { IGnosisSafe } from "./interfaces/IGnosisSafe.sol";
+import { GnosisSafeProxyFactory } from "safe-contracts/proxies/GnosisSafeProxyFactory.sol";
+import { GnosisSafeProxy } from "safe-contracts/proxies/GnosisSafeProxy.sol";
+import { GnosisSafe } from "safe-contracts/GnosisSafe.sol";
 
 import { AirgrabDeployerLib } from "./deployers/AirgrabDeployerLib.sol";
 import { EmissionDeployerLib } from "./deployers/EmissionDeployerLib.sol";
@@ -46,7 +47,7 @@ contract GovernanceFactory is Ownable {
     address governor
   );
 
-  IGnosisSafeProxyFactory private gnosisSafeProxyFactory;
+  GnosisSafeProxyFactory private gnosisSafeProxyFactory;
   address private gnosisSafeSingleton;
 
   ProxyAdmin public proxyAdmin;
@@ -56,7 +57,7 @@ contract GovernanceFactory is Ownable {
   TimelockController public timelockController;
   MentoGovernor public mentoGovernor;
   Locking public locking;
-  address public treasury;
+  GnosisSafeProxy public treasury;
   TimelockController public mentolabsTreasury;
 
   address public mentolabsVestingMultisig;
@@ -95,7 +96,7 @@ contract GovernanceFactory is Ownable {
   ) {
     transferOwnership(owner_);
     gnosisSafeSingleton = gnosisSafeSingleton_;
-    gnosisSafeProxyFactory = IGnosisSafeProxyFactory(gnosisSafeProxyFactory_);
+    gnosisSafeProxyFactory = GnosisSafeProxyFactory(gnosisSafeProxyFactory_);
   }
 
   /// TODO:: Maybe fix the max-lines thing by splitting this into multiple functions
@@ -134,7 +135,7 @@ contract GovernanceFactory is Ownable {
     // Encoded arguments for Gnosis Safe's setup() function
     // https://github.com/safe-global/safe-contracts/blob/v1.3.0/contracts/GnosisSafe.sol#L66-L97
     bytes memory treasuryInitializer = abi.encodeWithSelector(
-      IGnosisSafe.setup.selector,
+      GnosisSafe.setup.selector,
       owners, ///     @param _owners List of Safe owners.
       1, ///          @param _threshold Number of required confirmations for a Safe transaction.
       address(0), /// @param to Contract address for optional delegate call.
