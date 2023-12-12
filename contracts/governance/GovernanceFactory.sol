@@ -125,6 +125,7 @@ contract GovernanceFactory is Ownable {
     address airgrabPrecalculated = addressForNonce(4);
     address lockingPrecalculated = addressForNonce(6);
     address governanceTimelockPrecalculated = addressForNonce(8);
+    address governorPrecalculated = addressForNonce(10);
     address mentolabsTreasuryPrecalculated = addressForNonce(11);
 
     address[] memory owners = new address[](1);
@@ -212,7 +213,7 @@ contract GovernanceFactory is Ownable {
     TimelockController timelockControllerImpl = TimelockControllerDeployerLib.deploy(); // NONCE:7
     address[] memory proposers = new address[](1);
     address[] memory executors = new address[](1);
-    proposers[0] = address(addressForNonce(10)); // Governor can propose and cancel
+    proposers[0] = governorPrecalculated; // Governor can propose and cancel
     executors[0] = address(0); // Anyone can execute
 
     TransparentUpgradeableProxy timelockControllerProxy = ProxyDeployerLib.deployProxy( // NONCE:8
