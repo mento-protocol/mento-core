@@ -240,7 +240,7 @@ contract GovernanceFactory is Ownable {
       address(proxyAdmin),
       abi.encodeWithSelector(
         mentoGovernorImpl.__MentoGovernor_init.selector,
-        IVotesUpgradeable(address(lockingProxy)),
+        address(lockingProxy),
         timelockControllerProxy,
         GOVERNOR_VOTING_DELAY,
         GOVERNOR_VOTING_PERIOD,
