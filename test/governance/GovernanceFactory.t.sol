@@ -314,17 +314,18 @@ contract GovernanceFactoryTest is TestSetup {
     assertTrue(account0 == account1, "addressForNonce: Should return same address for same nonce");
   }
 
-  function testFuzz_addressForNonce_whenNoncesAreDifferent_shouldReturnDifferentAddresses(uint256 nonce)
-    public
-    i_setUp
-  {
+  function testFuzz_addressForNonce_whenNoncesAreDifferent_shouldReturnDifferentAddresses(
+    uint256 nonce1,
+    uint256 nonce2
+  ) public i_setUp {
     // We can only safely get 256 unique addresses because we're using
     // a uint8 nonce in the function `bytes1(uint8(nonce))`
-    vm.assume(nonce > 0);
-    vm.assume(nonce < 256);
-    address account0 = factory.exposed_addressForNonce(0);
-    address account1 = factory.exposed_addressForNonce(nonce);
-    assertFalse(account0 == account1, "addressForNonce: Should return different addresses for different nonces");
+    nonce1 = bound(nonce1, 0, 255);
+    nonce2 = bound(nonce2, 0, 255);
+    vm.assume(nonce1 != nonce2);
+    address account1 = factory.exposed_addressForNonce(nonce1);
+    address account2 = factory.exposed_addressForNonce(nonce2);
+    assertFalse(account1 == account2, "addressForNonce: Should return different addresses for different nonces");
   }
 
   // ================================
