@@ -107,6 +107,15 @@ contract GovernanceFactoryTest is TestSetup {
   //
   // ❌ Negative Tests
   //
+  function test_createGovernance_whenCallerOwner_shouldNotDeployMoreContractsThanExpected() public i_setUp {
+    vm.prank(owner);
+    _createGovernance();
+
+    // Confirm that no more contracts than expected have been deployed
+    uint256 nonce = vm.getNonce(address(factory));
+    assertEq(nonce, 12);
+  }
+
   function test_createGovernance_whenCallerNotOwner_shouldRevert() public i_setUp {
     vm.expectRevert("Ownable: caller is not the owner");
     _createGovernance();
