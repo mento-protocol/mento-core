@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase
+// solhint-disable func-name-mixedcase, max-line-length
 
 import { TestSetup } from "./TestSetup.sol";
 import { TestLocking } from "../utils/TestLocking.sol";
 import { MockGnosisSafeProxyFactory } from "../mocks/MockGnosisSafeProxyFactory.sol";
-
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
-
-// solhint-disable-next-line max-line-length
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { GovernanceFactoryHarness } from "./GovernanceFactoryHarness.t.sol";
 import { GnosisSafe } from "safe-contracts/GnosisSafe.sol";
@@ -28,9 +24,9 @@ contract GovernanceFactoryTest is TestSetup {
 
   bytes32 public airgrabMerkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809; // Mock root
 
-  // TODO: Document why this is necessary
-  // If we take this out, there'll be underflow errors, supposedly linked to some signature being
-  // valid only at a certain time and requiring some buffer
+  // If we started at block 0, getWeek() would return 0 and
+  // the following line would revert with an underflow:
+  // https://github.com/mento-protocol/mento-core/blob/2075c83f3b90465f988195dd746c9992614001bc/contracts/governance/GovernanceFactory.sol#L201
   function setUp() public {
     skip(30 days);
     vm.roll(30 * BLOCKS_DAY);
