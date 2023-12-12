@@ -5,7 +5,7 @@ pragma solidity 0.8.18;
 import { BaseTest } from "../utils/BaseTest.next.sol";
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 
-contract GovernanceFactoryTest is BaseTest {
+contract GovernanceFactoryForkTest is BaseTest {
   string public constant NETWORK_CELO_RPC = "celo_mainnet";
   string public constant NETWORK_ALFAJORES_RPC = "alfajores";
 
