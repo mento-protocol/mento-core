@@ -128,7 +128,7 @@ contract GovernanceFactoryTest is TestSetup {
   // ========================================
   // Upgradeability Test: Locking
   // ========================================
-  function test_createGovernance_upgradeable_lockingShouldBeUpgradeable() public i_setUp {
+  function test_createGovernance_lockingShouldBeUpgradeable() public i_setUp {
     vm.prank(owner);
     _createGovernance();
 
@@ -158,7 +158,7 @@ contract GovernanceFactoryTest is TestSetup {
   // ========================================
   // Upgradeability Test: TimelockController
   // ========================================
-  function test_createGovernance_upgradeable_timelockControllerShouldBeUpgradeable() public i_setUp {
+  function test_createGovernance_timelockControllerShouldBeUpgradeable() public i_setUp {
     vm.prank(owner);
     _createGovernance();
 
@@ -188,7 +188,7 @@ contract GovernanceFactoryTest is TestSetup {
   // ==================================
   // Upgradeability Test: MentoGovernor
   // ==================================
-  function test_createGovernance_upgradeable_mentoGovernorShouldBeUpgradeable() public i_setUp {
+  function test_createGovernance_mentoGovernorShouldBeUpgradeable() public i_setUp {
     vm.prank(owner);
     _createGovernance();
 
@@ -218,7 +218,7 @@ contract GovernanceFactoryTest is TestSetup {
   // ========================================
   // Upgradeability Test: Mento Labs Treasury
   // ========================================
-  function test_createGovernance_upgradeable_mentoLabsTreasuryShouldBeUpgradeable() public i_setUp {
+  function test_createGovernance_mentoLabsTreasuryShouldBeUpgradeable() public i_setUp {
     vm.prank(owner);
     _createGovernance();
 
@@ -248,7 +248,7 @@ contract GovernanceFactoryTest is TestSetup {
   // ========================================
   // Upgradeability Test: Immutable Contracts
   // ========================================
-  function test_createGovernance_upgradeable_otherContractsShouldBeImmutable() public i_setUp {
+  function test_createGovernance_otherContractsShouldBeImmutable() public i_setUp {
     vm.prank(owner);
     _createGovernance();
 
