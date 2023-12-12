@@ -34,6 +34,14 @@ contract EmissionTest is TestSetup {
     assertEq(emission.emissionStartTime(), 1);
   }
 
+  function test_constructor_shouldSetEmissionToken() public {
+    assertEq(address(emission.mentoToken()), address(mentoToken));
+  }
+
+  function test_constructor_shouldSetEmissionTarget() public {
+    assertEq(emission.emissionTarget(), emissionTarget);
+  }
+
   function test_setEmissionTarget_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     emission.setEmissionTarget(emissionTarget);
