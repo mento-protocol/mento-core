@@ -76,8 +76,8 @@ contract GovernanceFactory is Ownable {
   uint256 public constant GOVERNANCE_TIMELOCK_DELAY = 2 days;
 
   // Governor configuration
-  uint256 public constant GOVERNOR_VOTING_DELAY = 1; // Voting start the next block
-  uint256 public constant GOVERNOR_VOTING_PERIOD = 120_960; // Voting period for the governor (7 days in blocks CELO)
+  uint256 public constant GOVERNOR_VOTING_DELAY = 1; // Delay time in blocks between proposal creation and the start of voting.
+  uint256 public constant GOVERNOR_VOTING_PERIOD = 120_960; // Voting period in blocks for the governor (7 days in blocks CELO)
   uint256 public constant GOVERNOR_PROPOSAL_THRESHOLD = 1_000e18;
   uint256 public constant GOVERNOR_QUORUM = 2; // Quorum percentage for the governor
 
@@ -85,10 +85,12 @@ contract GovernanceFactory is Ownable {
   // TODO: Discuss value, 7 days (gov) + 2 days (gov timelock) + 2 days? (buffer)
   uint256 public constant MENTOLABS_TREASURY_TIMELOCK_DELAY = 11 days;
 
-  /// @notice Creates the factory with the owner address
-  /// @param owner_ Address of the owner, Celo governance
-  /// @param gnosisSafeSingleton_ Address of the Gnosis Safe singleton
-  /// @param gnosisSafeProxyFactory_ Address of the Gnosis Safe proxy factory
+  /**
+   * @notice Creates the factory with the owner address
+   * @param owner_ Address of the owner, Celo governance
+   * @param gnosisSafeSingleton_ Address of the Gnosis Safe singleton
+   * @param gnosisSafeProxyFactory_ Address of the Gnosis Safe proxy factory
+   */
   constructor(
     address owner_,
     address gnosisSafeSingleton_,
@@ -99,12 +101,14 @@ contract GovernanceFactory is Ownable {
     gnosisSafeProxyFactory = GnosisSafeProxyFactory(gnosisSafeProxyFactory_);
   }
 
-  /// @notice Creates and initializes the governance system contracts
-  /// @param mentolabsVestingMultisig_ Address of the multisig from where current allocation will be vested
-  /// @param watchdogMultisig_ Address of the community's multisig wallet with the veto rights
-  /// @param airgrabRoot Root hash for the airgrab Merkle tree
-  /// @param fractalSigner Signer of fractal kyc
-  /// @dev This can only be called by the owner and only once
+  /**
+   * @notice Creates and initializes the governance system contracts
+   * @param mentolabsVestingMultisig_ Address of the multisig from where current allocation will be vested
+   * @param watchdogMultisig_ Address of the community's multisig wallet with the veto rights
+   * @param airgrabRoot Root hash for the airgrab Merkle tree
+   * @param fractalSigner Signer of fractal kyc
+   * @dev This can only be called by the owner and only once
+   */
   // solhint-disable-next-line function-max-lines
   function createGovernance(
     address mentolabsVestingMultisig_,
@@ -196,11 +200,10 @@ contract GovernanceFactory is Ownable {
       address(proxyAdmin),
       abi.encodeWithSelector(
         lockingImpl.__Locking_init.selector,
-        address(mentoToken),
-        // we start the locking contract from week 1 with min slope duration of 1
-        uint32(Locking(lockingImpl).getWeek() - 1),
-        0,
-        1
+        address(mentoToken), ///                        @param _token The ERC-20 token to be locked in exchange for voting power.
+        uint32(Locking(lockingImpl).getWeek() - 1), /// @param _startingPointWeek The locking epoch start in weeks. We start the locking contract from week 1 with min slope duration of 1
+        0, ///                                          @param _minCliffPeriod minimum cliff period in weeks.
+        1 ///                                           @param _minSlopPeriod minimum slope period in weeks.
       )
     );
     locking = Locking(address(lockingProxy));
@@ -220,11 +223,11 @@ contract GovernanceFactory is Ownable {
       address(proxyAdmin),
       abi.encodeWithSelector(
         timelockControllerImpl.__MentoTimelockController_init.selector,
-        GOVERNANCE_TIMELOCK_DELAY,
-        proposers,
-        executors,
-        address(0), // no admin, other roles are preset
-        watchdogMultisig
+        GOVERNANCE_TIMELOCK_DELAY, /// @param minDelay The minimum delay before a proposal can be executed.
+        proposers, ///                 @param proposers List of addresses that are allowed to queue and cancel operations.
+        executors, ///                 @param executors List of addresses that are allowed to execute proposals. 0 can be used to allow any account.
+        address(0), ///                @param admin No admin necessary as proposers are preset upon deployment.
+        watchdogMultisig ///           @param canceller The community multisig that will have the rights to cancel awaiting proposals.
       )
     );
     timelockController = TimelockController(payable(timelockControllerProxy));
@@ -239,12 +242,12 @@ contract GovernanceFactory is Ownable {
       address(proxyAdmin),
       abi.encodeWithSelector(
         mentoGovernorImpl.__MentoGovernor_init.selector,
-        address(lockingProxy),
-        timelockControllerProxy,
-        GOVERNOR_VOTING_DELAY,
-        GOVERNOR_VOTING_PERIOD,
-        GOVERNOR_PROPOSAL_THRESHOLD,
-        GOVERNOR_QUORUM
+        address(lockingProxy), ///       @param veToken The escrowed Mento Token used for voting.
+        timelockControllerProxy, ///     @param timelockController The timelock controller used by the governor.
+        GOVERNOR_VOTING_DELAY, ///       @param votingDelay_ The delay time in blocks between the proposal creation and the start of voting.
+        GOVERNOR_VOTING_PERIOD, ///      @param votingPeriod_ The voting duration in blocks between the vote start and vote end.
+        GOVERNOR_PROPOSAL_THRESHOLD, /// @param threshold_ The number of votes required in order for a voter to become a proposer.
+        GOVERNOR_QUORUM ///              @param quorum_ The minimum number of votes in percent of total supply required in order for a proposal to succeed.
       )
     );
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
@@ -268,16 +271,18 @@ contract GovernanceFactory is Ownable {
       address(proxyAdmin),
       abi.encodeWithSelector(
         timelockControllerImpl.__MentoTimelockController_init.selector,
-        MENTOLABS_TREASURY_TIMELOCK_DELAY,
-        treasuryProposers,
-        treasuryExecutors,
-        address(0), // no admin, other roles are preset
-        timelockController
+        MENTOLABS_TREASURY_TIMELOCK_DELAY, /// @param minDelay The minimum delay before a proposal can be executed.
+        treasuryProposers, ///                 @param proposers List of addresses that are allowed to queue and cancel operations.
+        treasuryExecutors, ///                 @param executors List of addresses that are allowed to execute proposals. 0 can be used to allow any account.
+        address(0), ///                        @param admin No admin necessary as proposers are preset upon deployment.
+        timelockController ///                 @param canceller The community multisig that will have the rights to cancel awaiting proposals.
       )
     );
     mentolabsTreasury = TimelockController(payable(mltreasuryTimelockControllerProxy));
 
-    // ============= Configure ownership ================
+    // =============================================
+    // =========== Configure Ownership =============
+    // =============================================
     emission.transferOwnership(address(timelockController));
     locking.transferOwnership(address(timelockController));
     proxyAdmin.transferOwnership(address(timelockController));
