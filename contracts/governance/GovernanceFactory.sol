@@ -82,8 +82,7 @@ contract GovernanceFactory is Ownable {
   uint256 public constant GOVERNOR_QUORUM = 2; // Quorum percentage for the governor
 
   // MentoLabs Treasury Timelock configuration
-  // TODO: Discuss value, 7 days (gov) + 2 days (gov timelock) + 2 days? (buffer)
-  uint256 public constant MENTOLABS_TREASURY_TIMELOCK_DELAY = 11 days;
+  uint256 public constant MENTOLABS_TREASURY_TIMELOCK_DELAY = 13 days; // 7 days (gov voting period) + 2 days (gov timelock) + 4 days (buffer)
 
   /**
    * @notice Creates the factory with the owner address
