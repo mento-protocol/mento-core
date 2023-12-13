@@ -76,7 +76,7 @@ contract GovernanceFactory is Ownable {
   uint256 public constant GOVERNANCE_TIMELOCK_DELAY = 2 days;
 
   // Governor configuration
-  uint256 public constant GOVERNOR_VOTING_DELAY = 1; // Delay time in blocks between proposal creation and the start of voting.
+  uint256 public constant GOVERNOR_VOTING_DELAY = 0; // Delay time in blocks between proposal creation and the start of voting.
   uint256 public constant GOVERNOR_VOTING_PERIOD = 120_960; // Voting period in blocks for the governor (7 days in blocks CELO)
   uint256 public constant GOVERNOR_PROPOSAL_THRESHOLD = 1_000e18;
   uint256 public constant GOVERNOR_QUORUM = 2; // Quorum percentage for the governor
