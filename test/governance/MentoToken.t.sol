@@ -8,38 +8,41 @@ import { MentoToken } from "contracts/governance/MentoToken.sol";
 contract MentoTokenTest is TestSetup {
   MentoToken public mentoToken;
 
-  address public vestingContract = makeAddr("vestingContract");
-  address public mentoMultisig = makeAddr("mentoMultisig");
-  address public airgrabContract = makeAddr("airgrabContract");
-  address public treasuryContract = makeAddr("treasuryContract");
-  address public emissionContract = makeAddr("emissionContract");
+  address public mentoLabsMultiSig = makeAddr("mentoLabsMultiSig");
+  address public mentoLabsTreasuryTimelock = makeAddr("mentoLabsTreasuryTimelock");
+  address public airgrab = makeAddr("airgrab");
+  address public governanceTimelock = makeAddr("governanceTimelock");
+  address public emission = makeAddr("emission");
 
   function setUp() public {
-    mentoToken = new MentoToken(vestingContract, mentoMultisig, airgrabContract, treasuryContract, emissionContract);
+    mentoToken = new MentoToken(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, governanceTimelock, emission);
   }
 
   /// @dev Test the state initialization post-construction of the MentoToken contract.
   function test_constructor_shouldSetCorrectState() public {
-    assertEq(mentoToken.emissionContract(), emissionContract);
+    assertEq(mentoToken.emission(), emission);
     assertEq(mentoToken.emissionSupply(), EMISSION_SUPPLY);
     assertEq(mentoToken.emittedAmount(), 0);
   }
 
   /// @dev Test the correct token amounts are minted to respective contracts during initialization.
   function test_constructor_shouldMintCorrectAmounts() public {
-    uint256 vestingAmount = mentoToken.balanceOf(vestingContract);
-    uint256 multisigAmount = mentoToken.balanceOf(mentoMultisig);
-    uint256 airgrabAmount = mentoToken.balanceOf(airgrabContract);
-    uint256 treasuryAmount = mentoToken.balanceOf(treasuryContract);
-    uint256 emissionAmount = mentoToken.balanceOf(emissionContract);
+    uint256 mentoLabsMultiSigSupply = mentoToken.balanceOf(mentoLabsMultiSig);
+    uint256 mentoLabsTreasurySupply = mentoToken.balanceOf(mentoLabsTreasuryTimelock);
+    uint256 airgrabSupply = mentoToken.balanceOf(airgrab);
+    uint256 governanceTimelockSupply = mentoToken.balanceOf(governanceTimelock);
+    uint256 emissionSupply = mentoToken.balanceOf(emission);
 
-    assertEq(vestingAmount, 80_000_000 * 1e18);
-    assertEq(multisigAmount, 120_000_000 * 1e18);
-    assertEq(airgrabAmount, 50_000_000 * 1e18);
-    assertEq(treasuryAmount, 100_000_000 * 1e18);
-    assertEq(emissionAmount, 0);
+    assertEq(mentoLabsMultiSigSupply, 80_000_000 * 1e18);
+    assertEq(mentoLabsTreasurySupply, 120_000_000 * 1e18);
+    assertEq(airgrabSupply, 50_000_000 * 1e18);
+    assertEq(governanceTimelockSupply, 100_000_000 * 1e18);
+    assertEq(emissionSupply, 0);
 
-    assertEq(vestingAmount + multisigAmount + airgrabAmount + treasuryAmount + emissionAmount, INITIAL_TOTAL_SUPPLY);
+    assertEq(
+      mentoLabsMultiSigSupply + mentoLabsTreasurySupply + airgrabSupply + governanceTimelockSupply + emissionSupply,
+      INITIAL_TOTAL_SUPPLY
+    );
     assertEq(mentoToken.totalSupply(), INITIAL_TOTAL_SUPPLY);
   }
 
@@ -111,7 +114,7 @@ contract MentoTokenTest is TestSetup {
   function test_mint_whenAmountBiggerThanEmissionSupply_shouldRevert() public {
     uint256 mintAmount = 10e18;
 
-    vm.startPrank(emissionContract);
+    vm.startPrank(emission);
 
     vm.expectRevert("MentoToken: emission supply exceeded");
     mentoToken.mint(alice, EMISSION_SUPPLY + 1);
@@ -132,7 +135,7 @@ contract MentoTokenTest is TestSetup {
   function test_mint_whenEmissionSupplyNotExceeded_shouldEmitTokens() public {
     uint256 mintAmount = 10e18;
 
-    vm.startPrank(emissionContract);
+    vm.startPrank(emission);
     mentoToken.mint(alice, mintAmount);
 
     assertEq(mentoToken.balanceOf(alice), mintAmount);

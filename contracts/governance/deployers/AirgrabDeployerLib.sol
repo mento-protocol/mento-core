@@ -15,8 +15,8 @@ library AirgrabDeployerLib {
    * @param airgrabLockSlope The slope duration for the airgrabed tokens in weeks
    * @param token_ The token address in the airgrab.
    * @param locking_ The locking contract for veToken.
-   * @param treasury_ The treasury address where the tokens will be refunded.
-   * @return The address of the new Airgrab contract
+   * @param communityFund_ The community fund address where unclaimed tokens will be refunded to.
+   * @return Airgrab The address of the new Airgrab contract
    */
   function deploy(
     bytes32 airgrabRoot,
@@ -27,7 +27,7 @@ library AirgrabDeployerLib {
     uint32 airgrabLockSlope,
     address token_,
     address locking_,
-    address payable treasury_
+    address payable communityFund_
   ) external returns (Airgrab) {
     return
       new Airgrab(
@@ -39,7 +39,7 @@ library AirgrabDeployerLib {
         airgrabLockSlope,
         token_,
         locking_,
-        treasury_
+        communityFund_
       );
   }
 }

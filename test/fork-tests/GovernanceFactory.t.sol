@@ -15,14 +15,11 @@ contract GovernanceFactoryForkTest is BaseTest {
   }
 
   function test_createGovernance() public {
-    GovernanceFactory factory = new GovernanceFactory(
-      address(this),
-      0x69f4D1788e39c87893C980c06EdF4b7f686e2938,
-      0xC22834581EbC8527d974F8a1c97E1bEA4EF910BC
-    );
+    GovernanceFactory factory = new GovernanceFactory(address(this));
     factory.createGovernance(
-      makeAddr("MentoLabsVestingMultisig"),
-      makeAddr("WatchdogMultisig"),
+      makeAddr("MentoLabsMultiSig"),
+      makeAddr("WatchdogMultiSig"),
+      makeAddr("CommunityFund"),
       keccak256(abi.encodePacked("FakeRoot")),
       makeAddr("FractalSigner")
     );

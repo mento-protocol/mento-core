@@ -38,7 +38,7 @@ contract AirgrabTest is Test {
   Airgrab public airgrab;
   ERC20 public token;
 
-  address payable public treasury = payable(makeAddr("Treasury"));
+  address payable public communityFund = payable(makeAddr("CommunityFund"));
   address public fractalSigner;
   uint256 public fractalSignerPk;
   uint256 public otherSignerPk;
@@ -87,7 +87,7 @@ contract AirgrabTest is Test {
       slopePeriod,
       tokenAddress,
       locking,
-      treasury
+      communityFund
     );
   }
 
@@ -113,7 +113,7 @@ contract AirgrabTest is Test {
     assertEq(airgrab.slopePeriod(), slopePeriod);
     assertEq(address(airgrab.token()), tokenAddress);
     assertEq(address(airgrab.locking()), locking);
-    assertEq(address(airgrab.treasury()), treasury);
+    assertEq(address(airgrab.communityFund()), communityFund);
   }
 
   /// @notice Checks the merke root
@@ -158,10 +158,10 @@ contract AirgrabTest is Test {
     c_subject();
   }
 
-  /// @notice Checks the treasury address
-  function test_Constructor_whenInvalidTreasury_reverts() public {
-    treasury = payable(address(0));
-    vm.expectRevert("Airgrab: invalid treasury");
+  /// @notice Checks the community fund address
+  function test_Constructor_whenInvalidjommunityFund_reverts() public {
+    communityFund = payable(address(0));
+    vm.expectRevert("Airgrab: invalid community fund");
     c_subject();
   }
 
@@ -206,18 +206,18 @@ contract AirgrabTest is Test {
     airgrab.drain(tokenAddress);
   }
 
-  /// @notice Drains all tokens to the treasury if the airgrab has ended
+  /// @notice Drains all tokens to the community fund if the airgrab has ended
   function test_Drain_drains() public d_setUp {
     vm.warp(airgrab.endTimestamp() + 1);
     deal(tokenAddress, address(airgrab), 100e18);
     vm.expectEmit(true, true, true, true);
     emit TokensDrained(tokenAddress, 100e18);
     airgrab.drain(tokenAddress);
-    assertEq(token.balanceOf(treasury), 100e18);
+    assertEq(token.balanceOf(communityFund), 100e18);
     assertEq(token.balanceOf(address(airgrab)), 0);
   }
 
-  /// @notice Drains all arbitrary tokens to the treasury if the airgrab has ended
+  /// @notice Drains all arbitrary tokens to the community fund if the airgrab has ended
   function test_Drain_drainsOtherTokens() public d_setUp {
     ERC20 otherToken = new ERC20("Other Token", "OTT");
 
@@ -228,7 +228,7 @@ contract AirgrabTest is Test {
     emit TokensDrained(address(otherToken), 100e18);
     airgrab.drain(address(otherToken));
 
-    assertEq(otherToken.balanceOf(treasury), 100e18);
+    assertEq(otherToken.balanceOf(communityFund), 100e18);
     assertEq(otherToken.balanceOf(address(airgrab)), 0);
   }
 

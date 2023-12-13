@@ -4,22 +4,19 @@ pragma solidity 0.8.18;
 
 import { TestSetup } from "./TestSetup.sol";
 import { TestLocking } from "../utils/TestLocking.sol";
-import { MockGnosisSafeProxyFactory } from "../mocks/MockGnosisSafeProxyFactory.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { GovernanceFactoryHarness } from "./GovernanceFactoryHarness.t.sol";
-import { GnosisSafe } from "safe-contracts/GnosisSafe.sol";
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
 
 contract GovernanceFactoryTest is TestSetup {
   GovernanceFactoryHarness public factory;
-  MockGnosisSafeProxyFactory public gnosisSafeProxyFactory;
 
-  address public communityMultisig = makeAddr("CommunityMultisig");
-  address public mentolabsVestingMultisig = makeAddr("MentoLabsVestingMultisig");
-  address public treasuryContract = makeAddr("TreasuryContract");
+  address public mentoLabsMultiSig = makeAddr("MentoLabsVestingMultisig");
+  address public watchdogMultiSig = makeAddr("CommunityMultisig");
+  address public communityFund = makeAddr("CommunityFund");
   address public fractalSigner = makeAddr("FractalSigner");
 
   bytes32 public airgrabMerkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809; // Mock root
@@ -33,15 +30,11 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function _newFactory() internal {
-    factory = new GovernanceFactoryHarness(owner, address(0), address(gnosisSafeProxyFactory));
-  }
-
-  function _newMockGnosisSafeProxyFactory() internal {
-    gnosisSafeProxyFactory = new MockGnosisSafeProxyFactory();
+    factory = new GovernanceFactoryHarness(owner);
   }
 
   function _createGovernance() internal {
-    factory.createGovernance(mentolabsVestingMultisig, communityMultisig, airgrabMerkleRoot, fractalSigner);
+    factory.createGovernance(mentoLabsMultiSig, watchdogMultiSig, communityFund, airgrabMerkleRoot, fractalSigner);
   }
 
   // ========================================
@@ -59,18 +52,11 @@ contract GovernanceFactoryTest is TestSetup {
     assertEq(address(factory.owner()), owner);
   }
 
-  // Can't test gnosisSafeProxyFactory state variable because it's private
-  // function test_constructor_setsGnosisSafeProxyFactory() public { }
-
-  // Can't test gnosisSafeSingleton state variable because it's private
-  // function test_constructor_setsGnosisSafeSingleton() public { }
-
   // ========================================
   // GovernanceFactory.createGovernance
   // ========================================
   /// @notice setup for initialize tests
   modifier i_setUp() {
-    _newMockGnosisSafeProxyFactory();
     _newFactory();
     _;
   }
@@ -88,17 +74,16 @@ contract GovernanceFactoryTest is TestSetup {
     assertFalse(address(factory.mentoToken()) == address(0), "MentoToken not deployed");
     assertFalse(address(factory.airgrab()) == address(0), "Airgrab not deployed");
     assertFalse(address(factory.locking()) == address(0), "Locking not deployed");
-    assertFalse(address(factory.timelockController()) == address(0), "TimelockController not deployed");
+    assertFalse(address(factory.governanceTimelock()) == address(0), "TimelockController not deployed");
     assertFalse(address(factory.mentoGovernor()) == address(0), "MentoGovernor not deployed");
-    assertFalse(address(factory.treasury()) == address(0), "Treasury not deployed");
-    assertFalse(address(factory.mentolabsTreasury()) == address(0), "Mento Labs Treasury not deployed");
+    assertFalse(address(factory.mentoLabsTreasuryTimelock()) == address(0), "Mento Labs Treasury not deployed");
   }
 
   function test_createGovernance_shouldTransferOwnershipToTimelockController() public i_setUp {
     vm.prank(owner);
     _createGovernance();
 
-    address timelock = address(factory.timelockController());
+    address timelock = address(factory.governanceTimelock());
     assertEq(factory.emission().owner(), timelock);
     assertEq(factory.locking().owner(), timelock);
     assertEq(factory.proxyAdmin().owner(), timelock);
@@ -153,7 +138,7 @@ contract GovernanceFactoryTest is TestSetup {
 
     // deploy and upgrade to new implementation
     TestLocking newImplContract = new TestLocking();
-    vm.prank(address(factory.timelockController()));
+    vm.prank(address(factory.governanceTimelock()));
     proxyAdmin.upgrade(proxy, address(newImplContract));
 
     address newImpl = proxyAdmin.getProxyImplementation(proxy);
@@ -162,36 +147,36 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   // ========================================
-  // Upgradeability Test: TimelockController
+  // Upgradeability Test: Governance Timelock
   // ========================================
-  function test_createGovernance_timelockControllerShouldBeUpgradeable() public i_setUp {
+  function test_createGovernance_governanceTimelockShouldBeUpgradeable() public i_setUp {
     vm.prank(owner);
     _createGovernance();
 
     ProxyAdmin proxyAdmin = factory.proxyAdmin();
-    ITransparentUpgradeableProxy proxy = ITransparentUpgradeableProxy(address(factory.timelockController()));
+    ITransparentUpgradeableProxy proxy = ITransparentUpgradeableProxy(address(factory.governanceTimelock()));
 
     assertEq(
       proxyAdmin.getProxyAdmin(proxy),
       address(factory.proxyAdmin()),
-      "Factory: timelockControllerProxy should have a proxyAdmin"
+      "Factory: governanceTimelock should have a proxyAdmin"
     );
 
     // we can cheat and calculate the address of the implementation contract via addressForNonce()
     address precalculatedAddress = factory.exposed_addressForNonce(7);
     address initialImpl = proxyAdmin.getProxyImplementation(proxy);
-    assertEq(initialImpl, precalculatedAddress, "Factory: timelockControllerProxy should have an implementation");
+    assertEq(initialImpl, precalculatedAddress, "Factory: governanceTimelockProxy should have an implementation");
 
     // deploy and upgrade to new implementation
     TimelockController newImplContract = new TimelockController();
-    vm.prank(address(factory.timelockController()));
+    vm.prank(address(factory.governanceTimelock()));
     proxyAdmin.upgrade(proxy, address(newImplContract));
 
     address newImpl = proxyAdmin.getProxyImplementation(proxy);
-    assertFalse(initialImpl == newImpl, "Factory: timelockControllerProxy should have a new implementation");
+    assertFalse(initialImpl == newImpl, "Factory: governanceTimelockProxy should have a new implementation");
     assertTrue(
       newImpl == address(newImplContract),
-      "Factory: timelockControllerProxy implementation should equal newImpl"
+      "Factory: governanceTimelockProxy implementation should equal newImpl"
     );
   }
 
@@ -218,7 +203,7 @@ contract GovernanceFactoryTest is TestSetup {
 
     // deploy and upgrade to new implementation
     MentoGovernor newImplContract = new MentoGovernor();
-    vm.prank(address(factory.timelockController()));
+    vm.prank(address(factory.governanceTimelock()));
     proxyAdmin.upgrade(proxy, address(newImplContract));
 
     address newImpl = proxyAdmin.getProxyImplementation(proxy);
@@ -234,29 +219,29 @@ contract GovernanceFactoryTest is TestSetup {
     _createGovernance();
 
     ProxyAdmin proxyAdmin = factory.proxyAdmin();
-    ITransparentUpgradeableProxy proxy = ITransparentUpgradeableProxy(address(factory.mentolabsTreasury()));
+    ITransparentUpgradeableProxy proxy = ITransparentUpgradeableProxy(address(factory.mentoLabsTreasuryTimelock()));
 
     assertEq(
       proxyAdmin.getProxyAdmin(proxy),
       address(factory.proxyAdmin()),
-      "Factory: mentolabsTreasuryProxy should have a proxyAdmin"
+      "Factory: mentoLabsTreasuryProxy should have a proxyAdmin"
     );
 
     // we can cheat and calculate the address of the implementation contract via addressForNonce()
     address precalculatedAddress = factory.exposed_addressForNonce(7);
     address initialImpl = proxyAdmin.getProxyImplementation(proxy);
-    assertEq(initialImpl, precalculatedAddress, "Factory: mentolabsTreasuryProxy should have an implementation");
+    assertEq(initialImpl, precalculatedAddress, "Factory: mentoLabsTreasuryProxy should have an implementation");
 
     // deploy and upgrade to new implementation
     TimelockController newImplContract = new TimelockController();
-    vm.prank(address(factory.timelockController()));
+    vm.prank(address(factory.governanceTimelock()));
     proxyAdmin.upgrade(proxy, address(newImplContract));
 
     address newImpl = proxyAdmin.getProxyImplementation(proxy);
-    assertFalse(initialImpl == newImpl, "Factory: mentolabsTreasuryProxy should have a new implementation");
+    assertFalse(initialImpl == newImpl, "Factory: mentoLabsTreasuryProxy should have a new implementation");
     assertTrue(
       newImpl == address(newImplContract),
-      "Factory: mentolabsTreasuryProxy implementation should equal newImpl"
+      "Factory: mentoLabsTreasuryProxy implementation should equal newImpl"
     );
   }
 
@@ -280,34 +265,6 @@ contract GovernanceFactoryTest is TestSetup {
     ITransparentUpgradeableProxy airgrabNotAProxy = ITransparentUpgradeableProxy(address(factory.airgrab()));
     vm.expectRevert();
     proxyAdmin.getProxyAdmin(airgrabNotAProxy);
-
-    ITransparentUpgradeableProxy treasuryNotAProxy = ITransparentUpgradeableProxy(address(factory.treasury()));
-    vm.expectRevert();
-    proxyAdmin.getProxyAdmin(treasuryNotAProxy);
-  }
-
-  // ===========================================
-  // GovernanceFactory.calculateSafeProxyAddress
-  // ===========================================
-  function test_calculateSafeProxyAddress() public i_setUp {
-    vm.prank(owner);
-    _createGovernance();
-    address[] memory owners = new address[](1);
-    bytes memory treasuryInitializer = abi.encodeWithSelector(
-      GnosisSafe.setup.selector,
-      owners,
-      1,
-      address(0),
-      "",
-      address(0),
-      address(0),
-      0,
-      address(0)
-    );
-
-    uint256 saltNonce = uint256(keccak256(abi.encodePacked("mentolabsTreasury")));
-    address result = factory.exposed_calculateSafeProxyAddress(treasuryInitializer, saltNonce);
-    assertEq(address(factory.treasury()), result, "calculateSafeProxyAddress: Should return correct address");
   }
 
   // ==================================
@@ -331,14 +288,5 @@ contract GovernanceFactoryTest is TestSetup {
     address account1 = factory.exposed_addressForNonce(nonce1);
     address account2 = factory.exposed_addressForNonce(nonce2);
     assertFalse(account1 == account2, "addressForNonce: Should return different addresses for different nonces");
-  }
-
-  // ================================
-  // GovernanceFactory.bytesToAddress
-  // ================================
-  function test_bytesToAddress() public i_setUp {
-    address expectedAddress = 0x742d35Cc6634C0532925a3b844Bc454e4438f44e;
-    bytes memory data = abi.encodePacked(expectedAddress);
-    assertEq(factory.exposed_bytesToAddress(data), expectedAddress, "bytesToAddress: Should return correct address");
   }
 }

@@ -13,6 +13,3 @@
 [submodule "lib/forge-std-next"]
 	path = lib/forge-std-next
 	url = https://github.com/foundry-rs/forge-std
-[submodule "lib/safe-contracts"]
-	path = lib/safe-contracts
-	url = https://github.com/safe-global/safe-contracts

@@ -27,6 +27,10 @@ contract MentoGovernor is
    * @notice Initializes the MentoGovernor with voting, settings, compatibility, and timelock configurations.
    * @param veToken The escrowed Mento Token used for voting.
    * @param timelockController The timelock controller used by the governor.
+   * @param votingDelay_ The delay time in blocks between the proposal creation and the start of voting.
+   * @param votingPeriod_ The voting duration in blocks between the vote start and vote end.
+   * @param threshold_ The number of votes required in order for a voter to become a proposer.
+   * @param quorum_ The minimum number of votes in percent of total supply required in order for a proposal to succeed.
    */
   // solhint-disable-next-line func-name-mixedcase
   function __MentoGovernor_init(
