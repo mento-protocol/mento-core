@@ -217,9 +217,9 @@ contract Airgrab is ReentrancyGuard {
 
   /**
    * @dev Allows the community fund to reclaim any tokens after the airgrab has ended.
-   * @notice This function can only be called if the airgrab has ended.
-   * The function takes a token as a param in case the contract has been sent
-   * tokens other than the airgrab token.
+   * @notice This function can only be called after the airgrab has ended.
+   * @param tokenToDrain Token is parameterized in case the contract has been sent
+   *  tokens other than the airgrab token.
    */
   function drain(address tokenToDrain) external nonReentrant {
     // slither-disable-next-line timestamp
