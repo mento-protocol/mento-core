@@ -15,7 +15,7 @@ contract GovernanceFactoryTest is TestSetup {
   GovernanceFactoryHarness public factory;
 
   address public mentoLabsMultiSig = makeAddr("MentoLabsVestingMultisig");
-  address public watchdogMultiSig = makeAddr("CommunityMultisig");
+  address public watchdogMultiSig = makeAddr("WatchdogMultisig");
   address public communityFund = makeAddr("CommunityFund");
   address public fractalSigner = makeAddr("FractalSigner");
 
@@ -79,14 +79,14 @@ contract GovernanceFactoryTest is TestSetup {
     assertFalse(address(factory.mentoLabsTreasuryTimelock()) == address(0), "Mento Labs Treasury not deployed");
   }
 
-  function test_createGovernance_shouldTransferOwnershipToTimelockController() public i_setUp {
+  function test_createGovernance_shouldTransferOwnershipToGovernanceTimelock() public i_setUp {
     vm.prank(owner);
     _createGovernance();
 
-    address timelock = address(factory.governanceTimelock());
-    assertEq(factory.emission().owner(), timelock);
-    assertEq(factory.locking().owner(), timelock);
-    assertEq(factory.proxyAdmin().owner(), timelock);
+    address governanceTimelock = address(factory.governanceTimelock());
+    assertEq(factory.emission().owner(), governanceTimelock);
+    assertEq(factory.locking().owner(), governanceTimelock);
+    assertEq(factory.proxyAdmin().owner(), governanceTimelock);
   }
 
   //
@@ -96,9 +96,8 @@ contract GovernanceFactoryTest is TestSetup {
     vm.prank(owner);
     _createGovernance();
 
-    // Confirm that no more contracts than expected have been deployed
     uint256 nonce = vm.getNonce(address(factory));
-    assertEq(nonce, 12);
+    assertEq(nonce, 12); // Confirms that no more contracts than the expected 11 have been deployed
   }
 
   function test_createGovernance_whenCallerNotOwner_shouldRevert() public i_setUp {
