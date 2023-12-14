@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
-import { ERC20Burnable } from "openzeppelin-contracts-next/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import { ERC20Burnable, ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 /**
  * @title Mento Token
  * @author Mento Labs
  * @notice This contract represents the Mento Protocol Token which is a Burnable ERC20 token.
  */
-contract MentoToken is ERC20, ERC20Burnable {
+contract MentoToken is ERC20Burnable {
   /// @notice The address of the emission contract that has the capability to emit new tokens.
   address public immutable emission;
 
