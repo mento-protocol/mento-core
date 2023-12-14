@@ -43,7 +43,7 @@ contract AirgrabTest is Test {
   uint256 public fractalSignerPk;
   uint256 public otherSignerPk;
   uint256 public fractalMaxAge = 15724800; // ~6 months
-  address public locking = makeAddr("LockingContract");
+  address public locking = makeAddr("Locking");
   address public tokenAddress;
 
   bytes32 public merkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809;

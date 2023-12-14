@@ -21,7 +21,7 @@ contract GovernanceFactoryTest is TestSetup {
 
   bytes32 public airgrabMerkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809; // Mock root
 
-  // If we started at block 0, getWeek() would return 0 and
+  // If we started at block 0, Locking.getWeek() would return 0 and
   // the following line would revert with an underflow:
   // https://github.com/mento-protocol/mento-core/blob/2075c83f3b90465f988195dd746c9992614001bc/contracts/governance/GovernanceFactory.sol#L201
   function setUp() public {
