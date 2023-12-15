@@ -4,3 +4,4 @@ forge-std/=lib/celo-foundry/lib/forge-std/src/
 ds-test/=lib/celo-foundry/lib/forge-std/lib/ds-test/src/
 test/=test/
 contracts/=contracts/
+safe-contracts/=lib/safe-contracts/
