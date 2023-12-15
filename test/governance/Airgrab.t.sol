@@ -159,7 +159,7 @@ contract AirgrabTest is Test {
   }
 
   /// @notice Checks the community fund address
-  function test_Constructor_whenInvalidjommunityFund_reverts() public {
+  function test_Constructor_whenInvalidCommunityFund_reverts() public {
     communityFund = payable(address(0));
     vm.expectRevert("Airgrab: invalid community fund");
     c_subject();
