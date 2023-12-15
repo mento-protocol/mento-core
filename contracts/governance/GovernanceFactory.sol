@@ -21,7 +21,6 @@ import { TransparentUpgradeableProxy } from "openzeppelin-contracts-next/contrac
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
-import { IVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
 /**
