@@ -612,7 +612,7 @@ contract GovernanceIntegrationTest is TestSetup {
     proposalId = mentoGovernor.propose(targets, values, calldatas, description);
   }
 
-  function test_vestingContract_execute_whenEnoughSignatures_shouldTransferFunds() public {
+  function test_mlMultiSig_execute_whenEnoughSignatures_shouldTransferFunds() public {
     assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 80_000_000 * 10**18);
 
     // sign a gnosis safe transaction to transfer tokens from the multisig to the governanceTimelock
@@ -762,6 +762,129 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(mentoToken.balanceOf(address(governanceTimelock)), 110_000_000 * 10**18);
   }
 
+  function test_mlTreasury_cancel_whenCalledByGovernance_shouldCancelOperation() public {
+    bytes memory transferCallData = abi.encodeWithSelector(
+      mentoToken.transfer.selector,
+      governanceTimelock,
+      10_000_000e18
+    );
+    // sign a gnosis safe transaction to transfer tokens from the multisig to the governanceTimelock
+    bytes memory scheduleCallData = abi.encodeWithSelector(
+      mentoLabsTreasury.schedule.selector,
+      address(mentoToken),
+      0,
+      transferCallData,
+      0,
+      keccak256(bytes("Transfer tokens to governanceTimelock")),
+      14 days
+    );
+
+    bytes memory txHashData = mentoLabsMultisig.encodeTransactionData(
+      address(mentoLabsTreasury),
+      0,
+      scheduleCallData,
+      Enum.Operation.Call,
+      0, // safeTxGas
+      0, // baseGas
+      0, // gasPrice
+      address(0), // gasToken
+      payable(address(0)), // refundReceiver
+      0
+    );
+
+    bytes32 txHash = keccak256(txHashData);
+
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
+    bytes memory signature0 = constructSignature(v, r, s);
+
+    (v, r, s) = vm.sign(mentoPK1, txHash);
+    bytes memory signature1 = constructSignature(v, r, s);
+
+    (v, r, s) = vm.sign(mentoPK2, txHash);
+    bytes memory signature2 = constructSignature(v, r, s);
+
+    bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
+
+    mentoLabsMultisig.execTransaction(
+      address(mentoLabsTreasury),
+      0,
+      scheduleCallData,
+      Enum.Operation.Call,
+      0, // safeTxGas
+      0, // baseGas
+      0, // gasPrice
+      address(0), // gasToken
+      payable(address(0)), // refundReceiver
+      signatures
+    );
+
+    bytes32 id = mentoLabsTreasury.hashOperation(
+      address(mentoToken),
+      0,
+      transferCallData,
+      0,
+      keccak256(bytes("Transfer tokens to governanceTimelock"))
+    );
+
+    timeTravel(2 * BLOCKS_DAY);
+
+    vm.prank(governanceTimelock);
+    mentoToken.transfer(alice, 10_000e18);
+
+    vm.prank(governanceTimelock);
+    mentoToken.transfer(bob, 10_000e18);
+    // Alice locks for max cliff
+    vm.prank(alice);
+    locking.lock(alice, alice, 2000e18, 1, 103);
+
+    // Bob locks a small amount for max cliff
+    vm.prank(bob);
+    locking.lock(bob, bob, 1500e18, 1, 103);
+
+    timeTravel(BLOCKS_DAY);
+
+    vm.prank(alice);
+    (
+      uint256 proposalId,
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      string memory description
+    ) = proposeCancelQueuedTx(id);
+
+    // ~10 mins
+    timeTravel(120);
+
+    // both claimers cast vote
+    vm.prank(alice);
+    mentoGovernor.castVote(proposalId, 1);
+
+    // majority of the votes are in favor
+    vm.prank(bob);
+    mentoGovernor.castVote(proposalId, 1);
+
+    timeTravel(7 * BLOCKS_DAY);
+
+    mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
+
+    timeTravel(2 * BLOCKS_DAY);
+
+    mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
+
+    timeTravel(5 * BLOCKS_DAY);
+
+    vm.expectRevert("TimelockController: operation is not ready");
+    mentoLabsTreasury.execute(
+      address(mentoToken),
+      0,
+      transferCallData,
+      0,
+      keccak256(bytes("Transfer tokens to governanceTimelock"))
+    );
+
+    assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 120_000_000 * 10**18);
+  }
+
   function constructSignature(
     uint8 v,
     bytes32 r,
@@ -815,6 +938,30 @@ contract GovernanceIntegrationTest is TestSetup {
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, signedMessageHash);
     return abi.encodePacked(r, s, v);
+  }
+
+  function proposeCancelQueuedTx(bytes32 id)
+    internal
+    returns (
+      uint256 proposalId,
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      string memory description
+    )
+  {
+    targets = new address[](1);
+    targets[0] = address(mentoLabsTreasury);
+
+    values = new uint256[](1);
+    values[0] = 0;
+
+    calldatas = new bytes[](1);
+    calldatas[0] = abi.encodeWithSelector(mentoLabsTreasury.cancel.selector, id);
+
+    description = "Cancel queued tx";
+
+    proposalId = mentoGovernor.propose(targets, values, calldatas, description);
   }
 
   /// @dev propose to change the emission target

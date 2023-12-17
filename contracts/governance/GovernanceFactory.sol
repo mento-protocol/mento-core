@@ -131,7 +131,7 @@ contract GovernanceFactory is Ownable {
     // =========================================
     // ========== Deploy 2: Emission ===========
     // =========================================
-    emission = EmissionDeployerLib.deploy(tokenPrecalculated, mentoLabsTreasuryPrecalculated); // NONCE:2
+    emission = EmissionDeployerLib.deploy(tokenPrecalculated, governanceTimelockPrecalculated); // NONCE:2
     assert(address(emission) == emissionPrecalculated);
 
     // ===========================================
