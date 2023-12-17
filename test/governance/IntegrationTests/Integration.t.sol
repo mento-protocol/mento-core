@@ -1,33 +1,32 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length
 
-import { TestSetup } from "./TestSetup.sol";
+import { TestSetup } from "../TestSetup.sol";
 
+import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
-import { Emission } from "contracts/governance/Emission.sol";
 import { Airgrab } from "contracts/governance/Airgrab.sol";
+import { Emission } from "contracts/governance/Emission.sol";
 import { Locking } from "contracts/governance/locking/Locking.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
-import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
+
+import { Proposals } from "./Proposals.sol";
+import { Utils } from "./Utils.sol";
 import { Arrays } from "test/utils/Arrays.sol";
+import { TestLocking } from "test/utils/TestLocking.sol";
 
-import { TestLocking } from "../utils/TestLocking.sol";
-
-import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
-import { Strings } from "openzeppelin-contracts-next/contracts/utils/Strings.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
-import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-
 import { GnosisSafe } from "safe-contracts/contracts/GnosisSafe.sol";
 import { GnosisSafeProxyFactory } from "safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
-import { GnosisSafeProxy } from "safe-contracts/contracts/proxies/GnosisSafeProxy.sol";
-
 import { Enum } from "safe-contracts/contracts/common/Enum.sol";
+
+import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
 import "forge-std/console2.sol";
 import "forge-std/console.sol";
 
-contract GovernanceIntegrationTest is TestSetup {
+contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
   GovernanceFactory public factory;
 
   ProxyAdmin public proxyAdmin;
@@ -206,7 +205,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertApproxEqAbs(locking.getVotes(alice), 300e18, negligibleAmount);
     assertApproxEqAbs(locking.getVotes(bob), 400e18, negligibleAmount);
 
-    timeTravel(13 * BLOCKS_WEEK);
+    Utils._timeTravel(13 * BLOCKS_WEEK);
 
     // Alice withdraws after ~3 months
     vm.prank(alice);
@@ -220,7 +219,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertApproxEqAbs(locking.getVotes(bob), 300e18, negligibleAmount);
     assertEq(mentoToken.balanceOf(bob), 0);
 
-    timeTravel(13 * BLOCKS_WEEK);
+    Utils._timeTravel(13 * BLOCKS_WEEK);
 
     // Bob relocks and delegates to alice
     vm.prank(bob);
@@ -230,7 +229,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertApproxEqAbs(locking.getVotes(alice), 300e18, negligibleAmount);
     assertEq(locking.getVotes(bob), 0);
 
-    timeTravel(13 * BLOCKS_WEEK);
+    Utils._timeTravel(13 * BLOCKS_WEEK);
 
     // Bob delegates the lock without relocking
     vm.prank(bob);
@@ -241,7 +240,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertApproxEqAbs(locking.getVotes(charlie), 150e18, negligibleAmount);
 
     // End of the locking period
-    timeTravel(13 * BLOCKS_WEEK);
+    Utils._timeTravel(13 * BLOCKS_WEEK);
 
     vm.prank(bob);
     locking.withdraw();
@@ -266,7 +265,7 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(bob);
     locking.lock(bob, bob, 1500e18, 1, 103);
 
-    timeTravel(BLOCKS_DAY);
+    Utils._timeTravel(BLOCKS_DAY);
 
     uint256 newVotingDelay = BLOCKS_DAY;
     uint256 newVotingPeriod = 2 * BLOCKS_WEEK;
@@ -283,7 +282,10 @@ contract GovernanceIntegrationTest is TestSetup {
       uint256[] memory values,
       bytes[] memory calldatas,
       string memory description
-    ) = proposeChangeSettings(
+    ) = Proposals._proposeChangeSettings(
+        mentoGovernor,
+        timelockController,
+        locking,
         newVotingDelay,
         newVotingPeriod,
         newThreshold,
@@ -294,7 +296,7 @@ contract GovernanceIntegrationTest is TestSetup {
       );
 
     // ~10 mins
-    timeTravel(120);
+    Utils._timeTravel(120);
 
     // both users cast vote, majority in favor
     vm.prank(alice);
@@ -304,12 +306,12 @@ contract GovernanceIntegrationTest is TestSetup {
     mentoGovernor.castVote(proposalId, 0);
 
     // voting period ends
-    timeTravel(BLOCKS_WEEK);
+    Utils._timeTravel(BLOCKS_WEEK);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
     // timelock ends
-    timeTravel(2 * BLOCKS_DAY);
+    Utils._timeTravel(2 * BLOCKS_DAY);
 
     // anyone can execute the proposal
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
@@ -326,7 +328,10 @@ contract GovernanceIntegrationTest is TestSetup {
     // Proposal reverts because new threshold is higher
     vm.prank(alice);
     vm.expectRevert("Governor: proposer votes below proposal threshold");
-    proposeChangeSettings(
+    Proposals._proposeChangeSettings(
+      mentoGovernor,
+      timelockController,
+      locking,
       newVotingDelay,
       newVotingPeriod,
       newThreshold,
@@ -346,7 +351,7 @@ contract GovernanceIntegrationTest is TestSetup {
     uint256 validUntil = block.timestamp + 60 days;
     uint256 approvedAt = block.timestamp - 10 days;
 
-    bytes memory fractalProof = validKycSignature(
+    bytes memory fractalProof = Utils._validKycSignature(
       fractalSignerPk,
       claimer0,
       EXPECTED_CREDENTIAL,
@@ -354,7 +359,7 @@ contract GovernanceIntegrationTest is TestSetup {
       approvedAt
     );
 
-    bytes memory fractalProof1 = validKycSignature(
+    bytes memory fractalProof1 = Utils._validKycSignature(
       fractalSignerPk,
       claimer1,
       EXPECTED_CREDENTIAL,
@@ -372,7 +377,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(locking.getVotes(claimer0), 60e18);
     assertEq(locking.getVotes(claimer1), 12_000e18);
 
-    timeTravel(BLOCKS_DAY);
+    Utils._timeTravel(BLOCKS_DAY);
 
     address newEmissionTarget = makeAddr("NewEmissionTarget");
 
@@ -385,14 +390,18 @@ contract GovernanceIntegrationTest is TestSetup {
       uint256[] memory values,
       bytes[] memory calldatas,
       string memory description
-    ) = proposeChangeEmissionTarget(newEmissionTarget);
+    ) = Proposals._proposeChangeEmissionTarget(mentoGovernor, emission, newEmissionTarget);
 
     // claimer 1 can propose
     vm.prank(claimer1);
-    (proposalId, targets, values, calldatas, description) = proposeChangeEmissionTarget(newEmissionTarget);
+    (proposalId, targets, values, calldatas, description) = Proposals._proposeChangeEmissionTarget(
+      mentoGovernor,
+      emission,
+      newEmissionTarget
+    );
 
     // ~10 mins
-    timeTravel(120);
+    Utils._timeTravel(120);
 
     // both claimers cast vote
     vm.prank(claimer0);
@@ -406,7 +415,7 @@ contract GovernanceIntegrationTest is TestSetup {
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
     // voting period ends
-    timeTravel(BLOCKS_WEEK);
+    Utils._timeTravel(BLOCKS_WEEK);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
@@ -414,7 +423,7 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.expectRevert("TimelockController: operation is not ready");
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
-    timeTravel(2 * BLOCKS_DAY);
+    Utils._timeTravel(2 * BLOCKS_DAY);
 
     assertEq(emission.emissionTarget(), governanceTimelock);
 
@@ -430,7 +439,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(mentoToken.balanceOf(governanceTimelock), 100_000_000e18);
 
     // emit tokens after a year
-    timeTravel(365 * BLOCKS_DAY);
+    Utils._timeTravel(365 * BLOCKS_DAY);
     uint256 amount = emission.emitTokens();
 
     assertEq(mentoToken.balanceOf(governanceTimelock), amount + 100_000_000e18);
@@ -455,7 +464,7 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(charlie);
     locking.lock(charlie, charlie, 5000e18, 30, 10);
 
-    timeTravel(1);
+    Utils._timeTravel(1);
 
     address newEmissionTarget = makeAddr("NewEmissionTarget");
 
@@ -467,10 +476,10 @@ contract GovernanceIntegrationTest is TestSetup {
       uint256[] memory values,
       bytes[] memory calldatas,
       string memory description
-    ) = proposeChangeEmissionTarget(newEmissionTarget);
+    ) = Proposals._proposeChangeEmissionTarget(mentoGovernor, emission, newEmissionTarget);
 
     // ~10 mins
-    timeTravel(120);
+    Utils._timeTravel(120);
 
     // majority votes in favor of the proposal
     vm.prank(alice);
@@ -482,12 +491,12 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(charlie);
     mentoGovernor.castVote(proposalId, 1);
 
-    timeTravel(BLOCKS_WEEK);
+    Utils._timeTravel(BLOCKS_WEEK);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
     // still time locked
-    timeTravel(BLOCKS_DAY);
+    Utils._timeTravel(BLOCKS_DAY);
 
     bytes32 timelockId = timelockController.hashOperationBatch(
       targets,
@@ -502,7 +511,7 @@ contract GovernanceIntegrationTest is TestSetup {
     timelockController.cancel(timelockId);
 
     // timelock delay is over
-    timeTravel(BLOCKS_DAY);
+    Utils._timeTravel(BLOCKS_DAY);
 
     // proposal can not be executed
     vm.expectRevert("Governor: proposal not successful");
@@ -523,12 +532,17 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(bob);
     locking.lock(bob, bob, 1500e18, 1, 103);
 
-    timeTravel(BLOCKS_DAY);
+    Utils._timeTravel(BLOCKS_DAY);
 
     TestLocking newLockingContract = new TestLocking();
     TimelockController newGovernonceTimelockContract = new TimelockController();
     MentoGovernor newGovernorContract = new MentoGovernor();
     TimelockController newMLTreasuryTimelockContract = new TimelockController();
+
+    ITransparentUpgradeableProxy proxy0 = ITransparentUpgradeableProxy(address(locking));
+    ITransparentUpgradeableProxy proxy1 = ITransparentUpgradeableProxy(address(timelockController));
+    ITransparentUpgradeableProxy proxy2 = ITransparentUpgradeableProxy(address(mentoGovernor));
+    ITransparentUpgradeableProxy proxy3 = ITransparentUpgradeableProxy(address(mentoLabsTreasury));
 
     vm.prank(alice);
     (
@@ -537,7 +551,13 @@ contract GovernanceIntegrationTest is TestSetup {
       uint256[] memory values,
       bytes[] memory calldatas,
       string memory description
-    ) = proposeUpgradeContracts(
+    ) = Proposals._proposeUpgradeContracts(
+        mentoGovernor,
+        proxyAdmin,
+        proxy0,
+        proxy1,
+        proxy2,
+        proxy3,
         address(newLockingContract),
         address(newGovernonceTimelockContract),
         address(newGovernorContract),
@@ -545,7 +565,7 @@ contract GovernanceIntegrationTest is TestSetup {
       );
 
     // ~10 mins
-    timeTravel(120);
+    Utils._timeTravel(120);
 
     // both claimers cast vote
     vm.prank(alice);
@@ -555,11 +575,11 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(bob);
     mentoGovernor.castVote(proposalId, 1);
 
-    timeTravel(7 * BLOCKS_DAY);
+    Utils._timeTravel(7 * BLOCKS_DAY);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
-    timeTravel(2 * BLOCKS_DAY);
+    Utils._timeTravel(2 * BLOCKS_DAY);
 
     vm.expectRevert();
     TestLocking(address(locking)).setEpochShift(1337);
@@ -567,49 +587,6 @@ contract GovernanceIntegrationTest is TestSetup {
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
     TestLocking(address(locking)).setEpochShift(1337);
-  }
-
-  function proposeUpgradeContracts(
-    address newLockingContract,
-    address newGovernonceTimelockContract,
-    address newGovernorContract,
-    address newMLTreasuryTimelockContract
-  )
-    internal
-    returns (
-      uint256 proposalId,
-      address[] memory targets,
-      uint256[] memory values,
-      bytes[] memory calldatas,
-      string memory description
-    )
-  {
-    ITransparentUpgradeableProxy proxy0 = ITransparentUpgradeableProxy(address(locking));
-    ITransparentUpgradeableProxy proxy1 = ITransparentUpgradeableProxy(address(timelockController));
-    ITransparentUpgradeableProxy proxy2 = ITransparentUpgradeableProxy(address(mentoGovernor));
-    ITransparentUpgradeableProxy proxy3 = ITransparentUpgradeableProxy(address(mentoLabsTreasury));
-
-    targets = new address[](4);
-    targets[0] = address(proxyAdmin);
-    targets[1] = address(proxyAdmin);
-    targets[2] = address(proxyAdmin);
-    targets[3] = address(proxyAdmin);
-
-    values = new uint256[](4);
-    values[0] = 0;
-    values[1] = 0;
-    values[2] = 0;
-    values[3] = 0;
-
-    calldatas = new bytes[](4);
-    calldatas[0] = abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy0, newLockingContract);
-    calldatas[1] = abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy1, newGovernonceTimelockContract);
-    calldatas[2] = abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy2, newGovernorContract);
-    calldatas[3] = abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy3, newMLTreasuryTimelockContract);
-
-    description = "Upgrade all upgradeable contracts";
-
-    proposalId = mentoGovernor.propose(targets, values, calldatas, description);
   }
 
   function test_mlMultiSig_execute_whenEnoughSignatures_shouldTransferFunds() public {
@@ -638,13 +615,13 @@ contract GovernanceIntegrationTest is TestSetup {
     bytes32 txHash = keccak256(txHashData);
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = constructSignature(v, r, s);
+    bytes memory signature0 = Utils._constructSignature(v, r, s);
 
     (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = constructSignature(v, r, s);
+    bytes memory signature1 = Utils._constructSignature(v, r, s);
 
     (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = constructSignature(v, r, s);
+    bytes memory signature2 = Utils._constructSignature(v, r, s);
 
     bytes memory signatures = abi.encodePacked(signature2);
 
@@ -714,13 +691,13 @@ contract GovernanceIntegrationTest is TestSetup {
     bytes32 txHash = keccak256(txHashData);
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = constructSignature(v, r, s);
+    bytes memory signature0 = Utils._constructSignature(v, r, s);
 
     (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = constructSignature(v, r, s);
+    bytes memory signature1 = Utils._constructSignature(v, r, s);
 
     (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = constructSignature(v, r, s);
+    bytes memory signature2 = Utils._constructSignature(v, r, s);
 
     bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
 
@@ -737,7 +714,7 @@ contract GovernanceIntegrationTest is TestSetup {
       signatures
     );
 
-    timeTravel(12 * BLOCKS_DAY);
+    Utils._timeTravel(12 * BLOCKS_DAY);
 
     vm.expectRevert("TimelockController: operation is not ready");
     mentoLabsTreasury.execute(
@@ -748,7 +725,7 @@ contract GovernanceIntegrationTest is TestSetup {
       keccak256(bytes("Transfer tokens to governanceTimelock"))
     );
 
-    timeTravel(2 * BLOCKS_DAY);
+    Utils._timeTravel(2 * BLOCKS_DAY);
 
     mentoLabsTreasury.execute(
       address(mentoToken),
@@ -795,13 +772,13 @@ contract GovernanceIntegrationTest is TestSetup {
     bytes32 txHash = keccak256(txHashData);
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = constructSignature(v, r, s);
+    bytes memory signature0 = Utils._constructSignature(v, r, s);
 
     (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = constructSignature(v, r, s);
+    bytes memory signature1 = Utils._constructSignature(v, r, s);
 
     (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = constructSignature(v, r, s);
+    bytes memory signature2 = Utils._constructSignature(v, r, s);
 
     bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
 
@@ -826,7 +803,7 @@ contract GovernanceIntegrationTest is TestSetup {
       keccak256(bytes("Transfer tokens to governanceTimelock"))
     );
 
-    timeTravel(2 * BLOCKS_DAY);
+    Utils._timeTravel(2 * BLOCKS_DAY);
 
     vm.prank(governanceTimelock);
     mentoToken.transfer(alice, 10_000e18);
@@ -841,7 +818,7 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(bob);
     locking.lock(bob, bob, 1500e18, 1, 103);
 
-    timeTravel(BLOCKS_DAY);
+    Utils._timeTravel(BLOCKS_DAY);
 
     vm.prank(alice);
     (
@@ -850,10 +827,10 @@ contract GovernanceIntegrationTest is TestSetup {
       uint256[] memory values,
       bytes[] memory calldatas,
       string memory description
-    ) = proposeCancelQueuedTx(id);
+    ) = Proposals._proposeCancelQueuedTx(mentoGovernor, mentoLabsTreasury, id);
 
     // ~10 mins
-    timeTravel(120);
+    Utils._timeTravel(120);
 
     // both claimers cast vote
     vm.prank(alice);
@@ -863,15 +840,15 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(bob);
     mentoGovernor.castVote(proposalId, 1);
 
-    timeTravel(7 * BLOCKS_DAY);
+    Utils._timeTravel(7 * BLOCKS_DAY);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
-    timeTravel(2 * BLOCKS_DAY);
+    Utils._timeTravel(2 * BLOCKS_DAY);
 
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
-    timeTravel(5 * BLOCKS_DAY);
+    Utils._timeTravel(5 * BLOCKS_DAY);
 
     vm.expectRevert("TimelockController: operation is not ready");
     mentoLabsTreasury.execute(
@@ -883,176 +860,5 @@ contract GovernanceIntegrationTest is TestSetup {
     );
 
     assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 120_000_000 * 10**18);
-  }
-
-  function constructSignature(
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) public pure returns (bytes memory signature) {
-    // Signature is 65 bytes long
-    signature = new bytes(65);
-
-    // Copy `r` into the first 32 bytes
-    assembly {
-      mstore(add(signature, 32), r)
-    }
-
-    // Copy `s` into the next 32 bytes
-    assembly {
-      mstore(add(signature, 64), s)
-    }
-
-    // Append `v` as the last byte
-    signature[64] = bytes1(v);
-
-    return signature;
-  }
-
-  /// @dev build the KYC message hash and sign it with the provided pk
-  /// @param signer The PK to sign the message with
-  /// @param account The account to sign the message for
-  /// @param credential KYC credentials
-  /// @param validUntil KYC valid until this ts
-  /// @param approvedAt KYC approved at this ts
-  function validKycSignature(
-    uint256 signer,
-    address account,
-    string memory credential,
-    uint256 validUntil,
-    uint256 approvedAt
-  ) internal pure returns (bytes memory) {
-    bytes32 signedMessageHash = ECDSA.toEthSignedMessageHash(
-      abi.encodePacked(
-        Strings.toHexString(uint256(uint160(account)), 20),
-        ";",
-        "fractalId",
-        ";",
-        Strings.toString(approvedAt),
-        ";",
-        Strings.toString(validUntil),
-        ";",
-        credential
-      )
-    );
-
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, signedMessageHash);
-    return abi.encodePacked(r, s, v);
-  }
-
-  function proposeCancelQueuedTx(bytes32 id)
-    internal
-    returns (
-      uint256 proposalId,
-      address[] memory targets,
-      uint256[] memory values,
-      bytes[] memory calldatas,
-      string memory description
-    )
-  {
-    targets = new address[](1);
-    targets[0] = address(mentoLabsTreasury);
-
-    values = new uint256[](1);
-    values[0] = 0;
-
-    calldatas = new bytes[](1);
-    calldatas[0] = abi.encodeWithSelector(mentoLabsTreasury.cancel.selector, id);
-
-    description = "Cancel queued tx";
-
-    proposalId = mentoGovernor.propose(targets, values, calldatas, description);
-  }
-
-  /// @dev propose to change the emission target
-  /// @param newTarget The new emission target address
-  function proposeChangeEmissionTarget(address newTarget)
-    internal
-    returns (
-      uint256 proposalId,
-      address[] memory targets,
-      uint256[] memory values,
-      bytes[] memory calldatas,
-      string memory description
-    )
-  {
-    targets = new address[](1);
-    targets[0] = address(emission);
-
-    values = new uint256[](1);
-    values[0] = 0;
-
-    calldatas = new bytes[](1);
-    calldatas[0] = abi.encodeWithSelector(emission.setEmissionTarget.selector, newTarget);
-
-    description = "Change emission target";
-
-    proposalId = mentoGovernor.propose(targets, values, calldatas, description);
-  }
-
-  /// @dev propose to change the governance settings
-  /// @param votingDelay The new voting delay
-  /// @param votingPeriod The new voting period
-  /// @param threshold The new threshold
-  /// @param quorum The new quorum
-  /// @param minDelay The new min delay
-  /// @param minCliff The new min cliff period
-  /// @param minSlope The new min slope period
-  function proposeChangeSettings(
-    uint256 votingDelay,
-    uint256 votingPeriod,
-    uint256 threshold,
-    uint256 quorum,
-    uint256 minDelay,
-    uint32 minCliff,
-    uint32 minSlope
-  )
-    internal
-    returns (
-      uint256 proposalId,
-      address[] memory targets,
-      uint256[] memory values,
-      bytes[] memory calldatas,
-      string memory description
-    )
-  {
-    targets = new address[](7);
-    targets[0] = address(mentoGovernor);
-    targets[1] = address(mentoGovernor);
-    targets[2] = address(mentoGovernor);
-    targets[3] = address(mentoGovernor);
-    targets[4] = address(timelockController);
-    targets[5] = address(locking);
-    targets[6] = address(locking);
-
-    values = new uint256[](7);
-    values[0] = 0;
-    values[1] = 0;
-    values[2] = 0;
-    values[3] = 0;
-    values[4] = 0;
-    values[5] = 0;
-    values[6] = 0;
-
-    calldatas = new bytes[](7);
-    calldatas[0] = abi.encodeWithSelector(mentoGovernor.setVotingDelay.selector, votingDelay);
-    calldatas[1] = abi.encodeWithSelector(mentoGovernor.setVotingPeriod.selector, votingPeriod);
-    calldatas[2] = abi.encodeWithSelector(mentoGovernor.setProposalThreshold.selector, threshold);
-    calldatas[3] = abi.encodeWithSelector(mentoGovernor.updateQuorumNumerator.selector, quorum);
-    calldatas[4] = abi.encodeWithSelector(timelockController.updateDelay.selector, minDelay);
-    calldatas[5] = abi.encodeWithSelector(locking.setMinCliffPeriod.selector, minCliff);
-    calldatas[6] = abi.encodeWithSelector(locking.setMinSlopePeriod.selector, minSlope);
-
-    description = "Change governance config";
-
-    proposalId = mentoGovernor.propose(targets, values, calldatas, description);
-  }
-
-  /// @dev moves block.number and block.timestamp in sync
-  /// @param blocks The number of blocks that will be moved
-  function timeTravel(uint256 blocks) internal {
-    uint256 time = blocks * 5;
-    vm.roll(block.number + blocks);
-    skip(time);
   }
 }
