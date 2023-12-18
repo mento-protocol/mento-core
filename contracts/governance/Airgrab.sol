@@ -17,9 +17,6 @@ import { ILocking } from "./locking/interfaces/ILocking.sol";
  * @notice This contract implements a token airgrab gated by a MerkleTree and KYC using fractal.
  * The airgrab also forces claimers to immediately lock their tokens as veTokens for a
  * predetermined period.
- * @dev The contract is only Ownable because of the circular dependency
- * between Token and Airgrab. We use the initialize method to set the token address
- * after the Token contract has been deployed, and renounce ownership.
  */
 contract Airgrab is ReentrancyGuard {
   using SafeERC20 for IERC20;
