@@ -151,7 +151,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertEq(airgrab.cliffPeriod(), 0);
     assertEq(address(airgrab.token()), address(mentoToken));
     assertEq(address(airgrab.locking()), address(locking));
-    assertEq(address(airgrab.communityFund()), address(communityFund));
+    assertEq(address(airgrab.celoCommunityFund()), address(communityFund));
 
     bytes32 proposerRole = governanceTimelock.PROPOSER_ROLE();
     bytes32 executorRole = governanceTimelock.EXECUTOR_ROLE();
