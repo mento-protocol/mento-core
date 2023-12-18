@@ -54,7 +54,7 @@ contract GovernanceFactory is Ownable {
 
   address public mentoLabsMultiSig;
   address public watchdogMultiSig;
-  address public communityFund;
+  address public celoCommunityFund;
 
   // Indicates if the governance system has been created
   bool public initialized;
@@ -89,8 +89,8 @@ contract GovernanceFactory is Ownable {
   /**
    * @notice Creates and initializes the governance system contracts
    * @param mentoLabsMultiSig_ Address of the Mento Labs multisig from where the team allocation will be vested
-   * @param watchdogMultiSig_ Address of the community's multisig wallet with the veto rights
-   * @param communityFund_ Address of the community fund that will receive the unclaimed airgrab tokens
+   * @param watchdogMultiSig_ Address of the Mento community's multisig wallet with the veto rights
+   * @param celoCommunityFund_ Address of the Celo community fund that will receive the unclaimed airgrab tokens
    * @param airgrabRoot Root hash for the airgrab Merkle tree
    * @param fractalSigner Signer of fractal kyc
    * @dev Can only be called by the owner and only once
@@ -99,7 +99,7 @@ contract GovernanceFactory is Ownable {
   function createGovernance(
     address mentoLabsMultiSig_,
     address watchdogMultiSig_,
-    address communityFund_,
+    address celoCommunityFund_,
     bytes32 airgrabRoot,
     address fractalSigner
   ) external onlyOwner {
@@ -108,7 +108,7 @@ contract GovernanceFactory is Ownable {
 
     mentoLabsMultiSig = mentoLabsMultiSig_;
     watchdogMultiSig = watchdogMultiSig_;
-    communityFund = communityFund_;
+    celoCommunityFund = celoCommunityFund_;
 
     // Precalculated contract addresses:
     address emissionPrecalculated = addressForNonce(2);
@@ -158,7 +158,7 @@ contract GovernanceFactory is Ownable {
       AIRGRAB_LOCK_SLOPE,
       tokenPrecalculated,
       lockingPrecalculated,
-      payable(communityFund)
+      payable(celoCommunityFund)
     );
     assert(address(airgrab) == airgrabPrecalculated);
 

@@ -16,7 +16,7 @@ contract GovernanceFactoryTest is TestSetup {
 
   address public mentoLabsMultiSig = makeAddr("MentoLabsVestingMultisig");
   address public watchdogMultiSig = makeAddr("WatchdogMultisig");
-  address public communityFund = makeAddr("CommunityFund");
+  address public celoCommunityFund = makeAddr("CeloCommunityFund");
   address public fractalSigner = makeAddr("FractalSigner");
 
   bytes32 public airgrabMerkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809; // Mock root
@@ -34,7 +34,7 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function _createGovernance() internal {
-    factory.createGovernance(mentoLabsMultiSig, watchdogMultiSig, communityFund, airgrabMerkleRoot, fractalSigner);
+    factory.createGovernance(mentoLabsMultiSig, watchdogMultiSig, celoCommunityFund, airgrabMerkleRoot, fractalSigner);
   }
 
   // ========================================

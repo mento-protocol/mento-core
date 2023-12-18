@@ -38,7 +38,7 @@ contract AirgrabTest is Test {
   Airgrab public airgrab;
   ERC20 public token;
 
-  address payable public communityFund = payable(makeAddr("CommunityFund"));
+  address payable public celoCommunityFund = payable(makeAddr("CeloCommunityFund"));
   address public fractalSigner;
   uint256 public fractalSignerPk;
   uint256 public otherSignerPk;
@@ -87,7 +87,7 @@ contract AirgrabTest is Test {
       slopePeriod,
       tokenAddress,
       locking,
-      communityFund
+      celoCommunityFund
     );
   }
 
@@ -113,7 +113,7 @@ contract AirgrabTest is Test {
     assertEq(airgrab.slopePeriod(), slopePeriod);
     assertEq(address(airgrab.token()), tokenAddress);
     assertEq(address(airgrab.locking()), locking);
-    assertEq(address(airgrab.communityFund()), communityFund);
+    assertEq(address(airgrab.celoCommunityFund()), celoCommunityFund);
   }
 
   /// @notice Checks the merke root
@@ -158,10 +158,10 @@ contract AirgrabTest is Test {
     c_subject();
   }
 
-  /// @notice Checks the community fund address
-  function test_Constructor_whenInvalidCommunityFund_reverts() public {
-    communityFund = payable(address(0));
-    vm.expectRevert("Airgrab: invalid community fund");
+  /// @notice Checks the Celo community fund address
+  function test_Constructor_whenInvalidCeloCommunityFund_reverts() public {
+    celoCommunityFund = payable(address(0));
+    vm.expectRevert("Airgrab: invalid celo community fund");
     c_subject();
   }
 
@@ -213,11 +213,11 @@ contract AirgrabTest is Test {
     vm.expectEmit(true, true, true, true);
     emit TokensDrained(tokenAddress, 100e18);
     airgrab.drain(tokenAddress);
-    assertEq(token.balanceOf(communityFund), 100e18);
+    assertEq(token.balanceOf(celoCommunityFund), 100e18);
     assertEq(token.balanceOf(address(airgrab)), 0);
   }
 
-  /// @notice Drains all arbitrary tokens to the community fund if the airgrab has ended
+  /// @notice Drains all arbitrary tokens to the Celo community fund if the airgrab has ended
   function test_Drain_drainsOtherTokens() public d_setUp {
     ERC20 otherToken = new ERC20("Other Token", "OTT");
 
@@ -228,7 +228,7 @@ contract AirgrabTest is Test {
     emit TokensDrained(address(otherToken), 100e18);
     airgrab.drain(address(otherToken));
 
-    assertEq(otherToken.balanceOf(communityFund), 100e18);
+    assertEq(otherToken.balanceOf(celoCommunityFund), 100e18);
     assertEq(otherToken.balanceOf(address(airgrab)), 0);
   }
 
