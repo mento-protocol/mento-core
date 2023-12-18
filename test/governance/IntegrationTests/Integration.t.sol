@@ -23,9 +23,6 @@ import { Enum } from "safe-contracts/contracts/common/Enum.sol";
 
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "forge-std/console2.sol";
-import "forge-std/console.sol";
-
 contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
   GovernanceFactory public factory;
 
@@ -843,6 +840,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       keccak256(bytes("Transfer tokens to governanceTimelockAddress"))
     );
 
+    // the balance is not updated
     assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 120_000_000 * 10**18);
   }
 }
