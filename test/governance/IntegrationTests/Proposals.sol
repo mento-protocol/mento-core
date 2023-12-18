@@ -12,8 +12,6 @@ import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contra
 import { Test } from "forge-std-next/Test.sol";
 
 contract Proposals is Test {
-  /// @dev propose to change the emission target
-  /// @param newTarget The new emission target address
   function _proposeChangeEmissionTarget(
     MentoGovernor mentoGovernor,
     Emission emission,
@@ -42,14 +40,6 @@ contract Proposals is Test {
     proposalId = mentoGovernor.propose(targets, values, calldatas, description);
   }
 
-  /// @dev propose to change the governance settings
-  /// @param votingDelay The new voting delay
-  /// @param votingPeriod The new voting period
-  /// @param threshold The new threshold
-  /// @param quorum The new quorum
-  /// @param minDelay The new min delay
-  /// @param minCliff The new min cliff period
-  /// @param minSlope The new min slope period
   function _proposeChangeSettings(
     MentoGovernor mentoGovernor,
     TimelockController timelockController,
