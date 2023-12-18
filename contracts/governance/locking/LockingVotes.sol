@@ -44,14 +44,18 @@ contract LockingVotes is LockingBase {
   /**
    * @dev Returns the delegate that `account` has chosen.
    */
-  function delegates(address account) external view override returns (address) {
+  function delegates(
+    address /* account */
+  ) external pure override returns (address) {
     revert("not implemented");
   }
 
   /**
    * @dev Delegates votes from the sender to `delegatee`.
    */
-  function delegate(address delegatee) external override {
+  function delegate(
+    address /* delegatee */
+  ) external pure override {
     revert("not implemented");
   }
 
@@ -59,13 +63,13 @@ contract LockingVotes is LockingBase {
    * @dev Delegates votes from signer to `delegatee`.
    */
   function delegateBySig(
-    address delegatee,
-    uint256 nonce,
-    uint256 expiry,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) external override {
+    address, // delegatee
+    uint256, // nonce
+    uint256, // expiry
+    uint8, // v
+    bytes32, // r
+    bytes32 // s
+  ) external pure override {
     revert("not implemented");
   }
 

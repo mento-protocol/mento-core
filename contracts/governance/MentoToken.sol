@@ -10,7 +10,7 @@ import { ERC20Burnable, ERC20 } from "openzeppelin-contracts-next/contracts/toke
  */
 contract MentoToken is ERC20Burnable {
   /// @notice The address of the emission contract that has the capability to emit new tokens.
-  address public immutable emissionContract;
+  address public immutable emission;
 
   /// @notice The total amount of tokens that can be minted by the emission contract.
   uint256 public immutable emissionSupply;
@@ -18,36 +18,38 @@ contract MentoToken is ERC20Burnable {
   /// @notice The total amount of tokens that have been minted by the emission contract so far.
   uint256 public emittedAmount;
 
+  // solhint-disable max-line-length
   /**
    * @dev Constructor for the MentoToken contract.
    * @notice It mints and allocates the initial token supply among several contracts.
-   * @param vestingContract The address of the vesting contract where 8% of the total supply will be sent.
-   * @param mentoMultisig The address of the mento multisig with a timelock where 12% of the total supply will be sent.
-   * @param airgrabContract The address of the airgrab contract where 5% of the total supply will be sent.
-   * @param treasuryContract The address of the treasury contract where 10% of the total supply will be sent.
-   * @param emissionContract_ The address of the emission contract where the rest of the supply will be emitted.
+   * @param mentoLabsMultiSig The address of the Mento Labs MultiSig where 8% of the total supply will be sent for vesting.
+   * @param mentoLabsTreasuryTimelock The address of the timelocked Mento Labs treasury where 12% of the total supply will be sent.
+   * @param airgrab The address of the airgrab contract where 5% of the total supply will be sent.
+   * @param governanceTimelock The address of the treasury contract where 10% of the total supply will be sent.
+   * @param emission_ The address of the emission contract where the rest of the supply will be emitted.
    */
+  // solhint-enable max-line-length
   constructor(
-    address vestingContract,
-    address mentoMultisig,
-    address airgrabContract,
-    address treasuryContract,
-    address emissionContract_
+    address mentoLabsMultiSig,
+    address mentoLabsTreasuryTimelock,
+    address airgrab,
+    address governanceTimelock,
+    address emission_
   ) ERC20("Mento Token", "MENTO") {
     uint256 supply = 1_000_000_000 * 10**decimals();
 
-    uint256 vestingSupply = (supply * 8) / 100;
-    uint256 multisigSupply = (supply * 12) / 100;
+    uint256 mentoLabsMultiSigSupply = (supply * 8) / 100;
+    uint256 mentoLabsTreasurySupply = (supply * 12) / 100;
     uint256 airgrabSupply = (supply * 5) / 100;
-    uint256 treasurySupply = (supply * 10) / 100;
+    uint256 governanceTimelockSupply = (supply * 10) / 100;
     uint256 emissionSupply_ = (supply * 65) / 100;
 
-    _mint(vestingContract, vestingSupply);
-    _mint(mentoMultisig, multisigSupply);
-    _mint(airgrabContract, airgrabSupply);
-    _mint(treasuryContract, treasurySupply);
+    _mint(mentoLabsMultiSig, mentoLabsMultiSigSupply);
+    _mint(mentoLabsTreasuryTimelock, mentoLabsTreasurySupply);
+    _mint(airgrab, airgrabSupply);
+    _mint(governanceTimelock, governanceTimelockSupply);
 
-    emissionContract = emissionContract_;
+    emission = emission_;
     emissionSupply = emissionSupply_;
   }
 
@@ -59,7 +61,7 @@ contract MentoToken is ERC20Burnable {
    * @param amount Amount of tokens to be minted.
    */
   function mint(address target, uint256 amount) external {
-    require(msg.sender == emissionContract, "MentoToken: only emission contract");
+    require(msg.sender == emission, "MentoToken: only emission contract");
     require(emittedAmount + amount <= emissionSupply, "MentoToken: emission supply exceeded");
 
     emittedAmount += amount;

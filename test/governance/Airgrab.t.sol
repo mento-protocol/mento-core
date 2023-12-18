@@ -38,12 +38,12 @@ contract AirgrabTest is Test {
   Airgrab public airgrab;
   ERC20 public token;
 
-  address payable public treasury = payable(makeAddr("Treasury"));
+  address payable public celoCommunityFund = payable(makeAddr("CeloCommunityFund"));
   address public fractalSigner;
   uint256 public fractalSignerPk;
   uint256 public otherSignerPk;
   uint256 public fractalMaxAge = 15724800; // ~6 months
-  address public lockingContract = makeAddr("LockingContract");
+  address public locking = makeAddr("Locking");
   address public tokenAddress;
 
   bytes32 public merkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809;
@@ -78,19 +78,23 @@ contract AirgrabTest is Test {
 
   /// @notice Create a new Airgrab, but don't initialize it.
   function newAirgrab() internal {
-    airgrab = new Airgrab(merkleRoot, fractalSigner, fractalMaxAge, endTimestamp, cliffPeriod, slopePeriod);
-  }
-
-  /// @notice Create and initialize an Airgrab.
-  function initAirgrab() internal {
-    newAirgrab();
-    airgrab.initialize(tokenAddress, lockingContract, treasury);
+    airgrab = new Airgrab(
+      merkleRoot,
+      fractalSigner,
+      fractalMaxAge,
+      endTimestamp,
+      cliffPeriod,
+      slopePeriod,
+      tokenAddress,
+      locking,
+      celoCommunityFund
+    );
   }
 
   // ========================================
   // Airgrab.constructor
   // ========================================
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+  event Approval(address indexed owner, address indexed spender, uint256 value);
 
   /// @notice Subject of the section: Airgrab constructor
   function c_subject() internal {
@@ -98,18 +102,18 @@ contract AirgrabTest is Test {
   }
 
   /// @notice Check that all parameters are set correctly during initialization
-  /// and that ownership is transferred to the caller.
   function test_Constructor_setsAttributes() public {
-    vm.expectEmit(true, true, true, true);
-    emit OwnershipTransferred(address(0), address(this));
     c_subject();
 
     assertEq(airgrab.root(), merkleRoot);
     assertEq(airgrab.fractalSigner(), fractalSigner);
-    assertEq(address(airgrab.token()), address(0));
-    assertEq(address(airgrab.owner()), address(this));
+    assertEq(airgrab.fractalMaxAge(), fractalMaxAge);
+    assertEq(airgrab.endTimestamp(), endTimestamp);
     assertEq(airgrab.cliffPeriod(), cliffPeriod);
     assertEq(airgrab.slopePeriod(), slopePeriod);
+    assertEq(address(airgrab.token()), tokenAddress);
+    assertEq(address(airgrab.locking()), locking);
+    assertEq(address(airgrab.celoCommunityFund()), celoCommunityFund);
   }
 
   /// @notice Checks the merke root
@@ -147,52 +151,35 @@ contract AirgrabTest is Test {
     c_subject();
   }
 
-  // ========================================
-  // Airgrab.initialize
-  // ========================================
-  event Approval(address indexed owner, address indexed spender, uint256 value);
-
-  /// @notice setup for initialize tests
-  modifier i_setUp() {
-    newAirgrab();
-    _;
-  }
-
-  /// @notice Test subject `initialize`
-  function i_subject() internal {
-    airgrab.initialize(tokenAddress, lockingContract, treasury);
-  }
-
   /// @notice Checks the token address
-  function test_Initialize_whenInvalidToken_reverts() public i_setUp {
+  function test_Constructor_whenInvalidToken_reverts() public {
     tokenAddress = address(0);
     vm.expectRevert("Airgrab: invalid token");
-    i_subject();
+    c_subject();
   }
 
-  /// @notice Renounces ownership and sets token
-  function test_Initialize_TransfersOwnershipAndSetsToken() public i_setUp {
-    vm.expectEmit(true, true, true, true);
-    emit OwnershipTransferred(address(this), address(0));
-    vm.expectEmit(true, true, true, true);
-    emit Approval(address(airgrab), lockingContract, type(uint256).max);
-    i_subject();
-    assertEq(address(airgrab.token()), tokenAddress);
-    assertEq(airgrab.owner(), address(0));
+  /// @notice Checks the Celo community fund address
+  function test_Constructor_whenInvalidCeloCommunityFund_reverts() public {
+    celoCommunityFund = payable(address(0));
+    vm.expectRevert("Airgrab: invalid celo community fund");
+    c_subject();
   }
 
-  /// @notice Reverts if called two times, because ownership is renounced
-  function test_Initialize_whenCalledTwice_reverts() public i_setUp {
-    i_subject();
-    vm.expectRevert("Ownable: caller is not the owner");
-    i_subject();
+  /// @notice Checks the locking contract address
+  function test_Constructor_whenInvalidLocking_reverts() public {
+    locking = payable(address(0));
+    vm.expectRevert("Airgrab: invalid locking");
+    c_subject();
   }
 
-  /// @notice Reverts if not the owner
-  function test_Initialize_whenCalledByNotOwner_reverts() public i_setUp {
-    vm.prank(address(1));
-    vm.expectRevert("Ownable: caller is not the owner");
-    i_subject();
+  /// @notice Sets approval for locking on token
+  function test_Constructor_SetsApprovalForToken() public {
+    // We're not matching the first argument because it's
+    // the airgrab address and that doesn't exist before
+    // the constructor is called.
+    vm.expectEmit(false, true, true, true);
+    emit Approval(address(0), locking, type(uint256).max);
+    c_subject();
   }
 
   // ========================================
@@ -202,7 +189,7 @@ contract AirgrabTest is Test {
 
   /// @notice setup for drain tests
   modifier d_setUp() {
-    initAirgrab();
+    newAirgrab();
     _;
   }
 
@@ -219,18 +206,18 @@ contract AirgrabTest is Test {
     airgrab.drain(tokenAddress);
   }
 
-  /// @notice Drains all tokens to the treasury if the airgrab has ended
+  /// @notice Drains all tokens to the community fund if the airgrab has ended
   function test_Drain_drains() public d_setUp {
     vm.warp(airgrab.endTimestamp() + 1);
     deal(tokenAddress, address(airgrab), 100e18);
     vm.expectEmit(true, true, true, true);
     emit TokensDrained(tokenAddress, 100e18);
     airgrab.drain(tokenAddress);
-    assertEq(token.balanceOf(treasury), 100e18);
+    assertEq(token.balanceOf(celoCommunityFund), 100e18);
     assertEq(token.balanceOf(address(airgrab)), 0);
   }
 
-  /// @notice Drains all arbitrary tokens to the treasury if the airgrab has ended
+  /// @notice Drains all arbitrary tokens to the Celo community fund if the airgrab has ended
   function test_Drain_drainsOtherTokens() public d_setUp {
     ERC20 otherToken = new ERC20("Other Token", "OTT");
 
@@ -241,7 +228,7 @@ contract AirgrabTest is Test {
     emit TokensDrained(address(otherToken), 100e18);
     airgrab.drain(address(otherToken));
 
-    assertEq(otherToken.balanceOf(treasury), 100e18);
+    assertEq(otherToken.balanceOf(celoCommunityFund), 100e18);
     assertEq(otherToken.balanceOf(address(airgrab)), 0);
   }
 
@@ -279,7 +266,7 @@ contract AirgrabTest is Test {
 
   /// @notice setup for claim tests
   modifier cl_setUp() {
-    initAirgrab();
+    newAirgrab();
 
     cl_params.account = claimer0;
     cl_params.amount = claimer0Amount;
@@ -334,7 +321,7 @@ contract AirgrabTest is Test {
   /// @notice mock the locking contract to return the provided voting power
   /// @param lockId The lockId of the veMento lock
   function mockLockReturns(uint256 lockId) internal {
-    vm.mockCall(lockingContract, abi.encodeWithSelector(ILocking(lockingContract).lock.selector), abi.encode(lockId));
+    vm.mockCall(locking, abi.encodeWithSelector(ILocking(locking).lock.selector), abi.encode(lockId));
   }
 
   // ========================================
@@ -434,9 +421,9 @@ contract AirgrabTest is Test {
     emit TokensClaimed(cl_params.account, cl_params.amount, 1);
 
     vm.expectCall(
-      lockingContract,
+      locking,
       abi.encodeWithSelector(
-        ILocking(lockingContract).lock.selector,
+        ILocking(locking).lock.selector,
         cl_params.account,
         cl_params.account,
         cl_params.amount,
@@ -456,9 +443,9 @@ contract AirgrabTest is Test {
     emit TokensClaimed(cl_params.account, cl_params.amount, 1);
 
     vm.expectCall(
-      lockingContract,
+      locking,
       abi.encodeWithSelector(
-        ILocking(lockingContract).lock.selector,
+        ILocking(locking).lock.selector,
         cl_params.account,
         cl_params.delegate,
         cl_params.amount,

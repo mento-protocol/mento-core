@@ -5,7 +5,6 @@ import { MerkleProof } from "openzeppelin-contracts-next/contracts/utils/cryptog
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
-import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { SignatureChecker } from "openzeppelin-contracts-next/contracts/utils/cryptography/SignatureChecker.sol";
 import { Strings } from "openzeppelin-contracts-next/contracts/utils/Strings.sol";
 import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
@@ -22,7 +21,7 @@ import { ILocking } from "./locking/interfaces/ILocking.sol";
  * between Token and Airgrab. We use the initialize method to set the token address
  * after the Token contract has been deployed, and renounce ownership.
  */
-contract Airgrab is Ownable, ReentrancyGuard {
+contract Airgrab is ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   uint32 public constant MAX_CLIFF_PERIOD = 103;
@@ -55,15 +54,16 @@ contract Airgrab is Ownable, ReentrancyGuard {
   uint32 public immutable slopePeriod;
   /// @notice The cliff period that the airgrab will be locked for.
   uint32 public immutable cliffPeriod;
+  /// @notice The token in the airgrab.
+  IERC20 public immutable token;
+  /// @notice The locking contract for veToken.
+  ILocking public immutable locking;
+  /// @notice The Celo community fund address where unclaimed tokens will be refunded to.
+  address payable public immutable celoCommunityFund;
 
   /// @notice The map of addresses that have claimed
   mapping(address => bool) public claimed;
-  /// @notice The token in the airgrab.
-  IERC20 public token;
-  /// @notice The locking contract for veToken.
-  ILocking public lockingContract;
-  /// @notice The treasury address where the tokens will be refunded.
-  address payable public treasury;
+
   /**
    * @dev Check if the account has a valid kyc signature.
    * See: https://docs.developer.fractal.id/fractal-credentials-api
@@ -142,6 +142,9 @@ contract Airgrab is Ownable, ReentrancyGuard {
    * @param endTimestamp_ The timestamp when the airgrab ends.
    * @param cliffPeriod_ The cliff period that the airgrab will be locked for.
    * @param slopePeriod_ The slope period that the airgrab will be locked for.
+   * @param token_ The token address in the airgrab.
+   * @param locking_ The locking contract for veToken.
+   * @param celoCommunityFund_ The Celo community fund address where unclaimed tokens will be refunded to.
    */
   constructor(
     bytes32 root_,
@@ -149,7 +152,10 @@ contract Airgrab is Ownable, ReentrancyGuard {
     uint256 fractalMaxAge_,
     uint256 endTimestamp_,
     uint32 cliffPeriod_,
-    uint32 slopePeriod_
+    uint32 slopePeriod_,
+    address token_,
+    address locking_,
+    address payable celoCommunityFund_
   ) {
     require(root_ != bytes32(0), "Airgrab: invalid root");
     require(fractalSigner_ != address(0), "Airgrab: invalid fractal issuer");
@@ -157,6 +163,9 @@ contract Airgrab is Ownable, ReentrancyGuard {
     require(endTimestamp_ > block.timestamp, "Airgrab: invalid end timestamp");
     require(cliffPeriod_ <= MAX_CLIFF_PERIOD, "Airgrab: cliff period too large");
     require(slopePeriod_ <= MAX_SLOPE_PERIOD, "Airgrab: slope period too large");
+    require(token_ != address(0), "Airgrab: invalid token");
+    require(locking_ != address(0), "Airgrab: invalid locking");
+    require(celoCommunityFund_ != address(0), "Airgrab: invalid celo community fund");
 
     root = root_;
     fractalSigner = fractalSigner_;
@@ -164,32 +173,11 @@ contract Airgrab is Ownable, ReentrancyGuard {
     endTimestamp = endTimestamp_;
     cliffPeriod = cliffPeriod_;
     slopePeriod = slopePeriod_;
-  }
-
-  /**
-   * @dev Initializer for setting the token address, will be called
-   * immediately during deployment, but is intended only as a workaround
-   * for the circular dependency between Token and Airgrab.
-   * @notice Sets the token address, gives infinite approval to the locking contract
-   * and renounces ownership.
-   * @param token_ The token in the airgrab.
-   */
-  function initialize(
-    address token_,
-    address lockingContract_,
-    address treasury_
-  ) external onlyOwner {
-    require(token_ != address(0), "Airgrab: invalid token");
-    require(lockingContract_ != address(0), "Airgrab: invalid locking contract");
-    require(treasury_ != address(0), "Airgrab: invalid treasury");
-
-    renounceOwnership();
-
     token = IERC20(token_);
-    lockingContract = ILocking(lockingContract_);
-    treasury = payable(treasury_);
+    locking = ILocking(locking_);
+    celoCommunityFund = celoCommunityFund_;
 
-    require(token.approve(lockingContract_, type(uint256).max), "Airgrab: approval failed");
+    require(token.approve(locking_, type(uint256).max), "Airgrab: approval failed");
   }
 
   /**
@@ -223,22 +211,22 @@ contract Airgrab is Ownable, ReentrancyGuard {
     require(token.balanceOf(address(this)) >= amount, "Airgrab: insufficient balance");
 
     claimed[msg.sender] = true;
-    uint256 lockId = lockingContract.lock(msg.sender, delegate, amount, slopePeriod, cliffPeriod);
+    uint256 lockId = locking.lock(msg.sender, delegate, amount, slopePeriod, cliffPeriod);
     emit TokensClaimed(msg.sender, amount, lockId);
   }
 
   /**
-   * @dev Allows the treasury to reclaim any tokens after the airgrab has ended.
-   * @notice This function can only be called if the airgrab has ended.
-   * The function takes a token as a param in case the contract has been sent
-   * tokens other than the airgrab token.
+   * @dev Allows the Celo community fund to reclaim any tokens after the airgrab has ended.
+   * @notice This function can only be called after the airgrab has ended.
+   * @param tokenToDrain Token is parameterized in case the contract has been sent
+   *  tokens other than the airgrab token.
    */
   function drain(address tokenToDrain) external nonReentrant {
     // slither-disable-next-line timestamp
     require(block.timestamp > endTimestamp, "Airgrab: not finished");
     uint256 balance = IERC20(tokenToDrain).balanceOf(address(this));
     require(balance > 0, "Airgrab: nothing to drain");
-    IERC20(tokenToDrain).safeTransfer(treasury, balance);
+    IERC20(tokenToDrain).safeTransfer(celoCommunityFund, balance);
     emit TokensDrained(tokenToDrain, balance);
   }
 }

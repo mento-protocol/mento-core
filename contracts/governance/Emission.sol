@@ -31,21 +31,18 @@ contract Emission is Ownable {
   /// @notice The cumulative amount of tokens that have been emitted so far.
   uint256 public totalEmittedAmount;
 
-  event TokenContractSet(address newTokenAddress);
   event EmissionTargetSet(address newTargetAddress);
   event TokensEmitted(address indexed target, uint256 amount);
 
-  constructor() {
-    emissionStartTime = block.timestamp;
-  }
-
   /**
-   * @notice Set the Mento Token contract address.
-   * @param mentoToken_ Address of the Mento Token contract.
+   * @notice Construct the Emission contract.
+   * @param mentoToken_ The address of the MentoToken contract.
+   * @param emissionTarget_ The address of the emission target.
    */
-  function setTokenContract(address mentoToken_) external onlyOwner {
+  constructor(address mentoToken_, address emissionTarget_) {
+    emissionStartTime = block.timestamp;
     mentoToken = MentoToken(mentoToken_);
-    emit TokenContractSet(mentoToken_);
+    emissionTarget = emissionTarget_;
   }
 
   /**

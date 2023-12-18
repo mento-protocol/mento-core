@@ -8,27 +8,27 @@ import { MockMentoToken } from "../../mocks/MockMentoToken.sol";
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
 contract Locking_Test is TestSetup {
-  TestLocking public lockingContract;
+  TestLocking public locking;
   MockMentoToken public mentoToken;
 
   uint32 public weekInBlocks;
 
   function setUp() public virtual {
     mentoToken = new MockMentoToken();
-    lockingContract = new TestLocking();
+    locking = new TestLocking();
 
     vm.prank(owner);
-    lockingContract.__Locking_init(IERC20Upgradeable(address(mentoToken)), 0, 0, 0);
+    locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), 0, 0, 0);
 
-    weekInBlocks = uint32(lockingContract.WEEK());
+    weekInBlocks = uint32(locking.WEEK());
 
     vm.prank(alice);
-    mentoToken.approve(address(lockingContract), type(uint256).max);
+    mentoToken.approve(address(locking), type(uint256).max);
 
     _incrementBlock(2 * weekInBlocks);
   }
 
   function _incrementBlock(uint32 _amount) internal {
-    lockingContract.incrementBlock(_amount);
+    locking.incrementBlock(_amount);
   }
 }

@@ -19,8 +19,11 @@ contract EmissionTest is TestSetup {
   event TokensEmitted(address indexed target, uint256 amount);
 
   function setUp() public {
+    mentoToken = new MockMentoToken();
+    emissionTarget = makeAddr("EmissionTarget");
+
     vm.prank(owner);
-    emission = new Emission();
+    emission = new Emission(address(mentoToken), emissionTarget);
   }
 
   function test_constructor_shouldSetOwner() public {
@@ -31,16 +34,12 @@ contract EmissionTest is TestSetup {
     assertEq(emission.emissionStartTime(), 1);
   }
 
-  function test_setToken_whenNotOwner_shouldRevert() public {
-    vm.expectRevert("Ownable: caller is not the owner");
-    emission.setTokenContract(address(mentoToken));
+  function test_constructor_shouldSetEmissionToken() public {
+    assertEq(address(emission.mentoToken()), address(mentoToken));
   }
 
-  function test_setToken_whenOwner_shouldSetTokenAddress() public {
-    vm.prank(owner);
-    emission.setTokenContract(address(mentoToken));
-
-    assertEq(address(emission.mentoToken()), address(mentoToken));
+  function test_constructor_shouldSetEmissionTarget() public {
+    assertEq(emission.emissionTarget(), emissionTarget);
   }
 
   function test_setEmissionTarget_whenNotOwner_shouldRevert() public {
@@ -49,10 +48,11 @@ contract EmissionTest is TestSetup {
   }
 
   function test_setEmissionTarget_whenOwner_shouldSetEmissionTargetAddress() public {
+    address otherEmissionTarget = makeAddr("OtherEmissionTarget");
     vm.prank(owner);
-    emission.setEmissionTarget(emissionTarget);
+    emission.setEmissionTarget(otherEmissionTarget);
 
-    assertEq(emission.emissionTarget(), emissionTarget);
+    assertEq(emission.emissionTarget(), otherEmissionTarget);
   }
 
   function test_transferOwnership_whenNotOwner_shouldRevert() public {
@@ -75,7 +75,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenAfter1Month_shouldMintCorrectAmountToTarget() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor1Month = 3_692_586_569039559708901376;
 
     vm.warp(MONTH);
@@ -86,7 +85,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenAfter6Months_shouldMintCorrectAmountToTarget() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor6Months = 21_843_234_315804553582215168;
 
     vm.warp(6 * MONTH);
@@ -97,7 +95,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenAfter1Year_shouldMintCorrectAmountToTarget() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor1Year = 43_528_555_600215261579313152;
 
     vm.warp(YEAR);
@@ -108,7 +105,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenAfter10Years_shouldMintCorrectAmountToTarget() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor10Years = 325_091_005_832242294004121600;
 
     vm.warp(10 * YEAR);
@@ -119,7 +115,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenAfter15Years_shouldMintCorrectAmountToTarget() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor15Years = 421_181_077_873262995273940992;
 
     vm.warp(15 * YEAR);
@@ -130,7 +125,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenAfter25Years_shouldMintCorrectAmountToTarget() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor25Years = 554_584_121_845194220594266112;
 
     vm.warp(25 * YEAR);
@@ -140,7 +134,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenAfter30Years_shouldMintCorrectAmountToTarget() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor30Years = 624_618_096_854971046875365376;
 
     vm.warp(30 * YEAR);
@@ -150,7 +143,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenAfter40Years_shouldMintCorrectAmountToTarget() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor40Years = EMISSION_SUPPLY;
 
     vm.warp(40 * YEAR);
@@ -160,8 +152,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_fuzz_emitTokens_shouldNotRevert(uint256 duration) public {
-    _setupEmissionContract();
-
     vm.assume(duration < 100 * YEAR);
     vm.assume(duration > 1 hours);
 
@@ -172,7 +162,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenMultipleEmits_shouldTakePreviousMintsIntoAccount() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor1Month = 3_692_586_569039559708901376;
     uint256 calculatedAmountFor1Year = 43_528_555_600215261579313152;
 
@@ -189,7 +178,6 @@ contract EmissionTest is TestSetup {
   }
 
   function test_emitTokens_whenMultipleEmitsWithShortIntervals_shouldEmitCorrectAmounts() public {
-    _setupEmissionContract();
     uint256 calculatedAmountFor1Hour = 5_143_195032781921976320;
     uint256 calculatedAmountFor2Hours = 10_286_349369339965079552;
     uint256 calculatedAmountFor3Hours = 15_429_463010223885123584;
@@ -217,8 +205,6 @@ contract EmissionTest is TestSetup {
     uint256 duration2,
     uint256 duration3
   ) public {
-    _setupEmissionContract();
-
     // using duration as days to avoid "cheatcode rejected too many inputs" error
     vm.assume(duration1 < 15 * 365);
     vm.assume(duration2 < 15 * 365);
@@ -241,15 +227,5 @@ contract EmissionTest is TestSetup {
 
     assertEq(totalEmitted, emission.totalEmittedAmount());
     assertEq(mentoToken.balanceOf(emissionTarget), totalEmitted);
-  }
-
-  function _setupEmissionContract() internal {
-    emissionTarget = makeAddr("EmissionTarget");
-    mentoToken = new MockMentoToken();
-
-    vm.startPrank(owner);
-    emission.setTokenContract(address(mentoToken));
-    emission.setEmissionTarget(emissionTarget);
-    vm.stopPrank();
   }
 }

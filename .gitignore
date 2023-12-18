@@ -14,6 +14,7 @@
 # files
 *.env
 *.log
+.dcignore
 .DS_Store
 .pnp.*
 .tool-versions
