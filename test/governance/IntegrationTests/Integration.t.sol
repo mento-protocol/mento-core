@@ -500,23 +500,6 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
   }
 
-  modifier s_governance() {
-    vm.prank(governanceTimelockAddress);
-    mentoToken.transfer(alice, 10_000e18);
-
-    vm.prank(governanceTimelockAddress);
-    mentoToken.transfer(bob, 10_000e18);
-
-    vm.prank(alice);
-    locking.lock(alice, alice, 2000e18, 1, 103);
-
-    vm.prank(bob);
-    locking.lock(bob, bob, 1500e18, 1, 103);
-
-    Utils._timeTravel(BLOCKS_DAY);
-    _;
-  }
-
   function test_governor_propose_whenExecutedForImplementationUpgrade_shouldUpgradeTheContracts() public s_governance {
     // create new implementations
     TestLocking newLockingContract = new TestLocking();
@@ -842,5 +825,22 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // the balance is not updated
     assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 120_000_000 * 10**18);
+  }
+
+  modifier s_governance() {
+    vm.prank(governanceTimelockAddress);
+    mentoToken.transfer(alice, 10_000e18);
+
+    vm.prank(governanceTimelockAddress);
+    mentoToken.transfer(bob, 10_000e18);
+
+    vm.prank(alice);
+    locking.lock(alice, alice, 2000e18, 1, 103);
+
+    vm.prank(bob);
+    locking.lock(bob, bob, 1500e18, 1, 103);
+
+    Utils._timeTravel(BLOCKS_DAY);
+    _;
   }
 }
