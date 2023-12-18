@@ -1,5 +1,5 @@
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase, max-line-length
+// solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
 import { TestSetup } from "../TestSetup.sol";
 

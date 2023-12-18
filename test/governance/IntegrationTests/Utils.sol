@@ -1,5 +1,5 @@
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase, max-line-length
+// solhint-disable func-name-mixedcase, max-line-length, no-inline-assembly
 
 import { Test } from "forge-std-next/Test.sol";
 import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
