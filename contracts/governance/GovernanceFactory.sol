@@ -60,8 +60,8 @@ contract GovernanceFactory is Ownable {
   bool public initialized;
 
   // Airgrab configuration
-  uint32 public constant AIRGRAB_LOCK_SLOPE = 104; // Slope duration for the airgrabed tokens in weeks
-  uint32 public constant AIRGRAB_LOCK_CLIFF = 0; // Cliff duration for the airgrabed tokens in weeks
+  uint32 public constant AIRGRAB_LOCK_SLOPE = 104; // Slope duration for the airgrabbed tokens in weeks
+  uint32 public constant AIRGRAB_LOCK_CLIFF = 0; // Cliff duration for the airgrabbed tokens in weeks
   uint256 public constant AIRGRAB_DURATION = 365 days;
   uint256 public constant FRACTAL_MAX_AGE = 180 days; // Maximum age of the kyc for the airgrab
 
