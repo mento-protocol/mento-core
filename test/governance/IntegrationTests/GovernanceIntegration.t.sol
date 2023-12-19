@@ -381,12 +381,14 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     vm.prank(claimer0);
     airgrab.claim(claimer0Amount, claimer0, claimer0Proof, fractalProof0, validUntil, approvedAt, "fractalId");
 
+    // claim with a delegate
     vm.prank(claimer1);
-    airgrab.claim(claimer1Amount, claimer1, claimer1Proof, fractalProof1, validUntil, approvedAt, "fractalId");
+    airgrab.claim(claimer1Amount, alice, claimer1Proof, fractalProof1, validUntil, approvedAt, "fractalId");
 
     // claimed amounts are locked automatically
     assertEq(locking.getVotes(claimer0), 60e18);
-    assertEq(locking.getVotes(claimer1), 12_000e18);
+    assertEq(locking.getVotes(claimer1), 0);
+    assertEq(locking.getVotes(alice), 12_000e18);
 
     Utils._timeTravel(BLOCKS_DAY);
 
@@ -397,8 +399,8 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     vm.prank(claimer0);
     Proposals._proposeChangeEmissionTarget(mentoGovernor, emission, newEmissionTarget);
 
-    // claimer 1 can propose
-    vm.prank(claimer1);
+    // delegate of  claimer1 can propose
+    vm.prank(alice);
     (
       uint256 proposalId,
       address[] memory targets,
@@ -410,12 +412,12 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     // ~10 mins
     Utils._timeTravel(120);
 
-    // both claimers cast vote
+    // both claimers and delegate cast vote
     vm.prank(claimer0);
     mentoGovernor.castVote(proposalId, 0);
 
     // majority of the votes are in favor
-    vm.prank(claimer1);
+    vm.prank(alice);
     mentoGovernor.castVote(proposalId, 1);
 
     // voting is still active, can not pre-queue
@@ -449,6 +451,9 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     // emit tokens after a year
     Utils._timeTravel(365 * BLOCKS_DAY);
     uint256 amount = emission.emitTokens();
+
+    assertEq(emission.totalEmittedAmount(), amount);
+    assertEq(mentoToken.emittedAmount(), emission.totalEmittedAmount());
 
     assertEq(mentoToken.balanceOf(governanceTimelockAddress), amount + 100_000_000e18);
 
@@ -851,5 +856,81 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // the balance is not updated
     assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 120_000_000 * 10**18);
+  }
+
+  function test_mentoLabsTreasury_schedule_whenNotCancelled_shouldUpdateRoles() public {
+    bytes32 proposerRole = mentoLabsTreasury.PROPOSER_ROLE();
+
+    // call data to change the proposer role
+    bytes memory proposerRoleCallData = abi.encodeWithSelector(
+      mentoLabsTreasury.grantRole.selector,
+      proposerRole,
+      alice
+    );
+
+    // call data to schedule the tx
+    bytes memory scheduleCallData = abi.encodeWithSelector(
+      mentoLabsTreasury.schedule.selector,
+      address(mentoLabsTreasury),
+      0,
+      proposerRoleCallData,
+      0,
+      keccak256(bytes("Transfer tokens to governanceTimelockAddress")),
+      13 days
+    );
+
+    bytes memory txHashData = mentoLabsMultisig.encodeTransactionData(
+      address(mentoLabsTreasury),
+      0,
+      scheduleCallData,
+      Enum.Operation.Call,
+      0, // safeTxGas
+      0, // baseGas
+      0, // gasPrice
+      address(0), // gasToken
+      payable(address(0)), // refundReceiver
+      0
+    );
+
+    bytes32 txHash = keccak256(txHashData);
+
+    // sign the grantRole tx
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
+    bytes memory signature0 = Utils._constructSignature(v, r, s);
+    (v, r, s) = vm.sign(mentoPK1, txHash);
+    bytes memory signature1 = Utils._constructSignature(v, r, s);
+    (v, r, s) = vm.sign(mentoPK2, txHash);
+    bytes memory signature2 = Utils._constructSignature(v, r, s);
+
+    bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
+
+    // schedule the tx by calling schedule from the multisig on the timelock
+    mentoLabsMultisig.execTransaction(
+      address(mentoLabsTreasury),
+      0,
+      scheduleCallData,
+      Enum.Operation.Call,
+      0, // safeTxGas
+      0, // baseGas
+      0, // gasPrice
+      address(0), // gasToken
+      payable(address(0)), // refundReceiver
+      signatures
+    );
+
+    Utils._timeTravel(13 * BLOCKS_DAY);
+
+    assertFalse(mentoLabsTreasury.hasRole(proposerRole, alice));
+
+    // after 13 days, timelock expires
+    mentoLabsTreasury.execute(
+      address(mentoLabsTreasury),
+      0,
+      proposerRoleCallData,
+      0,
+      keccak256(bytes("Transfer tokens to governanceTimelockAddress"))
+    );
+
+    assert(mentoLabsTreasury.hasRole(proposerRole, alice));
   }
 }
