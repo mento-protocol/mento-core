@@ -10,9 +10,7 @@ import { Emission } from "contracts/governance/Emission.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import { Test } from "forge-std-next/Test.sol";
-
-contract Proposals is Test {
+library Proposals {
   function _proposeChangeEmissionTarget(
     MentoGovernor mentoGovernor,
     Emission emission,

@@ -3,6 +3,8 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
 import { TestSetup } from "../TestSetup.sol";
+import { Vm } from "forge-std-next/Vm.sol";
+import { VmExtension } from "test/utils/VmExtension.sol";
 
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
@@ -13,7 +15,6 @@ import { Locking } from "contracts/governance/locking/Locking.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
 
 import { Proposals } from "./Proposals.sol";
-import { Utils } from "./Utils.sol";
 import { Arrays } from "test/utils/Arrays.sol";
 import { TestLocking } from "test/utils/TestLocking.sol";
 
@@ -24,7 +25,9 @@ import { Enum } from "safe-contracts/contracts/common/Enum.sol";
 
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
+contract GovernanceIntegrationTest is TestSetup {
+  using VmExtension for Vm;
+
   GovernanceFactory public factory;
 
   ProxyAdmin public proxyAdmin;
@@ -77,7 +80,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     vm.prank(bob);
     locking.lock(bob, bob, 1500e18, 1, 103);
 
-    Utils._timeTravel(BLOCKS_DAY);
+    vm.timeTravel(BLOCKS_DAY);
     _;
   }
 
@@ -231,7 +234,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertApproxEqAbs(locking.getVotes(alice), 300e18, negligibleAmount);
     assertApproxEqAbs(locking.getVotes(bob), 400e18, negligibleAmount);
 
-    Utils._timeTravel(13 * BLOCKS_WEEK);
+    vm.timeTravel(13 * BLOCKS_WEEK);
 
     // Alice withdraws after ~3 months
     vm.prank(alice);
@@ -245,7 +248,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertApproxEqAbs(locking.getVotes(bob), 300e18, negligibleAmount);
     assertEq(mentoToken.balanceOf(bob), 0);
 
-    Utils._timeTravel(13 * BLOCKS_WEEK);
+    vm.timeTravel(13 * BLOCKS_WEEK);
 
     // Bob relocks and delegates to alice
     vm.prank(bob);
@@ -255,7 +258,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertApproxEqAbs(locking.getVotes(alice), 300e18, negligibleAmount);
     assertEq(locking.getVotes(bob), 0);
 
-    Utils._timeTravel(13 * BLOCKS_WEEK);
+    vm.timeTravel(13 * BLOCKS_WEEK);
 
     // Bob delegates the lock without relocking
     vm.prank(bob);
@@ -266,7 +269,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertApproxEqAbs(locking.getVotes(charlie), 150e18, negligibleAmount);
 
     // End of the locking period
-    Utils._timeTravel(13 * BLOCKS_WEEK);
+    vm.timeTravel(13 * BLOCKS_WEEK);
 
     vm.prank(bob);
     locking.withdraw();
@@ -306,7 +309,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       );
 
     // ~10 mins
-    Utils._timeTravel(120);
+    vm.timeTravel(120);
 
     // both users cast vote, majority in favor (because alice has more votes than bob)
     vm.prank(alice);
@@ -316,13 +319,13 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     mentoGovernor.castVote(proposalId, 0);
 
     // voting period ends
-    Utils._timeTravel(BLOCKS_WEEK);
+    vm.timeTravel(BLOCKS_WEEK);
 
     // proposal can now be queued
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
     // timelock ends
-    Utils._timeTravel(2 * BLOCKS_DAY);
+    vm.timeTravel(2 * BLOCKS_DAY);
 
     // anyone can execute the proposal
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
@@ -362,7 +365,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     uint256 validUntil = block.timestamp + 60 days;
     uint256 approvedAt = block.timestamp - 10 days;
 
-    bytes memory fractalProof0 = Utils._validKycSignature(
+    bytes memory fractalProof0 = vm.validKycSignature(
       fractalSignerPk,
       claimer0,
       EXPECTED_CREDENTIAL,
@@ -370,7 +373,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       approvedAt
     );
 
-    bytes memory fractalProof1 = Utils._validKycSignature(
+    bytes memory fractalProof1 = vm.validKycSignature(
       fractalSignerPk,
       claimer1,
       EXPECTED_CREDENTIAL,
@@ -390,7 +393,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertEq(locking.getVotes(claimer1), 0);
     assertEq(locking.getVotes(alice), 12_000e18);
 
-    Utils._timeTravel(BLOCKS_DAY);
+    vm.timeTravel(BLOCKS_DAY);
 
     address newEmissionTarget = makeAddr("NewEmissionTarget");
 
@@ -410,7 +413,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     ) = Proposals._proposeChangeEmissionTarget(mentoGovernor, emission, newEmissionTarget);
 
     // ~10 mins
-    Utils._timeTravel(120);
+    vm.timeTravel(120);
 
     // both claimers and delegate cast vote
     vm.prank(claimer0);
@@ -425,7 +428,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
     // voting period ends
-    Utils._timeTravel(BLOCKS_WEEK);
+    vm.timeTravel(BLOCKS_WEEK);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
@@ -433,7 +436,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     vm.expectRevert("TimelockController: operation is not ready");
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
-    Utils._timeTravel(2 * BLOCKS_DAY);
+    vm.timeTravel(2 * BLOCKS_DAY);
 
     assertEq(emission.emissionTarget(), governanceTimelockAddress);
 
@@ -449,7 +452,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertEq(mentoToken.balanceOf(governanceTimelockAddress), 100_000_000e18);
 
     // emit tokens after a year
-    Utils._timeTravel(365 * BLOCKS_DAY);
+    vm.timeTravel(365 * BLOCKS_DAY);
     uint256 amount = emission.emitTokens();
 
     assertEq(emission.totalEmittedAmount(), amount);
@@ -477,7 +480,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     vm.prank(charlie);
     locking.lock(charlie, charlie, 5000e18, 30, 10);
 
-    Utils._timeTravel(1);
+    vm.timeTravel(1);
 
     address newEmissionTarget = makeAddr("NewEmissionTarget");
 
@@ -492,7 +495,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     ) = Proposals._proposeChangeEmissionTarget(mentoGovernor, emission, newEmissionTarget);
 
     // ~10 mins
-    Utils._timeTravel(120);
+    vm.timeTravel(120);
 
     // majority votes in favor of the proposal
     vm.prank(alice);
@@ -504,12 +507,12 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     vm.prank(charlie);
     mentoGovernor.castVote(proposalId, 1);
 
-    Utils._timeTravel(BLOCKS_WEEK);
+    vm.timeTravel(BLOCKS_WEEK);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
     // still time locked
-    Utils._timeTravel(BLOCKS_DAY);
+    vm.timeTravel(BLOCKS_DAY);
 
     bytes32 timelockId = governanceTimelock.hashOperationBatch(
       targets,
@@ -524,7 +527,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     governanceTimelock.cancel(timelockId);
 
     // timelock delay is over
-    Utils._timeTravel(BLOCKS_DAY);
+    vm.timeTravel(BLOCKS_DAY);
 
     // proposal can not be executed since it was cancelled
     vm.expectRevert("Governor: proposal not successful");
@@ -565,7 +568,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       );
 
     // ~10 mins
-    Utils._timeTravel(120);
+    vm.timeTravel(120);
 
     // both claimers cast vote
     vm.prank(alice);
@@ -575,11 +578,11 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     vm.prank(bob);
     mentoGovernor.castVote(proposalId, 1);
 
-    Utils._timeTravel(7 * BLOCKS_DAY);
+    vm.timeTravel(7 * BLOCKS_DAY);
 
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
-    Utils._timeTravel(2 * BLOCKS_DAY);
+    vm.timeTravel(2 * BLOCKS_DAY);
 
     // the old implementation has no such method
     vm.expectRevert();
@@ -617,11 +620,11 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // sign the transfer tx
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = Utils._constructSignature(v, r, s);
+    bytes memory signature0 = vm.constructSignature(v, r, s);
     (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = Utils._constructSignature(v, r, s);
+    bytes memory signature1 = vm.constructSignature(v, r, s);
     (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = Utils._constructSignature(v, r, s);
+    bytes memory signature2 = vm.constructSignature(v, r, s);
 
     bytes memory signatures = abi.encodePacked(signature2);
 
@@ -696,11 +699,11 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // sign the schedule tx
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = Utils._constructSignature(v, r, s);
+    bytes memory signature0 = vm.constructSignature(v, r, s);
     (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = Utils._constructSignature(v, r, s);
+    bytes memory signature1 = vm.constructSignature(v, r, s);
     (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = Utils._constructSignature(v, r, s);
+    bytes memory signature2 = vm.constructSignature(v, r, s);
 
     bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
 
@@ -718,7 +721,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       signatures
     );
 
-    Utils._timeTravel(12 * BLOCKS_DAY);
+    vm.timeTravel(12 * BLOCKS_DAY);
 
     // the tx is not ready to be executed
     vm.expectRevert("TimelockController: operation is not ready");
@@ -730,7 +733,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       keccak256(bytes("Transfer tokens to governanceTimelockAddress"))
     );
 
-    Utils._timeTravel(2 * BLOCKS_DAY);
+    vm.timeTravel(2 * BLOCKS_DAY);
 
     // after 13 days, timelock expires
     mentoLabsTreasury.execute(
@@ -781,11 +784,11 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // sign the schedule tx
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = Utils._constructSignature(v, r, s);
+    bytes memory signature0 = vm.constructSignature(v, r, s);
     (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = Utils._constructSignature(v, r, s);
+    bytes memory signature1 = vm.constructSignature(v, r, s);
     (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = Utils._constructSignature(v, r, s);
+    bytes memory signature2 = vm.constructSignature(v, r, s);
     bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
 
     // schedule the transfer by calling schedule from the multisig on the timelock
@@ -822,7 +825,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     ) = Proposals._proposeCancelQueuedTx(mentoGovernor, mentoLabsTreasury, id);
 
     // ~10 mins
-    Utils._timeTravel(120);
+    vm.timeTravel(120);
 
     // both claimers cast vote
     vm.prank(alice);
@@ -832,17 +835,17 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     vm.prank(bob);
     mentoGovernor.castVote(proposalId, 1);
 
-    Utils._timeTravel(7 * BLOCKS_DAY);
+    vm.timeTravel(7 * BLOCKS_DAY);
 
     // queue the cancelling proposal
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
-    Utils._timeTravel(2 * BLOCKS_DAY);
+    vm.timeTravel(2 * BLOCKS_DAY);
 
     // governance cancels the queued transfer
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
-    Utils._timeTravel(5 * BLOCKS_DAY);
+    vm.timeTravel(5 * BLOCKS_DAY);
 
     // the transfer can not be executed
     vm.expectRevert("TimelockController: operation is not ready");
@@ -896,11 +899,11 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // sign the grantRole tx
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = Utils._constructSignature(v, r, s);
+    bytes memory signature0 = vm.constructSignature(v, r, s);
     (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = Utils._constructSignature(v, r, s);
+    bytes memory signature1 = vm.constructSignature(v, r, s);
     (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = Utils._constructSignature(v, r, s);
+    bytes memory signature2 = vm.constructSignature(v, r, s);
 
     bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
 
@@ -918,7 +921,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       signatures
     );
 
-    Utils._timeTravel(13 * BLOCKS_DAY);
+    vm.timeTravel(13 * BLOCKS_DAY);
 
     assertFalse(mentoLabsTreasury.hasRole(proposerRole, alice));
 
