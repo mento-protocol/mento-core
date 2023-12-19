@@ -46,7 +46,7 @@ contract Utils is Test {
     return abi.encodePacked(r, s, v);
   }
 
-  /// @notice Constructs a digital signature from the given components (v, r, s).
+  /// @dev Constructs a digital signature from the given components (v, r, s).
   /// @param v The recovery byte, a part of the signature (usually 1 byte).
   /// @param r The first 32 bytes of the signature, representing the R value in ECDSA.
   /// @param s The next 32 bytes of the signature, representing the S value in ECDSA.
