@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
@@ -37,7 +38,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
   Locking public locking;
 
   address public celoGovernance = makeAddr("CeloGovernance");
-  address public communityFund = makeAddr("CommunityFund");
+  address public celoCommunityFund = makeAddr("CeloCommunityFund");
   address public watchdogMultisig = makeAddr("WatchdogMultisig");
 
   GnosisSafe public safeSingleton;
@@ -54,7 +55,6 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
   uint256 public fractalSignerPk;
 
   bytes32 public merkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809;
-  address public invalidClaimer = makeAddr("InvalidClaimer");
   address public claimer0 = 0x547a9687D36e51DA064eE7C6ac82590E344C4a0e;
   uint96 public claimer0Amount = 100e18;
   bytes32[] public claimer0Proof = Arrays.bytes32s(0xf213211627972cf2d02a11f800ed3f60110c1d11d04ec1ea8cb1366611efdaa3);
@@ -63,6 +63,23 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
   bytes32[] public claimer1Proof = Arrays.bytes32s(0x0294d3fc355e136dd6fea7f5c2934dd7cb67c2b4607110780e5fbb23d65d7ac4);
 
   string public constant EXPECTED_CREDENTIAL = "level:plus;residency_not:ca,us";
+
+  modifier s_governance() {
+    vm.prank(governanceTimelockAddress);
+    mentoToken.transfer(alice, 10_000e18);
+
+    vm.prank(governanceTimelockAddress);
+    mentoToken.transfer(bob, 10_000e18);
+
+    vm.prank(alice);
+    locking.lock(alice, alice, 2000e18, 1, 103);
+
+    vm.prank(bob);
+    locking.lock(bob, bob, 1500e18, 1, 103);
+
+    Utils._timeTravel(BLOCKS_DAY);
+    _;
+  }
 
   function setUp() public {
     vm.roll(21871402); // (Oct-11-2023 WED 12:00:01 PM +UTC)
@@ -108,7 +125,13 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     factory = new GovernanceFactory(celoGovernance);
 
     vm.prank(celoGovernance);
-    factory.createGovernance(address(mentoLabsMultisig), watchdogMultisig, communityFund, merkleRoot, fractalSigner);
+    factory.createGovernance(
+      address(mentoLabsMultisig),
+      watchdogMultisig,
+      celoCommunityFund,
+      merkleRoot,
+      fractalSigner
+    );
     proxyAdmin = factory.proxyAdmin();
     mentoToken = factory.mentoToken();
     emission = factory.emission();
@@ -118,7 +141,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     locking = factory.locking();
     mentoLabsTreasury = factory.mentoLabsTreasuryTimelock();
 
-    // Without this cast, tests does not work as expected
+    // Without this cast, tests do not work as expected
     // It causes a yul exception about memory safety
     governanceTimelockAddress = address(governanceTimelock);
 
@@ -137,6 +160,8 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertEq(mentoToken.balanceOf(governanceTimelockAddress), 100_000_000 * 10**18);
     assertEq(mentoToken.emissionSupply(), 650_000_000 * 10**18);
     assertEq(mentoToken.emission(), address(emission));
+    assertEq(mentoToken.symbol(), "MENTO");
+    assertEq(mentoToken.name(), "Mento Token");
 
     assertEq(emission.emissionStartTime(), block.timestamp);
     assertEq(address(emission.mentoToken()), address(mentoToken));
@@ -151,7 +176,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertEq(airgrab.cliffPeriod(), 0);
     assertEq(address(airgrab.token()), address(mentoToken));
     assertEq(address(airgrab.locking()), address(locking));
-    assertEq(address(airgrab.celoCommunityFund()), address(communityFund));
+    assertEq(address(airgrab.celoCommunityFund()), address(celoCommunityFund));
 
     bytes32 proposerRole = governanceTimelock.PROPOSER_ROLE();
     bytes32 executorRole = governanceTimelock.EXECUTOR_ROLE();
@@ -163,6 +188,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assert(governanceTimelock.hasRole(cancellerRole, address(mentoGovernor)));
     assert(governanceTimelock.hasRole(cancellerRole, watchdogMultisig));
 
+    assertEq(mentoLabsTreasury.getMinDelay(), 13 days);
     assert(mentoLabsTreasury.hasRole(proposerRole, address(mentoLabsMultisig)));
     assert(mentoLabsTreasury.hasRole(executorRole, address(0)));
     assert(mentoLabsTreasury.hasRole(cancellerRole, governanceTimelockAddress));
@@ -180,6 +206,8 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertEq(locking.minSlopePeriod(), 1);
     assertEq(locking.owner(), governanceTimelockAddress);
     assertEq(locking.getWeek(), 1);
+    assertEq(locking.symbol(), "veMENTO");
+    assertEq(locking.name(), "Mento Vote-Escrow");
   }
 
   function test_locking_whenLocked_shouldMintveMentoInExchangeForMentoAndReleaseBySchedule() public {
@@ -197,7 +225,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // Bob locks for ~1 year
     vm.prank(bob);
-    uint256 lockId = locking.lock(bob, bob, 1000e18, 52, 0);
+    uint256 bobsLockId = locking.lock(bob, bob, 1000e18, 52, 0);
 
     // Difference between voting powers accounted correctly
     assertApproxEqAbs(locking.getVotes(alice), 300e18, negligibleAmount);
@@ -221,7 +249,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // Bob relocks and delegates to alice
     vm.prank(bob);
-    lockId = locking.relock(lockId, alice, 1000e18, 26, 0);
+    bobsLockId = locking.relock(bobsLockId, alice, 1000e18, 26, 0);
 
     // Alice has the voting power from Bob's lock
     assertApproxEqAbs(locking.getVotes(alice), 300e18, negligibleAmount);
@@ -231,7 +259,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // Bob delegates the lock without relocking
     vm.prank(bob);
-    locking.delegateTo(lockId, charlie);
+    locking.delegateTo(bobsLockId, charlie);
 
     assertEq(locking.getVotes(alice), 0);
     assertEq(locking.getVotes(bob), 0);
@@ -280,7 +308,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     // ~10 mins
     Utils._timeTravel(120);
 
-    // both users cast vote, majority in favor
+    // both users cast vote, majority in favor (because alice has more votes than bob)
     vm.prank(alice);
     mentoGovernor.castVote(proposalId, 1);
 
@@ -290,6 +318,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     // voting period ends
     Utils._timeTravel(BLOCKS_WEEK);
 
+    // proposal can now be queued
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
 
     // timelock ends
@@ -333,7 +362,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     uint256 validUntil = block.timestamp + 60 days;
     uint256 approvedAt = block.timestamp - 10 days;
 
-    bytes memory fractalProof = Utils._validKycSignature(
+    bytes memory fractalProof0 = Utils._validKycSignature(
       fractalSignerPk,
       claimer0,
       EXPECTED_CREDENTIAL,
@@ -350,7 +379,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     );
 
     vm.prank(claimer0);
-    airgrab.claim(claimer0Amount, claimer0, claimer0Proof, fractalProof, validUntil, approvedAt, "fractalId");
+    airgrab.claim(claimer0Amount, claimer0, claimer0Proof, fractalProof0, validUntil, approvedAt, "fractalId");
 
     vm.prank(claimer1);
     airgrab.claim(claimer1Amount, claimer1, claimer1Proof, fractalProof1, validUntil, approvedAt, "fractalId");
@@ -366,6 +395,10 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     // claimer0 is under threshold
     vm.expectRevert("Governor: proposer votes below proposal threshold");
     vm.prank(claimer0);
+    Proposals._proposeChangeEmissionTarget(mentoGovernor, emission, newEmissionTarget);
+
+    // claimer 1 can propose
+    vm.prank(claimer1);
     (
       uint256 proposalId,
       address[] memory targets,
@@ -373,14 +406,6 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       bytes[] memory calldatas,
       string memory description
     ) = Proposals._proposeChangeEmissionTarget(mentoGovernor, emission, newEmissionTarget);
-
-    // claimer 1 can propose
-    vm.prank(claimer1);
-    (proposalId, targets, values, calldatas, description) = Proposals._proposeChangeEmissionTarget(
-      mentoGovernor,
-      emission,
-      newEmissionTarget
-    );
 
     // ~10 mins
     Utils._timeTravel(120);
@@ -411,6 +436,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertEq(emission.emissionTarget(), governanceTimelockAddress);
 
     // anyone can execute the proposal after the timelock
+    vm.prank(makeAddr("Random"));
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
     // protected function is called by the owner after execution
@@ -488,14 +514,14 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       keccak256(bytes(description))
     );
 
-    // multi sig cancels the proposal in the time lock
+    // watchdog multisig cancels the proposal in the time lock
     vm.prank(watchdogMultisig);
     governanceTimelock.cancel(timelockId);
 
     // timelock delay is over
     Utils._timeTravel(BLOCKS_DAY);
 
-    // proposal can not be executed since it is vetoed
+    // proposal can not be executed since it was cancelled
     vm.expectRevert("Governor: proposal not successful");
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
   }
@@ -508,10 +534,10 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     TimelockController newMLTreasuryTimelockContract = new TimelockController();
 
     // proxies of current implementations
-    ITransparentUpgradeableProxy proxy0 = ITransparentUpgradeableProxy(address(locking));
-    ITransparentUpgradeableProxy proxy1 = ITransparentUpgradeableProxy(governanceTimelockAddress);
-    ITransparentUpgradeableProxy proxy2 = ITransparentUpgradeableProxy(address(mentoGovernor));
-    ITransparentUpgradeableProxy proxy3 = ITransparentUpgradeableProxy(address(mentoLabsTreasury));
+    ITransparentUpgradeableProxy lockingProxy = ITransparentUpgradeableProxy(address(locking));
+    ITransparentUpgradeableProxy governanceTimelockProxy = ITransparentUpgradeableProxy(governanceTimelockAddress);
+    ITransparentUpgradeableProxy mentoGovernorProxy = ITransparentUpgradeableProxy(address(mentoGovernor));
+    ITransparentUpgradeableProxy mentoLabsProxy = ITransparentUpgradeableProxy(address(mentoLabsTreasury));
 
     vm.prank(alice);
     (
@@ -523,10 +549,10 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     ) = Proposals._proposeUpgradeContracts(
         mentoGovernor,
         proxyAdmin,
-        proxy0,
-        proxy1,
-        proxy2,
-        proxy3,
+        lockingProxy,
+        governanceTimelockProxy,
+        mentoGovernorProxy,
+        mentoLabsProxy,
         address(newLockingContract),
         address(newGovernonceTimelockContract),
         address(newGovernorContract),
@@ -560,7 +586,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     TestLocking(address(locking)).setEpochShift(1);
   }
 
-  function test_mlMultiSig_execute_whenEnoughSignatures_shouldTransferFunds() public {
+  function test_mentoLabsMultiSig_execute_whenEnoughSignatures_shouldTransferFunds() public {
     assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 80_000_000 * 10**18);
 
     // create a gnosis safe transaction to transfer tokens from the multisig to the governanceTimelockAddress
@@ -630,7 +656,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertEq(mentoToken.balanceOf(address(governanceTimelockAddress)), 110_000_000 * 10**18);
   }
 
-  function test_mlTreasury_schedule_whenNotCancelled_shouldTransferFunds() public {
+  function test_mentoLabsTreasury_schedule_whenNotCancelled_shouldTransferFunds() public {
     //  create a transaction to transfer tokens from the multisig to the governanceTimelockAddress
     bytes memory transferCallData = abi.encodeWithSelector(
       mentoToken.transfer.selector,
@@ -715,7 +741,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
     assertEq(mentoToken.balanceOf(address(governanceTimelockAddress)), 110_000_000 * 10**18);
   }
 
-  function test_mlTreasury_cancel_whenCalledByGovernance_shouldCancelOperation() public s_governance {
+  function test_mentoLabsTreasury_cancel_whenCalledByGovernance_shouldCancelOperation() public s_governance {
     // create a transaction to transfer tokens from the mento labs treasury to the governanceTimelockAddress
     bytes memory transferCallData = abi.encodeWithSelector(
       mentoToken.transfer.selector,
@@ -780,7 +806,7 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
       keccak256(bytes("Transfer tokens to governanceTimelockAddress"))
     );
 
-    // create a proposal to cancel the queued operation on the ml treasury
+    // create a proposal to cancel the queued operation on the mento labs treasury
     vm.prank(alice);
     (
       uint256 proposalId,
@@ -825,22 +851,5 @@ contract GovernanceIntegrationTest is TestSetup, Proposals, Utils {
 
     // the balance is not updated
     assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 120_000_000 * 10**18);
-  }
-
-  modifier s_governance() {
-    vm.prank(governanceTimelockAddress);
-    mentoToken.transfer(alice, 10_000e18);
-
-    vm.prank(governanceTimelockAddress);
-    mentoToken.transfer(bob, 10_000e18);
-
-    vm.prank(alice);
-    locking.lock(alice, alice, 2000e18, 1, 103);
-
-    vm.prank(bob);
-    locking.lock(bob, bob, 1500e18, 1, 103);
-
-    Utils._timeTravel(BLOCKS_DAY);
-    _;
   }
 }

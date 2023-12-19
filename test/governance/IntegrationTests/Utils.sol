@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, no-inline-assembly
 
@@ -6,7 +7,7 @@ import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/
 import { Strings } from "openzeppelin-contracts-next/contracts/utils/Strings.sol";
 
 contract Utils is Test {
-  /// @dev moves block.number and block.timestamp in sync
+  /// @dev moves `block.number` and `block.timestamp` in sync
   /// @param blocks The number of blocks that will be moved
   function _timeTravel(uint256 blocks) internal {
     uint256 time = blocks * 5;
@@ -18,8 +19,8 @@ contract Utils is Test {
   /// @param signer The PK to sign the message with
   /// @param account The account to sign the message for
   /// @param credential KYC credentials
-  /// @param validUntil KYC valid until this ts
-  /// @param approvedAt KYC approved at this ts
+  /// @param validUntil KYC valid until this timestamp
+  /// @param approvedAt KYC approved at this timestamp
   function _validKycSignature(
     uint256 signer,
     address account,
