@@ -665,10 +665,10 @@ contract GovernanceIntegrationTest is TestSetup {
   }
 
   function test_mentoLabsTreasury_schedule_whenNotCancelled_shouldTransferFunds() public {
-    //  create a transaction to transfer tokens from the multisig to the governanceTimelockAddress
+    //  create a transaction to transfer tokens from the MentoLabs Treasury to the MentoLabs Multisig
     bytes memory transferCallData = abi.encodeWithSelector(
       mentoToken.transfer.selector,
-      governanceTimelockAddress,
+      mentoLabsMultisig,
       10_000_000e18
     );
     // call data to schedule the transfer
@@ -678,7 +678,7 @@ contract GovernanceIntegrationTest is TestSetup {
       0,
       transferCallData,
       0,
-      keccak256(bytes("Transfer tokens to governanceTimelockAddress")),
+      keccak256(bytes("Transfer tokens to MentoLabs Multisig")),
       14 days
     );
 
@@ -730,23 +730,23 @@ contract GovernanceIntegrationTest is TestSetup {
       0,
       transferCallData,
       0,
-      keccak256(bytes("Transfer tokens to governanceTimelockAddress"))
+      keccak256(bytes("Transfer tokens to MentoLabs Multisig"))
     );
 
     vm.timeTravel(2 * BLOCKS_DAY);
 
-    // after 13 days, timelock expires
+    // after 14 days, timelock expires
     mentoLabsTreasury.execute(
       address(mentoToken),
       0,
       transferCallData,
       0,
-      keccak256(bytes("Transfer tokens to governanceTimelockAddress"))
+      keccak256(bytes("Transfer tokens to MentoLabs Multisig"))
     );
 
     // balances are updated
     assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 110_000_000 * 10**18);
-    assertEq(mentoToken.balanceOf(address(governanceTimelockAddress)), 110_000_000 * 10**18);
+    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 90_000_000 * 10**18);
   }
 
   function test_mentoLabsTreasury_cancel_whenCalledByGovernance_shouldCancelOperation() public s_governance {
@@ -878,7 +878,7 @@ contract GovernanceIntegrationTest is TestSetup {
       0,
       proposerRoleCallData,
       0,
-      keccak256(bytes("Transfer tokens to governanceTimelockAddress")),
+      keccak256(bytes("Grant proposer role to alice")),
       13 days
     );
 
@@ -931,7 +931,7 @@ contract GovernanceIntegrationTest is TestSetup {
       0,
       proposerRoleCallData,
       0,
-      keccak256(bytes("Transfer tokens to governanceTimelockAddress"))
+      keccak256(bytes("Grant proposer role to alice"))
     );
 
     assert(mentoLabsTreasury.hasRole(proposerRole, alice));
