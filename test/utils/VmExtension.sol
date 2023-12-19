@@ -2,26 +2,29 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, no-inline-assembly
 
-import { Test } from "forge-std-next/Test.sol";
+import { Vm } from "forge-std-next/Vm.sol";
 import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
 import { Strings } from "openzeppelin-contracts-next/contracts/utils/Strings.sol";
 
-contract Utils is Test {
+library VmExtension {
   /// @dev moves `block.number` and `block.timestamp` in sync
+  /// @param vm The forge Vm
   /// @param blocks The number of blocks that will be moved
-  function _timeTravel(uint256 blocks) internal {
+  function timeTravel(Vm vm, uint256 blocks) internal {
     uint256 time = blocks * 5;
     vm.roll(block.number + blocks);
-    skip(time);
+    vm.warp(block.timestamp + time);
   }
 
   /// @dev build the KYC message hash and sign it with the provided pk
+  /// @param vm The forge Vm
   /// @param signer The PK to sign the message with
   /// @param account The account to sign the message for
   /// @param credential KYC credentials
   /// @param validUntil KYC valid until this timestamp
   /// @param approvedAt KYC approved at this timestamp
-  function _validKycSignature(
+  function validKycSignature(
+    Vm vm,
     uint256 signer,
     address account,
     string memory credential,
@@ -51,7 +54,8 @@ contract Utils is Test {
   /// @param r The first 32 bytes of the signature, representing the R value in ECDSA.
   /// @param s The next 32 bytes of the signature, representing the S value in ECDSA.
   /// @return signature A 65-byte long digital signature composed of r, s, and v.
-  function _constructSignature(
+  function constructSignature(
+    Vm,
     uint8 v,
     bytes32 r,
     bytes32 s
