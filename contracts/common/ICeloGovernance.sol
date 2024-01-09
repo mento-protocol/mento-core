@@ -8,7 +8,7 @@ interface ICeloGovernance {
     bytes data;
   }
 
-  function minDeposit() external returns (uint256);
+  function minDeposit() external view returns (uint256);
 
   function propose(
     uint256[] calldata values,
