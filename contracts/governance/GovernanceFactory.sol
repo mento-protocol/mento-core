@@ -64,6 +64,7 @@ contract GovernanceFactory is Ownable {
   uint32 public constant AIRGRAB_LOCK_CLIFF = 0; // Cliff duration for the airgrabbed tokens in weeks
   uint256 public constant AIRGRAB_DURATION = 365 days;
   uint256 public constant FRACTAL_MAX_AGE = 180 days; // Maximum age of the kyc for the airgrab
+  uint256 public airgrabEnds;
 
   // Governance Timelock configuration
   uint256 public constant GOVERNANCE_TIMELOCK_DELAY = 2 days;
@@ -148,7 +149,7 @@ contract GovernanceFactory is Ownable {
     // ========================================
     // ========== Deploy 4: Airgrab ===========
     // ========================================
-    uint256 airgrabEnds = block.timestamp + AIRGRAB_DURATION;
+    airgrabEnds = block.timestamp + AIRGRAB_DURATION;
     airgrab = AirgrabDeployerLib.deploy( // NONCE:4
       airgrabRoot,
       fractalSigner,

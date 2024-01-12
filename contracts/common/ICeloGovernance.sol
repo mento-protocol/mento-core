@@ -10,6 +10,10 @@ interface ICeloGovernance {
 
   function minDeposit() external view returns (uint256);
 
+  function dequeued(uint256 index) external view returns (uint256);
+
+  function execute(uint256 proposalId, uint256 index) external;
+
   function propose(
     uint256[] calldata values,
     address[] calldata destinations,
