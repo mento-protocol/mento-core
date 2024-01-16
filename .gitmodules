@@ -16,6 +16,3 @@
 [submodule "lib/safe-contracts"]
 	path = lib/safe-contracts
 	url = https://github.com/safe-global/safe-contracts
-[submodule "lib/Locked_VestingTokenPlans"]
-	path = lib/Locked_VestingTokenPlans
-	url = https://github.com/hedgey-finance/Locked_VestingTokenPlans
