@@ -41,10 +41,10 @@ contract VestingLockTest is Test {
     return addr;
   }
 
-  function skip(uint256 numberOfWeeks, uint256 totalAmount) public {
+  function skipWeeks(uint256 numberOfWeeks) public {
     mockLocking.setWeek(numberOfWeeks);
 
-    uint256 withdrawable = ((totalAmount * numberOfWeeks) / slopeEndWeek) - vestingLock.totalUnlockedTokens();
+    uint256 withdrawable = ((basicPlan.amount * numberOfWeeks) / slopeEndWeek) - vestingLock.totalUnlockedTokens();
 
     mockTokenVestingPlans.setRedeemableTokens(withdrawable);
     mockLocking.setWeek(numberOfWeeks);
@@ -165,13 +165,13 @@ contract VestingLockTest_redeem is VestingLockTest {
   }
 
   function test_redeem_whenBeforeCliffEndAndNotFirstRedeem_shouldRelockAll() public {
-    skip(52, basicPlan.amount);
+    skipWeeks(52);
     vm.prank(beneficiary);
     vestingLock.redeem();
 
     assertEq(vestingLock.totalUnlockedTokens(), basicPlan.amount / 4);
 
-    skip(52 + 26, basicPlan.amount);
+    skipWeeks(52 + 26); // 1.5 Years
 
     uint256 planId = vestingLock.planId();
     uint32 slope = uint32(slopeEndWeek - cliffEndWeek);
@@ -247,13 +247,13 @@ contract VestingLockTest_redeem is VestingLockTest {
   }
 
   function test_redeem_whenAtCliffEndAndNotFirstRedeem_shouldRelockAll() public {
-    skip(52, basicPlan.amount);
+    skipWeeks(52); // year 1
     vm.prank(beneficiary);
     vestingLock.redeem();
 
     assertEq(vestingLock.totalUnlockedTokens(), basicPlan.amount / 4);
 
-    skip(52 + 52, basicPlan.amount);
+    skipWeeks(104); // year 2
 
     uint256 planId = vestingLock.planId();
 
@@ -329,14 +329,14 @@ contract VestingLockTest_redeem is VestingLockTest {
   }
 
   function test_redeem_whenAfterCliffEndAndNotFirstRedeem_shouldRelockReminderAndTransferAvailable() public {
-    skip(78, basicPlan.amount); // last redeem at 1.5 Years
+    skipWeeks(78); // last redeem at 1.5 Years
     vm.prank(beneficiary);
     vestingLock.redeem();
 
     assertEq(vestingLock.totalUnlockedTokens(), (basicPlan.amount * 3) / 8);
 
     uint256 currentWeek = 156; // Year 3
-    skip(currentWeek, basicPlan.amount);
+    skipWeeks(currentWeek);
 
     uint256 planId = vestingLock.planId();
     uint32 slope = uint32(slopeEndWeek - currentWeek); // slopePeriod remainder
@@ -369,7 +369,7 @@ contract VestingLockTest_redeem is VestingLockTest {
   }
 
   function test_redeem_whenAfterSlopeEndAndFirstRedeem_shouldTransferAll() public {
-    skip(208, basicPlan.amount); // redeem at 4 Years
+    skipWeeks(208); // redeem at 4 Years
     uint256 planId = vestingLock.planId();
 
     vm.expectCall( // ensure redeemPlans is called with correct parameters
@@ -390,11 +390,11 @@ contract VestingLockTest_redeem is VestingLockTest {
   }
 
   function test_redeem_whenAfterSlopeEndAndNotFirstRedeem_shouldRedeemFromLockAndTransferAll() public {
-    skip(104, basicPlan.amount); // first redeem at Year 2
+    skipWeeks(104); // first redeem at Year 2
     vm.prank(beneficiary);
     vestingLock.redeem();
 
-    skip(208, basicPlan.amount); // second redeem at Year 2
+    skipWeeks(208); // second redeem at Year 2
 
     // set withdrawable amount to 20_000 since 20_000 was locked for 2 years
     mockLocking.setWithdraw(20_000 * 1e18, mentoTokenAddr);
@@ -440,14 +440,14 @@ contract VestingLockTest_getLockedHedgeyBalance is VestingLockTest {
 
   function test_getLockedHedgeyBalance_whenRedeemed_shouldReturnCorrectAmount() public {
     vestingLock.setPlanId();
-    skip(104, basicPlan.amount);
+    skipWeeks(104);
 
     vm.prank(beneficiary);
     vestingLock.redeem();
 
     assertEq(vestingLock.getLockedHedgeyBalance(), basicPlan.amount / 2);
 
-    skip(208, basicPlan.amount);
+    skipWeeks(208);
 
     vm.prank(beneficiary);
     vestingLock.redeem();

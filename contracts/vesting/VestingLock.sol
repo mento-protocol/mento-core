@@ -38,7 +38,6 @@ contract VestingLock {
       _lockingSlopeEndWeek > _lockingCliffEndWeek,
       "VestingLock: lockingSlopeEndWeek is smaller than lockingCliffEndWeek"
     );
-
     beneficiary = _beneficiary;
     hedgeyVestingContract = _hedgeyVestingContract;
     veMentoLockingContract = _veMentoLockingContract;
@@ -61,7 +60,7 @@ contract VestingLock {
     mentoToken = plan.token;
     totalAmountToLock = plan.amount / 2;
 
-    IERC20(mentoToken).approve(veMentoLockingContract, plan.amount);
+    IERC20(mentoToken).approve(veMentoLockingContract, totalAmountToLock);
   }
 
   /**
