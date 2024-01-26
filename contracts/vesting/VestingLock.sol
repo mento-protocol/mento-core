@@ -48,7 +48,7 @@ contract VestingLock {
   /**
    * @notice Sets the plan id for the vesting lock and configures variables based on the plan struct.
    */
-  function setPlanId() public {
+  function initializeVestingPlan() public {
     require(planId == 0, "VestingLock: plan id already set");
     require(
       ITokenVestingPlans(hedgeyVestingContract).balanceOf(address(this)) == 1,

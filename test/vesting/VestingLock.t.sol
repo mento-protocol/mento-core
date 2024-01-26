@@ -51,7 +51,7 @@ contract VestingLockTest is Test {
 
     mockLocking.setWithdraw(0, mentoTokenAddr);
     if (vestingLock.planId() == 0) {
-      vestingLock.setPlanId();
+      vestingLock.initializeVestingPlan();
     }
   }
 }
@@ -100,6 +100,42 @@ contract VestingLockTest_constructor is VestingLockTest {
   }
 }
 
+contract VestingLockTest_initializeVestingPlan is VestingLockTest {
+  function setUp() public {
+    mockTokenVestingPlans.setBalanceOf(1);
+    mockTokenVestingPlans.setPlans(basicPlan);
+    vestingLock = new VestingLock(beneficiary, hedgeyVestingAddr, veMentoLockingAddr, cliffEndWeek, slopeEndWeek);
+  }
+
+  function test_initializeVestingPlan_whenPlanIdAlreadySet_shouldRevert() public {
+    vestingLock.initializeVestingPlan();
+    vm.expectRevert("VestingLock: plan id already set");
+    vestingLock.initializeVestingPlan();
+  }
+
+  function test_initializeVestingPlan_whenNoPlanConfigured_shouldRevert() public {
+    mockTokenVestingPlans.setBalanceOf(0);
+    vm.expectRevert("VestingLock: None or too many plans configured");
+    vestingLock.initializeVestingPlan();
+  }
+
+  function test_initializeVestingPlan_whenTooManyPlansConfigured_shouldRevert() public {
+    mockTokenVestingPlans.setBalanceOf(2);
+    vm.expectRevert("VestingLock: None or too many plans configured");
+    vestingLock.initializeVestingPlan();
+  }
+
+  function test_initializeVestingPlan_whenPlanConfigured_shouldSetPlanIdAndStateVariables() public {
+    mockTokenVestingPlans.setBalanceOf(1);
+    mockTokenVestingPlans.setPlans(basicPlan);
+    vestingLock.initializeVestingPlan();
+
+    assertEq(vestingLock.planId(), 1);
+    assertEq(vestingLock.mentoToken(), mentoTokenAddr);
+    assertEq(vestingLock.totalAmountToLock(), basicPlan.amount / 2);
+  }
+}
+
 contract VestingLockTest_redeem is VestingLockTest {
   function setUp() public {
     mockTokenVestingPlans.setBalanceOf(1);
@@ -113,7 +149,7 @@ contract VestingLockTest_redeem is VestingLockTest {
   }
 
   function test_redeem_whenCallerNotBeneficiary_shouldRevert() public {
-    vestingLock.setPlanId();
+    vestingLock.initializeVestingPlan();
     vm.prank(nonBeneficiary);
     vm.expectRevert("VestingLock: only beneficiary can redeem");
     vestingLock.redeem();
@@ -133,7 +169,7 @@ contract VestingLockTest_redeem is VestingLockTest {
     mockLocking.setWeek(currentWeek);
     mockLocking.setWithdraw(0, mentoTokenAddr);
 
-    vestingLock.setPlanId();
+    vestingLock.initializeVestingPlan();
     uint256 planId = vestingLock.planId();
     uint256 lockIdBefore = vestingLock.veMentoLockId();
     assertEq(lockIdBefore, 0);
@@ -216,7 +252,7 @@ contract VestingLockTest_redeem is VestingLockTest {
     mockLocking.setWeek(currentWeek);
     mockLocking.setWithdraw(0, mentoTokenAddr);
 
-    vestingLock.setPlanId();
+    vestingLock.initializeVestingPlan();
     uint256 planId = vestingLock.planId();
     uint256 lockIdBefore = vestingLock.veMentoLockId();
     assertEq(lockIdBefore, 0);
@@ -298,7 +334,7 @@ contract VestingLockTest_redeem is VestingLockTest {
     mockLocking.setWeek(currentWeek);
     mockLocking.setWithdraw(0, mentoTokenAddr);
 
-    vestingLock.setPlanId();
+    vestingLock.initializeVestingPlan();
     uint256 planId = vestingLock.planId();
     uint256 lockIdBefore = vestingLock.veMentoLockId();
     assertEq(lockIdBefore, 0);
@@ -434,12 +470,12 @@ contract VestingLockTest_getLockedHedgeyBalance is VestingLockTest {
   }
 
   function test_getLockedHedgeyBalance_whenNoRedeem_shouldReturnTotalAmount() public {
-    vestingLock.setPlanId();
+    vestingLock.initializeVestingPlan();
     assertEq(vestingLock.getLockedHedgeyBalance(), basicPlan.amount);
   }
 
   function test_getLockedHedgeyBalance_whenRedeemed_shouldReturnCorrectAmount() public {
-    vestingLock.setPlanId();
+    vestingLock.initializeVestingPlan();
     skipWeeks(104);
 
     vm.prank(beneficiary);
@@ -469,7 +505,7 @@ contract VestingLockTest_getRedeemableHedgeyBalance is VestingLockTest {
   }
 
   function test_getRedeemableHedgeyBalance_whenPlanConfigured_shouldReturnPlanBalanceOf() public {
-    vestingLock.setPlanId();
+    vestingLock.initializeVestingPlan();
 
     mockTokenVestingPlans.setPlanBalanceOf(10_000 * 1e18);
     assertEq(vestingLock.getRedeemableHedgeyBalance(), 10_000 * 1e18);
@@ -487,7 +523,7 @@ contract VestingLockTest_getLockedVeMentoBalance is VestingLockTest {
   }
 
   function test_getLockedVeMentoBalance_whenConfigured_shouldReturnLockingLocked() public {
-    vestingLock.setPlanId();
+    vestingLock.initializeVestingPlan();
 
     mockLocking.setLockedAmount(10_000 * 1e18);
     assertEq(vestingLock.getLockedVeMentoBalance(), 10_000 * 1e18);
@@ -505,7 +541,7 @@ contract VestingLockTest_getRedeemableVeMentoBalance is VestingLockTest {
   }
 
   function test_getRedeemableVeMentoBalance_whenConfigured_shouldReturnLockingAvailableForWithdraw() public {
-    vestingLock.setPlanId();
+    vestingLock.initializeVestingPlan();
 
     mockLocking.setWithdraw(10_000 * 1e18, mentoTokenAddr);
     assertEq(vestingLock.getRedeemableVeMentoBalance(), 10_000 * 1e18);
