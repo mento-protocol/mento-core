@@ -39,10 +39,6 @@ contract MockLockingExtended is ILockingExtended {
     return lockedAmount;
   }
 
-  function setRelockAmount(uint256 _relockAmount) external {
-    relockAmount = _relockAmount;
-  }
-
   function relock(
     uint256,
     address,
