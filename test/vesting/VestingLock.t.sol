@@ -119,8 +119,6 @@ contract VestingLockTest_initializeVestingPlan is VestingLockTest {
   }
 
   function test_initializeVestingPlan_whenPlanConfigured_shouldSetPlanIdAndStateVariables() public {
-    mockTokenVestingPlans.setBalanceOf(1);
-    mockTokenVestingPlans.setPlans(basicPlan);
     vestingLock.initializeVestingPlan();
 
     assertEq(vestingLock.planId(), 1);
