@@ -36,7 +36,7 @@ contract VestingLock {
     require(_lockingSlopeEndWeek > 0, "VestingLock: lockingSlopeEndWeek is zero");
     require(
       _lockingSlopeEndWeek > _lockingCliffEndWeek,
-      "VestingLock: lockingSlopeEndWeek is smaller than lockingCliffEndWeek"
+      "VestingLock: lockingSlopeEndWeek is smaller lockingCliffEndWeek"
     );
     beneficiary = _beneficiary;
     hedgeyVestingContract = _hedgeyVestingContract;
