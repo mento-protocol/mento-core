@@ -94,7 +94,7 @@ contract VestingLock {
   /**
    * @notice returns the amount of tokens not yet vested.
    */
-  function getLockedHedgeyBalance() public view returns (uint256) {
+  function getLockedHedgeyBalance() external view returns (uint256) {
     require(planId != 0, "VestingLock: no plan id set");
     return ((totalAmountToLock * 2) - totalUnlockedTokens);
   }
@@ -102,7 +102,7 @@ contract VestingLock {
   /**
    * @notice returns the amount of tokens redeemable from hedgey contract.
    */
-  function getRedeemableHedgeyBalance() public view returns (uint256) {
+  function getRedeemableHedgeyBalance() external view returns (uint256) {
     require(planId != 0, "VestingLock: no plan id set");
 
     (uint256 balance, , ) = ITokenVestingPlans(hedgeyVestingContract).planBalanceOf(
@@ -123,7 +123,7 @@ contract VestingLock {
   /**
    * @notice returns the amount of tokens redeemable from veMentoLocking contract.
    */
-  function getRedeemableVeMentoBalance() public returns (uint256) {
+  function getRedeemableVeMentoBalance() external returns (uint256) {
     return (uint256(ILockingExtended(veMentoLockingContract).getAvailableForWithdraw(address(this))));
   }
 

@@ -78,7 +78,7 @@ contract VestingLockTest_constructor is VestingLockTest {
   }
 
   function test_constructor_whenLockingSlopeEndWeekIsSmallerThanLockingCliffEndWeek_shouldRevert() public {
-    vm.expectRevert("VestingLock: lockingSlopeEndWeek is smaller than lockingCliffEndWeek");
+    vm.expectRevert("VestingLock: lockingSlopeEndWeek is smaller lockingCliffEndWeek");
     vestingLock = new VestingLock(beneficiary, hedgeyVestingAddr, veMentoLockingAddr, 10, 5);
   }
 
