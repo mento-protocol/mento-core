@@ -21,25 +21,18 @@ contract VestingLockTest is Test {
   MockLockingExtended public mockLocking = new MockLockingExtended();
   MockMentoToken public mentoToken = new MockMentoToken();
 
-  address public beneficiary = actor("beneficary");
-  address public nonBeneficiary = actor("nonBeneficiary");
+  address public beneficiary = makeAddr("beneficary");
+  address public nonBeneficiary = makeAddr("nonBeneficiary");
   address public hedgeyVestingAddr = address(mockTokenVestingPlans);
   address public veMentoLockingAddr = address(mockLocking);
   address public mentoTokenAddr = address(mentoToken);
 
   ITokenVestingPlans.Plan public basicPlan =
-    ITokenVestingPlans.Plan(mentoTokenAddr, 40_000 * 1e18, 1, 1, 1, 1, actor("admin"), false);
+    ITokenVestingPlans.Plan(mentoTokenAddr, 40_000 * 1e18, 1, 1, 1, 1, makeAddr("admin"), false);
 
   VestingLock public vestingLock;
 
   /* ---------- Utils ---------- */
-
-  function actor(string memory name) public returns (address) {
-    uint256 pk = uint256(keccak256(bytes(name)));
-    address addr = vm.addr(pk);
-    vm.label(addr, name);
-    return addr;
-  }
 
   function skipWeeks(uint256 numberOfWeeks) public {
     mockLocking.setWeek(numberOfWeeks);
