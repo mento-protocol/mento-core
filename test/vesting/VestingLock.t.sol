@@ -35,14 +35,12 @@ contract VestingLockTest is Test {
   /* ---------- Utils ---------- */
 
   function skipWeeks(uint256 numberOfWeeks) public {
-    mockLocking.setWeek(numberOfWeeks);
-
     uint256 withdrawable = ((basicPlan.amount * numberOfWeeks) / slopeEndWeek) - vestingLock.totalUnlockedTokens();
 
-    mockTokenVestingPlans.setRedeemableTokens(withdrawable);
     mockLocking.setWeek(numberOfWeeks);
-
+    mockTokenVestingPlans.setRedeemableTokens(withdrawable);
     mockLocking.setWithdraw(0, mentoTokenAddr);
+
     if (vestingLock.planId() == 0) {
       vestingLock.initializeVestingPlan();
     }
