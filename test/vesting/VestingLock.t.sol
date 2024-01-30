@@ -145,25 +145,18 @@ contract VestingLockTest_redeem is VestingLockTest {
   }
 
   function test_redeem_whenBeforeCliffEndAndFirstRedeem_shouldLockAll() public {
-    uint256 hedgeyRedeemableAmount = 10_000 * 1e18;
-
     uint256 currentWeek = 52;
+    skipWeeks(currentWeek);
 
     // because currentWeek is pre cliffEndWeek 105
     uint32 cliff = uint32(cliffEndWeek - currentWeek);
     // full 2 year slope period since currentWeek is pre slopeStart(cliffEndWeek)
     uint32 slope = uint32(slopeEndWeek - cliffEndWeek);
 
-    mockTokenVestingPlans.setRedeemableTokens(hedgeyRedeemableAmount);
-    mockLocking.setWeek(currentWeek);
-    mockLocking.setWithdraw(0, mentoTokenAddr);
-
-    vestingLock.initializeVestingPlan();
     uint256 planId = vestingLock.planId();
     uint256 lockIdBefore = vestingLock.veMentoLockId();
     assertEq(lockIdBefore, 0);
 
-    vm.prank(beneficiary);
     vm.expectCall( // ensure redeemPlans is called with correct parameters
       hedgeyVestingAddr,
       abi.encodeWithSelector(ITokenVestingPlans.redeemPlans.selector, Arrays.uints(planId))
@@ -174,7 +167,7 @@ contract VestingLockTest_redeem is VestingLockTest {
         MockLockingExtended.lock.selector,
         address(vestingLock),
         beneficiary,
-        hedgeyRedeemableAmount,
+        basicPlan.amount / 4, // 52/208 ~ 1/4
         slope,
         cliff
       )
@@ -182,6 +175,7 @@ contract VestingLockTest_redeem is VestingLockTest {
     // ensure no tokens are transferred to beneficiary
     vm.expectCall(mentoTokenAddr, abi.encodeWithSelector(mentoToken.transfer.selector), 0);
 
+    vm.prank(beneficiary);
     vestingLock.redeem();
 
     assertEq(mentoToken.balanceOf(beneficiary), 0);
