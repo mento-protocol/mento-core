@@ -4,6 +4,7 @@ pragma solidity 0.8.18;
 
 import { TestSetup } from "./TestSetup.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
+import { Arrays } from "test/utils/Arrays.sol";
 
 contract MentoTokenTest is TestSetup {
   MentoToken public mentoToken;
@@ -13,9 +14,36 @@ contract MentoTokenTest is TestSetup {
   address public airgrab = makeAddr("airgrab");
   address public governanceTimelock = makeAddr("governanceTimelock");
   address public emission = makeAddr("emission");
+  uint256[] public allocationAmounts = Arrays.uints(80, 120, 50, 100);
+  address[] public allocationRecipients =
+    Arrays.addresses(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, governanceTimelock);
 
   function setUp() public {
-    mentoToken = new MentoToken(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, governanceTimelock, emission);
+    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, emission);
+  }
+
+  function test_constructor_whenEmissionIsZero_shouldRevert() public {
+    vm.expectRevert("MentoToken: emission is zero address");
+    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, address(0));
+  }
+
+  function test_constructor_whenAllocationRecipientsAndAmountsLengthMismatch_shouldRevert() public {
+    vm.expectRevert("MentoToken: recipients and amounts length mismatch");
+    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50), emission);
+  }
+
+  function test_constructor_whenAllocationRecipientIsZero_shouldRevert() public {
+    vm.expectRevert("MentoToken: allocation recipient is zero address");
+    mentoToken = new MentoToken(
+      Arrays.addresses(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, address(0)),
+      allocationAmounts,
+      emission
+    );
+  }
+
+  function test_constructor_whenTotalAllocationExceeds1000_shouldRevert() public {
+    vm.expectRevert("MentoToken: total allocation exceeds 100%");
+    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50, 1000), emission);
   }
 
   /// @dev Test the state initialization post-construction of the MentoToken contract.

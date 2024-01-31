@@ -7,20 +7,16 @@ import { MentoToken } from "../MentoToken.sol";
 library MentoTokenDeployerLib {
   /**
    * @notice Deploys a new MentoToken contract
-   * @param mentoLabsMultiSig The address of the Mento Labs multisig
-   * @param mentoLabsTreasuryTimelock The address of the timelocked Mento Labs Treasury
-   * @param airgrab The address of the airgrab contract
-   * @param governanceTimelock The address of the governance timelock
+   * @param allocationRecipients The addresses of the initial token recipients
+   * @param allocationAmounts The percentage of tokens to be allocated to each recipient
    * @param emission The address of the emission contract
    * @return The address of the new MentoToken contract
    */
   function deploy(
-    address mentoLabsMultiSig,
-    address mentoLabsTreasuryTimelock,
-    address airgrab,
-    address governanceTimelock,
+    address[] memory allocationRecipients,
+    uint256[] memory allocationAmounts,
     address emission
   ) external returns (MentoToken) {
-    return new MentoToken(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, governanceTimelock, emission);
+    return new MentoToken(allocationRecipients, allocationAmounts, emission);
   }
 }

@@ -137,13 +137,17 @@ contract GovernanceFactory is Ownable {
     // ===========================================
     // ========== Deploy 3: MentoToken ===========
     // ===========================================
-    mentoToken = MentoTokenDeployerLib.deploy( // NONCE:3
-      mentoLabsMultiSig,
-      mentoLabsTreasuryPrecalculated,
-      airgrabPrecalculated,
-      governanceTimelockPrecalculated,
-      address(emission)
-    );
+    address[] memory allocationRecipients = new address[](4);
+    allocationRecipients[0] = mentoLabsMultiSig;
+    allocationRecipients[1] = mentoLabsTreasuryPrecalculated;
+    allocationRecipients[2] = airgrabPrecalculated;
+    uint256[] memory allocationAmounts = new uint256[](4);
+    allocationAmounts[0] = 80;
+    allocationAmounts[1] = 120;
+    allocationAmounts[2] = 50;
+    allocationAmounts[3] = 100;
+
+    mentoToken = MentoTokenDeployerLib.deploy(allocationRecipients, allocationAmounts, address(emission)); // NONCE:3
     assert(address(mentoToken) == tokenPrecalculated);
 
     // ========================================
