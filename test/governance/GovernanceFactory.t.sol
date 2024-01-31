@@ -100,6 +100,29 @@ contract GovernanceFactoryTest is TestSetup {
     assertEq(factory.proxyAdmin().owner(), governanceTimelock);
   }
 
+  function test_createGovernance_whenAdditionalAllocationRecipients_shouldCombineRecipients() public i_setUp {
+    address[] memory allocationRecipients = Arrays.addresses(makeAddr("Recipient1"), makeAddr("Recipient2"));
+    uint256 supply = 1_000_000_000 * 10**18;
+    uint256[] memory allocationAmounts = Arrays.uints(50, 50, 80, 120, 50, 100);
+    vm.prank(owner);
+    factory.createGovernance(
+      mentoLabsMultiSig,
+      watchdogMultiSig,
+      celoCommunityFund,
+      airgrabMerkleRoot,
+      fractalSigner,
+      allocationRecipients,
+      allocationAmounts
+    );
+
+    assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient1")), (supply * 50) / 1000);
+    assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient2")), (supply * 50) / 1000);
+    assertEq(factory.mentoToken().balanceOf(mentoLabsMultiSig), (supply * 80) / 1000);
+    assertEq(factory.mentoToken().balanceOf(address(factory.mentoLabsTreasuryTimelock())), (supply * 120) / 1000);
+    assertEq(factory.mentoToken().balanceOf(address(factory.airgrab())), (supply * 50) / 1000);
+    assertEq(factory.mentoToken().balanceOf(address(factory.governanceTimelock())), (supply * 100) / 1000);
+  }
+
   //
   // ❌ Negative Tests
   //
