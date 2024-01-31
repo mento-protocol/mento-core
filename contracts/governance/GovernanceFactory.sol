@@ -103,7 +103,7 @@ contract GovernanceFactory is Ownable {
     address celoCommunityFund_,
     bytes32 airgrabRoot,
     address fractalSigner,
-    address[] memory _allocationRecipients,
+    address[] memory additionalAllocationRecipients,
     uint256[] memory allocationAmounts
   ) external onlyOwner {
     require(!initialized, "Factory: governance already created");
@@ -139,10 +139,10 @@ contract GovernanceFactory is Ownable {
     // ===========================================
     // ========== Deploy 3: MentoToken ===========
     // ===========================================
-    uint256 numberOfRecipients = _allocationRecipients.length + 4;
+    uint256 numberOfRecipients = additionalAllocationRecipients.length + 4;
     address[] memory allocationRecipients = new address[](numberOfRecipients);
-    for (uint256 i = 0; i < _allocationRecipients.length; i++) {
-      allocationRecipients[i] = _allocationRecipients[i];
+    for (uint256 i = 0; i < additionalAllocationRecipients.length; i++) {
+      allocationRecipients[i] = additionalAllocationRecipients[i];
     }
     allocationRecipients[numberOfRecipients - 4] = mentoLabsMultiSig;
     allocationRecipients[numberOfRecipients - 3] = mentoLabsTreasuryPrecalculated;
