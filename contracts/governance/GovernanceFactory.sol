@@ -102,7 +102,9 @@ contract GovernanceFactory is Ownable {
     address watchdogMultiSig_,
     address celoCommunityFund_,
     bytes32 airgrabRoot,
-    address fractalSigner
+    address fractalSigner,
+    address[] memory _allocationRecipients,
+    uint256[] memory allocationAmounts
   ) external onlyOwner {
     require(!initialized, "Factory: governance already created");
     initialized = true;
@@ -137,15 +139,15 @@ contract GovernanceFactory is Ownable {
     // ===========================================
     // ========== Deploy 3: MentoToken ===========
     // ===========================================
-    address[] memory allocationRecipients = new address[](4);
-    allocationRecipients[0] = mentoLabsMultiSig;
-    allocationRecipients[1] = mentoLabsTreasuryPrecalculated;
-    allocationRecipients[2] = airgrabPrecalculated;
-    uint256[] memory allocationAmounts = new uint256[](4);
-    allocationAmounts[0] = 80;
-    allocationAmounts[1] = 120;
-    allocationAmounts[2] = 50;
-    allocationAmounts[3] = 100;
+    uint256 numberOfRecipients = _allocationRecipients.length + 4;
+    address[] memory allocationRecipients = new address[](numberOfRecipients);
+    for (uint256 i = 0; i < _allocationRecipients.length; i++) {
+      allocationRecipients[i] = _allocationRecipients[i];
+    }
+    allocationRecipients[numberOfRecipients - 4] = mentoLabsMultiSig;
+    allocationRecipients[numberOfRecipients - 3] = mentoLabsTreasuryPrecalculated;
+    allocationRecipients[numberOfRecipients - 2] = airgrabPrecalculated;
+    allocationRecipients[numberOfRecipients - 1] = governanceTimelockPrecalculated;
 
     mentoToken = MentoTokenDeployerLib.deploy(allocationRecipients, allocationAmounts, address(emission)); // NONCE:3
     assert(address(mentoToken) == tokenPrecalculated);

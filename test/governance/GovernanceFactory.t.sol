@@ -3,6 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length
 
 import { TestSetup } from "./TestSetup.sol";
+import { Arrays } from "test/utils/Arrays.sol";
 import { TestLocking } from "../utils/TestLocking.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -34,7 +35,17 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function _createGovernance() internal {
-    factory.createGovernance(mentoLabsMultiSig, watchdogMultiSig, celoCommunityFund, airgrabMerkleRoot, fractalSigner);
+    address[] memory allocationRecipients;
+    uint256[] memory allocationAmounts = Arrays.uints(80, 120, 50, 100);
+    factory.createGovernance(
+      mentoLabsMultiSig,
+      watchdogMultiSig,
+      celoCommunityFund,
+      airgrabMerkleRoot,
+      fractalSigner,
+      allocationRecipients,
+      allocationAmounts
+    );
   }
 
   // ========================================

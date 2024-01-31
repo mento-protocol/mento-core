@@ -104,6 +104,9 @@ contract GovernanceIntegrationTest is TestSetup {
     owners[1] = mentoSigner1;
     owners[2] = mentoSigner2;
 
+    address[] memory allocationRecipients;
+    uint256[] memory allocationAmounts = Arrays.uints(80, 120, 50, 100);
+
     bytes memory mentoLabsMultisigInit = abi.encodeWithSelector(
       GnosisSafe.setup.selector,
       owners, ///     @param _owners List of Safe owners.
@@ -133,7 +136,9 @@ contract GovernanceIntegrationTest is TestSetup {
       watchdogMultisig,
       celoCommunityFund,
       merkleRoot,
-      fractalSigner
+      fractalSigner,
+      allocationRecipients,
+      allocationAmounts
     );
     proxyAdmin = factory.proxyAdmin();
     mentoToken = factory.mentoToken();

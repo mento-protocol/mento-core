@@ -78,6 +78,7 @@ contract MentoToken is ERC20Burnable {
     uint256 totalAllocated = 0;
 
     for (uint256 i = 0; i < allocationRecipients_.length; i++) {
+      require(allocationRecipients_[i] != address(0), "MentoToken: allocation recipient is zero address");
       totalAllocated += allocationAmounts_[i];
     }
     require(totalAllocated <= 1000, "MentoToken: total allocation exceeds 100%");
