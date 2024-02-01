@@ -94,6 +94,10 @@ contract GovernanceFactory is Ownable {
    * @param celoCommunityFund_ Address of the Celo community fund that will receive the unclaimed airgrab tokens
    * @param airgrabRoot Root hash for the airgrab Merkle tree
    * @param fractalSigner Signer of fractal kyc
+   * @param additionalAllocationRecipients Additional addresses to receive an initial token allocation.
+   *        MentoLabTreasury, Airgrab, and Governance Timelock are automatically added as recipients to the End.
+   * @param allocationAmounts percentage amount of tokens to be allocated to the allocation recipients
+   *        can be 0 to skip allocation to a hardcoded recipient
    * @dev Can only be called by the owner and only once
    */
   // solhint-disable-next-line function-max-lines
@@ -139,12 +143,11 @@ contract GovernanceFactory is Ownable {
     // ===========================================
     // ========== Deploy 3: MentoToken ===========
     // ===========================================
-    uint256 numberOfRecipients = additionalAllocationRecipients.length + 4;
+    uint256 numberOfRecipients = additionalAllocationRecipients.length + 3;
     address[] memory allocationRecipients = new address[](numberOfRecipients);
     for (uint256 i = 0; i < additionalAllocationRecipients.length; i++) {
       allocationRecipients[i] = additionalAllocationRecipients[i];
     }
-    allocationRecipients[numberOfRecipients - 4] = mentoLabsMultiSig;
     allocationRecipients[numberOfRecipients - 3] = mentoLabsTreasuryPrecalculated;
     allocationRecipients[numberOfRecipients - 2] = airgrabPrecalculated;
     allocationRecipients[numberOfRecipients - 1] = governanceTimelockPrecalculated;

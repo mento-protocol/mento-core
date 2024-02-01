@@ -33,17 +33,26 @@ contract MentoToken is ERC20Burnable {
     address emission_
   ) ERC20("Mento Token", "MENTO") {
     require(emission_ != address(0), "MentoToken: emission is zero address");
-    _verifyAllocation(allocationRecipients_, allocationAmounts_);
+    require(
+      allocationRecipients_.length == allocationAmounts_.length,
+      "MentoToken: recipients and amounts length mismatch"
+    );
+
     uint256 supply = 1_000_000_000 * 10**decimals();
 
-    uint256 emissionAllocation = 1000;
+    uint256 totalAllocated;
     for (uint256 i = 0; i < allocationRecipients_.length; i++) {
+      require(allocationRecipients_[i] != address(0), "MentoToken: allocation recipient is zero address");
+
+      if (allocationAmounts_[i] == 0) continue;
+
+      totalAllocated += allocationAmounts_[i];
       _mint(allocationRecipients_[i], (supply * allocationAmounts_[i]) / 1000);
-      emissionAllocation -= allocationAmounts_[i];
     }
+    require(totalAllocated <= 1000, "MentoToken: total allocation exceeds 100%");
 
     emission = emission_;
-    emissionSupply = (supply * emissionAllocation) / 1000;
+    emissionSupply = (supply * (1000 - totalAllocated)) / 1000;
   }
 
   /**
@@ -59,28 +68,5 @@ contract MentoToken is ERC20Burnable {
 
     emittedAmount += amount;
     _mint(target, amount);
-  }
-
-  /**
-   * @dev verifies constructor parameters & ensures valid allocation.
-   * @param allocationRecipients_ The addresses of the initial token recipients.
-   * @param allocationAmounts_ The percentage of tokens to be allocated to each recipient.
-   */
-  function _verifyAllocation(address[] memory allocationRecipients_, uint256[] memory allocationAmounts_)
-    internal
-    pure
-  {
-    require(
-      allocationRecipients_.length == allocationAmounts_.length,
-      "MentoToken: recipients and amounts length mismatch"
-    );
-
-    uint256 totalAllocated = 0;
-
-    for (uint256 i = 0; i < allocationRecipients_.length; i++) {
-      require(allocationRecipients_[i] != address(0), "MentoToken: allocation recipient is zero address");
-      totalAllocated += allocationAmounts_[i];
-    }
-    require(totalAllocated <= 1000, "MentoToken: total allocation exceeds 100%");
   }
 }

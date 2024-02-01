@@ -35,7 +35,7 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function _createGovernance() internal {
-    address[] memory allocationRecipients;
+    address[] memory allocationRecipients = Arrays.addresses(mentoLabsMultiSig);
     uint256[] memory allocationAmounts = Arrays.uints(80, 120, 50, 100);
     factory.createGovernance(
       mentoLabsMultiSig,
@@ -101,7 +101,11 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function test_createGovernance_whenAdditionalAllocationRecipients_shouldCombineRecipients() public i_setUp {
-    address[] memory allocationRecipients = Arrays.addresses(makeAddr("Recipient1"), makeAddr("Recipient2"));
+    address[] memory allocationRecipients = Arrays.addresses(
+      makeAddr("Recipient1"),
+      makeAddr("Recipient2"),
+      mentoLabsMultiSig
+    );
     uint256 supply = 1_000_000_000 * 10**18;
     uint256[] memory allocationAmounts = Arrays.uints(50, 50, 80, 120, 50, 100);
     vm.prank(owner);

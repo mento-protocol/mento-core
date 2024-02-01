@@ -104,9 +104,6 @@ contract GovernanceIntegrationTest is TestSetup {
     owners[1] = mentoSigner1;
     owners[2] = mentoSigner2;
 
-    address[] memory allocationRecipients;
-    uint256[] memory allocationAmounts = Arrays.uints(80, 120, 50, 100);
-
     bytes memory mentoLabsMultisigInit = abi.encodeWithSelector(
       GnosisSafe.setup.selector,
       owners, ///     @param _owners List of Safe owners.
@@ -126,6 +123,9 @@ contract GovernanceIntegrationTest is TestSetup {
         address(safeFactory.createProxyWithNonce(address(safeSingleton), mentoLabsMultisigInit, mentoLabsMultisigSalt))
       )
     );
+
+    address[] memory allocationRecipients = Arrays.addresses(address(mentoLabsMultisig));
+    uint256[] memory allocationAmounts = Arrays.uints(80, 120, 50, 100);
 
     vm.prank(owner);
     factory = new GovernanceFactory(celoGovernance);
