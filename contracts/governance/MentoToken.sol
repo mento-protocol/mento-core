@@ -22,35 +22,37 @@ contract MentoToken is ERC20Burnable {
   /**
    * @dev Constructor for the MentoToken contract.
    * @notice It mints and allocates the initial token supply among several contracts.
-   * @param mentoLabsMultiSig The address of the Mento Labs MultiSig where 8% of the total supply will be sent for vesting.
-   * @param mentoLabsTreasuryTimelock The address of the timelocked Mento Labs treasury where 12% of the total supply will be sent.
-   * @param airgrab The address of the airgrab contract where 5% of the total supply will be sent.
-   * @param governanceTimelock The address of the treasury contract where 10% of the total supply will be sent.
+   * @param allocationRecipients_ The addresses of the initial token recipients.
+   * @param allocationAmounts_ The percentage of tokens to be allocated to each recipient.
    * @param emission_ The address of the emission contract where the rest of the supply will be emitted.
    */
   // solhint-enable max-line-length
   constructor(
-    address mentoLabsMultiSig,
-    address mentoLabsTreasuryTimelock,
-    address airgrab,
-    address governanceTimelock,
+    address[] memory allocationRecipients_,
+    uint256[] memory allocationAmounts_,
     address emission_
   ) ERC20("Mento Token", "MENTO") {
+    require(emission_ != address(0), "MentoToken: emission is zero address");
+    require(
+      allocationRecipients_.length == allocationAmounts_.length,
+      "MentoToken: recipients and amounts length mismatch"
+    );
+
     uint256 supply = 1_000_000_000 * 10**decimals();
 
-    uint256 mentoLabsMultiSigSupply = (supply * 8) / 100;
-    uint256 mentoLabsTreasurySupply = (supply * 12) / 100;
-    uint256 airgrabSupply = (supply * 5) / 100;
-    uint256 governanceTimelockSupply = (supply * 10) / 100;
-    uint256 emissionSupply_ = (supply * 65) / 100;
+    uint256 totalAllocated;
+    for (uint256 i = 0; i < allocationRecipients_.length; i++) {
+      require(allocationRecipients_[i] != address(0), "MentoToken: allocation recipient is zero address");
 
-    _mint(mentoLabsMultiSig, mentoLabsMultiSigSupply);
-    _mint(mentoLabsTreasuryTimelock, mentoLabsTreasurySupply);
-    _mint(airgrab, airgrabSupply);
-    _mint(governanceTimelock, governanceTimelockSupply);
+      if (allocationAmounts_[i] == 0) continue;
+
+      totalAllocated += allocationAmounts_[i];
+      _mint(allocationRecipients_[i], (supply * allocationAmounts_[i]) / 1000);
+    }
+    require(totalAllocated <= 1000, "MentoToken: total allocation exceeds 100%");
 
     emission = emission_;
-    emissionSupply = emissionSupply_;
+    emissionSupply = (supply * (1000 - totalAllocated)) / 1000;
   }
 
   /**

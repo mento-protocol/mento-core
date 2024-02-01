@@ -3,6 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length
 
 import { TestSetup } from "./TestSetup.sol";
+import { Arrays } from "test/utils/Arrays.sol";
 import { TestLocking } from "../utils/TestLocking.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -34,7 +35,17 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function _createGovernance() internal {
-    factory.createGovernance(mentoLabsMultiSig, watchdogMultiSig, celoCommunityFund, airgrabMerkleRoot, fractalSigner);
+    address[] memory allocationRecipients = Arrays.addresses(mentoLabsMultiSig);
+    uint256[] memory allocationAmounts = Arrays.uints(80, 120, 50, 100);
+    factory.createGovernance(
+      mentoLabsMultiSig,
+      watchdogMultiSig,
+      celoCommunityFund,
+      airgrabMerkleRoot,
+      fractalSigner,
+      allocationRecipients,
+      allocationAmounts
+    );
   }
 
   // ========================================
@@ -87,6 +98,33 @@ contract GovernanceFactoryTest is TestSetup {
     assertEq(factory.emission().owner(), governanceTimelock);
     assertEq(factory.locking().owner(), governanceTimelock);
     assertEq(factory.proxyAdmin().owner(), governanceTimelock);
+  }
+
+  function test_createGovernance_whenAdditionalAllocationRecipients_shouldCombineRecipients() public i_setUp {
+    address[] memory allocationRecipients = Arrays.addresses(
+      makeAddr("Recipient1"),
+      makeAddr("Recipient2"),
+      mentoLabsMultiSig
+    );
+    uint256 supply = 1_000_000_000 * 10**18;
+    uint256[] memory allocationAmounts = Arrays.uints(50, 50, 80, 120, 50, 100);
+    vm.prank(owner);
+    factory.createGovernance(
+      mentoLabsMultiSig,
+      watchdogMultiSig,
+      celoCommunityFund,
+      airgrabMerkleRoot,
+      fractalSigner,
+      allocationRecipients,
+      allocationAmounts
+    );
+
+    assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient1")), (supply * 50) / 1000);
+    assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient2")), (supply * 50) / 1000);
+    assertEq(factory.mentoToken().balanceOf(mentoLabsMultiSig), (supply * 80) / 1000);
+    assertEq(factory.mentoToken().balanceOf(address(factory.mentoLabsTreasuryTimelock())), (supply * 120) / 1000);
+    assertEq(factory.mentoToken().balanceOf(address(factory.airgrab())), (supply * 50) / 1000);
+    assertEq(factory.mentoToken().balanceOf(address(factory.governanceTimelock())), (supply * 100) / 1000);
   }
 
   //

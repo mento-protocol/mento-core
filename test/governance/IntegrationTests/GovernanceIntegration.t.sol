@@ -124,6 +124,9 @@ contract GovernanceIntegrationTest is TestSetup {
       )
     );
 
+    address[] memory allocationRecipients = Arrays.addresses(address(mentoLabsMultisig));
+    uint256[] memory allocationAmounts = Arrays.uints(80, 120, 50, 100);
+
     vm.prank(owner);
     factory = new GovernanceFactory(celoGovernance);
 
@@ -133,7 +136,9 @@ contract GovernanceIntegrationTest is TestSetup {
       watchdogMultisig,
       celoCommunityFund,
       merkleRoot,
-      fractalSigner
+      fractalSigner,
+      allocationRecipients,
+      allocationAmounts
     );
     proxyAdmin = factory.proxyAdmin();
     mentoToken = factory.mentoToken();
