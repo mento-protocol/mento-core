@@ -38,9 +38,7 @@ contract GovernanceFactory is Ownable {
     address airgrab,
     address locking,
     address governanceTimelock,
-    address mentoGovernor,
-    address mentoLabsTreasury,
-    address mentoLabsMultiSig
+    address mentoGovernor
   );
 
   ProxyAdmin public proxyAdmin;
@@ -50,9 +48,7 @@ contract GovernanceFactory is Ownable {
   TimelockController public governanceTimelock;
   MentoGovernor public mentoGovernor;
   Locking public locking;
-  TimelockController public mentoLabsTreasuryTimelock;
 
-  address public mentoLabsMultiSig;
   address public watchdogMultiSig;
   address public celoCommunityFund;
 
@@ -75,10 +71,6 @@ contract GovernanceFactory is Ownable {
   uint256 public constant GOVERNOR_PROPOSAL_THRESHOLD = 1_000e18;
   uint256 public constant GOVERNOR_QUORUM = 2; // Quorum percentage for the governor
 
-  // Mento Labs Treasury Timelock configuration:
-  // 7 days (gov voting period) + 2 days (gov timelock) + 4 days (buffer)
-  uint256 public constant MENTOLABS_TREASURY_TIMELOCK_DELAY = 13 days;
-
   /**
    * @notice Creates the factory contract with the owner address
    * @param owner_ Address of the owner, will be Celo governance
@@ -89,7 +81,6 @@ contract GovernanceFactory is Ownable {
 
   /**
    * @notice Creates and initializes the governance system contracts
-   * @param mentoLabsMultiSig_ Address of the Mento Labs multisig from where the team allocation will be vested
    * @param watchdogMultiSig_ Address of the Mento community's multisig wallet with the veto rights
    * @param celoCommunityFund_ Address of the Celo community fund that will receive the unclaimed airgrab tokens
    * @param airgrabRoot Root hash for the airgrab Merkle tree
@@ -102,7 +93,6 @@ contract GovernanceFactory is Ownable {
    */
   // solhint-disable-next-line function-max-lines
   function createGovernance(
-    address mentoLabsMultiSig_,
     address watchdogMultiSig_,
     address celoCommunityFund_,
     bytes32 airgrabRoot,
@@ -113,7 +103,6 @@ contract GovernanceFactory is Ownable {
     require(!initialized, "Factory: governance already created");
     initialized = true;
 
-    mentoLabsMultiSig = mentoLabsMultiSig_;
     watchdogMultiSig = watchdogMultiSig_;
     celoCommunityFund = celoCommunityFund_;
 
@@ -124,7 +113,6 @@ contract GovernanceFactory is Ownable {
     address lockingPrecalculated = addressForNonce(6);
     address governanceTimelockPrecalculated = addressForNonce(8);
     address governorPrecalculated = addressForNonce(10);
-    address mentoLabsTreasuryPrecalculated = addressForNonce(11);
 
     address[] memory owners = new address[](1);
     owners[0] = governanceTimelockPrecalculated;
@@ -143,12 +131,11 @@ contract GovernanceFactory is Ownable {
     // ===========================================
     // ========== Deploy 3: MentoToken ===========
     // ===========================================
-    uint256 numberOfRecipients = additionalAllocationRecipients.length + 3;
+    uint256 numberOfRecipients = additionalAllocationRecipients.length + 2;
     address[] memory allocationRecipients = new address[](numberOfRecipients);
     for (uint256 i = 0; i < additionalAllocationRecipients.length; i++) {
       allocationRecipients[i] = additionalAllocationRecipients[i];
     }
-    allocationRecipients[numberOfRecipients - 3] = mentoLabsTreasuryPrecalculated;
     allocationRecipients[numberOfRecipients - 2] = airgrabPrecalculated;
     allocationRecipients[numberOfRecipients - 1] = governanceTimelockPrecalculated;
 
@@ -239,28 +226,6 @@ contract GovernanceFactory is Ownable {
     );
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
 
-    // ========================================================
-    // =========== Deploy 11: Mento Labs Treasury =============
-    // ========================================================
-    address[] memory treasuryProposers = new address[](1);
-    address[] memory treasuryExecutors = new address[](1);
-    treasuryProposers[0] = address(mentoLabsMultiSig); // Only Mento Labs team can propose
-    treasuryExecutors[0] = address(0); // Anyone can execute
-
-    TransparentUpgradeableProxy mentoLabsTreasuryTimelockProxy = ProxyDeployerLib.deployProxy( // NONCE:11
-      address(timelockControllerImpl),
-      address(proxyAdmin),
-      abi.encodeWithSelector(
-        timelockControllerImpl.__MentoTimelockController_init.selector,
-        MENTOLABS_TREASURY_TIMELOCK_DELAY, /// @param minDelay The minimum delay before a proposal can be executed.
-        treasuryProposers, ///                 @param proposers List of addresses that are allowed to queue and cancel operations.
-        treasuryExecutors, ///                 @param executors List of addresses that are allowed to execute proposals. 0 can be used to allow any account.
-        address(0), ///                        @param admin No admin necessary as proposers are preset upon deployment.
-        governanceTimelock ///                 @param canceller An additional canceller address with the rights to cancel awaiting proposals.
-      )
-    );
-    mentoLabsTreasuryTimelock = TimelockController(payable(mentoLabsTreasuryTimelockProxy));
-
     // =============================================
     // =========== Configure Ownership =============
     // =============================================
@@ -275,9 +240,7 @@ contract GovernanceFactory is Ownable {
       address(airgrab),
       address(locking),
       address(governanceTimelock),
-      address(mentoGovernor),
-      address(mentoLabsTreasuryTimelock),
-      mentoLabsMultiSig
+      address(mentoGovernor)
     );
   }
 

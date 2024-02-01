@@ -36,9 +36,8 @@ contract GovernanceFactoryTest is TestSetup {
 
   function _createGovernance() internal {
     address[] memory allocationRecipients = Arrays.addresses(mentoLabsMultiSig);
-    uint256[] memory allocationAmounts = Arrays.uints(80, 120, 50, 100);
+    uint256[] memory allocationAmounts = Arrays.uints(200, 50, 100);
     factory.createGovernance(
-      mentoLabsMultiSig,
       watchdogMultiSig,
       celoCommunityFund,
       airgrabMerkleRoot,
@@ -87,7 +86,6 @@ contract GovernanceFactoryTest is TestSetup {
     assertFalse(address(factory.locking()) == address(0), "Locking not deployed");
     assertFalse(address(factory.governanceTimelock()) == address(0), "TimelockController not deployed");
     assertFalse(address(factory.mentoGovernor()) == address(0), "MentoGovernor not deployed");
-    assertFalse(address(factory.mentoLabsTreasuryTimelock()) == address(0), "Mento Labs Treasury not deployed");
   }
 
   function test_createGovernance_shouldTransferOwnershipToGovernanceTimelock() public i_setUp {
@@ -110,7 +108,6 @@ contract GovernanceFactoryTest is TestSetup {
     uint256[] memory allocationAmounts = Arrays.uints(50, 50, 80, 120, 50, 100);
     vm.prank(owner);
     factory.createGovernance(
-      mentoLabsMultiSig,
       watchdogMultiSig,
       celoCommunityFund,
       airgrabMerkleRoot,
@@ -122,7 +119,6 @@ contract GovernanceFactoryTest is TestSetup {
     assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient1")), (supply * 50) / 1000);
     assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient2")), (supply * 50) / 1000);
     assertEq(factory.mentoToken().balanceOf(mentoLabsMultiSig), (supply * 80) / 1000);
-    assertEq(factory.mentoToken().balanceOf(address(factory.mentoLabsTreasuryTimelock())), (supply * 120) / 1000);
     assertEq(factory.mentoToken().balanceOf(address(factory.airgrab())), (supply * 50) / 1000);
     assertEq(factory.mentoToken().balanceOf(address(factory.governanceTimelock())), (supply * 100) / 1000);
   }
@@ -246,40 +242,6 @@ contract GovernanceFactoryTest is TestSetup {
     address newImpl = proxyAdmin.getProxyImplementation(proxy);
     assertFalse(initialImpl == newImpl, "Factory: mentoGovernorProxy should have a new implementation");
     assertTrue(newImpl == address(newImplContract), "Factory: mentoGovernorProxy implementation should equal newImpl");
-  }
-
-  // ========================================
-  // Upgradeability Test: Mento Labs Treasury
-  // ========================================
-  function test_createGovernance_mentoLabsTreasuryShouldBeUpgradeable() public i_setUp {
-    vm.prank(owner);
-    _createGovernance();
-
-    ProxyAdmin proxyAdmin = factory.proxyAdmin();
-    ITransparentUpgradeableProxy proxy = ITransparentUpgradeableProxy(address(factory.mentoLabsTreasuryTimelock()));
-
-    assertEq(
-      proxyAdmin.getProxyAdmin(proxy),
-      address(factory.proxyAdmin()),
-      "Factory: mentoLabsTreasuryProxy should have a proxyAdmin"
-    );
-
-    // we can cheat and calculate the address of the implementation contract via addressForNonce()
-    address precalculatedAddress = factory.exposed_addressForNonce(7);
-    address initialImpl = proxyAdmin.getProxyImplementation(proxy);
-    assertEq(initialImpl, precalculatedAddress, "Factory: mentoLabsTreasuryProxy should have an implementation");
-
-    // deploy and upgrade to new implementation
-    TimelockController newImplContract = new TimelockController();
-    vm.prank(address(factory.governanceTimelock()));
-    proxyAdmin.upgrade(proxy, address(newImplContract));
-
-    address newImpl = proxyAdmin.getProxyImplementation(proxy);
-    assertFalse(initialImpl == newImpl, "Factory: mentoLabsTreasuryProxy should have a new implementation");
-    assertTrue(
-      newImpl == address(newImplContract),
-      "Factory: mentoLabsTreasuryProxy implementation should equal newImpl"
-    );
   }
 
   // ========================================
