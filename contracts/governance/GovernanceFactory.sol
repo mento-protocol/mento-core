@@ -86,7 +86,7 @@ contract GovernanceFactory is Ownable {
    * @param airgrabRoot Root hash for the airgrab Merkle tree
    * @param fractalSigner Signer of fractal kyc
    * @param additionalAllocationRecipients Additional addresses to receive an initial token allocation.
-   *        MentoLabTreasury, Airgrab, and Governance Timelock are automatically added as recipients to the End.
+   *        Airgrab, and Governance Timelock are automatically added as recipients to the End.
    * @param allocationAmounts percentage amount of tokens to be allocated to the allocation recipients
    *        can be 0 to skip allocation to a hardcoded recipient
    * @dev Can only be called by the owner and only once
@@ -181,7 +181,7 @@ contract GovernanceFactory is Ownable {
     // ===================================================================
     // ========== Deploy 7: Timelock Controller Implementation ===========
     // ===================================================================
-    /// @dev This implementation will be reused for both the Governance Timelock and the Mento Labs Treasury Timelock
+    /// @dev This implementation will be reused for the Governance Timelock
     TimelockController timelockControllerImpl = TimelockControllerDeployerLib.deploy(); // NONCE:7
 
     // ====================================================
