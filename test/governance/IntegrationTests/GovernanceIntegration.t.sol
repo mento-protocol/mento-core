@@ -36,7 +36,6 @@ contract GovernanceIntegrationTest is TestSetup {
   Airgrab public airgrab;
   TimelockController public governanceTimelock;
   address public governanceTimelockAddress;
-  TimelockController public mentoLabsTreasury;
   MentoGovernor public mentoGovernor;
   Locking public locking;
 
@@ -125,14 +124,13 @@ contract GovernanceIntegrationTest is TestSetup {
     );
 
     address[] memory allocationRecipients = Arrays.addresses(address(mentoLabsMultisig));
-    uint256[] memory allocationAmounts = Arrays.uints(80, 120, 50, 100);
+    uint256[] memory allocationAmounts = Arrays.uints(200, 50, 100);
 
     vm.prank(owner);
     factory = new GovernanceFactory(celoGovernance);
 
     vm.prank(celoGovernance);
     factory.createGovernance(
-      address(mentoLabsMultisig),
       watchdogMultisig,
       celoCommunityFund,
       merkleRoot,
@@ -147,7 +145,6 @@ contract GovernanceIntegrationTest is TestSetup {
     governanceTimelock = factory.governanceTimelock();
     mentoGovernor = factory.mentoGovernor();
     locking = factory.locking();
-    mentoLabsTreasury = factory.mentoLabsTreasuryTimelock();
 
     // Without this cast, tests do not work as expected
     // It causes a yul exception about memory safety
@@ -162,8 +159,7 @@ contract GovernanceIntegrationTest is TestSetup {
   }
 
   function test_factory_shouldCreateAndSetupContracts() public {
-    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 80_000_000 * 10**18);
-    assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 120_000_000 * 10**18);
+    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 200_000_000 * 10**18);
     assertEq(mentoToken.balanceOf(address(airgrab)), 50_000_000 * 10**18);
     assertEq(mentoToken.balanceOf(governanceTimelockAddress), 100_000_000 * 10**18);
     assertEq(mentoToken.emissionSupply(), 650_000_000 * 10**18);
@@ -195,11 +191,6 @@ contract GovernanceIntegrationTest is TestSetup {
     assert(governanceTimelock.hasRole(executorRole, (address(0))));
     assert(governanceTimelock.hasRole(cancellerRole, address(mentoGovernor)));
     assert(governanceTimelock.hasRole(cancellerRole, watchdogMultisig));
-
-    assertEq(mentoLabsTreasury.getMinDelay(), 13 days);
-    assert(mentoLabsTreasury.hasRole(proposerRole, address(mentoLabsMultisig)));
-    assert(mentoLabsTreasury.hasRole(executorRole, address(0)));
-    assert(mentoLabsTreasury.hasRole(cancellerRole, governanceTimelockAddress));
 
     assertEq(address(mentoGovernor.token()), address(locking));
     assertEq(mentoGovernor.votingDelay(), 0);
@@ -544,13 +535,11 @@ contract GovernanceIntegrationTest is TestSetup {
     TestLocking newLockingContract = new TestLocking();
     TimelockController newGovernonceTimelockContract = new TimelockController();
     MentoGovernor newGovernorContract = new MentoGovernor();
-    TimelockController newMLTreasuryTimelockContract = new TimelockController();
 
     // proxies of current implementations
     ITransparentUpgradeableProxy lockingProxy = ITransparentUpgradeableProxy(address(locking));
     ITransparentUpgradeableProxy governanceTimelockProxy = ITransparentUpgradeableProxy(governanceTimelockAddress);
     ITransparentUpgradeableProxy mentoGovernorProxy = ITransparentUpgradeableProxy(address(mentoGovernor));
-    ITransparentUpgradeableProxy mentoLabsProxy = ITransparentUpgradeableProxy(address(mentoLabsTreasury));
 
     vm.prank(alice);
     (
@@ -565,11 +554,9 @@ contract GovernanceIntegrationTest is TestSetup {
         lockingProxy,
         governanceTimelockProxy,
         mentoGovernorProxy,
-        mentoLabsProxy,
         address(newLockingContract),
         address(newGovernonceTimelockContract),
-        address(newGovernorContract),
-        address(newMLTreasuryTimelockContract)
+        address(newGovernorContract)
       );
 
     // ~10 mins
@@ -597,348 +584,5 @@ contract GovernanceIntegrationTest is TestSetup {
 
     // new implementation has the method and governance upgraded the contract
     TestLocking(address(locking)).setEpochShift(1);
-  }
-
-  function test_mentoLabsMultiSig_execute_whenEnoughSignatures_shouldTransferFunds() public {
-    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 80_000_000 * 10**18);
-
-    // create a gnosis safe transaction to transfer tokens from the multisig to the governanceTimelockAddress
-    bytes memory transferCallData = abi.encodeWithSelector(
-      mentoToken.transfer.selector,
-      governanceTimelockAddress,
-      10_000_000e18
-    );
-    bytes memory txHashData = mentoLabsMultisig.encodeTransactionData(
-      address(mentoToken),
-      0,
-      transferCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      0
-    );
-
-    bytes32 txHash = keccak256(txHashData);
-
-    // sign the transfer tx
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = vm.constructSignature(v, r, s);
-
-    bytes memory signatures = abi.encodePacked(signature2);
-
-    // not enough signatures
-    vm.expectRevert("GS020");
-    mentoLabsMultisig.execTransaction(
-      address(mentoToken),
-      0,
-      transferCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      signatures
-    );
-
-    signatures = abi.encodePacked(signature2, signature1, signature0);
-
-    // enough signatures should transfer the funds
-    mentoLabsMultisig.execTransaction(
-      address(mentoToken),
-      0,
-      transferCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      signatures
-    );
-
-    // balances are updated
-    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 70_000_000 * 10**18);
-    assertEq(mentoToken.balanceOf(address(governanceTimelockAddress)), 110_000_000 * 10**18);
-  }
-
-  function test_mentoLabsTreasury_schedule_whenNotCancelled_shouldTransferFunds() public {
-    //  create a transaction to transfer tokens from the MentoLabs Treasury to the MentoLabs Multisig
-    bytes memory transferCallData = abi.encodeWithSelector(
-      mentoToken.transfer.selector,
-      mentoLabsMultisig,
-      10_000_000e18
-    );
-    // call data to schedule the transfer
-    bytes memory scheduleCallData = abi.encodeWithSelector(
-      mentoLabsTreasury.schedule.selector,
-      address(mentoToken),
-      0,
-      transferCallData,
-      0,
-      keccak256(bytes("Transfer tokens to MentoLabs Multisig")),
-      14 days
-    );
-
-    bytes memory txHashData = mentoLabsMultisig.encodeTransactionData(
-      address(mentoLabsTreasury),
-      0,
-      scheduleCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      0
-    );
-
-    bytes32 txHash = keccak256(txHashData);
-
-    // sign the schedule tx
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = vm.constructSignature(v, r, s);
-
-    bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
-
-    // schedule the transfer by calling schedule from the multisig on the timelock
-    mentoLabsMultisig.execTransaction(
-      address(mentoLabsTreasury),
-      0,
-      scheduleCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      signatures
-    );
-
-    vm.timeTravel(12 * BLOCKS_DAY);
-
-    // the tx is not ready to be executed
-    vm.expectRevert("TimelockController: operation is not ready");
-    mentoLabsTreasury.execute(
-      address(mentoToken),
-      0,
-      transferCallData,
-      0,
-      keccak256(bytes("Transfer tokens to MentoLabs Multisig"))
-    );
-
-    vm.timeTravel(2 * BLOCKS_DAY);
-
-    // after 14 days, timelock expires
-    mentoLabsTreasury.execute(
-      address(mentoToken),
-      0,
-      transferCallData,
-      0,
-      keccak256(bytes("Transfer tokens to MentoLabs Multisig"))
-    );
-
-    // balances are updated
-    assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 110_000_000 * 10**18);
-    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 90_000_000 * 10**18);
-  }
-
-  function test_mentoLabsTreasury_cancel_whenCalledByGovernance_shouldCancelOperation() public s_governance {
-    // create a transaction to transfer tokens from the mento labs treasury to the governanceTimelockAddress
-    bytes memory transferCallData = abi.encodeWithSelector(
-      mentoToken.transfer.selector,
-      governanceTimelockAddress,
-      10_000_000e18
-    );
-    // call data to schedule the transfer
-    bytes memory scheduleCallData = abi.encodeWithSelector(
-      mentoLabsTreasury.schedule.selector,
-      address(mentoToken),
-      0,
-      transferCallData,
-      0,
-      keccak256(bytes("Transfer tokens to governanceTimelockAddress")),
-      14 days
-    );
-
-    bytes memory txHashData = mentoLabsMultisig.encodeTransactionData(
-      address(mentoLabsTreasury),
-      0,
-      scheduleCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      0
-    );
-
-    bytes32 txHash = keccak256(txHashData);
-
-    // sign the schedule tx
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = vm.constructSignature(v, r, s);
-    bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
-
-    // schedule the transfer by calling schedule from the multisig on the timelock
-    mentoLabsMultisig.execTransaction(
-      address(mentoLabsTreasury),
-      0,
-      scheduleCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      signatures
-    );
-
-    // get the id of the queued operation
-    bytes32 id = mentoLabsTreasury.hashOperation(
-      address(mentoToken),
-      0,
-      transferCallData,
-      0,
-      keccak256(bytes("Transfer tokens to governanceTimelockAddress"))
-    );
-
-    // create a proposal to cancel the queued operation on the mento labs treasury
-    vm.prank(alice);
-    (
-      uint256 proposalId,
-      address[] memory targets,
-      uint256[] memory values,
-      bytes[] memory calldatas,
-      string memory description
-    ) = Proposals._proposeCancelQueuedTx(mentoGovernor, mentoLabsTreasury, id);
-
-    // ~10 mins
-    vm.timeTravel(120);
-
-    // both claimers cast vote
-    vm.prank(alice);
-    mentoGovernor.castVote(proposalId, 1);
-
-    // majority of the votes are in favor
-    vm.prank(bob);
-    mentoGovernor.castVote(proposalId, 1);
-
-    vm.timeTravel(7 * BLOCKS_DAY);
-
-    // queue the cancelling proposal
-    mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
-
-    vm.timeTravel(2 * BLOCKS_DAY);
-
-    // governance cancels the queued transfer
-    mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
-
-    vm.timeTravel(5 * BLOCKS_DAY);
-
-    // the transfer can not be executed
-    vm.expectRevert("TimelockController: operation is not ready");
-    mentoLabsTreasury.execute(
-      address(mentoToken),
-      0,
-      transferCallData,
-      0,
-      keccak256(bytes("Transfer tokens to governanceTimelockAddress"))
-    );
-
-    // the balance is not updated
-    assertEq(mentoToken.balanceOf(address(mentoLabsTreasury)), 120_000_000 * 10**18);
-  }
-
-  function test_mentoLabsTreasury_schedule_whenNotCancelled_shouldUpdateRoles() public {
-    bytes32 proposerRole = mentoLabsTreasury.PROPOSER_ROLE();
-
-    // call data to change the proposer role
-    bytes memory proposerRoleCallData = abi.encodeWithSelector(
-      mentoLabsTreasury.grantRole.selector,
-      proposerRole,
-      alice
-    );
-
-    // call data to schedule the tx
-    bytes memory scheduleCallData = abi.encodeWithSelector(
-      mentoLabsTreasury.schedule.selector,
-      address(mentoLabsTreasury),
-      0,
-      proposerRoleCallData,
-      0,
-      keccak256(bytes("Grant proposer role to alice")),
-      13 days
-    );
-
-    bytes memory txHashData = mentoLabsMultisig.encodeTransactionData(
-      address(mentoLabsTreasury),
-      0,
-      scheduleCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      0
-    );
-
-    bytes32 txHash = keccak256(txHashData);
-
-    // sign the grantRole tx
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = vm.constructSignature(v, r, s);
-
-    bytes memory signatures = abi.encodePacked(signature2, signature1, signature0);
-
-    // schedule the tx by calling schedule from the multisig on the timelock
-    mentoLabsMultisig.execTransaction(
-      address(mentoLabsTreasury),
-      0,
-      scheduleCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      signatures
-    );
-
-    vm.timeTravel(13 * BLOCKS_DAY);
-
-    assertFalse(mentoLabsTreasury.hasRole(proposerRole, alice));
-
-    // after 13 days, timelock expires
-    mentoLabsTreasury.execute(
-      address(mentoLabsTreasury),
-      0,
-      proposerRoleCallData,
-      0,
-      keccak256(bytes("Grant proposer role to alice"))
-    );
-
-    assert(mentoLabsTreasury.hasRole(proposerRole, alice));
   }
 }
