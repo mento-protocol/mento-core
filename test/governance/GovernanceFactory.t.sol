@@ -105,7 +105,7 @@ contract GovernanceFactoryTest is TestSetup {
       mentoLabsMultiSig
     );
     uint256 supply = 1_000_000_000 * 10**18;
-    uint256[] memory allocationAmounts = Arrays.uints(50, 50, 80, 120, 50, 100);
+    uint256[] memory allocationAmounts = Arrays.uints(50, 50, 80, 50, 100);
     vm.prank(owner);
     factory.createGovernance(
       watchdogMultiSig,
@@ -131,7 +131,7 @@ contract GovernanceFactoryTest is TestSetup {
     _createGovernance();
 
     uint256 nonce = vm.getNonce(address(factory));
-    assertEq(nonce, 12); // Confirms that no more contracts than the expected 11 have been deployed
+    assertEq(nonce, 11); // Confirms that no more contracts than the expected 11 have been deployed
   }
 
   function test_createGovernance_whenCallerNotOwner_shouldRevert() public i_setUp {

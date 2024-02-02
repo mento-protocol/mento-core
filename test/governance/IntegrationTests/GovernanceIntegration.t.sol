@@ -159,7 +159,7 @@ contract GovernanceIntegrationTest is TestSetup {
   }
 
   function test_factory_shouldCreateAndSetupContracts() public {
-    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 80_000_000 * 10**18);
+    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 200_000_000 * 10**18);
     assertEq(mentoToken.balanceOf(address(airgrab)), 50_000_000 * 10**18);
     assertEq(mentoToken.balanceOf(governanceTimelockAddress), 100_000_000 * 10**18);
     assertEq(mentoToken.emissionSupply(), 650_000_000 * 10**18);
@@ -535,7 +535,6 @@ contract GovernanceIntegrationTest is TestSetup {
     TestLocking newLockingContract = new TestLocking();
     TimelockController newGovernonceTimelockContract = new TimelockController();
     MentoGovernor newGovernorContract = new MentoGovernor();
-    TimelockController newMLTreasuryTimelockContract = new TimelockController();
 
     // proxies of current implementations
     ITransparentUpgradeableProxy lockingProxy = ITransparentUpgradeableProxy(address(locking));
@@ -585,75 +584,5 @@ contract GovernanceIntegrationTest is TestSetup {
 
     // new implementation has the method and governance upgraded the contract
     TestLocking(address(locking)).setEpochShift(1);
-  }
-
-  function test_mentoLabsMultiSig_execute_whenEnoughSignatures_shouldTransferFunds() public {
-    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 200_000_000 * 10**18);
-
-    // create a gnosis safe transaction to transfer tokens from the multisig to the governanceTimelockAddress
-    bytes memory transferCallData = abi.encodeWithSelector(
-      mentoToken.transfer.selector,
-      governanceTimelockAddress,
-      10_000_000e18
-    );
-    bytes memory txHashData = mentoLabsMultisig.encodeTransactionData(
-      address(mentoToken),
-      0,
-      transferCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      0
-    );
-
-    bytes32 txHash = keccak256(txHashData);
-
-    // sign the transfer tx
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(mentoPK0, txHash);
-    bytes memory signature0 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK1, txHash);
-    bytes memory signature1 = vm.constructSignature(v, r, s);
-    (v, r, s) = vm.sign(mentoPK2, txHash);
-    bytes memory signature2 = vm.constructSignature(v, r, s);
-
-    bytes memory signatures = abi.encodePacked(signature2);
-
-    // not enough signatures
-    vm.expectRevert("GS020");
-    mentoLabsMultisig.execTransaction(
-      address(mentoToken),
-      0,
-      transferCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      signatures
-    );
-
-    signatures = abi.encodePacked(signature2, signature1, signature0);
-
-    // enough signatures should transfer the funds
-    mentoLabsMultisig.execTransaction(
-      address(mentoToken),
-      0,
-      transferCallData,
-      Enum.Operation.Call,
-      0, // safeTxGas
-      0, // baseGas
-      0, // gasPrice
-      address(0), // gasToken
-      payable(address(0)), // refundReceiver
-      signatures
-    );
-
-    // balances are updated
-    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 190_000_000 * 10**18);
-    assertEq(mentoToken.balanceOf(address(governanceTimelockAddress)), 110_000_000 * 10**18);
   }
 }

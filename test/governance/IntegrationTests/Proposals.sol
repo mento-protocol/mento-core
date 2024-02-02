@@ -99,8 +99,8 @@ library Proposals {
       string memory description
     )
   {
-    targets = Arrays.addresses(address(proxyAdmin), address(proxyAdmin), address(proxyAdmin), address(proxyAdmin));
-    values = Arrays.uints(0, 0, 0, 0);
+    targets = Arrays.addresses(address(proxyAdmin), address(proxyAdmin), address(proxyAdmin));
+    values = Arrays.uints(0, 0, 0);
     calldatas = Arrays.bytess(
       abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy0, newImpl0),
       abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy1, newImpl1),
