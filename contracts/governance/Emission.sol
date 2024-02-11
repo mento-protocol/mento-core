@@ -11,7 +11,7 @@ import { MentoToken } from "./MentoToken.sol";
  */
 contract Emission is OwnableUpgradeable {
   /// @notice The max amount that will be minted through emission
-  uint256 public constant TOTAL_EMISSION_SUPPLY = 650_000_000 * 10 ** 18;
+  uint256 public constant TOTAL_EMISSION_SUPPLY = 650_000_000 * 10**18;
 
   /// @notice Pre-calculated constant = EMISSION_HALF_LIFE / LN2.
   uint256 public constant A = 454968308;

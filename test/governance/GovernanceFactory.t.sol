@@ -98,7 +98,7 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function test_createGovernance_whenAdditionalAllocationRecipients_shouldCombineRecipients() public i_setUp {
-    uint256 supply = 1_000_000_000 * 10 ** 18;
+    uint256 supply = 1_000_000_000 * 10**18;
     GovernanceFactory.MentoTokenAllocationParams memory allocationParams = GovernanceFactory
       .MentoTokenAllocationParams({
         airgrabAllocation: 50,
