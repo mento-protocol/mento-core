@@ -7,11 +7,9 @@ import { Emission } from "../Emission.sol";
 library EmissionDeployerLib {
   /**
    * @notice Deploys a new Emission contract
-   * @param mentoToken The address of the MentoToken contract
-   * @param emissionTarget The address of the emission target
    * @return The address of the new Emission contract
    */
-  function deploy(address mentoToken, address emissionTarget) external returns (Emission) {
-    return new Emission(mentoToken, emissionTarget);
+  function deploy() external returns (Emission) {
+    return new Emission(true);
   }
 }

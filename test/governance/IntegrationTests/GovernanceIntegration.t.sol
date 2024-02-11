@@ -123,21 +123,19 @@ contract GovernanceIntegrationTest is TestSetup {
       )
     );
 
-    address[] memory allocationRecipients = Arrays.addresses(address(mentoLabsMultisig));
-    uint256[] memory allocationAmounts = Arrays.uints(200, 50, 100);
+    GovernanceFactory.MentoTokenAllocationParams memory allocationParams = GovernanceFactory
+      .MentoTokenAllocationParams({
+        airgrabAllocation: 50,
+        mentoTreasuryAllocation: 100,
+        additionalAllocationRecipients: Arrays.addresses(address(mentoLabsMultisig)),
+        additionalAllocationAmounts: Arrays.uints(200)
+      });
 
     vm.prank(owner);
     factory = new GovernanceFactory(celoGovernance);
 
     vm.prank(celoGovernance);
-    factory.createGovernance(
-      watchdogMultisig,
-      celoCommunityFund,
-      merkleRoot,
-      fractalSigner,
-      allocationRecipients,
-      allocationAmounts
-    );
+    factory.createGovernance(watchdogMultisig, celoCommunityFund, merkleRoot, fractalSigner, allocationParams);
     proxyAdmin = factory.proxyAdmin();
     mentoToken = factory.mentoToken();
     emission = factory.emission();
@@ -159,10 +157,10 @@ contract GovernanceIntegrationTest is TestSetup {
   }
 
   function test_factory_shouldCreateAndSetupContracts() public {
-    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 200_000_000 * 10**18);
-    assertEq(mentoToken.balanceOf(address(airgrab)), 50_000_000 * 10**18);
-    assertEq(mentoToken.balanceOf(governanceTimelockAddress), 100_000_000 * 10**18);
-    assertEq(mentoToken.emissionSupply(), 650_000_000 * 10**18);
+    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 200_000_000 * 10 ** 18);
+    assertEq(mentoToken.balanceOf(address(airgrab)), 50_000_000 * 10 ** 18);
+    assertEq(mentoToken.balanceOf(governanceTimelockAddress), 100_000_000 * 10 ** 18);
+    assertEq(mentoToken.emissionSupply(), 650_000_000 * 10 ** 18);
     assertEq(mentoToken.emission(), address(emission));
     assertEq(mentoToken.symbol(), "MENTO");
     assertEq(mentoToken.name(), "Mento Token");

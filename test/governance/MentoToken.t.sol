@@ -7,6 +7,8 @@ import { MentoToken } from "contracts/governance/MentoToken.sol";
 import { Arrays } from "test/utils/Arrays.sol";
 
 contract MentoTokenTest is TestSetup {
+  event Paused(address account);
+
   MentoToken public mentoToken;
 
   address public mentoLabsMultiSig = makeAddr("mentoLabsMultiSig");
@@ -14,22 +16,34 @@ contract MentoTokenTest is TestSetup {
   address public airgrab = makeAddr("airgrab");
   address public governanceTimelock = makeAddr("governanceTimelock");
   address public emission = makeAddr("emission");
+  address public locking = makeAddr("locking");
+
   uint256[] public allocationAmounts = Arrays.uints(80, 120, 50, 100);
   address[] public allocationRecipients =
     Arrays.addresses(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, governanceTimelock);
 
+  modifier notPaused() {
+    mentoToken.unpause();
+    _;
+  }
+
   function setUp() public {
-    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, emission);
+    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, emission, locking);
   }
 
   function test_constructor_whenEmissionIsZero_shouldRevert() public {
     vm.expectRevert("MentoToken: emission is zero address");
-    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, address(0));
+    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, address(0), locking);
+  }
+
+  function test_constructor_whenLockingIsZero_shouldRevert() public {
+    vm.expectRevert("MentoToken: locking is zero address");
+    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, emission, address(0));
   }
 
   function test_constructor_whenAllocationRecipientsAndAmountsLengthMismatch_shouldRevert() public {
     vm.expectRevert("MentoToken: recipients and amounts length mismatch");
-    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50), emission);
+    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50), emission, locking);
   }
 
   function test_constructor_whenAllocationRecipientIsZero_shouldRevert() public {
@@ -37,13 +51,22 @@ contract MentoTokenTest is TestSetup {
     mentoToken = new MentoToken(
       Arrays.addresses(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, address(0)),
       allocationAmounts,
-      emission
+      emission,
+      locking
     );
   }
 
   function test_constructor_whenTotalAllocationExceeds1000_shouldRevert() public {
     vm.expectRevert("MentoToken: total allocation exceeds 100%");
-    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50, 1000), emission);
+    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50, 1000), emission, locking);
+  }
+
+  function test_constructor_shouldPauseTheContract() public {
+    vm.expectEmit(true, true, true, true);
+    emit Paused(address(this));
+    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50, 100), emission, locking);
+
+    assertEq(mentoToken.paused(), true);
   }
 
   /// @dev Test the state initialization post-construction of the MentoToken contract.
@@ -79,7 +102,7 @@ contract MentoTokenTest is TestSetup {
    * @notice Even though the burn function comes from OpenZeppelin's library,
    * @notice this test assures correct integration.
    */
-  function test_burn_shouldBurnTokens() public {
+  function test_burn_shouldBurnTokens() public notPaused {
     uint256 initialBalance = 3e18;
     uint256 burnAmount = 1e18;
     deal(address(mentoToken), alice, initialBalance);
@@ -98,7 +121,7 @@ contract MentoTokenTest is TestSetup {
    * @notice Even though the burnFrom function comes from OpenZeppelin's library,
    * @notice this test assures correct integration.
    */
-  function test_burnFrom_whenAllowed_shouldBurnTokens() public {
+  function test_burnFrom_whenAllowed_shouldBurnTokens() public notPaused {
     uint256 initialBalance = 3e18;
     uint256 burnAmount = 1e18;
     deal(address(mentoToken), alice, initialBalance);
@@ -139,7 +162,7 @@ contract MentoTokenTest is TestSetup {
    * @notice This test ensures that when the mint function is called with an amount that
    * exceeds the total emission supply, the transaction should be reverted.
    */
-  function test_mint_whenAmountBiggerThanEmissionSupply_shouldRevert() public {
+  function test_mint_whenAmountBiggerThanEmissionSupply_shouldRevert() public notPaused {
     uint256 mintAmount = 10e18;
 
     vm.startPrank(emission);
@@ -160,7 +183,7 @@ contract MentoTokenTest is TestSetup {
    * 2. The emittedAmount state variable correctly reflects the total amount of tokens emitted.
    * 3. It can mint up to emission supply
    */
-  function test_mint_whenEmissionSupplyNotExceeded_shouldEmitTokens() public {
+  function test_mint_whenEmissionSupplyNotExceeded_shouldEmitTokens() public notPaused {
     uint256 mintAmount = 10e18;
 
     vm.startPrank(emission);
@@ -176,5 +199,61 @@ contract MentoTokenTest is TestSetup {
 
     mentoToken.mint(alice, EMISSION_SUPPLY - 2 * mintAmount);
     assertEq(mentoToken.emittedAmount(), EMISSION_SUPPLY);
+  }
+
+  function test_transfer_whenPaused_shouldRevert() public {
+    uint256 amount = 10e18;
+    deal(address(mentoToken), alice, amount);
+
+    vm.startPrank(alice);
+    vm.expectRevert("MentoToken: token transfer while paused");
+    mentoToken.transfer(bob, amount);
+  }
+
+  function test_transferFrom_whenPaused_shouldRevert() public {
+    uint256 amount = 10e18;
+    deal(address(mentoToken), alice, amount);
+    vm.prank(alice);
+    mentoToken.approve(bob, amount);
+
+    vm.startPrank(bob);
+    vm.expectRevert("MentoToken: token transfer while paused");
+    mentoToken.transferFrom(alice, bob, amount);
+  }
+
+  function test_transfer_whenPaused_calledByOwner_shouldWork() public {
+    uint256 amount = 10e18;
+    deal(address(mentoToken), address(this), amount);
+    mentoToken.transfer(bob, amount);
+    assertEq(mentoToken.balanceOf(bob), amount);
+  }
+
+  function test_transferFrom_whenPaused_calledByOwner_shouldWork() public {
+    uint256 amount = 10e18;
+    deal(address(mentoToken), alice, amount);
+    vm.prank(alice);
+    mentoToken.approve(address(this), amount);
+
+    mentoToken.transferFrom(alice, bob, amount);
+    assertEq(mentoToken.balanceOf(bob), amount);
+  }
+
+  function test_transfer_whenPaused_calledByLocking_shouldWork() public {
+    uint256 amount = 10e18;
+    deal(address(mentoToken), locking, amount);
+    vm.prank(locking);
+    mentoToken.transfer(bob, amount);
+    assertEq(mentoToken.balanceOf(bob), amount);
+  }
+
+  function test_transferFrom_whenPaused_calledByLocking_shouldWork() public {
+    uint256 amount = 10e18;
+    deal(address(mentoToken), alice, amount);
+    vm.prank(alice);
+    mentoToken.approve(locking, amount);
+
+    vm.prank(locking);
+    mentoToken.transferFrom(alice, bob, amount);
+    assertEq(mentoToken.balanceOf(bob), amount);
   }
 }
