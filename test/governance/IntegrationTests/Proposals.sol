@@ -86,9 +86,11 @@ library Proposals {
     ITransparentUpgradeableProxy proxy0,
     ITransparentUpgradeableProxy proxy1,
     ITransparentUpgradeableProxy proxy2,
+    ITransparentUpgradeableProxy proxy3,
     address newImpl0,
     address newImpl1,
-    address newImpl2
+    address newImpl2,
+    address newImpl3
   )
     internal
     returns (
@@ -99,12 +101,13 @@ library Proposals {
       string memory description
     )
   {
-    targets = Arrays.addresses(address(proxyAdmin), address(proxyAdmin), address(proxyAdmin));
-    values = Arrays.uints(0, 0, 0);
+    targets = Arrays.addresses(address(proxyAdmin), address(proxyAdmin), address(proxyAdmin), address(proxyAdmin));
+    values = Arrays.uints(0, 0, 0, 0);
     calldatas = Arrays.bytess(
       abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy0, newImpl0),
       abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy1, newImpl1),
-      abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy2, newImpl2)
+      abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy2, newImpl2),
+      abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy3, newImpl3)
     );
     description = "Upgrade upgradeable contracts";
 
