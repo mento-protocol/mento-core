@@ -139,7 +139,12 @@ contract GovernanceFactory is Ownable {
     allocationRecipients[numberOfRecipients - 2] = airgrabPrecalculated;
     allocationRecipients[numberOfRecipients - 1] = governanceTimelockPrecalculated;
 
-    mentoToken = MentoTokenDeployerLib.deploy(allocationRecipients, allocationAmounts, address(emission)); // NONCE:3
+    mentoToken = MentoTokenDeployerLib.deploy( // NONCE:3
+      allocationRecipients,
+      allocationAmounts,
+      address(emission),
+      lockingPrecalculated
+    );
     assert(address(mentoToken) == tokenPrecalculated);
 
     // ========================================
@@ -232,6 +237,7 @@ contract GovernanceFactory is Ownable {
     emission.transferOwnership(address(governanceTimelock));
     locking.transferOwnership(address(governanceTimelock));
     proxyAdmin.transferOwnership(address(governanceTimelock));
+    mentoToken.transferOwnership(address(governanceTimelock));
 
     emit GovernanceCreated(
       address(proxyAdmin),
