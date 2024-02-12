@@ -41,6 +41,14 @@ contract GovernanceFactory is Ownable {
     address mentoGovernor
   );
 
+  /// @dev Parameters for the initial token allocation
+  struct MentoTokenAllocationParams {
+    uint256 airgrabAllocation;
+    uint256 mentoTreasuryAllocation;
+    address[] additionalAllocationRecipients;
+    uint256[] additionalAllocationAmounts;
+  }
+
   ProxyAdmin public proxyAdmin;
   MentoToken public mentoToken;
   Emission public emission;
@@ -85,10 +93,7 @@ contract GovernanceFactory is Ownable {
    * @param celoCommunityFund_ Address of the Celo community fund that will receive the unclaimed airgrab tokens
    * @param airgrabRoot Root hash for the airgrab Merkle tree
    * @param fractalSigner Signer of fractal kyc
-   * @param additionalAllocationRecipients Additional addresses to receive an initial token allocation.
-   *        Airgrab, and Governance Timelock are automatically added as recipients to the End.
-   * @param allocationAmounts percentage amount of tokens to be allocated to the allocation recipients
-   *        can be 0 to skip allocation to a hardcoded recipient
+   * @param allocationParams Parameters for the initial token allocation
    * @dev Can only be called by the owner and only once
    */
   // solhint-disable-next-line function-max-lines
@@ -97,8 +102,7 @@ contract GovernanceFactory is Ownable {
     address celoCommunityFund_,
     bytes32 airgrabRoot,
     address fractalSigner,
-    address[] memory additionalAllocationRecipients,
-    uint256[] memory allocationAmounts
+    MentoTokenAllocationParams calldata allocationParams
   ) external onlyOwner {
     require(!initialized, "Factory: governance already created");
     initialized = true;
@@ -131,13 +135,19 @@ contract GovernanceFactory is Ownable {
     // ===========================================
     // ========== Deploy 3: MentoToken ===========
     // ===========================================
-    uint256 numberOfRecipients = additionalAllocationRecipients.length + 2;
+    uint256 numberOfRecipients = allocationParams.additionalAllocationRecipients.length + 2;
     address[] memory allocationRecipients = new address[](numberOfRecipients);
-    for (uint256 i = 0; i < additionalAllocationRecipients.length; i++) {
-      allocationRecipients[i] = additionalAllocationRecipients[i];
+    uint256[] memory allocationAmounts = new uint256[](numberOfRecipients);
+
+    allocationRecipients[0] = airgrabPrecalculated;
+    allocationAmounts[0] = allocationParams.airgrabAllocation;
+    allocationRecipients[1] = governanceTimelockPrecalculated;
+    allocationAmounts[1] = allocationParams.mentoTreasuryAllocation;
+
+    for (uint256 i = 0; i < allocationParams.additionalAllocationRecipients.length; i++) {
+      allocationRecipients[i + 2] = allocationParams.additionalAllocationRecipients[i];
+      allocationAmounts[i + 2] = allocationParams.additionalAllocationAmounts[i];
     }
-    allocationRecipients[numberOfRecipients - 2] = airgrabPrecalculated;
-    allocationRecipients[numberOfRecipients - 1] = governanceTimelockPrecalculated;
 
     mentoToken = MentoTokenDeployerLib.deploy(allocationRecipients, allocationAmounts, address(emission)); // NONCE:3
     assert(address(mentoToken) == tokenPrecalculated);

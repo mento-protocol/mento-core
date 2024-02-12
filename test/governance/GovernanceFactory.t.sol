@@ -35,16 +35,15 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function _createGovernance() internal {
-    address[] memory allocationRecipients = Arrays.addresses(mentoLabsMultiSig);
-    uint256[] memory allocationAmounts = Arrays.uints(200, 50, 100);
-    factory.createGovernance(
-      watchdogMultiSig,
-      celoCommunityFund,
-      airgrabMerkleRoot,
-      fractalSigner,
-      allocationRecipients,
-      allocationAmounts
-    );
+    GovernanceFactory.MentoTokenAllocationParams memory allocationParams = GovernanceFactory
+      .MentoTokenAllocationParams({
+        airgrabAllocation: 50,
+        mentoTreasuryAllocation: 100,
+        additionalAllocationRecipients: Arrays.addresses(mentoLabsMultiSig),
+        additionalAllocationAmounts: Arrays.uints(200)
+      });
+
+    factory.createGovernance(watchdogMultiSig, celoCommunityFund, airgrabMerkleRoot, fractalSigner, allocationParams);
   }
 
   // ========================================
@@ -99,24 +98,23 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function test_createGovernance_whenAdditionalAllocationRecipients_shouldCombineRecipients() public i_setUp {
-    address[] memory allocationRecipients = Arrays.addresses(
-      makeAddr("Recipient1"),
-      makeAddr("Recipient2"),
-      mentoLabsMultiSig
-    );
     uint256 supply = 1_000_000_000 * 10**18;
-    uint256[] memory allocationAmounts = Arrays.uints(50, 50, 80, 50, 100);
-    vm.prank(owner);
-    factory.createGovernance(
-      watchdogMultiSig,
-      celoCommunityFund,
-      airgrabMerkleRoot,
-      fractalSigner,
-      allocationRecipients,
-      allocationAmounts
-    );
+    GovernanceFactory.MentoTokenAllocationParams memory allocationParams = GovernanceFactory
+      .MentoTokenAllocationParams({
+        airgrabAllocation: 50,
+        mentoTreasuryAllocation: 100,
+        additionalAllocationRecipients: Arrays.addresses(
+          makeAddr("Recipient1"),
+          makeAddr("Recipient2"),
+          mentoLabsMultiSig
+        ),
+        additionalAllocationAmounts: Arrays.uints(55, 50, 80)
+      });
 
-    assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient1")), (supply * 50) / 1000);
+    vm.prank(owner);
+    factory.createGovernance(watchdogMultiSig, celoCommunityFund, airgrabMerkleRoot, fractalSigner, allocationParams);
+
+    assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient1")), (supply * 55) / 1000);
     assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient2")), (supply * 50) / 1000);
     assertEq(factory.mentoToken().balanceOf(mentoLabsMultiSig), (supply * 80) / 1000);
     assertEq(factory.mentoToken().balanceOf(address(factory.airgrab())), (supply * 50) / 1000);
