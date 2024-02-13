@@ -35,16 +35,15 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function _createGovernance() internal {
-    address[] memory allocationRecipients = Arrays.addresses(mentoLabsMultiSig);
-    uint256[] memory allocationAmounts = Arrays.uints(200, 50, 100);
-    factory.createGovernance(
-      watchdogMultiSig,
-      celoCommunityFund,
-      airgrabMerkleRoot,
-      fractalSigner,
-      allocationRecipients,
-      allocationAmounts
-    );
+    GovernanceFactory.MentoTokenAllocationParams memory allocationParams = GovernanceFactory
+      .MentoTokenAllocationParams({
+        airgrabAllocation: 50,
+        mentoTreasuryAllocation: 100,
+        additionalAllocationRecipients: Arrays.addresses(mentoLabsMultiSig),
+        additionalAllocationAmounts: Arrays.uints(200)
+      });
+
+    factory.createGovernance(watchdogMultiSig, celoCommunityFund, airgrabMerkleRoot, fractalSigner, allocationParams);
   }
 
   // ========================================
@@ -99,24 +98,23 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function test_createGovernance_whenAdditionalAllocationRecipients_shouldCombineRecipients() public i_setUp {
-    address[] memory allocationRecipients = Arrays.addresses(
-      makeAddr("Recipient1"),
-      makeAddr("Recipient2"),
-      mentoLabsMultiSig
-    );
     uint256 supply = 1_000_000_000 * 10**18;
-    uint256[] memory allocationAmounts = Arrays.uints(50, 50, 80, 50, 100);
-    vm.prank(owner);
-    factory.createGovernance(
-      watchdogMultiSig,
-      celoCommunityFund,
-      airgrabMerkleRoot,
-      fractalSigner,
-      allocationRecipients,
-      allocationAmounts
-    );
+    GovernanceFactory.MentoTokenAllocationParams memory allocationParams = GovernanceFactory
+      .MentoTokenAllocationParams({
+        airgrabAllocation: 50,
+        mentoTreasuryAllocation: 100,
+        additionalAllocationRecipients: Arrays.addresses(
+          makeAddr("Recipient1"),
+          makeAddr("Recipient2"),
+          mentoLabsMultiSig
+        ),
+        additionalAllocationAmounts: Arrays.uints(55, 50, 80)
+      });
 
-    assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient1")), (supply * 50) / 1000);
+    vm.prank(owner);
+    factory.createGovernance(watchdogMultiSig, celoCommunityFund, airgrabMerkleRoot, fractalSigner, allocationParams);
+
+    assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient1")), (supply * 55) / 1000);
     assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient2")), (supply * 50) / 1000);
     assertEq(factory.mentoToken().balanceOf(mentoLabsMultiSig), (supply * 80) / 1000);
     assertEq(factory.mentoToken().balanceOf(address(factory.airgrab())), (supply * 50) / 1000);
@@ -131,7 +129,7 @@ contract GovernanceFactoryTest is TestSetup {
     _createGovernance();
 
     uint256 nonce = vm.getNonce(address(factory));
-    assertEq(nonce, 11); // Confirms that no more contracts than the expected 11 have been deployed
+    assertEq(nonce, 12); // Confirms that no more contracts than the expected 12 have been deployed
   }
 
   function test_createGovernance_whenCallerNotOwner_shouldRevert() public i_setUp {
@@ -165,7 +163,7 @@ contract GovernanceFactoryTest is TestSetup {
     );
 
     // we can cheat and calculate the address of the implementation contract via addressForNonce()
-    address precalculatedAddress = factory.exposed_addressForNonce(5);
+    address precalculatedAddress = factory.exposed_addressForNonce(6);
     address initialImpl = proxyAdmin.getProxyImplementation(proxy);
     assertEq(initialImpl, precalculatedAddress, "Factory: lockingProxy should have an implementation");
 
@@ -196,7 +194,7 @@ contract GovernanceFactoryTest is TestSetup {
     );
 
     // we can cheat and calculate the address of the implementation contract via addressForNonce()
-    address precalculatedAddress = factory.exposed_addressForNonce(7);
+    address precalculatedAddress = factory.exposed_addressForNonce(8);
     address initialImpl = proxyAdmin.getProxyImplementation(proxy);
     assertEq(initialImpl, precalculatedAddress, "Factory: governanceTimelockProxy should have an implementation");
 
@@ -230,7 +228,7 @@ contract GovernanceFactoryTest is TestSetup {
     );
 
     // we can cheat and calculate the address of the implementation contract via addressForNonce()
-    address precalculatedAddress = factory.exposed_addressForNonce(9);
+    address precalculatedAddress = factory.exposed_addressForNonce(10);
     address initialImpl = proxyAdmin.getProxyImplementation(proxy);
     assertEq(initialImpl, precalculatedAddress, "Factory: mentoGovernorProxy should have an implementation");
 
@@ -252,10 +250,6 @@ contract GovernanceFactoryTest is TestSetup {
     _createGovernance();
 
     ProxyAdmin proxyAdmin = factory.proxyAdmin();
-
-    ITransparentUpgradeableProxy emissionNotAProxy = ITransparentUpgradeableProxy(address(factory.emission()));
-    vm.expectRevert();
-    proxyAdmin.getProxyAdmin(emissionNotAProxy);
 
     ITransparentUpgradeableProxy mentoTokenNotAProxy = ITransparentUpgradeableProxy(address(factory.mentoToken()));
     vm.expectRevert();

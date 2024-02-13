@@ -41,6 +41,14 @@ contract GovernanceFactory is Ownable {
     address mentoGovernor
   );
 
+  /// @dev Parameters for the initial token allocation
+  struct MentoTokenAllocationParams {
+    uint256 airgrabAllocation;
+    uint256 mentoTreasuryAllocation;
+    address[] additionalAllocationRecipients;
+    uint256[] additionalAllocationAmounts;
+  }
+
   ProxyAdmin public proxyAdmin;
   MentoToken public mentoToken;
   Emission public emission;
@@ -85,10 +93,7 @@ contract GovernanceFactory is Ownable {
    * @param celoCommunityFund_ Address of the Celo community fund that will receive the unclaimed airgrab tokens
    * @param airgrabRoot Root hash for the airgrab Merkle tree
    * @param fractalSigner Signer of fractal kyc
-   * @param additionalAllocationRecipients Additional addresses to receive an initial token allocation.
-   *        Airgrab, and Governance Timelock are automatically added as recipients to the End.
-   * @param allocationAmounts percentage amount of tokens to be allocated to the allocation recipients
-   *        can be 0 to skip allocation to a hardcoded recipient
+   * @param allocationParams Parameters for the initial token allocation
    * @dev Can only be called by the owner and only once
    */
   // solhint-disable-next-line function-max-lines
@@ -97,8 +102,7 @@ contract GovernanceFactory is Ownable {
     address celoCommunityFund_,
     bytes32 airgrabRoot,
     address fractalSigner,
-    address[] memory additionalAllocationRecipients,
-    uint256[] memory allocationAmounts
+    MentoTokenAllocationParams calldata allocationParams
   ) external onlyOwner {
     require(!initialized, "Factory: governance already created");
     initialized = true;
@@ -107,12 +111,12 @@ contract GovernanceFactory is Ownable {
     celoCommunityFund = celoCommunityFund_;
 
     // Precalculated contract addresses:
-    address emissionPrecalculated = addressForNonce(2);
-    address tokenPrecalculated = addressForNonce(3);
-    address airgrabPrecalculated = addressForNonce(4);
-    address lockingPrecalculated = addressForNonce(6);
-    address governanceTimelockPrecalculated = addressForNonce(8);
-    address governorPrecalculated = addressForNonce(10);
+    address emissionPrecalculated = addressForNonce(3);
+    address tokenPrecalculated = addressForNonce(4);
+    address airgrabPrecalculated = addressForNonce(5);
+    address lockingPrecalculated = addressForNonce(7);
+    address governanceTimelockPrecalculated = addressForNonce(9);
+    address governorPrecalculated = addressForNonce(11);
 
     address[] memory owners = new address[](1);
     owners[0] = governanceTimelockPrecalculated;
@@ -125,33 +129,52 @@ contract GovernanceFactory is Ownable {
     // =========================================
     // ========== Deploy 2: Emission ===========
     // =========================================
-    emission = EmissionDeployerLib.deploy(tokenPrecalculated, governanceTimelockPrecalculated); // NONCE:2
+    Emission emissionImpl = EmissionDeployerLib.deploy(); // NONCE:2
+    TransparentUpgradeableProxy emissionProxy = ProxyDeployerLib.deployProxy( // NONCE:3
+      address(emissionImpl),
+      address(proxyAdmin),
+      abi.encodeWithSelector(
+        emissionImpl.initialize.selector,
+        tokenPrecalculated, ///             @param mentoToken_ The address of the MentoToken contract.
+        governanceTimelockPrecalculated ///  @param governanceTimelock_ The address of the mento treasury contract.
+      )
+    );
+
+    emission = Emission(address(emissionProxy));
     assert(address(emission) == emissionPrecalculated);
 
     // ===========================================
     // ========== Deploy 3: MentoToken ===========
     // ===========================================
-    uint256 numberOfRecipients = additionalAllocationRecipients.length + 2;
-    address[] memory allocationRecipients = new address[](numberOfRecipients);
-    for (uint256 i = 0; i < additionalAllocationRecipients.length; i++) {
-      allocationRecipients[i] = additionalAllocationRecipients[i];
-    }
-    allocationRecipients[numberOfRecipients - 2] = airgrabPrecalculated;
-    allocationRecipients[numberOfRecipients - 1] = governanceTimelockPrecalculated;
 
-    mentoToken = MentoTokenDeployerLib.deploy( // NONCE:3
+    uint256 numberOfRecipients = allocationParams.additionalAllocationRecipients.length + 2;
+    address[] memory allocationRecipients = new address[](numberOfRecipients);
+    uint256[] memory allocationAmounts = new uint256[](numberOfRecipients);
+
+    allocationRecipients[0] = airgrabPrecalculated;
+    allocationAmounts[0] = allocationParams.airgrabAllocation;
+    allocationRecipients[1] = governanceTimelockPrecalculated;
+    allocationAmounts[1] = allocationParams.mentoTreasuryAllocation;
+
+    for (uint256 i = 0; i < allocationParams.additionalAllocationRecipients.length; i++) {
+      allocationRecipients[i + 2] = allocationParams.additionalAllocationRecipients[i];
+      allocationAmounts[i + 2] = allocationParams.additionalAllocationAmounts[i];
+    }
+
+    mentoToken = MentoTokenDeployerLib.deploy( // NONCE:4
       allocationRecipients,
       allocationAmounts,
       address(emission),
       lockingPrecalculated
     );
+
     assert(address(mentoToken) == tokenPrecalculated);
 
     // ========================================
     // ========== Deploy 4: Airgrab ===========
     // ========================================
     airgrabEnds = block.timestamp + AIRGRAB_DURATION;
-    airgrab = AirgrabDeployerLib.deploy( // NONCE:4
+    airgrab = AirgrabDeployerLib.deploy( // NONCE:5
       airgrabRoot,
       fractalSigner,
       FRACTAL_MAX_AGE,
@@ -167,9 +190,9 @@ contract GovernanceFactory is Ownable {
     // ==========================================
     // ========== Deploy 5-6: Locking ===========
     // ==========================================
-    Locking lockingImpl = LockingDeployerLib.deploy(); // NONCE:5
+    Locking lockingImpl = LockingDeployerLib.deploy(); // NONCE:6
     uint32 startingPointWeek = uint32(Locking(lockingImpl).getWeek() - 1);
-    TransparentUpgradeableProxy lockingProxy = ProxyDeployerLib.deployProxy( // NONCE:6
+    TransparentUpgradeableProxy lockingProxy = ProxyDeployerLib.deployProxy( // NONCE:7
       address(lockingImpl),
       address(proxyAdmin),
       abi.encodeWithSelector(
@@ -187,7 +210,7 @@ contract GovernanceFactory is Ownable {
     // ========== Deploy 7: Timelock Controller Implementation ===========
     // ===================================================================
     /// @dev This implementation will be reused for the Governance Timelock
-    TimelockController timelockControllerImpl = TimelockControllerDeployerLib.deploy(); // NONCE:7
+    TimelockController timelockControllerImpl = TimelockControllerDeployerLib.deploy(); // NONCE:8
 
     // ====================================================
     // ========== Deploy 8: Governance Timelock ===========
@@ -197,7 +220,7 @@ contract GovernanceFactory is Ownable {
     governanceProposers[0] = governorPrecalculated; // Only MentoGovernor can propose
     governanceExecutors[0] = address(0); // Anyone can execute passed proposals
 
-    TransparentUpgradeableProxy governanceTimelockProxy = ProxyDeployerLib.deployProxy( // NONCE:8
+    TransparentUpgradeableProxy governanceTimelockProxy = ProxyDeployerLib.deployProxy( // NONCE:9
       address(timelockControllerImpl),
       address(proxyAdmin),
       abi.encodeWithSelector(
@@ -215,8 +238,8 @@ contract GovernanceFactory is Ownable {
     // ==================================================
     // ========== Deploy 9-10: Mento Governor ===========
     // ==================================================
-    MentoGovernor mentoGovernorImpl = MentoGovernorDeployerLib.deploy(); // NONCE:9
-    TransparentUpgradeableProxy mentoGovernorProxy = ProxyDeployerLib.deployProxy( // NONCE: 10
+    MentoGovernor mentoGovernorImpl = MentoGovernorDeployerLib.deploy(); // NONCE:10
+    TransparentUpgradeableProxy mentoGovernorProxy = ProxyDeployerLib.deployProxy( // NONCE: 11
       address(mentoGovernorImpl),
       address(proxyAdmin),
       abi.encodeWithSelector(

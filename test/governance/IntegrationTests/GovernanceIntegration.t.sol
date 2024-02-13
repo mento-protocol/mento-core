@@ -123,21 +123,19 @@ contract GovernanceIntegrationTest is TestSetup {
       )
     );
 
-    address[] memory allocationRecipients = Arrays.addresses(address(mentoLabsMultisig));
-    uint256[] memory allocationAmounts = Arrays.uints(200, 50, 100);
+    GovernanceFactory.MentoTokenAllocationParams memory allocationParams = GovernanceFactory
+      .MentoTokenAllocationParams({
+        airgrabAllocation: 50,
+        mentoTreasuryAllocation: 100,
+        additionalAllocationRecipients: Arrays.addresses(address(mentoLabsMultisig)),
+        additionalAllocationAmounts: Arrays.uints(200)
+      });
 
     vm.prank(owner);
     factory = new GovernanceFactory(celoGovernance);
 
     vm.prank(celoGovernance);
-    factory.createGovernance(
-      watchdogMultisig,
-      celoCommunityFund,
-      merkleRoot,
-      fractalSigner,
-      allocationRecipients,
-      allocationAmounts
-    );
+    factory.createGovernance(watchdogMultisig, celoCommunityFund, merkleRoot, fractalSigner, allocationParams);
     proxyAdmin = factory.proxyAdmin();
     mentoToken = factory.mentoToken();
     emission = factory.emission();
@@ -533,13 +531,15 @@ contract GovernanceIntegrationTest is TestSetup {
   function test_governor_propose_whenExecutedForImplementationUpgrade_shouldUpgradeTheContracts() public s_governance {
     // create new implementations
     TestLocking newLockingContract = new TestLocking();
-    TimelockController newGovernonceTimelockContract = new TimelockController();
+    TimelockController newGovernanceTimelockContract = new TimelockController();
     MentoGovernor newGovernorContract = new MentoGovernor();
+    Emission newEmissionContract = new Emission(false);
 
     // proxies of current implementations
     ITransparentUpgradeableProxy lockingProxy = ITransparentUpgradeableProxy(address(locking));
     ITransparentUpgradeableProxy governanceTimelockProxy = ITransparentUpgradeableProxy(governanceTimelockAddress);
     ITransparentUpgradeableProxy mentoGovernorProxy = ITransparentUpgradeableProxy(address(mentoGovernor));
+    ITransparentUpgradeableProxy emissionProxy = ITransparentUpgradeableProxy(address(emission));
 
     vm.prank(alice);
     (
@@ -554,9 +554,11 @@ contract GovernanceIntegrationTest is TestSetup {
         lockingProxy,
         governanceTimelockProxy,
         mentoGovernorProxy,
+        emissionProxy,
         address(newLockingContract),
-        address(newGovernonceTimelockContract),
-        address(newGovernorContract)
+        address(newGovernanceTimelockContract),
+        address(newGovernorContract),
+        address(newEmissionContract)
       );
 
     // ~10 mins
@@ -581,6 +583,14 @@ contract GovernanceIntegrationTest is TestSetup {
     TestLocking(address(locking)).setEpochShift(1);
 
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
+
+    assertEq(address(proxyAdmin.getProxyImplementation(lockingProxy)), address(newLockingContract));
+    assertEq(
+      address(proxyAdmin.getProxyImplementation(governanceTimelockProxy)),
+      address(newGovernanceTimelockContract)
+    );
+    assertEq(address(proxyAdmin.getProxyImplementation(mentoGovernorProxy)), address(newGovernorContract));
+    assertEq(address(proxyAdmin.getProxyImplementation(emissionProxy)), address(newEmissionContract));
 
     // new implementation has the method and governance upgraded the contract
     TestLocking(address(locking)).setEpochShift(1);
