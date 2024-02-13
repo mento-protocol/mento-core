@@ -10,13 +10,15 @@ library MentoTokenDeployerLib {
    * @param allocationRecipients The addresses of the initial token recipients
    * @param allocationAmounts The percentage of tokens to be allocated to each recipient
    * @param emission The address of the emission contract
+   * @param locking The address of the locking contract
    * @return The address of the new MentoToken contract
    */
   function deploy(
     address[] memory allocationRecipients,
     uint256[] memory allocationAmounts,
-    address emission
+    address emission,
+    address locking
   ) external returns (MentoToken) {
-    return new MentoToken(allocationRecipients, allocationAmounts, emission);
+    return new MentoToken(allocationRecipients, allocationAmounts, emission, locking);
   }
 }
