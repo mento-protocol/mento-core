@@ -15,7 +15,7 @@ contract MentoToken is Ownable, Pausable, ERC20Burnable {
   /// even when the contract is paused.
   address public immutable locking;
 
-  /// @notice The address of the emission contract that has the capability to emit new tokens.
+  /// @notice The address of the emission contract that has the capability to emit new tokens
   /// and transfer even when the contract is paused.
   address public immutable emission;
 
