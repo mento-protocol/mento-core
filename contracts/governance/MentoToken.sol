@@ -11,8 +11,8 @@ import { Pausable } from "openzeppelin-contracts-next/contracts/security/Pausabl
  * @notice This contract represents the Mento Protocol Token which is a Burnable ERC20 token.
  */
 contract MentoToken is Ownable, Pausable, ERC20Burnable {
-  /// @notice The address of the lockin contract that has the capability to transfer tokens
-  /// even when the contarct is paused.
+  /// @notice The address of the locking contract that has the capability to transfer tokens
+  /// even when the contract is paused.
   address public immutable locking;
 
   /// @notice The address of the emission contract that has the capability to emit new tokens.
