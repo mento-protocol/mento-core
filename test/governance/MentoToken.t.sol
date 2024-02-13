@@ -256,4 +256,45 @@ contract MentoTokenTest is TestSetup {
     mentoToken.transferFrom(alice, bob, amount);
     assertEq(mentoToken.balanceOf(bob), amount);
   }
+
+  function test_transfer_whenPaused_calledByEmission_shouldWork() public {
+    uint256 amount = 10e18;
+    deal(address(mentoToken), emission, amount);
+    vm.prank(emission);
+    mentoToken.transfer(bob, amount);
+    assertEq(mentoToken.balanceOf(bob), amount);
+  }
+
+  function test_transferFrom_whenPaused_calledByEmission_shouldWork() public {
+    uint256 amount = 10e18;
+    deal(address(mentoToken), alice, amount);
+    vm.prank(alice);
+    mentoToken.approve(emission, amount);
+
+    vm.prank(emission);
+    mentoToken.transferFrom(alice, bob, amount);
+    assertEq(mentoToken.balanceOf(bob), amount);
+  }
+
+  function test_mint_whenPaused_calledByEmission_shouldWork() public {
+    vm.prank(emission);
+    mentoToken.mint(emission, 10e18);
+    assertEq(mentoToken.balanceOf(emission), 10e18);
+  }
+
+  function test_unpause_whenPaused_calledByOwner_shouldUnpause() public {
+    mentoToken.unpause();
+    assertEq(mentoToken.paused(), false);
+  }
+
+  function test_unpause_whenNotPaused_shouldRevert() public notPaused {
+    vm.expectRevert("MentoToken: token is not paused");
+    mentoToken.unpause();
+  }
+
+  function test_unpause_whenNotCalledByOwner_shouldRevert() public {
+    vm.prank(bob);
+    vm.expectRevert("Ownable: caller is not the owner");
+    mentoToken.unpause();
+  }
 }

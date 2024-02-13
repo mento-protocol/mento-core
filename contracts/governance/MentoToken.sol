@@ -11,10 +11,12 @@ import { Pausable } from "openzeppelin-contracts-next/contracts/security/Pausabl
  * @notice This contract represents the Mento Protocol Token which is a Burnable ERC20 token.
  */
 contract MentoToken is Ownable, Pausable, ERC20Burnable {
-  /// @notice The address of the emission contract that has the capability to emit new tokens.
+  /// @notice The address of the lockin contract that has the capability to transfer tokens
+  /// even when the contarct is paused.
   address public immutable locking;
 
   /// @notice The address of the emission contract that has the capability to emit new tokens.
+  /// and transfer even when the contract is paused.
   address public immutable emission;
 
   /// @notice The total amount of tokens that can be minted by the emission contract.
@@ -49,7 +51,7 @@ contract MentoToken is Ownable, Pausable, ERC20Burnable {
     locking = locking_;
     emission = emission_;
 
-    uint256 supply = 1_000_000_000 * 10**decimals();
+    uint256 supply = 1_000_000_000 * 10 ** decimals();
 
     uint256 totalAllocated;
     for (uint256 i = 0; i < allocationRecipients_.length; i++) {
@@ -91,16 +93,14 @@ contract MentoToken is Ownable, Pausable, ERC20Burnable {
     _mint(target, amount);
   }
 
-  /// @dev See {ERC20-_beforeTokenTransfer}
-  /// Requirements: the contract must not be paused OR transfer must be initiated by owner
-  /// @param from The account that is sending the tokens
-  /// @param to The account that should receive the tokens
-  /// @param amount Amount of tokens that should be transferred
-  function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint256 amount
-  ) internal virtual override {
+  /*
+   * @dev See {ERC20-_beforeTokenTransfer}
+   * Requirements: the contract must not be paused OR transfer must be initiated by owner
+   * @param from The account that is sending the tokens
+   * @param to The account that should receive the tokens
+   * @param amount Amount of tokens that should be transferred
+   */
+  function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
     super._beforeTokenTransfer(from, to, amount);
 
     require(to != address(this), "MentoToken: cannot transfer tokens to token contract");
