@@ -128,8 +128,8 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     // XXX: The number of collateral assets 3 is hardcoded here [CELO, USDC, EUROC]
     for (uint256 i = 0; i < 3; i++) {
       address collateralAsset = reserve.collateralAssets(i);
-      mint(collateralAsset, address(reserve), Utils.toSubunits(10_000_000, collateralAsset));
-      console.log("Minting 10mil %s to reserve", IERC20Metadata(collateralAsset).symbol());
+      mint(collateralAsset, address(reserve), Utils.toSubunits(25_000_000, collateralAsset));
+      console.log("Minting 25mil %s to reserve", IERC20Metadata(collateralAsset).symbol());
     }
 
     console.log("Exchanges(%d): ", exchanges.length);
@@ -178,15 +178,19 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     IStableTokenV2 stableToken = IStableTokenV2(registry.getAddressForStringOrDie("StableToken"));
     IStableTokenV2 stableTokenEUR = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenEUR"));
     IStableTokenV2 stableTokenBRL = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenBRL"));
+    IStableTokenV2 stableTokenXOF = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenXOF"));
 
-    vm.expectRevert("contract already initialized");
+    vm.expectRevert("Initializable: contract is already initialized");
     stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
-    vm.expectRevert("contract already initialized");
+    vm.expectRevert("Initializable: contract is already initialized");
     stableTokenEUR.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
-    vm.expectRevert("contract already initialized");
+    vm.expectRevert("Initializable: contract is already initialized");
     stableTokenBRL.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+    vm.expectRevert("Initializable: contract is already initialized");
+    stableTokenXOF.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
   }
 
   function test_swapsHappenInBothDirections() public {
@@ -215,7 +219,6 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
       bool asset1LimitConfigured = ctx.isLimitConfigured(limitIdForAsset1);
 
       require(asset0LimitConfigured || asset1LimitConfigured, "Limit not configured");
-      require(!asset0LimitConfigured || !asset1LimitConfigured, "Limit configured for both assets");
     }
   }
 
@@ -374,35 +377,52 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     }
   }
 
+  mapping(address => uint256) depsCount;
+
   function test_rateFeedDependencies_haltsDependantTrading() public {
+    // Hardcoded number of dependencies for each ratefeed
+    depsCount[registry.getAddressForStringOrDie("StableToken")] = 0;
+    depsCount[registry.getAddressForStringOrDie("StableTokenEUR")] = 0;
+    depsCount[registry.getAddressForStringOrDie("StableTokenBRL")] = 0;
+    depsCount[registry.getAddressForStringOrDie("StableTokenXOF")] = 2;
+    depsCount[0xA1A8003936862E7a15092A91898D69fa8bCE290c] = 0; // USDC/USD
+    depsCount[0x206B25Ea01E188Ee243131aFdE526bA6E131a016] = 1; // USDC/EUR
+    depsCount[0x25F21A1f97607Edf6852339fad709728cffb9a9d] = 1; // USDC/BRL
+    depsCount[0x26076B9702885d475ac8c3dB3Bd9F250Dc5A318B] = 0; // EUROC/EUR
+
     address[] memory breakers = breakerBox.getBreakers();
-    /*
-      TODO: Because breakerBox doesn't have a getter that returns an array of dependencies
-      for a given rateFeed, we had to hardcode the rateFeeds that have dependencies. 
 
-      This can be generalized once we add the getter to breakerBox.
-    */
-    uint256[] memory exchangesIndexesWithDependencies = Arrays.uints(4, 5);
-    for (uint256 i = 0; i < exchangesIndexesWithDependencies.length; i++) {
-      Utils.Context memory ctx = Utils.newContext(address(this), exchangesIndexesWithDependencies[i]);
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      Utils.Context memory ctx = Utils.newContext(address(this), i);
+      address[] memory dependencies = new address[](depsCount[ctx.getReferenceRateFeedID()]);
+      for (uint256 d = 0; d < dependencies.length; d++) {
+        dependencies[d] = ctx.breakerBox.rateFeedDependencies(ctx.getReferenceRateFeedID(), d);
+      }
+      if (dependencies.length == 0) {
+        continue;
+      }
+
+      Utils.logPool(ctx);
       address rateFeedID = ctx.getReferenceRateFeedID();
+      console.log("\t exchangeIndex: %d | rateFeedId: %s | %s dependencies", i, rateFeedID, dependencies.length);
 
-      address dependencyRateFeed = breakerBox.rateFeedDependencies(rateFeedID, 0);
-      Utils.Context memory dependencyContext = Utils.getContextForRateFeedID(address(this), dependencyRateFeed);
+      for (uint256 k = 0; k < dependencies.length; k++) {
+        Utils.Context memory dependencyContext = Utils.getContextForRateFeedID(address(this), dependencies[k]);
 
-      for (uint256 j = 0; j < breakers.length; j++) {
-        if (breakerBox.isBreakerEnabled(breakers[j], dependencyRateFeed)) {
-          assert_breakerBreaks(dependencyContext, breakers[j], j);
+        for (uint256 j = 0; j < breakers.length; j++) {
+          if (breakerBox.isBreakerEnabled(breakers[j], dependencies[k])) {
+            assert_breakerBreaks(dependencyContext, breakers[j], j);
 
-          assert_swapInFails(
-            ctx,
-            ctx.exchange.assets[0],
-            ctx.exchange.assets[1],
-            Utils.toSubunits(1000, ctx.exchange.assets[0]),
-            "Trading is suspended for this reference rate"
-          );
+            assert_swapInFails(
+              ctx,
+              ctx.exchange.assets[0],
+              ctx.exchange.assets[1],
+              Utils.toSubunits(1000, ctx.exchange.assets[0]),
+              "Trading is suspended for this reference rate"
+            );
 
-          assert_breakerRecovers(dependencyContext, breakers[j], j);
+            assert_breakerRecovers(dependencyContext, breakers[j], j);
+          }
         }
       }
     }

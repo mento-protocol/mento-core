@@ -258,8 +258,7 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
    * @param value The amount of balance to reserve
    * @dev Note that this function is called by the protocol when paying for tx fees in this
    * currency. After the tx is executed, gas is refunded to the sender and credited to the
-   * various tx fee recipients via a call to `creditGasFees`. Note too that the events emitted
-   * by `creditGasFees` reflect the *net* gas fee payments for the transaction.
+   * various tx fee recipients via a call to `creditGasFees`.
    */
   function debitGasFees(address from, uint256 value) external onlyVm {
     _burn(from, value);
@@ -278,8 +277,7 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
    * @param gatewayFee Gateway fee
    * @dev Note that this function is called by the protocol when paying for tx fees in this
    * currency. Before the tx is executed, gas is debited from the sender via a call to
-   * `debitGasFees`. Note too that the events emitted by `creditGasFees` reflect the *net* gas fee
-   * payments for the transaction.
+   * `debitGasFees`.
    */
   function creditGasFees(
     address from,
@@ -291,9 +289,29 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
     uint256 gatewayFee,
     uint256 baseTxFee
   ) external onlyVm {
+    uint256 amountToBurn;
     _mint(from, refund + tipTxFee + gatewayFee + baseTxFee);
-    _transfer(from, feeRecipient, tipTxFee);
-    _transfer(from, gatewayFeeRecipient, gatewayFee);
-    _transfer(from, communityFund, baseTxFee);
+
+    if (feeRecipient != address(0)) {
+      _transfer(from, feeRecipient, tipTxFee);
+    } else if (tipTxFee > 0) {
+      amountToBurn += tipTxFee;
+    }
+
+    if (gatewayFeeRecipient != address(0)) {
+      _transfer(from, gatewayFeeRecipient, gatewayFee);
+    } else if (gatewayFee > 0) {
+      amountToBurn += gatewayFee;
+    }
+
+    if (communityFund != address(0)) {
+      _transfer(from, communityFund, baseTxFee);
+    } else if (baseTxFee > 0) {
+      amountToBurn += baseTxFee;
+    }
+
+    if (amountToBurn > 0) {
+      _burn(from, amountToBurn);
+    }
   }
 }

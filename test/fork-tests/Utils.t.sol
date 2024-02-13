@@ -56,6 +56,7 @@ library Utils {
     BreakerBox breakerBox;
     address exchangeProvider;
     bytes32 exchangeId;
+    address rateFeedID;
     IExchangeProvider.Exchange exchange;
     address trader;
   }
@@ -72,7 +73,25 @@ library Utils {
       t.breakerBox(),
       exchangeProvider,
       exchange.exchangeId,
+      address(0),
       exchange,
+      t.trader()
+    );
+  }
+
+  function newRateFeedContext(address _t, address rateFeed) public view returns (Context memory ctx) {
+    BaseForkTest t = BaseForkTest(_t);
+
+    ctx = Context(
+      t,
+      t.broker(),
+      IBrokerWithCasts(address(t.broker())),
+      t.sortedOracles(),
+      t.breakerBox(),
+      address(0),
+      bytes32(0),
+      rateFeed,
+      IExchangeProvider.Exchange(0, new address[](0)),
       t.trader()
     );
   }
@@ -87,7 +106,7 @@ library Utils {
         return ctx;
       }
     }
-    revert("No exchange found with that referenceRateFeedID");
+    return newRateFeedContext(_t, rateFeedID);
   }
 
   // ========================= Swaps =========================
@@ -182,13 +201,13 @@ library Utils {
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
     (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = shouldUpdateBuckets(ctx);
-    logPool(ctx);
+    // logPool(ctx);
     if (timePassed && (!medianReportRecent || isReportExpired || !enoughReports)) {
       (uint256 newMedian, ) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
       (timePassed, enoughReports, medianReportRecent, isReportExpired, ) = shouldUpdateBuckets(ctx);
       updateOracleMedianRate(ctx, newMedian.mul(1_000_001).div(1_000_000));
 
-      logPool(ctx);
+      // logPool(ctx);
       return;
     }
   }
@@ -259,6 +278,9 @@ library Utils {
   }
 
   function getReferenceRateFeedID(Context memory ctx) internal view returns (address) {
+    if (ctx.rateFeedID != address(0)) {
+      return ctx.rateFeedID;
+    }
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
@@ -303,6 +325,7 @@ library Utils {
       changePrank(oracle);
       ctx.sortedOracles.report(rateFeedID, newMedian, lesserKey, greaterKey);
     }
+    console.log("done with updateOracleMedianRate");
     changePrank(ctx.trader);
   }
 
@@ -485,6 +508,10 @@ library Utils {
   }
 
   function logPool(Context memory ctx) internal view {
+    if (ctx.exchangeId == 0) {
+      console.log("🎱 RateFeed: %s", ctx.rateFeedID);
+      return;
+    }
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
 

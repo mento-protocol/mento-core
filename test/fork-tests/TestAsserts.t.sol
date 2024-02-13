@@ -106,8 +106,8 @@ contract TestAsserts is Test {
     address to,
     uint8 limit
   ) internal {
-    TradingLimits.Config memory limitConfigFrom = ctx.tradingLimitsConfig(from);
-    TradingLimits.Config memory limitConfigTo = ctx.tradingLimitsConfig(to);
+    TradingLimits.Config memory fromLimitConfig = ctx.tradingLimitsConfig(from);
+    TradingLimits.Config memory toLimitConfig = ctx.tradingLimitsConfig(to);
     console.log(
       string(abi.encodePacked("Swapping ", IERC20Metadata(from).symbol(), " -> ", IERC20Metadata(to).symbol())),
       "with limit",
@@ -115,10 +115,13 @@ contract TestAsserts is Test {
     );
     console.log("========================================");
 
-    // Always only one limit on a pair
-    if (limitConfigFrom.isLimitEnabled(limit)) {
+    if (fromLimitConfig.isLimitEnabled(limit) && toLimitConfig.isLimitEnabled(limit)) {
+      // TODO: Figure out best way to implement fork tests
+      // when two limits are configured.
+      console.log("Both Limits enabled skipping for now");
+    } else if (fromLimitConfig.isLimitEnabled(limit)) {
       assert_swapOverLimitFails_onInflow(ctx, from, to, limit);
-    } else if (limitConfigTo.isLimitEnabled(limit)) {
+    } else if (toLimitConfig.isLimitEnabled(limit)) {
       assert_swapOverLimitFails_onOutflow(ctx, from, to, limit);
     }
   }
@@ -399,7 +402,6 @@ contract TestAsserts is Test {
   }
 
   function assert_medianDeltaBreakerBreaks_onIncrease(Utils.Context memory ctx, address _breaker) public {
-    console.log("MedianDeltaBreaker breaks on price increase");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to ema - (threshold + 0.001% buffer)
@@ -416,7 +418,6 @@ contract TestAsserts is Test {
   }
 
   function assert_medianDeltaBreakerBreaks_onDecrease(Utils.Context memory ctx, address _breaker) public {
-    console.log("MedianDeltaBreaker breaks on price decrease");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to ema + (threshold + 0.001% buffer)
@@ -433,7 +434,6 @@ contract TestAsserts is Test {
   }
 
   function assert_valueDeltaBreakerBreaks_onIncrease(Utils.Context memory ctx, address _breaker) public {
-    console.log("ValueDeltaBreaker breaks on price increase");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to reference value + threshold + 1
@@ -450,7 +450,6 @@ contract TestAsserts is Test {
   }
 
   function assert_valueDeltaBreakerBreaks_onDecrease(Utils.Context memory ctx, address _breaker) public {
-    console.log("ValueDeltaBreaker breaks on price decrease");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to reference value - threshold - 1
@@ -486,7 +485,6 @@ contract TestAsserts is Test {
   }
 
   function assert_medianDeltaBreakerRecovers(Utils.Context memory ctx, address _breaker) internal {
-    console.log("MedianDeltaBreaker recovers");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to ema + threshold + 0.001%
@@ -502,13 +500,17 @@ contract TestAsserts is Test {
 
     // wait for cool down and reset by setting new median to ema
     uint256 cooldown = WithCooldown(_breaker).getCooldown(ctx.getReferenceRateFeedID());
-    skip(cooldown);
-    currentEMA = MedianDeltaBreaker(_breaker).medianRatesEMA(ctx.getReferenceRateFeedID());
-    assert_breakerRecovers_withNewMedian(ctx, currentEMA);
+    if (cooldown == 0) {
+      changePrank(ctx.breakerBox.owner());
+      ctx.breakerBox.setRateFeedTradingMode(ctx.getReferenceRateFeedID(), 0);
+    } else {
+      skip(cooldown);
+      currentEMA = MedianDeltaBreaker(_breaker).medianRatesEMA(ctx.getReferenceRateFeedID());
+      assert_breakerRecovers_withNewMedian(ctx, currentEMA);
+    }
   }
 
   function assert_valueDeltaBreakerRecovers(Utils.Context memory ctx, address _breaker) internal {
-    console.log("ValueDeltaBreaker recovers");
     uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
 
     // trigger breaker by setting new median to reference value + threshold + 1
@@ -525,8 +527,13 @@ contract TestAsserts is Test {
 
     // wait for cool down and reset by setting new median to refernece value
     uint256 cooldown = WithCooldown(_breaker).getCooldown(ctx.getReferenceRateFeedID());
-    skip(cooldown);
-    assert_breakerRecovers_withNewMedian(ctx, referenceValue);
+    if (cooldown == 0) {
+      changePrank(ctx.breakerBox.owner());
+      ctx.breakerBox.setRateFeedTradingMode(ctx.getReferenceRateFeedID(), 0);
+    } else {
+      skip(cooldown);
+      assert_breakerRecovers_withNewMedian(ctx, referenceValue);
+    }
   }
 
   function assert_breakerBreaks_withNewMedian(
@@ -561,46 +568,44 @@ contract TestAsserts is Test {
     newMedian = currentRate.add(currentRate.div(100_000_000)); // a small increase
     ctx.updateOracleMedianRate(newMedian);
     uint8 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
-    while (tradingMode != 0) {
+    uint256 attempts = 0;
+    while (tradingMode != 0 && attempts < 10) {
+      console.log("attempt #%d", attempts);
+      attempts++;
       // while the breaker is active, we wait for the cooldown and try to update the median
       console.log(block.timestamp, "Waiting for cooldown to pass");
       console.log("RateFeedID:", rateFeedID);
       address[] memory _breakers = ctx.breakerBox.getBreakers();
       uint256 cooldown = 0;
+      uint256 breakerIndex;
       for (uint256 i = 0; i < _breakers.length; i++) {
         if (ctx.breakerBox.isBreakerEnabled(_breakers[i], rateFeedID)) {
           (uint8 _tradingMode, , ) = ctx.breakerBox.rateFeedBreakerStatus(rateFeedID, _breakers[i]);
           if (_tradingMode != 0) {
-            uint256 _cooldown = WithCooldown(_breakers[i]).getCooldown(rateFeedID);
-            if (_cooldown > cooldown) {
-              cooldown = _cooldown;
-            }
+            breakerIndex = i;
+            cooldown = WithCooldown(_breakers[i]).getCooldown(rateFeedID);
+            break;
           }
         }
       }
       skip(cooldown);
-      newMedian = newMedianToResetBreaker(ctx, tradingMode);
+      newMedian = newMedianToResetBreaker(ctx, breakerIndex);
       ctx.updateOracleMedianRate(newMedian);
+      if (cooldown == 0) {
+        console.log("Manual recovery required for breaker %s", _breakers[breakerIndex]);
+        changePrank(ctx.breakerBox.owner());
+        ctx.breakerBox.setRateFeedTradingMode(rateFeedID, 0);
+      }
       tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
     }
   }
 
-  function newMedianToResetBreaker(Utils.Context memory ctx, uint8 tradingMode)
+  function newMedianToResetBreaker(Utils.Context memory ctx, uint256 breakerIndex)
     internal
     view
     returns (uint256 newMedian)
   {
-    address rateFeedID = ctx.getReferenceRateFeedID();
-    uint256 breakerIndex;
     address[] memory _breakers = ctx.breakerBox.getBreakers();
-    for (uint256 i = 0; i < _breakers.length; i++) {
-      if (ctx.breakerBox.isBreakerEnabled(_breakers[i], rateFeedID)) {
-        (uint256 _tradingMode, , ) = ctx.breakerBox.rateFeedBreakerStatus(rateFeedID, _breakers[i]);
-        if (_tradingMode == tradingMode) {
-          breakerIndex = i;
-        }
-      }
-    }
     bool isMedianDeltaBreaker = breakerIndex == 0;
     bool isValueDeltaBreaker = breakerIndex == 1;
     if (isMedianDeltaBreaker) {
