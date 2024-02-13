@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
+import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { MentoToken } from "./MentoToken.sol";
 
 /**
@@ -9,7 +9,7 @@ import { MentoToken } from "./MentoToken.sol";
  * @author Mento Labs
  * @notice This contract handles the emission of Mento Tokens in an exponentially decaying manner.
  */
-contract Emission is Ownable {
+contract Emission is OwnableUpgradeable {
   /// @notice The max amount that will be minted through emission
   uint256 public constant TOTAL_EMISSION_SUPPLY = 650_000_000 * 10**18;
 
@@ -20,7 +20,7 @@ contract Emission is Ownable {
   uint256 public constant SCALER = 1e18;
 
   /// @notice The timestamp when the emission process started.
-  uint256 public immutable emissionStartTime;
+  uint256 public emissionStartTime;
 
   /// @notice The MentoToken contract reference.
   MentoToken public mentoToken;
@@ -35,14 +35,29 @@ contract Emission is Ownable {
   event TokensEmitted(address indexed target, uint256 amount);
 
   /**
-   * @notice Construct the Emission contract.
+   * @dev Should be called with disable=true in deployments when
+   * it's accessed through a Proxy.
+   * Call this with disable=false during testing, when used
+   * without a proxy.
+   * @param disable Set to true to run `_disableInitializers()` inherited from
+   * openzeppelin-contracts-upgradeable/Initializable.sol
+   */
+  constructor(bool disable) {
+    if (disable) {
+      _disableInitializers();
+    }
+  }
+
+  /**
+   * @notice Initialize the Emission contract.
    * @param mentoToken_ The address of the MentoToken contract.
    * @param emissionTarget_ The address of the emission target.
    */
-  constructor(address mentoToken_, address emissionTarget_) {
+  function initialize(address mentoToken_, address emissionTarget_) public initializer {
     emissionStartTime = block.timestamp;
     mentoToken = MentoToken(mentoToken_);
     emissionTarget = emissionTarget_;
+    __Ownable_init();
   }
 
   /**

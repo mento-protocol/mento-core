@@ -107,12 +107,12 @@ contract GovernanceFactory is Ownable {
     celoCommunityFund = celoCommunityFund_;
 
     // Precalculated contract addresses:
-    address emissionPrecalculated = addressForNonce(2);
-    address tokenPrecalculated = addressForNonce(3);
-    address airgrabPrecalculated = addressForNonce(4);
-    address lockingPrecalculated = addressForNonce(6);
-    address governanceTimelockPrecalculated = addressForNonce(8);
-    address governorPrecalculated = addressForNonce(10);
+    address emissionPrecalculated = addressForNonce(3);
+    address tokenPrecalculated = addressForNonce(4);
+    address airgrabPrecalculated = addressForNonce(5);
+    address lockingPrecalculated = addressForNonce(7);
+    address governanceTimelockPrecalculated = addressForNonce(9);
+    address governorPrecalculated = addressForNonce(11);
 
     address[] memory owners = new address[](1);
     owners[0] = governanceTimelockPrecalculated;
@@ -125,7 +125,18 @@ contract GovernanceFactory is Ownable {
     // =========================================
     // ========== Deploy 2: Emission ===========
     // =========================================
-    emission = EmissionDeployerLib.deploy(tokenPrecalculated, governanceTimelockPrecalculated); // NONCE:2
+    Emission emissionImpl = EmissionDeployerLib.deploy(); // NONCE:2
+    TransparentUpgradeableProxy emissionProxy = ProxyDeployerLib.deployProxy( // NONCE:3
+      address(emissionImpl),
+      address(proxyAdmin),
+      abi.encodeWithSelector(
+        emissionImpl.initialize.selector,
+        tokenPrecalculated, ///             @param mentoToken_ The address of the MentoToken contract.
+        governanceTimelockPrecalculated ///  @param governanceTimelock_ The address of the mento treasury contract.
+      )
+    );
+
+    emission = Emission(address(emissionProxy));
     assert(address(emission) == emissionPrecalculated);
 
     // ===========================================
@@ -139,14 +150,14 @@ contract GovernanceFactory is Ownable {
     allocationRecipients[numberOfRecipients - 2] = airgrabPrecalculated;
     allocationRecipients[numberOfRecipients - 1] = governanceTimelockPrecalculated;
 
-    mentoToken = MentoTokenDeployerLib.deploy(allocationRecipients, allocationAmounts, address(emission)); // NONCE:3
+    mentoToken = MentoTokenDeployerLib.deploy(allocationRecipients, allocationAmounts, address(emission)); // NONCE:4
     assert(address(mentoToken) == tokenPrecalculated);
 
     // ========================================
     // ========== Deploy 4: Airgrab ===========
     // ========================================
     airgrabEnds = block.timestamp + AIRGRAB_DURATION;
-    airgrab = AirgrabDeployerLib.deploy( // NONCE:4
+    airgrab = AirgrabDeployerLib.deploy( // NONCE:5
       airgrabRoot,
       fractalSigner,
       FRACTAL_MAX_AGE,
@@ -162,9 +173,9 @@ contract GovernanceFactory is Ownable {
     // ==========================================
     // ========== Deploy 5-6: Locking ===========
     // ==========================================
-    Locking lockingImpl = LockingDeployerLib.deploy(); // NONCE:5
+    Locking lockingImpl = LockingDeployerLib.deploy(); // NONCE:6
     uint32 startingPointWeek = uint32(Locking(lockingImpl).getWeek() - 1);
-    TransparentUpgradeableProxy lockingProxy = ProxyDeployerLib.deployProxy( // NONCE:6
+    TransparentUpgradeableProxy lockingProxy = ProxyDeployerLib.deployProxy( // NONCE:7
       address(lockingImpl),
       address(proxyAdmin),
       abi.encodeWithSelector(
@@ -182,7 +193,7 @@ contract GovernanceFactory is Ownable {
     // ========== Deploy 7: Timelock Controller Implementation ===========
     // ===================================================================
     /// @dev This implementation will be reused for the Governance Timelock
-    TimelockController timelockControllerImpl = TimelockControllerDeployerLib.deploy(); // NONCE:7
+    TimelockController timelockControllerImpl = TimelockControllerDeployerLib.deploy(); // NONCE:8
 
     // ====================================================
     // ========== Deploy 8: Governance Timelock ===========
@@ -192,7 +203,7 @@ contract GovernanceFactory is Ownable {
     governanceProposers[0] = governorPrecalculated; // Only MentoGovernor can propose
     governanceExecutors[0] = address(0); // Anyone can execute passed proposals
 
-    TransparentUpgradeableProxy governanceTimelockProxy = ProxyDeployerLib.deployProxy( // NONCE:8
+    TransparentUpgradeableProxy governanceTimelockProxy = ProxyDeployerLib.deployProxy( // NONCE:9
       address(timelockControllerImpl),
       address(proxyAdmin),
       abi.encodeWithSelector(
@@ -210,8 +221,8 @@ contract GovernanceFactory is Ownable {
     // ==================================================
     // ========== Deploy 9-10: Mento Governor ===========
     // ==================================================
-    MentoGovernor mentoGovernorImpl = MentoGovernorDeployerLib.deploy(); // NONCE:9
-    TransparentUpgradeableProxy mentoGovernorProxy = ProxyDeployerLib.deployProxy( // NONCE: 10
+    MentoGovernor mentoGovernorImpl = MentoGovernorDeployerLib.deploy(); // NONCE:10
+    TransparentUpgradeableProxy mentoGovernorProxy = ProxyDeployerLib.deployProxy( // NONCE: 11
       address(mentoGovernorImpl),
       address(proxyAdmin),
       abi.encodeWithSelector(

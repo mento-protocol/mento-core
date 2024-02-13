@@ -131,7 +131,7 @@ contract GovernanceFactoryTest is TestSetup {
     _createGovernance();
 
     uint256 nonce = vm.getNonce(address(factory));
-    assertEq(nonce, 11); // Confirms that no more contracts than the expected 11 have been deployed
+    assertEq(nonce, 12); // Confirms that no more contracts than the expected 12 have been deployed
   }
 
   function test_createGovernance_whenCallerNotOwner_shouldRevert() public i_setUp {
@@ -165,7 +165,7 @@ contract GovernanceFactoryTest is TestSetup {
     );
 
     // we can cheat and calculate the address of the implementation contract via addressForNonce()
-    address precalculatedAddress = factory.exposed_addressForNonce(5);
+    address precalculatedAddress = factory.exposed_addressForNonce(6);
     address initialImpl = proxyAdmin.getProxyImplementation(proxy);
     assertEq(initialImpl, precalculatedAddress, "Factory: lockingProxy should have an implementation");
 
@@ -196,7 +196,7 @@ contract GovernanceFactoryTest is TestSetup {
     );
 
     // we can cheat and calculate the address of the implementation contract via addressForNonce()
-    address precalculatedAddress = factory.exposed_addressForNonce(7);
+    address precalculatedAddress = factory.exposed_addressForNonce(8);
     address initialImpl = proxyAdmin.getProxyImplementation(proxy);
     assertEq(initialImpl, precalculatedAddress, "Factory: governanceTimelockProxy should have an implementation");
 
@@ -230,7 +230,7 @@ contract GovernanceFactoryTest is TestSetup {
     );
 
     // we can cheat and calculate the address of the implementation contract via addressForNonce()
-    address precalculatedAddress = factory.exposed_addressForNonce(9);
+    address precalculatedAddress = factory.exposed_addressForNonce(10);
     address initialImpl = proxyAdmin.getProxyImplementation(proxy);
     assertEq(initialImpl, precalculatedAddress, "Factory: mentoGovernorProxy should have an implementation");
 
@@ -252,10 +252,6 @@ contract GovernanceFactoryTest is TestSetup {
     _createGovernance();
 
     ProxyAdmin proxyAdmin = factory.proxyAdmin();
-
-    ITransparentUpgradeableProxy emissionNotAProxy = ITransparentUpgradeableProxy(address(factory.emission()));
-    vm.expectRevert();
-    proxyAdmin.getProxyAdmin(emissionNotAProxy);
 
     ITransparentUpgradeableProxy mentoTokenNotAProxy = ITransparentUpgradeableProxy(address(factory.mentoToken()));
     vm.expectRevert();

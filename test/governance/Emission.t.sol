@@ -22,23 +22,24 @@ contract EmissionTest is TestSetup {
     mentoToken = new MockMentoToken();
     emissionTarget = makeAddr("EmissionTarget");
 
+    emission = new Emission(false);
     vm.prank(owner);
-    emission = new Emission(address(mentoToken), emissionTarget);
+    emission.initialize(address(mentoToken), emissionTarget);
   }
 
-  function test_constructor_shouldSetOwner() public {
+  function test_initialize_shouldSetOwner() public {
     assertEq(emission.owner(), owner);
   }
 
-  function test_constructor_shouldSetStartTime() public {
+  function test_initialize_shouldSetStartTime() public {
     assertEq(emission.emissionStartTime(), 1);
   }
 
-  function test_constructor_shouldSetEmissionToken() public {
+  function test_initialize_shouldSetEmissionToken() public {
     assertEq(address(emission.mentoToken()), address(mentoToken));
   }
 
-  function test_constructor_shouldSetEmissionTarget() public {
+  function test_initialize_shouldSetEmissionTarget() public {
     assertEq(emission.emissionTarget(), emissionTarget);
   }
 
