@@ -28,7 +28,7 @@ jobs:
       - name: "Install Foundry"
         uses: "onbjerg/foundry-toolchain@v1"
         with:
-          version: "nightly-d369d2486f85576eec4ca41d277391dfdae21ba7"
+          version: "nightly-fd87629fbc4ae2e0fa00ccf42b4a9ebe1b521d55"
       - name: "Build the contracts"
         run: |
           forge build --skip test --skip script --build-info
