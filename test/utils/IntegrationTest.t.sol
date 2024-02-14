@@ -25,7 +25,7 @@ import { Broker } from "contracts/swap/Broker.sol";
 import { ConstantProductPricingModule } from "contracts/swap/ConstantProductPricingModule.sol";
 import { ConstantSumPricingModule } from "contracts/swap/ConstantSumPricingModule.sol";
 import { Reserve } from "contracts/swap/Reserve.sol";
-import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
+import { SortedOracles } from "contracts/common/SortedOracles.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
 import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
 import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
@@ -297,11 +297,11 @@ contract IntegrationTest is BaseTest {
     );
 
     uint256[] memory medianDeltaBreakerRateChangeThresholds = Arrays.uints(
-      0.15 * 10**24,
-      0.14 * 10**24,
-      0.13 * 10**24,
-      0.12 * 10**24,
-      0.11 * 10**24
+      0.15 * 10 ** 24,
+      0.14 * 10 ** 24,
+      0.13 * 10 ** 24,
+      0.12 * 10 ** 24,
+      0.11 * 10 ** 24
     );
     uint256[] memory medianDeltaBreakerCooldownTimes = Arrays.uints(
       5 minutes,
@@ -311,7 +311,7 @@ contract IntegrationTest is BaseTest {
       5 minutes
     );
 
-    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10**24; // 15%
+    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10 ** 24; // 15%
     uint256 medianDeltaBreakerDefaultCooldown = 0 seconds;
 
     medianDeltaBreaker = new MedianDeltaBreaker(
@@ -342,14 +342,14 @@ contract IntegrationTest is BaseTest {
       cUSD_cEUR_referenceRateFeedID
     );
     uint256[] memory valueDeltaBreakerRateChangeThresholds = Arrays.uints(
-      0.1 * 10**24,
-      0.15 * 10**24,
-      0.05 * 10**24,
-      0.05 * 10**24
+      0.1 * 10 ** 24,
+      0.15 * 10 ** 24,
+      0.05 * 10 ** 24,
+      0.05 * 10 ** 24
     );
     uint256[] memory valueDeltaBreakerCooldownTimes = Arrays.uints(1 seconds, 1 seconds, 1 seconds, 0 seconds);
 
-    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;
+    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10 ** 24;
     uint256 valueDeltaBreakerDefaultCooldown = 0 seconds;
 
     valueDeltaBreaker = new ValueDeltaBreaker(
@@ -362,7 +362,7 @@ contract IntegrationTest is BaseTest {
     );
 
     // set reference value
-    uint256[] memory valueDeltaBreakerReferenceValues = Arrays.uints(1e24, 656 * 10**24, 1e24, 1.1 * 10**24);
+    uint256[] memory valueDeltaBreakerReferenceValues = Arrays.uints(1e24, 656 * 10 ** 24, 1e24, 1.1 * 10 ** 24);
     valueDeltaBreaker.setReferenceValues(valueDeltaBreakerRateFeedIDs, valueDeltaBreakerReferenceValues);
 
     // add value delta breaker and enable for rate feeds

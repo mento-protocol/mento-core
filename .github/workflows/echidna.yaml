@@ -51,7 +51,7 @@ jobs:
       - name: "Run Echidna"
         uses: crytic/echidna-action@v2
         with:
-          files: test/echidna/${{ matrix.contract }}.sol
+          files: .
           solc-version: 0.5.17
           contract: ${{ matrix.contract }}
           config: echidna.yaml
