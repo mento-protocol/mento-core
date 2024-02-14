@@ -1,4 +1,5 @@
 cryticArgs:
+  - --foundry-ignore-compile
   - --solc-remaps
   - "openzeppelin-solidity/=lib/openzeppelin-contracts/ celo-foundry/=lib/celo-foundry/src/ forge-std/=lib/celo-foundry/lib/forge-std/src/ ds-test/=lib/celo-foundry/lib/forge-std/lib/ds-test/src/ test/=test/ contracts/=contracts/"
   - --compile-libraries
