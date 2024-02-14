@@ -102,7 +102,11 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
    * @param _validators The address of the Validators contract.
    * @param _exchange The address of the Exchange contract.
    */
-  function initializeV2(address _broker, address _validators, address _exchange) external reinitializer(2) onlyOwner {
+  function initializeV2(
+    address _broker,
+    address _validators,
+    address _exchange
+  ) external reinitializer(2) onlyOwner {
     _setBroker(_broker);
     _setValidators(_validators);
     _setExchange(_exchange);
@@ -143,7 +147,11 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
    * @param comment The transfer comment.
    * @return True if the transaction succeeds.
    */
-  function transferWithComment(address to, uint256 value, string calldata comment) external returns (bool) {
+  function transferWithComment(
+    address to,
+    uint256 value,
+    string calldata comment
+  ) external returns (bool) {
     emit TransferComment(comment);
     return transfer(to, value);
   }
@@ -219,10 +227,12 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function allowance(
-    address owner,
-    address spender
-  ) public view override(ERC20Upgradeable, IStableTokenV2) returns (uint256) {
+  function allowance(address owner, address spender)
+    public
+    view
+    override(ERC20Upgradeable, IStableTokenV2)
+    returns (uint256)
+  {
     return ERC20Upgradeable.allowance(owner, spender);
   }
 

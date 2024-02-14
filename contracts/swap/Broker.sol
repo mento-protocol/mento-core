@@ -242,7 +242,11 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param token The asset to transfer.
    * @param amount The amount of `token` to be transferred.
    */
-  function transferOut(address payable to, address token, uint256 amount) internal {
+  function transferOut(
+    address payable to,
+    address token,
+    uint256 amount
+  ) internal {
     if (reserve.isStableAsset(token)) {
       require(IStableTokenV2(token).mint(to, amount), "Minting of the stable asset failed");
     } else if (reserve.isCollateralAsset(token)) {
@@ -260,7 +264,11 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param token The asset to transfer.
    * @param amount The amount of `token` to be transferred.
    */
-  function transferIn(address payable from, address token, uint256 amount) internal {
+  function transferIn(
+    address payable from,
+    address token,
+    uint256 amount
+  ) internal {
     if (reserve.isStableAsset(token)) {
       IERC20(token).safeTransferFrom(from, address(this), amount);
       require(IStableTokenV2(token).burn(amount), "Burning of the stable asset failed");
@@ -303,7 +311,11 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param deltaFlow the deltaflow of this token, negative for outflow, positive for inflow.
    * @param token the address of the token, used to lookup decimals.
    */
-  function guardTradingLimit(bytes32 tradingLimitId, int256 deltaFlow, address token) internal {
+  function guardTradingLimit(
+    bytes32 tradingLimitId,
+    int256 deltaFlow,
+    address token
+  ) internal {
     TradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
       TradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];

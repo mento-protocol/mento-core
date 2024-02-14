@@ -87,10 +87,10 @@ contract ValueDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
    * @param rateFeedIDs Collection of the addresses rate feeds.
    * @param rateChangeThresholds Collection of the rate thresholds.
    */
-  function setRateChangeThresholds(
-    address[] calldata rateFeedIDs,
-    uint256[] calldata rateChangeThresholds
-  ) external onlyOwner {
+  function setRateChangeThresholds(address[] calldata rateFeedIDs, uint256[] calldata rateChangeThresholds)
+    external
+    onlyOwner
+  {
     _setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
 

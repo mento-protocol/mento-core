@@ -97,7 +97,16 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @return Minor version of the contract.
    * @return Patch version of the contract.
    */
-  function getVersionNumber() external pure returns (uint256, uint256, uint256, uint256) {
+  function getVersionNumber()
+    external
+    pure
+    returns (
+      uint256,
+      uint256,
+      uint256,
+      uint256
+    )
+  {
     return (2, 1, 0, 0);
   }
 
@@ -447,7 +456,11 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of collateral assets to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferCollateralAsset(address collateralAsset, address payable to, uint256 value) external returns (bool) {
+  function transferCollateralAsset(
+    address collateralAsset,
+    address payable to,
+    uint256 value
+  ) external returns (bool) {
     require(isSpender[msg.sender], "sender not allowed to transfer Reserve funds");
     require(isOtherReserveAddress[to], "can only transfer to other reserve address");
     require(
@@ -528,10 +541,11 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of gold to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferExchangeGold(
-    address payable to,
-    uint256 value
-  ) external isAllowedToSpendExchange(msg.sender) returns (bool) {
+  function transferExchangeGold(address payable to, uint256 value)
+    external
+    isAllowedToSpendExchange(msg.sender)
+    returns (bool)
+  {
     return _transferGold(to, value);
   }
 
