@@ -1,5 +1,5 @@
 {
   "foundry_ignore_compile": true,
   "filter_paths": "(contracts/(legacy/|common/))|/test/|/lib/",
-  "fail_low": true
+  "fail_on": "low"
 }
