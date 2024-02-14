@@ -6,11 +6,6 @@ env:
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - "main"
-      - "feature/**"
-      - "feat/**"
-      - "develop"
   push:
     branches:
       - "main"
@@ -30,8 +25,6 @@ jobs:
         with:
           version: "nightly-fd87629fbc4ae2e0fa00ccf42b4a9ebe1b521d55"
       - name: "Build the contracts"
-        run: |
-          forge build --skip test --skip script --build-info
       - name: Run Slither
         uses: crytic/slither-action@v0.3.1
         id: slither

@@ -6,11 +6,6 @@ env:
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - "main"
-      - "feature/**"
-      - "feat/**"
-      - "develop"
   push:
     branches:
       - "main"
@@ -45,9 +40,6 @@ jobs:
         uses: onbjerg/foundry-toolchain@v1
         with:
           version: "nightly-fd87629fbc4ae2e0fa00ccf42b4a9ebe1b521d55"
-      - name: "Build for echidna"
-        run: yarn forge:build:slither
-
       - name: "Run Echidna"
         uses: crytic/echidna-action@v2
         with:

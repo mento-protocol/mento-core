@@ -6,11 +6,6 @@ env:
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - "main"
-      - "feature/**"
-      - "feat/**"
-      - "develop"
   push:
     branches:
       - "main"
