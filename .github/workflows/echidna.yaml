@@ -1,0 +1,58 @@
+name: "Echidna"
+
+env:
+  FOUNDRY_PROFILE: "ci"
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - "main"
+      - "feature/**"
+      - "feat/**"
+      - "develop"
+  push:
+    branches:
+      - "main"
+      - "develop"
+
+jobs:
+  get_echidna_test_names:
+    name: Get Echidna test names
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Generate matrix with all test names from the test/echidna directory
+        id: set-matrix
+        run: |
+          echo "::set-output name=matrix::$(ls test/echidna | sed 's/.sol//' | jq -R -s -c 'split("\n")[:-1]')"
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+  run_echidna_tests:
+    needs: get_echidna_test_names
+    name: Run echidna tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        contract: ${{ fromJson(needs.get_echidna_test_names.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: onbjerg/foundry-toolchain@v1
+        with:
+          version: "nightly-d369d2486f85576eec4ca41d277391dfdae21ba7"
+      - name: "Build for echidna"
+        run: yarn forge:build:slither
+
+      - name: "Run Echidna"
+        uses: crytic/echidna-action@v2
+        with:
+          files: test/echidna/${{ matrix.contract }}.sol
+          solc-version: 0.5.17
+          contract: ${{ matrix.contract }}
+          config: echidna.yaml
+          test-mode: assertion
