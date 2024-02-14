@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 // solhint-disable max-line-length
+// slither-disable-start reentrancy-events
 
 import { MentoToken } from "./MentoToken.sol";
 import { Emission } from "./Emission.sol";
@@ -107,7 +108,9 @@ contract GovernanceFactory is Ownable {
     require(!initialized, "Factory: governance already created");
     initialized = true;
 
+    // slither-disable-next-line missing-zero-check
     watchdogMultiSig = watchdogMultiSig_;
+    // slither-disable-next-line missing-zero-check
     celoCommunityFund = celoCommunityFund_;
 
     // Precalculated contract addresses:
@@ -130,6 +133,7 @@ contract GovernanceFactory is Ownable {
     // ========== Deploy 2: Emission ===========
     // =========================================
     Emission emissionImpl = EmissionDeployerLib.deploy(); // NONCE:2
+    // slither-disable-next-line reentrancy-benign
     TransparentUpgradeableProxy emissionProxy = ProxyDeployerLib.deployProxy( // NONCE:3
       address(emissionImpl),
       address(proxyAdmin),
@@ -173,7 +177,9 @@ contract GovernanceFactory is Ownable {
     // ========================================
     // ========== Deploy 4: Airgrab ===========
     // ========================================
+    // slither-disable-next-line timestamp
     airgrabEnds = block.timestamp + AIRGRAB_DURATION;
+    // slither-disable-next-line reentrancy-benign
     airgrab = AirgrabDeployerLib.deploy( // NONCE:5
       airgrabRoot,
       fractalSigner,
@@ -185,6 +191,7 @@ contract GovernanceFactory is Ownable {
       lockingPrecalculated,
       payable(celoCommunityFund)
     );
+    // slither-disable-next-line timestamp
     assert(address(airgrab) == airgrabPrecalculated);
 
     // ==========================================
@@ -192,6 +199,7 @@ contract GovernanceFactory is Ownable {
     // ==========================================
     Locking lockingImpl = LockingDeployerLib.deploy(); // NONCE:6
     uint32 startingPointWeek = uint32(Locking(lockingImpl).getWeek() - 1);
+    // slither-disable-next-line reentrancy-benign
     TransparentUpgradeableProxy lockingProxy = ProxyDeployerLib.deployProxy( // NONCE:7
       address(lockingImpl),
       address(proxyAdmin),
@@ -220,6 +228,7 @@ contract GovernanceFactory is Ownable {
     governanceProposers[0] = governorPrecalculated; // Only MentoGovernor can propose
     governanceExecutors[0] = address(0); // Anyone can execute passed proposals
 
+    // slither-disable-next-line reentrancy-benign
     TransparentUpgradeableProxy governanceTimelockProxy = ProxyDeployerLib.deployProxy( // NONCE:9
       address(timelockControllerImpl),
       address(proxyAdmin),
@@ -238,6 +247,7 @@ contract GovernanceFactory is Ownable {
     // ==================================================
     // ========== Deploy 9-10: Mento Governor ===========
     // ==================================================
+    // slither-disable-next-line reentrancy-benign
     MentoGovernor mentoGovernorImpl = MentoGovernorDeployerLib.deploy(); // NONCE:10
     TransparentUpgradeableProxy mentoGovernorProxy = ProxyDeployerLib.deployProxy( // NONCE: 11
       address(mentoGovernorImpl),
@@ -285,3 +295,5 @@ contract GovernanceFactory is Ownable {
       );
   }
 }
+
+// slither-disable-end reentrancy-events

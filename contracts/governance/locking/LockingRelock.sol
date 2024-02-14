@@ -71,26 +71,17 @@ abstract contract LockingRelock is LockingBase {
     }
   }
 
-  function removeLines(
-    uint256 id,
-    address account,
-    address delegate,
-    uint32 toTime
-  ) internal returns (uint96 residue) {
+  function removeLines(uint256 id, address account, address delegate, uint32 toTime) internal returns (uint96 residue) {
     updateLines(account, delegate, toTime);
     uint32 currentBlock = getBlockNumber();
+    // slither-disable-start unused-return
     accounts[delegate].balance.remove(id, toTime, currentBlock);
     totalSupplyLine.remove(id, toTime, currentBlock);
     (residue, , ) = accounts[account].locked.remove(id, toTime, currentBlock);
+    // slither-disable-end unused-return
   }
 
-  function rebalance(
-    uint256 id,
-    address account,
-    uint96 bias,
-    uint96 residue,
-    uint96 newAmount
-  ) internal {
+  function rebalance(uint256 id, address account, uint96 bias, uint96 residue, uint96 newAmount) internal {
     require(residue <= newAmount, "Impossible to relock: less amount, then now is");
     uint96 addAmount = newAmount - (residue);
     uint96 amount = accounts[account].amount;
@@ -99,7 +90,14 @@ abstract contract LockingRelock is LockingBase {
       //need more, than balance, so need transfer tokens to this
       uint96 transferAmount = addAmount - (balance);
       accounts[account].amount = accounts[account].amount + (transferAmount);
+      // slither-disable-start arbitrary-send-erc20
+      // slither-disable-start reentrancy-events
+      // slither-disable-start reentrancy-benign
+      // slither-disable-next-line reentrancy-no-eth
       require(token.transferFrom(locks[id].account, address(this), transferAmount), "transfer failed");
+      // slither-disable-end arbitrary-send-erc20
+      // slither-disable-end reentrancy-events
+      // slither-disable-end reentrancy-benign
     }
   }
 

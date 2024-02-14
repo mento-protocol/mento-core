@@ -25,7 +25,7 @@ import { Proxy } from "contracts/common/Proxy.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
-import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
+import { SortedOracles } from "contracts/common/SortedOracles.sol";
 import { Reserve } from "contracts/swap/Reserve.sol";
 import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
 import { TradingLimits } from "contracts/libraries/TradingLimits.sol";

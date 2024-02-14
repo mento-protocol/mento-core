@@ -11,7 +11,7 @@ import { MentoToken } from "./MentoToken.sol";
  */
 contract Emission is OwnableUpgradeable {
   /// @notice The max amount that will be minted through emission
-  uint256 public constant TOTAL_EMISSION_SUPPLY = 650_000_000 * 10**18;
+  uint256 public constant TOTAL_EMISSION_SUPPLY = 650_000_000 * 10 ** 18;
 
   /// @notice Pre-calculated constant = EMISSION_HALF_LIFE / LN2.
   uint256 public constant A = 454968308;
@@ -56,6 +56,7 @@ contract Emission is OwnableUpgradeable {
   function initialize(address mentoToken_, address emissionTarget_) public initializer {
     emissionStartTime = block.timestamp;
     mentoToken = MentoToken(mentoToken_);
+    // slither-disable-next-line missing-zero-check
     emissionTarget = emissionTarget_;
     __Ownable_init();
   }
@@ -65,6 +66,7 @@ contract Emission is OwnableUpgradeable {
    * @param emissionTarget_ Address of the emission target.
    */
   function setEmissionTarget(address emissionTarget_) external onlyOwner {
+    // slither-disable-next-line missing-zero-check
     emissionTarget = emissionTarget_;
     emit EmissionTargetSet(emissionTarget_);
   }
@@ -93,18 +95,22 @@ contract Emission is OwnableUpgradeable {
    * @return amount Number of tokens that can be emitted.
    */
   function calculateEmission() public view returns (uint256 amount) {
+    // slither-disable-next-line timestamp
     uint256 t = (block.timestamp - emissionStartTime);
 
+    // slither-disable-start divide-before-multiply
     uint256 term1 = (SCALER * t) / A;
     uint256 term2 = (term1 * t) / (2 * A);
     uint256 term3 = (term2 * t) / (3 * A);
     uint256 term4 = (term3 * t) / (4 * A);
     uint256 term5 = (term4 * t) / (5 * A);
+    // slither-disable-end divide-before-multiply
 
     uint256 positiveAggregate = SCALER + term2 + term4;
     uint256 negativeAggregate = term1 + term3 + term5;
 
     // Avoiding underflow in case the scheduled amount is bigger than the total supply
+    // slither-disable-next-line timestamp
     if (positiveAggregate < negativeAggregate) {
       return TOTAL_EMISSION_SUPPLY - totalEmittedAmount;
     }

@@ -87,10 +87,10 @@ contract ValueDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
    * @param rateFeedIDs Collection of the addresses rate feeds.
    * @param rateChangeThresholds Collection of the rate thresholds.
    */
-  function setRateChangeThresholds(address[] calldata rateFeedIDs, uint256[] calldata rateChangeThresholds)
-    external
-    onlyOwner
-  {
+  function setRateChangeThresholds(
+    address[] calldata rateFeedIDs,
+    uint256[] calldata rateChangeThresholds
+  ) external onlyOwner {
     _setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
 
@@ -129,6 +129,7 @@ contract ValueDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
    *                          should be tripped for the rate feed.
    */
   function shouldTrigger(address rateFeedID) public returns (bool triggerBreaker) {
+    // slither-disable-next-line unused-return
     (uint256 currentMedian, ) = sortedOracles.medianRate(rateFeedID);
     uint256 referenceValue = referenceValues[rateFeedID];
 

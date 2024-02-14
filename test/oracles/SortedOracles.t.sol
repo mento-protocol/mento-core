@@ -11,7 +11,7 @@ import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedL
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 
-import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
+import { SortedOracles } from "contracts/common/SortedOracles.sol";
 
 contract SortedOraclesTest is Test {
   // Declare SortedOracles events for matching

@@ -36,6 +36,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
   }
 
   function startMigration(address to) external onlyOwner {
+    // slither-disable-next-line missing-zero-check
     migrateTo = to;
     emit StartMigration(msg.sender, to);
   }
@@ -58,6 +59,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     addLines(account, _delegate, amount, slopePeriod, cliff, time, currentBlock);
     accounts[account].amount = accounts[account].amount + (amount);
 
+    // slither-disable-next-line reentrancy-events
     require(token.transferFrom(msg.sender, address(this), amount), "transfer failed");
 
     emit LockCreate(counter, account, _delegate, time, amount, slopePeriod, cliff);
@@ -68,6 +70,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     uint96 value = getAvailableForWithdraw(msg.sender);
     if (value > 0) {
       accounts[msg.sender].amount = accounts[msg.sender].amount - (value);
+      // slither-disable-next-line reentrancy-events
       require(token.transfer(msg.sender, value), "transfer failed");
     }
     emit Withdraw(msg.sender, value);
@@ -146,15 +149,23 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
       updateLines(account, _delegate, time);
       //save data Line before remove
       LibBrokenLine.Line memory line = accounts[account].locked.initiatedLines[id[i]];
+      // slither-disable-start unused-return
       (uint96 residue, , ) = accounts[account].locked.remove(id[i], time, currentBlock);
 
       accounts[account].amount = accounts[account].amount - (residue);
 
       accounts[_delegate].balance.remove(id[i], time, currentBlock);
       totalSupplyLine.remove(id[i], time, currentBlock);
+      // slither-disable-end unused-return
+      // slither-disable-start reentrancy-no-eth
+      // slither-disable-start reentrancy-events
+      // slither-disable-start calls-loop
       nextVersionLock.initiateData(id[i], line, account, _delegate);
 
       require(token.transfer(migrateTo, residue), "transfer failed");
+      // slither-disable-end reentrancy-no-eth
+      // slither-disable-end reentrancy-events
+      // slither-disable-end calls-loop
     }
     emit Migrate(msg.sender, id);
   }

@@ -254,6 +254,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
       "invalid pricingModule"
     );
 
+    // slither-disable-next-line encode-packed-collision
     exchangeId = keccak256(
       abi.encodePacked(
         IERC20Metadata(exchange.asset0).symbol(),
@@ -275,10 +276,11 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     require(asset0Decimals <= 18, "asset0 decimals must be <= 18");
     require(asset1Decimals <= 18, "asset1 decimals must be <= 18");
 
-    tokenPrecisionMultipliers[exchange.asset0] = 10**(18 - uint256(asset0Decimals));
-    tokenPrecisionMultipliers[exchange.asset1] = 10**(18 - uint256(asset1Decimals));
+    tokenPrecisionMultipliers[exchange.asset0] = 10 ** (18 - uint256(asset0Decimals));
+    tokenPrecisionMultipliers[exchange.asset1] = 10 ** (18 - uint256(asset1Decimals));
 
     exchanges[exchangeId] = exchange;
+    // slither-disable-next-line controlled-array-length
     exchangeIds.push(exchangeId);
 
     emit ExchangeCreated(exchangeId, exchange.asset0, exchange.asset1, address(exchange.pricingModule));
@@ -488,11 +490,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @param exchange The exchange being updated.
    * @return exchangeAfter The updated exchange.
    */
-  function updateBucketsIfNecessary(PoolExchange memory exchange)
-    internal
-    view
-    returns (PoolExchange memory, bool updated)
-  {
+  function updateBucketsIfNecessary(
+    PoolExchange memory exchange
+  ) internal view returns (PoolExchange memory, bool updated) {
     if (shouldUpdateBuckets(exchange)) {
       (exchange.bucket0, exchange.bucket1) = getUpdatedBuckets(exchange);
       updated = true;
@@ -509,10 +509,13 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
   function shouldUpdateBuckets(PoolExchange memory exchange) internal view returns (bool) {
     bool hasValidMedian = oracleHasValidMedian(exchange);
     if (isConstantSum(exchange)) {
+      // slither-disable-next-line timestamp
       require(hasValidMedian, "no valid median");
     }
     // solhint-disable-next-line not-rely-on-time
+    // slither-disable-next-line timestamp
     bool timePassed = now >= exchange.lastBucketUpdate.add(exchange.config.referenceRateResetFrequency);
+    // slither-disable-next-line timestamp
     return timePassed && hasValidMedian;
   }
 
@@ -523,12 +526,14 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    */
   function oracleHasValidMedian(PoolExchange memory exchange) internal view returns (bool) {
     // solhint-disable-next-line not-rely-on-time
+    // slither-disable-next-line unused-return
     (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
     bool enoughReports = (sortedOracles.numRates(exchange.config.referenceRateFeedID) >=
       exchange.config.minimumReports);
     // solhint-disable-next-line not-rely-on-time
     bool medianReportRecent = sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID) >
       now.sub(exchange.config.referenceRateResetFrequency);
+    // slither-disable-next-line timestamp
     return !isReportExpired && enoughReports && medianReportRecent;
   }
 
@@ -554,11 +559,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @return rateNumerator
    * @return rateDenominator
    */
-  function getOracleExchangeRate(address target)
-    internal
-    view
-    returns (uint256 rateNumerator, uint256 rateDenominator)
-  {
+  function getOracleExchangeRate(
+    address target
+  ) internal view returns (uint256 rateNumerator, uint256 rateDenominator) {
     (rateNumerator, rateDenominator) = sortedOracles.medianRate(target);
     require(rateDenominator > 0, "exchange rate denominator must be greater than 0");
   }

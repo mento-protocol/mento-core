@@ -97,16 +97,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @return Minor version of the contract.
    * @return Patch version of the contract.
    */
-  function getVersionNumber()
-    external
-    pure
-    returns (
-      uint256,
-      uint256,
-      uint256,
-      uint256
-    )
-  {
+  function getVersionNumber() external pure returns (uint256, uint256, uint256, uint256) {
     return (2, 1, 0, 0);
   }
 
@@ -252,8 +243,10 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   function setFrozenGold(uint256 frozenGold, uint256 frozenDays) public onlyOwner {
     require(frozenGold <= address(this).balance, "Cannot freeze more than balance");
     frozenReserveGoldStartBalance = frozenGold;
+    // slither-disable-start events-maths
     frozenReserveGoldStartDay = now / 1 days;
     frozenReserveGoldDays = frozenDays;
+    // slither-disable-end events-maths
   }
 
   /**
@@ -440,6 +433,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       lastSpendingDay = currentDay;
       spendingLimit = spendingRatio.multiply(FixidityLib.newFixed(balance)).fromFixed();
     }
+    // slither-disable-next-line timestamp
     require(spendingLimit >= value, "Exceeding spending limit");
     spendingLimit = spendingLimit.sub(value);
     return _transferGold(to, value);
@@ -453,11 +447,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of collateral assets to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferCollateralAsset(
-    address collateralAsset,
-    address payable to,
-    uint256 value
-  ) external returns (bool) {
+  function transferCollateralAsset(address collateralAsset, address payable to, uint256 value) external returns (bool) {
     require(isSpender[msg.sender], "sender not allowed to transfer Reserve funds");
     require(isOtherReserveAddress[to], "can only transfer to other reserve address");
     require(
@@ -465,6 +455,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       "this asset has no spending ratio, therefore can't be transferred"
     );
     uint256 currentDay = now / 1 days;
+    // slither-disable-next-line timestamp
     if (currentDay > collateralAssetLastSpendingDay[collateralAsset]) {
       uint256 balance = getReserveAddressesCollateralAssetBalance(collateralAsset);
       collateralAssetLastSpendingDay[collateralAsset] = currentDay;
@@ -492,6 +483,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     uint256 value
   ) internal returns (bool) {
     require(value <= getReserveAddressesCollateralAssetBalance(collateralAsset), "Exceeding the amount reserve holds");
+    // slither-disable-next-line reentrancy-events
     IERC20(collateralAsset).safeTransfer(to, value);
     emit ReserveCollateralAssetsTransferred(msg.sender, to, value, collateralAsset);
     return true;
@@ -521,7 +513,9 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @return Returns true if the transaction succeeds.
    */
   function _transferGold(address payable to, uint256 value) internal returns (bool) {
+    // slither-disable-next-line timestamp
     require(value <= getUnfrozenBalance(), "Exceeding unfrozen reserves");
+    // slither-disable-next-line reentrancy-events
     to.sendValue(value);
     emit ReserveGoldTransferred(msg.sender, to, value);
     return true;
@@ -534,11 +528,10 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of gold to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferExchangeGold(address payable to, uint256 value)
-    external
-    isAllowedToSpendExchange(msg.sender)
-    returns (bool)
-  {
+  function transferExchangeGold(
+    address payable to,
+    uint256 value
+  ) external isAllowedToSpendExchange(msg.sender) returns (bool) {
     return _transferGold(to, value);
   }
 
@@ -549,6 +542,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    */
   function getOrComputeTobinTax() external nonReentrant returns (uint256, uint256) {
     // solhint-disable-next-line not-rely-on-time
+    // slither-disable-next-line timestamp
     if (now.sub(tobinTaxCache.timestamp) > tobinTaxStalenessThreshold) {
       tobinTaxCache.numerator = uint128(computeTobinTax().unwrap());
       tobinTaxCache.timestamp = uint128(now); // solhint-disable-line not-rely-on-time
@@ -599,6 +593,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   function getUnfrozenBalance() public view returns (uint256) {
     uint256 balance = address(this).balance;
     uint256 frozenReserveGold = getFrozenReserveGoldBalance();
+    // slither-disable-next-line timestamp
     return balance > frozenReserveGold ? balance.sub(frozenReserveGold) : 0;
   }
 
@@ -640,6 +635,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     require(checkIsCollateralAsset(collateralAsset), "specified address is not a collateral asset");
     uint256 reserveCollateralAssetBalance = 0;
     for (uint256 i = 0; i < otherReserveAddresses.length; i++) {
+      // slither-disable-next-line calls-loop
       reserveCollateralAssetBalance = reserveCollateralAssetBalance.add(
         IERC20(collateralAsset).balanceOf(otherReserveAddresses[i])
       );
@@ -696,6 +692,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   function getFrozenReserveGoldBalance() public view returns (uint256) {
     uint256 currentDay = now / 1 days;
     uint256 frozenDays = currentDay.sub(frozenReserveGoldStartDay);
+    // slither-disable-next-line timestamp
     if (frozenDays >= frozenReserveGoldDays) return 0;
     return frozenReserveGoldStartBalance.sub(frozenReserveGoldStartBalance.mul(frozenDays).div(frozenReserveGoldDays));
   }
@@ -714,10 +711,12 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     for (uint256 i = 0; i < _tokens.length; i = i.add(1)) {
       uint256 stableAmount;
       uint256 goldAmount;
+      // slither-disable-next-line calls-loop
       (stableAmount, goldAmount) = sortedOracles.medianRate(_tokens[i]);
 
       if (goldAmount != 0) {
         // tokens with no oracle reports don't count towards collateralization ratio
+        // slither-disable-next-line calls-loop
         uint256 stableTokenSupply = IERC20(_tokens[i]).totalSupply();
         uint256 aStableTokenValueInGold = stableTokenSupply.mul(goldAmount).div(stableAmount);
         stableTokensValueInGold = stableTokensValueInGold.add(aStableTokenValueInGold);
