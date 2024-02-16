@@ -12,6 +12,7 @@ contract TokenUpgradeForkTest is Test {
   address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
   IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
 
+  // solhint-disable-next-line func-name-mixedcase
   function test_upgrade() public {
     uint256 forkId = vm.createFork("celo_mainnet");
     vm.selectFork(forkId);

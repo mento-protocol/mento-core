@@ -40,6 +40,7 @@ import "openzeppelin-contracts-next/contracts/access/Ownable.sol";
  * allowances. See {IERC20-approve}.
  */
 contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20MetadataUpgradeable {
+  // solhint-disable var-name-mixedcase
   address private __deprecated_registry_storage_slot__;
   string private _name;
   string private _symbol;
@@ -52,6 +53,8 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
   uint256[4] private __deprecated_inflationState_storage_slot__;
   bytes32 private __deprecated_exchangeRegistryId_storage_slot__;
 
+  // solhint-enable var-name-mixedcase
+
   /**
    * @dev Sets the values for {name} and {symbol}.
    *
@@ -61,10 +64,13 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
    * All two of these values are immutable: they can only be set once during
    * construction.
    */
+
+  // solhint-disable-next-line func-name-mixedcase
   function __ERC20_init(string memory name_, string memory symbol_) internal onlyInitializing {
     __ERC20_init_unchained(name_, symbol_);
   }
 
+  // solhint-disable-next-line func-name-mixedcase
   function __ERC20_init_unchained(string memory name_, string memory symbol_) internal onlyInitializing {
     _name = name_;
     _symbol = symbol_;

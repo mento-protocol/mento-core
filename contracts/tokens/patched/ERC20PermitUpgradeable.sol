@@ -51,10 +51,12 @@ abstract contract ERC20PermitUpgradeable is ERC20Upgradeable, IERC20PermitUpgrad
    *
    * It's a good idea to use the same `name` that is defined as the ERC20 token name.
    */
+  // solhint-disable-next-line func-name-mixedcase
   function __ERC20Permit_init(string memory name) internal onlyInitializing {
     __EIP712_init_unchained(name, "1");
   }
 
+  // solhint-disable-next-line func-name-mixedcase
   function __ERC20Permit_init_unchained(string memory) internal onlyInitializing {}
 
   /**

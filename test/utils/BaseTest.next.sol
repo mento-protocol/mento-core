@@ -13,15 +13,15 @@ contract BaseTest is Test {
   address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
   IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
 
-  address public constant deployer = address(0x31337);
+  address public constant DEPLOYER = address(0x31337);
   Factory public factory;
 
   constructor() {
     address _factory = address(new Factory());
-    vm.etch(deployer, _factory.code);
-    factory = Factory(deployer);
+    vm.etch(DEPLOYER, _factory.code);
+    factory = Factory(DEPLOYER);
     factory.createAt("Registry", REGISTRY_ADDRESS, abi.encode(true));
-    vm.prank(deployer);
+    vm.prank(DEPLOYER);
     IRegistryInit(REGISTRY_ADDRESS).initialize();
   }
 }
