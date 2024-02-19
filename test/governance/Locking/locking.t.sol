@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
+import { console } from "forge-std-next/console.sol";
 import { Locking_Test } from "./Base.t.sol";
 import { MockLocking } from "../../mocks/MockLocking.sol";
 
@@ -104,17 +105,17 @@ contract Lock_Locking_Test is Locking_Test {
   }
 
   function test_withdraw_whenInSlope_shouldReleaseCorrectAmount() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
-    locking.lock(alice, alice, 30, 3, 3);
+    locking.lock(alice, alice, 300, 3, 3);
 
     _incrementBlock(3 * weekInBlocks);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 30);
+    assertEq(mentoToken.balanceOf(address(locking)), 300);
     assertEq(mentoToken.balanceOf(alice), 70);
 
     _incrementBlock(weekInBlocks);
@@ -160,6 +161,8 @@ contract Lock_Locking_Test is Locking_Test {
     mentoToken.mint(alice, 100);
 
     vm.prank(alice);
+    console.log(locking.minSlopePeriod());
+    console.log(locking.minCliffPeriod());
     locking.lock(bob, bob, 30, 3, 0);
 
     _incrementBlock(weekInBlocks);

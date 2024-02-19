@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable state-visibility, func-name-mixedcase
 
+import { console } from "forge-std-next/console.sol";
 import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/governance/utils/IVotesUpgradeable.sol";
@@ -18,10 +19,9 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   uint32 constant MAX_CLIFF_PERIOD = 103;
   uint32 constant MAX_SLOPE_PERIOD = 104;
 
-  uint32 constant ST_FORMULA_DIVIDER = 1 * (10**8); //stFormula divider          100000000
-  uint32 constant ST_FORMULA_CONST_MULTIPLIER = 2 * (10**7); //stFormula const multiplier  20000000
-  uint32 constant ST_FORMULA_CLIFF_MULTIPLIER = 8 * (10**7); //stFormula cliff multiplier  80000000
-  uint32 constant ST_FORMULA_SLOPE_MULTIPLIER = 4 * (10**7); //stFormula slope multiplier  40000000
+  uint32 constant ST_FORMULA_DIVIDER = 1 * (10 ** 8); //stFormula divider          100000000 / 1.0 / 100%
+  uint32 constant ST_FORMULA_CLIFF_MULTIPLIER = 1 * (10 ** 8); //stFormula cliff multiplier  100000000 / 1.0 / 100%
+  uint32 constant ST_FORMULA_SLOPE_MULTIPLIER = 1 * (10 ** 8); //stFormula slope multiplier  100000000 / 1.0 / 100%
 
   /**
    * @dev ERC20 token to lock
@@ -179,23 +179,38 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     locks[counter].delegate = _delegate;
   }
 
-  function updateLines(
-    address account,
-    address _delegate,
-    uint32 time
-  ) internal {
+  function updateLines(address account, address _delegate, uint32 time) internal {
     totalSupplyLine.update(time);
     accounts[_delegate].balance.update(time);
     accounts[account].locked.update(time);
   }
 
   /**
-   * Сalculate and return (newAmount, newSlope), using formula:
-   * locking = (tokens * (
-   *      ST_FORMULA_CONST_MULTIPLIER
-   *      + ST_FORMULA_CLIFF_MULTIPLIER * (cliffPeriod - minCliffPeriod))/(MAX_CLIFF_PERIOD - minCliffPeriod)
-   *      + ST_FORMULA_SLOPE_MULTIPLIER * (slopePeriod - minSlopePeriod))/(MAX_SLOPE_PERIOD - minSlopePeriod)
-   *      )) / ST_FORMULA_DIVIDER
+   * @dev Сalculate and return (newAmount, newSlope), using formula:
+   * P = t * min(scale(c, c_min, c_max) + scale(s, s_min, s_max), 1),
+   * where:
+   *    scale(v, min, max) = (v - min) / (max - min)
+   *
+   * The formula has the following properties:
+   * - the voting power can't exceed the amount of tokens locked.
+   * - a voter can reach 100% voting power by relying on either the slope or the cliff,
+   *   or a combination of both.
+   * - there is a parameter space above a diagonal on the (c, s) plane where the 
+   *   voting power is capped at 100%, moving past that diagonal is disadvantageous
+   *   but the contract doesn't forbid it.
+   *
+   *
+   * The formulare roughly translates to solidity as:
+   * ```
+   * locking = (
+   *   tokens *
+   *   min(
+   *    (ST_FORMULA_CLIFF_MULTIPLIER * (cliffPeriod - minCliffPeriod))/(MAX_CLIFF_PERIOD - minCliffPeriod) +
+   *    (ST_FORMULA_SLOPE_MULTIPLIER * (slopePeriod - minSlopePeriod))/(MAX_SLOPE_PERIOD - minSlopePeriod),
+   *    ST_FORMULA_DIVIDER
+   *   )
+   * ) / ST_FORMULA_DIVIDER
+   * ```
    **/
   function getLock(
     uint96 amount,
@@ -209,10 +224,16 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
       (MAX_CLIFF_PERIOD - uint32(minCliffPeriod));
     uint96 slopeSide = (uint96((slopePeriod - uint32(minSlopePeriod))) * (ST_FORMULA_SLOPE_MULTIPLIER)) /
       (MAX_SLOPE_PERIOD - uint32(minSlopePeriod));
-    uint96 multiplier = cliffSide + (slopeSide) + (ST_FORMULA_CONST_MULTIPLIER);
+    uint96 multiplier = cliffSide + slopeSide;
+
+    if (multiplier > ST_FORMULA_DIVIDER) {
+      multiplier = ST_FORMULA_DIVIDER;
+    }
+
 
     uint256 amountMultiplied = uint256(amount) * uint256(multiplier);
     lockAmount = uint96(amountMultiplied / (ST_FORMULA_DIVIDER));
+    require(lockAmount > 0, "voting power is < 0");
     lockSlope = divUp(lockAmount, slopePeriod);
   }
 
@@ -296,12 +317,10 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     totalSupplyLine.update(time);
   }
 
-  function updateAccountLinesBlockNumber(address account, uint32 blockNumber)
-    external
-    notStopped
-    notMigrating
-    onlyOwner
-  {
+  function updateAccountLinesBlockNumber(
+    address account,
+    uint32 blockNumber
+  ) external notStopped notMigrating onlyOwner {
     uint32 time = roundTimestamp(blockNumber);
     updateAccountLines(account, time);
   }
