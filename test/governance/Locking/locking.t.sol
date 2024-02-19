@@ -128,51 +128,51 @@ contract Lock_Locking_Test is Locking_Test {
   }
 
   function test_withdraw_whenCalledFromAnotherAccount_shouldNotSendTokens() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
-    locking.lock(alice, alice, 30, 3, 0);
+    locking.lock(alice, alice, 300, 3, 0);
 
     _incrementBlock(weekInBlocks);
 
     vm.prank(bob);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 30);
-    assertEq(mentoToken.balanceOf(alice), 70);
+    assertEq(mentoToken.balanceOf(address(locking)), 300);
+    assertEq(mentoToken.balanceOf(alice), 700);
   }
 
   function test_withdraw_whenTheLockIsCreatedForSomeoneElse_shouldNotReleaseTokens() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
-    locking.lock(bob, bob, 30, 3, 0);
+    locking.lock(bob, bob, 300, 3, 0);
 
     _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 30);
-    assertEq(mentoToken.balanceOf(alice), 70);
+    assertEq(mentoToken.balanceOf(address(locking)), 300);
+    assertEq(mentoToken.balanceOf(alice), 700);
   }
 
   function test_withdraw_whenCalledByTheOwnerOfTheLock_shouldReleaseTokens() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
     console.log(locking.minSlopePeriod());
     console.log(locking.minCliffPeriod());
-    locking.lock(bob, bob, 30, 3, 0);
+    locking.lock(bob, bob, 300, 3, 0);
 
     _incrementBlock(weekInBlocks);
 
     vm.prank(bob);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 20);
-    assertEq(mentoToken.balanceOf(alice), 70);
-    assertEq(mentoToken.balanceOf(bob), 10);
+    assertEq(mentoToken.balanceOf(address(locking)), 200);
+    assertEq(mentoToken.balanceOf(alice), 700);
+    assertEq(mentoToken.balanceOf(bob), 100);
   }
 
   function test_withdraw_whenTailInVeToken_shouldReleaseCorrectAmounts() public {
@@ -266,19 +266,19 @@ contract Lock_Locking_Test is Locking_Test {
   }
 
   function test_getAvailableForWithdraw_shouldReturnCorrectAmount() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
-    locking.lock(alice, alice, 30, 3, 0);
+    locking.lock(alice, alice, 300, 3, 0);
 
     _incrementBlock(2 * weekInBlocks);
 
     vm.prank(alice);
     uint256 availableForWithdraw = locking.getAvailableForWithdraw(alice);
 
-    assertEq(mentoToken.balanceOf(address(locking)), 30);
-    assertEq(mentoToken.balanceOf(alice), 70);
-    assertEq(availableForWithdraw, 20);
+    assertEq(mentoToken.balanceOf(address(locking)), 1000);
+    assertEq(mentoToken.balanceOf(alice), 700);
+    assertEq(availableForWithdraw, 200);
   }
 
   function test_viewFuctions_shouldReturnCorrectValues() public {
