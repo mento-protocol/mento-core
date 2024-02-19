@@ -19,9 +19,9 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   uint32 constant MAX_CLIFF_PERIOD = 103;
   uint32 constant MAX_SLOPE_PERIOD = 104;
 
-  uint32 constant ST_FORMULA_DIVIDER = 1 * (10 ** 8); //stFormula divider          100000000 / 1.0 / 100%
-  uint32 constant ST_FORMULA_CLIFF_MULTIPLIER = 1 * (10 ** 8); //stFormula cliff multiplier  100000000 / 1.0 / 100%
-  uint32 constant ST_FORMULA_SLOPE_MULTIPLIER = 1 * (10 ** 8); //stFormula slope multiplier  100000000 / 1.0 / 100%
+  uint32 constant ST_FORMULA_DIVIDER = 1 * (10**8); //stFormula divider          100000000 / 1.0 / 100%
+  uint32 constant ST_FORMULA_CLIFF_MULTIPLIER = 1 * (10**8); //stFormula cliff multiplier  100000000 / 1.0 / 100%
+  uint32 constant ST_FORMULA_SLOPE_MULTIPLIER = 1 * (10**8); //stFormula slope multiplier  100000000 / 1.0 / 100%
 
   /**
    * @dev ERC20 token to lock
@@ -179,7 +179,11 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     locks[counter].delegate = _delegate;
   }
 
-  function updateLines(address account, address _delegate, uint32 time) internal {
+  function updateLines(
+    address account,
+    address _delegate,
+    uint32 time
+  ) internal {
     totalSupplyLine.update(time);
     accounts[_delegate].balance.update(time);
     accounts[account].locked.update(time);
@@ -195,7 +199,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * - the voting power can't exceed the amount of tokens locked.
    * - a voter can reach 100% voting power by relying on either the slope or the cliff,
    *   or a combination of both.
-   * - there is a parameter space above a diagonal on the (c, s) plane where the 
+   * - there is a parameter space above a diagonal on the (c, s) plane where the
    *   voting power is capped at 100%, moving past that diagonal is disadvantageous
    *   but the contract doesn't forbid it.
    *
@@ -229,7 +233,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     if (multiplier > ST_FORMULA_DIVIDER) {
       multiplier = ST_FORMULA_DIVIDER;
     }
-
 
     uint256 amountMultiplied = uint256(amount) * uint256(multiplier);
     lockAmount = uint96(amountMultiplied / (ST_FORMULA_DIVIDER));
@@ -317,10 +320,12 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     totalSupplyLine.update(time);
   }
 
-  function updateAccountLinesBlockNumber(
-    address account,
-    uint32 blockNumber
-  ) external notStopped notMigrating onlyOwner {
+  function updateAccountLinesBlockNumber(address account, uint32 blockNumber)
+    external
+    notStopped
+    notMigrating
+    onlyOwner
+  {
     uint32 time = roundTimestamp(blockNumber);
     updateAccountLines(account, time);
   }
