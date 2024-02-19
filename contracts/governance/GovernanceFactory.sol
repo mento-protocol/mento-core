@@ -208,7 +208,7 @@ contract GovernanceFactory is Ownable {
         address(mentoToken), /// @param _token The token to be locked in exchange for voting power in form of veTokens.
         startingPointWeek, ///   @param _startingPointWeek The locking epoch start in weeks. We start the locking contract from week 1 with min slope duration of 1
         0, ///                   @param _minCliffPeriod minimum cliff period in weeks.
-        1 ///                    @param _minSlopPeriod minimum slope period in weeks.
+        1 ///                    @param _minSlopePeriod minimum slope period in weeks.
       )
     );
     locking = Locking(address(lockingProxy));
