@@ -24,7 +24,7 @@ jobs:
       - name: "Install Foundry"
         uses: "onbjerg/foundry-toolchain@v1"
         with:
-          version: "nightly-fd87629fbc4ae2e0fa00ccf42b4a9ebe1b521d55"
+          version: "nightly"
 
       - name: "Install Node.js"
         uses: "actions/setup-node@v3"
