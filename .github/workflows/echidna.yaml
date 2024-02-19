@@ -37,9 +37,7 @@ jobs:
         with:
           submodules: recursive
       - name: Install Foundry
-        uses: onbjerg/foundry-toolchain@v1
-        with:
-          version: "nightly"
+        uses: foundry-rs/foundry-toolchain@v1
       - name: "Build for echidna"
         run: forge build --build-info --skip */test/**/*.t.sol */script/**
       - name: "Run Echidna"
