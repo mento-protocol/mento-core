@@ -2,7 +2,9 @@
 pragma solidity 0.8.18;
 
 // solhint-disable-next-line max-line-length
-import { TimelockControllerUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/TimelockControllerUpgradeable.sol";
+import {
+  TimelockControllerUpgradeable
+} from "openzeppelin-contracts-upgradeable/contracts/governance/TimelockControllerUpgradeable.sol";
 
 /**
  * @title TimelockController
