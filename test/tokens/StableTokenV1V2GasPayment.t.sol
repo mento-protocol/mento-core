@@ -51,7 +51,7 @@ contract StableTokenV1V2GasPaymentTest is BaseTest {
       ""
     );
 
-    vm.startPrank(DEPLOYER);
+    vm.startPrank(deployer);
     registry.setAddressFor("Freezer", address(freezer));
   }
 
