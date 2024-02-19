@@ -254,6 +254,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
       "invalid pricingModule"
     );
 
+    // slither-disable-next-line encode-packed-collision
     exchangeId = keccak256(
       abi.encodePacked(
         IERC20Metadata(exchange.asset0).symbol(),
@@ -279,6 +280,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     tokenPrecisionMultipliers[exchange.asset1] = 10**(18 - uint256(asset1Decimals));
 
     exchanges[exchangeId] = exchange;
+    // slither-disable-next-line controlled-array-length
     exchangeIds.push(exchangeId);
 
     emit ExchangeCreated(exchangeId, exchange.asset0, exchange.asset1, address(exchange.pricingModule));
@@ -523,6 +525,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    */
   function oracleHasValidMedian(PoolExchange memory exchange) internal view returns (bool) {
     // solhint-disable-next-line not-rely-on-time
+    // slither-disable-next-line unused-return
     (bool isReportExpired, ) = sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
     bool enoughReports = (sortedOracles.numRates(exchange.config.referenceRateFeedID) >=
       exchange.config.minimumReports);

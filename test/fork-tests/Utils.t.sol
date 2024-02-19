@@ -18,7 +18,7 @@ import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
-import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
+import { SortedOracles } from "contracts/common/SortedOracles.sol";
 import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
 import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
 import { WithThreshold } from "contracts/oracles/breakers/WithThreshold.sol";

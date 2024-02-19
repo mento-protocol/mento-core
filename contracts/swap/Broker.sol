@@ -159,6 +159,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     uint256 amountOutMin
   ) external nonReentrant returns (uint256 amountOut) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
+    // slither-disable-next-line reentrancy-benign
     amountOut = IExchangeProvider(exchangeProvider).swapIn(exchangeId, tokenIn, tokenOut, amountIn);
     require(amountOut >= amountOutMin, "amountOutMin not met");
     guardTradingLimits(exchangeId, tokenIn, amountIn, tokenOut, amountOut);
@@ -186,6 +187,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     uint256 amountInMax
   ) external nonReentrant returns (uint256 amountIn) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
+    // slither-disable-next-line reentrancy-benign
     amountIn = IExchangeProvider(exchangeProvider).swapOut(exchangeId, tokenIn, tokenOut, amountOut);
     require(amountIn <= amountInMax, "amountInMax exceeded");
     guardTradingLimits(exchangeId, tokenIn, amountIn, tokenOut, amountOut);

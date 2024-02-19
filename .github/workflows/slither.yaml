@@ -1,0 +1,41 @@
+name: "Slither"
+
+env:
+  FOUNDRY_PROFILE: "ci"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - "main"
+      - "develop"
+
+jobs:
+  slither:
+    name: Slither
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out the repo"
+        uses: "actions/checkout@v3"
+        with:
+          submodules: "recursive"
+      - name: Run Slither
+        uses: crytic/slither-action@v0.3.1
+        id: slither
+        with:
+          sarif: results.sarif
+        # continue-on-error: true
+        # -----------------------
+        # Ideally, we'd like to continue on error to allow uploading the SARIF file here.
+        # But we're often running into GitHub's API Rate Limit when uploading the SARIF file
+        # which would lead to lots of failed pipelines even if slither works fine:
+        # https://github.com/mento-protocol/mento-core/actions/runs/7167865576/job/19514794782
+        #
+        # So for now it's better to just let the slither task fail directly so we at least
+        # know it failed.
+        # -----------------------
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.slither.outputs.sarif }}

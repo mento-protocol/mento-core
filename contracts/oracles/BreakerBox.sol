@@ -109,7 +109,11 @@ contract BreakerBox is IBreakerBox, Ownable {
 
     for (uint256 i = 0; i < rateFeedIDs.length; i++) {
       if (rateFeedBreakerStatus[rateFeedIDs[i]][breaker].enabled) {
+        // slither-disable-start reentrancy-no-eth
+        // slither-disable-start reentrancy-events
         toggleBreaker(breaker, rateFeedIDs[i], false);
+        // slither-disable-end reentrancy-no-eth
+        // slither-disable-end reentrancy-events
       }
     }
 
@@ -141,6 +145,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
     if (enable) {
       rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled = enable;
+      // slither-isable-next-line reentrancy-events
       _checkAndSetBreakers(rateFeedID);
     } else {
       delete rateFeedBreakerStatus[rateFeedID][breakerAddress];
@@ -173,7 +178,9 @@ contract BreakerBox is IBreakerBox, Ownable {
    */
   function addRateFeed(address rateFeedID) public onlyOwner {
     require(!rateFeedStatus[rateFeedID], "Rate feed ID has already been added");
+    // slither-disable-next-line calls-loop
     require(sortedOracles.getOracles(rateFeedID).length > 0, "Rate feed ID does not exist as it has 0 oracles");
+    // slither-disable-next-line controlled-array-length
     rateFeedIDs.push(rateFeedID);
     rateFeedStatus[rateFeedID] = true;
     emit RateFeedAdded(rateFeedID);
@@ -328,6 +335,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     uint8 _tradingMode = 0;
     for (uint256 i = 0; i < breakers.length; i++) {
       if (rateFeedBreakerStatus[rateFeedID][breakers[i]].enabled) {
+        // slither-disable-next-line reentrancy-benign
         uint8 _breakerTradingMode = updateBreaker(rateFeedID, breakers[i]);
         _tradingMode = _tradingMode | _breakerTradingMode;
       }
@@ -355,10 +363,14 @@ contract BreakerBox is IBreakerBox, Ownable {
   function tryResetBreaker(address rateFeedID, address _breaker) internal returns (uint8) {
     BreakerStatus memory _breakerStatus = rateFeedBreakerStatus[rateFeedID][_breaker];
     IBreaker breaker = IBreaker(_breaker);
+    // slither-disable-next-line calls-loop
     uint256 cooldown = breaker.getCooldown(rateFeedID);
 
     // If the cooldown == 0, then a manual reset is required.
     if ((cooldown > 0) && (block.timestamp >= cooldown.add(_breakerStatus.lastUpdatedTime))) {
+      // slither-disable-start reentrancy-no-eth
+      // slither-disable-start reentrancy-events
+      // slither-disable-start calls-loop
       if (breaker.shouldReset(rateFeedID)) {
         rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = 0;
         rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp);
@@ -366,6 +378,9 @@ contract BreakerBox is IBreakerBox, Ownable {
       } else {
         emit ResetAttemptCriteriaFail(rateFeedID, _breaker);
       }
+      // slither-disable-end reentrancy-no-eth
+      // slither-disable-end reentrancy-events
+      // slither-disable-end calls-loop
     } else {
       emit ResetAttemptNotCool(rateFeedID, _breaker);
     }
@@ -380,7 +395,12 @@ contract BreakerBox is IBreakerBox, Ownable {
   function checkBreaker(address rateFeedID, address _breaker) internal returns (uint8) {
     uint8 tradingMode = 0;
     IBreaker breaker = IBreaker(_breaker);
+    // slither-disable-start reentrancy-benign
+    // slither-disable-start calls-loop
+    // slither-disable-next-line reentrancy-events
     if (breaker.shouldTrigger(rateFeedID)) {
+      // slither-disable-end reentrancy-benign
+      // slither-disable-end calls-loop
       tradingMode = breakerTradingMode[_breaker];
       rateFeedBreakerStatus[rateFeedID][_breaker].tradingMode = tradingMode;
       rateFeedBreakerStatus[rateFeedID][_breaker].lastUpdatedTime = uint64(block.timestamp);

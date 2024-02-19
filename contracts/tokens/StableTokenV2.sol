@@ -70,8 +70,10 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
    * deprecated-param exchangeIdentifier String identifier of exchange in registry (for specific fiat pairs)
    */
   function initialize(
+    // slither-disable-start shadowing-local
     string calldata _name,
     string calldata _symbol,
+    // slither-disable-end shadowing-local
     uint8, // deprecated: decimals
     address, // deprecated: registryAddress,
     uint256, // deprecated: inflationRate,
@@ -289,6 +291,7 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
     uint256 gatewayFee,
     uint256 baseTxFee
   ) external onlyVm {
+    // slither-disable-next-line uninitialized-local
     uint256 amountToBurn;
     _mint(from, refund + tipTxFee + gatewayFee + baseTxFee);
 

@@ -174,6 +174,7 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
   function shouldTrigger(address rateFeedID) public returns (bool triggerBreaker) {
     require(msg.sender == breakerBox, "Caller must be the BreakerBox contract");
 
+    // slither-disable-next-line unused-return
     (uint256 currentMedian, ) = sortedOracles.medianRate(rateFeedID);
 
     uint256 previousRatesEMA = medianRatesEMA[rateFeedID];

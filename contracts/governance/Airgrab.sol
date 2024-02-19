@@ -156,7 +156,6 @@ contract Airgrab is ReentrancyGuard {
   ) {
     require(root_ != bytes32(0), "Airgrab: invalid root");
     require(fractalSigner_ != address(0), "Airgrab: invalid fractal issuer");
-    // slither-disable-next-line timestamp
     require(endTimestamp_ > block.timestamp, "Airgrab: invalid end timestamp");
     require(cliffPeriod_ <= MAX_CLIFF_PERIOD, "Airgrab: cliff period too large");
     require(slopePeriod_ <= MAX_SLOPE_PERIOD, "Airgrab: slope period too large");
@@ -219,7 +218,6 @@ contract Airgrab is ReentrancyGuard {
    *  tokens other than the airgrab token.
    */
   function drain(address tokenToDrain) external nonReentrant {
-    // slither-disable-next-line timestamp
     require(block.timestamp > endTimestamp, "Airgrab: not finished");
     uint256 balance = IERC20(tokenToDrain).balanceOf(address(this));
     require(balance > 0, "Airgrab: nothing to drain");

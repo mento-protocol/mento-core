@@ -1,0 +1,38 @@
+name: "Storage Layout"
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+      - "develop"
+
+jobs:
+  check_storage_layout:
+    name: Check storage layout
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        contract:
+          - contracts/legacy/ReserveSpenderMultiSig.sol:ReserveSpenderMultiSig
+          - contracts/legacy/StableToken.sol:StableToken
+          - contracts/legacy/Exchange.sol:Exchange
+          - contracts/legacy/GrandaMento.sol:GrandaMento
+          - contracts/swap/Broker.sol:Broker
+          - contracts/swap/BiPoolManager.sol:BiPoolManager
+          - contracts/swap/Reserve.sol:Reserve
+          - contracts/oracles/BreakerBox.sol:BreakerBox
+          - contracts/oracles/SortedOracles.sol:SortedOracles
+          - contracts/tokens/StableTokenV2.sol:StableTokenV2
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: onbjerg/foundry-toolchain@v1
+        with:
+          version: "nightly"
+      - name: Check storage layout
+        uses: Rubilmax/foundry-storage-check@v3.2.1
+        with:
+          contract: ${{ matrix.contract }}

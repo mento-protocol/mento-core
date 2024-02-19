@@ -25,7 +25,7 @@ import { Broker } from "contracts/swap/Broker.sol";
 import { ConstantProductPricingModule } from "contracts/swap/ConstantProductPricingModule.sol";
 import { ConstantSumPricingModule } from "contracts/swap/ConstantSumPricingModule.sol";
 import { Reserve } from "contracts/swap/Reserve.sol";
-import { SortedOracles } from "contracts/oracles/SortedOracles.sol";
+import { SortedOracles } from "contracts/common/SortedOracles.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
 import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
 import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";

@@ -252,8 +252,10 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   function setFrozenGold(uint256 frozenGold, uint256 frozenDays) public onlyOwner {
     require(frozenGold <= address(this).balance, "Cannot freeze more than balance");
     frozenReserveGoldStartBalance = frozenGold;
+    // slither-disable-start events-maths
     frozenReserveGoldStartDay = now / 1 days;
     frozenReserveGoldDays = frozenDays;
+    // slither-disable-end events-maths
   }
 
   /**
@@ -492,6 +494,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     uint256 value
   ) internal returns (bool) {
     require(value <= getReserveAddressesCollateralAssetBalance(collateralAsset), "Exceeding the amount reserve holds");
+    // slither-disable-next-line reentrancy-events
     IERC20(collateralAsset).safeTransfer(to, value);
     emit ReserveCollateralAssetsTransferred(msg.sender, to, value, collateralAsset);
     return true;
@@ -522,6 +525,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    */
   function _transferGold(address payable to, uint256 value) internal returns (bool) {
     require(value <= getUnfrozenBalance(), "Exceeding unfrozen reserves");
+    // slither-disable-next-line reentrancy-events
     to.sendValue(value);
     emit ReserveGoldTransferred(msg.sender, to, value);
     return true;
@@ -640,6 +644,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     require(checkIsCollateralAsset(collateralAsset), "specified address is not a collateral asset");
     uint256 reserveCollateralAssetBalance = 0;
     for (uint256 i = 0; i < otherReserveAddresses.length; i++) {
+      // slither-disable-next-line calls-loop
       reserveCollateralAssetBalance = reserveCollateralAssetBalance.add(
         IERC20(collateralAsset).balanceOf(otherReserveAddresses[i])
       );
@@ -714,10 +719,12 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     for (uint256 i = 0; i < _tokens.length; i = i.add(1)) {
       uint256 stableAmount;
       uint256 goldAmount;
+      // slither-disable-next-line calls-loop
       (stableAmount, goldAmount) = sortedOracles.medianRate(_tokens[i]);
 
       if (goldAmount != 0) {
         // tokens with no oracle reports don't count towards collateralization ratio
+        // slither-disable-next-line calls-loop
         uint256 stableTokenSupply = IERC20(_tokens[i]).totalSupply();
         uint256 aStableTokenValueInGold = stableTokenSupply.mul(goldAmount).div(stableAmount);
         stableTokensValueInGold = stableTokensValueInGold.add(aStableTokenValueInGold);
