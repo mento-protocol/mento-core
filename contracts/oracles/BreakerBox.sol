@@ -135,11 +135,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param enable Boolean indicating whether the breaker should be
    *               enabled or disabled for the given rateFeed.
    */
-  function toggleBreaker(
-    address breakerAddress,
-    address rateFeedID,
-    bool enable
-  ) public onlyOwner {
+  function toggleBreaker(address breakerAddress, address rateFeedID, bool enable) public onlyOwner {
     require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
@@ -367,7 +363,6 @@ contract BreakerBox is IBreakerBox, Ownable {
     uint256 cooldown = breaker.getCooldown(rateFeedID);
 
     // If the cooldown == 0, then a manual reset is required.
-    // slither-disable-next-line timestamp
     if ((cooldown > 0) && (block.timestamp >= cooldown.add(_breakerStatus.lastUpdatedTime))) {
       // slither-disable-start reentrancy-no-eth
       // slither-disable-start reentrancy-events

@@ -11,7 +11,7 @@ import { MentoToken } from "./MentoToken.sol";
  */
 contract Emission is OwnableUpgradeable {
   /// @notice The max amount that will be minted through emission
-  uint256 public constant TOTAL_EMISSION_SUPPLY = 650_000_000 * 10**18;
+  uint256 public constant TOTAL_EMISSION_SUPPLY = 650_000_000 * 10 ** 18;
 
   /// @notice Pre-calculated constant = EMISSION_HALF_LIFE / LN2.
   uint256 public constant A = 454968308;
@@ -95,7 +95,6 @@ contract Emission is OwnableUpgradeable {
    * @return amount Number of tokens that can be emitted.
    */
   function calculateEmission() public view returns (uint256 amount) {
-    // slither-disable-next-line timestamp
     uint256 t = (block.timestamp - emissionStartTime);
 
     // slither-disable-start divide-before-multiply
@@ -110,7 +109,6 @@ contract Emission is OwnableUpgradeable {
     uint256 negativeAggregate = term1 + term3 + term5;
 
     // Avoiding underflow in case the scheduled amount is bigger than the total supply
-    // slither-disable-next-line timestamp
     if (positiveAggregate < negativeAggregate) {
       return TOTAL_EMISSION_SUPPLY - totalEmittedAmount;
     }

@@ -97,16 +97,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @return Minor version of the contract.
    * @return Patch version of the contract.
    */
-  function getVersionNumber()
-    external
-    pure
-    returns (
-      uint256,
-      uint256,
-      uint256,
-      uint256
-    )
-  {
+  function getVersionNumber() external pure returns (uint256, uint256, uint256, uint256) {
     return (2, 1, 0, 0);
   }
 
@@ -442,7 +433,6 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       lastSpendingDay = currentDay;
       spendingLimit = spendingRatio.multiply(FixidityLib.newFixed(balance)).fromFixed();
     }
-    // slither-disable-next-line timestamp
     require(spendingLimit >= value, "Exceeding spending limit");
     spendingLimit = spendingLimit.sub(value);
     return _transferGold(to, value);
@@ -456,11 +446,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of collateral assets to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferCollateralAsset(
-    address collateralAsset,
-    address payable to,
-    uint256 value
-  ) external returns (bool) {
+  function transferCollateralAsset(address collateralAsset, address payable to, uint256 value) external returns (bool) {
     require(isSpender[msg.sender], "sender not allowed to transfer Reserve funds");
     require(isOtherReserveAddress[to], "can only transfer to other reserve address");
     require(
@@ -468,7 +454,6 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       "this asset has no spending ratio, therefore can't be transferred"
     );
     uint256 currentDay = now / 1 days;
-    // slither-disable-next-line timestamp
     if (currentDay > collateralAssetLastSpendingDay[collateralAsset]) {
       uint256 balance = getReserveAddressesCollateralAssetBalance(collateralAsset);
       collateralAssetLastSpendingDay[collateralAsset] = currentDay;
@@ -526,7 +511,6 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @return Returns true if the transaction succeeds.
    */
   function _transferGold(address payable to, uint256 value) internal returns (bool) {
-    // slither-disable-next-line timestamp
     require(value <= getUnfrozenBalance(), "Exceeding unfrozen reserves");
     // slither-disable-next-line reentrancy-events
     to.sendValue(value);
@@ -541,11 +525,10 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of gold to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferExchangeGold(address payable to, uint256 value)
-    external
-    isAllowedToSpendExchange(msg.sender)
-    returns (bool)
-  {
+  function transferExchangeGold(
+    address payable to,
+    uint256 value
+  ) external isAllowedToSpendExchange(msg.sender) returns (bool) {
     return _transferGold(to, value);
   }
 
@@ -556,7 +539,6 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    */
   function getOrComputeTobinTax() external nonReentrant returns (uint256, uint256) {
     // solhint-disable-next-line not-rely-on-time
-    // slither-disable-next-line timestamp
     if (now.sub(tobinTaxCache.timestamp) > tobinTaxStalenessThreshold) {
       tobinTaxCache.numerator = uint128(computeTobinTax().unwrap());
       tobinTaxCache.timestamp = uint128(now); // solhint-disable-line not-rely-on-time
@@ -607,7 +589,6 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   function getUnfrozenBalance() public view returns (uint256) {
     uint256 balance = address(this).balance;
     uint256 frozenReserveGold = getFrozenReserveGoldBalance();
-    // slither-disable-next-line timestamp
     return balance > frozenReserveGold ? balance.sub(frozenReserveGold) : 0;
   }
 
@@ -706,7 +687,6 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   function getFrozenReserveGoldBalance() public view returns (uint256) {
     uint256 currentDay = now / 1 days;
     uint256 frozenDays = currentDay.sub(frozenReserveGoldStartDay);
-    // slither-disable-next-line timestamp
     if (frozenDays >= frozenReserveGoldDays) return 0;
     return frozenReserveGoldStartBalance.sub(frozenReserveGoldStartBalance.mul(frozenDays).div(frozenReserveGoldDays));
   }

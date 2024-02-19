@@ -69,7 +69,6 @@ abstract contract ERC20PermitUpgradeable is ERC20Upgradeable, IERC20PermitUpgrad
     bytes32 r,
     bytes32 s
   ) public virtual override {
-    // slither-disable-next-line timestamp
     require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
     bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline));

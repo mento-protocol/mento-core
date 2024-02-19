@@ -177,7 +177,6 @@ contract GovernanceFactory is Ownable {
     // ========================================
     // ========== Deploy 4: Airgrab ===========
     // ========================================
-    // slither-disable-next-line timestamp
     airgrabEnds = block.timestamp + AIRGRAB_DURATION;
     // slither-disable-next-line reentrancy-benign
     airgrab = AirgrabDeployerLib.deploy( // NONCE:5
@@ -191,7 +190,6 @@ contract GovernanceFactory is Ownable {
       lockingPrecalculated,
       payable(celoCommunityFund)
     );
-    // slither-disable-next-line timestamp
     assert(address(airgrab) == airgrabPrecalculated);
 
     // ==========================================
