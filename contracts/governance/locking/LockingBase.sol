@@ -2,7 +2,6 @@
 pragma solidity 0.8.18;
 // solhint-disable state-visibility, func-name-mixedcase
 
-import { console } from "forge-std-next/console.sol";
 import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/governance/utils/IVotesUpgradeable.sol";

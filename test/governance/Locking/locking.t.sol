@@ -2,7 +2,6 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
-import { console } from "forge-std-next/console.sol";
 import { Locking_Test } from "./Base.t.sol";
 import { MockLocking } from "../../mocks/MockLocking.sol";
 
