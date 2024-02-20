@@ -236,7 +236,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
 
     uint256 amountMultiplied = uint256(amount) * uint256(multiplier);
     lockAmount = uint96(amountMultiplied / (ST_FORMULA_DIVIDER));
-    require(lockAmount > 0, "voting power is < 0");
+    require(lockAmount > 0, "voting power is 0");
     lockSlope = divUp(lockAmount, slopePeriod);
   }
 
