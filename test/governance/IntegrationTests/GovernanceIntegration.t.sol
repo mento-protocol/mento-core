@@ -208,9 +208,6 @@ contract GovernanceIntegrationTest is TestSetup {
   }
 
   function test_locking_whenLocked_shouldMintveMentoInExchangeForMentoAndReleaseBySchedule() public {
-    // Since we use the min slope period of 1, calculations are slightly off as expected
-    uint256 negligibleAmount = 3e18;
-
     vm.prank(governanceTimelockAddress);
     mentoToken.transfer(alice, 1000e18);
 
@@ -224,9 +221,10 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(bob);
     uint256 bobsLockId = locking.lock(bob, bob, 1000e18, 52, 0);
 
-    // Difference between voting powers accounted correctly
-    assertApproxEqAbs(locking.getVotes(alice), 300e18, negligibleAmount);
-    assertApproxEqAbs(locking.getVotes(bob), 400e18, negligibleAmount);
+    // 1000e18 * ((uint96((26 - 1)) * (1e8)) / (104 - 1) / 1e8) = 242718440000000000000
+    assertEq(locking.getVotes(alice), 242718440000000000000);
+    // 1000e18 * ((uint96((52 - 1)) * (1e8)) / (104 - 1) / 1e8) = 495145630000000000000
+    assertEq(locking.getVotes(bob), 495145630000000000000);
 
     vm.timeTravel(13 * BLOCKS_WEEK);
 
@@ -234,22 +232,26 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(alice);
     locking.withdraw();
 
-    // Half of the tokens should be released, half of the voting power should be revoked
-    assertApproxEqAbs(locking.getVotes(alice), 150e18, negligibleAmount);
-    assertApproxEqAbs(mentoToken.balanceOf(alice), 500e18, negligibleAmount);
+    // (242718440000000000000 - 1) / 26 + 1 = 9335324615384615385
+    //  242718440000000000000 - 9335324615384615385 * 13 = 121359219999999999995
+    assertEq(locking.getVotes(alice), 121359219999999999995);
+    // Slight difference between calculated and returned amount due to rounding
+    assertApproxEqAbs(mentoToken.balanceOf(alice), 500e18, 10);
 
-    // Bob's voting power is 3/4 of the initial voting power
-    assertApproxEqAbs(locking.getVotes(bob), 300e18, negligibleAmount);
+    // (495145630000000000000 - 1) / 52 + 1 = 9522031346153846154
+    //  495145630000000000000 - 9522031346153846154 * 13 = 37135922249999999999999999995
+    assertEq(locking.getVotes(bob), 371359222499999999998);
     assertEq(mentoToken.balanceOf(bob), 0);
 
     vm.timeTravel(13 * BLOCKS_WEEK);
 
     // Bob relocks and delegates to alice
+    // 1000e18 * ((uint96((26 - 1)) * (1e8)) / (104 - 1) / 1e8) = 242718440000000000000
     vm.prank(bob);
     bobsLockId = locking.relock(bobsLockId, alice, 1000e18, 26, 0);
 
     // Alice has the voting power from Bob's lock
-    assertApproxEqAbs(locking.getVotes(alice), 300e18, negligibleAmount);
+    assertEq(locking.getVotes(alice), 242718440000000000000);
     assertEq(locking.getVotes(bob), 0);
 
     vm.timeTravel(13 * BLOCKS_WEEK);
@@ -260,7 +262,9 @@ contract GovernanceIntegrationTest is TestSetup {
 
     assertEq(locking.getVotes(alice), 0);
     assertEq(locking.getVotes(bob), 0);
-    assertApproxEqAbs(locking.getVotes(charlie), 150e18, negligibleAmount);
+    // (242718440000000000000 - 1) / 26 + 1 = 9335324615384615385
+    //  242718440000000000000 - 9335324615384615385 * 13 = 121359219999999999995
+    assertEq(locking.getVotes(charlie), 121359219999999999995);
 
     // End of the locking period
     vm.timeTravel(13 * BLOCKS_WEEK);
@@ -374,18 +378,25 @@ contract GovernanceIntegrationTest is TestSetup {
       validUntil,
       approvedAt
     );
-
+    // claimer0Amount = 100e18
+    // slope = 104
+    // cliff = 0
     vm.prank(claimer0);
     airgrab.claim(claimer0Amount, claimer0, claimer0Proof, fractalProof0, validUntil, approvedAt, "fractalId");
 
+    // claimer1Amount = 20_000e18
+    // slope = 104
+    // cliff = 0
     // claim with a delegate
     vm.prank(claimer1);
     airgrab.claim(claimer1Amount, alice, claimer1Proof, fractalProof1, validUntil, approvedAt, "fractalId");
 
     // claimed amounts are locked automatically
-    assertEq(locking.getVotes(claimer0), 60e18);
+    // 100e18 * (103 / 103) = 100e18
+    assertEq(locking.getVotes(claimer0), 100e18);
     assertEq(locking.getVotes(claimer1), 0);
-    assertEq(locking.getVotes(alice), 12_000e18);
+    // 20_000e18 * (103 / 103) = 20_000e18
+    assertEq(locking.getVotes(alice), 20_000e18);
 
     vm.timeTravel(BLOCKS_DAY);
 
