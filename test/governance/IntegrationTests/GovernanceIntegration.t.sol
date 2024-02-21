@@ -221,10 +221,10 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(bob);
     uint256 bobsLockId = locking.lock(bob, bob, 1000e18, 52, 0);
 
-    // 1000e18 * ((uint96((26 - 1)) * (1e8)) / (104 - 1) / 1e8) = 242718440000000000000
-    assertEq(locking.getVotes(alice), 242718440000000000000);
-    // 1000e18 * ((uint96((52 - 1)) * (1e8)) / (104 - 1) / 1e8) = 495145630000000000000
-    assertEq(locking.getVotes(bob), 495145630000000000000);
+    // 1000e18 * ((uint96((26)) * (1e8)) / (104 ) / 1e8) = 250e18
+    assertEq(locking.getVotes(alice), 250e18);
+    // 1000e18 * ((uint96((52)) * (1e8)) / (104) / 1e8) = 500e18
+    assertEq(locking.getVotes(bob), 500e18);
 
     vm.timeTravel(13 * BLOCKS_WEEK);
 
@@ -232,26 +232,26 @@ contract GovernanceIntegrationTest is TestSetup {
     vm.prank(alice);
     locking.withdraw();
 
-    // (242718440000000000000 - 1) / 26 + 1 = 9335324615384615385
-    //  242718440000000000000 - 9335324615384615385 * 13 = 121359219999999999995
-    assertEq(locking.getVotes(alice), 121359219999999999995);
+    // (250e18 - 1) / 26 + 1 = 9615384615384615385
+    //  250e18 - 9615384615384615385 * 13 = 124999999999999999995
+    assertEq(locking.getVotes(alice), 124999999999999999995);
     // Slight difference between calculated and returned amount due to rounding
     assertApproxEqAbs(mentoToken.balanceOf(alice), 500e18, 10);
 
-    // (495145630000000000000 - 1) / 52 + 1 = 9522031346153846154
-    //  495145630000000000000 - 9522031346153846154 * 13 = 37135922249999999999999999995
-    assertEq(locking.getVotes(bob), 371359222499999999998);
+    // (500e18 - 1) / 52 + 1 = 9615384615384615385
+    //  500e18 - 9615384615384615385 * 13 = 374999999999999999995
+    assertEq(locking.getVotes(bob), 374999999999999999995);
     assertEq(mentoToken.balanceOf(bob), 0);
 
     vm.timeTravel(13 * BLOCKS_WEEK);
 
     // Bob relocks and delegates to alice
-    // 1000e18 * ((uint96((26 - 1)) * (1e8)) / (104 - 1) / 1e8) = 242718440000000000000
+    // 1000e18 * ((uint96((26)) * (1e8)) / (104 ) / 1e8) = 250e18
     vm.prank(bob);
     bobsLockId = locking.relock(bobsLockId, alice, 1000e18, 26, 0);
 
     // Alice has the voting power from Bob's lock
-    assertEq(locking.getVotes(alice), 242718440000000000000);
+    assertEq(locking.getVotes(alice), 250e18);
     assertEq(locking.getVotes(bob), 0);
 
     vm.timeTravel(13 * BLOCKS_WEEK);
@@ -262,9 +262,9 @@ contract GovernanceIntegrationTest is TestSetup {
 
     assertEq(locking.getVotes(alice), 0);
     assertEq(locking.getVotes(bob), 0);
-    // (242718440000000000000 - 1) / 26 + 1 = 9335324615384615385
-    //  242718440000000000000 - 9335324615384615385 * 13 = 121359219999999999995
-    assertEq(locking.getVotes(charlie), 121359219999999999995);
+    // (250e18 - 1) / 26 + 1 = 9615384615384615385
+    //  250e18 - 9615384615384615385 * 13 = 124999999999999999995
+    assertEq(locking.getVotes(charlie), 124999999999999999995);
 
     // End of the locking period
     vm.timeTravel(13 * BLOCKS_WEEK);

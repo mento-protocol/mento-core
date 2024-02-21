@@ -223,10 +223,8 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     require(cliff >= minCliffPeriod, "cliff period < minimal lock period");
     require(slopePeriod >= minSlopePeriod, "slope period < minimal lock period");
 
-    uint96 cliffSide = (uint96(cliff - uint32(minCliffPeriod)) * (ST_FORMULA_CLIFF_MULTIPLIER)) /
-      (MAX_CLIFF_PERIOD - uint32(minCliffPeriod));
-    uint96 slopeSide = (uint96((slopePeriod - uint32(minSlopePeriod))) * (ST_FORMULA_SLOPE_MULTIPLIER)) /
-      (MAX_SLOPE_PERIOD - uint32(minSlopePeriod));
+    uint96 cliffSide = (uint96(cliff) * ST_FORMULA_CLIFF_MULTIPLIER) / MAX_CLIFF_PERIOD;
+    uint96 slopeSide = (uint96(slopePeriod) * ST_FORMULA_SLOPE_MULTIPLIER) / MAX_SLOPE_PERIOD;
     uint96 multiplier = cliffSide + slopeSide;
 
     if (multiplier > ST_FORMULA_DIVIDER) {
