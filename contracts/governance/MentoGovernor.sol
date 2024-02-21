@@ -2,13 +2,30 @@
 pragma solidity 0.8.18;
 // solhint-disable max-line-length
 
-import { GovernorUpgradeable, IGovernorUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/GovernorUpgradeable.sol";
-import { GovernorSettingsUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorSettingsUpgradeable.sol";
-import { GovernorCompatibilityBravoUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/compatibility/GovernorCompatibilityBravoUpgradeable.sol";
-import { GovernorVotesUpgradeable, IVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
-import { GovernorVotesQuorumFractionUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesQuorumFractionUpgradeable.sol";
-import { GovernorTimelockControlUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorTimelockControlUpgradeable.sol";
-import { TimelockControllerUpgradeable, IERC165Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/TimelockControllerUpgradeable.sol";
+import {
+  GovernorUpgradeable,
+  IGovernorUpgradeable
+} from "openzeppelin-contracts-upgradeable/contracts/governance/GovernorUpgradeable.sol";
+import {
+  GovernorSettingsUpgradeable
+} from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorSettingsUpgradeable.sol";
+import {
+  GovernorCompatibilityBravoUpgradeable
+} from "openzeppelin-contracts-upgradeable/contracts/governance/compatibility/GovernorCompatibilityBravoUpgradeable.sol";
+import {
+  GovernorVotesUpgradeable,
+  IVotesUpgradeable
+} from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
+import {
+  GovernorVotesQuorumFractionUpgradeable
+} from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesQuorumFractionUpgradeable.sol";
+import {
+  GovernorTimelockControlUpgradeable
+} from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorTimelockControlUpgradeable.sol";
+import {
+  TimelockControllerUpgradeable,
+  IERC165Upgradeable
+} from "openzeppelin-contracts-upgradeable/contracts/governance/TimelockControllerUpgradeable.sol";
 
 /**
  * @title Mento Governor

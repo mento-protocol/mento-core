@@ -11,6 +11,7 @@ contract BaseTest is Test {
   address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
   IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
 
+  // solhint-disable-next-line const-name-snakecase
   address public constant deployer = address(0x31337);
   Factory public factory;
 

@@ -18,7 +18,9 @@ import { MentoTokenDeployerLib } from "./deployers/MentoTokenDeployerLib.sol";
 import { TimelockControllerDeployerLib } from "./deployers/TimelockControllerDeployerLib.sol";
 import { ProxyDeployerLib } from "./deployers/ProxyDeployerLib.sol";
 
-import { TransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
+  TransparentUpgradeableProxy
+} from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";

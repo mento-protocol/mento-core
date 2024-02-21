@@ -18,12 +18,13 @@ interface MiniVM {
  */
 contract Factory {
   address internal constant VM_ADDRESS = address(uint160(uint256(keccak256("hevm cheat code"))));
-  MiniVM internal constant vm = MiniVM(VM_ADDRESS);
+  MiniVM internal constant VM = MiniVM(VM_ADDRESS);
 
   function createFromPath(string memory _path, bytes memory args) public returns (address) {
-    bytes memory bytecode = abi.encodePacked(vm.getCode(_path), args);
+    bytes memory bytecode = abi.encodePacked(VM.getCode(_path), args);
     address addr;
 
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       addr := create(0, add(bytecode, 0x20), mload(bytecode))
     }
@@ -43,7 +44,7 @@ contract Factory {
     bytes memory args
   ) public {
     address addr = createContract(_contract, args);
-    vm.etch(dest, GetCode.at(addr));
+    VM.etch(dest, GetCode.at(addr));
     console.log("Etched %s to %s", _contract, dest);
   }
 }

@@ -2,7 +2,9 @@
 pragma solidity 0.8.18;
 
 //solhint-disable-next-line max-line-length
-import { TransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
+  TransparentUpgradeableProxy
+} from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
 library ProxyDeployerLib {

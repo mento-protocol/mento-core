@@ -99,6 +99,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
 
     // Use this by running tests like:
     // env ONLY={exchangeId} yarn fork-tests:baklava
+    // solhint-disable-next-line avoid-low-level-calls
     (bool success, bytes memory data) = address(vm).call(abi.encodeWithSignature("envBytes32(string)", "ONLY"));
     bytes32 exchangeIdFilter;
     if (success) {
