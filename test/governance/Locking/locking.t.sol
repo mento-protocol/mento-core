@@ -403,7 +403,7 @@ contract Lock_Locking_Test is Locking_Test {
 
     vm.prank(owner);
     locking.startMigration(address(mockLockingContract));
-    //  (30/104)*60000 = 17307
+    // (30 / 104) * 60000 = 17307
     assertEq(locking.balanceOf(alice), 17307);
     assertEq(locking.totalSupply(), 17307);
 

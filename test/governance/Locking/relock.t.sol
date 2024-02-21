@@ -299,7 +299,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(locking.balanceOf(bob), 17307);
 
     _incrementBlock(20 * weekInBlocks);
-    // (17307-1) / 30 + 1 = 577
+    // (17307 - 1) / 30 + 1 = 577
     // 17307 - 20 * 577 = 5767
     assertEq(locking.balanceOf(bob), 5767);
 
@@ -336,7 +336,7 @@ contract Relock_Locking_Test is Locking_Test {
 
     _incrementBlock(20 * weekInBlocks);
     // 60000 * 30 / 104 = 17307
-    // (17307-1) / 30 + 1 = 577
+    // (17307 - 1) / 30 + 1 = 577
     // 17307 - 20 * 577 = 5767
     assertEq(locking.balanceOf(bob), 5767);
 
