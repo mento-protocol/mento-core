@@ -190,9 +190,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
 
   /**
    * @dev Сalculate and return (newAmount, newSlope), using formula:
-   * P = t * min(scale(c, c_min, c_max) + scale(s, s_min, s_max), 1),
-   * where:
-   *    scale(v, min, max) = (v - min) / (max - min)
+   * P = t * min(c/c_max + s/s_max, 1),
    *
    * The formula has the following properties:
    * - the voting power can't exceed the amount of tokens locked.
@@ -208,8 +206,8 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * locking = (
    *   tokens *
    *   min(
-   *    (ST_FORMULA_CLIFF_MULTIPLIER * (cliffPeriod - minCliffPeriod))/(MAX_CLIFF_PERIOD - minCliffPeriod) +
-   *    (ST_FORMULA_SLOPE_MULTIPLIER * (slopePeriod - minSlopePeriod))/(MAX_SLOPE_PERIOD - minSlopePeriod),
+   *    (ST_FORMULA_CLIFF_MULTIPLIER * cliffPeriod) / MAX_CLIFF_PERIOD +
+   *    (ST_FORMULA_SLOPE_MULTIPLIER * slopePeriod) / MAX_SLOPE_PERIOD,
    *    ST_FORMULA_DIVIDER
    *   )
    * ) / ST_FORMULA_DIVIDER
