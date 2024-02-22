@@ -18,10 +18,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   uint32 constant MAX_CLIFF_PERIOD = 103;
   uint32 constant MAX_SLOPE_PERIOD = 104;
 
-  uint32 constant ST_FORMULA_DIVIDER = 1 * (10**8); //stFormula divider          100000000 / 1.0 / 100%
-  uint32 constant ST_FORMULA_CLIFF_MULTIPLIER = 1 * (10**8); //stFormula cliff multiplier  100000000 / 1.0 / 100%
-  uint32 constant ST_FORMULA_SLOPE_MULTIPLIER = 1 * (10**8); //stFormula slope multiplier  100000000 / 1.0 / 100%
-
+  uint32 constant ST_FORMULA_BASIS = 1 * (10**8); // stFormula basis          100_000_000
   /**
    * @dev ERC20 token to lock
    */
@@ -201,16 +198,16 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    *   but the contract doesn't forbid it.
    *
    *
-   * The formulare roughly translates to solidity as:
+   * The formula roughly translates to solidity as:
    * ```
    * locking = (
    *   tokens *
    *   min(
-   *    (ST_FORMULA_CLIFF_MULTIPLIER * cliffPeriod) / MAX_CLIFF_PERIOD +
-   *    (ST_FORMULA_SLOPE_MULTIPLIER * slopePeriod) / MAX_SLOPE_PERIOD,
-   *    ST_FORMULA_DIVIDER
+   *    (ST_FORMULA_BASIS * cliffPeriod) / MAX_CLIFF_PERIOD +
+   *    (ST_FORMULA_BASIS * slopePeriod) / MAX_SLOPE_PERIOD,
+   *    ST_FORMULA_BASIS
    *   )
-   * ) / ST_FORMULA_DIVIDER
+   * ) / ST_FORMULA_BASIS
    * ```
    **/
   function getLock(
@@ -221,16 +218,16 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     require(cliff >= minCliffPeriod, "cliff period < minimal lock period");
     require(slopePeriod >= minSlopePeriod, "slope period < minimal lock period");
 
-    uint96 cliffSide = (uint96(cliff) * ST_FORMULA_CLIFF_MULTIPLIER) / MAX_CLIFF_PERIOD;
-    uint96 slopeSide = (uint96(slopePeriod) * ST_FORMULA_SLOPE_MULTIPLIER) / MAX_SLOPE_PERIOD;
+    uint96 cliffSide = (uint96(cliff) * ST_FORMULA_BASIS) / MAX_CLIFF_PERIOD;
+    uint96 slopeSide = (uint96(slopePeriod) * ST_FORMULA_BASIS) / MAX_SLOPE_PERIOD;
     uint96 multiplier = cliffSide + slopeSide;
 
-    if (multiplier > ST_FORMULA_DIVIDER) {
-      multiplier = ST_FORMULA_DIVIDER;
+    if (multiplier > ST_FORMULA_BASIS) {
+      multiplier = ST_FORMULA_BASIS;
     }
 
     uint256 amountMultiplied = uint256(amount) * uint256(multiplier);
-    lockAmount = uint96(amountMultiplied / (ST_FORMULA_DIVIDER));
+    lockAmount = uint96(amountMultiplied / (ST_FORMULA_BASIS));
     require(lockAmount > 0, "voting power is 0");
     lockSlope = divUp(lockAmount, slopePeriod);
   }
