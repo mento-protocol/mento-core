@@ -186,7 +186,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @dev Сalculate and return (newAmount, newSlope), using formula:
+   * @dev Сalculate and return (lockAmount, lockSlope), using formula:
    * P = t * min(c/c_max + s/s_max, 1),
    *
    * The formula has the following properties:
@@ -199,8 +199,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    *
    *
    * The formula roughly translates to solidity as:
-   * ```
-   * locking = (
+   * votingPower = (
    *   tokens *
    *   min(
    *    (ST_FORMULA_BASIS * cliffPeriod) / MAX_CLIFF_PERIOD +
@@ -208,7 +207,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    *    ST_FORMULA_BASIS
    *   )
    * ) / ST_FORMULA_BASIS
-   * ```
    **/
   function getLock(
     uint96 amount,

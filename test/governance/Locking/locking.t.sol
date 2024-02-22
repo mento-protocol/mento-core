@@ -243,7 +243,7 @@ contract Lock_Locking_Test is Locking_Test {
     (lockAmount, lockSlope) = locking.getLock(amount, slopePeriod, cliff);
     // floor ((24 / 104 + 103 / 103) * 104000) = 128000 > 104000
     assertEq(lockAmount, 104000);
-    // divUp (104000, 1) = 105000
+    // divUp (104000, 24) = 4334
     assertEq(lockSlope, 4334);
   }
 
