@@ -104,72 +104,72 @@ contract Lock_Locking_Test is Locking_Test {
   }
 
   function test_withdraw_whenInSlope_shouldReleaseCorrectAmount() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
-    locking.lock(alice, alice, 30, 3, 3);
+    locking.lock(alice, alice, 300, 3, 3);
 
     _incrementBlock(3 * weekInBlocks);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 30);
-    assertEq(mentoToken.balanceOf(alice), 70);
+    assertEq(mentoToken.balanceOf(address(locking)), 300);
+    assertEq(mentoToken.balanceOf(alice), 700);
 
     _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 20);
-    assertEq(mentoToken.balanceOf(alice), 80);
+    assertEq(mentoToken.balanceOf(address(locking)), 200);
+    assertEq(mentoToken.balanceOf(alice), 800);
   }
 
   function test_withdraw_whenCalledFromAnotherAccount_shouldNotSendTokens() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
-    locking.lock(alice, alice, 30, 3, 0);
+    locking.lock(alice, alice, 300, 3, 0);
 
     _incrementBlock(weekInBlocks);
 
     vm.prank(bob);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 30);
-    assertEq(mentoToken.balanceOf(alice), 70);
+    assertEq(mentoToken.balanceOf(address(locking)), 300);
+    assertEq(mentoToken.balanceOf(alice), 700);
   }
 
   function test_withdraw_whenTheLockIsCreatedForSomeoneElse_shouldNotReleaseTokens() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
-    locking.lock(bob, bob, 30, 3, 0);
+    locking.lock(bob, bob, 300, 3, 0);
 
     _incrementBlock(weekInBlocks);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 30);
-    assertEq(mentoToken.balanceOf(alice), 70);
+    assertEq(mentoToken.balanceOf(address(locking)), 300);
+    assertEq(mentoToken.balanceOf(alice), 700);
   }
 
   function test_withdraw_whenCalledByTheOwnerOfTheLock_shouldReleaseTokens() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
-    locking.lock(bob, bob, 30, 3, 0);
+    locking.lock(bob, bob, 300, 3, 0);
 
     _incrementBlock(weekInBlocks);
 
     vm.prank(bob);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 20);
-    assertEq(mentoToken.balanceOf(alice), 70);
-    assertEq(mentoToken.balanceOf(bob), 10);
+    assertEq(mentoToken.balanceOf(address(locking)), 200);
+    assertEq(mentoToken.balanceOf(alice), 700);
+    assertEq(mentoToken.balanceOf(bob), 100);
   }
 
   function test_withdraw_whenTailInVeToken_shouldReleaseCorrectAmounts() public {
@@ -180,14 +180,15 @@ contract Lock_Locking_Test is Locking_Test {
 
     assertEq(mentoToken.balanceOf(address(locking)), 5200);
     assertEq(mentoToken.balanceOf(alice), 800);
-    assertEq(locking.balanceOf(alice), 4220);
+    // (52 / 104 + 53 / 103) * 5200 = 5275 > 5200
+    assertEq(locking.balanceOf(alice), 5200);
 
     _incrementBlock(103 * weekInBlocks);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(locking.balanceOf(alice), 120);
+    assertEq(locking.balanceOf(alice), 200);
 
     _incrementBlock(weekInBlocks);
 
@@ -196,7 +197,7 @@ contract Lock_Locking_Test is Locking_Test {
 
     assertEq(mentoToken.balanceOf(address(locking)), 100);
     assertEq(mentoToken.balanceOf(alice), 5900);
-    assertEq(locking.balanceOf(alice), 38);
+    assertEq(locking.balanceOf(alice), 100);
 
     _incrementBlock(weekInBlocks);
 
@@ -213,29 +214,37 @@ contract Lock_Locking_Test is Locking_Test {
     uint32 slopePeriod = 30;
     uint32 cliff = 30;
     (uint96 lockAmount, uint96 lockSlope) = locking.getLock(amount, slopePeriod, cliff);
-    assertEq(lockAmount, 32903);
-    assertEq(lockSlope, 1097);
+    // floor ((30 / 104 + 30 / 103) * 60000) = 34783
+    assertEq(lockAmount, 34783);
+    // divUp (34783, 30) = 1160
+    assertEq(lockSlope, 1160);
 
     amount = 96000;
     slopePeriod = 48;
     cliff = 48;
     (lockAmount, lockSlope) = locking.getLock(amount, slopePeriod, cliff);
-    assertEq(lockAmount, 72713);
-    assertEq(lockSlope, 1515);
+    // floor ((48 / 104 + 48 / 103) * 96000) = 89045
+    assertEq(lockAmount, 89045);
+    // divUp (89045, 48)  = 1856
+    assertEq(lockSlope, 1856);
 
     amount = 104000;
     slopePeriod = 104;
     cliff = 0;
     (lockAmount, lockSlope) = locking.getLock(amount, slopePeriod, cliff);
-    assertEq(lockAmount, 62400);
-    assertEq(lockSlope, 600);
+    // floor ((104 / 104 + 0 / 103) * 104000) = 104000
+    assertEq(lockAmount, 104000);
+    // divUp (104000, 104) = 1000
+    assertEq(lockSlope, 1000);
 
     amount = 104000;
-    slopePeriod = 1;
+    slopePeriod = 24;
     cliff = 103;
     (lockAmount, lockSlope) = locking.getLock(amount, slopePeriod, cliff);
-    assertEq(lockAmount, 104399);
-    assertEq(lockSlope, 104399);
+    // floor ((24 / 104 + 103 / 103) * 104000) = 128000 > 104000
+    assertEq(lockAmount, 104000);
+    // divUp (104000, 24) = 4334
+    assertEq(lockSlope, 4334);
   }
 
   function test_getWeek_shouldReturnCorrectWeekNo() public {
@@ -263,19 +272,19 @@ contract Lock_Locking_Test is Locking_Test {
   }
 
   function test_getAvailableForWithdraw_shouldReturnCorrectAmount() public {
-    mentoToken.mint(alice, 100);
+    mentoToken.mint(alice, 1000);
 
     vm.prank(alice);
-    locking.lock(alice, alice, 30, 3, 0);
+    locking.lock(alice, alice, 300, 3, 0);
 
     _incrementBlock(2 * weekInBlocks);
 
     vm.prank(alice);
     uint256 availableForWithdraw = locking.getAvailableForWithdraw(alice);
 
-    assertEq(mentoToken.balanceOf(address(locking)), 30);
-    assertEq(mentoToken.balanceOf(alice), 70);
-    assertEq(availableForWithdraw, 20);
+    assertEq(mentoToken.balanceOf(address(locking)), 300);
+    assertEq(mentoToken.balanceOf(alice), 700);
+    assertEq(availableForWithdraw, 200);
   }
 
   function test_viewFuctions_shouldReturnCorrectValues() public {
@@ -296,29 +305,30 @@ contract Lock_Locking_Test is Locking_Test {
     lockId = locking.lock(alice, alice, 3000, 3, 0);
     // WEEK 1
     assertEq(mentoToken.balanceOf(address(locking)), 3000);
-    assertEq(locking.balanceOf(alice), 634);
-    assertEq(locking.getVotes(alice), 634);
+    // 3 / 104 * 3000 = 86
+    assertEq(locking.balanceOf(alice), 86);
+    assertEq(locking.getVotes(alice), 86);
 
     // WEEK 2
     _incrementBlock(weekInBlocks / 2 + weekInBlocks / 4);
 
     delegateBlock = locking.blockNumberMocked();
     voteBlock = delegateBlock + weekInBlocks / 4;
-
-    assertEq(locking.balanceOf(alice), 422);
-    assertEq(locking.getVotes(alice), 422);
+    // 86 * 2 / 3 = 57
+    assertEq(locking.balanceOf(alice), 57);
+    assertEq(locking.getVotes(alice), 57);
 
     vm.prank(alice);
     locking.delegateTo(lockId, bob);
 
     assertEq(locking.balanceOf(alice), 0);
     assertEq(locking.getVotes(alice), 0);
-    assertEq(locking.balanceOf(bob), 422);
-    assertEq(locking.getVotes(bob), 422);
+    assertEq(locking.balanceOf(bob), 57);
+    assertEq(locking.getVotes(bob), 57);
 
-    assertEq(locking.getPastVotes(alice, delegateBlock - 1), 422);
+    assertEq(locking.getPastVotes(alice, delegateBlock - 1), 57);
     assertEq(locking.getPastVotes(bob, delegateBlock - 1), 0);
-    assertEq(locking.getPastTotalSupply(delegateBlock - 1), 422);
+    assertEq(locking.getPastTotalSupply(delegateBlock - 1), 57);
 
     _incrementBlock(weekInBlocks / 2);
 
@@ -326,16 +336,16 @@ contract Lock_Locking_Test is Locking_Test {
 
     assertEq(locking.balanceOf(alice), 0);
     assertEq(locking.getVotes(alice), 0);
-    assertEq(locking.balanceOf(bob), 422);
-    assertEq(locking.getVotes(bob), 422);
+    assertEq(locking.balanceOf(bob), 57);
+    assertEq(locking.getVotes(bob), 57);
 
     assertEq(locking.getPastVotes(alice, voteBlock), 0);
-    assertEq(locking.getPastVotes(bob, voteBlock), 422);
-    assertEq(locking.getPastTotalSupply(voteBlock), 422);
+    assertEq(locking.getPastVotes(bob, voteBlock), 57);
+    assertEq(locking.getPastTotalSupply(voteBlock), 57);
 
-    assertEq(locking.getPastVotes(alice, delegateBlock - 1), 422);
+    assertEq(locking.getPastVotes(alice, delegateBlock - 1), 57);
     assertEq(locking.getPastVotes(bob, delegateBlock - 1), 0);
-    assertEq(locking.getPastTotalSupply(delegateBlock - 1), 422);
+    assertEq(locking.getPastTotalSupply(delegateBlock - 1), 57);
 
     vm.prank(alice);
     locking.relock(lockId, charlie, 4000, 4, 0);
@@ -345,20 +355,21 @@ contract Lock_Locking_Test is Locking_Test {
     assertEq(locking.getVotes(alice), 0);
     assertEq(locking.balanceOf(bob), 0);
     assertEq(locking.getVotes(bob), 0);
-    assertEq(locking.balanceOf(charlie), 861);
-    assertEq(locking.getVotes(charlie), 861);
+    // 4 / 104 * 4000 = 153
+    assertEq(locking.balanceOf(charlie), 153);
+    assertEq(locking.getVotes(charlie), 153);
 
     assertEq(locking.getPastVotes(alice, voteBlock), 0);
-    assertEq(locking.getPastVotes(bob, voteBlock), 422);
-    assertEq(locking.getPastTotalSupply(voteBlock), 422);
+    assertEq(locking.getPastVotes(bob, voteBlock), 57);
+    assertEq(locking.getPastTotalSupply(voteBlock), 57);
 
-    assertEq(locking.getPastVotes(alice, delegateBlock - 1), 422);
+    assertEq(locking.getPastVotes(alice, delegateBlock - 1), 57);
     assertEq(locking.getPastVotes(bob, delegateBlock - 1), 0);
-    assertEq(locking.getPastTotalSupply(delegateBlock - 1), 422);
+    assertEq(locking.getPastTotalSupply(delegateBlock - 1), 57);
 
     assertEq(locking.getPastVotes(alice, relockBlock - 1), 0);
-    assertEq(locking.getPastVotes(bob, relockBlock - 1), 422);
-    assertEq(locking.getPastTotalSupply(relockBlock - 1), 422);
+    assertEq(locking.getPastVotes(bob, relockBlock - 1), 57);
+    assertEq(locking.getPastTotalSupply(relockBlock - 1), 57);
 
     // WEEK 3
 
@@ -367,8 +378,9 @@ contract Lock_Locking_Test is Locking_Test {
     assertEq(locking.getVotes(alice), 0);
     assertEq(locking.balanceOf(bob), 0);
     assertEq(locking.getVotes(bob), 0);
-    assertEq(locking.balanceOf(charlie), 645);
-    assertEq(locking.getVotes(charlie), 645);
+    // 153 * 3 / 4 = 114
+    assertEq(locking.balanceOf(charlie), 114);
+    assertEq(locking.getVotes(charlie), 114);
 
     uint256 currentBlock = locking.blockNumberMocked();
 
@@ -391,9 +403,9 @@ contract Lock_Locking_Test is Locking_Test {
 
     vm.prank(owner);
     locking.startMigration(address(mockLockingContract));
-
-    assertEq(locking.balanceOf(alice), 18923);
-    assertEq(locking.totalSupply(), 18923);
+    // (30 / 104) * 60000 = 17307
+    assertEq(locking.balanceOf(alice), 17307);
+    assertEq(locking.totalSupply(), 17307);
 
     vm.prank(alice);
     locking.migrate(ids);

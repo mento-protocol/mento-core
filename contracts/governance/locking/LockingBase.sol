@@ -18,11 +18,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   uint32 constant MAX_CLIFF_PERIOD = 103;
   uint32 constant MAX_SLOPE_PERIOD = 104;
 
-  uint32 constant ST_FORMULA_DIVIDER = 1 * (10**8); //stFormula divider          100000000
-  uint32 constant ST_FORMULA_CONST_MULTIPLIER = 2 * (10**7); //stFormula const multiplier  20000000
-  uint32 constant ST_FORMULA_CLIFF_MULTIPLIER = 8 * (10**7); //stFormula cliff multiplier  80000000
-  uint32 constant ST_FORMULA_SLOPE_MULTIPLIER = 4 * (10**7); //stFormula slope multiplier  40000000
-
+  uint32 constant ST_FORMULA_BASIS = 1 * (10**8); // stFormula basis          100_000_000
   /**
    * @dev ERC20 token to lock
    */
@@ -190,12 +186,27 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * Сalculate and return (newAmount, newSlope), using formula:
-   * locking = (tokens * (
-   *      ST_FORMULA_CONST_MULTIPLIER
-   *      + ST_FORMULA_CLIFF_MULTIPLIER * (cliffPeriod - minCliffPeriod))/(MAX_CLIFF_PERIOD - minCliffPeriod)
-   *      + ST_FORMULA_SLOPE_MULTIPLIER * (slopePeriod - minSlopePeriod))/(MAX_SLOPE_PERIOD - minSlopePeriod)
-   *      )) / ST_FORMULA_DIVIDER
+   * @dev Сalculate and return (lockAmount, lockSlope), using formula:
+   * P = t * min(c/c_max + s/s_max, 1),
+   *
+   * The formula has the following properties:
+   * - the voting power can't exceed the amount of tokens locked.
+   * - a voter can reach 100% voting power by relying on either the slope or the cliff,
+   *   or a combination of both.
+   * - there is a parameter space above a diagonal on the (c, s) plane where the
+   *   voting power is capped at 100%, moving past that diagonal is disadvantageous
+   *   but the contract doesn't forbid it.
+   *
+   *
+   * The formula roughly translates to solidity as:
+   * votingPower = (
+   *   tokens *
+   *   min(
+   *    (ST_FORMULA_BASIS * cliffPeriod) / MAX_CLIFF_PERIOD +
+   *    (ST_FORMULA_BASIS * slopePeriod) / MAX_SLOPE_PERIOD,
+   *    ST_FORMULA_BASIS
+   *   )
+   * ) / ST_FORMULA_BASIS
    **/
   function getLock(
     uint96 amount,
@@ -205,14 +216,17 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     require(cliff >= minCliffPeriod, "cliff period < minimal lock period");
     require(slopePeriod >= minSlopePeriod, "slope period < minimal lock period");
 
-    uint96 cliffSide = (uint96(cliff - uint32(minCliffPeriod)) * (ST_FORMULA_CLIFF_MULTIPLIER)) /
-      (MAX_CLIFF_PERIOD - uint32(minCliffPeriod));
-    uint96 slopeSide = (uint96((slopePeriod - uint32(minSlopePeriod))) * (ST_FORMULA_SLOPE_MULTIPLIER)) /
-      (MAX_SLOPE_PERIOD - uint32(minSlopePeriod));
-    uint96 multiplier = cliffSide + (slopeSide) + (ST_FORMULA_CONST_MULTIPLIER);
+    uint96 cliffSide = (uint96(cliff) * ST_FORMULA_BASIS) / MAX_CLIFF_PERIOD;
+    uint96 slopeSide = (uint96(slopePeriod) * ST_FORMULA_BASIS) / MAX_SLOPE_PERIOD;
+    uint96 multiplier = cliffSide + slopeSide;
+
+    if (multiplier > ST_FORMULA_BASIS) {
+      multiplier = ST_FORMULA_BASIS;
+    }
 
     uint256 amountMultiplied = uint256(amount) * uint256(multiplier);
-    lockAmount = uint96(amountMultiplied / (ST_FORMULA_DIVIDER));
+    lockAmount = uint96(amountMultiplied / (ST_FORMULA_BASIS));
+    require(lockAmount > 0, "voting power is 0");
     lockSlope = divUp(lockAmount, slopePeriod);
   }
 

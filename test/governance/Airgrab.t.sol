@@ -2,7 +2,6 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, state-visibility, max-states-count, var-name-mixedcase
 
-import { console } from "forge-std-next/console.sol";
 import { Test } from "forge-std-next/Test.sol";
 import { Arrays } from "test/utils/Arrays.sol";
 

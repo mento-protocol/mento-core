@@ -14,8 +14,10 @@ contract DelegateTo_Locking_Test is Locking_Test {
     lockId = locking.lock(alice, bob, 60000, 30, 0);
 
     _incrementBlock(20 * weekInBlocks);
-
-    assertEq(locking.balanceOf(bob), 6303);
+    // 60000 * (30 / 104) = 17307
+    // (17307 - 1) / 30 + 1 = 577
+    // 17307 - 20 * 577 = 5767
+    assertEq(locking.balanceOf(bob), 5767);
 
     vm.prank(alice);
     locking.withdraw();
@@ -27,7 +29,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.delegateTo(lockId, charlie);
 
     assertEq(locking.balanceOf(bob), 0);
-    assertEq(locking.balanceOf(charlie), 6303);
+    assertEq(locking.balanceOf(charlie), 5767);
 
     _incrementBlock(10 * weekInBlocks);
 
@@ -55,8 +57,10 @@ contract DelegateTo_Locking_Test is Locking_Test {
 
     vm.prank(alice);
     locking.delegateTo(lockId, bob);
-
-    assertEq(locking.balanceOf(bob), 3148);
+    // 60000 * (30 / 104) = 17307
+    // (17307 - 1) / 30 + 1 = 577
+    // 17307 - 25 * 577 = 2882
+    assertEq(locking.balanceOf(bob), 2882);
     assertEq(locking.balanceOf(charlie), 0);
 
     vm.prank(alice);
@@ -82,8 +86,10 @@ contract DelegateTo_Locking_Test is Locking_Test {
     lockId = locking.lock(alice, bob, 6300, 7, 0);
 
     _incrementBlock(6 * weekInBlocks);
-
-    assertEq(locking.balanceOf(bob), 199);
+    // 7 / 104 * 6300 = 424
+    // (424 - 1) / 7 + 1 = 61
+    // 424 - 6 * 61 = 58
+    assertEq(locking.balanceOf(bob), 58);
 
     vm.prank(alice);
     locking.withdraw();
@@ -95,7 +101,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.delegateTo(lockId, charlie);
 
     assertEq(locking.balanceOf(bob), 0);
-    assertEq(locking.balanceOf(charlie), 199);
+    assertEq(locking.balanceOf(charlie), 58);
 
     _incrementBlock(weekInBlocks);
 
@@ -115,8 +121,8 @@ contract DelegateTo_Locking_Test is Locking_Test {
     lockId = locking.lock(alice, bob, 630000, 7, 2);
 
     _incrementBlock(weekInBlocks);
-
-    assertEq(locking.balanceOf(bob), 152747);
+    // 630000 * (7 / 104 + 2 / 103) = 54636
+    assertEq(locking.balanceOf(bob), 54636);
 
     vm.prank(alice);
     locking.withdraw();
@@ -128,11 +134,11 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.delegateTo(lockId, charlie);
 
     assertEq(locking.balanceOf(bob), 0);
-    assertEq(locking.balanceOf(charlie), 152747);
+    assertEq(locking.balanceOf(charlie), 54636);
 
     _incrementBlock(weekInBlocks);
 
-    assertEq(locking.balanceOf(charlie), 152747);
+    assertEq(locking.balanceOf(charlie), 54636);
 
     _incrementBlock(7 * weekInBlocks);
     assertEq(locking.balanceOf(charlie), 0);
@@ -161,8 +167,11 @@ contract DelegateTo_Locking_Test is Locking_Test {
     vm.prank(alice);
     locking.delegateTo(lockId, charlie);
 
+    // 630000 * (7 / 104 + 2 / 103) = 54636
+    // (54636 - 1) / 7 + 1 = 7806
+    //  54636 - 7806 * 2 = 39024
     assertEq(locking.balanceOf(bob), 0);
-    assertEq(locking.balanceOf(charlie), 109105);
+    assertEq(locking.balanceOf(charlie), 39024);
 
     _incrementBlock(5 * weekInBlocks);
 
@@ -185,7 +194,6 @@ contract DelegateTo_Locking_Test is Locking_Test {
 
     vm.prank(alice);
     locking.withdraw();
-
     assertEq(mentoToken.balanceOf(address(locking)), 90000);
     assertEq(mentoToken.balanceOf(alice), 910000);
 
@@ -193,7 +201,10 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.delegateTo(lockId, charlie);
 
     assertEq(locking.balanceOf(bob), 0);
-    assertEq(locking.balanceOf(charlie), 21821);
+    // 630000 * (7 / 104 + 2 / 103) = 54636
+    // (54636 - 1) / 7 + 1 = 7806
+    // 54636 - (7806 * 6) = 7800
+    assertEq(locking.balanceOf(charlie), 7800);
 
     _incrementBlock(weekInBlocks);
 

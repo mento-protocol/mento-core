@@ -3,7 +3,6 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8.0;
 
-import { console } from "forge-std-next/console.sol";
 import { Arrays } from "../utils/Arrays.sol";
 import { BaseTest } from "../utils/BaseTest.next.sol";
 
