@@ -9,7 +9,8 @@ import "./libs/LibBrokenLine.sol";
 
 /**
  * @title LockingBase
- * @dev This abstract contract provides the foundational functionality for locking ERC20 tokens to accrue voting power over time.
+ * @dev This abstract contract provides the foundational functionality
+ * for locking ERC20 tokens to accrue voting power over time.
  * @dev It utilizes the Broken Line library to represent the decay of voting power as tokens unlock.
  * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb
  */
