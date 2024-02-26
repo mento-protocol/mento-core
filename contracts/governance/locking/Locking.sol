@@ -13,17 +13,16 @@ import "./interfaces/ILocking.sol";
  * @notice Implements locking mechanism for tokens to enable voting power accumulation
  * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb
  */
-
 contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
 
   /**
    * @notice Initializes the locking contract.
    * @dev Sets up the base locking parameters and initializes ownership and context setup.
-   * @param _token Address of the Mento Token that will be locked.
-   * @param _startingPointWeek Origin week number for the week-based time system.
-   * @param _minCliffPeriod The minimum period before which locked tokens start unlocking.
-   * @param _minSlopePeriod The minimum period over which tokens unlock linearly.
+   * @param _token Address of the ERC20 that will be locked. (Mento Token)
+   * @param _startingPointWeek Origin week no for the week-based time system.
+   * @param _minCliffPeriod Minimum cliff period for locks.
+   * @param _minSlopePeriod Minimum slope period for locks.
    */
   function __Locking_init(
     IERC20Upgradeable _token,
@@ -67,13 +66,13 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
 
   /**
    * @notice Locks a specified amount of tokens for a given period.
-   * @param account The account for which tokens are being locked.
-   * @param _delegate The address that will receive the voting power from the locked tokens.
+   * @param account Account for which tokens are being locked.
+   * @param _delegate Address that will receive the voting power from the locked tokens.
    * If address(0) passed, voting power will be lost.
-   * @param amount The amount of tokens to lock.
-   * @param slopePeriod The period over which the tokens will unlock.
-   * @param cliff The initial period during which tokens remain locked and do not start unlocking.
-   * @return The id for the created lock.
+   * @param amount Amount of tokens to lock.
+   * @param slopePeriod Period over which the tokens will unlock.
+   * @param cliff Initial period during which tokens remain locked and do not start unlocking.
+   * @return Id for the created lock.
    */
   function lock(
     address account,

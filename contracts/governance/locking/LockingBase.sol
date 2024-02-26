@@ -8,71 +8,78 @@ import "openzeppelin-contracts-upgradeable/contracts/governance/utils/IVotesUpgr
 import "./libs/LibBrokenLine.sol";
 
 /**
+ * @title LockingBase
+ * @dev This abstract contract provides the foundational functionality for locking ERC20 tokens to accrue voting power over time.
+ * @dev It utilizes the Broken Line library to represent the decay of voting power as tokens unlock.
  * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb
  */
 abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
-
-  uint32 public constant WEEK = 120_960; //blocks one week = 120_960, day = 17_280 in CELO
-
-  uint32 constant MAX_CLIFF_PERIOD = 103;
-  uint32 constant MAX_SLOPE_PERIOD = 104;
-
-  uint32 constant ST_FORMULA_BASIS = 1 * (10**8); // stFormula basis          100_000_000
   /**
-   * @dev ERC20 token to lock
+   * @dev Duration of a week in blocks on the CELO blockchain.
+   */
+  uint32 public constant WEEK = 120_960;
+  /**
+   * @dev Maximum allowable cliff period for token locks in weeks.
+   */
+  uint32 constant MAX_CLIFF_PERIOD = 103;
+  /**
+   * @dev Maximum allowable slope period for token locks in weeks.
+   */
+  uint32 constant MAX_SLOPE_PERIOD = 104;
+  /**
+   * @dev Basis for locking formula calculations
+   */
+  uint32 constant ST_FORMULA_BASIS = 1 * (10**8);
+  /**
+   * @dev ERC20 token that will be locked
    */
   IERC20Upgradeable public token;
   /**
-   * @dev counter for Lock identifiers
+   * @dev Counter for Lock identifiers
    */
   uint256 public counter;
-
   /**
-   * @dev true if contract entered stopped state
+   * @dev True if contract entered stopped state
    */
   bool public stopped;
-
   /**
-   * @dev address to migrate Locks to (zero if not in migration state)
+   * @dev Address to migrate locks to, if any
    */
   address public migrateTo;
-
   /**
-   * @dev minimal cliff period in weeks, minCliffPeriod < MAX_CLIFF_PERIOD
+   * @dev Minimum cliff period in weeks
    */
-
   uint256 public minCliffPeriod;
-
   /**
-   * @dev minimal slope period in weeks, minSlopePeriod < MAX_SLOPE_PERIOD
+   * @dev Minimum slope period in weeks
    */
   uint256 public minSlopePeriod;
-
   /**
-   * @dev locking epoch start in weeks
+   * @dev Starting point for the locking week-based time system
    */
   uint256 public startingPointWeek;
-
-  /**
-   * @dev represents one user Lock
-   */
   struct Lock {
     address account;
     address delegate;
   }
-
+  /**
+   * @dev Mapping of lock identifiers to Lock structs
+   */
   mapping(uint256 => Lock) locks;
-
   struct Account {
     LibBrokenLine.BrokenLine balance;
     LibBrokenLine.BrokenLine locked;
     uint96 amount;
   }
-
+  /**
+   * @dev Mapping of addresses to Account structs
+   */
   mapping(address => Account) accounts;
+  /**
+   * @dev Total supply line of veMento
+   */
   LibBrokenLine.BrokenLine public totalSupplyLine;
-
   /**
    * @dev Emitted when create Lock with parameters (account, delegate, amount, slopePeriod, cliff)
    */
@@ -135,6 +142,13 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   event SetStartingPointWeek(uint256 indexed newStartingPointWeek);
 
+  /**
+   * @dev Initializes the contract with token, starting point week, and minimum cliff and slope periods.
+   * @param _token ERC20 token to be locked. (Mento Token)
+   * @param _startingPointWeek Origin week no for the week-based time system.
+   * @param _minCliffPeriod Minimum cliff period for locks.
+   * @param _minSlopePeriod Minimum slope period for locks.
+   */
   function __LockingBase_init_unchained(
     IERC20Upgradeable _token,
     uint32 _startingPointWeek,
@@ -151,6 +165,16 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     minSlopePeriod = _minSlopePeriod;
   }
 
+  /**
+   * @dev Adds a new locking line for an account, initializing the lock with specified parameters.
+   * @param account  Account for which tokens are being locked.
+   * @param _delegate Address that will receive the voting power from the locked tokens.
+   * @param amount Amount of tokens to lock.
+   * @param slopePeriod Period over which the tokens will unlock.
+   * @param cliff Initial period during which tokens remain locked and do not start unlocking.
+   * @param time Week number when the line is added.
+   * @param currentBlock Current block number.
+   */
   function addLines(
     address account,
     address _delegate,
