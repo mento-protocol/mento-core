@@ -45,16 +45,16 @@ abstract contract LockingRelock is LockingBase {
 
   /**
    * @notice Verifies parameters for relock
+   * @dev Verification parameters:
+   *      1. amount > 0, slope > 0
+   *      2. cliff period and slope period less or equal two years
+   *      3. newFinishTime more or equal oldFinishTime
    * @param account address of account that owns the old lock
    * @param id lock id of lock to relock
    * @param newAmount new amount to lock
    * @param newSlopePeriod new slope period
    * @param newCliff new cliff period
    * @param toTime current week number
-   * @dev Verification parameters:
-   *      1. amount > 0, slope > 0
-   *      2. cliff period and slope period less or equal two years
-   *      3. newFinishTime more or equal oldFinishTime
    */
   function verification(
     address account,
