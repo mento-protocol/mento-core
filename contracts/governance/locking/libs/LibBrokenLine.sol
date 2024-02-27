@@ -322,7 +322,7 @@ library LibBrokenLine {
   /**
    * @notice Safely casts a uint96 to an int96
    * @param value the uint96 to cast
-   * @return the int96 represesntation of the given uint96 value
+   * @return result the int96 represesntation of the given uint96 value
    */
   function safeInt(uint96 value) internal pure returns (int96 result) {
     require(value < 2**95, "int cast error");
@@ -334,7 +334,6 @@ library LibBrokenLine {
    * @param brokenLine The BrokenLine that will be snapshotted
    * @param epoch The week number of the snapshot
    * @param blockNumber The block number of the snapshot
-   * @return the int96 represesntation of the given uint96 value
    */
   function saveSnapshot(
     BrokenLine storage brokenLine,
