@@ -9,6 +9,15 @@ import "./LockingBase.sol";
 abstract contract LockingRelock is LockingBase {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
 
+  /**
+   * @notice relock tokens allows to change lock parameters
+   * @param id lock id of lock to relock
+   * @param newDelegate new delegate address
+   * @param newAmount new amount to lock
+   * @param newSlopePeriod new slope period
+   * @param newCliff new cliff period
+   * @return counter new lock id
+   */
   function relock(
     uint256 id,
     address newDelegate,
@@ -35,6 +44,13 @@ abstract contract LockingRelock is LockingBase {
   }
 
   /**
+   * @notice Verifies parameters for relock
+   * @param account address of account that owns the old lock
+   * @param id lock id of lock to relock
+   * @param newAmount new amount to lock
+   * @param newSlopePeriod new slope period
+   * @param newCliff new cliff period
+   * @param toTime current week number
    * @dev Verification parameters:
    *      1. amount > 0, slope > 0
    *      2. cliff period and slope period less or equal two years
@@ -71,6 +87,13 @@ abstract contract LockingRelock is LockingBase {
     }
   }
 
+  /**
+   * @notice removes a given lock from the lock owner, delegate and total supply
+   * @param id lock id of lock to remove
+   * @param account address of account that owns the lock
+   * @param delegate address of delegate that owns the voting power
+   * @return residue amount of tokens still locked in the old lock
+   */
   function removeLines(
     uint256 id,
     address account,
@@ -86,6 +109,14 @@ abstract contract LockingRelock is LockingBase {
     // slither-disable-end unused-return
   }
 
+  /**
+   * @notice rebalances additional tokens for the relock
+   * @param id lock id of lock to relock
+   * @param account address of account that owns the old lock
+   * @param bias bias of the old lock
+   * @param residue amount of tokens still locked in the old lock
+   * @param newAmount new amount to lock
+   */
   function rebalance(
     uint256 id,
     address account,
