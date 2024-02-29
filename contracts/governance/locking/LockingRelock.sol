@@ -10,7 +10,7 @@ abstract contract LockingRelock is LockingBase {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
 
   /**
-   * @notice relock tokens allows to change lock parameters
+   * @notice Relocking tokens allows to changing lock parameters
    * @param id lock id of lock to relock
    * @param newDelegate new delegate address
    * @param newAmount new amount to lock
@@ -88,7 +88,7 @@ abstract contract LockingRelock is LockingBase {
   }
 
   /**
-   * @notice removes a given lock from the lock owner, delegate and total supply
+   * @notice Removes a given lock from the lock owner, delegate and total supply
    * @param id lock id of lock to remove
    * @param account address of account that owns the lock
    * @param delegate address of delegate that owns the voting power
@@ -110,7 +110,7 @@ abstract contract LockingRelock is LockingBase {
   }
 
   /**
-   * @notice rebalances additional tokens for the relock
+   * @notice Rebalances additional tokens for the relock
    * @param id lock id of lock to relock
    * @param account address of account that owns the old lock
    * @param bias bias of the old lock

@@ -10,14 +10,14 @@ import "./libs/LibBrokenLine.sol";
 /**
  * @title LockingBase
  * @dev This abstract contract provides the foundational functionality
- * for locking ERC20 tokens to accrue voting power over time.
+ * for locking ERC20 tokens to accrue voting power.
  * @dev It utilizes the Broken Line library to represent the decay of voting power as tokens unlock.
  * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb
  */
 abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
   /**
-   * @dev Duration of a week in blocks on the CELO blockchain
+   * @dev Duration of a week in blocks on the CELO blockchain assuming 5 seconds per block
    */
   uint32 public constant WEEK = 120_960;
   /**
@@ -45,7 +45,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   bool public stopped;
   /**
-   * @dev Address to migrate locks to, if any
+   * @dev Address to migrate locks to. Is zero if not in migration state
    */
   address public migrateTo;
   /**
@@ -57,7 +57,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   uint256 public minSlopePeriod;
   /**
-   * @dev Starting point for the locking week-based time system
+   * @dev Starting point week for the locking week-based time system
    */
   uint256 public startingPointWeek;
   /**
@@ -157,7 +157,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
    * @dev Initializes the contract with token, starting point week, and minimum cliff and slope periods.
    * @param _token ERC20 token to be locked. (Mento Token)
-   * @param _startingPointWeek Origin week no for the week-based time system.
+   * @param _startingPointWeek Origin week number for the week-based time system.
    * @param _minCliffPeriod Minimum cliff period for locks.
    * @param _minSlopePeriod Minimum slope period for locks.
    */
@@ -212,7 +212,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice updates broken lines for account and delegate, and total supply
+   * @notice Updates broken lines for account, delegate and total supply
    * @param account address of account that locked tokens
    * @param _delegate address of delegate that owns the voting power
    * @param time week number till which to update lines
@@ -228,7 +228,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice calculates lockAmount and lockSlope for given lock parameters
+   * @notice Calculates lockAmount and lockSlope for given lock parameters
    * @dev Сalculate and return (lockAmount, lockSlope), using formula:
    * P = t * min(c/c_max + s/s_max, 1),
    *
@@ -277,7 +277,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice calculates a divided by b rounded up
+   * @notice Calculates a divided by b rounded up
    * @param a numerator
    * @param b denominator
    * @return ⌈a/b⌉
@@ -287,9 +287,9 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice calculates the week number for a given blocknumber
+   * @notice Calculates the week number for a given blocknumber
    * @param ts block number
-   * @return week number blocknumber belongs to
+   * @return week number the block number belongs to
    */
   function roundTimestamp(uint32 ts) public view returns (uint32) {
     if (ts < getEpochShift()) {
@@ -308,7 +308,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice verifies msg.sender is lock owner
+   * @notice Verifies msg.sender is lock owner
    * @param id lock id to verify
    * @return account address of lock owner
    */
@@ -318,7 +318,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice returns the current block number as a uint32
+   * @notice Returns the current block number as a uint32
    * @return current block number
    */
   function getBlockNumber() internal view virtual returns (uint32) {
@@ -326,7 +326,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice sets the starting point for the week-based time system
+   * @notice Sets the starting point for the week-based time system
    * @param newStartingPointWeek new starting point
    */
   function setStartingPointWeek(uint32 newStartingPointWeek) public notStopped notMigrating onlyOwner {
@@ -337,7 +337,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice sets the minimum cliff period
+   * @notice Sets the minimum cliff period
    * @param newMinCliffPeriod new minimum cliff period
    */
   function setMinCliffPeriod(uint32 newMinCliffPeriod) external notStopped notMigrating onlyOwner {
@@ -348,7 +348,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice sets the minimum slope period
+   * @notice Sets the minimum slope period
    * @param newMinSlopePeriod new minimum slope period
    */
   function setMinSlopePeriod(uint32 newMinSlopePeriod) external notStopped notMigrating onlyOwner {
@@ -375,7 +375,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @dev Throws if migrating
+   * @dev Throws if migration is active
    */
   modifier notMigrating() {
     require(migrateTo == address(0), "migrating");
@@ -383,9 +383,9 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice updates the broken lines for an account till a given week number
+   * @notice Updates the broken lines for an account until a given week number
    * @param account address of account to update
-   * @param time week number till which to update lines
+   * @param time week number until which to update lines
    */
   function updateAccountLines(address account, uint32 time) public notStopped notMigrating onlyOwner {
     accounts[account].balance.update(time);
@@ -393,17 +393,17 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice updates the total supply line till a given week number
-   * @param time week number till which to update lines
+   * @notice updates the total supply line until a given week number
+   * @param time week number until which to update lines
    */
   function updateTotalSupplyLine(uint32 time) public notStopped notMigrating onlyOwner {
     totalSupplyLine.update(time);
   }
 
   /**
-   * @notice updates the broken lines for an account till a given block number
+   * @notice updates the broken lines for an account until a given block number
    * @param account address of account to update
-   * @param blockNumber block number till which to update lines
+   * @param blockNumber block number until which to update lines
    */
   function updateAccountLinesBlockNumber(address account, uint32 blockNumber)
     external
@@ -416,8 +416,8 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice updates the total supply line till a given block number
-   * @param blockNumber block number till which to update line
+   * @notice Updates the total supply line until a given block number
+   * @param blockNumber block number until which to update line
    */
   function updateTotalSupplyLineBlockNumber(uint32 blockNumber) external notStopped notMigrating onlyOwner {
     uint32 time = roundTimestamp(blockNumber);

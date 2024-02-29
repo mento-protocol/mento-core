@@ -54,7 +54,7 @@ library LibBrokenLine {
   }
 
   /**
-   * @notice adds a line to a given BrokenLine struct
+   * @notice Adds a line to a given BrokenLine struct
    * @dev Add Line, save data in LineData. Run update BrokenLine, require:
    *      1. slope != 0, slope <= bias
    *      2. line not exists
@@ -100,7 +100,7 @@ library LibBrokenLine {
   }
 
   /**
-   * @notice adds a line to a given BrokenLine struct and saves a snapshot
+   * @notice Adds a line to a given BrokenLine struct and saves a snapshot
    * @param brokenLine the BrokenLine struct to add the line to
    * @param id the id of the line to add
    * @param line the line to add
@@ -117,7 +117,7 @@ library LibBrokenLine {
   }
 
   /**
-   * @notice removes a line from a given BrokenLine struct
+   * @notice Removes a line from a given BrokenLine struct
    * @param brokenLine the BrokenLine struct to remove the line from
    * @param id the id of the line to remove
    * @param toTime current week number
@@ -187,7 +187,7 @@ library LibBrokenLine {
   }
 
   /**
-   * @notice removes a line from a given BrokenLine struct and saves a snapshot
+   * @notice Removes a line from a given BrokenLine struct and saves a snapshot
    * @param brokenLine the BrokenLine struct to remove the line from
    * @param id the id of the line to remove
    * @param toTime current week number
@@ -214,7 +214,7 @@ library LibBrokenLine {
   }
 
   /**
-   * @notice updates a given BrokenLine till a given week number
+   * @notice Updates a given BrokenLine until a given week number
    * @param brokenLine the BrokenLine struct to update
    * @param toTime the week number to update the BrokenLine to
    */
@@ -243,7 +243,7 @@ library LibBrokenLine {
   }
 
   /**
-   * @notice returns y value of a given BrokenLine at a given week and block number
+   * @notice Returns y value of a given BrokenLine at a given week and block number
    * @param brokenLine the BrokenLine struct to get the value from
    * @param toTime the week number to get the value at
    * @param toBlock the block number to get the value at
@@ -269,9 +269,9 @@ library LibBrokenLine {
   }
 
   /**
-   * @notice calculates and returns the y value of a given BrokenLine for given a week
+   * @notice Calculates and returns the y value of a given BrokenLine for given a week
    * @dev calculates the y value at toTime by applying the slope to the bias starting at the fromTime.
-   *      Per week the slope is updated by the slopeChanges map until the toTime is reached.
+   * Per week the slope is updated by the slopeChanges map until the toTime is reached.
    * @param brokenLine the BrokenLine struct to calculate the value for
    * @param fromTime the week number to start the calculation from
    * @param toTime the week number to calculate the value at
@@ -304,7 +304,7 @@ library LibBrokenLine {
   }
 
   /**
-   * @notice finds the closest snapshot to a given block number and calculates the y value based on that.
+   * @notice Finds the closest snapshot to a given block number and calculates the y value based on that.
    * @param brokenLine the BrokenLine struct to calculate the value for
    * @param toTime the week number to get the y value at
    * @param toBlock the block number to get the y value at
