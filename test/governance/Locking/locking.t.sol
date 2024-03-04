@@ -390,4 +390,50 @@ contract Lock_Locking_Test is Locking_Test {
     vm.expectRevert("block not yet mined");
     locking.getPastTotalSupply(currentBlock);
   }
+
+  function test_setMinCliffPeriod_setMinSlope_whenNotOwner_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    locking.setMinCliffPeriod(3);
+
+    vm.expectRevert("Ownable: caller is not the owner");
+    locking.setMinSlopePeriod(3);
+  }
+
+  function test_setMinCliffPeriod_setMinSlope_whenExceedsMax_shouldRevert() public {
+    vm.prank(owner);
+    vm.expectRevert("new cliff period > 2 years");
+    locking.setMinCliffPeriod(104);
+
+    vm.prank(owner);
+    vm.expectRevert("new slope period > 2 years");
+    locking.setMinSlopePeriod(105);
+  }
+
+  function test_setMinCliffPeriod_shouldSetCliff() public {
+    vm.prank(owner);
+    locking.setMinCliffPeriod(5);
+    assertEq(locking.minCliffPeriod(), 5);
+
+    vm.prank(owner);
+    locking.setMinCliffPeriod(103);
+    assertEq(locking.minCliffPeriod(), 103);
+
+    vm.prank(owner);
+    locking.setMinCliffPeriod(0);
+    assertEq(locking.minCliffPeriod(), 0);
+  }
+
+  function test_setMinSlopePeriod_shouldSetSlope() public {
+    vm.prank(owner);
+    locking.setMinSlopePeriod(5);
+    assertEq(locking.minSlopePeriod(), 5);
+
+    vm.prank(owner);
+    locking.setMinSlopePeriod(104);
+    assertEq(locking.minSlopePeriod(), 104);
+
+    vm.prank(owner);
+    locking.setMinSlopePeriod(1);
+    assertEq(locking.minSlopePeriod(), 1);
+  }
 }
