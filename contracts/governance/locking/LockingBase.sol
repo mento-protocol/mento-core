@@ -34,11 +34,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   bool public stopped;
 
   /**
-   * @dev address to migrate Locks to (zero if not in migration state)
-   */
-  address public migrateTo;
-
-  /**
    * @dev minimal cliff period in weeks, minCliffPeriod < MAX_CLIFF_PERIOD
    */
 
@@ -107,10 +102,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   event Withdraw(address indexed account, uint256 amount);
   /**
-   * @dev Emitted when migrate Locks with given id, account - msg.sender
-   */
-  event Migrate(address indexed account, uint256[] id);
-  /**
    * @dev Stop run contract functions, accept withdraw, account - msg.sender
    */
   event StopLocking(address indexed account);
@@ -118,10 +109,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @dev Start run contract functions, accept withdraw, account - msg.sender
    */
   event StartLocking(address indexed account);
-  /**
-   * @dev StartMigration initiate migration to another contract, account - msg.sender, to - address delegate to
-   */
-  event StartMigration(address indexed account, address indexed to);
   /**
    * @dev set newMinCliffPeriod
    */
@@ -259,21 +246,21 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     return uint32(block.number);
   }
 
-  function setStartingPointWeek(uint32 newStartingPointWeek) public notStopped notMigrating onlyOwner {
+  function setStartingPointWeek(uint32 newStartingPointWeek) public notStopped onlyOwner {
     require(newStartingPointWeek < roundTimestamp(getBlockNumber()), "wrong newStartingPointWeek");
     startingPointWeek = newStartingPointWeek;
 
     emit SetStartingPointWeek(newStartingPointWeek);
   }
 
-  function setMinCliffPeriod(uint32 newMinCliffPeriod) external notStopped notMigrating onlyOwner {
+  function setMinCliffPeriod(uint32 newMinCliffPeriod) external notStopped onlyOwner {
     require(newMinCliffPeriod < MAX_CLIFF_PERIOD, "new cliff period > 2 years");
     minCliffPeriod = newMinCliffPeriod;
 
     emit SetMinCliffPeriod(newMinCliffPeriod);
   }
 
-  function setMinSlopePeriod(uint32 newMinSlopePeriod) external notStopped notMigrating onlyOwner {
+  function setMinSlopePeriod(uint32 newMinSlopePeriod) external notStopped onlyOwner {
     require(newMinSlopePeriod < MAX_SLOPE_PERIOD, "new slope period > 2 years");
     minSlopePeriod = newMinSlopePeriod;
 
@@ -296,31 +283,21 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     _;
   }
 
-  modifier notMigrating() {
-    require(migrateTo == address(0), "migrating");
-    _;
-  }
-
-  function updateAccountLines(address account, uint32 time) public notStopped notMigrating onlyOwner {
+  function updateAccountLines(address account, uint32 time) public notStopped onlyOwner {
     accounts[account].balance.update(time);
     accounts[account].locked.update(time);
   }
 
-  function updateTotalSupplyLine(uint32 time) public notStopped notMigrating onlyOwner {
+  function updateTotalSupplyLine(uint32 time) public notStopped onlyOwner {
     totalSupplyLine.update(time);
   }
 
-  function updateAccountLinesBlockNumber(address account, uint32 blockNumber)
-    external
-    notStopped
-    notMigrating
-    onlyOwner
-  {
+  function updateAccountLinesBlockNumber(address account, uint32 blockNumber) external notStopped onlyOwner {
     uint32 time = roundTimestamp(blockNumber);
     updateAccountLines(account, time);
   }
 
-  function updateTotalSupplyLineBlockNumber(uint32 blockNumber) external notStopped notMigrating onlyOwner {
+  function updateTotalSupplyLineBlockNumber(uint32 blockNumber) external notStopped onlyOwner {
     uint32 time = roundTimestamp(blockNumber);
     updateTotalSupplyLine(time);
   }
