@@ -45,7 +45,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   bool public stopped;
   /**
-   * @dev minimal cliff period in weeks, minCliffPeriod < MAX_CLIFF_PERIOD
+   * @dev Minimum cliff period in weeks
    */
   uint256 public minCliffPeriod;
   /**
