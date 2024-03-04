@@ -267,14 +267,14 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   function setMinCliffPeriod(uint32 newMinCliffPeriod) external notStopped notMigrating onlyOwner {
-    require(newMinCliffPeriod < MAX_CLIFF_PERIOD, "new cliff period > 2 years");
+    require(newMinCliffPeriod <= MAX_CLIFF_PERIOD, "new cliff period > 2 years");
     minCliffPeriod = newMinCliffPeriod;
 
     emit SetMinCliffPeriod(newMinCliffPeriod);
   }
 
   function setMinSlopePeriod(uint32 newMinSlopePeriod) external notStopped notMigrating onlyOwner {
-    require(newMinSlopePeriod < MAX_SLOPE_PERIOD, "new slope period > 2 years");
+    require(newMinSlopePeriod <= MAX_SLOPE_PERIOD, "new slope period > 2 years");
     minSlopePeriod = newMinSlopePeriod;
 
     emit SetMinSlopePeriod(newMinSlopePeriod);
