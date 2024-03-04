@@ -9,11 +9,21 @@ import "./LockingVotes.sol";
 import "./interfaces/ILocking.sol";
 
 /**
+ * @title Locking
+ * @notice Implements locking mechanism for tokens to enable voting power accumulation
  * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb
  */
 contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
 
+  /**
+   * @notice Initializes the locking contract.
+   * @dev Sets up the base locking parameters and initializes ownership and context setup
+   * @param _token Address of the ERC20 that will be locked. (Mento Token)
+   * @param _startingPointWeek Origin week number for the week-based time system
+   * @param _minCliffPeriod Minimum cliff period for locks
+   * @param _minSlopePeriod Minimum slope period for locks
+   */
   function __Locking_init(
     IERC20Upgradeable _token,
     uint32 _startingPointWeek,
@@ -25,22 +35,46 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     __Context_init_unchained();
   }
 
+  /**
+   * @notice Stops the locking functionality
+   * @dev Can only be called by the owner while locking is active (meaning not stopped)
+   */
   function stop() external onlyOwner notStopped {
     stopped = true;
     emit StopLocking(msg.sender);
   }
 
+  /**
+   * @notice Restarts the locking functionality after it has been stopped
+   * @dev Can only be called by the owner while locking is stopped
+   */
   function start() external onlyOwner isStopped {
     stopped = false;
     emit StartLocking(msg.sender);
   }
 
+  /**
+   * @notice Begins the migration process to a new contract
+   * @dev Can only be called by the owner
+   * @param to Address of the new contract where future operations will be migrated to
+   */
   function startMigration(address to) external onlyOwner {
     // slither-disable-next-line missing-zero-check
     migrateTo = to;
     emit StartMigration(msg.sender, to);
   }
 
+  /**
+   * @notice Locks a specified amount of tokens for a given period
+   * @dev Can not be called when locking is stopped or migration is in progress
+   * @param account Account for which tokens are being locked
+   * @param _delegate Address that will receive the voting power from the locked tokens
+   * If address(0) passed, voting power will be lost
+   * @param amount Amount of tokens to lock
+   * @param slopePeriod Period over which the tokens will unlock
+   * @param cliff Initial period during which tokens remain locked and do not start unlocking
+   * @return Id for the created lock
+   */
   function lock(
     address account,
     address _delegate,
@@ -66,6 +100,9 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     return counter;
   }
 
+  /**
+   * @notice Withdraws unlocked tokens for the caller
+   */
   function withdraw() external {
     uint96 value = getAvailableForWithdraw(msg.sender);
     if (value > 0) {
@@ -76,7 +113,11 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     emit Withdraw(msg.sender, value);
   }
 
-  // Amount available for withdrawal
+  /**
+   * @notice Calculates the amount available for withdrawal by an account
+   * @param account The account to check the withdrawable amount for
+   * @return The amount of tokens available for withdrawal
+   */
   function getAvailableForWithdraw(address account) public view returns (uint96) {
     uint96 value = accounts[account].amount;
     if (!stopped) {
@@ -88,22 +129,41 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     return value;
   }
 
-  //Remaining locked amount
+  /**
+   * @notice Returns the total amount of tokens locked for an account
+   * @param account The account to check locked amount for
+   * @return The locked amount for the account
+   */
   function locked(address account) external view returns (uint256) {
     return accounts[account].amount;
   }
 
-  //For a given Line id, the owner and delegate addresses.
+  /**
+   * @notice Retrieves the account and delegate associated with a given lock ID
+   * @param id The id of the lock
+   * @return _account The account that owns the lock
+   * @return _delegate The account that owns the voting power
+   */
   function getAccountAndDelegate(uint256 id) external view returns (address _account, address _delegate) {
     _account = locks[id].account;
     _delegate = locks[id].delegate;
   }
 
-  //Getting "current week" of the contract.
+  /**
+   * @notice Returns "current week" of the contract. The Locking contract works with a week-based time system
+   * for managing locks and voting power. The current week number is calculated based on the number of weeks passed
+   * since the starting point week. The starting point is set during the contract initialization.
+   */
   function getWeek() external view returns (uint256) {
     return roundTimestamp(getBlockNumber());
   }
 
+  /**
+   * @notice Changes the delegate for a specific lock
+   * @dev Updates the delegation and adjusts the voting power accordingly
+   * @param id The unique identifier for the lock whose delegate is to be changed
+   * @param newDelegate The address to which the delegation will be transferred
+   */
   function delegateTo(uint256 id, address newDelegate) external notStopped notMigrating {
     address account = verifyLockOwner(id);
     address _delegate = locks[id].delegate;
@@ -118,6 +178,10 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     emit Delegate(id, account, newDelegate, time);
   }
 
+  /**
+   * @notice Returns the current total supply of veMENTO tokens
+   * @return The total supply of veMENTO tokens
+   */
   function totalSupply() external view returns (uint256) {
     if ((totalSupplyLine.initial.bias == 0) || (stopped)) {
       return 0;
@@ -127,6 +191,11 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     return totalSupplyLine.actualValue(time, currentBlock);
   }
 
+  /**
+   * @notice Retrieves the veMENTO balance of an account
+   * @param account The account to check the balance for
+   * @return The accounts balance of veMENTO tokens
+   */
   function balanceOf(address account) external view returns (uint256) {
     if ((accounts[account].balance.initial.bias == 0) || (stopped)) {
       return 0;
@@ -136,6 +205,11 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     return accounts[account].balance.actualValue(time, currentBlock);
   }
 
+  /**
+   * @notice Migrates specified locks to a new contract
+   * @dev Performs the migration by transferring locked tokens and updating delegations as necessary
+   * @param id An array of lock IDs to be migrated
+   */
   function migrate(uint256[] memory id) external {
     if (migrateTo == address(0)) {
       return;
@@ -170,14 +244,23 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     emit Migrate(msg.sender, id);
   }
 
+  /**
+   * @notice Returns the name of the token
+   */
   function name() public view virtual returns (string memory) {
     return "Mento Vote-Escrow";
   }
 
+  /**
+   * @notice Returns the symbol of the token
+   */
   function symbol() public view virtual returns (string memory) {
     return "veMENTO";
   }
 
+  /**
+   * @notice Returns the decimal points of the token
+   */
   function decimals() public view virtual returns (uint8) {
     return 18;
   }
