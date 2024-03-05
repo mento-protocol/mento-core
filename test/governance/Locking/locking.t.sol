@@ -103,6 +103,22 @@ contract Lock_Locking_Test is Locking_Test {
     locking.lock(alice, alice, 20, 40, 0);
   }
 
+  function test_lock_whenAccountZero_shouldRevert() public {
+    mentoToken.mint(alice, 1500);
+
+    vm.expectRevert("account is zero");
+    vm.prank(alice);
+    locking.lock(address(0), alice, 20, 40, 0);
+  }
+
+  function test_lock_whenDelegateZero_shouldRevert() public {
+    mentoToken.mint(alice, 1500);
+
+    vm.expectRevert("delegate is zero");
+    vm.prank(alice);
+    locking.lock(alice, address(0), 20, 40, 0);
+  }
+
   function test_withdraw_whenInSlope_shouldReleaseCorrectAmount() public {
     mentoToken.mint(alice, 1000);
 

@@ -7,6 +7,19 @@ import { Locking_Test } from "./Base.t.sol";
 contract DelegateTo_Locking_Test is Locking_Test {
   uint256 public lockId;
 
+  function test_delegateTo_whenDelegateZero_shouldRevert() public {
+    mentoToken.mint(alice, 100000);
+
+    vm.prank(alice);
+    lockId = locking.lock(alice, bob, 60000, 30, 0);
+
+    _incrementBlock(20 * weekInBlocks);
+
+    vm.prank(alice);
+    vm.expectRevert("delegate is zero");
+    locking.delegateTo(lockId, address(0));
+  }
+
   function test_delegateTo_whenReDelegateToDifferentAccount_shouldDelegateCorrectly() public {
     mentoToken.mint(alice, 100000);
 
