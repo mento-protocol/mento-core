@@ -263,6 +263,7 @@ contract GovernanceFactory is Ownable {
       )
     );
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
+    assert(address(mentoGovernor) == governorPrecalculated);
 
     // =============================================
     // =========== Configure Ownership =============
