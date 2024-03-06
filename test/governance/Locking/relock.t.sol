@@ -7,6 +7,19 @@ import { Locking_Test } from "./Base.t.sol";
 contract Relock_Locking_Test is Locking_Test {
   uint256 public lockId;
 
+  function test_relock_whenDelegateZero_shouldRevert() public {
+    mentoToken.mint(alice, 100);
+
+    vm.prank(alice);
+    lockId = locking.lock(alice, alice, 30, 3, 3);
+
+    _incrementBlock(2 * weekInBlocks);
+
+    vm.expectRevert("delegate is zero");
+    vm.prank(alice);
+    locking.relock(lockId, address(0), 30, 3, 3);
+  }
+
   function test_relock_whenInCliff_shouldRelockWithIncreasedAmount() public {
     mentoToken.mint(alice, 100);
 

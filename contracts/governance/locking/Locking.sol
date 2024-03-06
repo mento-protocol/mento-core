@@ -55,9 +55,9 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
   /**
    * @notice Locks a specified amount of tokens for a given period
    * @dev Can not be called when locking is stopped
+   * @dev Delegate is not optional, it can be set to the lock owner if no delegate is desired
    * @param account Account for which tokens are being locked
    * @param _delegate Address that will receive the voting power from the locked tokens
-   * If address(0) passed, voting power will be lost
    * @param amount Amount of tokens to lock
    * @param slopePeriod Period over which the tokens will unlock
    * @param cliff Initial period during which tokens remain locked and do not start unlocking
@@ -73,6 +73,8 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     require(amount > 0, "zero amount");
     require(cliff <= MAX_CLIFF_PERIOD, "cliff too big");
     require(slopePeriod <= MAX_SLOPE_PERIOD, "period too big");
+    require(account != address(0), "account is zero");
+    require(_delegate != address(0), "delegate is zero");
 
     counter++;
 
@@ -153,6 +155,8 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
    * @param newDelegate The address to which the delegation will be transferred
    */
   function delegateTo(uint256 id, address newDelegate) external notStopped {
+    require(newDelegate != address(0), "delegate is zero");
+
     address account = verifyLockOwner(id);
     address _delegate = locks[id].delegate;
     uint32 currentBlock = getBlockNumber();

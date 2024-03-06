@@ -25,6 +25,8 @@ abstract contract LockingRelock is LockingBase {
     uint32 newSlopePeriod,
     uint32 newCliff
   ) external notStopped returns (uint256) {
+    require(newDelegate != address(0), "delegate is zero");
+
     address account = verifyLockOwner(id);
     uint32 currentBlock = getBlockNumber();
     uint32 time = roundTimestamp(currentBlock);
