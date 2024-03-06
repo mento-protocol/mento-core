@@ -333,6 +333,11 @@ contract TestAsserts is Test {
 
     while (limitState.netflow1 - maxPerSwap >= -1 * limitConfig.limit1) {
       skip(limitConfig.timestep0 + 1);
+      // Check that there's still outflow to trade as sometimes we hit LG while
+      // still having a bit of L1 left, which causes an infinite loop.
+      if (ctx.maxPossibleOutflow(to) == 0) {
+        break;
+      }
       swapUntilL0_onOutflow(ctx, from, to);
       limitConfig = ctx.tradingLimitsConfig(to);
       limitState = ctx.tradingLimitsState(to);
