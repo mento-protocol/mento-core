@@ -24,7 +24,7 @@ abstract contract LockingRelock is LockingBase {
     uint96 newAmount,
     uint32 newSlopePeriod,
     uint32 newCliff
-  ) external notStopped notMigrating returns (uint256) {
+  ) external notStopped returns (uint256) {
     address account = verifyLockOwner(id);
     uint32 currentBlock = getBlockNumber();
     uint32 time = roundTimestamp(currentBlock);

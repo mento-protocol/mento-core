@@ -2,7 +2,6 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase
 
-import "./interfaces/INextVersionLock.sol";
 import "./LockingBase.sol";
 import "./LockingRelock.sol";
 import "./LockingVotes.sol";
@@ -54,19 +53,8 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
   }
 
   /**
-   * @notice Begins the migration process to a new contract
-   * @dev Can only be called by the owner
-   * @param to Address of the new contract where future operations will be migrated to
-   */
-  function startMigration(address to) external onlyOwner {
-    // slither-disable-next-line missing-zero-check
-    migrateTo = to;
-    emit StartMigration(msg.sender, to);
-  }
-
-  /**
    * @notice Locks a specified amount of tokens for a given period
-   * @dev Can not be called when locking is stopped or migration is in progress
+   * @dev Can not be called when locking is stopped
    * @param account Account for which tokens are being locked
    * @param _delegate Address that will receive the voting power from the locked tokens
    * If address(0) passed, voting power will be lost
@@ -81,7 +69,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     uint96 amount,
     uint32 slopePeriod,
     uint32 cliff
-  ) external override notStopped notMigrating returns (uint256) {
+  ) external override notStopped returns (uint256) {
     require(amount > 0, "zero amount");
     require(cliff <= MAX_CLIFF_PERIOD, "cliff too big");
     require(slopePeriod <= MAX_SLOPE_PERIOD, "period too big");
@@ -164,7 +152,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
    * @param id The unique identifier for the lock whose delegate is to be changed
    * @param newDelegate The address to which the delegation will be transferred
    */
-  function delegateTo(uint256 id, address newDelegate) external notStopped notMigrating {
+  function delegateTo(uint256 id, address newDelegate) external notStopped {
     address account = verifyLockOwner(id);
     address _delegate = locks[id].delegate;
     uint32 currentBlock = getBlockNumber();
@@ -203,45 +191,6 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     uint32 currentBlock = getBlockNumber();
     uint32 time = roundTimestamp(currentBlock);
     return accounts[account].balance.actualValue(time, currentBlock);
-  }
-
-  /**
-   * @notice Migrates specified locks to a new contract
-   * @dev Performs the migration by transferring locked tokens and updating delegations as necessary
-   * @param id An array of lock IDs to be migrated
-   */
-  function migrate(uint256[] memory id) external {
-    if (migrateTo == address(0)) {
-      return;
-    }
-    uint32 currentBlock = getBlockNumber();
-    uint32 time = roundTimestamp(currentBlock);
-    INextVersionLock nextVersionLock = INextVersionLock(migrateTo);
-    for (uint256 i = 0; i < id.length; ++i) {
-      address account = verifyLockOwner(id[i]);
-      address _delegate = locks[id[i]].delegate;
-      updateLines(account, _delegate, time);
-      //save data Line before remove
-      LibBrokenLine.Line memory line = accounts[account].locked.initiatedLines[id[i]];
-      // slither-disable-start unused-return
-      (uint96 residue, , ) = accounts[account].locked.remove(id[i], time, currentBlock);
-
-      accounts[account].amount = accounts[account].amount - (residue);
-
-      accounts[_delegate].balance.remove(id[i], time, currentBlock);
-      totalSupplyLine.remove(id[i], time, currentBlock);
-      // slither-disable-end unused-return
-      // slither-disable-start reentrancy-no-eth
-      // slither-disable-start reentrancy-events
-      // slither-disable-start calls-loop
-      nextVersionLock.initiateData(id[i], line, account, _delegate);
-
-      require(token.transfer(migrateTo, residue), "transfer failed");
-      // slither-disable-end reentrancy-no-eth
-      // slither-disable-end reentrancy-events
-      // slither-disable-end calls-loop
-    }
-    emit Migrate(msg.sender, id);
   }
 
   /**
