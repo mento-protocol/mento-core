@@ -22,7 +22,7 @@ jobs:
           - contracts/swap/BiPoolManager.sol:BiPoolManager
           - contracts/swap/Reserve.sol:Reserve
           - contracts/oracles/BreakerBox.sol:BreakerBox
-          - contracts/oracles/SortedOracles.sol:SortedOracles
+          - contracts/common/SortedOracles.sol:SortedOracles
           - contracts/tokens/StableTokenV2.sol:StableTokenV2
     steps:
       - uses: actions/checkout@v3
