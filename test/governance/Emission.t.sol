@@ -13,6 +13,7 @@ contract EmissionTest is TestSetup {
   address public emissionTarget;
 
   uint256 public constant NEGLIGIBLE_AMOUNT = 2e18;
+  uint256 public constant TOTAL_EMISSION_SUPPLY = 650_000_000e18;
 
   event TokenContractSet(address newTokenAddress);
   event EmissionTargetSet(address newTargetAddress);
@@ -24,7 +25,7 @@ contract EmissionTest is TestSetup {
 
     emission = new Emission(false);
     vm.prank(owner);
-    emission.initialize(address(mentoToken), emissionTarget);
+    emission.initialize(address(mentoToken), emissionTarget, TOTAL_EMISSION_SUPPLY);
   }
 
   function test_initialize_shouldSetOwner() public {

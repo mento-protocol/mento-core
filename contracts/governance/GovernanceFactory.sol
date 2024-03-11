@@ -116,8 +116,8 @@ contract GovernanceFactory is Ownable {
     celoCommunityFund = celoCommunityFund_;
 
     // Precalculated contract addresses:
-    address emissionPrecalculated = addressForNonce(3);
-    address tokenPrecalculated = addressForNonce(4);
+    address tokenPrecalculated = addressForNonce(2);
+    address emissionPrecalculated = addressForNonce(4);
     address airgrabPrecalculated = addressForNonce(5);
     address lockingPrecalculated = addressForNonce(7);
     address governanceTimelockPrecalculated = addressForNonce(9);
@@ -131,28 +131,9 @@ contract GovernanceFactory is Ownable {
     // =========================================
     proxyAdmin = ProxyDeployerLib.deployAdmin(); // NONCE:1
 
-    // =========================================
-    // ========== Deploy 2: Emission ===========
-    // =========================================
-    Emission emissionImpl = EmissionDeployerLib.deploy(); // NONCE:2
-    // slither-disable-next-line reentrancy-benign
-    TransparentUpgradeableProxy emissionProxy = ProxyDeployerLib.deployProxy( // NONCE:3
-      address(emissionImpl),
-      address(proxyAdmin),
-      abi.encodeWithSelector(
-        emissionImpl.initialize.selector,
-        tokenPrecalculated, ///             @param mentoToken_ The address of the MentoToken contract.
-        governanceTimelockPrecalculated ///  @param governanceTimelock_ The address of the mento treasury contract.
-      )
-    );
-
-    emission = Emission(address(emissionProxy));
-    assert(address(emission) == emissionPrecalculated);
-
     // ===========================================
-    // ========== Deploy 3: MentoToken ===========
+    // ========== Deploy 2: MentoToken ===========
     // ===========================================
-
     uint256 numberOfRecipients = allocationParams.additionalAllocationRecipients.length + 2;
     address[] memory allocationRecipients = new address[](numberOfRecipients);
     uint256[] memory allocationAmounts = new uint256[](numberOfRecipients);
@@ -167,14 +148,33 @@ contract GovernanceFactory is Ownable {
       allocationAmounts[i + 2] = allocationParams.additionalAllocationAmounts[i];
     }
 
-    mentoToken = MentoTokenDeployerLib.deploy( // NONCE:4
+    mentoToken = MentoTokenDeployerLib.deploy( // NONCE:2
       allocationRecipients,
       allocationAmounts,
-      address(emission),
+      emissionPrecalculated,
       lockingPrecalculated
     );
 
     assert(address(mentoToken) == tokenPrecalculated);
+
+    // =========================================
+    // ========== Deploy 3: Emission ===========
+    // =========================================
+    Emission emissionImpl = EmissionDeployerLib.deploy(); // NONCE:3
+    // slither-disable-next-line reentrancy-benign
+    TransparentUpgradeableProxy emissionProxy = ProxyDeployerLib.deployProxy( // NONCE:4
+      address(emissionImpl),
+      address(proxyAdmin),
+      abi.encodeWithSelector(
+        emissionImpl.initialize.selector,
+        tokenPrecalculated, ///               @param mentoToken_ The address of the MentoToken contract.
+        governanceTimelockPrecalculated, ///  @param governanceTimelock_ The address of the mento treasury contract.
+        mentoToken.emissionSupply() ///       @param emissionSupply_ The total amount of tokens that can be emitted.
+      )
+    );
+
+    emission = Emission(address(emissionProxy));
+    assert(address(emission) == emissionPrecalculated);
 
     // ========================================
     // ========== Deploy 4: Airgrab ===========
