@@ -168,6 +168,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(emission.emissionStartTime(), block.timestamp);
     assertEq(address(emission.mentoToken()), address(mentoToken));
     assertEq(emission.emissionTarget(), address(governanceTimelockAddress));
+    assertEq(emission.emissionSupply(), 650_000_000 * 10**18);
     assertEq(emission.owner(), governanceTimelockAddress);
 
     assertEq(airgrab.root(), merkleRoot);
