@@ -24,7 +24,7 @@ contract EmissionTest is TestSetup {
 
     emission = new Emission(false);
     vm.prank(owner);
-    emission.initialize(address(mentoToken), emissionTarget);
+    emission.initialize(address(mentoToken), emissionTarget, EMISSION_SUPPLY);
   }
 
   function test_initialize_shouldSetOwner() public {

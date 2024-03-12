@@ -10,9 +10,6 @@ import { MentoToken } from "./MentoToken.sol";
  * @notice This contract handles the emission of Mento Tokens in an exponentially decaying manner.
  */
 contract Emission is OwnableUpgradeable {
-  /// @notice The max amount that will be minted through emission
-  uint256 public constant TOTAL_EMISSION_SUPPLY = 650_000_000 * 10**18;
-
   /// @notice Pre-calculated constant = EMISSION_HALF_LIFE / LN2.
   uint256 public constant A = 454968308;
 
@@ -24,6 +21,9 @@ contract Emission is OwnableUpgradeable {
 
   /// @notice The MentoToken contract reference.
   MentoToken public mentoToken;
+
+  /// @notice The max amount that will be minted through emission
+  uint256 public emissionSupply;
 
   /// @notice The target address where emitted tokens are sent.
   address public emissionTarget;
@@ -52,12 +52,18 @@ contract Emission is OwnableUpgradeable {
    * @notice Initialize the Emission contract.
    * @param mentoToken_ The address of the MentoToken contract.
    * @param emissionTarget_ The address of the emission target.
+   * @param emissionSupply_ The total amount of tokens that can be emitted.
    */
-  function initialize(address mentoToken_, address emissionTarget_) public initializer {
+  function initialize(
+    address mentoToken_,
+    address emissionTarget_,
+    uint256 emissionSupply_
+  ) public initializer {
     emissionStartTime = block.timestamp;
     mentoToken = MentoToken(mentoToken_);
     // slither-disable-next-line missing-zero-check
     emissionTarget = emissionTarget_;
+    emissionSupply = emissionSupply_;
     __Ownable_init();
   }
 
@@ -110,11 +116,11 @@ contract Emission is OwnableUpgradeable {
 
     // Avoiding underflow in case the scheduled amount is bigger than the total supply
     if (positiveAggregate < negativeAggregate) {
-      return TOTAL_EMISSION_SUPPLY - totalEmittedAmount;
+      return emissionSupply - totalEmittedAmount;
     }
 
-    uint256 scheduledRemainingSupply = (TOTAL_EMISSION_SUPPLY * (positiveAggregate - negativeAggregate)) / SCALER;
+    uint256 scheduledRemainingSupply = (emissionSupply * (positiveAggregate - negativeAggregate)) / SCALER;
 
-    amount = TOTAL_EMISSION_SUPPLY - scheduledRemainingSupply - totalEmittedAmount;
+    amount = emissionSupply - scheduledRemainingSupply - totalEmittedAmount;
   }
 }
