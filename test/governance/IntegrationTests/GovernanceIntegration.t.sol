@@ -40,7 +40,6 @@ contract GovernanceIntegrationTest is TestSetup {
   Locking public locking;
 
   address public celoGovernance = makeAddr("CeloGovernance");
-  address public celoCommunityFund = makeAddr("CeloCommunityFund");
   address public watchdogMultisig = makeAddr("WatchdogMultisig");
 
   GnosisSafe public safeSingleton;
@@ -135,7 +134,7 @@ contract GovernanceIntegrationTest is TestSetup {
     factory = new GovernanceFactory(celoGovernance);
 
     vm.prank(celoGovernance);
-    factory.createGovernance(watchdogMultisig, celoCommunityFund, merkleRoot, fractalSigner, allocationParams);
+    factory.createGovernance(watchdogMultisig, merkleRoot, fractalSigner, allocationParams);
     proxyAdmin = factory.proxyAdmin();
     mentoToken = factory.mentoToken();
     emission = factory.emission();
@@ -179,7 +178,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(airgrab.cliffPeriod(), 0);
     assertEq(address(airgrab.token()), address(mentoToken));
     assertEq(address(airgrab.locking()), address(locking));
-    assertEq(address(airgrab.celoCommunityFund()), address(celoCommunityFund));
+    assertEq(address(airgrab.mentoTreasury()), address(governanceTimelockAddress));
 
     bytes32 proposerRole = governanceTimelock.PROPOSER_ROLE();
     bytes32 executorRole = governanceTimelock.EXECUTOR_ROLE();
