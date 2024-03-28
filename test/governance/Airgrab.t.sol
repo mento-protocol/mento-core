@@ -37,7 +37,7 @@ contract AirgrabTest is Test {
   Airgrab public airgrab;
   ERC20 public token;
 
-  address payable public celoCommunityFund = payable(makeAddr("CeloCommunityFund"));
+  address payable public mentoTreasury = payable(makeAddr("MentoTreasury"));
   address public fractalSigner;
   uint256 public fractalSignerPk;
   uint256 public otherSignerPk;
@@ -86,7 +86,7 @@ contract AirgrabTest is Test {
       slopePeriod,
       tokenAddress,
       locking,
-      celoCommunityFund
+      mentoTreasury
     );
   }
 
@@ -112,7 +112,7 @@ contract AirgrabTest is Test {
     assertEq(airgrab.slopePeriod(), slopePeriod);
     assertEq(address(airgrab.token()), tokenAddress);
     assertEq(address(airgrab.locking()), locking);
-    assertEq(address(airgrab.celoCommunityFund()), celoCommunityFund);
+    assertEq(address(airgrab.mentoTreasury()), mentoTreasury);
   }
 
   /// @notice Checks the merke root
@@ -157,10 +157,10 @@ contract AirgrabTest is Test {
     c_subject();
   }
 
-  /// @notice Checks the Celo community fund address
-  function test_Constructor_whenInvalidCeloCommunityFund_reverts() public {
-    celoCommunityFund = payable(address(0));
-    vm.expectRevert("Airgrab: invalid celo community fund");
+  /// @notice Checks the Mento Treasury address
+  function test_Constructor_whenInvalidMentoTreasury_reverts() public {
+    mentoTreasury = payable(address(0));
+    vm.expectRevert("Airgrab: invalid Mento Treasury");
     c_subject();
   }
 
@@ -205,18 +205,18 @@ contract AirgrabTest is Test {
     airgrab.drain(tokenAddress);
   }
 
-  /// @notice Drains all tokens to the community fund if the airgrab has ended
+  /// @notice Drains all tokens to the Mento Treasury if the airgrab has ended
   function test_Drain_drains() public d_setUp {
     vm.warp(airgrab.endTimestamp() + 1);
     deal(tokenAddress, address(airgrab), 100e18);
     vm.expectEmit(true, true, true, true);
     emit TokensDrained(tokenAddress, 100e18);
     airgrab.drain(tokenAddress);
-    assertEq(token.balanceOf(celoCommunityFund), 100e18);
+    assertEq(token.balanceOf(mentoTreasury), 100e18);
     assertEq(token.balanceOf(address(airgrab)), 0);
   }
 
-  /// @notice Drains all arbitrary tokens to the Celo community fund if the airgrab has ended
+  /// @notice Drains all arbitrary tokens to the Mento Treasury fund if the airgrab has ended
   function test_Drain_drainsOtherTokens() public d_setUp {
     ERC20 otherToken = new ERC20("Other Token", "OTT");
 
@@ -227,7 +227,7 @@ contract AirgrabTest is Test {
     emit TokensDrained(address(otherToken), 100e18);
     airgrab.drain(address(otherToken));
 
-    assertEq(otherToken.balanceOf(celoCommunityFund), 100e18);
+    assertEq(otherToken.balanceOf(mentoTreasury), 100e18);
     assertEq(otherToken.balanceOf(address(airgrab)), 0);
   }
 
