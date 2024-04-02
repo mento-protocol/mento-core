@@ -31,7 +31,8 @@ contract AirgrabTest is Test {
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
   /// @notice see https://github.com/trustfractal/credentials-api-verifiers#setup
-  string constant EXPECTED_CREDENTIAL = "level:plus;residency_not:ca,us";
+  string constant EXPECTED_CREDENTIAL =
+    "level:plus+liveness;citizenship_not:;residency_not:cd,cu,gb,ir,kp,ml,mm,ss,sy,us,ye";
   string constant OTHER_CREDENTIAL = "level:plus;residency_not:de";
 
   Airgrab public airgrab;

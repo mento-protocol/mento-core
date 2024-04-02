@@ -93,14 +93,9 @@ contract Airgrab is ReentrancyGuard {
         ";",
         Strings.toString(validUntil),
         ";",
-        //  TODO: if we parameterize this at the contract level
-        // it has to go in storage because solidity only supports
-        // immutable base types. One way to work around this would
-        // be to record a hash of this string as an immutable
-        // value during initialization and then pass the actual
-        // string from the caller and just verify its hash.
-        // Otherwise we can just keep it static here.
-        "level:plus;residency_not:ca,us"
+        // ISO 3166-1 alpha-2 country codes
+        // DRC, CUBA, GB, IRAN, DPKR, MALI, MYANMAR, SOUTH SUDAN, SYRIA, US, YEMEN
+        "level:plus+liveness;citizenship_not:;residency_not:cd,cu,gb,ir,kp,ml,mm,ss,sy,us,ye"
       )
     );
 
