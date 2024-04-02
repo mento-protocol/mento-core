@@ -64,7 +64,8 @@ contract GovernanceIntegrationTest is TestSetup {
   uint96 public claimer1Amount = 20_000e18;
   bytes32[] public claimer1Proof = Arrays.bytes32s(0x0294d3fc355e136dd6fea7f5c2934dd7cb67c2b4607110780e5fbb23d65d7ac4);
 
-  string public constant EXPECTED_CREDENTIAL = "level:plus;residency_not:ca,us";
+  string public constant EXPECTED_CREDENTIAL =
+    "level:plus+liveness;citizenship_not:;residency_not:cd,cu,gb,ir,kp,ml,mm,ss,sy,us,ye";
 
   modifier s_governance() {
     vm.prank(governanceTimelockAddress);
