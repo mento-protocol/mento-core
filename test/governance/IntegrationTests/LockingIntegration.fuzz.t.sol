@@ -27,7 +27,6 @@ contract FuzzLockingIntegrationTest is TestSetup {
   Locking public locking;
 
   address public celoGovernance = makeAddr("CeloGovernance");
-  address public celoCommunityFund = makeAddr("CeloCommunityFund");
   address public watchdogMultisig = makeAddr("WatchdogMultisig");
   address public mentoLabsMultisig = makeAddr("MentoLabsMultisig");
   address public fractalSigner = makeAddr("FractalSigner");
@@ -50,7 +49,7 @@ contract FuzzLockingIntegrationTest is TestSetup {
       });
 
     vm.prank(celoGovernance);
-    factory.createGovernance(watchdogMultisig, celoCommunityFund, merkleRoot, fractalSigner, allocationParams);
+    factory.createGovernance(watchdogMultisig, merkleRoot, fractalSigner, allocationParams);
     mentoToken = factory.mentoToken();
     governanceTimelock = factory.governanceTimelock();
     locking = factory.locking();

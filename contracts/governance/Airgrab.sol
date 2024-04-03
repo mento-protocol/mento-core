@@ -55,8 +55,8 @@ contract Airgrab is ReentrancyGuard {
   IERC20 public immutable token;
   /// @notice The locking contract for veToken.
   ILocking public immutable locking;
-  /// @notice The Celo community fund address where unclaimed tokens will be refunded to.
-  address payable public immutable celoCommunityFund;
+  /// @notice The Mento Treasury address where unclaimed tokens will be refunded to.
+  address payable public immutable mentoTreasury;
 
   /// @notice The map of addresses that have claimed
   mapping(address => bool) public claimed;
@@ -136,7 +136,7 @@ contract Airgrab is ReentrancyGuard {
    * @param slopePeriod_ The slope period that the airgrab will be locked for.
    * @param token_ The token address in the airgrab.
    * @param locking_ The locking contract for veToken.
-   * @param celoCommunityFund_ The Celo community fund address where unclaimed tokens will be refunded to.
+   * @param mentoTreasury_ The Mento Treasury address where unclaimed tokens will be refunded to.
    */
   constructor(
     bytes32 root_,
@@ -147,7 +147,7 @@ contract Airgrab is ReentrancyGuard {
     uint32 slopePeriod_,
     address token_,
     address locking_,
-    address payable celoCommunityFund_
+    address payable mentoTreasury_
   ) {
     require(root_ != bytes32(0), "Airgrab: invalid root");
     require(fractalSigner_ != address(0), "Airgrab: invalid fractal issuer");
@@ -156,7 +156,7 @@ contract Airgrab is ReentrancyGuard {
     require(slopePeriod_ <= MAX_SLOPE_PERIOD, "Airgrab: slope period too large");
     require(token_ != address(0), "Airgrab: invalid token");
     require(locking_ != address(0), "Airgrab: invalid locking");
-    require(celoCommunityFund_ != address(0), "Airgrab: invalid celo community fund");
+    require(mentoTreasury_ != address(0), "Airgrab: invalid Mento Treasury");
 
     root = root_;
     fractalSigner = fractalSigner_;
@@ -166,7 +166,7 @@ contract Airgrab is ReentrancyGuard {
     slopePeriod = slopePeriod_;
     token = IERC20(token_);
     locking = ILocking(locking_);
-    celoCommunityFund = celoCommunityFund_;
+    mentoTreasury = mentoTreasury_;
 
     require(token.approve(locking_, type(uint256).max), "Airgrab: approval failed");
   }
@@ -207,7 +207,7 @@ contract Airgrab is ReentrancyGuard {
   }
 
   /**
-   * @dev Allows the Celo community fund to reclaim any tokens after the airgrab has ended.
+   * @dev Allows the Mento Treasury to reclaim any tokens after the airgrab has ended.
    * @notice This function can only be called after the airgrab has ended.
    * @param tokenToDrain Token is parameterized in case the contract has been sent
    *  tokens other than the airgrab token.
@@ -216,7 +216,7 @@ contract Airgrab is ReentrancyGuard {
     require(block.timestamp > endTimestamp, "Airgrab: not finished");
     uint256 balance = IERC20(tokenToDrain).balanceOf(address(this));
     require(balance > 0, "Airgrab: nothing to drain");
-    IERC20(tokenToDrain).safeTransfer(celoCommunityFund, balance);
+    IERC20(tokenToDrain).safeTransfer(mentoTreasury, balance);
     emit TokensDrained(tokenToDrain, balance);
   }
 }

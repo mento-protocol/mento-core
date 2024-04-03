@@ -61,7 +61,6 @@ contract GovernanceFactory is Ownable {
   Locking public locking;
 
   address public watchdogMultiSig;
-  address public celoCommunityFund;
 
   // Indicates if the governance system has been created
   bool public initialized;
@@ -93,7 +92,6 @@ contract GovernanceFactory is Ownable {
   /**
    * @notice Creates and initializes the governance system contracts
    * @param watchdogMultiSig_ Address of the Mento community's multisig wallet with the veto rights
-   * @param celoCommunityFund_ Address of the Celo community fund that will receive the unclaimed airgrab tokens
    * @param airgrabRoot Root hash for the airgrab Merkle tree
    * @param fractalSigner Signer of fractal kyc
    * @param allocationParams Parameters for the initial token allocation
@@ -102,7 +100,6 @@ contract GovernanceFactory is Ownable {
   // solhint-disable-next-line function-max-lines
   function createGovernance(
     address watchdogMultiSig_,
-    address celoCommunityFund_,
     bytes32 airgrabRoot,
     address fractalSigner,
     MentoTokenAllocationParams calldata allocationParams
@@ -112,8 +109,6 @@ contract GovernanceFactory is Ownable {
 
     // slither-disable-next-line missing-zero-check
     watchdogMultiSig = watchdogMultiSig_;
-    // slither-disable-next-line missing-zero-check
-    celoCommunityFund = celoCommunityFund_;
 
     // Precalculated contract addresses:
     address tokenPrecalculated = addressForNonce(2);
@@ -190,7 +185,7 @@ contract GovernanceFactory is Ownable {
       AIRGRAB_LOCK_SLOPE,
       tokenPrecalculated,
       lockingPrecalculated,
-      payable(celoCommunityFund)
+      payable(governanceTimelockPrecalculated)
     );
     assert(address(airgrab) == airgrabPrecalculated);
 

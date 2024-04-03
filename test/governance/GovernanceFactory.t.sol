@@ -17,7 +17,6 @@ contract GovernanceFactoryTest is TestSetup {
 
   address public mentoLabsMultiSig = makeAddr("MentoLabsVestingMultisig");
   address public watchdogMultiSig = makeAddr("WatchdogMultisig");
-  address public celoCommunityFund = makeAddr("CeloCommunityFund");
   address public fractalSigner = makeAddr("FractalSigner");
 
   bytes32 public airgrabMerkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809; // Mock root
@@ -43,7 +42,7 @@ contract GovernanceFactoryTest is TestSetup {
         additionalAllocationAmounts: Arrays.uints(200)
       });
 
-    factory.createGovernance(watchdogMultiSig, celoCommunityFund, airgrabMerkleRoot, fractalSigner, allocationParams);
+    factory.createGovernance(watchdogMultiSig, airgrabMerkleRoot, fractalSigner, allocationParams);
   }
 
   // ========================================
@@ -112,7 +111,7 @@ contract GovernanceFactoryTest is TestSetup {
       });
 
     vm.prank(owner);
-    factory.createGovernance(watchdogMultiSig, celoCommunityFund, airgrabMerkleRoot, fractalSigner, allocationParams);
+    factory.createGovernance(watchdogMultiSig, airgrabMerkleRoot, fractalSigner, allocationParams);
 
     assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient1")), (supply * 55) / 1000);
     assertEq(factory.mentoToken().balanceOf(makeAddr("Recipient2")), (supply * 50) / 1000);
