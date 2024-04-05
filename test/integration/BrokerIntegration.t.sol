@@ -26,13 +26,14 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
 
     trader = actor("trader");
 
-    mint(cUSDToken, trader, 10**22); // Mint 10k to trader
-    mint(cEURToken, trader, 10**22); // Mint 10k to trader
+    mint(cUSDToken, trader, 10 ** 22); // Mint 10k to trader
+    mint(cEURToken, trader, 10 ** 22); // Mint 10k to trader
+    mint(eXOFToken, trader, 10 ** 22); // Mint 10k to trader)
 
-    deal(address(celoToken), trader, 1000 * 10**18); // Gift 10k to trader
+    deal(address(celoToken), trader, 1000 * 10 ** 18); // Gift 10k to trader
 
-    deal(address(celoToken), address(reserve), 10**(6 + 18)); // Gift 1Mil Celo to reserve
-    deal(address(usdcToken), address(reserve), 10**(6 + 6)); // Gift 1Mil USDC to reserve
+    deal(address(celoToken), address(reserve), 10 ** (6 + 18)); // Gift 1Mil Celo to reserve
+    deal(address(usdcToken), address(reserve), 10 ** (6 + 6)); // Gift 1Mil USDC to reserve
   }
 
   /**
@@ -101,7 +102,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swapIn_cUSDToBridgedUSDC() public {
-    uint256 amountIn = 1000 * 10**18; // 1k (18 decimals)
+    uint256 amountIn = 1000 * 10 ** 18; // 1k (18 decimals)
     IERC20 tokenIn = IERC20(address(cUSDToken));
     IERC20 tokenOut = usdcToken;
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
@@ -114,7 +115,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
 
     // Execute swap
     (uint256 expectedOut, uint256 actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
-    assertEq(actualOut, 995 * 10**6); // 0.9995k (6 decimals)
+    assertEq(actualOut, 995 * 10 ** 6); // 0.9995k (6 decimals)
 
     // Get amounts after swap
     uint256 traderTokenInAfter = tokenIn.balanceOf(trader);
@@ -135,7 +136,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swapIn_cEURToBridgedUSDC() public {
-    uint256 amountIn = 1000 * 10**18; // 1k
+    uint256 amountIn = 1000 * 10 ** 18; // 1k
     IERC20 tokenIn = IERC20(address(cEURToken));
     IERC20 tokenOut = usdcToken;
     bytes32 poolId = pair_cEUR_bridgedUSDC_ID;
@@ -168,7 +169,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swapIn_cEURTocUSD() public {
-    uint256 amountIn = 1000 * 10**18; // 1k
+    uint256 amountIn = 1000 * 10 ** 18; // 1k
     IERC20 tokenIn = IERC20(address(cEURToken));
     IERC20 tokenOut = IERC20(address(cUSDToken));
     bytes32 poolId = pair_cUSD_cEUR_ID;
@@ -203,7 +204,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swapIn_cUSDTocEUR() public {
-    uint256 amountIn = 1000 * 10**18; // 1k
+    uint256 amountIn = 1000 * 10 ** 18; // 1k
     IERC20 tokenIn = IERC20(address(cUSDToken));
     IERC20 tokenOut = IERC20(address(cEURToken));
     bytes32 poolId = pair_cUSD_cEUR_ID;
@@ -238,7 +239,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swapIn_CELOTocEUR() public {
-    uint256 amountIn = 1000 * 10**18; // 1k
+    uint256 amountIn = 1000 * 10 ** 18; // 1k
     IERC20 tokenIn = celoToken;
     IERC20 tokenOut = IERC20(address(cEURToken));
     bytes32 poolId = pair_cEUR_CELO_ID;
@@ -273,7 +274,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swapIn_CELOTocUSD() public {
-    uint256 amountIn = 1000 * 10**18; // 1k
+    uint256 amountIn = 1000 * 10 ** 18; // 1k
     IERC20 tokenIn = celoToken;
     IERC20 tokenOut = IERC20(address(cUSDToken));
     bytes32 poolId = pair_cUSD_CELO_ID;
@@ -305,5 +306,40 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(reserveCollateralBalanceBefore + amountIn, reserveCollateralBalanceAfter);
     // Stable asset supply increase from mint
     assertEq(StableAssetSupplyBefore + expectedOut, StableAssetSupplyAfter);
+  }
+
+  function test_swapIn_eXOF_cEUR() public {
+    uint256 amountIn = 1000 * 10 ** 18; // 1k
+    IERC20 tokenIn = IERC20(address(eXOFToken));
+    IERC20 tokenOut = IERC20(address(cEURToken));
+    bytes32 poolId = pair_eXOF_cEUR_ID;
+
+    // Get amounts before swap
+    uint256 traderTokenInBefore = tokenIn.balanceOf(trader);
+    uint256 traderTokenOutBefore = tokenOut.balanceOf(trader);
+
+    uint256 tokenInAssetSupplyBefore = tokenIn.totalSupply();
+    uint256 tokenOutAssetSupplyBefore = tokenOut.totalSupply();
+
+    // Execute swap
+    (uint256 expectedOut, uint256 actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
+
+    // Get amounts after swap
+    uint256 traderTokenInAfter = tokenIn.balanceOf(trader);
+    uint256 traderTokenOutAfter = tokenOut.balanceOf(trader);
+
+    uint256 tokenInAssetSupplyAfter = tokenIn.totalSupply();
+    uint256 tokenOutAssetSupplyAfter = tokenOut.totalSupply();
+
+    // getAmountOut == swapOut
+    assertEq(expectedOut, actualOut);
+    // Trader token in balance decreased
+    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn);
+    // Trader token out balance increased
+    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter);
+    // Token in asset supply decrease from burn
+    assertEq(tokenInAssetSupplyBefore - amountIn, tokenInAssetSupplyAfter);
+    // Token out asset supply increase from mint
+    assertEq(tokenOutAssetSupplyBefore + expectedOut, tokenOutAssetSupplyAfter);
   }
 }

@@ -76,6 +76,7 @@ contract IntegrationTest is BaseTest {
   address cUSD_cEUR_referenceRateFeedID;
   address bridgedEUROC_EUR_referenceRateFeedID;
   address eXOF_bridgedEUROC_referenceRateFeedID;
+  address XOF_EUR_referenceRateFeedID;
 
   bytes32 pair_cUSD_CELO_ID;
   bytes32 pair_cEUR_CELO_ID;
@@ -83,6 +84,7 @@ contract IntegrationTest is BaseTest {
   bytes32 pair_cEUR_bridgedUSDC_ID;
   bytes32 pair_cUSD_cEUR_ID;
   bytes32 pair_eXOF_bridgedEUROC_ID;
+  bytes32 pair_eXOF_cEUR_ID;
 
   function setUp() public {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
@@ -210,6 +212,7 @@ contract IntegrationTest is BaseTest {
     cUSD_cEUR_referenceRateFeedID = address(bytes20(keccak256("USD/EUR")));
     bridgedEUROC_EUR_referenceRateFeedID = address(bytes20(keccak256("EUROC/EUR")));
     eXOF_bridgedEUROC_referenceRateFeedID = address(bytes20(keccak256("XOF/EUROC")));
+    XOF_EUR_referenceRateFeedID = address(bytes20(keccak256("XOF/EUR")));
 
     initOracles(cUSD_CELO_referenceRateFeedID, 10);
     setMedianRate(cUSD_CELO_referenceRateFeedID, 5e23);
@@ -231,6 +234,9 @@ contract IntegrationTest is BaseTest {
 
     initOracles(eXOF_bridgedEUROC_referenceRateFeedID, 10);
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 656 * 1e24);
+
+    initOracles(XOF_EUR_referenceRateFeedID, 10);
+    setMedianRate(XOF_EUR_referenceRateFeedID, 656 * 1e24);
   }
 
   function initOracles(address rateFeedID, uint256 count) internal {
@@ -273,7 +279,8 @@ contract IntegrationTest is BaseTest {
       cEUR_bridgedUSDC_referenceRateFeedID,
       cUSD_cEUR_referenceRateFeedID,
       bridgedEUROC_EUR_referenceRateFeedID,
-      eXOF_bridgedEUROC_referenceRateFeedID
+      eXOF_bridgedEUROC_referenceRateFeedID,
+      XOF_EUR_referenceRateFeedID
     );
 
     breakerBox = new BreakerBox(rateFeedIDs, ISortedOracles(address(sortedOracles)));
@@ -297,11 +304,11 @@ contract IntegrationTest is BaseTest {
     );
 
     uint256[] memory medianDeltaBreakerRateChangeThresholds = Arrays.uints(
-      0.15 * 10**24,
-      0.14 * 10**24,
-      0.13 * 10**24,
-      0.12 * 10**24,
-      0.11 * 10**24
+      0.15 * 10 ** 24,
+      0.14 * 10 ** 24,
+      0.13 * 10 ** 24,
+      0.12 * 10 ** 24,
+      0.11 * 10 ** 24
     );
     uint256[] memory medianDeltaBreakerCooldownTimes = Arrays.uints(
       5 minutes,
@@ -311,7 +318,7 @@ contract IntegrationTest is BaseTest {
       5 minutes
     );
 
-    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10**24; // 15%
+    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10 ** 24; // 15%
     uint256 medianDeltaBreakerDefaultCooldown = 0 seconds;
 
     medianDeltaBreaker = new MedianDeltaBreaker(
@@ -342,14 +349,14 @@ contract IntegrationTest is BaseTest {
       cUSD_cEUR_referenceRateFeedID
     );
     uint256[] memory valueDeltaBreakerRateChangeThresholds = Arrays.uints(
-      0.1 * 10**24,
-      0.15 * 10**24,
-      0.05 * 10**24,
-      0.05 * 10**24
+      0.1 * 10 ** 24,
+      0.15 * 10 ** 24,
+      0.05 * 10 ** 24,
+      0.05 * 10 ** 24
     );
     uint256[] memory valueDeltaBreakerCooldownTimes = Arrays.uints(1 seconds, 1 seconds, 1 seconds, 0 seconds);
 
-    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;
+    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10 ** 24;
     uint256 valueDeltaBreakerDefaultCooldown = 0 seconds;
 
     valueDeltaBreaker = new ValueDeltaBreaker(
@@ -362,7 +369,7 @@ contract IntegrationTest is BaseTest {
     );
 
     // set reference value
-    uint256[] memory valueDeltaBreakerReferenceValues = Arrays.uints(1e24, 656 * 10**24, 1e24, 1.1 * 10**24);
+    uint256[] memory valueDeltaBreakerReferenceValues = Arrays.uints(1e24, 656 * 10 ** 24, 1e24, 1.1 * 10 ** 24);
     valueDeltaBreaker.setReferenceValues(valueDeltaBreakerRateFeedIDs, valueDeltaBreakerReferenceValues);
 
     // add value delta breaker and enable for rate feeds
@@ -480,6 +487,19 @@ contract IntegrationTest is BaseTest {
     pair_eXOF_bridgedEUROC.config.stablePoolResetSize = 1e24;
 
     pair_eXOF_bridgedEUROC_ID = biPoolManager.createExchange(pair_eXOF_bridgedEUROC);
+
+    BiPoolManager.PoolExchange memory pair_eXOF_cEUR;
+    pair_eXOF_cEUR.asset0 = address(eXOFToken);
+    pair_eXOF_cEUR.asset1 = address(cEURToken);
+    pair_eXOF_cEUR.pricingModule = constantSum;
+    pair_eXOF_cEUR.lastBucketUpdate = now;
+    pair_eXOF_cEUR.config.spread = FixidityLib.newFixedFraction(5, 1000);
+    pair_eXOF_cEUR.config.referenceRateResetFrequency = 60 * 5;
+    pair_eXOF_cEUR.config.minimumReports = 5;
+    pair_eXOF_cEUR.config.referenceRateFeedID = XOF_EUR_referenceRateFeedID;
+    pair_eXOF_cEUR.config.stablePoolResetSize = 1e24;
+
+    pair_eXOF_cEUR_ID = biPoolManager.createExchange(pair_eXOF_cEUR);
   }
 
   function setUp_freezer() internal {
