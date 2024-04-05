@@ -15,7 +15,11 @@ library Arrays {
     return arr;
   }
 
-  function uints(uint256 e0, uint256 e1, uint256 e2) internal pure returns (uint256[] memory arr) {
+  function uints(
+    uint256 e0,
+    uint256 e1,
+    uint256 e2
+  ) internal pure returns (uint256[] memory arr) {
     arr = new uint256[](3);
     arr[0] = e0;
     arr[1] = e1;
@@ -23,7 +27,12 @@ library Arrays {
     return arr;
   }
 
-  function uints(uint256 e0, uint256 e1, uint256 e2, uint256 e3) internal pure returns (uint256[] memory arr) {
+  function uints(
+    uint256 e0,
+    uint256 e1,
+    uint256 e2,
+    uint256 e3
+  ) internal pure returns (uint256[] memory arr) {
     arr = new uint256[](4);
     arr[0] = e0;
     arr[1] = e1;
@@ -99,7 +108,11 @@ library Arrays {
     return arr;
   }
 
-  function addresses(address e0, address e1, address e2) internal pure returns (address[] memory arr) {
+  function addresses(
+    address e0,
+    address e1,
+    address e2
+  ) internal pure returns (address[] memory arr) {
     arr = new address[](3);
     arr[0] = e0;
     arr[1] = e1;
@@ -107,7 +120,12 @@ library Arrays {
     return arr;
   }
 
-  function addresses(address e0, address e1, address e2, address e3) internal pure returns (address[] memory arr) {
+  function addresses(
+    address e0,
+    address e1,
+    address e2,
+    address e3
+  ) internal pure returns (address[] memory arr) {
     arr = new address[](4);
     arr[0] = e0;
     arr[1] = e1;
@@ -187,7 +205,11 @@ library Arrays {
     return arr;
   }
 
-  function bytes32s(bytes32 e0, bytes32 e1, bytes32 e2) internal pure returns (bytes32[] memory arr) {
+  function bytes32s(
+    bytes32 e0,
+    bytes32 e1,
+    bytes32 e2
+  ) internal pure returns (bytes32[] memory arr) {
     arr = new bytes32[](3);
     arr[0] = e0;
     arr[1] = e1;
@@ -195,7 +217,12 @@ library Arrays {
     return arr;
   }
 
-  function bytes32s(bytes32 e0, bytes32 e1, bytes32 e2, bytes32 e3) internal pure returns (bytes32[] memory arr) {
+  function bytes32s(
+    bytes32 e0,
+    bytes32 e1,
+    bytes32 e2,
+    bytes32 e3
+  ) internal pure returns (bytes32[] memory arr) {
     arr = new bytes32[](4);
     arr[0] = e0;
     arr[1] = e1;
@@ -233,7 +260,11 @@ library Arrays {
     return arr;
   }
 
-  function bytess(bytes memory e0, bytes memory e1, bytes memory e2) internal pure returns (bytes[] memory arr) {
+  function bytess(
+    bytes memory e0,
+    bytes memory e1,
+    bytes memory e2
+  ) internal pure returns (bytes[] memory arr) {
     arr = new bytes[](3);
     arr[0] = e0;
     arr[1] = e1;
