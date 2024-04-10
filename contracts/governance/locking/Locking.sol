@@ -35,26 +35,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
   }
 
   /**
-   * @notice Stops the locking functionality
-   * @dev Can only be called by the owner while locking is active (meaning not stopped)
-   */
-  function stop() external onlyOwner notStopped {
-    stopped = true;
-    emit StopLocking(msg.sender);
-  }
-
-  /**
-   * @notice Restarts the locking functionality after it has been stopped
-   * @dev Can only be called by the owner while locking is stopped
-   */
-  function start() external onlyOwner isStopped {
-    stopped = false;
-    emit StartLocking(msg.sender);
-  }
-
-  /**
    * @notice Locks a specified amount of tokens for a given period
-   * @dev Can not be called when locking is stopped
    * @dev Delegate is not optional, it can be set to the lock owner if no delegate is desired
    * @param account Account for which tokens are being locked
    * @param _delegate Address that will receive the voting power from the locked tokens
@@ -69,7 +50,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     uint96 amount,
     uint32 slopePeriod,
     uint32 cliff
-  ) external override notStopped returns (uint256) {
+  ) external override returns (uint256) {
     require(amount > 0, "zero amount");
     require(cliff <= MAX_CLIFF_PERIOD, "cliff too big");
     require(slopePeriod <= MAX_SLOPE_PERIOD, "period too big");
@@ -110,12 +91,10 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
    */
   function getAvailableForWithdraw(address account) public view returns (uint96) {
     uint96 value = accounts[account].amount;
-    if (!stopped) {
-      uint32 currentBlock = getBlockNumber();
-      uint32 time = roundTimestamp(currentBlock);
-      uint96 bias = accounts[account].locked.actualValue(time, currentBlock);
-      value = value - (bias);
-    }
+    uint32 currentBlock = getBlockNumber();
+    uint32 time = roundTimestamp(currentBlock);
+    uint96 bias = accounts[account].locked.actualValue(time, currentBlock);
+    value = value - (bias);
     return value;
   }
 
@@ -154,7 +133,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
    * @param id The unique identifier for the lock whose delegate is to be changed
    * @param newDelegate The address to which the delegation will be transferred
    */
-  function delegateTo(uint256 id, address newDelegate) external notStopped {
+  function delegateTo(uint256 id, address newDelegate) external {
     require(newDelegate != address(0), "delegate is zero");
 
     address account = verifyLockOwner(id);
@@ -175,7 +154,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
    * @return The total supply of veMENTO tokens
    */
   function totalSupply() external view returns (uint256) {
-    if ((totalSupplyLine.initial.bias == 0) || (stopped)) {
+    if (totalSupplyLine.initial.bias == 0) {
       return 0;
     }
     uint32 currentBlock = getBlockNumber();
@@ -189,7 +168,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
    * @return The accounts balance of veMENTO tokens
    */
   function balanceOf(address account) external view returns (uint256) {
-    if ((accounts[account].balance.initial.bias == 0) || (stopped)) {
+    if (accounts[account].balance.initial.bias == 0) {
       return 0;
     }
     uint32 currentBlock = getBlockNumber();
