@@ -41,10 +41,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   uint256 public counter;
   /**
-   * @dev True if contract entered stopped state
-   */
-  bool public stopped;
-  /**
    * @dev Minimum cliff period in weeks
    */
   uint256 public minCliffPeriod;
@@ -121,14 +117,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @dev Emitted when withdraw amount of Rari, account - msg.sender, amount - amount Rari
    */
   event Withdraw(address indexed account, uint256 amount);
-  /**
-   * @dev Stop run contract functions, accept withdraw, account - msg.sender
-   */
-  event StopLocking(address indexed account);
-  /**
-   * @dev Start run contract functions, accept withdraw, account - msg.sender
-   */
-  event StartLocking(address indexed account);
   /**
    * @dev set newMinCliffPeriod
    */
@@ -317,7 +305,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @notice Sets the starting point for the week-based time system
    * @param newStartingPointWeek new starting point
    */
-  function setStartingPointWeek(uint32 newStartingPointWeek) public notStopped onlyOwner {
+  function setStartingPointWeek(uint32 newStartingPointWeek) public onlyOwner {
     require(newStartingPointWeek < roundTimestamp(getBlockNumber()), "wrong newStartingPointWeek");
     startingPointWeek = newStartingPointWeek;
 
@@ -328,7 +316,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @notice Sets the minimum cliff period
    * @param newMinCliffPeriod new minimum cliff period
    */
-  function setMinCliffPeriod(uint32 newMinCliffPeriod) external notStopped onlyOwner {
+  function setMinCliffPeriod(uint32 newMinCliffPeriod) external onlyOwner {
     require(newMinCliffPeriod <= MAX_CLIFF_PERIOD, "new cliff period > 2 years");
     minCliffPeriod = newMinCliffPeriod;
 
@@ -339,7 +327,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @notice Sets the minimum slope period
    * @param newMinSlopePeriod new minimum slope period
    */
-  function setMinSlopePeriod(uint32 newMinSlopePeriod) external notStopped onlyOwner {
+  function setMinSlopePeriod(uint32 newMinSlopePeriod) external onlyOwner {
     require(newMinSlopePeriod <= MAX_SLOPE_PERIOD, "new slope period > 2 years");
     minSlopePeriod = newMinSlopePeriod;
 
@@ -347,27 +335,11 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @dev Throws if stopped
-   */
-  modifier notStopped() {
-    require(!stopped, "stopped");
-    _;
-  }
-
-  /**
-   * @dev Throws if not stopped
-   */
-  modifier isStopped() {
-    require(stopped, "not stopped");
-    _;
-  }
-
-  /**
    * @notice Updates the broken lines for an account until a given week number
    * @param account address of account to update
    * @param time week number until which to update lines
    */
-  function updateAccountLines(address account, uint32 time) public notStopped onlyOwner {
+  function updateAccountLines(address account, uint32 time) public onlyOwner {
     accounts[account].balance.update(time);
     accounts[account].locked.update(time);
   }
@@ -376,7 +348,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @notice updates the total supply line until a given week number
    * @param time week number until which to update lines
    */
-  function updateTotalSupplyLine(uint32 time) public notStopped onlyOwner {
+  function updateTotalSupplyLine(uint32 time) public onlyOwner {
     totalSupplyLine.update(time);
   }
 
@@ -385,7 +357,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @param account address of account to update
    * @param blockNumber block number until which to update lines
    */
-  function updateAccountLinesBlockNumber(address account, uint32 blockNumber) external notStopped onlyOwner {
+  function updateAccountLinesBlockNumber(address account, uint32 blockNumber) external onlyOwner {
     uint32 time = roundTimestamp(blockNumber);
     updateAccountLines(account, time);
   }
@@ -394,7 +366,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @notice Updates the total supply line until a given block number
    * @param blockNumber block number until which to update line
    */
-  function updateTotalSupplyLineBlockNumber(uint32 blockNumber) external notStopped onlyOwner {
+  function updateTotalSupplyLineBlockNumber(uint32 blockNumber) external onlyOwner {
     uint32 time = roundTimestamp(blockNumber);
     updateTotalSupplyLine(time);
   }

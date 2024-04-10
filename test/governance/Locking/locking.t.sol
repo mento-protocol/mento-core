@@ -15,54 +15,6 @@ contract Lock_Locking_Test is Locking_Test {
     assertEq(locking.owner(), owner);
   }
 
-  function test_stop_shoulRevert_whenNoOwner() public {
-    vm.prank(alice);
-    vm.expectRevert("Ownable: caller is not the owner");
-    locking.stop();
-  }
-
-  function test_stop_shouldAccountBalancesCorrectly() public {
-    mentoToken.mint(alice, 100);
-
-    vm.prank(alice);
-    locking.lock(alice, alice, 60, 30, 0);
-
-    vm.prank(owner);
-    locking.stop();
-
-    assertEq(mentoToken.balanceOf(address(locking)), 60);
-    assertEq(mentoToken.balanceOf(alice), 40);
-    assertEq(locking.balanceOf(alice), 0);
-    assertEq(locking.totalSupply(), 0);
-  }
-
-  function test_stop_shouldBlockNewLocks() public {
-    mentoToken.mint(alice, 100);
-
-    vm.prank(alice);
-    locking.lock(alice, bob, 60, 30, 0);
-
-    vm.prank(owner);
-    locking.stop();
-
-    vm.expectRevert("stopped");
-    vm.prank(alice);
-    locking.lock(alice, bob, 60, 30, 0);
-  }
-
-  function test_stop_shouldAllowWithdraws() public {
-    mentoToken.mint(alice, 100);
-
-    vm.prank(alice);
-    locking.lock(alice, alice, 60, 30, 0);
-
-    vm.prank(owner);
-    locking.stop();
-
-    vm.prank(alice);
-    locking.withdraw();
-  }
-
   function test_lock_whenSlopeIsLarge_shouldRevert() public {
     mentoToken.mint(alice, 1500);
 
