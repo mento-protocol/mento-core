@@ -355,9 +355,9 @@ library LibBrokenLine {
    * @return slope The slope of the point
    * @return epoch The week number of the point
    */
-  function binarySearch(Point[] memory history, uint32 toBlock)
+  function binarySearch(Point[] storage history, uint32 toBlock)
     internal
-    pure
+    view
     returns (
       uint96,
       uint96,
