@@ -125,10 +125,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @dev set newMinSlopePeriod
    */
   event SetMinSlopePeriod(uint256 indexed newMinSlopePeriod);
-  /**
-   * @dev set startingPointWeek
-   */
-  event SetStartingPointWeek(uint256 indexed newStartingPointWeek);
 
   /**
    * @dev Initializes the contract with token, starting point week, and minimum cliff and slope periods.
@@ -299,17 +295,6 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   function getBlockNumber() internal view virtual returns (uint32) {
     return uint32(block.number);
-  }
-
-  /**
-   * @notice Sets the starting point for the week-based time system
-   * @param newStartingPointWeek new starting point
-   */
-  function setStartingPointWeek(uint32 newStartingPointWeek) public onlyOwner {
-    require(newStartingPointWeek < roundTimestamp(getBlockNumber()), "wrong newStartingPointWeek");
-    startingPointWeek = newStartingPointWeek;
-
-    emit SetStartingPointWeek(newStartingPointWeek);
   }
 
   /**
