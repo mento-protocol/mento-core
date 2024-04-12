@@ -47,10 +47,10 @@ contract GovernanceGasTest is TestSetup {
 
   modifier s_attack() {
     vm.prank(governanceTimelockAddress);
-    mentoToken.transfer(alice, 10_000e18);
+    mentoToken.transfer(alice, 100_000e18);
 
     vm.prank(governanceTimelockAddress);
-    mentoToken.transfer(bob, 10_000e18);
+    mentoToken.transfer(bob, 100_000e18);
 
     vm.prank(alice);
     locking.lock(alice, alice, 2000e18, 1, 103);
@@ -62,7 +62,7 @@ contract GovernanceGasTest is TestSetup {
 
     for (uint256 i = 0; i < 50_000; i++) {
       vm.prank(alice);
-      locking.lock(alice, bob, 100, 1, 103);
+      locking.lock(alice, bob, 1e18, 1, 103);
     }
     _;
   }
@@ -113,7 +113,7 @@ contract GovernanceGasTest is TestSetup {
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
     for (uint256 i; i < 1_000; i++) {
-      locking.lock(alice, bob, 104, 100, 100);
+      locking.lock(alice, bob, 1e18, 100, 100);
     }
     vm.stopPrank();
 
@@ -124,7 +124,7 @@ contract GovernanceGasTest is TestSetup {
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
     for (uint256 i; i < 1_000; i++) {
-      locking.lock(alice, bob, 104, 100, 100);
+      locking.lock(alice, bob, 1e18, 100, 100);
     }
     vm.stopPrank();
 
@@ -144,7 +144,7 @@ contract GovernanceGasTest is TestSetup {
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
     for (uint256 i; i < 1_000; i++) {
-      locking.lock(alice, bob, 104, 100, 100);
+      locking.lock(alice, bob, 1e18, 100, 100);
     }
     vm.stopPrank();
 
@@ -155,7 +155,7 @@ contract GovernanceGasTest is TestSetup {
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
     for (uint256 i; i < 1_000; i++) {
-      locking.lock(alice, bob, 104, 100, 100);
+      locking.lock(alice, bob, 1e18, 100, 100);
     }
     vm.stopPrank();
 
@@ -174,7 +174,7 @@ contract GovernanceGasTest is TestSetup {
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
     for (uint256 i; i < 1_000; i++) {
-      locking.lock(alice, bob, 104, 100, 100);
+      locking.lock(alice, bob, 1e18, 100, 100);
     }
     vm.stopPrank();
 
@@ -189,7 +189,7 @@ contract GovernanceGasTest is TestSetup {
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
     for (uint256 i; i < 1_000; i++) {
-      locking.lock(alice, bob, 104, 100, 100);
+      locking.lock(alice, bob, 1e18, 100, 100);
     }
     vm.stopPrank();
 
@@ -210,7 +210,7 @@ contract GovernanceGasTest is TestSetup {
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
     for (uint256 i; i < 1_000; i++) {
-      locking.lock(alice, bob, 104, 100, 100);
+      locking.lock(alice, bob, 1e18, 100, 100);
     }
     vm.stopPrank();
 
@@ -225,7 +225,7 @@ contract GovernanceGasTest is TestSetup {
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
     for (uint256 i; i < 1_000; i++) {
-      locking.lock(alice, bob, 104, 100, 100);
+      locking.lock(alice, bob, 1e18, 100, 100);
     }
     vm.stopPrank();
 
@@ -244,7 +244,7 @@ contract GovernanceGasTest is TestSetup {
 
     // one more lock in the same block with propose
     vm.prank(alice);
-    locking.lock(alice, bob, 100, 1, 103);
+    locking.lock(alice, bob, 1e18, 1, 103);
 
     uint256 gasLeftBefore = gasleft();
     vm.prank(alice);
@@ -262,16 +262,16 @@ contract GovernanceGasTest is TestSetup {
 
     // Locking for bob in the same block with castVote
     vm.prank(alice);
-    locking.lock(alice, bob, 100, 1, 103);
+    locking.lock(alice, bob, 1e18, 1, 103);
 
     gasLeftBefore = gasleft();
     vm.prank(alice);
-    mentoGovernor.castVote(proposalId, 1);
+    mentoGovernor.castVote(proposalId, 0);
     assertLt(gasLeftBefore - gasleft(), voteGas);
 
     gasLeftBefore = gasleft();
     vm.prank(bob);
-    mentoGovernor.castVote(proposalId, 0);
+    mentoGovernor.castVote(proposalId, 1);
     assertLt(gasLeftBefore - gasleft(), voteGas);
 
     // voting period ends
@@ -279,7 +279,7 @@ contract GovernanceGasTest is TestSetup {
 
     // Locking in the same block with queue
     vm.prank(alice);
-    locking.lock(alice, bob, 100, 1, 103);
+    locking.lock(alice, bob, 1e18, 1, 103);
 
     gasLeftBefore = gasleft();
     mentoGovernor.queue(targets, values, calldatas, keccak256(bytes(description)));
@@ -289,7 +289,7 @@ contract GovernanceGasTest is TestSetup {
 
     // Locking in the same block with execute
     vm.prank(alice);
-    locking.lock(alice, bob, 100, 1, 103);
+    locking.lock(alice, bob, 1e18, 1, 103);
 
     gasLeftBefore = gasleft();
     vm.prank(makeAddr("Random"));
@@ -315,14 +315,14 @@ contract GovernanceGasTest is TestSetup {
     vm.timeTravel(120);
 
     vm.prank(alice);
-    locking.lock(alice, alice, 100, 1, 103);
+    locking.lock(alice, alice, 1e18, 1, 103);
 
     // ~10 mins
     vm.timeTravel(120);
 
     gasLeftBefore = gasleft();
     vm.prank(alice);
-    mentoGovernor.castVote(proposalId, 1);
+    mentoGovernor.castVote(proposalId, 0);
     assertLt(gasLeftBefore - gasleft(), voteGas);
 
     // ~10 mins
@@ -330,7 +330,7 @@ contract GovernanceGasTest is TestSetup {
 
     gasLeftBefore = gasleft();
     vm.prank(bob);
-    mentoGovernor.castVote(proposalId, 0);
+    mentoGovernor.castVote(proposalId, 1);
     assertLt(gasLeftBefore - gasleft(), voteGas);
 
     // voting period ends

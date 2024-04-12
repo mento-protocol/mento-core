@@ -8,10 +8,10 @@ contract DelegateTo_Locking_Test is Locking_Test {
   uint256 public lockId;
 
   function test_delegateTo_whenDelegateZero_shouldRevert() public {
-    mentoToken.mint(alice, 100000);
+    mentoToken.mint(alice, 100000e18);
 
     vm.prank(alice);
-    lockId = locking.lock(alice, bob, 60000, 30, 0);
+    lockId = locking.lock(alice, bob, 60000e18, 30, 0);
 
     _incrementBlock(20 * weekInBlocks);
 
@@ -21,28 +21,26 @@ contract DelegateTo_Locking_Test is Locking_Test {
   }
 
   function test_delegateTo_whenReDelegateToDifferentAccount_shouldDelegateCorrectly() public {
-    mentoToken.mint(alice, 100000);
+    mentoToken.mint(alice, 100000e18);
 
     vm.prank(alice);
-    lockId = locking.lock(alice, bob, 60000, 30, 0);
+    lockId = locking.lock(alice, bob, 60000e18, 30, 0);
 
     _incrementBlock(20 * weekInBlocks);
-    // 60000 * (30 / 104) = 17307
-    // (17307 - 1) / 30 + 1 = 577
-    // 17307 - 20 * 577 = 5767
-    assertEq(locking.balanceOf(bob), 5767);
+    // 60000e18 * (30 / 104) - 20* ((60000e18 * (30 / 104) - 1) / 30 +1)= 5769
+    assertApproxEqAbs(locking.balanceOf(bob), 5769e18, 1e18);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 20000);
-    assertEq(mentoToken.balanceOf(alice), 80000);
+    assertEq(mentoToken.balanceOf(address(locking)), 20000e18);
+    assertEq(mentoToken.balanceOf(alice), 80000e18);
 
     vm.prank(alice);
     locking.delegateTo(lockId, charlie);
 
     assertEq(locking.balanceOf(bob), 0);
-    assertEq(locking.balanceOf(charlie), 5767);
+    assertApproxEqAbs(locking.balanceOf(charlie), 5769e18, 1e18);
 
     _incrementBlock(10 * weekInBlocks);
 
@@ -52,14 +50,14 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.withdraw();
 
     assertEq(mentoToken.balanceOf(address(locking)), 0);
-    assertEq(mentoToken.balanceOf(alice), 100000);
+    assertEq(mentoToken.balanceOf(alice), 100000e18);
   }
 
   function test_delegateTo_whenRedelegateToSameAccount_shouldDelegateCorrectly() public {
-    mentoToken.mint(alice, 100000);
+    mentoToken.mint(alice, 100000e18);
 
     vm.prank(alice);
-    lockId = locking.lock(alice, bob, 60000, 30, 0);
+    lockId = locking.lock(alice, bob, 60000e18, 30, 0);
 
     _incrementBlock(20 * weekInBlocks);
 
@@ -70,17 +68,15 @@ contract DelegateTo_Locking_Test is Locking_Test {
 
     vm.prank(alice);
     locking.delegateTo(lockId, bob);
-    // 60000 * (30 / 104) = 17307
-    // (17307 - 1) / 30 + 1 = 577
-    // 17307 - 25 * 577 = 2882
-    assertEq(locking.balanceOf(bob), 2882);
+    // 60000e18 * (30 / 104) - 25* ((60000e18 * (30 / 104) - 1) / 30 +1) = 2884
+    assertApproxEqAbs(locking.balanceOf(bob), 2884e18, 1e18);
     assertEq(locking.balanceOf(charlie), 0);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 10000);
-    assertEq(mentoToken.balanceOf(alice), 90000);
+    assertEq(mentoToken.balanceOf(address(locking)), 10000e18);
+    assertEq(mentoToken.balanceOf(alice), 90000e18);
 
     _incrementBlock(5 * weekInBlocks);
 
@@ -88,33 +84,31 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.withdraw();
 
     assertEq(mentoToken.balanceOf(address(locking)), 0);
-    assertEq(mentoToken.balanceOf(alice), 100000);
+    assertEq(mentoToken.balanceOf(alice), 100000e18);
     assertEq(locking.totalSupply(), 0);
   }
 
   function test_delegateTo_whenInTail_shouldReDelegateVotesToNewDelegate() public {
-    mentoToken.mint(alice, 100000);
+    mentoToken.mint(alice, 100000e18);
 
     vm.prank(alice);
-    lockId = locking.lock(alice, bob, 6300, 7, 0);
+    lockId = locking.lock(alice, bob, 6300e18, 7, 0);
 
     _incrementBlock(6 * weekInBlocks);
-    // 7 / 104 * 6300 = 424
-    // (424 - 1) / 7 + 1 = 61
-    // 424 - 6 * 61 = 58
-    assertEq(locking.balanceOf(bob), 58);
+    //6300e18 * (7 / 104) - 6* ((6300e18 * (7 / 104) - 1) / 7 +1) = 60e18
+    assertApproxEqAbs(locking.balanceOf(bob), 60e18, 1e18);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 900);
-    assertEq(mentoToken.balanceOf(alice), 99100);
+    assertEq(mentoToken.balanceOf(address(locking)), 900e18);
+    assertEq(mentoToken.balanceOf(alice), 99100e18);
 
     vm.prank(alice);
     locking.delegateTo(lockId, charlie);
 
     assertEq(locking.balanceOf(bob), 0);
-    assertEq(locking.balanceOf(charlie), 58);
+    assertApproxEqAbs(locking.balanceOf(charlie), 60e18, 1e18);
 
     _incrementBlock(weekInBlocks);
 
@@ -124,34 +118,34 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.withdraw();
 
     assertEq(mentoToken.balanceOf(address(locking)), 0);
-    assertEq(mentoToken.balanceOf(alice), 100000);
+    assertEq(mentoToken.balanceOf(alice), 100000e18);
   }
 
   function test_delegateTo_whenInCliff_shouldReDelegateVotes() public {
-    mentoToken.mint(alice, 1000000);
+    mentoToken.mint(alice, 1000000e18);
 
     vm.prank(alice);
-    lockId = locking.lock(alice, bob, 630000, 7, 2);
+    lockId = locking.lock(alice, bob, 630000e18, 7, 2);
 
     _incrementBlock(weekInBlocks);
-    // 630000 * (7 / 104 + 2 / 103) = 54636
-    assertEq(locking.balanceOf(bob), 54636);
+    // 630000e18 * (7 / 104 + 2 / 103) = 54636
+    assertApproxEqAbs(locking.balanceOf(bob), 54636e18, 1e18);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 630000);
-    assertEq(mentoToken.balanceOf(alice), 370000);
+    assertEq(mentoToken.balanceOf(address(locking)), 630000e18);
+    assertEq(mentoToken.balanceOf(alice), 370000e18);
 
     vm.prank(alice);
     locking.delegateTo(lockId, charlie);
 
     assertEq(locking.balanceOf(bob), 0);
-    assertEq(locking.balanceOf(charlie), 54636);
+    assertApproxEqAbs(locking.balanceOf(charlie), 54636e18, 1e18);
 
     _incrementBlock(weekInBlocks);
 
-    assertEq(locking.balanceOf(charlie), 54636);
+    assertApproxEqAbs(locking.balanceOf(charlie), 54636e18, 1e18);
 
     _incrementBlock(7 * weekInBlocks);
     assertEq(locking.balanceOf(charlie), 0);
@@ -160,31 +154,29 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.withdraw();
 
     assertEq(mentoToken.balanceOf(address(locking)), 0);
-    assertEq(mentoToken.balanceOf(alice), 1000000);
+    assertEq(mentoToken.balanceOf(alice), 1000000e18);
   }
 
   function test_delegateTo_wheninSlope_shouldReDelegateVotes() public {
-    mentoToken.mint(alice, 1000000);
+    mentoToken.mint(alice, 1000000e18);
 
     vm.prank(alice);
-    lockId = locking.lock(alice, bob, 630000, 7, 2);
+    lockId = locking.lock(alice, bob, 630000e18, 7, 2);
 
     _incrementBlock(4 * weekInBlocks);
 
     vm.prank(alice);
     locking.withdraw();
 
-    assertEq(mentoToken.balanceOf(address(locking)), 450000);
-    assertEq(mentoToken.balanceOf(alice), 550000);
+    assertEq(mentoToken.balanceOf(address(locking)), 450000e18);
+    assertEq(mentoToken.balanceOf(alice), 550000e18);
 
     vm.prank(alice);
     locking.delegateTo(lockId, charlie);
 
-    // 630000 * (7 / 104 + 2 / 103) = 54636
-    // (54636 - 1) / 7 + 1 = 7806
-    //  54636 - 7806 * 2 = 39024
+    // 630000e18 * (7 / 104 + 2/103) - 2* ((630000e18 * (7 / 104+2/103) - 1) / 7 +1) = 39026
     assertEq(locking.balanceOf(bob), 0);
-    assertEq(locking.balanceOf(charlie), 39024);
+    assertApproxEqAbs(locking.balanceOf(charlie), 39026e18, 1e18);
 
     _incrementBlock(5 * weekInBlocks);
 
@@ -194,30 +186,28 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.withdraw();
 
     assertEq(mentoToken.balanceOf(address(locking)), 0);
-    assertEq(mentoToken.balanceOf(alice), 1000000);
+    assertEq(mentoToken.balanceOf(alice), 1000000e18);
   }
 
   function test_delegateTo_whenInTail_shouldReDelegateVotes() public {
-    mentoToken.mint(alice, 1000000);
+    mentoToken.mint(alice, 1000000e18);
 
     vm.prank(alice);
-    lockId = locking.lock(alice, bob, 630000, 7, 2);
+    lockId = locking.lock(alice, bob, 630000e18, 7, 2);
 
     _incrementBlock(8 * weekInBlocks);
 
     vm.prank(alice);
     locking.withdraw();
-    assertEq(mentoToken.balanceOf(address(locking)), 90000);
-    assertEq(mentoToken.balanceOf(alice), 910000);
+    assertEq(mentoToken.balanceOf(address(locking)), 90000e18);
+    assertEq(mentoToken.balanceOf(alice), 910000e18);
 
     vm.prank(alice);
     locking.delegateTo(lockId, charlie);
 
     assertEq(locking.balanceOf(bob), 0);
-    // 630000 * (7 / 104 + 2 / 103) = 54636
-    // (54636 - 1) / 7 + 1 = 7806
-    // 54636 - (7806 * 6) = 7800
-    assertEq(locking.balanceOf(charlie), 7800);
+    // (630000e18 * (7 / 104 + 2 / 103)) - (((630000e18 * (7 / 104 + 2 / 103)) -1) /7 + 1) * 6 = 7805e18
+    assertApproxEqAbs(locking.balanceOf(charlie), 7805e18, 1e18);
 
     _incrementBlock(weekInBlocks);
 
@@ -227,14 +217,14 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.withdraw();
 
     assertEq(mentoToken.balanceOf(address(locking)), 0);
-    assertEq(mentoToken.balanceOf(alice), 1000000);
+    assertEq(mentoToken.balanceOf(alice), 1000000e18);
   }
 
   function test_delegateTo_whenAfterFinishTime_shouldRevert() public {
-    mentoToken.mint(alice, 1000000);
+    mentoToken.mint(alice, 1000000e18);
 
     vm.prank(alice);
-    lockId = locking.lock(alice, bob, 630000, 7, 2);
+    lockId = locking.lock(alice, bob, 630000e18, 7, 2);
 
     _incrementBlock(10 * weekInBlocks);
 

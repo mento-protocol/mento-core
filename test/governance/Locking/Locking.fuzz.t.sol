@@ -31,7 +31,7 @@ contract FuzzTestLocking is TestLocking, DSTest {
 
   function testLockAmount(uint96 amount) public {
     vm.assume(amount < 2**95);
-    vm.assume(amount > 1000);
+    vm.assume(amount > 1e18);
     prepareTokens(user0, amount);
     lockTokens(user0, user0, uint96(amount), 100, 100);
   }
