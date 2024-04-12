@@ -185,7 +185,7 @@ contract Lock_Locking_Test is Locking_Test {
     (lockAmount, lockSlope) = locking.getLock(amount, slopePeriod, cliff);
     // floor ((48 / 104 + 48 / 103) * 96000) = 89045
     assertApproxEqAbs(lockAmount, 89045e18, 1e18);
-    // divUp (89045, 48)  = 1856
+    // divUp (89045, 48) = 1856
     assertApproxEqAbs(lockSlope, 1856e18, 1e18);
 
     amount = 104000e18;

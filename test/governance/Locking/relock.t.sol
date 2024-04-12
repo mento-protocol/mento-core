@@ -282,7 +282,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertEq(mentoToken.balanceOf(alice), 40000e18);
 
     _incrementBlock(29 * weekInBlocks);
-    // 60000e18 * (30 / 104 ) - 29* ((60000e18 * (30 / 104) - 1) / 30 +1) = 577e18
+    // 60000e18 * (30 / 104 ) - 29* ((60000e18 * (30 / 104) - 1) / 30 + 1) = 577e18
     assertApproxEqAbs(locking.balanceOf(bob), 577e18, 1e18);
 
     vm.prank(alice);
@@ -311,7 +311,7 @@ contract Relock_Locking_Test is Locking_Test {
     assertApproxEqAbs(locking.balanceOf(bob), 17307e18, 1e18);
 
     _incrementBlock(20 * weekInBlocks);
-    // 60000e18 * (30 / 104 ) - 20* ((60000e18 * (30 / 104) - 1) / 30 +1)= 5769
+    // 60000e18 * (30 / 104 ) - 20 * ((60000e18 * (30 / 104) - 1) / 30 + 1)= 5769
     assertApproxEqAbs(locking.balanceOf(bob), 5769e18, 1e18);
 
     vm.prank(alice);
@@ -346,7 +346,7 @@ contract Relock_Locking_Test is Locking_Test {
     lockId = locking.lock(alice, bob, 60000e18, 30, 0);
 
     _incrementBlock(20 * weekInBlocks);
-    // 60000e18 * (30 / 104 ) - 20* ((60000e18 * (30 / 104) - 1) / 30 +1)= 5769
+    // 60000e18 * (30 / 104 ) - 20 * ((60000e18 * (30 / 104) - 1) / 30 + 1)= 5769
     assertApproxEqAbs(locking.balanceOf(bob), 5769e18, 1e18);
 
     vm.prank(alice);

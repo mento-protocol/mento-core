@@ -27,7 +27,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     lockId = locking.lock(alice, bob, 60000e18, 30, 0);
 
     _incrementBlock(20 * weekInBlocks);
-    // 60000e18 * (30 / 104) - 20* ((60000e18 * (30 / 104) - 1) / 30 +1)= 5769
+    // 60000e18 * (30 / 104) - 20 * ((60000e18 * (30 / 104) - 1) / 30 + 1)= 5769
     assertApproxEqAbs(locking.balanceOf(bob), 5769e18, 1e18);
 
     vm.prank(alice);
@@ -68,7 +68,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
 
     vm.prank(alice);
     locking.delegateTo(lockId, bob);
-    // 60000e18 * (30 / 104) - 25* ((60000e18 * (30 / 104) - 1) / 30 +1) = 2884
+    // 60000e18 * (30 / 104) - 25 * ((60000e18 * (30 / 104) - 1) / 30 + 1) = 2884
     assertApproxEqAbs(locking.balanceOf(bob), 2884e18, 1e18);
     assertEq(locking.balanceOf(charlie), 0);
 
@@ -95,7 +95,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     lockId = locking.lock(alice, bob, 6300e18, 7, 0);
 
     _incrementBlock(6 * weekInBlocks);
-    //6300e18 * (7 / 104) - 6* ((6300e18 * (7 / 104) - 1) / 7 +1) = 60e18
+    //6300e18 * (7 / 104) - 6 * ((6300e18 * (7 / 104) - 1) / 7 + 1) = 60e18
     assertApproxEqAbs(locking.balanceOf(bob), 60e18, 1e18);
 
     vm.prank(alice);
@@ -174,7 +174,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     vm.prank(alice);
     locking.delegateTo(lockId, charlie);
 
-    // 630000e18 * (7 / 104 + 2/103) - 2* ((630000e18 * (7 / 104+2/103) - 1) / 7 +1) = 39026
+    // 630000e18 * (7 / 104 + 2 / 103) - 2 * ((630000e18 * (7 / 104 + 2 / 103) - 1) / 7 + 1) = 39026
     assertEq(locking.balanceOf(bob), 0);
     assertApproxEqAbs(locking.balanceOf(charlie), 39026e18, 1e18);
 
@@ -206,7 +206,7 @@ contract DelegateTo_Locking_Test is Locking_Test {
     locking.delegateTo(lockId, charlie);
 
     assertEq(locking.balanceOf(bob), 0);
-    // (630000e18 * (7 / 104 + 2 / 103)) - (((630000e18 * (7 / 104 + 2 / 103)) -1) /7 + 1) * 6 = 7805e18
+    // (630000e18 * (7 / 104 + 2 / 103)) - (((630000e18 * (7 / 104 + 2 / 103)) -1) / 7 + 1) * 6 = 7805e18
     assertApproxEqAbs(locking.balanceOf(charlie), 7805e18, 1e18);
 
     _incrementBlock(weekInBlocks);
