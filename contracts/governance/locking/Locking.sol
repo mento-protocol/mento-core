@@ -50,7 +50,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     uint96 amount,
     uint32 slopePeriod,
     uint32 cliff
-  ) external override notStopped returns (uint256) {
+  ) external override returns (uint256) {
     require(amount >= 1e18, "amount is less than minimum");
     require(cliff <= MAX_CLIFF_PERIOD, "cliff too big");
     require(slopePeriod <= MAX_SLOPE_PERIOD, "period too big");
