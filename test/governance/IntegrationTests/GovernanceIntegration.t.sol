@@ -174,7 +174,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(airgrab.root(), merkleRoot);
     assertEq(airgrab.fractalSigner(), fractalSigner);
     assertEq(airgrab.fractalMaxAge(), 180 days);
-    assertEq(airgrab.endTimestamp(), block.timestamp + 365 days);
+    assertEq(airgrab.endTimestamp(), block.timestamp + 8 weeks);
     assertEq(airgrab.slopePeriod(), 104);
     assertEq(airgrab.cliffPeriod(), 0);
     assertEq(address(airgrab.token()), address(mentoToken));
