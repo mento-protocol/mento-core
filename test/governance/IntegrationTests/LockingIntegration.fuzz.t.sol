@@ -67,8 +67,7 @@ contract FuzzLockingIntegrationTest is TestSetup {
     uint32 cliff,
     uint96 period
   ) public {
-    vm.assume(amount < mentoToken.balanceOf(address(address(governanceTimelock))));
-    vm.assume(amount > 1000);
+    amount = uint96(bound(amount, 1e18, mentoToken.balanceOf(address(governanceTimelock))));
     vm.assume(slope >= locking.minSlopePeriod());
     vm.assume(slope <= 104);
     vm.assume(cliff >= locking.minCliffPeriod());
@@ -114,8 +113,7 @@ contract FuzzLockingIntegrationTest is TestSetup {
     uint32 cliff,
     uint96 period
   ) public {
-    vm.assume(amount < mentoToken.balanceOf(address(address(governanceTimelock))));
-    vm.assume(amount > 1000);
+    amount = uint96(bound(amount, 1e18, mentoToken.balanceOf(address(governanceTimelock))));
     vm.assume(slope >= locking.minSlopePeriod());
     vm.assume(slope <= 104);
     vm.assume(cliff >= locking.minCliffPeriod());
