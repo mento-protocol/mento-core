@@ -27,6 +27,8 @@ contract TokenHelpers is Test {
       mint(IStableTokenV2(token), to, amount);
     } else if (token == registry.getAddressForStringOrDie("StableTokenXOF")) {
       mint(IStableTokenV2(token), to, amount);
+    } else if (token == registry.getAddressForStringOrDie("StableTokenKES")) {
+      mint(IStableTokenV2(token), to, amount);
     } else {
       deal(token, to, amount);
     }

@@ -180,6 +180,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     IStableTokenV2 stableTokenEUR = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenEUR"));
     IStableTokenV2 stableTokenBRL = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenBRL"));
     IStableTokenV2 stableTokenXOF = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenXOF"));
+    IStableTokenV2 stableTokenKES = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenKES"));
 
     vm.expectRevert("Initializable: contract is already initialized");
     stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
@@ -192,6 +193,9 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
 
     vm.expectRevert("Initializable: contract is already initialized");
     stableTokenXOF.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+    vm.expectRevert("Initializable: contract is already initialized");
+    stableTokenKES.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
   }
 
   function test_swapsHappenInBothDirections() public {
