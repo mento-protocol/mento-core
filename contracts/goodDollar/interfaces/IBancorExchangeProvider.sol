@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+import "../../interfaces/IExchangeProvider.sol";
 
-interface IBalancerExchangeProvider {
-  struct PoolExchange {
+pragma solidity >=0.8.18;
+
+interface IBancorExchangeProvider is IExchangeProvider {
+  struct BancorExchange {
     address reserveAsset;
     address tokenAddress;
     uint256 tokenSupply;
     uint256 reserveBalance;
-    uint256 reserveRatio;
-    uint256 exitConribution;
+    uint32 reserveRatio;
+    uint32 exitContribution;
   }
 
   /**
@@ -16,7 +18,7 @@ interface IBalancerExchangeProvider {
    * @param exchangeId The id of the pool to be retrieved.
    * @return exchange The PoolExchange with that ID.
    */
-  function getPoolExchange(bytes32 exchangeId) external view returns (PoolExchange memory exchange);
+  function getBancorExchange(bytes32 exchangeId) external view returns (BancorExchange memory exchange);
 
   /**
    * @notice Get all exchange IDs.
@@ -29,7 +31,7 @@ interface IBalancerExchangeProvider {
    * @param exchange The PoolExchange to be created.
    * @return exchangeId The id of the exchange.
    */
-  function createExchange(PoolExchange calldata exchange) external returns (bytes32 exchangeId);
+  function createExchange(BancorExchange calldata exchange) external returns (bytes32 exchangeId);
 
   /**
    * @notice Delete a PoolExchange.
@@ -44,7 +46,25 @@ interface IBalancerExchangeProvider {
    * @param exchangeId The id of the exchange
    * @param exitContribution The exit contribution to be set
    */
-  function setExitContribution(bytes32 exchangeId, uint256 exitContribution) external;
+  function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external;
+
+  function getAmountOut(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) external view returns (uint256);
+
+  function getAmountIn(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountOut
+  ) external view returns (uint256);
+
+  function swapOut(bytes32 exchangeId, address tokenIn, address tokenOut, uint256 amountOut) external returns (uint256);
+
+  function swapIn(bytes32 exchangeId, address tokenIn, address tokenOut, uint256 amountIn) external returns (uint256);
 
   /**
    * @notice gets the current price based of the bancor formula
