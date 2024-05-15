@@ -12,6 +12,9 @@ overrides:
       compiler: "0.5.17"
       tabWidth: 2
       printWidth: 120
+  - files: ["contracts/goodDollar/*.sol", "contracts/goodDollar/**/*.sol"]
+    options:
+      compiler: "0.8.18"
   - files: ["contracts/tokens/patched/*.sol"]
     options:
       compiler: "0.8.18"

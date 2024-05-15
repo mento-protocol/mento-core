@@ -43,7 +43,7 @@ contract BancorExchangeProvider is
   function createExchange(BancorExchange calldata exchange) public onlyRole(MANAGER_ROLE) returns (bytes32 exchangeId) {
     exchangeId = keccak256(abi.encodePacked(exchange.reserveAsset, exchange.tokenAddress));
     exchanges[exchangeId] = exchange;
-    for (uint i = 0; i < exchangeIds.length - 1; i++) {
+    for (uint256 i = 0; i < exchangeIds.length - 1; i++) {
       if (exchangeIds[i] == exchangeId) {
         return exchangeId;
       }
@@ -57,10 +57,11 @@ contract BancorExchangeProvider is
    * @param exchangeIdIndex The index of the exchangeId in the exchangeIds array.
    * @return destroyed - true on successful delition.
    */
-  function destroyExchange(
-    bytes32 exchangeId,
-    uint256 exchangeIdIndex
-  ) public onlyRole(MANAGER_ROLE) returns (bool destroyed) {
+  function destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex)
+    public
+    onlyRole(MANAGER_ROLE)
+    returns (bool destroyed)
+  {
     if (exchangeIds[exchangeIdIndex] != exchangeId) revert INVALID_EXCHANGE_ID();
     delete exchanges[exchangeId];
     exchangeIds[exchangeIdIndex] = exchangeIds[exchangeIds.length - 1];
@@ -92,7 +93,7 @@ contract BancorExchangeProvider is
 
   function getExchanges() external view returns (Exchange[] memory _exchanges) {
     _exchanges = new Exchange[](exchangeIds.length);
-    for (uint i = 0; i < exchangeIds.length; i++) {
+    for (uint256 i = 0; i < exchangeIds.length; i++) {
       BancorExchange memory exchange = exchanges[exchangeIds[i]];
       _exchanges[i].exchangeId = exchangeIds[i];
       _exchanges[i].assets = new address[](2);
@@ -115,7 +116,8 @@ contract BancorExchangeProvider is
    */
   function currentPrice(bytes32 exchangeId) public view returns (uint256 price) {
     BancorExchange memory exchange = exchanges[exchangeId];
-    return (exchange.reserveBalance * 1e18 * 1e6) / ((exchange.tokenSupply * exchange.reserveRatio)); // mul by 1e18 to get price in 18 decimals. mul by 1e6 to balance reserveRatio ppm precision
+    // mul by 1e18 to get price in 18 decimals. mul by 1e6 to balance reserveRatio ppm precision
+    return (exchange.reserveBalance * 1e18 * 1e6) / ((exchange.tokenSupply * exchange.reserveRatio));
   }
 
   /**

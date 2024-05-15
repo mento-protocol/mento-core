@@ -62,9 +62,19 @@ interface IBancorExchangeProvider is IExchangeProvider {
     uint256 amountOut
   ) external view returns (uint256);
 
-  function swapOut(bytes32 exchangeId, address tokenIn, address tokenOut, uint256 amountOut) external returns (uint256);
+  function swapOut(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountOut
+  ) external returns (uint256);
 
-  function swapIn(bytes32 exchangeId, address tokenIn, address tokenOut, uint256 amountIn) external returns (uint256);
+  function swapIn(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) external returns (uint256);
 
   /**
    * @notice gets the current price based of the bancor formula
