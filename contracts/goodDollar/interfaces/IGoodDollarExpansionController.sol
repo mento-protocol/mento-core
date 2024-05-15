@@ -15,9 +15,5 @@ interface IGoodDollarExpansionController {
 
   function mintUBIFromExpansion(bytes32 exchangeId) external returns (uint256 amountMinted);
 
-  function mintRewardFromRR(
-    bytes32 exchangeId,
-    address to,
-    uint256 amount
-  ) external;
+  function mintRewardFromRR(bytes32 exchangeId, address to, uint256 amount) external;
 }

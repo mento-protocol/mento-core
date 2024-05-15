@@ -11,7 +11,7 @@ contract GoodDollarExchangeProvider is UUPSUpgradeable, BancorExchangeProvider, 
 
   bytes32 public exchangeId;
   ReserveParams public reserveParams;
-  uint256 lastExpansion;
+  uint256 public lastExpansion;
 
   function initialize(
     BancorFormula _bancor,
@@ -31,11 +31,9 @@ contract GoodDollarExchangeProvider is UUPSUpgradeable, BancorExchangeProvider, 
 
   function _authorizeUpgrade(address newImplementation) internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
-  function updateMintExpansion(uint256 dailyExpansionRate)
-    external
-    onlyRole(CONTROLLER_ROLE)
-    returns (uint256 mintedAmount)
-  {
+  function updateMintExpansion(
+    uint256 dailyExpansionRate
+  ) external onlyRole(CONTROLLER_ROLE) returns (uint256 mintedAmount) {
     BancorExchange memory exchange = exchanges[exchangeId];
     uint32 newRR = calculateNewReserveRatio(dailyExpansionRate);
     mintedAmount = (exchange.tokenSupply * exchange.reserveRatio - exchange.tokenSupply * newRR) / newRR;
@@ -66,11 +64,9 @@ contract GoodDollarExchangeProvider is UUPSUpgradeable, BancorExchangeProvider, 
     return uint32(ratio / 1e21); // return to e6 precision
   }
 
-  function updateMintInterest(uint256 reserveInterest)
-    external
-    onlyRole(CONTROLLER_ROLE)
-    returns (uint256 mintedAmount)
-  {
+  function updateMintInterest(
+    uint256 reserveInterest
+  ) external onlyRole(CONTROLLER_ROLE) returns (uint256 mintedAmount) {
     BancorExchange storage exchange = exchanges[exchangeId];
 
     mintedAmount = (reserveInterest * exchange.tokenSupply) / exchange.reserveBalance;
