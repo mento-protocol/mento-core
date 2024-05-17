@@ -74,7 +74,7 @@ contract GovernanceIntegrationTest is TestSetup {
     mentoToken.transfer(bob, 10_000e18);
 
     vm.prank(alice);
-    locking.lock(alice, alice, 2000e18, 1, 103);
+    locking.lock(alice, alice, 10_000e18, 1, 103);
 
     vm.prank(bob);
     locking.lock(bob, bob, 1500e18, 1, 103);
@@ -194,7 +194,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(address(mentoGovernor.token()), address(locking));
     assertEq(mentoGovernor.votingDelay(), 0);
     assertEq(mentoGovernor.votingPeriod(), BLOCKS_WEEK);
-    assertEq(mentoGovernor.proposalThreshold(), 1_000e18);
+    assertEq(mentoGovernor.proposalThreshold(), 10_000e18);
     assertEq(mentoGovernor.quorumNumerator(), 2);
     assertEq(mentoGovernor.timelock(), governanceTimelockAddress);
 
@@ -281,7 +281,7 @@ contract GovernanceIntegrationTest is TestSetup {
   function test_governor_whenUsedByLockedAccounts_shouldUpdateSettings() public s_governance {
     uint256 newVotingDelay = BLOCKS_DAY;
     uint256 newVotingPeriod = 2 * BLOCKS_WEEK;
-    uint256 newThreshold = 5000e18;
+    uint256 newThreshold = 50_000e18;
     uint256 newQuorum = 10; //10%
     uint256 newMinDelay = 3 days;
     uint32 newMinCliff = 6;
@@ -468,7 +468,7 @@ contract GovernanceIntegrationTest is TestSetup {
 
     // governanceTimelockAddress distrubutes tokens to users
     vm.prank(governanceTimelockAddress);
-    mentoToken.transfer(alice, 5000e18);
+    mentoToken.transfer(alice, 50_000e18);
 
     vm.prank(governanceTimelockAddress);
     mentoToken.transfer(bob, 5000e18);
@@ -478,7 +478,7 @@ contract GovernanceIntegrationTest is TestSetup {
 
     // users lock tokens
     vm.prank(alice);
-    locking.lock(alice, alice, 5000e18, 20, 10);
+    locking.lock(alice, alice, 50_000e18, 20, 10);
 
     vm.prank(bob);
     locking.lock(bob, bob, 5000e18, 40, 10);
