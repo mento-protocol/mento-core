@@ -3,12 +3,37 @@ pragma solidity 0.8.18;
 
 interface IGoodDollarExchangeProvider {
   /**
+   * @notice Emitted when the SortedOracles address is updated.
+   * @param sortedOracles The address of the SortedOracles contract.
+   */
+  event SortedOraclesUpdated(address indexed sortedOracles);
+
+  /**
+   * @notice Emitted when the ExpansionController address is updated.
+   * @param expansionController The address of the ExpansionController contract.
+   */
+  event ExpansionControllerUpdated(address indexed expansionController);
+
+  /**
+   * @notice Emitted when the AVATAR address is updated.
+   * @param AVATAR The address of the AVATAR contract.
+   */
+  event AvatarUpdated(address indexed AVATAR);
+
+  /**
+   * @notice Emitted when reserve ratio for exchange is updated.
+   * @param exchangeId The id of the exchange.
+   * @param reserveRatio The new reserve ratio.
+   */
+  event ReserveRatioUpdated(bytes32 indexed exchangeId, uint32 reserveRatio);
+
+  /**
    * @notice calculates the amount of tokens to be minted as a result of expansion.
    * @param exchangeId The id of the pool to calculate expansion for.
    * @param expansionRate The rate of expansion.
-   * @return amount of tokens to be minted as a result of the expansion.
+   * @return amountToMint amount of tokens to be minted as a result of the expansion.
    */
-  function calculateExpansion(bytes32 exchangeId, uint256 expansionRate) external returns (uint256);
+  function calculateExpansion(bytes32 exchangeId, uint32 expansionRate) external returns (uint256 amountToMint);
 
   /**
    * @notice calculates the amount of tokens to be minted as a result of the reserve interest.
@@ -25,8 +50,7 @@ interface IGoodDollarExchangeProvider {
    */
   function calculateRatioForReward(bytes32 exchangeId, uint256 reward) external;
 
-
-  function currentPriceUSD(bytes32 exchangeId) external returns (uint256);
+  function currentPriceUSD(bytes32 exchangeId) external view returns (uint256);
 
   function pause() external;
 

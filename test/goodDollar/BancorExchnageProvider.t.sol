@@ -78,7 +78,7 @@ contract BancorExchangeProviderTest is Test {
     );
   }
 
-  function initializeBancorExchangeProvider() public returns (BancorExchangeProvider) {
+  function initializeBancorExchangeProvider() internal returns (BancorExchangeProvider) {
     BancorExchangeProvider bancorExchangeProvider = new BancorExchangeProvider(false);
 
     bancorExchangeProvider.initialize(brokerAddress, reserveAddress);
@@ -221,6 +221,7 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     IExchangeProvider.Exchange[] memory exchanges = bancorExchangeProvider.getExchanges();
     assertEq(exchanges.length, 0);
   }
+
   function test_getExchanges_whenExchangesExist_shouldReturnExchange() public {
     bytes32 exchangeId1 = bancorExchangeProvider.createExchange(poolExchange1);
 
