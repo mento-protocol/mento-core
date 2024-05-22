@@ -8,14 +8,14 @@ import { IReserve } from "../interfaces/IReserve.sol";
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
-import { Power } from "./Power.sol";
+import { BancorFormula } from "./BancorFormula.sol";
 import { UD60x18, convert, unwrap, wrap } from "prb-math/src/UD60x18.sol";
 
 /**
  * @title BancorExchangeProvider
  * @notice Provides exchange functionality for Bancor pools.
  */
-contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, OwnableUpgradeable, Power {
+contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, BancorFormula, OwnableUpgradeable {
   /* ==================== State Variables ==================== */
 
   // 100% = 1e6 used for exitContribution and reserveRatio
@@ -64,6 +64,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, O
   function _initialize(address _broker, address _reserve) internal onlyInitializing {
     __Ownable_init();
 
+    BancorFormula.init();
     setBroker(_broker);
     setReserve(_reserve);
   }
@@ -352,28 +353,16 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, O
     uint256 scaledAmountOut
   ) internal view verifyExchangeTokens(tokenIn, tokenOut, exchange) returns (uint256 scaledAmountIn) {
     if (tokenIn == exchange.reserveAsset) {
-      // amountIn = reserveBalance * (( scaledAmountOut / tokenSupply + 1)^ (1 / reserveRatio) -1)
-      uint256 numerator = scaledAmountOut + exchange.tokenSupply;
-      (uint256 powerResult, uint256 precision) = power(
-        numerator,
+      scaledAmountIn = fundCost(exchange.tokenSupply, exchange.reserveBalance, exchange.reserveRatio, scaledAmountOut);
+    } else {
+      scaledAmountIn = fundSupplyAmount(
         exchange.tokenSupply,
-        MAX_WEIGHT,
-        exchange.reserveRatio
+        exchange.reserveBalance,
+        exchange.reserveRatio,
+        scaledAmountOut
       );
 
-      uint256 temp = (exchange.reserveBalance * powerResult) >> precision;
-      scaledAmountIn = temp - exchange.reserveBalance;
-    } else {
-      // amountIn = (S * ( ( r/R + 1 )^reserveRatio -1))/(1-exitContribution)
-      uint256 numerator = scaledAmountOut + exchange.reserveBalance;
-      uint256 denominator = exchange.reserveBalance;
-      (uint256 powerResult, uint256 precision) = power(numerator, denominator, exchange.reserveRatio, MAX_WEIGHT);
-      uint256 temp = (exchange.tokenSupply * powerResult) >> precision;
-      numerator = temp - exchange.tokenSupply;
-      denominator = MAX_WEIGHT - exchange.exitConribution;
-      uint256 scaledDenominator = denominator * 1e12;
-
-      scaledAmountIn = unwrap(convert(numerator).div(convert(scaledDenominator)));
+      scaledAmountIn = (scaledAmountIn * MAX_WEIGHT) / (MAX_WEIGHT - exchange.exitConribution);
     }
   }
 
@@ -392,29 +381,20 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, O
     uint256 scaledAmountIn
   ) internal view verifyExchangeTokens(tokenIn, tokenOut, exchange) returns (uint256 scaledAmountOut) {
     if (tokenIn == exchange.reserveAsset) {
-      // calculates amountOut = Supply * ( (1 + amountIn/reserveBalance)^collateralRatio - 1)
-      uint256 numerator = scaledAmountIn + exchange.reserveBalance;
-      (uint256 powerResult, uint256 precision) = power(
-        numerator,
+      scaledAmountOut = purchaseTargetAmount(
+        exchange.tokenSupply,
         exchange.reserveBalance,
         exchange.reserveRatio,
-        MAX_WEIGHT
+        scaledAmountIn
       );
-      uint256 temp = (exchange.tokenSupply * powerResult) >> precision;
-      scaledAmountOut = temp - exchange.tokenSupply;
     } else {
-      // calculates amountOut = reserveBalance * ((1 + (amountIn * exitContribution)/tokenSupply)^(1/collateralRatio) -1)
-      uint256 exitContributionScaled = (uint256(MAX_WEIGHT) - uint256(exchange.exitConribution)) * 1e12;
-
-      uint256 numerator = unwrap(wrap(scaledAmountIn).mul(wrap(exitContributionScaled))) + exchange.tokenSupply;
-      (uint256 powerResult, uint256 precision) = power(
-        numerator,
+      scaledAmountIn = (scaledAmountIn * (MAX_WEIGHT - exchange.exitConribution)) / MAX_WEIGHT;
+      scaledAmountOut = saleTargetAmount(
         exchange.tokenSupply,
-        MAX_WEIGHT,
-        exchange.reserveRatio
+        exchange.reserveBalance,
+        exchange.reserveRatio,
+        scaledAmountIn
       );
-
-      scaledAmountOut = ((exchange.reserveBalance * powerResult) >> precision) - exchange.reserveBalance;
     }
   }
 

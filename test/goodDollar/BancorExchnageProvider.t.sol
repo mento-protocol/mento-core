@@ -418,17 +418,17 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
 
   function test_getAmountIn_whenTokenInIsReserveAsset_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    // formula: amountIn = reserveBalance * (( scaledAmountOut / tokenSupply + 1)^ (1 / reserveRatio) -1)
-    // calculation: 60_000 * ((1/300_000 + 1)^(1/0.2) - 1) ≈ 1.000006666688888925
-    uint256 expectedAmountIn = 1000006666688888925;
+    // formula: amountIn = reserveBalance * (( (tokenSupply + amountOut) / tokenSupply) ^ (1/reserveRatio) - 1)
+    // calculation: 60_000 * ((300_001/300_000)^(1/0.2) - 1) ≈ 1.000006666688888926
+    uint256 expectedAmountIn = 1000006666688888926;
     uint256 amountIn = bancorExchangeProvider.getAmountIn(exchangeId, address(reserveToken), address(token), 1e18);
     assertEq(amountIn, expectedAmountIn);
   }
 
   function test_getAmountIn_whenTokenInIsToken_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    // formula: amountIn = (S * ( ( r/R + 1 )^reserveRatio -1)) / (1-exitContribution)
-    // calculation: (300_000 * ( ( 1/60_000 + 1) ^0.2 - 1)) / (1 - 0.01) ≈ 1.010094276161615375
+    // formula: amountIn = (tokenSupply * (( (amountOut + reserveBalance)  / reserveBalance) ^ (reserveRatio) - 1)) \ exitContribution
+    // calculation: (300_000 * ( (60_001/60_000) ^0.2 - 1)) / (0.99) ≈ 1.010094276161615375
     uint256 expectedAmountIn = 1010094276161615375;
     uint256 amountIn = bancorExchangeProvider.getAmountIn(exchangeId, address(token), address(reserveToken), 1e18);
     assertEq(amountIn, expectedAmountIn);
@@ -480,7 +480,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     // formula: amountOut = reserveBalance * ((1 + (amountIn * exitContribution)/tokenSupply)^(1/collateralRatio) -1)
     // calculation: 60_000 * ((1 + (1 * (1-0.01))/300_000)^(1/0.2) -1) ≈ 0.990006534021562235
-    uint256 expectedAmountIn = 990006534021562235;
+    uint256 expectedAmountIn = 989993466021562164;
     uint256 amountIn = bancorExchangeProvider.getAmountOut(exchangeId, address(token), address(reserveToken), 1e18);
     assertEq(amountIn, expectedAmountIn);
   }
@@ -574,7 +574,7 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
     assertEq(tokenSupplyAfter, tokenSupplyBefore + amountOut);
   }
 
-  function test_swapIn_whenTokenIsToken_shouldSwapIn() public {
+  function test_swapIn_whenTokenInIsToken_shouldSwapIn() public {
     BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
     uint256 amountIn = 1e18;
 

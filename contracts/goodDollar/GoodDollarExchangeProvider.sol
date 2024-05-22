@@ -73,7 +73,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   }
 
   modifier onlyExpansionController() {
-    require(msg.sender == address(expansionController), "Only Expansion Controller can call this function");
+    require(msg.sender == address(expansionController), "Only ExpansionController can call this function");
     _;
   }
 
@@ -91,59 +91,6 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
       reserveAssetUSDRateFeed[exchanges[exchangeId].reserveAsset]
     );
     return unwrap(wrap(price).mul(wrap(numerator)).div(wrap(denominator)));
-  }
-
-  /**
-   * @notice Calculate amountOut of tokenOut received for a given amountIn of tokenIn
-   * @dev applies expansion if nessesary
-   * @param exchangeId The id of the exchange i.e PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountIn The amount of tokenIn to be sold
-   * @return amountOut The amount of tokenOut to be bought
-   */
-  function getAmountOut(
-    bytes32 exchangeId,
-    address tokenIn,
-    address tokenOut,
-    uint256 amountIn
-  ) external view override returns (uint256 amountOut) {
-    PoolExchange memory exchange = getPoolExchange(exchangeId);
-    uint32 expansionRate = expansionController.getCurrentExpansionRate(exchangeId);
-    if (expansionRate > 0) {
-      (exchange, ) = _calculateExpansion(exchangeId, expansionRate);
-    }
-
-    uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
-    uint256 scaledAmountOut = _getAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
-    amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
-    return amountOut;
-  }
-
-  /**
-   * @notice Calculate amountIn of tokenIn for a given amountOut of tokenOut
-   * @dev applies expansion if nessesary
-   * @param exchangeId The id of the exchange i.e PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountOut The amount of tokenOut to be bought
-   * @return amountIn The amount of tokenIn to be sold
-   */
-  function getAmountIn(
-    bytes32 exchangeId,
-    address tokenIn,
-    address tokenOut,
-    uint256 amountOut
-  ) external view override returns (uint256 amountIn) {
-    PoolExchange memory exchange = getPoolExchange(exchangeId);
-    uint32 expansionRate = expansionController.getCurrentExpansionRate(exchangeId);
-    if (expansionRate > 0) {
-      (exchange, ) = _calculateExpansion(exchangeId, expansionRate);
-    }
-    uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
-    uint256 scaledAmountIn = _getAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
-    amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
-    return amountIn;
   }
 
   /* ==================== Mutative Functions ==================== */
@@ -206,64 +153,10 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   }
 
   /**
-   * @notice Execute a token swap with fixed amountIn
-   * @param exchangeId The id of exchange, i.e. PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountIn The amount of tokenIn to be sold
-   * @return amountOut The amount of tokenOut to be bought
-   */
-  function swapIn(
-    bytes32 exchangeId,
-    address tokenIn,
-    address tokenOut,
-    uint256 amountIn
-  ) external override onlyBroker returns (uint256 amountOut) {
-    if (expansionController.shouldExpand(exchangeId)) {
-      expansionController.mintUBIFromExpansion(exchangeId);
-    }
-
-    PoolExchange memory exchange = getPoolExchange(exchangeId);
-    uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
-    uint256 scaledAmountOut = _getAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
-    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
-
-    amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
-    return amountOut;
-  }
-
-  /**
-   * @notice Execute a token swap with fixed amountOut
-   * @param exchangeId The id of exchange, i.e. PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountOut The amount of tokenOut to be bought
-   * @return amountIn The amount of tokenIn to be sold
-   */
-  function swapOut(
-    bytes32 exchangeId,
-    address tokenIn,
-    address tokenOut,
-    uint256 amountOut
-  ) external override onlyBroker returns (uint256 amountIn) {
-    if (expansionController.shouldExpand(exchangeId)) {
-      expansionController.mintUBIFromExpansion(exchangeId);
-    }
-
-    PoolExchange memory exchange = getPoolExchange(exchangeId);
-    uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
-    uint256 scaledAmountIn = _getAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
-    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
-
-    amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
-    return amountIn;
-  }
-
-  /**
    * @notice Calculates the amount of tokens to be minted as a result of expansion.
    * @dev Calculates the amount of tokens that need to be minted as a result of the expansion
    *      while keeping the current price the same.
-   *      calculation: amountToMint = tokenSupply * newRatio - tokenSupply * reserveRatio / newRatio
+   *      calculation: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
    * @param exchangeId The id of the pool to calculate expansion for.
    * @param expansionRate The rate of expansion.
    * @return amountToMint amount of tokens to be minted as a result of the expansion.
@@ -273,11 +166,27 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     onlyExpansionController
     returns (uint256 amountToMint)
   {
-    (PoolExchange memory exchange, uint256 scaledAmountToMint) = _calculateExpansion(exchangeId, expansionRate);
+    require(expansionRate > 0, "Expansion rate must be greater than 0");
+    PoolExchange memory exchange = getPoolExchange(exchangeId);
 
-    exchanges[exchangeId].tokenSupply = exchange.tokenSupply;
-    exchanges[exchangeId].reserveRatio = exchange.reserveRatio;
-    emit ReserveRatioUpdated(exchangeId, exchange.reserveRatio);
+    if (expansionRate == MAX_WEIGHT) {
+      return 0;
+    }
+
+    UD60x18 scaledExpansion = wrap(uint256(expansionRate) * 1e12);
+    UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e12);
+    UD60x18 newRatio = scaledRatio.mul(scaledExpansion);
+
+    UD60x18 numerator = wrap(exchange.tokenSupply).mul(scaledRatio);
+    numerator = numerator.sub(wrap(exchange.tokenSupply).mul(newRatio));
+
+    uint256 scaledAmountToMint = unwrap(numerator.div(newRatio));
+
+    uint32 newRatioUint = uint32(unwrap(newRatio) / 1e12);
+    exchanges[exchangeId].reserveRatio = newRatioUint;
+    emit ReserveRatioUpdated(exchangeId, newRatioUint);
+
+    exchanges[exchangeId].tokenSupply += scaledAmountToMint;
 
     amountToMint = scaledAmountToMint / tokenPrecisionMultipliers[exchange.tokenAddress];
     return amountToMint;
@@ -298,6 +207,11 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     returns (uint256 amountToMint)
   {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
+
+    if (reserveInterest == 0) {
+      return 0;
+    }
+
     uint256 reserveinterestScaled = reserveInterest * tokenPrecisionMultipliers[exchange.reserveAsset];
     uint256 amountToMintScaled = unwrap(
       wrap(reserveinterestScaled).mul(wrap(exchange.tokenSupply)).div(wrap(exchange.reserveBalance))
@@ -320,6 +234,10 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   function calculateRatioForReward(bytes32 exchangeId, uint256 reward) external onlyExpansionController {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
+    if (reward == 0) {
+      return;
+    }
+
     uint256 currentPriceScaled = currentPrice(exchangeId) * tokenPrecisionMultipliers[exchange.reserveAsset];
     uint256 rewardScaled = reward * tokenPrecisionMultipliers[exchange.tokenAddress];
 
@@ -327,10 +245,11 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     UD60x18 denominator = wrap(exchange.tokenSupply + rewardScaled).mul(wrap(currentPriceScaled));
     uint256 newRatioScaled = unwrap(numerator.div(denominator));
 
-    exchanges[exchangeId].reserveRatio = uint32(newRatioScaled / 1e12);
-    exchanges[exchangeId].tokenSupply += rewardScaled;
+    uint32 newRatioUint = uint32(newRatioScaled / 1e12);
+    exchanges[exchangeId].reserveRatio = newRatioUint;
+    emit ReserveRatioUpdated(exchangeId, newRatioUint);
 
-    emit ReserveRatioUpdated(exchangeId, exchange.reserveRatio);
+    exchanges[exchangeId].tokenSupply += rewardScaled;
   }
 
   /**
@@ -347,39 +266,5 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    */
   function unpause() external virtual onlyAvatar {
     _unpause();
-  }
-
-  /* ==================== Private Functions ==================== */
-
-  /**
-   * @notice Calculates the amount of tokens to be minted as a result of expansion.
-   * @dev Calculates the amount of tokens that need to be minted as a result of the expansion
-   *      while keeping the current price the same.
-   *      calculation: amountToMint = tokenSupply * newRatio - tokenSupply * reserveRatio / newRatio
-   * @param exchangeId The id of the pool to calculate expansion for.
-   * @param expansionRate The rate of expansion.
-   * @return exchange The updated PoolExchange struct.
-   * @return amountToMint amount of tokens to be minted as a result of the expansion.
-   */
-  function _calculateExpansion(bytes32 exchangeId, uint32 expansionRate)
-    internal
-    view
-    returns (PoolExchange memory exchange, uint256 amountToMint)
-  {
-    PoolExchange memory exchange = getPoolExchange(exchangeId);
-
-    UD60x18 scaledExpansion = wrap(uint256(expansionRate) * 1e12);
-    UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e12);
-    UD60x18 newRatio = scaledRatio.mul(scaledExpansion);
-
-    UD60x18 numerator = wrap(exchange.tokenSupply).mul(scaledRatio);
-    numerator = numerator.sub(wrap(exchange.tokenSupply).mul(newRatio));
-
-    uint256 scaledAmountToMint = unwrap(numerator.div(newRatio));
-
-    exchange.tokenSupply += scaledAmountToMint;
-    exchange.reserveRatio = uint32(unwrap(newRatio) / 1e12);
-
-    return (exchange, scaledAmountToMint);
   }
 }
