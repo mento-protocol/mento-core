@@ -53,7 +53,7 @@ contract GovernanceGasTest is TestSetup {
     mentoToken.transfer(bob, 100_000e18);
 
     vm.prank(alice);
-    locking.lock(alice, alice, 2000e18, 1, 103);
+    locking.lock(alice, alice, 20_000e18, 1, 103);
 
     vm.prank(bob);
     locking.lock(bob, bob, 1500e18, 1, 103);
