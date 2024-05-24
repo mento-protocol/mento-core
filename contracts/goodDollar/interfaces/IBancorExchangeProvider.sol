@@ -11,6 +11,8 @@ interface IBancorExchangeProvider {
     uint32 exitConribution;
   }
 
+  /* ------- Events ------- */
+
   /**
    * @notice Emitted when the broker address is updated.
    * @param newBroker The address of the new broker.
@@ -45,6 +47,8 @@ interface IBancorExchangeProvider {
    * @param exitContribution The exit contribution
    */
   event ExitContributionSet(bytes32 indexed exchangeId, uint256 exitContribution);
+
+  /* ------- Functions ------- */
 
   /**
    * @notice Retrieves the pool with the specified exchangeId.

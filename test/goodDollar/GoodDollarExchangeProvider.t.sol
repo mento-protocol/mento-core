@@ -121,7 +121,7 @@ contract GoodDollarExchangeProviderTest_initializerSettersGetters is GoodDollarE
 
   /* ---------- Setters ---------- */
 
-  function test_setAvatr_whenSenderIsNotOwner_shouldRevert() public {
+  function test_setAvatar_whenSenderIsNotOwner_shouldRevert() public {
     vm.prank(makeAddr("NotOwner"));
     vm.expectRevert("Ownable: caller is not the owner");
     exchangeProvider.setAvatar(makeAddr("NewAvatar"));
@@ -217,6 +217,39 @@ contract GoodDollarExchangeProviderTest_initializerSettersGetters is GoodDollarE
   }
 }
 
+contract GoodDollarExchangeProviderTest_currentPriceUSD is GoodDollarExchangeProviderTest {
+  GoodDollarExchangeProvider exchangeProvider;
+  bytes32 exchangeId;
+
+  function setUp() public override {
+    super.setUp();
+    vm.mockCall(
+      sortedOraclesAddress,
+      abi.encodeWithSelector(ISortedOracles(sortedOraclesAddress).medianRate.selector, reserveTokenRateFeed),
+      abi.encode(1e24 * 0.5, 1e24) // mock 0.5 reserveAsset/USD rate
+    );
+    exchangeProvider = initializeGoodDollarExchangeProvider();
+    exchangeId = exchangeProvider.createExchange(poolExchange1);
+  }
+
+  function test_currentPriceUSD_whenExchangeIdDoesNotExist_shouldRevert() public {
+    vm.expectRevert("Exchange does not exist");
+    exchangeProvider.currentPriceUSD(bytes32(0));
+  }
+
+  function test_currentPriceUSD_whenRateFeedNotSet_shouldRevert() public {
+    vm.expectRevert("USD rate feed not set");
+    exchangeProvider.currentPriceUSD(exchangeId);
+  }
+
+  function test_currentPriceUSD_whenRateFeedSet_shouldCalculatePrice() public {
+    exchangeProvider.setReserveAssetUSDRateFeed(address(reserveToken), reserveTokenRateFeed);
+
+    uint256 price = exchangeProvider.currentPriceUSD(exchangeId);
+    assertEq(1e18 * 0.5, price);
+  }
+}
+
 contract GoodDollarExchangeProviderTest_createExchange is GoodDollarExchangeProviderTest {
   GoodDollarExchangeProvider exchangeProvider;
 
@@ -256,43 +289,43 @@ contract GoodDollarExchangeProviderTest_createExchange is GoodDollarExchangeProv
   }
 }
 
-contract GoodDollarExchangeProviderTest_calculateExpansion is GoodDollarExchangeProviderTest {
+contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeProviderTest {
   GoodDollarExchangeProvider exchangeProvider;
   bytes32 exchangeId;
-  uint32 expansionRate;
+  uint256 expansionRate;
 
   function setUp() public override {
     super.setUp();
-    expansionRate = 990000;
+    expansionRate = 1e18 * 0.99;
     exchangeProvider = initializeGoodDollarExchangeProvider();
     exchangeId = exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
   }
 
-  function test_calculateExpansion_whenCallerIsNotExpansionController_shouldRevert() public {
+  function test_mintFromExpansion_whenCallerIsNotExpansionController_shouldRevert() public {
     vm.prank(makeAddr("NotExpansionController"));
     vm.expectRevert("Only ExpansionController can call this function");
-    exchangeProvider.calculateExpansion(exchangeId, expansionRate);
+    exchangeProvider.mintFromExpansion(exchangeId, expansionRate);
   }
 
-  function test_calculateExpansionRate_whenExpansionRateIs0_shouldRevert() public {
+  function test_mintFromExpansionRate_whenExpansionRateIs0_shouldRevert() public {
     vm.prank(expansionControllerAddress);
     vm.expectRevert("Expansion rate must be greater than 0");
-    uint256 amountToMint = exchangeProvider.calculateExpansion(exchangeId, 0);
+    exchangeProvider.mintFromExpansion(exchangeId, 0);
   }
 
-  function test_calculateExpansion_whenExchangeIdIsInvalid_shouldRevert() public {
+  function test_mintFromExpansion_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
     vm.expectRevert("An exchange with the specified id does not exist");
-    exchangeProvider.calculateExpansion(bytes32(0), expansionRate);
+    exchangeProvider.mintFromExpansion(bytes32(0), expansionRate);
   }
 
-  function test_calculateExpansion_whenExpansionRateIs100Percent_shouldReturn0() public {
+  function test_mintFromExpansion_whenExpansionRateIs100Percent_shouldReturn0() public {
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.calculateExpansion(exchangeId, 1e6);
+    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, 1e6);
     assertEq(amountToMint, 0);
   }
 
-  function test_calculateExpansion_whenValidExpansionRate_shouldReturnCorrectAmountAndEmit() public {
+  function test_mintFromExpansion_whenValidExpansionRate_shouldReturnCorrectAmountAndEmit() public {
     // formula: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
     // amountToMint = (300_000 * 0.2 - 300_000 * 0.2 * 0.99 ) / 0.2 * 0.99 ≈ 3030.303030303030303030
     uint256 expectedAmountToMint = 3030303030303030303030;
@@ -301,7 +334,7 @@ contract GoodDollarExchangeProviderTest_calculateExpansion is GoodDollarExchange
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.calculateExpansion(exchangeId, expansionRate);
+    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, expansionRate);
     assertEq(amountToMint, expectedAmountToMint);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
@@ -309,11 +342,11 @@ contract GoodDollarExchangeProviderTest_calculateExpansion is GoodDollarExchange
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio);
   }
 
-  function test_calculateExpansion_whenValidExpansionRate_shouldNotChangePrice() public {
+  function test_mintFromExpansion_whenValidExpansionRate_shouldNotChangePrice() public {
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.calculateExpansion(exchangeId, expansionRate);
+    exchangeProvider.mintFromExpansion(exchangeId, expansionRate);
 
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
 
@@ -321,7 +354,7 @@ contract GoodDollarExchangeProviderTest_calculateExpansion is GoodDollarExchange
   }
 }
 
-contract GoodDollarExchangeProviderTest_calculateInterest is GoodDollarExchangeProviderTest {
+contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangeProviderTest {
   GoodDollarExchangeProvider exchangeProvider;
   bytes32 exchangeId;
   uint256 reserveInterest;
@@ -333,31 +366,31 @@ contract GoodDollarExchangeProviderTest_calculateInterest is GoodDollarExchangeP
     exchangeId = exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
   }
 
-  function test_calculateInterest_whenCallerIsNotExpansionController_shouldRevert() public {
+  function test_mintFromInterest_whenCallerIsNotExpansionController_shouldRevert() public {
     vm.prank(makeAddr("NotExpansionController"));
     vm.expectRevert("Only ExpansionController can call this function");
-    exchangeProvider.calculateInterest(exchangeId, reserveInterest);
+    exchangeProvider.mintFromInterest(exchangeId, reserveInterest);
   }
 
-  function test_calculateInterest_whenExchangeIdIsInvalid_shouldRevert() public {
+  function test_mintFromInterest_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
     vm.expectRevert("An exchange with the specified id does not exist");
-    exchangeProvider.calculateInterest(bytes32(0), reserveInterest);
+    exchangeProvider.mintFromInterest(bytes32(0), reserveInterest);
   }
 
-  function test_calculateInterest_whenInterestIs0_shouldReturn0() public {
+  function test_mintFromInterest_whenInterestIs0_shouldReturn0() public {
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.calculateInterest(exchangeId, 0);
+    uint256 amountToMint = exchangeProvider.mintFromInterest(exchangeId, 0);
     assertEq(amountToMint, 0);
   }
 
-  function test_calculateInterest_whenInterestLarger0_shouldReturnCorrectAmount() public {
+  function test_mintFromInterest_whenInterestLarger0_shouldReturnCorrectAmount() public {
     // formula: amountToMint = reserveInterest * tokenSupply / reserveBalance
     // amountToMint = 1000 * 300_000 / 60_000 = 5000
     uint256 expectedAmountToMint = 5000 * 1e18;
 
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.calculateInterest(exchangeId, reserveInterest);
+    uint256 amountToMint = exchangeProvider.mintFromInterest(exchangeId, reserveInterest);
     assertEq(amountToMint, expectedAmountToMint);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
@@ -365,11 +398,11 @@ contract GoodDollarExchangeProviderTest_calculateInterest is GoodDollarExchangeP
     assertEq(poolExchangeAfter.reserveBalance, poolExchange1.reserveBalance + reserveInterest);
   }
 
-  function test_calculateInterest_whenInterestLarger0_shouldNotChangePrice() public {
+  function test_mintFromInterest_whenInterestLarger0_shouldNotChangePrice() public {
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.calculateInterest(exchangeId, reserveInterest);
+    exchangeProvider.mintFromInterest(exchangeId, reserveInterest);
 
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
 
@@ -377,7 +410,7 @@ contract GoodDollarExchangeProviderTest_calculateInterest is GoodDollarExchangeP
   }
 }
 
-contract GoodDollarExchangeProviderTest_calculateRatioForReward is GoodDollarExchangeProviderTest {
+contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchangeProviderTest {
   GoodDollarExchangeProvider exchangeProvider;
   bytes32 exchangeId;
   uint256 reward;
@@ -389,19 +422,19 @@ contract GoodDollarExchangeProviderTest_calculateRatioForReward is GoodDollarExc
     exchangeId = exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
   }
 
-  function test_calculateRatioForReward_whenCallerIsNotExpansionController_shouldRevert() public {
+  function test_updateRatioForReward_whenCallerIsNotExpansionController_shouldRevert() public {
     vm.prank(makeAddr("NotExpansionController"));
     vm.expectRevert("Only ExpansionController can call this function");
-    exchangeProvider.calculateRatioForReward(exchangeId, reward);
+    exchangeProvider.updateRatioForReward(exchangeId, reward);
   }
 
-  function test_calculateRatioForReward_whenExchangeIdIsInvalid_shouldRevert() public {
+  function test_updateRatioForReward_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
     vm.expectRevert("An exchange with the specified id does not exist");
-    exchangeProvider.calculateRatioForReward(bytes32(0), reward);
+    exchangeProvider.updateRatioForReward(bytes32(0), reward);
   }
 
-  function test_calculateRatioForReward_whenRewardLarger0_shouldReturnCorrectRatioAndEmit() public {
+  function test_updateRatioForReward_whenRewardLarger0_shouldReturnCorrectRatioAndEmit() public {
     // formula: newRatio = reserveBalance / (tokenSupply + reward) * currentPrice
     // reserveRatio = 60_000 / (300_000 + 1000) * 1 ≈ 0.199335
     uint32 expectedReserveRatio = 199335;
@@ -409,7 +442,7 @@ contract GoodDollarExchangeProviderTest_calculateRatioForReward is GoodDollarExc
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    exchangeProvider.calculateRatioForReward(exchangeId, reward);
+    exchangeProvider.updateRatioForReward(exchangeId, reward);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio);

@@ -277,7 +277,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     address tokenIn,
     address tokenOut,
     uint256 amountIn
-  ) external virtual onlyBroker returns (uint256 amountOut) {
+  ) public virtual onlyBroker returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
     uint256 scaledAmountOut = _getAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
@@ -300,7 +300,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     address tokenIn,
     address tokenOut,
     uint256 amountOut
-  ) external virtual onlyBroker returns (uint256 amountIn) {
+  ) public virtual onlyBroker returns (uint256 amountIn) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
     uint256 scaledAmountIn = _getAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);

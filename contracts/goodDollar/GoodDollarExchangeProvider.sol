@@ -86,6 +86,8 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    */
   function currentPriceUSD(bytes32 exchangeId) external view returns (uint256 priceUSD) {
     require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
+    require(reserveAssetUSDRateFeed[exchanges[exchangeId].reserveAsset] != address(0), "USD rate feed not set");
+
     uint256 price = currentPrice(exchangeId);
     (uint256 numerator, uint256 denominator) = sortedOracles.medianRate(
       reserveAssetUSDRateFeed[exchanges[exchangeId].reserveAsset]
@@ -153,6 +155,40 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   }
 
   /**
+   * @notice Execute a token swap with fixed amountIn
+   * @param exchangeId The id of exchange, i.e. PoolExchange to use
+   * @param tokenIn The token to be sold
+   * @param tokenOut The token to be bought
+   * @param amountIn The amount of tokenIn to be sold
+   * @return amountOut The amount of tokenOut to be bought
+   */
+  function swapIn(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) public override onlyBroker whenNotPaused returns (uint256 amountOut) {
+    BancorExchangeProvider.swapIn(exchangeId, tokenIn, tokenOut, amountIn);
+  }
+
+  /**
+   * @notice Execute a token swap with fixed amountOut
+   * @param exchangeId The id of exchange, i.e. PoolExchange to use
+   * @param tokenIn The token to be sold
+   * @param tokenOut The token to be bought
+   * @param amountOut The amount of tokenOut to be bought
+   * @return amountIn The amount of tokenIn to be sold
+   */
+  function swapOut(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountOut
+  ) public override onlyBroker whenNotPaused returns (uint256 amountIn) {
+    BancorExchangeProvider.swapOut(exchangeId, tokenIn, tokenOut, amountOut);
+  }
+
+  /**
    * @notice Calculates the amount of tokens to be minted as a result of expansion.
    * @dev Calculates the amount of tokens that need to be minted as a result of the expansion
    *      while keeping the current price the same.
@@ -161,8 +197,9 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    * @param expansionRate The rate of expansion.
    * @return amountToMint amount of tokens to be minted as a result of the expansion.
    */
-  function calculateExpansion(bytes32 exchangeId, uint32 expansionRate)
+  function mintFromExpansion(bytes32 exchangeId, uint256 expansionRate)
     external
+    whenNotPaused
     onlyExpansionController
     returns (uint256 amountToMint)
   {
@@ -173,9 +210,8 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
       return 0;
     }
 
-    UD60x18 scaledExpansion = wrap(uint256(expansionRate) * 1e12);
     UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e12);
-    UD60x18 newRatio = scaledRatio.mul(scaledExpansion);
+    UD60x18 newRatio = scaledRatio.mul(wrap(expansionRate));
 
     UD60x18 numerator = wrap(exchange.tokenSupply).mul(scaledRatio);
     numerator = numerator.sub(wrap(exchange.tokenSupply).mul(newRatio));
@@ -201,8 +237,9 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    * @param reserveInterest The amount of reserve tokens collected from interest.
    * @return amountToMint amount of tokens to be minted as a result of the reserve interest.
    */
-  function calculateInterest(bytes32 exchangeId, uint256 reserveInterest)
+  function mintFromInterest(bytes32 exchangeId, uint256 reserveInterest)
     external
+    whenNotPaused
     onlyExpansionController
     returns (uint256 amountToMint)
   {
@@ -231,7 +268,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    * @param exchangeId The id of the pool the reward is minted from.
    * @param reward The amount of tokens to be minted as a reward.
    */
-  function calculateRatioForReward(bytes32 exchangeId, uint256 reward) external onlyExpansionController {
+  function updateRatioForReward(bytes32 exchangeId, uint256 reward) external whenNotPaused onlyExpansionController {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
     if (reward == 0) {
