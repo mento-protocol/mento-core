@@ -10,6 +10,7 @@ import { IDistributionHelper } from "./interfaces/IDistributionHelper.sol";
 
 import { PausableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import { UD60x18, unwrap, wrap, powu } from "prb-math/src/UD60x18.sol";
 
 /**
  * @title GoodDollarExpansionController
@@ -19,7 +20,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   /* ==================== State Variables ==================== */
 
   // MAX_WEIGHT is the max rate that can be assigned to an exchange
-  uint256 private constant MAX_WEIGHT = 1e18;
+  uint256 public constant MAX_WEIGHT = 1e18;
 
   // Address of the distribution helper contract
   IDistributionHelper public distributionHelper;
@@ -98,8 +99,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
    * @param _goodDollarExchangeProvider The address of the GoodDollarExchangeProvider contract.
    */
   function setGoodDollarExchangeProvider(address _goodDollarExchangeProvider) public onlyOwner {
-    require(_goodDollarExchangeProvider != address(0), "Invalid exchangeProvider address");
+    require(_goodDollarExchangeProvider != address(0), "GoodDollarExchangeProvider address must be set");
     goodDollarExchangeProvider = IGoodDollarExchangeProvider(_goodDollarExchangeProvider);
+    emit GoodDollarExchangeProviderUpdated(_goodDollarExchangeProvider);
   }
 
   /**
@@ -107,8 +109,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
    * @param _distributionHelper The address of the distribution helper contract.
    */
   function setDistributionHelper(address _distributionHelper) public onlyOwner {
-    require(_distributionHelper != address(0), "Invalid distributionHelper address");
+    require(_distributionHelper != address(0), "DistributionHelper address must be set");
     distributionHelper = IDistributionHelper(_distributionHelper);
+    emit DistributionHelperUpdated(_distributionHelper);
   }
 
   /**
@@ -116,8 +119,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
    * @param _reserve The address of the reserve contract.
    */
   function setReserve(address _reserve) public onlyOwner {
-    require(_reserve != address(0), "Invalid reserve address");
+    require(_reserve != address(0), "Reserve address must be set");
     reserve = _reserve;
+    emit ReserveUpdated(_reserve);
   }
 
   /**
@@ -125,8 +129,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
    * @param _avatar The address of the AVATAR contract.
    */
   function setAvatar(address _avatar) public onlyOwner {
-    require(_avatar != address(0), "Invalid avatar address");
+    require(_avatar != address(0), "Avatar address must be set");
     AVATAR = _avatar;
+    emit AvatarUpdated(_avatar);
   }
 
   /**
@@ -135,25 +140,15 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
    * @param config The expansion config.
    */
   function setExpansionConfig(bytes32 exchangeId, ExchangeExpansionConfig memory config) external onlyAvatar {
-    require(config.expansionRate < MAX_WEIGHT, "Invalid expansion rate");
-    require(config.expansionRate > 0, "Invalid expansion rate");
-    require(config.expansionfrequency > 0, "Invalid expansion frequency");
+    require(config.expansionRate < MAX_WEIGHT, "Expansion rate must be less than 100%");
+    require(config.expansionRate > 0, "Expansion rate must be greater than 0");
+    require(config.expansionfrequency > 0, "Expansion frequency must be greater than 0");
 
     exchangeExpansionConfigs[exchangeId].expansionRate = config.expansionRate;
     exchangeExpansionConfigs[exchangeId].expansionfrequency = config.expansionfrequency;
-    exchangeExpansionConfigs[exchangeId].lastExpansion = block.timestamp; // not sure how we want to initialize this
-  }
+    exchangeExpansionConfigs[exchangeId].lastExpansion = block.timestamp;
 
-  /**
-   * @notice Updates the expansion rate for the given exchange.
-   * @param exchangeId The id of the exchange to set the expansion rate for.
-   * @param expansionRate The expansion rate.
-   */
-  function setExpansionRate(bytes32 exchangeId, uint256 expansionRate) external onlyAvatar {
-    require(exchangeExpansionConfigs[exchangeId].expansionfrequency > 0, "Expansion config not set");
-    require(expansionRate < MAX_WEIGHT, "Invalid expansion rate");
-    require(expansionRate > 0, "Invalid expansion rate");
-    exchangeExpansionConfigs[exchangeId].expansionRate = expansionRate;
+    emit ExpansionConfigSet(exchangeId, config.expansionRate, config.expansionfrequency);
   }
 
   /**
@@ -162,14 +157,17 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
    * @param reserveInterest The amount of reserve tokens collected from interest.
    */
   function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external {
+    require(reserveInterest > 0, "reserveInterest must be greater than 0");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
     uint256 amountToMint = goodDollarExchangeProvider.mintFromInterest(exchangeId, reserveInterest);
 
-    require(IERC20(exchange.reserveAsset).transferFrom(msg.sender, reserve, reserveInterest));
-    require(IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountToMint));
-    emit UBIMinted(exchangeId, amountToMint);
+    if (amountToMint > 0) {
+      require(IERC20(exchange.reserveAsset).transferFrom(msg.sender, reserve, reserveInterest));
+      IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountToMint);
+      emit UBIMinted(exchangeId, amountToMint);
+    }
   }
 
   /**
@@ -182,17 +180,17 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
-    bool shouldExpand = block.timestamp >= config.lastExpansion + config.expansionfrequency;
+    bool shouldExpand = block.timestamp > config.lastExpansion + config.expansionfrequency;
     if (shouldExpand) {
       uint256 numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionfrequency;
-      uint256 expansionRate = config.expansionRate;
-      for (uint256 i = 0; i < numberOfExpansions; i++) {
-        expansionRate = (expansionRate * expansionRate) / MAX_WEIGHT;
-      }
+
+      uint256 expansionRate = MAX_WEIGHT - config.expansionRate;
+      expansionRate = unwrap(powu(wrap(expansionRate), numberOfExpansions));
+
       amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, expansionRate);
       exchangeExpansionConfigs[exchangeId].lastExpansion = block.timestamp;
 
-      require(IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted));
+      IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
       emit UBIMinted(exchangeId, amountMinted);
       distributionHelper.onDistribution(amountMinted);
     }
@@ -209,13 +207,13 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     address to,
     uint256 amount
   ) external onlyAvatar {
-    require(to != address(0), "Invalid address");
-    require(amount > 0, "Invalid amount");
+    require(to != address(0), "Invalid to address");
+    require(amount > 0, "Amount must be greater than 0");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
     goodDollarExchangeProvider.updateRatioForReward(exchangeId, amount);
-    require(IGoodDollar(exchange.tokenAddress).mint(to, amount));
+    IGoodDollar(exchange.tokenAddress).mint(to, amount);
     emit RewardMinted(exchangeId, to, amount);
   }
 }

@@ -17,6 +17,38 @@ interface IGoodDollarExpansionController {
   /* ------- Events ------- */
 
   /**
+   * @notice Emitted when the GoodDollarExchangeProvider is updated.
+   * @param exchangeProvider The address of the new GoodDollarExchangeProvider.
+   */
+  event GoodDollarExchangeProviderUpdated(address indexed exchangeProvider);
+
+  /**
+   * @notice Emitted when the distribution helper is updated.
+   * @param distributionHelper The address of the new distribution helper.
+   */
+  event DistributionHelperUpdated(address indexed distributionHelper);
+
+  /**
+   * @notice Emitted when the Reserve address is updated.
+   * @param reserve The address of the new Reserve.
+   */
+  event ReserveUpdated(address indexed reserve);
+
+  /**
+   * @notice Emitted when the AVATAR address is updated.
+   * @param avatar The address of the new AVATAR.
+   */
+  event AvatarUpdated(address indexed avatar);
+
+  /**
+   * @notice Emitted when the expansion config is set for an exchange.
+   * @param exchangeId The id of the exchange.
+   * @param expansionRate The rate of expansion.
+   * @param expansionfrequency The frequency of expansion.
+   */
+  event ExpansionConfigSet(bytes32 indexed exchangeId, uint256 expansionRate, uint256 expansionfrequency);
+
+  /**
    * @notice Emitted when a reward is minted.
    * @param exchangeId The id of the exchange.
    * @param to The address of the recipient.
@@ -30,18 +62,6 @@ interface IGoodDollarExpansionController {
    * @param amount Amount of tokens minted.
    */
   event UBIMinted(bytes32 indexed exchangeId, uint256 amount);
-
-  /**
-   * @notice Emitted when the distribution helper is updated.
-   * @param distributionHelper The address of the new distribution helper.
-   */
-  event DistributionHelperUpdated(address indexed distributionHelper);
-
-  /**
-   * @notice Emitted when the GoodDollarExchangeProvider is updated.
-   * @param exchangeProvider The address of the new GoodDollarExchangeProvider.
-   */
-  event GoodDollarExchangeProviderUpdated(address indexed exchangeProvider);
 
   /* ------- Functions ------- */
 
@@ -75,13 +95,6 @@ interface IGoodDollarExpansionController {
    * @param config The expansion config.
    */
   function setExpansionConfig(bytes32 exchangeId, ExchangeExpansionConfig memory config) external;
-
-  /**
-   * @notice Updates the expansion rate for the given exchange.
-   * @param exchangeId The id of the exchange to set the expansion rate for.
-   * @param expansionRate The expansion rate.
-   */
-  function setExpansionRate(bytes32 exchangeId, uint256 expansionRate) external;
 
   /**
    * @notice Mints UBI for the given exchange from collecting reserve interest.

@@ -10,7 +10,6 @@ import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.s
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBancorExchangeProvider } from "contracts/goodDollar/interfaces/IBancorExchangeProvider.sol";
-import { IGoodDollarExpansionController } from "contracts/goodDollar/interfaces/IGoodDollarExpansionController.sol";
 import { ISortedOracles } from "contracts/goodDollar/interfaces/ISortedOracles.sol";
 
 contract GoodDollarExchangeProviderTest is Test {
@@ -447,5 +446,73 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio);
     assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + reward);
+  }
+}
+
+contract GoodDollarExchangeProviderTest_pausable is GoodDollarExchangeProviderTest {
+  GoodDollarExchangeProvider exchangeProvider;
+  bytes32 exchangeId;
+
+  function setUp() public override {
+    super.setUp();
+    exchangeProvider = initializeGoodDollarExchangeProvider();
+    exchangeId = exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
+  }
+
+  function test_pause_whenCallerIsNotAvatar_shouldRevert() public {
+    vm.prank(makeAddr("NotAvatar"));
+    vm.expectRevert("Only Avatar can call this function");
+    exchangeProvider.pause();
+  }
+
+  function test_unpause_whenCallerIsNotAvatar_shouldRevert() public {
+    vm.prank(makeAddr("NotAvatar"));
+    vm.expectRevert("Only Avatar can call this function");
+    exchangeProvider.unpause();
+  }
+
+  function test_pause_whenCallerIsAvatar_shouldPauseAndDisableExchange() public {
+    vm.prank(avatarAddress);
+    exchangeProvider.pause();
+
+    assert(exchangeProvider.paused());
+
+    vm.startPrank(brokerAddress);
+    vm.expectRevert("Pausable: paused");
+    exchangeProvider.swapIn(exchangeId, address(reserveToken), address(token), 1e18);
+
+    vm.expectRevert("Pausable: paused");
+    exchangeProvider.swapOut(exchangeId, address(reserveToken), address(token), 1e18);
+
+    vm.startPrank(expansionControllerAddress);
+    vm.expectRevert("Pausable: paused");
+    exchangeProvider.mintFromExpansion(exchangeId, 1e18);
+
+    vm.expectRevert("Pausable: paused");
+    exchangeProvider.mintFromInterest(exchangeId, 1e18);
+
+    vm.expectRevert("Pausable: paused");
+    exchangeProvider.updateRatioForReward(exchangeId, 1e18);
+  }
+
+  function test_unpause_whenCallerIsAvatar_shouldUnpauseAndEnableExchange() public {
+    vm.prank(avatarAddress);
+    exchangeProvider.pause();
+
+    vm.prank(avatarAddress);
+    exchangeProvider.unpause();
+
+    assert(exchangeProvider.paused() == false);
+
+    vm.startPrank(brokerAddress);
+
+    exchangeProvider.swapIn(exchangeId, address(reserveToken), address(token), 1e18);
+    exchangeProvider.swapOut(exchangeId, address(reserveToken), address(token), 1e18);
+
+    vm.startPrank(expansionControllerAddress);
+
+    exchangeProvider.mintFromExpansion(exchangeId, 1e18);
+    exchangeProvider.mintFromInterest(exchangeId, 1e18);
+    exchangeProvider.updateRatioForReward(exchangeId, 1e18);
   }
 }

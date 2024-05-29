@@ -9,7 +9,7 @@ import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
 
 import { Test, console } from "forge-std-next/Test.sol";
 import { BancorExchangeProvider } from "./BancorExchangeProvider.sol";
-import { UD60x18, convert, unwrap, wrap } from "prb-math/src/UD60x18.sol";
+import { UD60x18, unwrap, wrap } from "prb-math/src/UD60x18.sol";
 
 /**
  * @title GoodDollarExchangeProvider
@@ -199,8 +199,8 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    */
   function mintFromExpansion(bytes32 exchangeId, uint256 expansionRate)
     external
-    whenNotPaused
     onlyExpansionController
+    whenNotPaused
     returns (uint256 amountToMint)
   {
     require(expansionRate > 0, "Expansion rate must be greater than 0");
@@ -239,8 +239,8 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    */
   function mintFromInterest(bytes32 exchangeId, uint256 reserveInterest)
     external
-    whenNotPaused
     onlyExpansionController
+    whenNotPaused
     returns (uint256 amountToMint)
   {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
@@ -268,7 +268,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    * @param exchangeId The id of the pool the reward is minted from.
    * @param reward The amount of tokens to be minted as a reward.
    */
-  function updateRatioForReward(bytes32 exchangeId, uint256 reward) external whenNotPaused onlyExpansionController {
+  function updateRatioForReward(bytes32 exchangeId, uint256 reward) external onlyExpansionController whenNotPaused {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
     if (reward == 0) {
