@@ -28,6 +28,7 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
 
     mint(cUSDToken, trader, 10**22); // Mint 10k to trader
     mint(cEURToken, trader, 10**22); // Mint 10k to trader
+    mint(eXOFToken, trader, 10**22); // Mint 10k to trader)
 
     deal(address(celoToken), trader, 1000 * 10**18); // Gift 10k to trader
 
@@ -305,5 +306,40 @@ contract BrokerIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(reserveCollateralBalanceBefore + amountIn, reserveCollateralBalanceAfter);
     // Stable asset supply increase from mint
     assertEq(StableAssetSupplyBefore + expectedOut, StableAssetSupplyAfter);
+  }
+
+  function test_swapIn_eXOF_cEUR() public {
+    uint256 amountIn = 1000 * 10**18; // 1k
+    IERC20 tokenIn = IERC20(address(eXOFToken));
+    IERC20 tokenOut = IERC20(address(cEURToken));
+    bytes32 poolId = pair_eXOF_cEUR_ID;
+
+    // Get amounts before swap
+    uint256 traderTokenInBefore = tokenIn.balanceOf(trader);
+    uint256 traderTokenOutBefore = tokenOut.balanceOf(trader);
+
+    uint256 tokenInAssetSupplyBefore = tokenIn.totalSupply();
+    uint256 tokenOutAssetSupplyBefore = tokenOut.totalSupply();
+
+    // Execute swap
+    (uint256 expectedOut, uint256 actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut));
+
+    // Get amounts after swap
+    uint256 traderTokenInAfter = tokenIn.balanceOf(trader);
+    uint256 traderTokenOutAfter = tokenOut.balanceOf(trader);
+
+    uint256 tokenInAssetSupplyAfter = tokenIn.totalSupply();
+    uint256 tokenOutAssetSupplyAfter = tokenOut.totalSupply();
+
+    // getAmountOut == swapOut
+    assertEq(expectedOut, actualOut);
+    // Trader token in balance decreased
+    assertEq(traderTokenInBefore - traderTokenInAfter, amountIn);
+    // Trader token out balance increased
+    assertEq(traderTokenOutBefore + expectedOut, traderTokenOutAfter);
+    // Token in asset supply decrease from burn
+    assertEq(tokenInAssetSupplyBefore - amountIn, tokenInAssetSupplyAfter);
+    // Token out asset supply increase from mint
+    assertEq(tokenOutAssetSupplyBefore + expectedOut, tokenOutAssetSupplyAfter);
   }
 }
