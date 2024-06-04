@@ -168,7 +168,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     address tokenOut,
     uint256 amountIn
   ) public override onlyBroker whenNotPaused returns (uint256 amountOut) {
-    BancorExchangeProvider.swapIn(exchangeId, tokenIn, tokenOut, amountIn);
+    amountOut = BancorExchangeProvider.swapIn(exchangeId, tokenIn, tokenOut, amountIn);
   }
 
   /**
@@ -185,7 +185,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     address tokenOut,
     uint256 amountOut
   ) public override onlyBroker whenNotPaused returns (uint256 amountIn) {
-    BancorExchangeProvider.swapOut(exchangeId, tokenIn, tokenOut, amountOut);
+    amountIn = BancorExchangeProvider.swapOut(exchangeId, tokenIn, tokenOut, amountOut);
   }
 
   /**

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity >=0.5.17 <0.8.19;
+pragma experimental ABIEncoderV2;
 
 interface IGoodDollarExpansionController {
   /**
@@ -66,6 +67,20 @@ interface IGoodDollarExpansionController {
   /* ------- Functions ------- */
 
   /**
+   * @notice Initializes the contract with the given parameters.
+   * @param _goodDollarExchangeProvider The address of the GoodDollarExchangeProvider contract.
+   * @param _distributionHelper The address of the distribution helper contract.
+   * @param _reserve The address of the Reserve contract.
+   * @param _avatar The address of the GoodDollar DAO contract.
+   */
+  function initialize(
+    address _goodDollarExchangeProvider,
+    address _distributionHelper,
+    address _reserve,
+    address _avatar
+  ) external;
+
+  /**
    * @notice Sets the GoodDollarExchangeProvider address.
    * @param _goodDollarExchangeProvider The address of the GoodDollarExchangeProvider contract.
    */
@@ -94,7 +109,7 @@ interface IGoodDollarExpansionController {
    * @param exchangeId The id of the exchange to set the expansion config for.
    * @param config The expansion config.
    */
-  function setExpansionConfig(bytes32 exchangeId, ExchangeExpansionConfig memory config) external;
+  function setExpansionConfig(bytes32 exchangeId, ExchangeExpansionConfig calldata config) external;
 
   /**
    * @notice Mints UBI for the given exchange from collecting reserve interest.

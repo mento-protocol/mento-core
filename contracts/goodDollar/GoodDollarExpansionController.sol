@@ -55,7 +55,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
   /**
    * @notice Initializes the contract with the given parameters.
-   *
+   * @param _goodDollarExchangeProvider The address of the GoodDollarExchangeProvider contract.
+   * @param _distributionHelper The address of the distribution helper contract.
+   * @param _reserve The address of the Reserve contract.
    * @param _avatar The address of the GoodDollar DAO contract.
    */
   function initialize(

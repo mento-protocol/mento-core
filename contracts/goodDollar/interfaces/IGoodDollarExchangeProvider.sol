@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity >=0.5.17 <0.8.19;
+pragma experimental ABIEncoderV2;
+
+import { IBancorExchangeProvider } from "./IBancorExchangeProvider.sol";
 
 interface IGoodDollarExchangeProvider {
   /* ------- Events ------- */
@@ -30,6 +33,32 @@ interface IGoodDollarExchangeProvider {
   event ReserveRatioUpdated(bytes32 indexed exchangeId, uint32 reserveRatio);
 
   /* ------- Functions ------- */
+
+  /**
+   * @notice Initializes the contract with the given parameters.
+   * @param _broker The address of the Broker contract.
+   * @param _reserve The address of the Reserve contract.
+   * @param _sortedOracles The address of the SortedOracles contract.
+   * @param _expansionController The address of the ExpansionController contract.
+   * @param _avatar The address of the GoodDollar DAO contract.
+   */
+  function initialize(
+    address _broker,
+    address _reserve,
+    address _sortedOracles,
+    address _expansionController,
+    address _avatar
+  ) external;
+
+  /**
+   * @notice Creates a new exchange with the given parameters.
+   * @param _exchange The PoolExchange struct holding the exchange parameters.
+   * @param _usdRateFeed The address of the USD rate feed for the reserve asset.
+   * @return exchangeId The id of the newly created exchange.
+   */
+  function createExchange(IBancorExchangeProvider.PoolExchange calldata _exchange, address _usdRateFeed)
+    external
+    returns (bytes32 exchangeId);
 
   /**
    * @notice calculates the amount of tokens to be minted as a result of expansion.
