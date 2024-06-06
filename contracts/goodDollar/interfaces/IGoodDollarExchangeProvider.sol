@@ -2,8 +2,6 @@
 pragma solidity >=0.5.17 <0.8.19;
 pragma experimental ABIEncoderV2;
 
-import { IBancorExchangeProvider } from "./IBancorExchangeProvider.sol";
-
 interface IGoodDollarExchangeProvider {
   /* ------- Events ------- */
 
@@ -51,22 +49,12 @@ interface IGoodDollarExchangeProvider {
   ) external;
 
   /**
-   * @notice Creates a new exchange with the given parameters.
-   * @param _exchange The PoolExchange struct holding the exchange parameters.
-   * @param _usdRateFeed The address of the USD rate feed for the reserve asset.
-   * @return exchangeId The id of the newly created exchange.
-   */
-  function createExchange(IBancorExchangeProvider.PoolExchange calldata _exchange, address _usdRateFeed)
-    external
-    returns (bytes32 exchangeId);
-
-  /**
    * @notice calculates the amount of tokens to be minted as a result of expansion.
    * @param exchangeId The id of the pool to calculate expansion for.
-   * @param expansionRate The rate of expansion.
+   * @param expansionScaler Scaler for calculating the new reserve ratio.
    * @return amountToMint amount of tokens to be minted as a result of the expansion.
    */
-  function mintFromExpansion(bytes32 exchangeId, uint256 expansionRate) external returns (uint256 amountToMint);
+  function mintFromExpansion(bytes32 exchangeId, uint256 expansionScaler) external returns (uint256 amountToMint);
 
   /**
    * @notice calculates the amount of tokens to be minted as a result of the reserve interest.
@@ -82,13 +70,6 @@ interface IGoodDollarExchangeProvider {
    * @param reward The amount of tokens to be minted as a reward.
    */
   function updateRatioForReward(bytes32 exchangeId, uint256 reward) external;
-
-  /**
-   * @notice calculates the current price of the token in USD.
-   * @param exchangeId The id of the pool to calculate the price for.
-   * @return current price of the token in USD.
-   */
-  function currentPriceUSD(bytes32 exchangeId) external view returns (uint256);
 
   /**
    * @notice pauses the Exchange disables minting.

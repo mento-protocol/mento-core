@@ -11,7 +11,7 @@ interface IGoodDollarExpansionController {
    */
   struct ExchangeExpansionConfig {
     uint256 expansionRate;
-    uint256 expansionfrequency;
+    uint256 expansionFrequency;
     uint256 lastExpansion;
   }
 
@@ -107,9 +107,14 @@ interface IGoodDollarExpansionController {
   /**
    * @notice Sets the expansion config for the given exchange.
    * @param exchangeId The id of the exchange to set the expansion config for.
-   * @param config The expansion config.
+   * @param expansionRate The rate of expansion.
+   * @param expansionFrequency The frequency of expansion.
    */
-  function setExpansionConfig(bytes32 exchangeId, ExchangeExpansionConfig calldata config) external;
+  function setExpansionConfig(
+    bytes32 exchangeId,
+    uint256 expansionRate,
+    uint256 expansionFrequency
+  ) external;
 
   /**
    * @notice Mints UBI for the given exchange from collecting reserve interest.

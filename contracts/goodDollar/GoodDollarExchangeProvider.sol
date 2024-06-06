@@ -27,9 +27,6 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   // Address of the GoodDollar DAO contract.
   address public AVATAR;
 
-  // Maps the reserve asset address to the corresponding USD rate feed.
-  mapping(address => address) public reserveAssetUSDRateFeed;
-
   /* ==================== Constructor ==================== */
 
   /**
@@ -77,24 +74,6 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     _;
   }
 
-  /* ==================== View Functions ==================== */
-
-  /**
-   * @notice Returns the current price of the pool in USD.
-   * @param exchangeId The id of the pool to get the price for.
-   * @return priceUSD The current continous price of the pool in USD.
-   */
-  function currentPriceUSD(bytes32 exchangeId) external view returns (uint256 priceUSD) {
-    require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
-    require(reserveAssetUSDRateFeed[exchanges[exchangeId].reserveAsset] != address(0), "USD rate feed not set");
-
-    uint256 price = currentPrice(exchangeId);
-    (uint256 numerator, uint256 denominator) = sortedOracles.medianRate(
-      reserveAssetUSDRateFeed[exchanges[exchangeId].reserveAsset]
-    );
-    return unwrap(wrap(price).mul(wrap(numerator)).div(wrap(denominator)));
-  }
-
   /* ==================== Mutative Functions ==================== */
 
   /**
@@ -125,33 +104,6 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     require(_sortedOracles != address(0), "SortedOracles address must be set");
     sortedOracles = ISortedOracles(_sortedOracles);
     emit SortedOraclesUpdated(_sortedOracles);
-  }
-
-  /**
-   * @notice Sets the address of the USD rate feed for the given reserve asset.
-   * @param _reserveAsset The address of the reserve asset.
-   * @param _usdRateFeed The address of the USD rate feed for the reserve asset.
-   */
-  function setReserveAssetUSDRateFeed(address _reserveAsset, address _usdRateFeed) public onlyOwner {
-    require(reserve.isCollateralAsset(_reserveAsset), "Reserve asset must be a collateral asset");
-    require(sortedOracles.numRates(_usdRateFeed) > 0, "USD rate feed must have rates");
-    reserveAssetUSDRateFeed[_reserveAsset] = _usdRateFeed;
-  }
-
-  /**
-   * @notice Creates a new exchange with the given parameters.
-   * @param _exchange The PoolExchange struct holding the exchange parameters.
-   * @param _usdRateFeed The address of the USD rate feed for the reserve asset.
-   * @return exchangeId The id of the newly created exchange.
-   */
-  function createExchange(PoolExchange calldata _exchange, address _usdRateFeed)
-    external
-    onlyOwner
-    returns (bytes32 exchangeId)
-  {
-    setReserveAssetUSDRateFeed(_exchange.reserveAsset, _usdRateFeed);
-    exchangeId = createExchange(_exchange);
-    return exchangeId;
   }
 
   /**
@@ -194,24 +146,24 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    *      while keeping the current price the same.
    *      calculation: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
    * @param exchangeId The id of the pool to calculate expansion for.
-   * @param expansionRate The rate of expansion.
+   * @param expansionScaler Scaler for calculating the new reserve ratio.
    * @return amountToMint amount of tokens to be minted as a result of the expansion.
    */
-  function mintFromExpansion(bytes32 exchangeId, uint256 expansionRate)
+  function mintFromExpansion(bytes32 exchangeId, uint256 expansionScaler)
     external
     onlyExpansionController
     whenNotPaused
     returns (uint256 amountToMint)
   {
-    require(expansionRate > 0, "Expansion rate must be greater than 0");
+    require(expansionScaler > 0, "Expansion rate must be greater than 0");
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
-    if (expansionRate == MAX_WEIGHT) {
+    if (expansionScaler == MAX_WEIGHT) {
       return 0;
     }
 
     UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e12);
-    UD60x18 newRatio = scaledRatio.mul(wrap(expansionRate));
+    UD60x18 newRatio = scaledRatio.mul(wrap(expansionScaler));
 
     UD60x18 numerator = wrap(exchange.tokenSupply).mul(scaledRatio);
     numerator = numerator.sub(wrap(exchange.tokenSupply).mul(newRatio));

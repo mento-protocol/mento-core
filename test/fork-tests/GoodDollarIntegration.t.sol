@@ -3,21 +3,29 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { BaseTest } from "../utils/BaseTest.t.sol";
-import { console2 as console } from "celo-foundry/Test.sol";
+import { Test, console2 as console } from "celo-foundry/Test.sol";
 
 import { IGoodDollarExchangeProvider } from "contracts/goodDollar/interfaces/IGoodDollarExchangeProvider.sol";
 import { IGoodDollarExpansionController } from "contracts/goodDollar/interfaces/IGoodDollarExpansionController.sol";
 import { IBancorExchangeProvider } from "contracts/goodDollar/interfaces/IBancorExchangeProvider.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodDollar.sol";
+import { IDistributionHelper } from "contracts/goodDollar/interfaces/IDistributionHelper.sol";
+import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
+import { SafeERC20 } from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
+import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import { BrokerV2 } from "contracts/swap/BrokerV2.sol";
 import { Reserve } from "contracts/swap/Reserve.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
+import { Chain } from "test/utils/Chain.sol";
+import { Factory } from "test/utils/Factory.sol";
+import { GetCode } from "test/utils/GetCode.sol";
 
-contract GoodDollarIntegrationTest is BaseTest {
+contract GoodDollarIntegrationTest is Test {
+  using SafeERC20 for IERC20;
   using FixidityLib for FixidityLib.Fraction;
   address public trader;
   address public interestCollector;
@@ -29,7 +37,7 @@ contract GoodDollarIntegrationTest is BaseTest {
   BrokerV2 public broker;
   Reserve public reserve;
   IStableTokenV2 public reserveToken;
-  IStableTokenV2 public gdToken;
+  IGoodDollar public gdToken;
 
   IGoodDollarExchangeProvider public exchangeProvider;
   IGoodDollarExpansionController public expansionController;
@@ -37,10 +45,21 @@ contract GoodDollarIntegrationTest is BaseTest {
   IBancorExchangeProvider.PoolExchange public poolExchange1;
   bytes32 public exchangeId;
 
+  address public constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
+  IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
+  address public constant deployer = address(0x31337);
+  Factory public factory;
+
   function setUp() public {
+    Chain.fork(42220);
+    vm.allowCheatcodes(deployer);
+    address _factory = address(new Factory());
+    vm.etch(deployer, GetCode.at(_factory));
+    factory = Factory(deployer);
+
     reserve = new Reserve(true);
-    gdToken = IStableTokenV2(factory.createContract("StableTokenV2", abi.encode(false)));
-    reserveToken = IStableTokenV2(factory.createContract("StableTokenV2", abi.encode(false)));
+    gdToken = IGoodDollar(0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A);
+    reserveToken = IStableTokenV2(0x765DE816845861e75A25fCA122bb6898B8B1282a);
     broker = new BrokerV2(true);
     exchangeProvider = IGoodDollarExchangeProvider(
       factory.createContract("GoodDollarExchangeProvider", abi.encode(false))
@@ -48,7 +67,8 @@ contract GoodDollarIntegrationTest is BaseTest {
     expansionController = IGoodDollarExpansionController(
       factory.createContract("GoodDollarExpansionController", abi.encode(false))
     );
-    sortedOracles = actor("sortedOracles");
+    sortedOracles = 0xefB84935239dAcdecF7c5bA76d8dE40b077B7b33;
+
     avatar = actor("avatar");
     distributionHelper = actor("distributionHelper");
     trader = actor("trader");
@@ -97,12 +117,12 @@ contract GoodDollarIntegrationTest is BaseTest {
   }
 
   function configureTokens() public {
-    reserveToken.initialize("Celo Dollar", "cUSD", 0, address(0), 0, 0, new address[](0), new uint256[](0), "");
-    reserveToken.initializeV2(address(broker), address(0), address(0));
-
-    gdToken.initialize("GoodDollar", "G$", 0, address(0), 0, 0, new address[](0), new uint256[](0), "");
-    gdToken.initializeV2(address(broker), address(0), address(0));
-
+    vm.startPrank(0x495d133B938596C9984d462F007B676bDc57eCEC);
+    gdToken.addMinter(address(broker));
+    gdToken.addMinter(address(expansionController));
+    vm.stopPrank();
+    require(gdToken.isMinter(address(broker)), "Broker is not a minter");
+    require(gdToken.isMinter(address(expansionController)), "ExpansionController is not a minter");
     deal(address(reserveToken), address(reserve), 60_000 * 1e18);
   }
 
@@ -127,11 +147,16 @@ contract GoodDollarIntegrationTest is BaseTest {
       exitConribution: 10000
     });
 
-    exchangeId = exchangeProvider.createExchange(poolExchange1, address(reserveToken));
+    exchangeId = IBancorExchangeProvider(address(exchangeProvider)).createExchange(poolExchange1);
   }
 
   function configureExpansionController() public {
+    uint256 expansionRate = 1e18 * 0.001;
+    uint256 expansionFrequency = 1 days;
+
     expansionController.initialize(address(exchangeProvider), distributionHelper, address(reserve), avatar);
+    vm.prank(avatar);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
   }
 
   function test_SwapIn_reserveTokenToGDollar() public {
@@ -263,5 +288,43 @@ contract GoodDollarIntegrationTest is BaseTest {
     assertEq(amountOut, reserveToken.balanceOf(trader));
     assertEq(reserveBalanceBefore - amountOut, reserveBalanceAfter);
     assertTrue(priceAfter < priceBefore);
+  }
+
+  function test_expansion() public {
+    uint256 distributionHelperBalanceBefore = gdToken.balanceOf(distributionHelper);
+
+    vm.mockCall(
+      distributionHelper,
+      abi.encodeWithSelector(IDistributionHelper(distributionHelper).onDistribution.selector),
+      abi.encode(true)
+    );
+
+    skip(2 days + 1 seconds);
+
+    uint256 amountMinted = expansionController.mintUBIFromExpansion(exchangeId);
+    assertEq(gdToken.balanceOf(distributionHelper), amountMinted + distributionHelperBalanceBefore);
+  }
+
+  function test_interest() public {
+    address reserveInterestCollector = actor("reserveInterestCollector");
+    uint256 reserveInterest = 1000 * 1e18;
+    deal(address(reserveToken), reserveInterestCollector, reserveInterest);
+
+    uint256 reserveBalanceBefore = reserveToken.balanceOf(address(reserve));
+    uint256 interestCollectorBalanceBefore = reserveToken.balanceOf(reserveInterestCollector);
+    uint256 distributionHelperBalanceBefore = gdToken.balanceOf(distributionHelper);
+
+    vm.startPrank(reserveInterestCollector);
+    reserveToken.approve(address(expansionController), reserveInterest);
+    expansionController.mintUBIFromInterest(exchangeId, reserveInterest);
+    vm.stopPrank();
+
+    uint256 reserveBalanceAfter = reserveToken.balanceOf(address(reserve));
+    uint256 interestCollectorBalanceAfter = reserveToken.balanceOf(reserveInterestCollector);
+    uint256 distributionHelperBalanceAfter = gdToken.balanceOf(distributionHelper);
+
+    assertEq(reserveBalanceAfter, reserveBalanceBefore + reserveInterest);
+    assertEq(interestCollectorBalanceAfter, interestCollectorBalanceBefore - reserveInterest);
+    assertTrue(distributionHelperBalanceBefore < distributionHelperBalanceAfter);
   }
 }

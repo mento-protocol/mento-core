@@ -223,7 +223,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
    * @param _exchange the PoolExchange to create.
    * @return exchangeId The id of the newly created exchange.
    */
-  function createExchange(PoolExchange calldata _exchange) public onlyOwner returns (bytes32 exchangeId) {
+  function createExchange(PoolExchange calldata _exchange) external onlyOwner returns (bytes32 exchangeId) {
     PoolExchange memory exchange = _exchange;
     validate(exchange);
 

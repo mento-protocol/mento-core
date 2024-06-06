@@ -36,7 +36,6 @@ contract GoodDollarExchangeProviderTest is Test {
   address public brokerAddress;
   address public avatarAddress;
   address public expansionControllerAddress;
-  address public reserveTokenRateFeed;
 
   IBancorExchangeProvider.PoolExchange public poolExchange1;
 
@@ -44,8 +43,6 @@ contract GoodDollarExchangeProviderTest is Test {
     reserveToken = new ERC20("cUSD", "cUSD");
     token = new ERC20("Good$", "G$");
     token2 = new ERC20("Good2$", "G2$");
-
-    reserveTokenRateFeed = makeAddr("ReserveTokenRateFeed");
 
     reserveAddress = makeAddr("Reserve");
     sortedOraclesAddress = makeAddr("SortedOracles");
@@ -179,113 +176,6 @@ contract GoodDollarExchangeProviderTest_initializerSettersGetters is GoodDollarE
 
     assertEq(address(exchangeProvider.sortedOracles()), newSortedOracles);
   }
-
-  function test_setReserveAssetUSDRateFeed_whenSenderIsNotOwner_shouldRevert() public {
-    vm.prank(makeAddr("NotOwner"));
-    vm.expectRevert("Ownable: caller is not the owner");
-    exchangeProvider.setReserveAssetUSDRateFeed(address(reserveToken), reserveTokenRateFeed);
-  }
-
-  function test_setReserveAssetUSDRateFeed_whenAssetAddressIsNotReserveAsset_shouldRevert() public {
-    vm.mockCall(
-      reserveAddress,
-      abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector),
-      abi.encode(false)
-    );
-
-    vm.expectRevert("Reserve asset must be a collateral asset");
-    exchangeProvider.setReserveAssetUSDRateFeed(address(token), reserveTokenRateFeed);
-  }
-
-  function test_setReserveAssetUSDRateFeed_whenNoRates_shouldRevert() public {
-    vm.mockCall(
-      sortedOraclesAddress,
-      abi.encodeWithSelector(ISortedOracles(sortedOraclesAddress).numRates.selector),
-      abi.encode(0)
-    );
-
-    vm.expectRevert("USD rate feed must have rates");
-    exchangeProvider.setReserveAssetUSDRateFeed(address(reserveToken), reserveTokenRateFeed);
-  }
-
-  function test_setReserveAssetUSDRateFeed_whenSenderIsOwner_shouldUpdate() public {
-    address newReserveAssetUSDRateFeed = makeAddr("NewReserveAssetUSDRateFeed");
-    exchangeProvider.setReserveAssetUSDRateFeed(address(reserveToken), newReserveAssetUSDRateFeed);
-
-    assertEq(exchangeProvider.reserveAssetUSDRateFeed(address(reserveToken)), newReserveAssetUSDRateFeed);
-  }
-}
-
-contract GoodDollarExchangeProviderTest_currentPriceUSD is GoodDollarExchangeProviderTest {
-  GoodDollarExchangeProvider exchangeProvider;
-  bytes32 exchangeId;
-
-  function setUp() public override {
-    super.setUp();
-    vm.mockCall(
-      sortedOraclesAddress,
-      abi.encodeWithSelector(ISortedOracles(sortedOraclesAddress).medianRate.selector, reserveTokenRateFeed),
-      abi.encode(1e24 * 0.5, 1e24) // mock 0.5 reserveAsset/USD rate
-    );
-    exchangeProvider = initializeGoodDollarExchangeProvider();
-    exchangeId = exchangeProvider.createExchange(poolExchange1);
-  }
-
-  function test_currentPriceUSD_whenExchangeIdDoesNotExist_shouldRevert() public {
-    vm.expectRevert("Exchange does not exist");
-    exchangeProvider.currentPriceUSD(bytes32(0));
-  }
-
-  function test_currentPriceUSD_whenRateFeedNotSet_shouldRevert() public {
-    vm.expectRevert("USD rate feed not set");
-    exchangeProvider.currentPriceUSD(exchangeId);
-  }
-
-  function test_currentPriceUSD_whenRateFeedSet_shouldCalculatePrice() public {
-    exchangeProvider.setReserveAssetUSDRateFeed(address(reserveToken), reserveTokenRateFeed);
-
-    uint256 price = exchangeProvider.currentPriceUSD(exchangeId);
-    assertEq(1e18 * 0.5, price);
-  }
-}
-
-contract GoodDollarExchangeProviderTest_createExchange is GoodDollarExchangeProviderTest {
-  GoodDollarExchangeProvider exchangeProvider;
-
-  function setUp() public override {
-    super.setUp();
-    exchangeProvider = initializeGoodDollarExchangeProvider();
-  }
-
-  function test_createExchange_whenSenderIsNotOwner_shouldRevert() public {
-    vm.prank(makeAddr("NotOwner"));
-    vm.expectRevert("Ownable: caller is not the owner");
-    exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
-  }
-
-  function test_createExchange_whenSenderIsOwner_shouldCreateExchangeAndEmit() public {
-    vm.expectEmit(true, true, true, true);
-    bytes32 expectedExchangeId = keccak256(abi.encodePacked(reserveToken.symbol(), token.symbol()));
-    emit ExchangeCreated(expectedExchangeId, address(reserveToken), address(token));
-    bytes32 exchangeId = exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
-
-    IBancorExchangeProvider.PoolExchange memory poolExchange = exchangeProvider.getPoolExchange(exchangeId);
-
-    assertEq(exchangeProvider.reserveAssetUSDRateFeed(address(reserveToken)), reserveTokenRateFeed);
-    assertEq(poolExchange.reserveAsset, poolExchange1.reserveAsset);
-    assertEq(poolExchange.tokenAddress, poolExchange1.tokenAddress);
-    assertEq(poolExchange.tokenSupply, poolExchange1.tokenSupply);
-    assertEq(poolExchange.reserveBalance, poolExchange1.reserveBalance);
-    assertEq(poolExchange.reserveRatio, poolExchange1.reserveRatio);
-    assertEq(poolExchange.exitConribution, poolExchange1.exitConribution);
-
-    IExchangeProvider.Exchange[] memory exchanges = exchangeProvider.getExchanges();
-    assertEq(exchanges.length, 1);
-    assertEq(exchanges[0].exchangeId, exchangeId);
-
-    assertEq(exchangeProvider.tokenPrecisionMultipliers(address(reserveToken)), 1);
-    assertEq(exchangeProvider.tokenPrecisionMultipliers(address(token)), 1);
-  }
 }
 
 contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeProviderTest {
@@ -297,7 +187,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
     super.setUp();
     expansionRate = 1e18 * 0.99;
     exchangeProvider = initializeGoodDollarExchangeProvider();
-    exchangeId = exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
+    exchangeId = exchangeProvider.createExchange(poolExchange1);
   }
 
   function test_mintFromExpansion_whenCallerIsNotExpansionController_shouldRevert() public {
@@ -362,7 +252,7 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
     super.setUp();
     reserveInterest = 1000 * 1e18;
     exchangeProvider = initializeGoodDollarExchangeProvider();
-    exchangeId = exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
+    exchangeId = exchangeProvider.createExchange(poolExchange1);
   }
 
   function test_mintFromInterest_whenCallerIsNotExpansionController_shouldRevert() public {
@@ -418,7 +308,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     super.setUp();
     reward = 1000 * 1e18;
     exchangeProvider = initializeGoodDollarExchangeProvider();
-    exchangeId = exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
+    exchangeId = exchangeProvider.createExchange(poolExchange1);
   }
 
   function test_updateRatioForReward_whenCallerIsNotExpansionController_shouldRevert() public {
@@ -456,7 +346,7 @@ contract GoodDollarExchangeProviderTest_pausable is GoodDollarExchangeProviderTe
   function setUp() public override {
     super.setUp();
     exchangeProvider = initializeGoodDollarExchangeProvider();
-    exchangeId = exchangeProvider.createExchange(poolExchange1, reserveTokenRateFeed);
+    exchangeId = exchangeProvider.createExchange(poolExchange1);
   }
 
   function test_pause_whenCallerIsNotAvatar_shouldRevert() public {

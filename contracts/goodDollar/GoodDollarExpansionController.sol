@@ -139,18 +139,22 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   /**
    * @notice Sets the expansion config for the given exchange.
    * @param exchangeId The id of the exchange to set the expansion config for.
-   * @param config The expansion config.
+   * @param expansionRate The rate of expansion.
+   * @param expansionFrequency The frequency of expansion.
    */
-  function setExpansionConfig(bytes32 exchangeId, ExchangeExpansionConfig memory config) external onlyAvatar {
-    require(config.expansionRate < MAX_WEIGHT, "Expansion rate must be less than 100%");
-    require(config.expansionRate > 0, "Expansion rate must be greater than 0");
-    require(config.expansionfrequency > 0, "Expansion frequency must be greater than 0");
+  function setExpansionConfig(
+    bytes32 exchangeId,
+    uint256 expansionRate,
+    uint256 expansionFrequency
+  ) external onlyAvatar {
+    require(expansionRate < MAX_WEIGHT, "Expansion rate must be less than 100%");
+    require(expansionRate > 0, "Expansion rate must be greater than 0");
+    require(expansionFrequency > 0, "Expansion frequency must be greater than 0");
 
-    exchangeExpansionConfigs[exchangeId].expansionRate = config.expansionRate;
-    exchangeExpansionConfigs[exchangeId].expansionfrequency = config.expansionfrequency;
-    exchangeExpansionConfigs[exchangeId].lastExpansion = block.timestamp;
+    exchangeExpansionConfigs[exchangeId].expansionRate = expansionRate;
+    exchangeExpansionConfigs[exchangeId].expansionFrequency = expansionFrequency;
 
-    emit ExpansionConfigSet(exchangeId, config.expansionRate, config.expansionfrequency);
+    emit ExpansionConfigSet(exchangeId, expansionRate, expansionFrequency);
   }
 
   /**
@@ -182,14 +186,21 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
-    bool shouldExpand = block.timestamp > config.lastExpansion + config.expansionfrequency;
-    if (shouldExpand) {
-      uint256 numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionfrequency;
+    bool shouldExpand = block.timestamp > config.lastExpansion + config.expansionFrequency;
+    if (shouldExpand || config.lastExpansion == 0) {
+      uint256 numberOfExpansions;
 
-      uint256 expansionRate = MAX_WEIGHT - config.expansionRate;
-      expansionRate = unwrap(powu(wrap(expansionRate), numberOfExpansions));
+      //special case for first expansion
+      if (config.lastExpansion == 0) {
+        numberOfExpansions = 1;
+      } else {
+        numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionFrequency;
+      }
 
-      amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, expansionRate);
+      uint256 stepExpansionScaler = MAX_WEIGHT - config.expansionRate;
+      uint256 expansionScaler = unwrap(powu(wrap(stepExpansionScaler), numberOfExpansions));
+
+      amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, expansionScaler);
       exchangeExpansionConfigs[exchangeId].lastExpansion = block.timestamp;
 
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);

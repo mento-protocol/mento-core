@@ -41,7 +41,8 @@ contract GoodDollarExpansionControllerTest is Test {
 
   bytes32 exchangeId = "ExchangeId";
 
-  IGoodDollarExpansionController.ExchangeExpansionConfig public exchangeExpansionConfig;
+  uint256 expansionRate = 1e18 * 0.01;
+  uint256 expansionFrequency = 1 days;
 
   function setUp() public virtual {
     reserveToken = new ERC20Mock("cUSD", "cUSD", address(this), 1);
@@ -51,12 +52,6 @@ contract GoodDollarExpansionControllerTest is Test {
     distributionHelper = makeAddr("DistributionHelper");
     reserveAddress = makeAddr("Reserve");
     avatarAddress = makeAddr("Avatar");
-
-    exchangeExpansionConfig = IGoodDollarExpansionController.ExchangeExpansionConfig({
-      expansionRate: 1e18 * 0.01,
-      expansionfrequency: 1 days,
-      lastExpansion: 0
-    });
   }
 
   function initializeGoodDollarExpansionController() internal returns (GoodDollarExpansionController) {
@@ -94,15 +89,15 @@ contract GoodDollarExpansionControllerTest_initializerSettersGetters is GoodDoll
 
   function test_getExpansionConfig_whenConfigIsSet_shouldReturnConfig() public {
     vm.prank(avatarAddress);
-    expansionController.setExpansionConfig(exchangeId, exchangeExpansionConfig);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
 
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
       exchangeId
     );
 
-    assertEq(config.expansionRate, exchangeExpansionConfig.expansionRate);
-    assertEq(config.expansionfrequency, exchangeExpansionConfig.expansionfrequency);
-    assertEq(config.lastExpansion, block.timestamp);
+    assertEq(config.expansionRate, expansionRate);
+    assertEq(config.expansionFrequency, expansionFrequency);
+    assertEq(config.lastExpansion, 0);
   }
 
   /* ---------- Setters ---------- */
@@ -190,50 +185,46 @@ contract GoodDollarExpansionControllerTest_initializerSettersGetters is GoodDoll
   function test_setExpansionConfig_whenSenderIsNotAvatar_shouldRevert() public {
     vm.prank(makeAddr("NotAvatar"));
     vm.expectRevert("Only Avatar can call this function");
-    expansionController.setExpansionConfig(exchangeId, exchangeExpansionConfig);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
   }
 
   function test_setExpansionConfig_whenExpansionRateIsLargerOrEqualToOne_shouldRevert() public {
-    exchangeExpansionConfig.expansionRate = 1e18;
+    expansionRate = 1e18;
 
     vm.prank(avatarAddress);
     vm.expectRevert("Expansion rate must be less than 100%");
-    expansionController.setExpansionConfig(exchangeId, exchangeExpansionConfig);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
   }
 
   function test_setExpansionConfig_whenExpansionRateIsZero_shouldRevert() public {
-    exchangeExpansionConfig.expansionRate = 0;
+    expansionRate = 0;
 
     vm.prank(avatarAddress);
     vm.expectRevert("Expansion rate must be greater than 0");
-    expansionController.setExpansionConfig(exchangeId, exchangeExpansionConfig);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
   }
 
   function test_setExpansionConfig_whenExpansionFrequencyIsZero_shouldRevert() public {
-    exchangeExpansionConfig.expansionfrequency = 0;
+    expansionFrequency = 0;
 
     vm.prank(avatarAddress);
     vm.expectRevert("Expansion frequency must be greater than 0");
-    expansionController.setExpansionConfig(exchangeId, exchangeExpansionConfig);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
   }
 
   function test_setExpansionConfig_whenCallerIsAvatar_shouldUpdateAndEmit() public {
     vm.prank(avatarAddress);
     vm.expectEmit(true, true, true, true);
-    emit ExpansionConfigSet(
-      exchangeId,
-      exchangeExpansionConfig.expansionRate,
-      exchangeExpansionConfig.expansionfrequency
-    );
-    expansionController.setExpansionConfig(exchangeId, exchangeExpansionConfig);
+    emit ExpansionConfigSet(exchangeId, expansionRate, expansionFrequency);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
 
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
       exchangeId
     );
 
-    assertEq(config.expansionRate, exchangeExpansionConfig.expansionRate);
-    assertEq(config.expansionfrequency, exchangeExpansionConfig.expansionfrequency);
-    assertEq(config.lastExpansion, block.timestamp);
+    assertEq(config.expansionRate, expansionRate);
+    assertEq(config.expansionFrequency, expansionFrequency);
+    assertEq(config.lastExpansion, 0);
   }
 }
 
@@ -244,7 +235,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromInterest is GoodDollarExpa
     super.setUp();
     expansionController = initializeGoodDollarExpansionController();
     vm.prank(avatarAddress);
-    expansionController.setExpansionConfig(exchangeId, exchangeExpansionConfig);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
 
     IBancorExchangeProvider.PoolExchange memory pool = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
@@ -305,7 +296,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     super.setUp();
     expansionController = initializeGoodDollarExpansionController();
     vm.prank(avatarAddress);
-    expansionController.setExpansionConfig(exchangeId, exchangeExpansionConfig);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
 
     IBancorExchangeProvider.PoolExchange memory pool = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
@@ -341,25 +332,26 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
   }
 
   function test_mintUBIFromExpansion_whenShouldNotExpand_shouldNotExpand() public {
+    // doing one initial expansion to not be first expansion since on first expansion the expansion is always applied once.
+    expansionController.mintUBIFromExpansion(exchangeId);
+
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
       exchangeId
     );
     uint256 lastExpansion = config.lastExpansion;
-    skip(lastExpansion + config.expansionfrequency - 1);
+    skip(lastExpansion + config.expansionFrequency - 1);
 
     assertEq(expansionController.mintUBIFromExpansion(exchangeId), 0);
   }
 
-  function test_mintUBIFromExpansion_when1DayPassed_shouldCalculateCorrectRateAndExpand() public {
+  function test_mintUBIFromExpansion_whenFirstExpansionAndLessThanExpansionFrequencyPassed_shouldExpand1Time() public {
     // 1 day has passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
     // should be 0.99^1 = 0.99
-    uint256 expansionRate = 1e18 * 0.99;
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
       exchangeId
     );
-    uint256 lastExpansion = config.lastExpansion;
-    skip(lastExpansion + config.expansionfrequency);
-
+    assert(block.timestamp < config.lastExpansion + config.expansionFrequency);
+    uint256 expansionScaler = 1e18 * 0.99;
     uint256 amountToMint = 1000e18;
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
@@ -371,7 +363,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionRate
+        expansionScaler
       )
     );
     vm.expectCall(
@@ -387,15 +379,52 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     assertEq(config.lastExpansion, block.timestamp);
   }
 
-  function test_mintUBIFromExpansion_whenMultipleDaysPassed_shouldCalculateCorrectRateAndExpand() public {
-    // 3 days have passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
-    // should be 0.99^3 = 0.970299
-    uint256 expansionRate = 1e18 * 0.970299;
+  function test_mintUBIFromExpansion_whenFirstExpansionAndMultipleExpansionFrequenciesPassed_shouldExpand1Time()
+    public
+  {
+    // 1 day has passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
+    // should be 0.99^1 = 0.99
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
       exchangeId
     );
-    uint256 lastExpansion = config.lastExpansion;
-    skip(lastExpansion + 3 * config.expansionfrequency);
+    skip(config.expansionFrequency * 3 + 1);
+    assert(block.timestamp > config.lastExpansion + config.expansionFrequency * 3);
+    uint256 expansionScaler = 1e18 * 0.99;
+    uint256 amountToMint = 1000e18;
+    uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
+
+    vm.expectEmit(true, true, true, true);
+    emit UBIMinted(exchangeId, amountToMint);
+
+    vm.expectCall(
+      exchangeProvider,
+      abi.encodeWithSelector(
+        IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
+        exchangeId,
+        expansionScaler
+      )
+    );
+    vm.expectCall(
+      distributionHelper,
+      abi.encodeWithSelector(IDistributionHelper(distributionHelper).onDistribution.selector, amountToMint)
+    );
+
+    uint256 amountMinted = expansionController.mintUBIFromExpansion(exchangeId);
+    config = expansionController.getExpansionConfig(exchangeId);
+
+    assertEq(amountMinted, amountToMint);
+    assertEq(token.balanceOf(distributionHelper), distributionHelperBalanceBefore + amountToMint);
+    assertEq(config.lastExpansion, block.timestamp);
+  }
+
+  function test_mintUBIFromExpansion_when1DayPassed_shouldCalculateCorrectRateAndExpand() public {
+    // doing one initial expansion to not be first expansion since on first expansion the expansion is always applied once.
+    expansionController.mintUBIFromExpansion(exchangeId);
+
+    // 1 day has passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
+    // should be 0.99^1 = 0.99
+    uint256 expansionScaler = 1e18 * 0.99;
+    skip(expansionFrequency + 1);
 
     uint256 amountToMint = 1000e18;
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
@@ -408,7 +437,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionRate
+        expansionScaler
       )
     );
     vm.expectCall(
@@ -417,7 +446,48 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     );
 
     uint256 amountMinted = expansionController.mintUBIFromExpansion(exchangeId);
-    config = expansionController.getExpansionConfig(exchangeId);
+    IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
+      exchangeId
+    );
+
+    assertEq(amountMinted, amountToMint);
+    assertEq(token.balanceOf(distributionHelper), distributionHelperBalanceBefore + amountToMint);
+    assertEq(config.lastExpansion, block.timestamp);
+  }
+
+  function test_mintUBIFromExpansion_whenMultipleDaysPassed_shouldCalculateCorrectRateAndExpand() public {
+    // doing one initial expansion to not be first expansion since on first expansion the expansion is always applied once.
+    expansionController.mintUBIFromExpansion(exchangeId);
+
+    // 3 days have passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
+    // should be 0.99^3 = 0.970299
+    uint256 expansionScaler = 1e18 * 0.970299;
+
+    skip(3 * expansionFrequency + 1);
+
+    uint256 amountToMint = 1000e18;
+    uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
+
+    vm.expectEmit(true, true, true, true);
+    emit UBIMinted(exchangeId, amountToMint);
+
+    vm.expectCall(
+      exchangeProvider,
+      abi.encodeWithSelector(
+        IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
+        exchangeId,
+        expansionScaler
+      )
+    );
+    vm.expectCall(
+      distributionHelper,
+      abi.encodeWithSelector(IDistributionHelper(distributionHelper).onDistribution.selector, amountToMint)
+    );
+
+    uint256 amountMinted = expansionController.mintUBIFromExpansion(exchangeId);
+    IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
+      exchangeId
+    );
 
     assertEq(amountMinted, amountToMint);
     assertEq(token.balanceOf(distributionHelper), distributionHelperBalanceBefore + amountToMint);
@@ -432,7 +502,7 @@ contract GoodDollarExpansionControllerTest_mintRewardFromRR is GoodDollarExpansi
     super.setUp();
     expansionController = initializeGoodDollarExpansionController();
     vm.prank(avatarAddress);
-    expansionController.setExpansionConfig(exchangeId, exchangeExpansionConfig);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
 
     IBancorExchangeProvider.PoolExchange memory pool = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
