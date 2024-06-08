@@ -169,10 +169,27 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
     uint256 amountToMint = goodDollarExchangeProvider.mintFromInterest(exchangeId, reserveInterest);
 
-    if (amountToMint > 0) {
-      require(IERC20(exchange.reserveAsset).transferFrom(msg.sender, reserve, reserveInterest));
-      IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountToMint);
-      emit UBIMinted(exchangeId, amountToMint);
+    require(IERC20(exchange.reserveAsset).transferFrom(msg.sender, reserve, reserveInterest));
+    IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountToMint);
+    emit UBIMinted(exchangeId, amountToMint);
+  }
+
+  /**
+   * @notice Mints UBI for the given exchange by comparing the reserve Balance of the contract to the virtual balance.
+   * @param exchangeId The id of the exchange to mint UBI for.
+   * @return amountMinted The amount of UBI tokens minted.
+   */
+  function mintUBIFromReserveBalance(bytes32 exchangeId) external returns (uint256 amountMinted) {
+    IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
+      .getPoolExchange(exchangeId);
+
+    uint256 contractReserveBalance = IERC20(exchange.reserveAsset).balanceOf(reserve);
+    uint256 additionalReserveBalance = contractReserveBalance - exchange.reserveBalance;
+    if (additionalReserveBalance > 0) {
+      amountMinted = goodDollarExchangeProvider.mintFromInterest(exchangeId, additionalReserveBalance);
+      IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
+
+      emit UBIMinted(exchangeId, amountMinted);
     }
   }
 
@@ -200,12 +217,12 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
       uint256 stepExpansionScaler = MAX_WEIGHT - config.expansionRate;
       uint256 expansionScaler = unwrap(powu(wrap(stepExpansionScaler), numberOfExpansions));
 
-      amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, expansionScaler);
       exchangeExpansionConfigs[exchangeId].lastExpansion = block.timestamp;
+      amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, expansionScaler);
 
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
-      emit UBIMinted(exchangeId, amountMinted);
       distributionHelper.onDistribution(amountMinted);
+      emit UBIMinted(exchangeId, amountMinted);
     }
   }
 

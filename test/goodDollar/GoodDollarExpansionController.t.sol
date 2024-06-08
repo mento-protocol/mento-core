@@ -289,6 +289,61 @@ contract GoodDollarExpansionControllerTest_mintUBIFromInterest is GoodDollarExpa
   }
 }
 
+contract GoodDollarExpansionControllerTest_mintUBIFromReserveBalance is GoodDollarExpansionControllerTest {
+  GoodDollarExpansionController expansionController;
+  IBancorExchangeProvider.PoolExchange pool;
+
+  function setUp() public override {
+    super.setUp();
+    expansionController = initializeGoodDollarExpansionController();
+    vm.prank(avatarAddress);
+    expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
+
+    pool = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveToken),
+      tokenAddress: address(token),
+      tokenSupply: 300_000 * 1e18,
+      reserveBalance: 60_000 * 1e18,
+      reserveRatio: 200000,
+      exitConribution: 10000
+    });
+
+    vm.mockCall(
+      exchangeProvider,
+      abi.encodeWithSelector(IGoodDollarExchangeProvider(exchangeProvider).mintFromInterest.selector),
+      abi.encode(1000e18)
+    );
+
+    vm.mockCall(
+      exchangeProvider,
+      abi.encodeWithSelector(IBancorExchangeProvider(exchangeProvider).getPoolExchange.selector),
+      abi.encode(pool)
+    );
+  }
+
+  function test_mintUBIFromReserveBalance_whenAdditionalReserveBalanceIs0_shouldReturn0() public {
+    deal(address(reserveToken), reserveAddress, pool.reserveBalance);
+    uint256 amountMinted = expansionController.mintUBIFromReserveBalance(exchangeId);
+    assertEq(amountMinted, 0);
+  }
+
+  function test_mintUBIFromReserveBalance_whenAdditionalReserveBalanceIsLargerThan0_shouldMintAndEmit() public {
+    uint256 amountToMint = 1000e18;
+    uint256 additionalReserveBalance = 1000e18;
+
+    deal(address(reserveToken), reserveAddress, pool.reserveBalance + additionalReserveBalance);
+
+    uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
+
+    vm.expectEmit(true, true, true, true);
+    emit UBIMinted(exchangeId, amountToMint);
+    uint256 amountMinted = expansionController.mintUBIFromReserveBalance(exchangeId);
+
+    assertEq(amountMinted, amountToMint);
+    assertEq(token.balanceOf(distributionHelper), distributionHelperBalanceBefore + amountToMint);
+  }
+}
+
 contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExpansionControllerTest {
   GoodDollarExpansionController expansionController;
 
