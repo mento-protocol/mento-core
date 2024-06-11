@@ -6,12 +6,6 @@ interface IGoodDollarExchangeProvider {
   /* ------- Events ------- */
 
   /**
-   * @notice Emitted when the SortedOracles address is updated.
-   * @param sortedOracles The address of the SortedOracles contract.
-   */
-  event SortedOraclesUpdated(address indexed sortedOracles);
-
-  /**
    * @notice Emitted when the ExpansionController address is updated.
    * @param expansionController The address of the ExpansionController contract.
    */
@@ -36,14 +30,12 @@ interface IGoodDollarExchangeProvider {
    * @notice Initializes the contract with the given parameters.
    * @param _broker The address of the Broker contract.
    * @param _reserve The address of the Reserve contract.
-   * @param _sortedOracles The address of the SortedOracles contract.
    * @param _expansionController The address of the ExpansionController contract.
    * @param _avatar The address of the GoodDollar DAO contract.
    */
   function initialize(
     address _broker,
     address _reserve,
-    address _sortedOracles,
     address _expansionController,
     address _avatar
   ) external;

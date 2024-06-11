@@ -408,7 +408,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     );
     require(exchange.tokenAddress != address(0), "Invalid token address");
     require(reserve.isStableAsset(exchange.tokenAddress), "token must be a stable registered with the reserve");
-    require(exchange.reserveRatio > 0, "Invalid reserve ratio");
+    require(exchange.reserveRatio > 1, "Invalid reserve ratio");
     require(exchange.reserveRatio <= MAX_WEIGHT, "Invalid reserve ratio");
     require(exchange.exitConribution <= MAX_WEIGHT, "Invalid exit contribution");
   }

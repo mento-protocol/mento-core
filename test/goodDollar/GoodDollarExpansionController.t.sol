@@ -9,7 +9,6 @@ import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarEx
 import { IGoodDollarExpansionController } from "contracts/goodDollar/interfaces/IGoodDollarExpansionController.sol";
 import { IGoodDollarExchangeProvider } from "contracts/goodDollar/interfaces/IGoodDollarExchangeProvider.sol";
 import { IBancorExchangeProvider } from "contracts/goodDollar/interfaces/IBancorExchangeProvider.sol";
-import { ISortedOracles } from "contracts/goodDollar/interfaces/ISortedOracles.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IDistributionHelper.sol";
 
 contract GoodDollarExpansionControllerTest is Test {

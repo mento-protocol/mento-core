@@ -9,7 +9,6 @@ import { IGoodDollarExchangeProvider } from "contracts/goodDollar/interfaces/IGo
 import { IGoodDollarExpansionController } from "contracts/goodDollar/interfaces/IGoodDollarExpansionController.sol";
 import { IBancorExchangeProvider } from "contracts/goodDollar/interfaces/IBancorExchangeProvider.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodDollar.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IDistributionHelper.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
@@ -31,7 +30,6 @@ contract GoodDollarIntegrationTest is Test {
   address public interestCollector;
 
   address public avatar;
-  address public sortedOracles;
   address public distributionHelper;
 
   BrokerV2 public broker;
@@ -67,7 +65,6 @@ contract GoodDollarIntegrationTest is Test {
     expansionController = IGoodDollarExpansionController(
       factory.createContract("GoodDollarExpansionController", abi.encode(false))
     );
-    sortedOracles = 0xefB84935239dAcdecF7c5bA76d8dE40b077B7b33;
 
     avatar = actor("avatar");
     distributionHelper = actor("distributionHelper");
@@ -114,6 +111,8 @@ contract GoodDollarIntegrationTest is Test {
 
     reserve.addToken(address(gdToken));
     reserve.addExchangeSpender(address(broker));
+    require(reserve.isStableAsset(address(gdToken)), "GoodDollar is not a stable token in the reserve");
+    require(reserve.isCollateralAsset(address(reserveToken)), "ReserveToken is not a collateral asset in the reserve");
   }
 
   function configureTokens() public {
@@ -132,11 +131,15 @@ contract GoodDollarIntegrationTest is Test {
     exchangeProviders[0] = address(exchangeProvider);
     reserves[0] = address(reserve);
     broker.initialize(exchangeProviders, reserves);
+    require(broker.isExchangeProvider(address(exchangeProvider)), "ExchangeProvider is not registered in the broker");
+    require(
+      broker.exchangeReserve(address(exchangeProvider)) == address(reserve),
+      "Reserve is not registered in the broker"
+    );
   }
 
   function configureExchangeProvider() public {
-    exchangeProvider.initialize(address(broker), address(reserve), sortedOracles, address(expansionController), avatar);
-    vm.mockCall(sortedOracles, abi.encodeWithSelector(ISortedOracles(sortedOracles).numRates.selector), abi.encode(10));
+    exchangeProvider.initialize(address(broker), address(reserve), address(expansionController), avatar);
 
     poolExchange1 = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),

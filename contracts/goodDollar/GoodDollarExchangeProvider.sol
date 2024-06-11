@@ -5,7 +5,6 @@ import { PausableUpgradeable } from "openzeppelin-contracts-upgradeable/contract
 
 import { IGoodDollarExchangeProvider } from "./interfaces/IGoodDollarExchangeProvider.sol";
 import { IGoodDollarExpansionController } from "./interfaces/IGoodDollarExpansionController.sol";
-import { ISortedOracles } from "./interfaces/ISortedOracles.sol";
 
 import { Test, console } from "forge-std-next/Test.sol";
 import { BancorExchangeProvider } from "./BancorExchangeProvider.sol";
@@ -17,9 +16,6 @@ import { UD60x18, unwrap, wrap } from "prb-math/src/UD60x18.sol";
  */
 contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchangeProvider, PausableUpgradeable {
   /* ==================== State Variables ==================== */
-
-  // Address of the Mento Sorted Oracles contract.
-  ISortedOracles public sortedOracles;
 
   // Address of the Expansion Controller contract.
   IGoodDollarExpansionController public expansionController;
@@ -43,21 +39,18 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    * @notice Initializes the contract with the given parameters.
    * @param _broker The address of the Broker contract.
    * @param _reserve The address of the Reserve contract.
-   * @param _sortedOracles The address of the SortedOracles contract.
    * @param _expansionController The address of the ExpansionController contract.
    * @param _avatar The address of the GoodDollar DAO contract.
    */
   function initialize(
     address _broker,
     address _reserve,
-    address _sortedOracles,
     address _expansionController,
     address _avatar
   ) public initializer {
     BancorExchangeProvider._initialize(_broker, _reserve);
     __Pausable_init();
 
-    setSortedOracles(_sortedOracles);
     setExpansionController(_expansionController);
     setAvatar(_avatar);
   }
@@ -94,16 +87,6 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     require(_expansionController != address(0), "ExpansionController address must be set");
     expansionController = IGoodDollarExpansionController(_expansionController);
     emit ExpansionControllerUpdated(_expansionController);
-  }
-
-  /**
-   * @notice Sets the address of the SortedOracles contract.
-   * @param _sortedOracles The address of the SortedOracles contract.
-   */
-  function setSortedOracles(address _sortedOracles) public onlyOwner {
-    require(_sortedOracles != address(0), "SortedOracles address must be set");
-    sortedOracles = ISortedOracles(_sortedOracles);
-    emit SortedOraclesUpdated(_sortedOracles);
   }
 
   /**

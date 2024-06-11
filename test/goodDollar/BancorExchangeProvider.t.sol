@@ -279,8 +279,11 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
-  function test_createExchange_whenReserveRatioIsZero_shouldRevert() public {
+  function test_createExchange_whenReserveRatioIsSmaller2_shouldRevert() public {
     poolExchange1.reserveRatio = 0;
+    vm.expectRevert("Invalid reserve ratio");
+    bancorExchangeProvider.createExchange(poolExchange1);
+    poolExchange1.reserveRatio = 1;
     vm.expectRevert("Invalid reserve ratio");
     bancorExchangeProvider.createExchange(poolExchange1);
   }

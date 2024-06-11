@@ -10,14 +10,11 @@ import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.s
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBancorExchangeProvider } from "contracts/goodDollar/interfaces/IBancorExchangeProvider.sol";
-import { ISortedOracles } from "contracts/goodDollar/interfaces/ISortedOracles.sol";
 
 contract GoodDollarExchangeProviderTest is Test {
   /* ------- Events from IGoodDollarExchangeProvider ------- */
 
   event ExchangeCreated(bytes32 indexed exchangeId, address indexed reserveAsset, address indexed tokenAddress);
-
-  event SortedOraclesUpdated(address indexed sortedOracles);
 
   event ExpansionControllerUpdated(address indexed expansionController);
 
@@ -32,7 +29,6 @@ contract GoodDollarExchangeProviderTest is Test {
   ERC20 public token2;
 
   address public reserveAddress;
-  address public sortedOraclesAddress;
   address public brokerAddress;
   address public avatarAddress;
   address public expansionControllerAddress;
@@ -45,7 +41,6 @@ contract GoodDollarExchangeProviderTest is Test {
     token2 = new ERC20("Good2$", "G2$");
 
     reserveAddress = makeAddr("Reserve");
-    sortedOraclesAddress = makeAddr("SortedOracles");
     brokerAddress = makeAddr("Broker");
     avatarAddress = makeAddr("Avatar");
     expansionControllerAddress = makeAddr("ExpansionController");
@@ -74,24 +69,12 @@ contract GoodDollarExchangeProviderTest is Test {
       abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveToken)),
       abi.encode(true)
     );
-
-    vm.mockCall(
-      sortedOraclesAddress,
-      abi.encodeWithSelector(ISortedOracles(sortedOraclesAddress).numRates.selector),
-      abi.encode(10)
-    );
   }
 
   function initializeGoodDollarExchangeProvider() internal returns (GoodDollarExchangeProvider) {
     GoodDollarExchangeProvider exchangeProvider = new GoodDollarExchangeProvider(false);
 
-    exchangeProvider.initialize(
-      brokerAddress,
-      reserveAddress,
-      sortedOraclesAddress,
-      expansionControllerAddress,
-      avatarAddress
-    );
+    exchangeProvider.initialize(brokerAddress, reserveAddress, expansionControllerAddress, avatarAddress);
     return exchangeProvider;
   }
 }
@@ -110,7 +93,6 @@ contract GoodDollarExchangeProviderTest_initializerSettersGetters is GoodDollarE
     assertEq(exchangeProvider.owner(), address(this));
     assertEq(exchangeProvider.broker(), brokerAddress);
     assertEq(address(exchangeProvider.reserve()), reserveAddress);
-    assertEq(address(exchangeProvider.sortedOracles()), sortedOraclesAddress);
     assertEq(address(exchangeProvider.expansionController()), expansionControllerAddress);
     assertEq(exchangeProvider.AVATAR(), avatarAddress);
   }
@@ -155,26 +137,6 @@ contract GoodDollarExchangeProviderTest_initializerSettersGetters is GoodDollarE
     exchangeProvider.setExpansionController(newExpansionController);
 
     assertEq(address(exchangeProvider.expansionController()), newExpansionController);
-  }
-
-  function test_setSortedOracles_whenSenderIsNotOwner_shouldRevert() public {
-    vm.prank(makeAddr("NotOwner"));
-    vm.expectRevert("Ownable: caller is not the owner");
-    exchangeProvider.setSortedOracles(makeAddr("NewSortedOracles"));
-  }
-
-  function test_setSortedOracles_whenAddressIsZero_shouldRevert() public {
-    vm.expectRevert("SortedOracles address must be set");
-    exchangeProvider.setSortedOracles(address(0));
-  }
-
-  function test_setSortedOracles_whenSenderIsOwner_shouldUpdateAndEmit() public {
-    address newSortedOracles = makeAddr("NewSortedOracles");
-    vm.expectEmit(true, true, true, true);
-    emit SortedOraclesUpdated(newSortedOracles);
-    exchangeProvider.setSortedOracles(newSortedOracles);
-
-    assertEq(address(exchangeProvider.sortedOracles()), newSortedOracles);
   }
 }
 
