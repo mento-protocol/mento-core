@@ -143,8 +143,8 @@ contract GoodDollarIntegrationTest is Test {
       tokenAddress: address(gdToken),
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
-      reserveRatio: 200000,
-      exitConribution: 10000
+      reserveRatio: 0.2 * 1e8,
+      exitConribution: 0.01 * 1e8
     });
 
     exchangeId = IBancorExchangeProvider(address(exchangeProvider)).createExchange(poolExchange1);
@@ -291,6 +291,7 @@ contract GoodDollarIntegrationTest is Test {
   }
 
   function test_expansion() public {
+    uint256 priceBefore = IBancorExchangeProvider(address(exchangeProvider)).currentPrice(exchangeId);
     uint256 distributionHelperBalanceBefore = gdToken.balanceOf(distributionHelper);
 
     vm.mockCall(
@@ -302,10 +303,13 @@ contract GoodDollarIntegrationTest is Test {
     skip(2 days + 1 seconds);
 
     uint256 amountMinted = expansionController.mintUBIFromExpansion(exchangeId);
+    uint256 priceAfter = IBancorExchangeProvider(address(exchangeProvider)).currentPrice(exchangeId);
+    assertEq(priceBefore, priceAfter);
     assertEq(gdToken.balanceOf(distributionHelper), amountMinted + distributionHelperBalanceBefore);
   }
 
   function test_interest() public {
+    uint256 priceBefore = IBancorExchangeProvider(address(exchangeProvider)).currentPrice(exchangeId);
     address reserveInterestCollector = actor("reserveInterestCollector");
     uint256 reserveInterest = 1000 * 1e18;
     deal(address(reserveToken), reserveInterestCollector, reserveInterest);
@@ -319,6 +323,7 @@ contract GoodDollarIntegrationTest is Test {
     expansionController.mintUBIFromInterest(exchangeId, reserveInterest);
     vm.stopPrank();
 
+    uint256 priceAfter = IBancorExchangeProvider(address(exchangeProvider)).currentPrice(exchangeId);
     uint256 reserveBalanceAfter = reserveToken.balanceOf(address(reserve));
     uint256 interestCollectorBalanceAfter = reserveToken.balanceOf(reserveInterestCollector);
     uint256 distributionHelperBalanceAfter = gdToken.balanceOf(distributionHelper);
@@ -326,5 +331,6 @@ contract GoodDollarIntegrationTest is Test {
     assertEq(reserveBalanceAfter, reserveBalanceBefore + reserveInterest);
     assertEq(interestCollectorBalanceAfter, interestCollectorBalanceBefore - reserveInterest);
     assertTrue(distributionHelperBalanceBefore < distributionHelperBalanceAfter);
+    assertEq(priceBefore, priceAfter);
   }
 }

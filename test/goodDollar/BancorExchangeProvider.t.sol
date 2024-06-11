@@ -48,8 +48,8 @@ contract BancorExchangeProviderTest is Test {
       tokenAddress: address(token),
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
-      reserveRatio: 200000,
-      exitConribution: 10000
+      reserveRatio: 1e8 * 0.2,
+      exitConribution: 1e8 * 0.01
     });
 
     poolExchange2 = IBancorExchangeProvider.PoolExchange({
@@ -57,8 +57,8 @@ contract BancorExchangeProviderTest is Test {
       tokenAddress: address(token2),
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
-      reserveRatio: 200000,
-      exitConribution: 10000
+      reserveRatio: 1e8 * 0.2,
+      exitConribution: 1e8 * 0.01
     });
 
     vm.mockCall(

@@ -18,9 +18,6 @@ import { UD60x18, convert, unwrap, wrap } from "prb-math/src/UD60x18.sol";
 contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, BancorFormula, OwnableUpgradeable {
   /* ==================== State Variables ==================== */
 
-  // 100% = 1e6 used for exitContribution and reserveRatio
-  uint32 public constant MAX_WEIGHT = 1e6;
-
   // Address of the broker contract.
   address public broker;
 
@@ -176,7 +173,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     // calculates: reserveBalance / (tokenSupply * reserveRatio)
     require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-    uint256 scaledReserveRatio = uint256(exchange.reserveRatio) * 1e12;
+    uint256 scaledReserveRatio = uint256(exchange.reserveRatio) * 1e10;
     UD60x18 denominator = wrap(exchange.tokenSupply).mul(wrap(scaledReserveRatio));
     price = unwrap(wrap(exchange.reserveBalance).div(denominator));
     return price;

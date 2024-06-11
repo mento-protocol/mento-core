@@ -158,25 +158,20 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     require(expansionScaler > 0, "Expansion rate must be greater than 0");
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
-    if (expansionScaler == MAX_WEIGHT) {
-      return 0;
-    }
-
-    UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e12);
+    UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e10);
     UD60x18 newRatio = scaledRatio.mul(wrap(expansionScaler));
 
     UD60x18 numerator = wrap(exchange.tokenSupply).mul(scaledRatio);
     numerator = numerator.sub(wrap(exchange.tokenSupply).mul(newRatio));
 
     uint256 scaledAmountToMint = unwrap(numerator.div(newRatio));
+    uint32 newRatioUint = uint32(unwrap(newRatio) / 1e10);
 
-    uint32 newRatioUint = uint32(unwrap(newRatio) / 1e12);
     exchanges[exchangeId].reserveRatio = newRatioUint;
-    emit ReserveRatioUpdated(exchangeId, newRatioUint);
-
     exchanges[exchangeId].tokenSupply += scaledAmountToMint;
 
     amountToMint = scaledAmountToMint / tokenPrecisionMultipliers[exchange.tokenAddress];
+    emit ReserveRatioUpdated(exchangeId, newRatioUint);
     return amountToMint;
   }
 
@@ -196,10 +191,6 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     returns (uint256 amountToMint)
   {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-
-    if (reserveInterest == 0) {
-      return 0;
-    }
 
     uint256 reserveinterestScaled = reserveInterest * tokenPrecisionMultipliers[exchange.reserveAsset];
     uint256 amountToMintScaled = unwrap(
@@ -234,11 +225,11 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     UD60x18 denominator = wrap(exchange.tokenSupply + rewardScaled).mul(wrap(currentPriceScaled));
     uint256 newRatioScaled = unwrap(numerator.div(denominator));
 
-    uint32 newRatioUint = uint32(newRatioScaled / 1e12);
+    uint32 newRatioUint = uint32(newRatioScaled / 1e10);
     exchanges[exchangeId].reserveRatio = newRatioUint;
-    emit ReserveRatioUpdated(exchangeId, newRatioUint);
-
     exchanges[exchangeId].tokenSupply += rewardScaled;
+
+    emit ReserveRatioUpdated(exchangeId, newRatioUint);
   }
 
   /**

@@ -55,8 +55,8 @@ contract GoodDollarExchangeProviderTest is Test {
       tokenAddress: address(token),
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
-      reserveRatio: 200000,
-      exitConribution: 10000
+      reserveRatio: 0.2 * 1e8,
+      exitConribution: 0.01 * 1e8
     });
 
     vm.mockCall(
@@ -210,7 +210,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
 
   function test_mintFromExpansion_whenExpansionRateIs100Percent_shouldReturn0() public {
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, 1e6);
+    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, 1e18);
     assertEq(amountToMint, 0);
   }
 
@@ -218,7 +218,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
     // formula: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
     // amountToMint = (300_000 * 0.2 - 300_000 * 0.2 * 0.99 ) / 0.2 * 0.99 ≈ 3030.303030303030303030
     uint256 expectedAmountToMint = 3030303030303030303030;
-    uint32 expectedReserveRatio = 0.2 * 0.99 * 1e6;
+    uint32 expectedReserveRatio = 0.2 * 0.99 * 1e8;
 
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
@@ -325,8 +325,8 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
   function test_updateRatioForReward_whenRewardLarger0_shouldReturnCorrectRatioAndEmit() public {
     // formula: newRatio = reserveBalance / (tokenSupply + reward) * currentPrice
-    // reserveRatio = 60_000 / (300_000 + 1000) * 1 ≈ 0.199335
-    uint32 expectedReserveRatio = 199335;
+    // reserveRatio = 60_000 / (300_000 + 1000) * 1 ≈ 0.19933554
+    uint32 expectedReserveRatio = 19933554;
 
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
