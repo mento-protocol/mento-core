@@ -13,6 +13,7 @@ import "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol
 interface ISortedOraclesMin {
     function report(address token, uint256 value, address lesserKey, address greaterKey) external;
     function medianTimestamp(address token) external view returns (uint256);
+    function getTokenReportExpirySeconds(address token) external view returns (uint256);
 }
 
 /**
@@ -34,6 +35,10 @@ contract ChainlinkAdapter is IChainlinkAdapter {
      */
     address immutable public aggregator;
 
+    error OldTimestamp();
+    error ExpiredTimestamp();
+    error NegativeAnswer();
+
     constructor(address _token, address _sortedOracles, address _aggregator) {
         token = _token;
         sortedOracles = _sortedOracles;
@@ -53,15 +58,31 @@ contract ChainlinkAdapter is IChainlinkAdapter {
      *      - The timestamp should not be considered expired by SortedOracles.
      */
     function relay() external {
+        ISortedOraclesMin _sortedOracles = ISortedOraclesMin(sortedOracles);
         (, int256 answer,, uint256 timestamp,) = AggregatorV3Interface(aggregator).latestRoundData();
 
-        // TODO: checks:
-        // - timestamp is > than current
-        // - timestamp is fresh enough?
-        // - answer is not negative
+        uint256 lastTimestamp = _sortedOracles.medianTimestamp(token);
+
+        if (lastTimestamp > 0) {
+            if (timestamp <= lastTimestamp) {
+                revert OldTimestamp();
+            }
+
+            if (isTimestampExpired(timestamp)) {
+                revert ExpiredTimestamp();
+            }
+        }
+
+        if (answer < 0) {
+            revert NegativeAnswer();
+        }
 
         // TODO: convert answer to Fixidity
 
         ISortedOraclesMin(sortedOracles).report(token, uint256(answer), address(0), address(0));
+    }
+
+    function isTimestampExpired(uint256 timestamp) internal view returns (bool) {
+        return block.timestamp - timestamp >= ISortedOraclesMin(sortedOracles).getTokenReportExpirySeconds(token);
     }
 }
