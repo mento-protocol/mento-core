@@ -20,6 +20,9 @@ contract ChainlinkAdapterTest is BaseTest {
     MockAggregatorV3 aggregator;
     IChainlinkAdapter adapter;
     address token = address(0xbeef);
+    int256 anAnswer = 420000000;
+    uint256 expectedReport = 4200000000000000000000000;
+    uint256 aReport = 4100000000000000000000000;
 
     function setUp() public {
         sortedOracles = new SortedOracles(true);
@@ -54,46 +57,44 @@ contract ChainlinkAdapterTest_constructor is ChainlinkAdapterTest {
 contract ChainlinkAdapterTest_relay is ChainlinkAdapterTest {
     function setUp() public {
         super.setUp();
-        aggregator.setRoundData(int256(42), uint256(block.timestamp));
+        aggregator.setRoundData(int256(anAnswer), uint256(block.timestamp));
     }
 
-    // TODO: should actually ingest an 8-decimals value and relay a Fixidity
-    // value
     function test_relaysTheRate() public {
         adapter.relay();
         (uint256 medianRate,) = sortedOracles.medianRate(token);
-        assertEq(medianRate, 42);
+        assertEq(medianRate, expectedReport);
     }
 
     function test_revertsOnNegativeAnswer() public {
-        aggregator.setRoundData(-42, uint256(1337));
+        aggregator.setRoundData(-1 * anAnswer, uint256(1337));
         vm.expectRevert(NEGATIVE_ANSWER_ERROR);
         adapter.relay();
     }
 
     function test_revertsOnEarlierTimestamp() public {
         vm.prank(address(adapter));
-        sortedOracles.report(token, 41, address(0), address(0));
+        sortedOracles.report(token, aReport, address(0), address(0));
         uint256 latestTimestamp = sortedOracles.medianTimestamp(token);
-        aggregator.setRoundData(42, latestTimestamp - 1);
+        aggregator.setRoundData(anAnswer, latestTimestamp - 1);
         vm.expectRevert(OLD_TIMESTAMP_ERROR);
         adapter.relay();
     }
 
     function test_revertsOnRepeatTimestamp() public {
         vm.prank(address(adapter));
-        sortedOracles.report(token, 41, address(0), address(0));
+        sortedOracles.report(token, aReport, address(0), address(0));
         uint256 latestTimestamp = sortedOracles.medianTimestamp(token);
-        aggregator.setRoundData(42, latestTimestamp);
+        aggregator.setRoundData(anAnswer, latestTimestamp);
         vm.expectRevert(OLD_TIMESTAMP_ERROR);
         adapter.relay();
     }
 
     function test_revertsOnExpiredTimestamp() public {
         vm.prank(address(adapter));
-        sortedOracles.report(token, 41, address(0), address(0));
+        sortedOracles.report(token, aReport, address(0), address(0));
         uint256 expiry = sortedOracles.getTokenReportExpirySeconds(token);
-        aggregator.setRoundData(42, block.timestamp + 1);
+        aggregator.setRoundData(anAnswer, block.timestamp + 1);
         vm.warp(block.timestamp + expiry + 1);
         vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
         adapter.relay();
