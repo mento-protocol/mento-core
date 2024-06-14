@@ -25,6 +25,7 @@ interface ISortedOraclesMin {
  * feed.
  */
 contract ChainlinkAdapter is IChainlinkAdapter {
+    uint256 constant public FIXIDITY_DECIMALS = 24;
     /// @notice The rateFeedId this adapter relays for.
     address immutable public token;
     /// @notice The address of the SortedOracles contract to report to.
@@ -77,12 +78,17 @@ contract ChainlinkAdapter is IChainlinkAdapter {
             revert NegativeAnswer();
         }
 
-        // TODO: convert answer to Fixidity
+        uint256 report = chainlinkToFixidity(answer);
 
-        ISortedOraclesMin(sortedOracles).report(token, uint256(answer), address(0), address(0));
+        ISortedOraclesMin(sortedOracles).report(token, report, address(0), address(0));
     }
 
     function isTimestampExpired(uint256 timestamp) internal view returns (bool) {
         return block.timestamp - timestamp >= ISortedOraclesMin(sortedOracles).getTokenReportExpirySeconds(token);
+    }
+
+    function chainlinkToFixidity(int256 answer) internal view returns (uint256) {
+        uint256 chainlinkDecimals = uint256(AggregatorV3Interface(aggregator).decimals());
+        return uint256(answer) * 10 ** (FIXIDITY_DECIMALS - chainlinkDecimals);
     }
 }
