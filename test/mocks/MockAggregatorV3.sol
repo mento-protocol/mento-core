@@ -25,4 +25,8 @@ contract MockAggregatorV3 {
             uint80(0)
         );
     }
+
+    function decimals() external view returns (uint8) {
+        return 8;
+    }
 }
