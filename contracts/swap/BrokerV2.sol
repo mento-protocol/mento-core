@@ -1,44 +1,38 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity 0.8.18;
 pragma experimental ABIEncoderV2;
 
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { SafeERC20 } from "../common/SafeERC20.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
-import { IBroker } from "../interfaces/IBroker.sol";
-import { IBrokerAdmin2 } from "../interfaces/IBrokerAdmin2.sol";
+import { IBroker } from "../interfaces/IBrokerV2.sol";
+import { IBrokerAdmin } from "../interfaces/IBrokerAdminV2.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
 import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
 import { IERC20MintableBurnable as IERC20 } from "../common/interfaces/IERC20MintableBurnable.sol";
 
-import { Initializable } from "../common/Initializable.sol";
-import { TradingLimits } from "../libraries/TradingLimits.sol";
-import { ReentrancyGuard } from "../common/ReentrancyGuard.sol";
-
-import { console2 as console } from "celo-foundry/Test.sol";
+import { Initializable } from "../common/InitializableV2.sol";
+import { TradingLimits } from "../libraries/TradingLimitsV2.sol";
+import { ReentrancyGuard } from "../common/ReentrancyGuardV2.sol";
 
 /**
  * @title Broker
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
-contract BrokerV2 is IBroker, IBrokerAdmin2, Initializable, Ownable, ReentrancyGuard {
-  using TradingLimits for TradingLimits.State;
-  using TradingLimits for TradingLimits.Config;
+contract BrokerV2 is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
-  using SafeMath for uint256;
 
   /* ==================== State Variables ==================== */
 
   address[] public exchangeProviders;
   mapping(address => bool) public isExchangeProvider;
-  mapping(bytes32 => TradingLimits.State) public tradingLimitsState;
-  mapping(bytes32 => TradingLimits.Config) public tradingLimitsConfig;
+  mapping(bytes32 => State) public tradingLimitsState;
+  mapping(bytes32 => Config) public tradingLimitsConfig;
 
   uint256 public __deprecated0; // prev: IReserve public reserve;
 
-  uint256 private constant MAX_INT256 = uint256(-1) / 2;
+  uint256 private constant MAX_INT256 = uint256(type(int256).max);
 
   mapping(address => address) public exchangeReserve;
 
@@ -48,7 +42,7 @@ contract BrokerV2 is IBroker, IBrokerAdmin2, Initializable, Ownable, ReentrancyG
    * @notice Sets initialized == true on implementation contracts.
    * @param test Set to true to skip implementation initialization.
    */
-  constructor(bool test) public Initializable(test) {}
+  constructor(bool test) Initializable(test) {}
 
   /**
    * @notice Allows the contract to be upgradable via the proxy.
@@ -64,7 +58,10 @@ contract BrokerV2 is IBroker, IBrokerAdmin2, Initializable, Ownable, ReentrancyG
 
   function setReserves(address[] calldata _exchangeProviders, address[] calldata _reserves) external onlyOwner {
     for (uint256 i = 0; i < _exchangeProviders.length; i++) {
+      require(isExchangeProvider[_exchangeProviders[i]], "ExchangeProvider does not exist");
+      require(_reserves[i] != address(0), "Reserve address can't be 0");
       exchangeReserve[_exchangeProviders[i]] = _reserves[i];
+      // TODO: add emit
     }
   }
 
@@ -83,7 +80,7 @@ contract BrokerV2 is IBroker, IBrokerAdmin2, Initializable, Ownable, ReentrancyG
     isExchangeProvider[exchangeProvider] = true;
     exchangeReserve[exchangeProvider] = reserve;
     emit ExchangeProviderAdded(exchangeProvider);
-    index = exchangeProviders.length.sub(1);
+    index = exchangeProviders.length - 1;
   }
 
   /**
@@ -93,7 +90,7 @@ contract BrokerV2 is IBroker, IBrokerAdmin2, Initializable, Ownable, ReentrancyG
    */
   function removeExchangeProvider(address exchangeProvider, uint256 index) public onlyOwner {
     require(exchangeProviders[index] == exchangeProvider, "index doesn't match provider");
-    exchangeProviders[index] = exchangeProviders[exchangeProviders.length.sub(1)];
+    exchangeProviders[index] = exchangeProviders[exchangeProviders.length - 1];
     exchangeProviders.pop();
     delete isExchangeProvider[exchangeProvider];
     delete exchangeReserve[exchangeProvider];
@@ -164,8 +161,8 @@ contract BrokerV2 is IBroker, IBrokerAdmin2, Initializable, Ownable, ReentrancyG
     require(amountOut >= amountOutMin, "amountOutMin not met");
     guardTradingLimits(exchangeId, tokenIn, amountIn, tokenOut, amountOut);
     address reserve = exchangeReserve[exchangeProvider];
-    transferIn(msg.sender, tokenIn, amountIn, reserve);
-    transferOut(msg.sender, tokenOut, amountOut, reserve);
+    transferIn(payable(msg.sender), tokenIn, amountIn, reserve);
+    transferOut(payable(msg.sender), tokenOut, amountOut, reserve);
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
   }
 
@@ -193,8 +190,8 @@ contract BrokerV2 is IBroker, IBrokerAdmin2, Initializable, Ownable, ReentrancyG
     require(amountIn <= amountInMax, "amountInMax exceeded");
     guardTradingLimits(exchangeId, tokenIn, amountIn, tokenOut, amountOut);
     address reserve = exchangeReserve[exchangeProvider];
-    transferIn(msg.sender, tokenIn, amountIn, reserve);
-    transferOut(msg.sender, tokenOut, amountOut, reserve);
+    transferIn(payable(msg.sender), tokenIn, amountIn, reserve);
+    transferOut(payable(msg.sender), tokenOut, amountOut, reserve);
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
   }
 
@@ -223,13 +220,13 @@ contract BrokerV2 is IBroker, IBrokerAdmin2, Initializable, Ownable, ReentrancyG
   function configureTradingLimit(
     bytes32 exchangeId,
     address token,
-    TradingLimits.Config memory config
+    Config memory config
   ) public onlyOwner {
-    config.validate();
+    TradingLimits.validate(config);
 
     bytes32 limitId = exchangeId ^ bytes32(uint256(uint160(token)));
     tradingLimitsConfig[limitId] = config;
-    tradingLimitsState[limitId] = tradingLimitsState[limitId].reset(config);
+    tradingLimitsState[limitId] = TradingLimits.reset(tradingLimitsState[limitId], config);
     emit TradingLimitConfigured(exchangeId, token, config);
   }
 
@@ -323,11 +320,16 @@ contract BrokerV2 is IBroker, IBrokerAdmin2, Initializable, Ownable, ReentrancyG
     int256 deltaFlow,
     address token
   ) internal {
-    TradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
+    Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
-      TradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
-      tradingLimitState = tradingLimitState.update(tradingLimitConfig, deltaFlow, IERC20Metadata(token).decimals());
-      tradingLimitState.verify(tradingLimitConfig);
+      State memory tradingLimitState = tradingLimitsState[tradingLimitId];
+      tradingLimitState = TradingLimits.update(
+        tradingLimitState,
+        tradingLimitConfig,
+        deltaFlow,
+        IERC20Metadata(token).decimals()
+      );
+      TradingLimits.verify(tradingLimitState, tradingLimitConfig);
       tradingLimitsState[tradingLimitId] = tradingLimitState;
     }
   }

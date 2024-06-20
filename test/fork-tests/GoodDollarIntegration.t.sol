@@ -10,12 +10,12 @@ import { IGoodDollarExpansionController } from "contracts/goodDollar/interfaces/
 import { IBancorExchangeProvider } from "contracts/goodDollar/interfaces/IBancorExchangeProvider.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodDollar.sol";
+import { IBroker } from "contracts/interfaces/IBrokerV2.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IDistributionHelper.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
 import { SafeERC20 } from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import { BrokerV2 } from "contracts/swap/BrokerV2.sol";
 import { Reserve } from "contracts/swap/Reserve.sol";
 
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
@@ -32,7 +32,7 @@ contract GoodDollarIntegrationTest is Test {
   address public avatar;
   address public distributionHelper;
 
-  BrokerV2 public broker;
+  IBroker public broker;
   Reserve public reserve;
   IStableTokenV2 public reserveToken;
   IGoodDollar public gdToken;
@@ -58,7 +58,7 @@ contract GoodDollarIntegrationTest is Test {
     reserve = new Reserve(true);
     gdToken = IGoodDollar(0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A);
     reserveToken = IStableTokenV2(0x765DE816845861e75A25fCA122bb6898B8B1282a);
-    broker = new BrokerV2(true);
+    broker = IBroker(factory.createContract("BrokerV2", abi.encode(true)));
     exchangeProvider = IGoodDollarExchangeProvider(
       factory.createContract("GoodDollarExchangeProvider", abi.encode(false))
     );

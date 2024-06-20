@@ -1,8 +1,7 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 import { IERC20MintableBurnable as IERC20 } from "./interfaces/IERC20MintableBurnable.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { Address } from "openzeppelin-solidity/contracts/utils/Address.sol";
+import { Address } from "openzeppelin-contracts-next/contracts/utils/Address.sol";
 
 /**
  * @title SafeERC20
@@ -14,7 +13,6 @@ import { Address } from "openzeppelin-solidity/contracts/utils/Address.sol";
  * which allows you to call the safe operations as `token.safeTransfer(...)`, etc.
  */
 library SafeERC20 {
-  using SafeMath for uint256;
   using Address for address;
 
   function safeTransfer(
@@ -67,7 +65,7 @@ library SafeERC20 {
     address spender,
     uint256 value
   ) internal {
-    uint256 newAllowance = token.allowance(address(this), spender).add(value);
+    uint256 newAllowance = token.allowance(address(this), spender) + value;
     callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
   }
 
@@ -76,10 +74,7 @@ library SafeERC20 {
     address spender,
     uint256 value
   ) internal {
-    uint256 newAllowance = token.allowance(address(this), spender).sub(
-      value,
-      "SafeERC20: decreased allowance below zero"
-    );
+    uint256 newAllowance = token.allowance(address(this), spender) - value;
     callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
   }
 

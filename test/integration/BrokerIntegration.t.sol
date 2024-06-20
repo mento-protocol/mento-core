@@ -9,7 +9,6 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
 import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
 
-import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";

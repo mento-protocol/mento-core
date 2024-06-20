@@ -21,7 +21,7 @@ import { AddressSortedLinkedListWithMedian } from "contracts/common/linkedlists/
 import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
 
 import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
-import { Broker } from "contracts/swap/Broker.sol";
+import { IBroker } from "contracts/interfaces/IBrokerV2.sol";
 import { ConstantProductPricingModule } from "contracts/swap/ConstantProductPricingModule.sol";
 import { ConstantSumPricingModule } from "contracts/swap/ConstantSumPricingModule.sol";
 import { Reserve } from "contracts/swap/Reserve.sol";
@@ -29,7 +29,6 @@ import { SortedOracles } from "contracts/common/SortedOracles.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
 import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
 import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
-import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
 
 import { Arrays } from "./Arrays.sol";
 import { Token } from "./Token.sol";
@@ -38,7 +37,6 @@ import { BaseTest } from "./BaseTest.t.sol";
 contract IntegrationTest is BaseTest {
   using FixidityLib for FixidityLib.Fraction;
   using AddressSortedLinkedListWithMedian for SortedLinkedListWithMedian.List;
-  using TradingLimits for TradingLimits.Config;
 
   uint256 constant tobinTaxStalenessThreshold = 600;
   uint256 constant dailySpendingRatio = 1000000000000000000000000;
@@ -50,7 +48,7 @@ contract IntegrationTest is BaseTest {
 
   mapping(address => uint256) oracleCounts;
 
-  Broker broker;
+  IBroker broker;
   BiPoolManager biPoolManager;
   Reserve reserve;
   IPricingModule constantProduct;
@@ -87,7 +85,7 @@ contract IntegrationTest is BaseTest {
   function setUp() public {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
     vm.startPrank(deployer);
-    broker = new Broker(true);
+    broker = IBroker(factory.createContract("BrokerV2", abi.encode(true)));
 
     setUp_assets();
     setUp_reserve();
@@ -395,8 +393,11 @@ contract IntegrationTest is BaseTest {
     );
     address[] memory exchangeProviders = new address[](1);
     exchangeProviders[0] = address(biPoolManager);
+    address[] memory reserves = new address[](1);
+    reserves[0] = address(reserve);
 
-    broker.initialize(exchangeProviders, address(reserve));
+    broker.initialize(exchangeProviders, reserves);
+
     registry.setAddressFor("Broker", address(broker));
     reserve.addExchangeSpender(address(broker));
     biPoolManager.setPricingModules(pricingModuleIdentifiers, pricingModules);
@@ -491,7 +492,7 @@ contract IntegrationTest is BaseTest {
 
   function setUp_tradingLimits() internal {
     /* ========== Config Trading Limits =============== */
-    TradingLimits.Config memory config = configL0L1LG(100, 10000, 1000, 100000, 1000000);
+    IBroker.Config memory config = configL0L1LG(100, 10000, 1000, 100000, 1000000);
     broker.configureTradingLimit(pair_cUSD_CELO_ID, address(cUSDToken), config);
     broker.configureTradingLimit(pair_cEUR_CELO_ID, address(cEURToken), config);
     broker.configureTradingLimit(pair_cUSD_bridgedUSDC_ID, address(usdcToken), config);
@@ -506,7 +507,7 @@ contract IntegrationTest is BaseTest {
     uint32 timestep1,
     int48 limit1,
     int48 limitGlobal
-  ) internal pure returns (TradingLimits.Config memory config) {
+  ) internal pure returns (IBroker.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0 = limit0;
     config.timestep1 = timestep1;
