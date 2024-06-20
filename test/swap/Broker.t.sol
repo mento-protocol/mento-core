@@ -17,8 +17,8 @@ import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 
-import { TradingLimits } from "contracts/libraries/TradingLimitsV2.sol";
-import { BrokerV2 as Broker } from "contracts/swap/BrokerV2.sol";
+import { ITradingLimits } from "contracts/libraries/ITradingLimits.sol";
+import { BrokerV2 as Broker } from "contracts/swap/Broker.sol";
 
 // forge test --match-contract Broker -vvv
 contract BrokerTest is Test {
@@ -36,7 +36,7 @@ contract BrokerTest is Test {
   event ExchangeProviderAdded(address indexed exchangeProvider);
   event ExchangeProviderRemoved(address indexed exchangeProvider);
   event ReserveSet(address indexed newAddress, address indexed prevAddress);
-  event TradingLimitConfigured(bytes32 exchangeId, address token, Broker.Config config);
+  event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimits.Config config);
 
   address deployer = makeAddr("deployer");
   address notDeployer = makeAddr("notDeployer");
@@ -525,7 +525,7 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapIn_whenTradingLimitWasNotMet_shouldSwap() public {
-    Broker.Config memory config;
+    ITradingLimits.Config memory config;
     config.flags = 1;
     config.timestep0 = 10000;
     config.limit0 = 1000;
@@ -540,7 +540,7 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapIn_whenTradingLimitWasMet_shouldNotSwap() public {
-    Broker.Config memory config;
+    ITradingLimits.Config memory config;
     config.flags = 1;
     config.timestep0 = 10000;
     config.limit0 = 100;

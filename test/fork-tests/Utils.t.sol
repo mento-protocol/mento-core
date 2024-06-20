@@ -13,7 +13,7 @@ import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
-import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
+import { ITradingLimits } from "contracts/libraries/ITradingLimits.sol";
 
 import { IBroker } from "contracts/legacy/interfaces/IBrokerV1.sol";
 import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
@@ -30,15 +30,15 @@ import { WithThreshold } from "contracts/oracles/breakers/WithThreshold.sol";
  * config as structs as opposed to tuples.
  */
 interface IBrokerWithCasts {
-  function tradingLimitsState(bytes32 id) external view returns (TradingLimits.State memory);
+  function tradingLimitsState(bytes32 id) external view returns (ITradingLimits.State memory);
 
-  function tradingLimitsConfig(bytes32 id) external view returns (TradingLimits.Config memory);
+  function tradingLimitsConfig(bytes32 id) external view returns (ITradingLimits.Config memory);
 }
 
 library Utils {
   using SafeMath for uint256;
   using FixidityLib for FixidityLib.Fraction;
-  using TradingLimits for TradingLimits.State;
+  // using TradingLimits for TradingLimits.State;
 
   uint8 private constant L0 = 1; // 0b001 Limit0
   uint8 private constant L1 = 2; // 0b010 Limit1

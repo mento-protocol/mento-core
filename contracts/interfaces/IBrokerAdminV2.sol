@@ -2,7 +2,7 @@
 pragma solidity >=0.5.13 <0.8.19;
 pragma experimental ABIEncoderV2;
 
-import { TradingLimits } from "../libraries/TradingLimitsV2.sol";
+import { ITradingLimits } from "../libraries/ITradingLimits.sol";
 
 /*
  * @title Broker Admin Interface
@@ -35,19 +35,9 @@ interface IBrokerAdmin {
    * @param token the token to target.
    * @param config the new trading limits config.
    */
-  event TradingLimitConfigured(bytes32 exchangeId, address token, TradingLimits.Config config);
+  event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimits.Config config);
 
-  function configureTradingLimit(bytes32 exchangeId, address token, TradingLimits.Config calldata config) external;
-
-  /**
-   * @notice Emitted when a new trading limit is configured.
-   * @param exchangeId the exchangeId to target.
-   * @param token the token to target.
-   * @param config the new trading limits config.
-   */
-  event TradingLimitConfigured(bytes32 exchangeId, address token, TradingLimits.Config config);
-
-  function configureTradingLimit(bytes32 exchangeId, address token, TradingLimits.Config calldata config) external;
+  function configureTradingLimit(bytes32 exchangeId, address token, ITradingLimits.Config calldata config) external;
 
   /**
    * @notice Remove an ExchangeProvider at a specified index.

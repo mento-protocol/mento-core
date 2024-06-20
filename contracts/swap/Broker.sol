@@ -13,7 +13,8 @@ import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
 import { IERC20MintableBurnable as IERC20 } from "../common/interfaces/IERC20MintableBurnable.sol";
 
 import { Initializable } from "../common/InitializableV2.sol";
-import { TradingLimits } from "../libraries/TradingLimitsV2.sol";
+import { TradingLimits } from "../libraries/TradingLimits.sol";
+import { ITradingLimits } from "../libraries/ITradingLimits.sol";
 import { ReentrancyGuard } from "../common/ReentrancyGuardV2.sol";
 
 /**
@@ -27,8 +28,8 @@ contract BrokerV2 is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGu
 
   address[] public exchangeProviders;
   mapping(address => bool) public isExchangeProvider;
-  mapping(bytes32 => TradingLimits.State) public tradingLimitsState;
-  mapping(bytes32 => TradingLimits.Config) public tradingLimitsConfig;
+  mapping(bytes32 => ITradingLimits.State) public tradingLimitsState;
+  mapping(bytes32 => ITradingLimits.Config) public tradingLimitsConfig;
 
   uint256 public __deprecated0; // prev: IReserve public reserve;
 
@@ -220,7 +221,7 @@ contract BrokerV2 is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGu
   function configureTradingLimit(
     bytes32 exchangeId,
     address token,
-    TradingLimits.Config memory config
+    ITradingLimits.Config memory config
   ) public onlyOwner {
     TradingLimits.validate(config);
 
@@ -306,9 +307,9 @@ contract BrokerV2 is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGu
    * @param token the address of the token, used to lookup decimals.
    */
   function guardTradingLimit(bytes32 tradingLimitId, int256 deltaFlow, address token) internal {
-    Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
+    ITradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
-      State memory tradingLimitState = tradingLimitsState[tradingLimitId];
+      ITradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
       tradingLimitState = TradingLimits.update(
         tradingLimitState,
         tradingLimitConfig,

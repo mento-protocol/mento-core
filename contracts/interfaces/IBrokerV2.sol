@@ -27,19 +27,9 @@ interface IBroker {
     uint256 amountOut
   );
 
-  /**
-   * @notice Emitted when a new trading limit is configured.
-   * @param exchangeId the exchangeId to target.
-   * @param token the token to target.
-   * @param config the new trading limits config.
-   */
-  event TradingLimitConfigured(bytes32 exchangeId, address token, Config config);
-
   function isExchangeProvider(address exchangeProvider) external view returns (bool);
 
   function exchangeReserve(address exchangeProvider) external view returns (address);
-
-  function configureTradingLimit(bytes32 exchangeId, address token, Config calldata config) external;
 
   /**
    * @notice Initialize the broker with the exchange providers and reserves.

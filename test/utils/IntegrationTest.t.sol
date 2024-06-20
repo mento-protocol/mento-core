@@ -22,6 +22,7 @@ import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedL
 
 import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
 import { IBroker } from "contracts/interfaces/IBrokerV2.sol";
+import { IBrokerAdmin } from "contracts/interfaces/IBrokerAdminV2.sol";
 import { ConstantProductPricingModule } from "contracts/swap/ConstantProductPricingModule.sol";
 import { ConstantSumPricingModule } from "contracts/swap/ConstantSumPricingModule.sol";
 import { Reserve } from "contracts/swap/Reserve.sol";
@@ -29,6 +30,7 @@ import { SortedOracles } from "contracts/common/SortedOracles.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
 import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
 import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
+import { ITradingLimits } from "contracts/libraries/ITradingLimits.sol";
 
 import { Arrays } from "./Arrays.sol";
 import { Token } from "./Token.sol";
@@ -49,6 +51,7 @@ contract IntegrationTest is BaseTest {
   mapping(address => uint256) oracleCounts;
 
   IBroker broker;
+  IBrokerAdmin brokerAdmin;
   BiPoolManager biPoolManager;
   Reserve reserve;
   IPricingModule constantProduct;
@@ -86,6 +89,7 @@ contract IntegrationTest is BaseTest {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
     vm.startPrank(deployer);
     broker = IBroker(factory.createContract("BrokerV2", abi.encode(true)));
+    brokerAdmin = IBrokerAdmin(address(broker));
 
     setUp_assets();
     setUp_reserve();
@@ -295,11 +299,11 @@ contract IntegrationTest is BaseTest {
     );
 
     uint256[] memory medianDeltaBreakerRateChangeThresholds = Arrays.uints(
-      0.15 * 10**24,
-      0.14 * 10**24,
-      0.13 * 10**24,
-      0.12 * 10**24,
-      0.11 * 10**24
+      0.15 * 10 ** 24,
+      0.14 * 10 ** 24,
+      0.13 * 10 ** 24,
+      0.12 * 10 ** 24,
+      0.11 * 10 ** 24
     );
     uint256[] memory medianDeltaBreakerCooldownTimes = Arrays.uints(
       5 minutes,
@@ -309,7 +313,7 @@ contract IntegrationTest is BaseTest {
       5 minutes
     );
 
-    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10**24; // 15%
+    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10 ** 24; // 15%
     uint256 medianDeltaBreakerDefaultCooldown = 0 seconds;
 
     medianDeltaBreaker = new MedianDeltaBreaker(
@@ -340,14 +344,14 @@ contract IntegrationTest is BaseTest {
       cUSD_cEUR_referenceRateFeedID
     );
     uint256[] memory valueDeltaBreakerRateChangeThresholds = Arrays.uints(
-      0.1 * 10**24,
-      0.15 * 10**24,
-      0.05 * 10**24,
-      0.05 * 10**24
+      0.1 * 10 ** 24,
+      0.15 * 10 ** 24,
+      0.05 * 10 ** 24,
+      0.05 * 10 ** 24
     );
     uint256[] memory valueDeltaBreakerCooldownTimes = Arrays.uints(1 seconds, 1 seconds, 1 seconds, 0 seconds);
 
-    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;
+    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10 ** 24;
     uint256 valueDeltaBreakerDefaultCooldown = 0 seconds;
 
     valueDeltaBreaker = new ValueDeltaBreaker(
@@ -360,7 +364,7 @@ contract IntegrationTest is BaseTest {
     );
 
     // set reference value
-    uint256[] memory valueDeltaBreakerReferenceValues = Arrays.uints(1e24, 656 * 10**24, 1e24, 1.1 * 10**24);
+    uint256[] memory valueDeltaBreakerReferenceValues = Arrays.uints(1e24, 656 * 10 ** 24, 1e24, 1.1 * 10 ** 24);
     valueDeltaBreaker.setReferenceValues(valueDeltaBreakerRateFeedIDs, valueDeltaBreakerReferenceValues);
 
     // add value delta breaker and enable for rate feeds
@@ -492,13 +496,13 @@ contract IntegrationTest is BaseTest {
 
   function setUp_tradingLimits() internal {
     /* ========== Config Trading Limits =============== */
-    IBroker.Config memory config = configL0L1LG(100, 10000, 1000, 100000, 1000000);
-    broker.configureTradingLimit(pair_cUSD_CELO_ID, address(cUSDToken), config);
-    broker.configureTradingLimit(pair_cEUR_CELO_ID, address(cEURToken), config);
-    broker.configureTradingLimit(pair_cUSD_bridgedUSDC_ID, address(usdcToken), config);
-    broker.configureTradingLimit(pair_cEUR_bridgedUSDC_ID, address(usdcToken), config);
-    broker.configureTradingLimit(pair_cUSD_cEUR_ID, address(cUSDToken), config);
-    broker.configureTradingLimit(pair_eXOF_bridgedEUROC_ID, address(eXOFToken), config);
+    ITradingLimits.Config memory config = configL0L1LG(100, 10000, 1000, 100000, 1000000);
+    brokerAdmin.configureTradingLimit(pair_cUSD_CELO_ID, address(cUSDToken), config);
+    brokerAdmin.configureTradingLimit(pair_cEUR_CELO_ID, address(cEURToken), config);
+    brokerAdmin.configureTradingLimit(pair_cUSD_bridgedUSDC_ID, address(usdcToken), config);
+    brokerAdmin.configureTradingLimit(pair_cEUR_bridgedUSDC_ID, address(usdcToken), config);
+    brokerAdmin.configureTradingLimit(pair_cUSD_cEUR_ID, address(cUSDToken), config);
+    brokerAdmin.configureTradingLimit(pair_eXOF_bridgedEUROC_ID, address(eXOFToken), config);
   }
 
   function configL0L1LG(
@@ -507,7 +511,7 @@ contract IntegrationTest is BaseTest {
     uint32 timestep1,
     int48 limit1,
     int48 limitGlobal
-  ) internal pure returns (IBroker.Config memory config) {
+  ) internal pure returns (TradingLimits.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0 = limit0;
     config.timestep1 = timestep1;

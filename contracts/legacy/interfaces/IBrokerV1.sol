@@ -2,7 +2,7 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
+import { ITradingLimits } from "contracts/libraries/ITradingLimits.sol";
 
 /*
  * @title Broker Interface for trader functions
@@ -35,7 +35,7 @@ interface IBroker {
    * @param token the token to target.
    * @param config the new trading limits config.
    */
-  event TradingLimitConfigured(bytes32 exchangeId, address token, TradingLimits.Config config);
+  event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimits.Config config);
 
   function initialize(address[] calldata _exchangeProviders, address _reserve) external;
 

@@ -28,7 +28,7 @@ import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
 import { SortedOracles } from "contracts/common/SortedOracles.sol";
 import { Reserve } from "contracts/swap/Reserve.sol";
 import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
-import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
+import { ITradingLimits } from "contracts/libraries/ITradingLimits.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 
@@ -44,8 +44,8 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
  */
 contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   using FixidityLib for FixidityLib.Fraction;
-  using TradingLimits for TradingLimits.State;
-  using TradingLimits for TradingLimits.Config;
+  // using TradingLimits for TradingLimits.State;
+  // using TradingLimits for TradingLimits.Config;
 
   using Utils for Utils.Context;
   using Utils for uint256;
