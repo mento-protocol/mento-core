@@ -242,7 +242,12 @@ contract BrokerV2 is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGu
    * @param amount The amount of `token` to be transferred.
    * @param _reserve The address of the corresponding reseve.
    */
-  function transferOut(address payable to, address token, uint256 amount, address _reserve) internal {
+  function transferOut(
+    address payable to,
+    address token,
+    uint256 amount,
+    address _reserve
+  ) internal {
     IReserve reserve = IReserve(_reserve);
     if (reserve.isStableAsset(token)) {
       IERC20(token).safeMint(to, amount);
@@ -262,7 +267,12 @@ contract BrokerV2 is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGu
    * @param amount The amount of `token` to be transferred.
    * @param _reserve The address of the corresponding reseve.
    */
-  function transferIn(address payable from, address token, uint256 amount, address _reserve) internal {
+  function transferIn(
+    address payable from,
+    address token,
+    uint256 amount,
+    address _reserve
+  ) internal {
     IReserve reserve = IReserve(_reserve);
     if (reserve.isStableAsset(token)) {
       IERC20(token).safeTransferFrom(from, address(this), amount);
@@ -306,7 +316,11 @@ contract BrokerV2 is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGu
    * @param deltaFlow the deltaflow of this token, negative for outflow, positive for inflow.
    * @param token the address of the token, used to lookup decimals.
    */
-  function guardTradingLimit(bytes32 tradingLimitId, int256 deltaFlow, address token) internal {
+  function guardTradingLimit(
+    bytes32 tradingLimitId,
+    int256 deltaFlow,
+    address token
+  ) internal {
     ITradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
       ITradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];

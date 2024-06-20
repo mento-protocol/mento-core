@@ -111,7 +111,12 @@ library Utils {
 
   // ========================= Swaps =========================
 
-  function swapIn(Context memory ctx, address from, address to, uint256 sellAmount) public returns (uint256) {
+  function swapIn(
+    Context memory ctx,
+    address from,
+    address to,
+    uint256 sellAmount
+  ) public returns (uint256) {
     ctx.t.mint(from, ctx.trader, sellAmount);
     changePrank(ctx.trader);
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
@@ -126,7 +131,12 @@ library Utils {
     return ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
   }
 
-  function swapOut(Context memory ctx, address from, address to, uint256 buyAmount) public returns (uint256) {
+  function swapOut(
+    Context memory ctx,
+    address from,
+    address to,
+    uint256 buyAmount
+  ) public returns (uint256) {
     addReportsIfNeeded(ctx);
     uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
 
@@ -142,7 +152,17 @@ library Utils {
     return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
   }
 
-  function shouldUpdateBuckets(Context memory ctx) internal view returns (bool, bool, bool, bool, bool) {
+  function shouldUpdateBuckets(Context memory ctx)
+    internal
+    view
+    returns (
+      bool,
+      bool,
+      bool,
+      bool,
+      bool
+    )
+  {
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
 
@@ -214,7 +234,11 @@ library Utils {
     }
   }
 
-  function maxSwapOut(Context memory ctx, uint256 desired, address to) internal view returns (uint256 maxPossible) {
+  function maxSwapOut(
+    Context memory ctx,
+    uint256 desired,
+    address to
+  ) internal view returns (uint256 maxPossible) {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
@@ -232,10 +256,11 @@ library Utils {
 
   // ========================= Sorted Oracles =========================
 
-  function getReferenceRateFraction(
-    Context memory ctx,
-    address baseAsset
-  ) internal view returns (FixidityLib.Fraction memory) {
+  function getReferenceRateFraction(Context memory ctx, address baseAsset)
+    internal
+    view
+    returns (FixidityLib.Fraction memory)
+  {
     (uint256 numerator, uint256 denominator) = getReferenceRate(ctx);
     address asset0 = ctx.exchange.assets[0];
     if (baseAsset == asset0) {
@@ -329,10 +354,11 @@ library Utils {
     return ctx.brokerWithCasts.tradingLimitsState(ctx.exchangeId ^ assetBytes32);
   }
 
-  function refreshedTradingLimitsState(
-    Context memory ctx,
-    address asset
-  ) public view returns (TradingLimits.State memory) {
+  function refreshedTradingLimitsState(Context memory ctx, address asset)
+    public
+    view
+    returns (TradingLimits.State memory)
+  {
     TradingLimits.Config memory config = tradingLimitsConfig(ctx, asset);
     // Netflow might be outdated because of a skip(...) call and doing
     // an update(0) would reset the netflow if enough time has passed.
@@ -434,17 +460,17 @@ library Utils {
   // ========================= Misc =========================
 
   function toSubunits(uint256 units, address token) internal view returns (uint256) {
-    uint256 tokenBase = 10 ** uint256(IERC20Metadata(token).decimals());
+    uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
     return units.mul(tokenBase);
   }
 
   function toUnits(uint256 subunits, address token) internal view returns (uint256) {
-    uint256 tokenBase = 10 ** uint256(IERC20Metadata(token).decimals());
+    uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
     return subunits.div(tokenBase);
   }
 
   function toUnitsFixed(uint256 subunits, address token) internal view returns (FixidityLib.Fraction memory) {
-    uint256 tokenBase = 10 ** uint256(IERC20Metadata(token).decimals());
+    uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
     return FixidityLib.newFixedFraction(subunits, tokenBase);
   }
 
@@ -473,7 +499,11 @@ library Utils {
     return a > b ? b : a;
   }
 
-  function min(int48 a, int48 b, int48 c) internal pure returns (int48) {
+  function min(
+    int48 a,
+    int48 b,
+    int48 c
+  ) internal pure returns (int48) {
     return min(a, min(b, c));
   }
 

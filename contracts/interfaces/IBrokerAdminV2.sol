@@ -37,7 +37,11 @@ interface IBrokerAdmin {
    */
   event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimits.Config config);
 
-  function configureTradingLimit(bytes32 exchangeId, address token, ITradingLimits.Config calldata config) external;
+  function configureTradingLimit(
+    bytes32 exchangeId,
+    address token,
+    ITradingLimits.Config calldata config
+  ) external;
 
   /**
    * @notice Remove an ExchangeProvider at a specified index.

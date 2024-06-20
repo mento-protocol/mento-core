@@ -39,7 +39,12 @@ contract TestAsserts is Test {
 
   // ========================= Swap Asserts ========================= //
 
-  function assert_swapIn(Utils.Context memory ctx, address from, address to, uint256 sellAmount) internal {
+  function assert_swapIn(
+    Utils.Context memory ctx,
+    address from,
+    address to,
+    uint256 sellAmount
+  ) internal {
     FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
     FixidityLib.Fraction memory amountIn = sellAmount.toUnitsFixed(from);
     FixidityLib.Fraction memory amountOut = ctx.swapIn(from, to, sellAmount).toUnitsFixed(to);
@@ -48,7 +53,12 @@ contract TestAsserts is Test {
     assertApproxEqAbs(amountOut.unwrap(), expectedAmountOut.unwrap(), pc10.multiply(expectedAmountOut).unwrap());
   }
 
-  function assert_swapOut(Utils.Context memory ctx, address from, address to, uint256 buyAmount) internal {
+  function assert_swapOut(
+    Utils.Context memory ctx,
+    address from,
+    address to,
+    uint256 buyAmount
+  ) internal {
     FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
     FixidityLib.Fraction memory amountOut = buyAmount.toUnitsFixed(to);
     FixidityLib.Fraction memory amountIn = ctx.swapOut(from, to, buyAmount).toUnitsFixed(from);
@@ -89,7 +99,12 @@ contract TestAsserts is Test {
 
   // ========================= Trading Limit Asserts ========================= //
 
-  function assert_swapOverLimitFails(Utils.Context memory ctx, address from, address to, uint8 limit) internal {
+  function assert_swapOverLimitFails(
+    Utils.Context memory ctx,
+    address from,
+    address to,
+    uint8 limit
+  ) internal {
     TradingLimits.Config memory fromLimitConfig = ctx.tradingLimitsConfig(from);
     TradingLimits.Config memory toLimitConfig = ctx.tradingLimitsConfig(to);
     console.log(
@@ -177,7 +192,11 @@ contract TestAsserts is Test {
     assert_swapOutFails(ctx, from, to, outflowRequiredUnits.toSubunits(to), limit.revertReason());
   }
 
-  function swapUntilL0_onInflow(Utils.Context memory ctx, address from, address to) internal {
+  function swapUntilL0_onInflow(
+    Utils.Context memory ctx,
+    address from,
+    address to
+  ) internal {
     /*
      * L0[from] -> to
      * This function will do valid swaps until just before L0 is hit
@@ -202,7 +221,11 @@ contract TestAsserts is Test {
     ctx.logNetflows(from);
   }
 
-  function swapUntilL1_onInflow(Utils.Context memory ctx, address from, address to) internal {
+  function swapUntilL1_onInflow(
+    Utils.Context memory ctx,
+    address from,
+    address to
+  ) internal {
     /*
      * L1[from] -> to
      * This function will do valid swaps until just before L1 is hit
@@ -225,7 +248,11 @@ contract TestAsserts is Test {
     ensureRateActive(ctx);
   }
 
-  function swapUntilLG_onInflow(Utils.Context memory ctx, address from, address to) internal {
+  function swapUntilLG_onInflow(
+    Utils.Context memory ctx,
+    address from,
+    address to
+  ) internal {
     /*
      * L1[from] -> to
      * This function will do valid swaps until just before LG is hit
@@ -257,7 +284,11 @@ contract TestAsserts is Test {
     }
   }
 
-  function swapUntilL0_onOutflow(Utils.Context memory ctx, address from, address to) public {
+  function swapUntilL0_onOutflow(
+    Utils.Context memory ctx,
+    address from,
+    address to
+  ) public {
     /*
      * from -> L0[to]
      * This function will do valid swaps until just before L0 is hit
@@ -282,7 +313,11 @@ contract TestAsserts is Test {
     ctx.logNetflows(to);
   }
 
-  function swapUntilL1_onOutflow(Utils.Context memory ctx, address from, address to) public {
+  function swapUntilL1_onOutflow(
+    Utils.Context memory ctx,
+    address from,
+    address to
+  ) public {
     /*
      * from -> L1[to]
      * This function will do valid swaps until just before L1 is hit
@@ -309,7 +344,11 @@ contract TestAsserts is Test {
     skip(limitConfig.timestep0 + 1);
   }
 
-  function swapUntilLG_onOutflow(Utils.Context memory ctx, address from, address to) public {
+  function swapUntilLG_onOutflow(
+    Utils.Context memory ctx,
+    address from,
+    address to
+  ) public {
     /*
      * from -> LG[to]
      * This function will do valid swaps until just before LG is hit
@@ -345,7 +384,11 @@ contract TestAsserts is Test {
 
   // ========================= Circuit Breaker Asserts ========================= //
 
-  function assert_breakerBreaks(Utils.Context memory ctx, address breaker, uint256 breakerIndex) public {
+  function assert_breakerBreaks(
+    Utils.Context memory ctx,
+    address breaker,
+    uint256 breakerIndex
+  ) public {
     // XXX: There is currently no straightforward way to determine what type of a breaker
     // we are dealing with, so we will use the deployment setup that we currently chose,
     // where the medianDeltaBreaker gets deployed first and the valueDeltaBreaker second.
@@ -426,7 +469,11 @@ contract TestAsserts is Test {
     assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
   }
 
-  function assert_breakerRecovers(Utils.Context memory ctx, address breaker, uint256 breakerIndex) public {
+  function assert_breakerRecovers(
+    Utils.Context memory ctx,
+    address breaker,
+    uint256 breakerIndex
+  ) public {
     // XXX: There is currently no straightforward way to determine what type of a breaker
     // we are dealing with, so we will use the deployment setup that we currently chose,
     // where the medianDeltaBreaker gets deployed first and the valueDeltaBreaker second.
@@ -557,10 +604,11 @@ contract TestAsserts is Test {
     }
   }
 
-  function newMedianToResetBreaker(
-    Utils.Context memory ctx,
-    uint256 breakerIndex
-  ) internal view returns (uint256 newMedian) {
+  function newMedianToResetBreaker(Utils.Context memory ctx, uint256 breakerIndex)
+    internal
+    view
+    returns (uint256 newMedian)
+  {
     address[] memory _breakers = ctx.breakerBox.getBreakers();
     bool isMedianDeltaBreaker = breakerIndex == 0;
     bool isValueDeltaBreaker = breakerIndex == 1;

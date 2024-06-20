@@ -298,7 +298,7 @@ contract TradingLimitsTest is Test {
   }
 
   function test_update_withOverflowOnAdd_reverts() public {
-    ITradingLimits.Config memory config = configLG(int48(2 ** 47 - 1));
+    ITradingLimits.Config memory config = configLG(int48(2**47 - 1));
     int256 maxFlow = int256(type(int48).max);
 
     state = TradingLimits.update(state, config, (maxFlow - 1000) * 1e18, 18);

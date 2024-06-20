@@ -93,10 +93,11 @@ library TradingLimits {
    * @param config the updated config to reset against.
    * @return the reset state.
    */
-  function reset(
-    ITradingLimits.State memory self,
-    ITradingLimits.Config memory config
-  ) internal pure returns (ITradingLimits.State memory) {
+  function reset(ITradingLimits.State memory self, ITradingLimits.Config memory config)
+    internal
+    pure
+    returns (ITradingLimits.State memory)
+  {
     // Ensure the next swap will reset the trading limits windows.
     self.lastUpdated0 = 0;
     self.lastUpdated1 = 0;
@@ -127,7 +128,7 @@ library TradingLimits {
     int256 _deltaFlow,
     uint8 decimals
   ) internal view returns (ITradingLimits.State memory) {
-    int256 _deltaFlowUnits = _deltaFlow / int256((10 ** uint256(decimals)));
+    int256 _deltaFlowUnits = _deltaFlow / int256((10**uint256(decimals)));
     require(_deltaFlowUnits <= MAX_INT48, "dFlow too large");
 
     int48 deltaFlowUnits = int48(_deltaFlowUnits);
