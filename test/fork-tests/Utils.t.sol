@@ -111,12 +111,7 @@ library Utils {
 
   // ========================= Swaps =========================
 
-  function swapIn(
-    Context memory ctx,
-    address from,
-    address to,
-    uint256 sellAmount
-  ) public returns (uint256) {
+  function swapIn(Context memory ctx, address from, address to, uint256 sellAmount) public returns (uint256) {
     ctx.t.mint(from, ctx.trader, sellAmount);
     changePrank(ctx.trader);
     IERC20Metadata(from).approve(address(ctx.broker), sellAmount);
@@ -131,12 +126,7 @@ library Utils {
     return ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
   }
 
-  function swapOut(
-    Context memory ctx,
-    address from,
-    address to,
-    uint256 buyAmount
-  ) public returns (uint256) {
+  function swapOut(Context memory ctx, address from, address to, uint256 buyAmount) public returns (uint256) {
     addReportsIfNeeded(ctx);
     uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
 
@@ -152,17 +142,7 @@ library Utils {
     return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
   }
 
-  function shouldUpdateBuckets(Context memory ctx)
-    internal
-    view
-    returns (
-      bool,
-      bool,
-      bool,
-      bool,
-      bool
-    )
-  {
+  function shouldUpdateBuckets(Context memory ctx) internal view returns (bool, bool, bool, bool, bool) {
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
 
@@ -234,11 +214,7 @@ library Utils {
     }
   }
 
-  function maxSwapOut(
-    Context memory ctx,
-    uint256 desired,
-    address to
-  ) internal view returns (uint256 maxPossible) {
+  function maxSwapOut(Context memory ctx, uint256 desired, address to) internal view returns (uint256 maxPossible) {
     // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
     BiPoolManager biPoolManager = BiPoolManager(ctx.exchangeProvider);
     BiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
@@ -256,11 +232,10 @@ library Utils {
 
   // ========================= Sorted Oracles =========================
 
-  function getReferenceRateFraction(Context memory ctx, address baseAsset)
-    internal
-    view
-    returns (FixidityLib.Fraction memory)
-  {
+  function getReferenceRateFraction(
+    Context memory ctx,
+    address baseAsset
+  ) internal view returns (FixidityLib.Fraction memory) {
     (uint256 numerator, uint256 denominator) = getReferenceRate(ctx);
     address asset0 = ctx.exchange.assets[0];
     if (baseAsset == asset0) {
@@ -332,44 +307,58 @@ library Utils {
   // ========================= Trading Limits =========================
 
   function isLimitConfigured(Context memory ctx, bytes32 limitId) public view returns (bool) {
-    TradingLimits.Config memory limitConfig = ctx.brokerWithCasts.tradingLimitsConfig(limitId);
+    ITradingLimits.Config memory limitConfig = ctx.brokerWithCasts.tradingLimitsConfig(limitId);
     return limitConfig.flags > uint8(0);
   }
 
-  function tradingLimitsConfig(Context memory ctx, bytes32 limitId) public view returns (TradingLimits.Config memory) {
+  function tradingLimitsConfig(Context memory ctx, bytes32 limitId) public view returns (ITradingLimits.Config memory) {
     return ctx.brokerWithCasts.tradingLimitsConfig(limitId);
   }
 
-  function tradingLimitsState(Context memory ctx, bytes32 limitId) public view returns (TradingLimits.State memory) {
+  function tradingLimitsState(Context memory ctx, bytes32 limitId) public view returns (ITradingLimits.State memory) {
     return ctx.brokerWithCasts.tradingLimitsState(limitId);
   }
 
-  function tradingLimitsConfig(Context memory ctx, address asset) public view returns (TradingLimits.Config memory) {
+  function tradingLimitsConfig(Context memory ctx, address asset) public view returns (ITradingLimits.Config memory) {
     bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
     return ctx.brokerWithCasts.tradingLimitsConfig(ctx.exchangeId ^ assetBytes32);
   }
 
-  function tradingLimitsState(Context memory ctx, address asset) public view returns (TradingLimits.State memory) {
+  function tradingLimitsState(Context memory ctx, address asset) public view returns (ITradingLimits.State memory) {
     bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
     return ctx.brokerWithCasts.tradingLimitsState(ctx.exchangeId ^ assetBytes32);
   }
 
-  function refreshedTradingLimitsState(Context memory ctx, address asset)
-    public
-    view
-    returns (TradingLimits.State memory)
-  {
-    TradingLimits.Config memory config = tradingLimitsConfig(ctx, asset);
+  function refreshedTradingLimitsState(
+    Context memory ctx,
+    address asset
+  ) public view returns (ITradingLimits.State memory) {
+    ITradingLimits.Config memory config = tradingLimitsConfig(ctx, asset);
+    ITradingLimits.State memory state = tradingLimitsState(ctx, asset);
+
     // Netflow might be outdated because of a skip(...) call and doing
     // an update(0) would reset the netflow if enough time has passed.
-    return tradingLimitsState(ctx, asset).update(config, 0, 0);
+    if (config.flags & L0 > 0) {
+      if (block.timestamp > state.lastUpdated0 + config.timestep0) {
+        state.netflow0 = 0;
+        state.lastUpdated0 = uint32(block.timestamp);
+      }
+
+      if (config.flags & L1 > 0) {
+        if (block.timestamp > state.lastUpdated1 + config.timestep1) {
+          state.netflow1 = 0;
+          state.lastUpdated1 = uint32(block.timestamp);
+        }
+      }
+    }
+    return state;
   }
 
-  function isLimitEnabled(TradingLimits.Config memory config, uint8 limit) internal pure returns (bool) {
+  function isLimitEnabled(ITradingLimits.Config memory config, uint8 limit) internal pure returns (bool) {
     return (config.flags & limit) > 0;
   }
 
-  function getLimit(TradingLimits.Config memory config, uint8 limit) internal pure returns (int48) {
+  function getLimit(ITradingLimits.Config memory config, uint8 limit) internal pure returns (int48) {
     if (limit == L0) {
       return config.limit0;
     } else if (limit == L1) {
@@ -381,7 +370,7 @@ library Utils {
     }
   }
 
-  function getNetflow(TradingLimits.State memory state, uint8 limit) internal pure returns (int48) {
+  function getNetflow(ITradingLimits.State memory state, uint8 limit) internal pure returns (int48) {
     if (limit == L0) {
       return state.netflow0;
     } else if (limit == L1) {
@@ -418,8 +407,8 @@ library Utils {
   }
 
   function maxPossibleInflow(Context memory ctx, address from) internal view returns (int48) {
-    TradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, from);
-    TradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, from);
+    ITradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, from);
+    ITradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, from);
     int48 maxInflowL0 = limitConfig.limit0 - limitState.netflow0;
     int48 maxInflowL1 = limitConfig.limit1 - limitState.netflow1;
     int48 maxInflowLG = limitConfig.limitGlobal - limitState.netflowGlobal;
@@ -438,8 +427,8 @@ library Utils {
   }
 
   function maxPossibleOutflow(Context memory ctx, address to) internal view returns (int48) {
-    TradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, to);
-    TradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, to);
+    ITradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, to);
+    ITradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, to);
     int48 maxOutflowL0 = limitConfig.limit0 + limitState.netflow0 - 1;
     int48 maxOutflowL1 = limitConfig.limit1 + limitState.netflow1 - 1;
     int48 maxOutflowLG = limitConfig.limitGlobal + limitState.netflowGlobal - 1;
@@ -460,17 +449,17 @@ library Utils {
   // ========================= Misc =========================
 
   function toSubunits(uint256 units, address token) internal view returns (uint256) {
-    uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
+    uint256 tokenBase = 10 ** uint256(IERC20Metadata(token).decimals());
     return units.mul(tokenBase);
   }
 
   function toUnits(uint256 subunits, address token) internal view returns (uint256) {
-    uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
+    uint256 tokenBase = 10 ** uint256(IERC20Metadata(token).decimals());
     return subunits.div(tokenBase);
   }
 
   function toUnitsFixed(uint256 subunits, address token) internal view returns (FixidityLib.Fraction memory) {
-    uint256 tokenBase = 10**uint256(IERC20Metadata(token).decimals());
+    uint256 tokenBase = 10 ** uint256(IERC20Metadata(token).decimals());
     return FixidityLib.newFixedFraction(subunits, tokenBase);
   }
 
@@ -499,11 +488,7 @@ library Utils {
     return a > b ? b : a;
   }
 
-  function min(
-    int48 a,
-    int48 b,
-    int48 c
-  ) internal pure returns (int48) {
+  function min(int48 a, int48 b, int48 c) internal pure returns (int48) {
     return min(a, min(b, c));
   }
 
@@ -536,7 +521,7 @@ library Utils {
   }
 
   function logNetflows(Context memory ctx, address target) internal view {
-    TradingLimits.State memory limitState = tradingLimitsState(ctx, target);
+    ITradingLimits.State memory limitState = tradingLimitsState(ctx, target);
     console.log(
       "\t netflow0: %s%d",
       limitState.netflow0 < 0 ? "-" : "",
