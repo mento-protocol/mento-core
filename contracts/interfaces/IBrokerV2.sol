@@ -69,6 +69,7 @@ interface IBroker {
    */
   event TradingLimitConfigured(bytes32 exchangeId, address token, Config config);
 
+
   function isExchangeProvider(address exchangeProvider) external view returns (bool);
 
   function exchangeReserve(address exchangeProvider) external view returns (address);

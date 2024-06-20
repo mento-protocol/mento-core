@@ -23,7 +23,7 @@ import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { Proxy } from "contracts/common/Proxy.sol";
 
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
-import { Broker } from "contracts/swap/Broker.sol";
+import { IBroker } from "contracts/legacy/interfaces/IBrokerV1.sol";
 import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
 import { SortedOracles } from "contracts/common/SortedOracles.sol";
 import { Reserve } from "contracts/swap/Reserve.sol";
@@ -59,7 +59,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
   IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
 
   address governance;
-  Broker public broker;
+  IBroker public broker;
   BreakerBox public breakerBox;
   SortedOracles public sortedOracles;
   Reserve public reserve;
@@ -85,7 +85,7 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     // but it needs to be reinitalized after forking
     ph = new PrecompileHandler();
 
-    broker = Broker(registry.getAddressForStringOrDie("Broker"));
+    broker = IBroker(registry.getAddressForStringOrDie("Broker"));
     sortedOracles = SortedOracles(registry.getAddressForStringOrDie("SortedOracles"));
     governance = registry.getAddressForStringOrDie("Governance");
     breakerBox = BreakerBox(address(sortedOracles.breakerBox()));
