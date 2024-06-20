@@ -12,7 +12,7 @@ import { IReserve } from "../interfaces/IReserve.sol";
 import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
 import { IERC20MintableBurnable as IERC20 } from "../common/interfaces/IERC20MintableBurnable.sol";
 
-import { Initializable } from "../common/InitializableV2.sol";
+import { Initializable } from "../common/Initializable.sol";
 import { TradingLimits } from "../libraries/TradingLimits.sol";
 import { ITradingLimits } from "../libraries/ITradingLimits.sol";
 import { ReentrancyGuard } from "../common/ReentrancyGuardV2.sol";
