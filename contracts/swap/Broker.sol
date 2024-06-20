@@ -7,7 +7,7 @@ import { SafeERC20 } from "../common/SafeERC20.sol";
 
 import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
 import { IBroker } from "../interfaces/IBrokerV2.sol";
-import { IBrokerAdmin } from "../interfaces/IBrokerAdminV2.sol";
+import { IBrokerAdmin } from "../interfaces/IBrokerAdmin.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
 import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
 import { IERC20MintableBurnable as IERC20 } from "../common/interfaces/IERC20MintableBurnable.sol";
@@ -21,7 +21,7 @@ import { ReentrancyGuard } from "../common/ReentrancyGuardV2.sol";
  * @title Broker
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
-contract BrokerV2 is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuard {
+contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   /* ==================== State Variables ==================== */

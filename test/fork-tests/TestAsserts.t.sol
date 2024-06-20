@@ -22,8 +22,6 @@ import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.
 
 contract TestAsserts is Test {
   using Utils for Utils.Context;
-  // using Utils for TradingLimits.Config;
-  // using Utils for TradingLimits.State;
   using Utils for uint8;
   using Utils for uint256;
   using SafeMath for uint256;

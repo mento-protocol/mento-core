@@ -18,7 +18,7 @@ import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 
 import { ITradingLimits } from "contracts/libraries/ITradingLimits.sol";
-import { BrokerV2 as Broker } from "contracts/swap/Broker.sol";
+import { Broker } from "contracts/swap/Broker.sol";
 
 // forge test --match-contract Broker -vvv
 contract BrokerTest is Test {
