@@ -35,6 +35,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   mapping(bytes32 => ExchangeExpansionConfig) public exchangeExpansionConfigs;
 
   // Address of the GoodDollar DAO contract.
+  // solhint-disable-next-line var-name-mixedcase
   address public AVATAR;
 
   /* ==================== Constructor ==================== */
@@ -169,7 +170,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
     uint256 amountToMint = goodDollarExchangeProvider.mintFromInterest(exchangeId, reserveInterest);
 
-    require(IERC20(exchange.reserveAsset).transferFrom(msg.sender, reserve, reserveInterest));
+    require(IERC20(exchange.reserveAsset).transferFrom(msg.sender, reserve, reserveInterest), "Transfer failed");
     IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountToMint);
     emit UBIMinted(exchangeId, amountToMint);
   }

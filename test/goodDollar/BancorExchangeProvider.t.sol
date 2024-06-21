@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase, state-visibility, max-states-count, var-name-mixedcase
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, max-line-length
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
 import { Test, console } from "forge-std-next/Test.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
@@ -301,7 +302,7 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
   }
 
   function test_createExchange_whenExchangeAlreadyExists_shouldRevert() public {
-    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
+    bancorExchangeProvider.createExchange(poolExchange1);
     vm.expectRevert("Exchange already exists");
     bancorExchangeProvider.createExchange(poolExchange1);
   }

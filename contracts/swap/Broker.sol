@@ -6,7 +6,7 @@ import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.so
 import { SafeERC20 } from "../common/SafeERC20.sol";
 
 import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
-import { IBroker } from "../interfaces/IBrokerV2.sol";
+import { IBroker } from "../interfaces/IBroker.sol";
 import { IBrokerAdmin } from "../interfaces/IBrokerAdmin.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
 import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
@@ -62,7 +62,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
       require(isExchangeProvider[_exchangeProviders[i]], "ExchangeProvider does not exist");
       require(_reserves[i] != address(0), "Reserve address can't be 0");
       exchangeReserve[_exchangeProviders[i]] = _reserves[i];
-      // TODO: add emit
+      emit ReserveSet(_exchangeProviders[i], _reserves[i]);
     }
   }
 
@@ -81,6 +81,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     isExchangeProvider[exchangeProvider] = true;
     exchangeReserve[exchangeProvider] = reserve;
     emit ExchangeProviderAdded(exchangeProvider);
+    emit ReserveSet(exchangeProvider, reserve);
     index = exchangeProviders.length - 1;
   }
 

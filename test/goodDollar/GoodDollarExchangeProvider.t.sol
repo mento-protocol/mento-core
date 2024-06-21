@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase, state-visibility, max-states-count, var-name-mixedcase
-
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 import { Test, console } from "forge-std-next/Test.sol";
 
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";

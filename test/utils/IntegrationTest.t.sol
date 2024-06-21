@@ -21,7 +21,7 @@ import { AddressSortedLinkedListWithMedian } from "contracts/common/linkedlists/
 import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
 
 import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
-import { IBroker } from "contracts/interfaces/IBrokerV2.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { IBrokerAdmin } from "contracts/interfaces/IBrokerAdmin.sol";
 import { ConstantProductPricingModule } from "contracts/swap/ConstantProductPricingModule.sol";
 import { ConstantSumPricingModule } from "contracts/swap/ConstantSumPricingModule.sol";

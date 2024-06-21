@@ -35,7 +35,7 @@ contract BrokerTest is Test {
   );
   event ExchangeProviderAdded(address indexed exchangeProvider);
   event ExchangeProviderRemoved(address indexed exchangeProvider);
-  event ReserveSet(address indexed newAddress, address indexed prevAddress);
+  event ReserveSet(address indexed exchangeProvider, address indexed reserve);
   event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimits.Config config);
 
   address deployer = makeAddr("deployer");
@@ -132,8 +132,10 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
   function test_addExchangeProvider_whenSenderIsOwner_shouldUpdateAndEmit() public {
     changePrank(deployer);
     address newExchangeProvider = makeAddr("newExchangeProvider");
-    vm.expectEmit(true, false, false, false);
+    vm.expectEmit(true, true, true, true);
     emit ExchangeProviderAdded(newExchangeProvider);
+    vm.expectEmit(true, true, true, true);
+    emit ReserveSet(newExchangeProvider, address(reserve));
     broker.addExchangeProvider(newExchangeProvider, address(reserve));
     address[] memory updatedExchangeProviders = broker.getExchangeProviders();
     assertEq(updatedExchangeProviders[updatedExchangeProviders.length - 1], newExchangeProvider);
@@ -152,6 +154,8 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
     emit ExchangeProviderRemoved(exchangeProvider1);
     broker.removeExchangeProvider(exchangeProvider1, 0);
     assert(broker.getExchangeProviders()[0] != exchangeProvider1);
+    assert(!broker.isExchangeProvider(exchangeProvider1));
+    assertEq(broker.exchangeReserve(exchangeProvider1), address(0));
   }
 
   function test_removeExchangeProvider_whenAddressDoesNotExist_shouldRevert() public {
@@ -199,16 +203,21 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
   }
 
   function test_setReserves_whenSenderIsOwner_shouldUpdateAndEmit() public {
-    address[] memory exchangeProviders = new address[](1);
+    address[] memory exchangeProviders = new address[](2);
     exchangeProviders[0] = exchangeProvider1;
-    address[] memory reserves = new address[](1);
-    reserves[0] = makeAddr("newReserve");
-    changePrank(deployer);
-    //vm.expectEmit(true, false, false, false);
-    //emit ReserveSet(newReserve, address(reserve));
+    exchangeProviders[1] = exchangeProvider2;
 
+    address[] memory reserves = new address[](2);
+    reserves[0] = makeAddr("newReserve");
+    reserves[1] = makeAddr("newReserve2");
+    changePrank(deployer);
+    vm.expectEmit(true, true, true, true);
+    emit ReserveSet(exchangeProvider1, reserves[0]);
+    vm.expectEmit(true, true, true, true);
+    emit ReserveSet(exchangeProvider2, reserves[1]);
     broker.setReserves(exchangeProviders, reserves);
     assertEq(address(broker.exchangeReserve(address(exchangeProvider1))), reserves[0]);
+    assertEq(address(broker.exchangeReserve(address(exchangeProvider2))), reserves[1]);
   }
 }
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase, state-visibility, max-states-count, var-name-mixedcase
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
 import { Test, console } from "forge-std-next/Test.sol";
 import { ERC20Mock } from "openzeppelin-contracts-next/contracts/mocks/ERC20Mock.sol";
@@ -386,7 +387,8 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
   }
 
   function test_mintUBIFromExpansion_whenShouldNotExpand_shouldNotExpand() public {
-    // doing one initial expansion to not be first expansion since on first expansion the expansion is always applied once.
+    // doing one initial expansion to not be first expansion
+    // since on first expansion the expansion is always applied once.
     expansionController.mintUBIFromExpansion(exchangeId);
 
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
@@ -472,7 +474,8 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
   }
 
   function test_mintUBIFromExpansion_when1DayPassed_shouldCalculateCorrectRateAndExpand() public {
-    // doing one initial expansion to not be first expansion since on first expansion the expansion is always applied once.
+    // doing one initial expansion to not be first expansion
+    // since on first expansion the expansion is always applied once.
     expansionController.mintUBIFromExpansion(exchangeId);
 
     // 1 day has passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
@@ -510,7 +513,8 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
   }
 
   function test_mintUBIFromExpansion_whenMultipleDaysPassed_shouldCalculateCorrectRateAndExpand() public {
-    // doing one initial expansion to not be first expansion since on first expansion the expansion is always applied once.
+    // doing one initial expansion to not be first expansion
+    // since on first expansion the expansion is always applied once.
     expansionController.mintUBIFromExpansion(exchangeId);
 
     // 3 days have passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider

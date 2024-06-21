@@ -23,11 +23,11 @@ interface IBrokerAdmin {
   event ExchangeProviderRemoved(address indexed exchangeProvider);
 
   /**
-   * @notice Emitted when the reserve is updated.
-   * @param newAddress The new address.
-   * @param prevAddress The previous address.
+   * @notice Emitted when the reserve is updated for an ExchangeProvider.
+   * @param exchangeProvider The address of the ExchangeProvider.
+   * @param reserve The address of the reserve.
    */
-  event ReserveSet(address indexed newAddress, address indexed prevAddress);
+  event ReserveSet(address indexed exchangeProvider, address indexed reserve);
 
   /**
    * @notice Emitted when a new trading limit is configured.
@@ -56,4 +56,11 @@ interface IBrokerAdmin {
    * @return index The index where the ExchangeProvider was inserted.
    */
   function addExchangeProvider(address exchangeProvider, address reserve) external returns (uint256 index);
+
+  /**
+   * @notice Sets the reserve addresses for the exchange providers.
+   * @param _exchangeProviders The addresses of the exchange providers.
+   * @param _reserves The addresses of the reserves.
+   */
+  function setReserves(address[] calldata _exchangeProviders, address[] calldata _reserves) external;
 }

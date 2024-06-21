@@ -21,6 +21,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   IGoodDollarExpansionController public expansionController;
 
   // Address of the GoodDollar DAO contract.
+  // solhint-disable-next-line var-name-mixedcase
   address public AVATAR;
 
   /* ==================== Constructor ==================== */

@@ -15,6 +15,7 @@ interface IGoodDollarExchangeProvider {
    * @notice Emitted when the AVATAR address is updated.
    * @param AVATAR The address of the AVATAR contract.
    */
+  // solhint-disable-next-line var-name-mixedcase
   event AvatarUpdated(address indexed AVATAR);
 
   /**

@@ -10,7 +10,7 @@ import { IGoodDollarExpansionController } from "contracts/goodDollar/interfaces/
 import { IBancorExchangeProvider } from "contracts/goodDollar/interfaces/IBancorExchangeProvider.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodDollar.sol";
-import { IBroker } from "contracts/interfaces/IBrokerV2.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IDistributionHelper.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
 import { SafeERC20 } from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";

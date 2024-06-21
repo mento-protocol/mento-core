@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
+// solhint-disable function-max-lines, max-line-length, code-complexity, reason-string
 pragma solidity 0.8.18;
 
 /**

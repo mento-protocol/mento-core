@@ -27,16 +27,26 @@ interface IBroker {
     uint256 amountOut
   );
 
-  function isExchangeProvider(address exchangeProvider) external view returns (bool);
-
-  function exchangeReserve(address exchangeProvider) external view returns (address);
-
   /**
    * @notice Initialize the broker with the exchange providers and reserves.
    * @param _exchangeProviders The addresses of the exchange providers.
    * @param _reserves The addresses of the reserves.
    */
   function initialize(address[] calldata _exchangeProviders, address[] calldata _reserves) external;
+
+  /**
+   * @notice returns whether an exchange provider is registered.
+   * @param exchangeProvider the address of the exchange provider.
+   * @return isExchangeProvider true if the exchange provider is registered.
+   */
+  function isExchangeProvider(address exchangeProvider) external view returns (bool);
+
+  /**
+   * @notice returns the reserve address for an exchange provider.
+   * @param exchangeProvider the address of the exchange provider.
+   * @return reserve the address of the reserve.
+   */
+  function exchangeReserve(address exchangeProvider) external view returns (address);
 
   /**
    * @notice Execute a token swap with fixed amountIn.

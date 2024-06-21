@@ -7,7 +7,6 @@ pragma experimental ABIEncoderV2;
 import { Test, console } from "forge-std-next/Test.sol";
 import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
 import { ITradingLimits } from "contracts/libraries/ITradingLimits.sol";
-import { IBroker } from "contracts/interfaces/IBrokerV2.sol";
 
 // forge test --match-contract TradingLimits -vvv
 contract TradingLimitsTest is Test {
