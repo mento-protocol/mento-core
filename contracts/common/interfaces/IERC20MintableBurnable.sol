@@ -1,23 +1,10 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.5.13 <0.8.19;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.0;
 
-interface IERC20Metadata {
-  /**
-   * @dev Returns the name of the token.
-   */
-  function name() external view returns (string memory);
-
-  /**
-   * @dev Returns the symbol of the token.
-   */
-  function symbol() external view returns (string memory);
-
-  /**
-   * @dev Returns the decimals places of the token.
-   */
-  function decimals() external view returns (uint8);
-
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP. Does not include
+ * the optional functions; to access them see {ERC20Detailed}.
+ */
+interface IERC20MintableBurnable {
   /**
    * @dev Returns the amount of tokens in existence.
    */
@@ -36,6 +23,10 @@ interface IERC20Metadata {
    * Emits a {Transfer} event.
    */
   function transfer(address recipient, uint256 amount) external returns (bool);
+
+  function mint(address account, uint256 amount) external;
+
+  function burn(uint256 amount) external;
 
   /**
    * @dev Returns the remaining number of tokens that `spender` will be

@@ -1,44 +1,41 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity 0.8.18;
 pragma experimental ABIEncoderV2;
 
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import { SafeERC20 } from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
+import { SafeERC20 } from "../common/SafeERC20.sol";
 
 import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
 import { IBroker } from "../interfaces/IBroker.sol";
 import { IBrokerAdmin } from "../interfaces/IBrokerAdmin.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
 import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
-import { IStableTokenV2 } from "../interfaces/IStableTokenV2.sol";
+import { IERC20MintableBurnable as IERC20 } from "../common/interfaces/IERC20MintableBurnable.sol";
 
 import { Initializable } from "../common/Initializable.sol";
 import { TradingLimits } from "../libraries/TradingLimits.sol";
-import { ReentrancyGuard } from "../common/ReentrancyGuard.sol";
+import { ITradingLimits } from "../libraries/ITradingLimits.sol";
+import { ReentrancyGuard } from "../common/ReentrancyGuardV2.sol";
 
 /**
  * @title Broker
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
 contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuard {
-  using TradingLimits for TradingLimits.State;
-  using TradingLimits for TradingLimits.Config;
   using SafeERC20 for IERC20;
-  using SafeMath for uint256;
 
   /* ==================== State Variables ==================== */
 
   address[] public exchangeProviders;
   mapping(address => bool) public isExchangeProvider;
-  mapping(bytes32 => TradingLimits.State) public tradingLimitsState;
-  mapping(bytes32 => TradingLimits.Config) public tradingLimitsConfig;
+  mapping(bytes32 => ITradingLimits.State) public tradingLimitsState;
+  mapping(bytes32 => ITradingLimits.Config) public tradingLimitsConfig;
 
-  // Address of the reserve.
-  IReserve public reserve;
+  uint256 public __deprecated0; // prev: IReserve public reserve;
 
-  uint256 private constant MAX_INT256 = uint256(-1) / 2;
+  uint256 private constant MAX_INT256 = uint256(type(int256).max);
+
+  mapping(address => address) public exchangeReserve;
 
   /* ==================== Constructor ==================== */
 
@@ -46,19 +43,27 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @notice Sets initialized == true on implementation contracts.
    * @param test Set to true to skip implementation initialization.
    */
-  constructor(bool test) public Initializable(test) {}
+  constructor(bool test) Initializable(test) {}
 
   /**
    * @notice Allows the contract to be upgradable via the proxy.
    * @param _exchangeProviders The addresses of the ExchangeProvider contracts.
-   * @param _reserve The address of the Reserve contract.
+   * @param _reserves The addresses of the Reserve contracts.
    */
-  function initialize(address[] calldata _exchangeProviders, address _reserve) external initializer {
+  function initialize(address[] calldata _exchangeProviders, address[] calldata _reserves) external initializer {
     _transferOwnership(msg.sender);
     for (uint256 i = 0; i < _exchangeProviders.length; i++) {
-      addExchangeProvider(_exchangeProviders[i]);
+      addExchangeProvider(_exchangeProviders[i], _reserves[i]);
     }
-    setReserve(_reserve);
+  }
+
+  function setReserves(address[] calldata _exchangeProviders, address[] calldata _reserves) external onlyOwner {
+    for (uint256 i = 0; i < _exchangeProviders.length; i++) {
+      require(isExchangeProvider[_exchangeProviders[i]], "ExchangeProvider does not exist");
+      require(_reserves[i] != address(0), "Reserve address can't be 0");
+      exchangeReserve[_exchangeProviders[i]] = _reserves[i];
+      emit ReserveSet(_exchangeProviders[i], _reserves[i]);
+    }
   }
 
   /* ==================== Mutative Functions ==================== */
@@ -68,13 +73,16 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param exchangeProvider The address of the exchange provider to add.
    * @return index The index of the newly added specified exchange provider.
    */
-  function addExchangeProvider(address exchangeProvider) public onlyOwner returns (uint256 index) {
+  function addExchangeProvider(address exchangeProvider, address reserve) public onlyOwner returns (uint256 index) {
     require(!isExchangeProvider[exchangeProvider], "ExchangeProvider already exists in the list");
     require(exchangeProvider != address(0), "ExchangeProvider address can't be 0");
+    require(reserve != address(0), "Reserve address can't be 0");
     exchangeProviders.push(exchangeProvider);
     isExchangeProvider[exchangeProvider] = true;
+    exchangeReserve[exchangeProvider] = reserve;
     emit ExchangeProviderAdded(exchangeProvider);
-    index = exchangeProviders.length.sub(1);
+    emit ReserveSet(exchangeProvider, reserve);
+    index = exchangeProviders.length - 1;
   }
 
   /**
@@ -84,20 +92,11 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    */
   function removeExchangeProvider(address exchangeProvider, uint256 index) public onlyOwner {
     require(exchangeProviders[index] == exchangeProvider, "index doesn't match provider");
-    exchangeProviders[index] = exchangeProviders[exchangeProviders.length.sub(1)];
+    exchangeProviders[index] = exchangeProviders[exchangeProviders.length - 1];
     exchangeProviders.pop();
     delete isExchangeProvider[exchangeProvider];
+    delete exchangeReserve[exchangeProvider];
     emit ExchangeProviderRemoved(exchangeProvider);
-  }
-
-  /**
-   * @notice Set the Mento reserve address.
-   * @param _reserve The Mento reserve address.
-   */
-  function setReserve(address _reserve) public onlyOwner {
-    require(_reserve != address(0), "Reserve address must be set");
-    emit ReserveSet(_reserve, address(reserve));
-    reserve = IReserve(_reserve);
   }
 
   /**
@@ -163,8 +162,9 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     amountOut = IExchangeProvider(exchangeProvider).swapIn(exchangeId, tokenIn, tokenOut, amountIn);
     require(amountOut >= amountOutMin, "amountOutMin not met");
     guardTradingLimits(exchangeId, tokenIn, amountIn, tokenOut, amountOut);
-    transferIn(msg.sender, tokenIn, amountIn);
-    transferOut(msg.sender, tokenOut, amountOut);
+    address reserve = exchangeReserve[exchangeProvider];
+    transferIn(payable(msg.sender), tokenIn, amountIn, reserve);
+    transferOut(payable(msg.sender), tokenOut, amountOut, reserve);
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
   }
 
@@ -191,8 +191,9 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     amountIn = IExchangeProvider(exchangeProvider).swapOut(exchangeId, tokenIn, tokenOut, amountOut);
     require(amountIn <= amountInMax, "amountInMax exceeded");
     guardTradingLimits(exchangeId, tokenIn, amountIn, tokenOut, amountOut);
-    transferIn(msg.sender, tokenIn, amountIn);
-    transferOut(msg.sender, tokenOut, amountOut);
+    address reserve = exchangeReserve[exchangeProvider];
+    transferIn(payable(msg.sender), tokenIn, amountIn, reserve);
+    transferOut(payable(msg.sender), tokenOut, amountOut, reserve);
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
   }
 
@@ -203,9 +204,8 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @return True if transaction succeeds.
    */
   function burnStableTokens(address token, uint256 amount) public returns (bool) {
-    require(reserve.isStableAsset(token), "Token must be a reserve stable asset");
     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-    require(IStableTokenV2(token).burn(amount), "Burning of the stable asset failed");
+    IERC20(token).safeBurn(amount);
     return true;
   }
 
@@ -222,13 +222,13 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
   function configureTradingLimit(
     bytes32 exchangeId,
     address token,
-    TradingLimits.Config memory config
+    ITradingLimits.Config memory config
   ) public onlyOwner {
-    config.validate();
+    TradingLimits.validate(config);
 
     bytes32 limitId = exchangeId ^ bytes32(uint256(uint160(token)));
     tradingLimitsConfig[limitId] = config;
-    tradingLimitsState[limitId] = tradingLimitsState[limitId].reset(config);
+    tradingLimitsState[limitId] = TradingLimits.reset(tradingLimitsState[limitId], config);
     emit TradingLimitConfigured(exchangeId, token, config);
   }
 
@@ -241,14 +241,17 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param to The address receiving the asset.
    * @param token The asset to transfer.
    * @param amount The amount of `token` to be transferred.
+   * @param _reserve The address of the corresponding reseve.
    */
   function transferOut(
     address payable to,
     address token,
-    uint256 amount
+    uint256 amount,
+    address _reserve
   ) internal {
+    IReserve reserve = IReserve(_reserve);
     if (reserve.isStableAsset(token)) {
-      require(IStableTokenV2(token).mint(to, amount), "Minting of the stable asset failed");
+      IERC20(token).safeMint(to, amount);
     } else if (reserve.isCollateralAsset(token)) {
       require(reserve.transferExchangeCollateralAsset(token, to, amount), "Transfer of the collateral asset failed");
     } else {
@@ -263,15 +266,18 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param from The address to transfer the asset from.
    * @param token The asset to transfer.
    * @param amount The amount of `token` to be transferred.
+   * @param _reserve The address of the corresponding reseve.
    */
   function transferIn(
     address payable from,
     address token,
-    uint256 amount
+    uint256 amount,
+    address _reserve
   ) internal {
+    IReserve reserve = IReserve(_reserve);
     if (reserve.isStableAsset(token)) {
       IERC20(token).safeTransferFrom(from, address(this), amount);
-      require(IStableTokenV2(token).burn(amount), "Burning of the stable asset failed");
+      IERC20(token).safeBurn(amount);
     } else if (reserve.isCollateralAsset(token)) {
       IERC20(token).safeTransferFrom(from, address(reserve), amount);
     } else {
@@ -316,11 +322,16 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     int256 deltaFlow,
     address token
   ) internal {
-    TradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
+    ITradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
-      TradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
-      tradingLimitState = tradingLimitState.update(tradingLimitConfig, deltaFlow, IERC20Metadata(token).decimals());
-      tradingLimitState.verify(tradingLimitConfig);
+      ITradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
+      tradingLimitState = TradingLimits.update(
+        tradingLimitState,
+        tradingLimitConfig,
+        deltaFlow,
+        IERC20Metadata(token).decimals()
+      );
+      TradingLimits.verify(tradingLimitState, tradingLimitConfig);
       tradingLimitsState[tradingLimitId] = tradingLimitState;
     }
   }
