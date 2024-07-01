@@ -10,9 +10,19 @@ import "contracts/interfaces/IChainlinkAdapter.sol";
 
 contract ChainlinkAdapterFactoryTest is BaseTest {
   IChainlinkAdapterFactory adapterFactory;
-  address mockSortedOracles = address(0xcafe);
-  address mockAggregator = address(0xbeef);
-  address aRateFeed = address(0x1337);
+  address mockSortedOracles = address(0x1337);
+  address[3] mockAggregators = [
+      address(0xcafe),
+      address(0xc0ffee),
+      address(0xdecaf)
+  ];
+  address[3] rateFeeds = [
+      address(0xbeef),
+      address(0xbee5),
+      address(0xca75)
+  ];
+  address mockAggregator = mockAggregators[0];
+  address aRateFeed = rateFeeds[0];
 
   event RelayerDeployed(address indexed relayerAddress, address indexed rateFeedId, address indexed aggregator);
 
@@ -125,4 +135,46 @@ contract ChainlinkAdapterFactoryTest_deployRelayer is ChainlinkAdapterFactoryTes
     vm.expectRevert(relayerExistsError(relayer, aRateFeed, mockAggregator));
     adapterFactory.deployRelayer(aRateFeed, mockAggregator);
   }
+}
+
+contract ChainlinkAdapterFactoryTest_getRelayers is ChainlinkAdapterFactoryTest {
+    function test_emptyWhenNoRelayers() public {
+        address[] memory relayers = adapterFactory.getRelayers();
+        assertEq(relayers.length, 0);
+    }
+
+    function test_returnsRelayerWhenThereIsOne() public {
+        address adapterAddress = adapterFactory.deployRelayer(aRateFeed, mockAggregator);
+        address[] memory relayers = adapterFactory.getRelayers();
+        assertEq(relayers.length, 1);
+        assertEq(relayers[0], adapterAddress);
+    }
+
+    function test_returnsMultipleRelayersWhenThereAreMore() public {
+        address adapterAddress1 = adapterFactory.deployRelayer(
+            rateFeeds[0],
+            mockAggregators[0]
+        );
+        address adapterAddress2 = adapterFactory.deployRelayer(
+            rateFeeds[1],
+            mockAggregators[1]
+        );
+        address adapterAddress3 = adapterFactory.deployRelayer(
+            rateFeeds[2],
+            mockAggregators[2]
+        );
+        address[] memory relayers = adapterFactory.getRelayers();
+        assertEq(relayers.length, 3);
+        assertEq(relayers[0], adapterAddress1);
+        assertEq(relayers[1], adapterAddress2);
+        assertEq(relayers[2], adapterAddress3);
+    }
+
+    function test_returnsADifferentRelayerAfterRedeployment() public {
+        // TODO
+    }
+
+    function test_doesntReturnARemovedRelayer() public {
+        // TODO
+    }
 }

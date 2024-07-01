@@ -14,6 +14,7 @@ import "../interfaces/IChainlinkAdapterFactory.sol";
 contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
   address public sortedOracles;
   mapping(address => ChainlinkAdapter) deployedRelayers;
+  address[] public rateFeeds;
 
   struct RelayerRecord {
     ChainlinkAdapter deployedRelayer;
@@ -50,6 +51,7 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
     }
 
     deployedRelayers[rateFeedId] = adapter;
+    rateFeeds.push(rateFeedId);
 
     emit RelayerDeployed(address(adapter), rateFeedId, chainlinkAggregator);
     return address(adapter);
@@ -57,6 +59,14 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
 
   function getRelayer(address rateFeedId) public view returns (address) {
     return address(deployedRelayers[rateFeedId]);
+  }
+
+  function getRelayers() public view returns (address[] memory) {
+      address[] memory relayers = new address[](rateFeeds.length);
+      for (uint256 i = 0; i < rateFeeds.length; i++) {
+          relayers[i] = address(deployedRelayers[rateFeeds[i]]);
+      }
+      return relayers;
   }
 
   function getSalt() internal view returns (bytes32) {
