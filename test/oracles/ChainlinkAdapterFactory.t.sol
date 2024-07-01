@@ -25,6 +25,7 @@ contract ChainlinkAdapterFactoryTest is BaseTest {
   address aRateFeed = rateFeeds[0];
 
   event RelayerDeployed(address indexed relayerAddress, address indexed rateFeedId, address indexed aggregator);
+  event RelayerRemoved(address indexed rateFeedId, address indexed relayerAddress);
 
   function setUp() public {
     adapterFactory = IChainlinkAdapterFactory(
@@ -67,6 +68,12 @@ contract ChainlinkAdapterFactoryTest is BaseTest {
     address aggregator
   ) public returns (bytes memory) {
     return abi.encodeWithSignature("RelayerExists(address,address,address)", relayerAddress, rateFeedId, aggregator);
+  }
+
+  function noSuchRelayerError(
+    address rateFeedId
+  ) public returns (bytes memory) {
+    return abi.encodeWithSignature("NoSuchRelayer(address)", rateFeedId);
   }
 }
 
@@ -174,7 +181,56 @@ contract ChainlinkAdapterFactoryTest_getRelayers is ChainlinkAdapterFactoryTest 
         // TODO
     }
 
-    function test_doesntReturnARemovedRelayer() public {
-        // TODO
+  function test_doesntReturnARemovedRelayer() public {
+    address adapterAddress1 = adapterFactory.deployRelayer(rateFeeds[0], mockAggregators[0]);
+    address adapterAddress2 = adapterFactory.deployRelayer(rateFeeds[1], mockAggregators[1]);
+    adapterFactory.deployRelayer(rateFeeds[2], mockAggregators[2]);
+    adapterFactory.removeRelayer(rateFeeds[2]);
+    address[] memory relayers = adapterFactory.getRelayers();
+    assertEq(relayers.length, 2);
+    assertEq(relayers[0], adapterAddress1);
+    assertEq(relayers[1], adapterAddress2);
+  }
+}
+
+contract ChainlinkAdapterFactoryTest_removeRelayer is ChainlinkAdapterFactoryTest {
+    address adapterAddress;
+
+    function setUp() public {
+        super.setUp();
+
+        adapterAddress = adapterFactory.deployRelayer(
+            aRateFeed,
+            mockAggregator
+        );
+    }
+
+    function test_removesTheRelayer() public {
+        adapterFactory.removeRelayer(aRateFeed);
+        address relayer = adapterFactory.getRelayer(aRateFeed);
+        assertEq(relayer, address(0));
+    }
+
+    function test_emitsRelayerRemovedEvent() public {
+        vm.expectEmit(true, true, true, false, address(adapterFactory));
+        emit RelayerRemoved(aRateFeed, adapterAddress);
+        adapterFactory.removeRelayer(aRateFeed);
+    }
+
+    function test_doesntRemoveOtherRelayers() public {
+        address adapterAddress = adapterFactory.deployRelayer(
+            rateFeeds[1],
+            mockAggregators[1]
+        );
+        adapterFactory.removeRelayer(aRateFeed);
+        address[] memory relayers = adapterFactory.getRelayers();
+
+        assertEq(relayers.length, 1);
+        assertEq(relayers[0], adapterAddress);
+    }
+
+    function test_revertsOnNonexistentRelayer() public {
+        vm.expectRevert(noSuchRelayerError(rateFeeds[1]));
+        adapterFactory.removeRelayer(rateFeeds[1]);
     }
 }

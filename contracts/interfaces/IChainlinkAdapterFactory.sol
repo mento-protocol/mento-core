@@ -6,6 +6,8 @@ interface IChainlinkAdapterFactory {
 
   function deployRelayer(address rateFeedId, address chainlinkAggregator) external returns (address);
 
+  function removeRelayer(address rateFeedId) external;
+
   function getRelayer(address rateFeedId) external view returns (address);
 
   function getRelayers() external view returns (address[] memory);

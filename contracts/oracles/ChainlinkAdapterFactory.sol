@@ -22,10 +22,13 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
   }
 
   event RelayerDeployed(address indexed relayerAddress, address indexed rateFeedId, address indexed aggregator);
+  event RelayerRemoved(address indexed rateFeedId, address indexed relayerAddress);
 
   error RelayerExists(address relayerAddress, address rateFeedId, address aggregator);
 
   error UnexpectedAddress(address expected, address returned);
+
+  error NoSuchRelayer(address rateFeedId);
 
   /**
    * @notice Initializes the factory.
@@ -55,6 +58,28 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
 
     emit RelayerDeployed(address(adapter), rateFeedId, chainlinkAggregator);
     return address(adapter);
+  }
+
+  function removeRelayer(address rateFeedId) public {
+      address relayerAddress = address(deployedRelayers[rateFeedId]);
+
+      if (relayerAddress == address(0)) {
+          revert NoSuchRelayer(rateFeedId);
+      }
+
+      delete deployedRelayers[rateFeedId];
+
+      uint256 lastRateFeedIndex = rateFeeds.length - 1;
+
+      for (uint256 i = 0; i <= lastRateFeedIndex; i++) {
+          if (rateFeeds[i] == rateFeedId) {
+              rateFeeds[i] = rateFeeds[lastRateFeedIndex];
+              rateFeeds.pop();
+              break;
+          }
+      }
+
+      emit RelayerRemoved(rateFeedId, relayerAddress);
   }
 
   function getRelayer(address rateFeedId) public view returns (address) {
