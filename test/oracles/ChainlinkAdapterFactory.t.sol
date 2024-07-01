@@ -116,14 +116,8 @@ contract ChainlinkAdapterFactoryTest_deployRelayer is ChainlinkAdapterFactoryTes
 
   function test_remembersTheRelayerAddress() public {
     address relayer = adapterFactory.deployRelayer(aRateFeed, mockAggregator);
-    (address storedAddress, ) = adapterFactory.getRelayer(aRateFeed);
+    address storedAddress = adapterFactory.getRelayer(aRateFeed);
     assertEq(storedAddress, relayer);
-  }
-
-  function test_remembersTheRelayerVersion() public {
-    address relayer = adapterFactory.deployRelayer(aRateFeed, mockAggregator);
-    (, uint8 version) = adapterFactory.getRelayer(aRateFeed);
-    assertEq(uint256(version), 1);
   }
 
   function test_revertsWhenDeployingTheSameRelayer() public {

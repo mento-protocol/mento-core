@@ -12,9 +12,8 @@ import "../interfaces/IChainlinkAdapterFactory.sol";
  * TODO: make this contract ownable
  */
 contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
-  uint8 constant CURRENT_RELAYER_VERSION = 1;
   address public sortedOracles;
-  mapping(address => RelayerRecord) deployedRelayers;
+  mapping(address => ChainlinkAdapter) deployedRelayers;
 
   struct RelayerRecord {
     ChainlinkAdapter deployedRelayer;
@@ -39,7 +38,7 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
   function deployRelayer(address rateFeedId, address chainlinkAggregator) public returns (address) {
     address expectedAddress = computedRelayerAddress(rateFeedId, chainlinkAggregator);
 
-    if (address(deployedRelayers[rateFeedId].deployedRelayer) == expectedAddress) {
+    if (address(deployedRelayers[rateFeedId]) == expectedAddress) {
       revert RelayerExists(expectedAddress, rateFeedId, chainlinkAggregator);
     }
 
@@ -50,15 +49,14 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
       revert UnexpectedAddress(expectedAddress, address(adapter));
     }
 
-    deployedRelayers[rateFeedId] = RelayerRecord(adapter, CURRENT_RELAYER_VERSION);
+    deployedRelayers[rateFeedId] = adapter;
 
     emit RelayerDeployed(address(adapter), rateFeedId, chainlinkAggregator);
     return address(adapter);
   }
 
-  function getRelayer(address rateFeedId) public view returns (address, uint8) {
-    RelayerRecord memory record = deployedRelayers[rateFeedId];
-    return (address(record.deployedRelayer), record.version);
+  function getRelayer(address rateFeedId) public view returns (address) {
+    return address(deployedRelayers[rateFeedId]);
   }
 
   function getSalt() internal view returns (bytes32) {
