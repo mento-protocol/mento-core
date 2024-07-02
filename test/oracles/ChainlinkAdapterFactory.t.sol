@@ -11,16 +11,8 @@ import "contracts/interfaces/IChainlinkAdapter.sol";
 contract ChainlinkAdapterFactoryTest is BaseTest {
   IChainlinkAdapterFactory adapterFactory;
   address mockSortedOracles = address(0x1337);
-  address[3] mockAggregators = [
-      address(0xcafe),
-      address(0xc0ffee),
-      address(0xdecaf)
-  ];
-  address[3] rateFeeds = [
-      address(0xbeef),
-      address(0xbee5),
-      address(0xca75)
-  ];
+  address[3] mockAggregators = [address(0xcafe), address(0xc0ffee), address(0xdecaf)];
+  address[3] rateFeeds = [address(0xbeef), address(0xbee5), address(0xca75)];
   address mockAggregator = mockAggregators[0];
   address aRateFeed = rateFeeds[0];
 
@@ -70,9 +62,7 @@ contract ChainlinkAdapterFactoryTest is BaseTest {
     return abi.encodeWithSignature("RelayerExists(address,address,address)", relayerAddress, rateFeedId, aggregator);
   }
 
-  function noSuchRelayerError(
-    address rateFeedId
-  ) public returns (bytes memory) {
+  function noSuchRelayerError(address rateFeedId) public returns (bytes memory) {
     return abi.encodeWithSignature("NoSuchRelayer(address)", rateFeedId);
   }
 }
@@ -145,39 +135,31 @@ contract ChainlinkAdapterFactoryTest_deployRelayer is ChainlinkAdapterFactoryTes
 }
 
 contract ChainlinkAdapterFactoryTest_getRelayers is ChainlinkAdapterFactoryTest {
-    function test_emptyWhenNoRelayers() public {
-        address[] memory relayers = adapterFactory.getRelayers();
-        assertEq(relayers.length, 0);
-    }
+  function test_emptyWhenNoRelayers() public {
+    address[] memory relayers = adapterFactory.getRelayers();
+    assertEq(relayers.length, 0);
+  }
 
-    function test_returnsRelayerWhenThereIsOne() public {
-        address adapterAddress = adapterFactory.deployRelayer(aRateFeed, mockAggregator);
-        address[] memory relayers = adapterFactory.getRelayers();
-        assertEq(relayers.length, 1);
-        assertEq(relayers[0], adapterAddress);
-    }
+  function test_returnsRelayerWhenThereIsOne() public {
+    address adapterAddress = adapterFactory.deployRelayer(aRateFeed, mockAggregator);
+    address[] memory relayers = adapterFactory.getRelayers();
+    assertEq(relayers.length, 1);
+    assertEq(relayers[0], adapterAddress);
+  }
 
-    function test_returnsMultipleRelayersWhenThereAreMore() public {
-        address adapterAddress1 = adapterFactory.deployRelayer(
-            rateFeeds[0],
-            mockAggregators[0]
-        );
-        address adapterAddress2 = adapterFactory.deployRelayer(
-            rateFeeds[1],
-            mockAggregators[1]
-        );
-        address adapterAddress3 = adapterFactory.deployRelayer(
-            rateFeeds[2],
-            mockAggregators[2]
-        );
-        address[] memory relayers = adapterFactory.getRelayers();
-        assertEq(relayers.length, 3);
-        assertEq(relayers[0], adapterAddress1);
-        assertEq(relayers[1], adapterAddress2);
-        assertEq(relayers[2], adapterAddress3);
-    }
+  function test_returnsMultipleRelayersWhenThereAreMore() public {
+    address adapterAddress1 = adapterFactory.deployRelayer(rateFeeds[0], mockAggregators[0]);
+    address adapterAddress2 = adapterFactory.deployRelayer(rateFeeds[1], mockAggregators[1]);
+    address adapterAddress3 = adapterFactory.deployRelayer(rateFeeds[2], mockAggregators[2]);
+    address[] memory relayers = adapterFactory.getRelayers();
+    assertEq(relayers.length, 3);
+    assertEq(relayers[0], adapterAddress1);
+    assertEq(relayers[1], adapterAddress2);
+    assertEq(relayers[2], adapterAddress3);
+  }
 
   function test_returnsADifferentRelayerAfterRedeployment() public {
+<<<<<<< HEAD
     address adapterAddress1 = adapterFactory.deployRelayer(rateFeeds[0], mockAggregators[0]);
     adapterFactory.deployRelayer(rateFeeds[1], mockAggregators[1]);
     address adapterAddress2 = adapterFactory.redeployRelayer(rateFeeds[1], mockAggregators[2]);
@@ -200,45 +182,39 @@ contract ChainlinkAdapterFactoryTest_getRelayers is ChainlinkAdapterFactoryTest 
 }
 
 contract ChainlinkAdapterFactoryTest_removeRelayer is ChainlinkAdapterFactoryTest {
-    address adapterAddress;
+  address adapterAddress;
 
-    function setUp() public {
-        super.setUp();
+  function setUp() public {
+    super.setUp();
 
-        adapterAddress = adapterFactory.deployRelayer(
-            aRateFeed,
-            mockAggregator
-        );
-    }
+    adapterAddress = adapterFactory.deployRelayer(aRateFeed, mockAggregator);
+  }
 
-    function test_removesTheRelayer() public {
-        adapterFactory.removeRelayer(aRateFeed);
-        address relayer = adapterFactory.getRelayer(aRateFeed);
-        assertEq(relayer, address(0));
-    }
+  function test_removesTheRelayer() public {
+    adapterFactory.removeRelayer(aRateFeed);
+    address relayer = adapterFactory.getRelayer(aRateFeed);
+    assertEq(relayer, address(0));
+  }
 
-    function test_emitsRelayerRemovedEvent() public {
-        vm.expectEmit(true, true, true, false, address(adapterFactory));
-        emit RelayerRemoved(aRateFeed, adapterAddress);
-        adapterFactory.removeRelayer(aRateFeed);
-    }
+  function test_emitsRelayerRemovedEvent() public {
+    vm.expectEmit(true, true, true, false, address(adapterFactory));
+    emit RelayerRemoved(aRateFeed, adapterAddress);
+    adapterFactory.removeRelayer(aRateFeed);
+  }
 
-    function test_doesntRemoveOtherRelayers() public {
-        address adapterAddress = adapterFactory.deployRelayer(
-            rateFeeds[1],
-            mockAggregators[1]
-        );
-        adapterFactory.removeRelayer(aRateFeed);
-        address[] memory relayers = adapterFactory.getRelayers();
+  function test_doesntRemoveOtherRelayers() public {
+    address adapterAddress = adapterFactory.deployRelayer(rateFeeds[1], mockAggregators[1]);
+    adapterFactory.removeRelayer(aRateFeed);
+    address[] memory relayers = adapterFactory.getRelayers();
 
-        assertEq(relayers.length, 1);
-        assertEq(relayers[0], adapterAddress);
-    }
+    assertEq(relayers.length, 1);
+    assertEq(relayers[0], adapterAddress);
+  }
 
-    function test_revertsOnNonexistentRelayer() public {
-        vm.expectRevert(noSuchRelayerError(rateFeeds[1]));
-        adapterFactory.removeRelayer(rateFeeds[1]);
-    }
+  function test_revertsOnNonexistentRelayer() public {
+    vm.expectRevert(noSuchRelayerError(rateFeeds[1]));
+    adapterFactory.removeRelayer(rateFeeds[1]);
+  }
 }
 
 contract ChainlinkAdapterFactoryTest_redeployRelayer is ChainlinkAdapterFactoryTest {

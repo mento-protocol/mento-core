@@ -61,25 +61,25 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
   }
 
   function removeRelayer(address rateFeedId) public {
-      address relayerAddress = address(deployedRelayers[rateFeedId]);
+    address relayerAddress = address(deployedRelayers[rateFeedId]);
 
-      if (relayerAddress == address(0)) {
-          revert NoSuchRelayer(rateFeedId);
+    if (relayerAddress == address(0)) {
+      revert NoSuchRelayer(rateFeedId);
+    }
+
+    delete deployedRelayers[rateFeedId];
+
+    uint256 lastRateFeedIndex = rateFeeds.length - 1;
+
+    for (uint256 i = 0; i <= lastRateFeedIndex; i++) {
+      if (rateFeeds[i] == rateFeedId) {
+        rateFeeds[i] = rateFeeds[lastRateFeedIndex];
+        rateFeeds.pop();
+        break;
       }
+    }
 
-      delete deployedRelayers[rateFeedId];
-
-      uint256 lastRateFeedIndex = rateFeeds.length - 1;
-
-      for (uint256 i = 0; i <= lastRateFeedIndex; i++) {
-          if (rateFeeds[i] == rateFeedId) {
-              rateFeeds[i] = rateFeeds[lastRateFeedIndex];
-              rateFeeds.pop();
-              break;
-          }
-      }
-
-      emit RelayerRemoved(rateFeedId, relayerAddress);
+    emit RelayerRemoved(rateFeedId, relayerAddress);
   }
 
   function redeployRelayer(address rateFeedId, address chainlinkAggregator) external returns (address) {
@@ -92,11 +92,11 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
   }
 
   function getRelayers() public view returns (address[] memory) {
-      address[] memory relayers = new address[](rateFeeds.length);
-      for (uint256 i = 0; i < rateFeeds.length; i++) {
-          relayers[i] = address(deployedRelayers[rateFeeds[i]]);
-      }
-      return relayers;
+    address[] memory relayers = new address[](rateFeeds.length);
+    for (uint256 i = 0; i < rateFeeds.length; i++) {
+      relayers[i] = address(deployedRelayers[rateFeeds[i]]);
+    }
+    return relayers;
   }
 
   function getSalt() internal view returns (bytes32) {
