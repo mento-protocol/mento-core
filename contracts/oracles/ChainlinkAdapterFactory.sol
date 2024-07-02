@@ -42,7 +42,7 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
   function deployRelayer(address rateFeedId, address chainlinkAggregator) public returns (address) {
     address expectedAddress = computedRelayerAddress(rateFeedId, chainlinkAggregator);
 
-    if (address(deployedRelayers[rateFeedId]) == expectedAddress) {
+    if (address(deployedRelayers[rateFeedId]) == expectedAddress || expectedAddress.code.length > 0) {
       revert RelayerExists(expectedAddress, rateFeedId, chainlinkAggregator);
     }
 
@@ -80,6 +80,11 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
       }
 
       emit RelayerRemoved(rateFeedId, relayerAddress);
+  }
+
+  function redeployRelayer(address rateFeedId, address chainlinkAggregator) external returns (address) {
+    removeRelayer(rateFeedId);
+    return deployRelayer(rateFeedId, chainlinkAggregator);
   }
 
   function getRelayer(address rateFeedId) public view returns (address) {

@@ -177,9 +177,15 @@ contract ChainlinkAdapterFactoryTest_getRelayers is ChainlinkAdapterFactoryTest 
         assertEq(relayers[2], adapterAddress3);
     }
 
-    function test_returnsADifferentRelayerAfterRedeployment() public {
-        // TODO
-    }
+  function test_returnsADifferentRelayerAfterRedeployment() public {
+    address adapterAddress1 = adapterFactory.deployRelayer(rateFeeds[0], mockAggregators[0]);
+    adapterFactory.deployRelayer(rateFeeds[1], mockAggregators[1]);
+    address adapterAddress2 = adapterFactory.redeployRelayer(rateFeeds[1], mockAggregators[2]);
+    address[] memory relayers = adapterFactory.getRelayers();
+    assertEq(relayers.length, 2);
+    assertEq(relayers[0], adapterAddress1);
+    assertEq(relayers[1], adapterAddress2);
+  }
 
   function test_doesntReturnARemovedRelayer() public {
     address adapterAddress1 = adapterFactory.deployRelayer(rateFeeds[0], mockAggregators[0]);
@@ -233,4 +239,72 @@ contract ChainlinkAdapterFactoryTest_removeRelayer is ChainlinkAdapterFactoryTes
         vm.expectRevert(noSuchRelayerError(rateFeeds[1]));
         adapterFactory.removeRelayer(rateFeeds[1]);
     }
+}
+
+contract ChainlinkAdapterFactoryTest_redeployRelayer is ChainlinkAdapterFactoryTest {
+  address oldAddress;
+
+  function setUp() public {
+    super.setUp();
+    oldAddress = adapterFactory.deployRelayer(aRateFeed, mockAggregator);
+  }
+
+  function test_setsRateFeedOnNewRelayer() public {
+    IChainlinkAdapter relayer = IChainlinkAdapter(adapterFactory.redeployRelayer(aRateFeed, mockAggregators[1]));
+
+    address rateFeed = relayer.token();
+    assertEq(rateFeed, aRateFeed);
+  }
+
+  function test_setsAggregatorOnNewRelayer() public {
+    IChainlinkAdapter relayer = IChainlinkAdapter(adapterFactory.redeployRelayer(aRateFeed, mockAggregators[1]));
+
+    address aggregator = relayer.aggregator();
+    assertEq(aggregator, mockAggregators[1]);
+  }
+
+  function test_setsSortedOraclesOnNewRelayer() public {
+    IChainlinkAdapter relayer = IChainlinkAdapter(adapterFactory.redeployRelayer(aRateFeed, mockAggregators[1]));
+
+    address sortedOracles = relayer.sortedOracles();
+    assertEq(sortedOracles, mockSortedOracles);
+  }
+
+  function test_deploysToTheCorrectNewAddress() public {
+    address relayer = adapterFactory.redeployRelayer(aRateFeed, mockAggregators[1]);
+
+    address expectedAddress = expectedRelayerAddress(
+      aRateFeed,
+      mockSortedOracles,
+      mockAggregators[1],
+      address(adapterFactory)
+    );
+
+    assertEq(relayer, expectedAddress);
+  }
+
+  function test_emitsRelayerRemovedAndDeployedEvents() public {
+    address expectedAddress = expectedRelayerAddress(
+      aRateFeed,
+      mockSortedOracles,
+      mockAggregators[1],
+      address(adapterFactory)
+    );
+    vm.expectEmit(true, true, true, false, address(adapterFactory));
+    emit RelayerRemoved(aRateFeed, oldAddress);
+    vm.expectEmit(true, true, true, false, address(adapterFactory));
+    emit RelayerDeployed(expectedAddress, aRateFeed, mockAggregators[1]);
+    adapterFactory.redeployRelayer(aRateFeed, mockAggregators[1]);
+  }
+
+  function test_remembersTheNewRelayerAddress() public {
+    address relayer = adapterFactory.redeployRelayer(aRateFeed, mockAggregators[1]);
+    address storedAddress = adapterFactory.getRelayer(aRateFeed);
+    assertEq(storedAddress, relayer);
+  }
+
+  function test_revertsWhenDeployingTheSameExactRelayer() public {
+    vm.expectRevert(relayerExistsError(oldAddress, aRateFeed, mockAggregator));
+    adapterFactory.redeployRelayer(aRateFeed, mockAggregator);
+  }
 }
