@@ -24,14 +24,14 @@ interface ISortedOraclesMin {
 }
 
 /**
- * @title ChainlinkAdapter
- * @notice The ChainlinkAdapter relays rate feed data from a Chainlink oracle to
+ * @title ChainlinkRelayer
+ * @notice The ChainlinkRelayer relays rate feed data from a Chainlink price feed to
  * the SortedOracles contract. A separate instance should be deployed for each
  * rate feed.
  * @dev Assumes that it itself is the only reporter for the given SortedOracles
  * feed.
  */
-contract ChainlinkAdapter is IChainlinkAdapter {
+contract ChainlinkRelayer is IChainlinkRelayer {
   /**
    * @notice The number of digits after the decimal point in FixidityLib
    * values, as used by SortedOracles.
@@ -39,53 +39,53 @@ contract ChainlinkAdapter is IChainlinkAdapter {
    */
   uint256 public constant FIXIDITY_DECIMALS = 24;
   /// @notice The rateFeedId this adapter relays for.
-  address public immutable token;
+  address public immutable rateFeedId;
   /// @notice The address of the SortedOracles contract to report to.
   address public immutable sortedOracles;
   /**
    * @notice The address of the Chainlink aggregator this contract fetches
    * data from.
    */
-  address public immutable aggregator;
+  address public immutable chainlinkAggregator;
 
   /**
-   * @notice Used when a new answer's timestamp is not newer than the most recent
+   * @notice Used when a new price's timestamp is not newer than the most recent
    * SortedOracles timestamp.
    */
   error OldTimestamp();
   /**
-   * @notice Used when a new answer's timestamp would be considered expired by
+   * @notice Used when a new price's timestamp would be considered expired by
    * SortedOracles.
    */
   error ExpiredTimestamp();
   /**
-   * @notice Used when a negative answer is returned by the Chainlink
+   * @notice Used when a negative price is returned by the Chainlink
    * aggregator.
    */
-  error NegativeAnswer();
+  error NegativePrice();
 
   /**
-   * @notice Initializes the contract, setting immutable parameters.
-   * @param _token Address of the rate feed this adapter relays for.
+   * @notice Initializes the contract and sets immutable parameters.
+   * @param _rateFeedId ID of the rate feed this relayer instance relays for.
    * @param _sortedOracles Address of the SortedOracles contract to relay to.
-   * @param _aggregator Address of the Chainlink aggregator to fetch data from.
+   * @param _chainlinkAggregator Address of the Chainlink price feed to fetch data from.
    */
   constructor(
-    address _token,
+    address _rateFeedId,
     address _sortedOracles,
-    address _aggregator
+    address _chainlinkAggregator
   ) {
-    token = _token;
+    rateFeedId = _rateFeedId;
     sortedOracles = _sortedOracles;
-    aggregator = _aggregator;
+    chainlinkAggregator = _chainlinkAggregator;
   }
 
   /**
    * @notice Relays data from the configured Chainlink aggregator to
    * SortedOracles.
-   * @dev Checks the answer is non-negative (Chainlink uses `int256` rather
+   * @dev Checks the price is non-negative (Chainlink uses `int256` rather
    * than `uint256`.
-   * @dev Converts the answer to a Fixidity value, as expected by
+   * @dev Converts the price to a Fixidity value, as expected by
    * SortedOracles.
    * @dev Performs checks on the timestamp, will revert if any fails:
    *      - The timestamp should be strictly newer than the most recent
@@ -94,9 +94,9 @@ contract ChainlinkAdapter is IChainlinkAdapter {
    */
   function relay() external {
     ISortedOraclesMin _sortedOracles = ISortedOraclesMin(sortedOracles);
-    (, int256 answer, , uint256 timestamp, ) = AggregatorV3Interface(aggregator).latestRoundData();
+    (, int256 answer, , uint256 timestamp, ) = AggregatorV3Interface(chainlinkAggregator).latestRoundData();
 
-    uint256 lastTimestamp = _sortedOracles.medianTimestamp(token);
+    uint256 lastTimestamp = _sortedOracles.medianTimestamp(rateFeedId);
 
     if (lastTimestamp > 0) {
       if (timestamp <= lastTimestamp) {
@@ -109,12 +109,12 @@ contract ChainlinkAdapter is IChainlinkAdapter {
     }
 
     if (answer < 0) {
-      revert NegativeAnswer();
+      revert NegativePrice();
     }
 
     uint256 report = chainlinkToFixidity(answer);
 
-    ISortedOraclesMin(sortedOracles).report(token, report, address(0), address(0));
+    ISortedOraclesMin(sortedOracles).report(rateFeedId, report, address(0), address(0));
   }
 
   /**
