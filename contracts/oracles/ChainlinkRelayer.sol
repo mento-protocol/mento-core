@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.18;
 
-import "../interfaces/IChainlinkAdapter.sol";
+import "../interfaces/IChainlinkRelayer.sol";
 import "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol";
 
 /**
  * @notice The minimal subset of the SortedOracles interface needed by the
- * adapter.
+ * relayer.
  * @dev SortedOracles is a Solidity 5.17 contract, thus we can't import the
  * interface directly, so we use a minimal hand-copied one.
  */
 interface ISortedOraclesMin {
   function report(
-    address token,
+    address rateFeedId,
     uint256 value,
     address lesserKey,
     address greaterKey
   ) external;
 
-  function medianTimestamp(address token) external view returns (uint256);
+  function medianTimestamp(address rateFeedId) external view returns (uint256);
 
-  function getTokenReportExpirySeconds(address token) external view returns (uint256);
+  function getTokenReportExpirySeconds(address rateFeedId) external view returns (uint256);
 }
 
 /**
@@ -38,7 +38,7 @@ contract ChainlinkRelayer is IChainlinkRelayer {
    * @dev See contracts/common/FixidityLib.sol
    */
   uint256 public constant FIXIDITY_DECIMALS = 24;
-  /// @notice The rateFeedId this adapter relays for.
+  /// @notice The rateFeedId this relayer relays for.
   address public immutable rateFeedId;
   /// @notice The address of the SortedOracles contract to report to.
   address public immutable sortedOracles;
@@ -94,7 +94,7 @@ contract ChainlinkRelayer is IChainlinkRelayer {
    */
   function relay() external {
     ISortedOraclesMin _sortedOracles = ISortedOraclesMin(sortedOracles);
-    (, int256 answer, , uint256 timestamp, ) = AggregatorV3Interface(chainlinkAggregator).latestRoundData();
+    (, int256 price, , uint256 timestamp, ) = AggregatorV3Interface(chainlinkAggregator).latestRoundData();
 
     uint256 lastTimestamp = _sortedOracles.medianTimestamp(rateFeedId);
 
@@ -108,32 +108,32 @@ contract ChainlinkRelayer is IChainlinkRelayer {
       }
     }
 
-    if (answer < 0) {
+    if (price < 0) {
       revert NegativePrice();
     }
 
-    uint256 report = chainlinkToFixidity(answer);
+    uint256 report = chainlinkToFixidity(price);
 
     ISortedOraclesMin(sortedOracles).report(rateFeedId, report, address(0), address(0));
   }
 
   /**
-   * @notice Checks if a Chainlink answer's timestamp would be expired in
+   * @notice Checks if a Chainlink price's timestamp would be expired in
    * SortedOracles.
    * @param timestamp The timestamp returned by the Chainlink aggregator.
    * @return `true` if expired based on SortedOracles expiry parameter.
    */
   function isTimestampExpired(uint256 timestamp) internal view returns (bool) {
-    return block.timestamp - timestamp >= ISortedOraclesMin(sortedOracles).getTokenReportExpirySeconds(token);
+    return block.timestamp - timestamp >= ISortedOraclesMin(sortedOracles).getTokenReportExpirySeconds(rateFeedId);
   }
 
   /**
-   * @notice Converts a Chainlink answer to an unwrapped Fixidity value.
-   * @param answer An answer from the Chainlink aggregator.
+   * @notice Converts a Chainlink price to an unwrapped Fixidity value.
+   * @param price An price from the Chainlink aggregator.
    * @return The converted Fixidity value (with 24 decimals).
    */
-  function chainlinkToFixidity(int256 answer) internal view returns (uint256) {
-    uint256 chainlinkDecimals = uint256(AggregatorV3Interface(aggregator).decimals());
-    return uint256(answer) * 10**(FIXIDITY_DECIMALS - chainlinkDecimals);
+  function chainlinkToFixidity(int256 price) internal view returns (uint256) {
+    uint256 chainlinkDecimals = uint256(AggregatorV3Interface(chainlinkAggregator).decimals());
+    return uint256(price) * 10**(FIXIDITY_DECIMALS - chainlinkDecimals);
   }
 }
