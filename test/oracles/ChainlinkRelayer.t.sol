@@ -10,7 +10,7 @@ import "../mocks/MockAggregatorV3.sol";
 import "contracts/interfaces/IChainlinkRelayer.sol";
 
 contract ChainlinkRelayerTest is BaseTest {
-  bytes constant OLD_TIMESTAMP_ERROR = abi.encodeWithSignature("OldTimestamp()");
+  bytes constant TIMESTAMP_NOT_NEW_ERROR = abi.encodeWithSignature("TimestampNotNew()");
   bytes constant EXPIRED_TIMESTAMP_ERROR = abi.encodeWithSignature("ExpiredTimestamp()");
   bytes constant NEGATIVE_PRICE_ERROR = abi.encodeWithSignature("NegativePrice()");
   SortedOracles sortedOracles;
@@ -74,7 +74,7 @@ contract ChainlinkRelayerTest_relay is ChainlinkRelayerTest {
     sortedOracles.report(rateFeedId, aReport, address(0), address(0));
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
     chainlinkAggregator.setRoundData(aPrice, latestTimestamp - 1);
-    vm.expectRevert(OLD_TIMESTAMP_ERROR);
+    vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
@@ -83,7 +83,7 @@ contract ChainlinkRelayerTest_relay is ChainlinkRelayerTest {
     sortedOracles.report(rateFeedId, aReport, address(0), address(0));
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
     chainlinkAggregator.setRoundData(aPrice, latestTimestamp);
-    vm.expectRevert(OLD_TIMESTAMP_ERROR);
+    vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
