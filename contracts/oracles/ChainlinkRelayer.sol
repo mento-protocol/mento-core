@@ -7,8 +7,9 @@ import "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol
 /**
  * @notice The minimal subset of the SortedOracles interface needed by the
  * relayer.
- * @dev SortedOracles is a Solidity 5.17 contract, thus we can't import the
+ * @dev SortedOracles is a Solidity 5.13 contract, thus we can't import the
  * interface directly, so we use a minimal hand-copied one.
+ * See https://github.com/mento-protocol/mento-core/blob/develop/contracts/common/SortedOracles.sol
  */
 interface ISortedOraclesMin {
   function report(
@@ -114,6 +115,10 @@ contract ChainlinkRelayer is IChainlinkRelayer {
 
     uint256 report = chainlinkToFixidity(price);
 
+    // This contract is built for a setup where it is the only reporter for the
+    // given `rateFeedId`. As such, we don't need to compute and provide
+    // `lesserKey`/`greaterKey` each time, the "null pointer" `address(0)` will
+    // correctly place the report in SortedOracles' sorted linked list.
     ISortedOraclesMin(sortedOracles).report(rateFeedId, report, address(0), address(0));
   }
 
