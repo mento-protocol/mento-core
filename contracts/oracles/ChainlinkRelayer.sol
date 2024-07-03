@@ -53,7 +53,7 @@ contract ChainlinkRelayer is IChainlinkRelayer {
    * @notice Used when a new price's timestamp is not newer than the most recent
    * SortedOracles timestamp.
    */
-  error OldTimestamp();
+  error TimestampNotNew();
   /**
    * @notice Used when a new price's timestamp would be considered expired by
    * SortedOracles.
@@ -101,7 +101,7 @@ contract ChainlinkRelayer is IChainlinkRelayer {
 
     if (lastTimestamp > 0) {
       if (timestamp <= lastTimestamp) {
-        revert OldTimestamp();
+        revert TimestampNotNew();
       }
 
       if (isTimestampExpired(timestamp)) {
