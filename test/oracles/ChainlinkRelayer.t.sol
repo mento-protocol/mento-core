@@ -63,6 +63,15 @@ contract ChainlinkRelayerTest_relay is ChainlinkRelayerTest {
     assertEq(medianRate, expectedReport);
   }
 
+  function testFuzz_convertsChainlinkToFixidityCorrectly(int256 x) public {
+    vm.assume(x >= 0);
+    vm.assume(uint256(x) < uint256(2**256 - 1) / (10**(24 - 8)));
+    chainlinkAggregator.setRoundData(x, uint256(block.timestamp));
+    relayer.relay();
+    (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
+    assertEq(medianRate, uint256(x) * 10**(24 - 8));
+  }
+
   function test_revertsOnNegativePrice() public {
     chainlinkAggregator.setRoundData(-1 * aPrice, uint256(1337));
     vm.expectRevert(NEGATIVE_PRICE_ERROR);
