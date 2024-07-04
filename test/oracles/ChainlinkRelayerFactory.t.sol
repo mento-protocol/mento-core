@@ -62,6 +62,13 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
     return abi.encodeWithSignature("RelayerExists(address,address,address)", relayerAddress, rateFeedId, aggregator);
   }
 
+  function relayerForFeedExistsError(
+    address rateFeedId
+  ) public returns (bytes memory) {
+    return
+    abi.encodeWithSignature("RelayerForFeedExists(address)", rateFeedId);
+  }
+
   function noSuchRelayerError(address rateFeedId) public returns (bytes memory) {
     return abi.encodeWithSignature("NoSuchRelayer(address)", rateFeedId);
   }
@@ -131,6 +138,12 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
     address relayer = relayerFactory.deployRelayer(aRateFeed, mockAggregator);
     vm.expectRevert(relayerExistsError(relayer, aRateFeed, mockAggregator));
     relayerFactory.deployRelayer(aRateFeed, mockAggregator);
+  }
+
+  function test_revertsWhenDeployingForTheSameRateFeed() public {
+    relayerFactory.deployRelayer(aRateFeed, mockAggregators[0]);
+    vm.expectRevert(relayerForFeedExistsError(aRateFeed));
+    relayerFactory.deployRelayer(aRateFeed, mockAggregators[1]);
   }
 }
 

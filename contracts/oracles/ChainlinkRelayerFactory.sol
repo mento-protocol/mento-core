@@ -26,6 +26,8 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory {
 
   error RelayerExists(address relayerAddress, address rateFeedId, address aggregator);
 
+  error RelayerForFeedExists(address rateFeedId);
+
   error UnexpectedAddress(address expected, address returned);
 
   error NoSuchRelayer(address rateFeedId);
@@ -44,6 +46,10 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory {
 
     if (address(deployedRelayers[rateFeedId]) == expectedAddress || expectedAddress.code.length > 0) {
       revert RelayerExists(expectedAddress, rateFeedId, chainlinkAggregator);
+    }
+
+    if (address(deployedRelayers[rateFeedId]) != address(0)) {
+      revert RelayerForFeedExists(rateFeedId);
     }
 
     bytes32 salt = getSalt();
