@@ -159,7 +159,6 @@ contract ChainlinkAdapterFactoryTest_getRelayers is ChainlinkAdapterFactoryTest 
   }
 
   function test_returnsADifferentRelayerAfterRedeployment() public {
-<<<<<<< HEAD
     address adapterAddress1 = adapterFactory.deployRelayer(rateFeeds[0], mockAggregators[0]);
     adapterFactory.deployRelayer(rateFeeds[1], mockAggregators[1]);
     address adapterAddress2 = adapterFactory.redeployRelayer(rateFeeds[1], mockAggregators[2]);
