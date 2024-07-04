@@ -26,7 +26,7 @@ contract ChainlinkRelayerTest is BaseTest {
     chainlinkAggregator = new MockAggregatorV3();
     relayer = IChainlinkRelayer(
       factory.createContract(
-        "ChainlinkRelayer",
+        "ChainlinkRelayerV1",
         abi.encode(rateFeedId, address(sortedOracles), address(chainlinkAggregator))
       )
     );

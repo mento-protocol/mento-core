@@ -32,7 +32,7 @@ interface ISortedOraclesMin {
  * @dev Assumes that it itself is the only reporter for the given SortedOracles
  * feed.
  */
-contract ChainlinkRelayer is IChainlinkRelayer {
+contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /**
    * @notice The number of digits after the decimal point in FixidityLib
    * values, as used by SortedOracles.
