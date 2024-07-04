@@ -62,11 +62,8 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
     return abi.encodeWithSignature("RelayerExists(address,address,address)", relayerAddress, rateFeedId, aggregator);
   }
 
-  function relayerForFeedExistsError(
-    address rateFeedId
-  ) public returns (bytes memory) {
-    return
-    abi.encodeWithSignature("RelayerForFeedExists(address)", rateFeedId);
+  function relayerForFeedExistsError(address rateFeedId) public returns (bytes memory) {
+    return abi.encodeWithSignature("RelayerForFeedExists(address)", rateFeedId);
   }
 
   function noSuchRelayerError(address rateFeedId) public returns (bytes memory) {

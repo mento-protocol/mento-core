@@ -13,7 +13,7 @@ import "../interfaces/IChainlinkRelayerFactory.sol";
  */
 contract ChainlinkRelayerFactory is IChainlinkRelayerFactory {
   address public sortedOracles;
-  mapping(address => ChainlinkRelayerV1) deployedRelayers;
+  mapping(address => ChainlinkRelayerV1) public deployedRelayers;
   address[] public rateFeeds;
 
   struct RelayerRecord {
