@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity >=0.5.13 <0.8.19;
 
-interface IChainlinkAdapterFactory {
+interface IChainlinkRelayerFactory {
   function sortedOracles() external returns (address);
 
   function deployRelayer(address rateFeedId, address chainlinkAggregator) external returns (address);

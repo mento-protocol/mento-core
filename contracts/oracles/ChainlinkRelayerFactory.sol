@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.18;
 
-import "./ChainlinkAdapter.sol";
-import "../interfaces/IChainlinkAdapterFactory.sol";
+import "./ChainlinkRelayerV1.sol";
+import "../interfaces/IChainlinkRelayerFactory.sol";
 
 /**
- * @title ChainlinkAdapterFactory
- * @notice The ChainlinkAdapterFactory creates and keeps track of
- * ChainlinkAdapters.
+ * @title ChainlinkRelayerFactory
+ * @notice The ChainlinkRelayerFactory creates and keeps track of
+ * ChainlinkRelayers.
  * TODO: choose a proxy implementation and make this contract upgradeable
  * TODO: make this contract ownable
  */
-contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
+contract ChainlinkRelayerFactory is IChainlinkRelayerFactory {
   address public sortedOracles;
-  mapping(address => ChainlinkAdapter) deployedRelayers;
+  mapping(address => ChainlinkRelayerV1) deployedRelayers;
   address[] public rateFeeds;
 
   struct RelayerRecord {
-    ChainlinkAdapter deployedRelayer;
+    ChainlinkRelayerV1 deployedRelayer;
     uint8 version;
   }
 
@@ -47,17 +47,17 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
     }
 
     bytes32 salt = getSalt();
-    ChainlinkAdapter adapter = new ChainlinkAdapter{ salt: salt }(rateFeedId, sortedOracles, chainlinkAggregator);
+    ChainlinkRelayerV1 relayer = new ChainlinkRelayerV1{ salt: salt }(rateFeedId, sortedOracles, chainlinkAggregator);
 
-    if (address(adapter) != expectedAddress) {
-      revert UnexpectedAddress(expectedAddress, address(adapter));
+    if (address(relayer) != expectedAddress) {
+      revert UnexpectedAddress(expectedAddress, address(relayer));
     }
 
-    deployedRelayers[rateFeedId] = adapter;
+    deployedRelayers[rateFeedId] = relayer;
     rateFeeds.push(rateFeedId);
 
-    emit RelayerDeployed(address(adapter), rateFeedId, chainlinkAggregator);
-    return address(adapter);
+    emit RelayerDeployed(address(relayer), rateFeedId, chainlinkAggregator);
+    return address(relayer);
   }
 
   function removeRelayer(address rateFeedId) public {
@@ -103,7 +103,7 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
     // For now we're using CREATE2, so a constant salt is enough, as all the
     // data we want to use for the address salt are included in the init
     // code and constructor arguments.
-    return keccak256("mento.chainlinkAdapter");
+    return keccak256("mento.chainlinkRelayer");
   }
 
   function computedRelayerAddress(address rateFeedId, address chainlinkAggregator) public returns (address) {
@@ -119,7 +119,7 @@ contract ChainlinkAdapterFactory is IChainlinkAdapterFactory {
                 salt,
                 keccak256(
                   abi.encodePacked(
-                    type(ChainlinkAdapter).creationCode,
+                    type(ChainlinkRelayerV1).creationCode,
                     abi.encode(rateFeedId, sortedOracles, chainlinkAggregator)
                   )
                 )
