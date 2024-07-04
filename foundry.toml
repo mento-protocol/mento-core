@@ -15,7 +15,7 @@ via_ir = true
 
 [profile.ci]
 fuzz_runs = 1_000
-verbosity = 4
+verbosity = 3
 
 [profile.fork-tests]
 no_match_contract = "_random" # in order to reset the no_match_contract
