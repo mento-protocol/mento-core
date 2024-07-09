@@ -16,11 +16,6 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory {
   mapping(address => ChainlinkRelayerV1) public deployedRelayers;
   address[] public rateFeeds;
 
-  struct RelayerRecord {
-    ChainlinkRelayerV1 deployedRelayer;
-    uint8 version;
-  }
-
   event RelayerDeployed(address indexed relayerAddress, address indexed rateFeedId, address indexed aggregator);
   event RelayerRemoved(address indexed rateFeedId, address indexed relayerAddress);
 
