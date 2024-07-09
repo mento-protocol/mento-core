@@ -43,7 +43,7 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
                 salt,
                 keccak256(
                   abi.encodePacked(
-                    vm.getCode(factory.contractPath("ChainlinkRelayer")),
+                    vm.getCode(factory.contractPath("ChainlinkRelayerV1")),
                     abi.encode(rateFeedId, sortedOracles, chainlinkAggregator)
                   )
                 )
