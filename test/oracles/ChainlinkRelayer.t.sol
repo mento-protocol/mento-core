@@ -20,6 +20,7 @@ contract ChainlinkRelayerTest is BaseTest {
   int256 aPrice = 420000000;
   uint256 expectedReport = 4200000000000000000000000;
   uint256 aReport = 4100000000000000000000000;
+  uint256 expirySeconds = 600;
 
   function setUp() public {
     sortedOracles = new SortedOracles(true);
@@ -31,6 +32,7 @@ contract ChainlinkRelayerTest is BaseTest {
       )
     );
     sortedOracles.addOracle(rateFeedId, address(relayer));
+    sortedOracles.setTokenReportExpiry(rateFeedId, expirySeconds);
   }
 }
 
@@ -73,7 +75,7 @@ contract ChainlinkRelayerTest_relay is ChainlinkRelayerTest {
   }
 
   function test_revertsOnNegativePrice() public {
-    chainlinkAggregator.setRoundData(-1 * aPrice, uint256(1337));
+    chainlinkAggregator.setRoundData(-1 * aPrice, block.timestamp);
     vm.expectRevert(NEGATIVE_PRICE_ERROR);
     relayer.relay();
   }
@@ -99,9 +101,15 @@ contract ChainlinkRelayerTest_relay is ChainlinkRelayerTest {
   function test_revertsOnExpiredTimestamp() public {
     vm.prank(address(relayer));
     sortedOracles.report(rateFeedId, aReport, address(0), address(0));
-    uint256 expiry = sortedOracles.getTokenReportExpirySeconds(rateFeedId);
     chainlinkAggregator.setRoundData(aPrice, block.timestamp + 1);
-    vm.warp(block.timestamp + expiry + 1);
+    vm.warp(block.timestamp + expirySeconds + 1);
+    vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
+  function test_revertsWhenFirstTimestampIsExpired() public {
+    chainlinkAggregator.setRoundData(aPrice, block.timestamp);
+    vm.warp(block.timestamp + expirySeconds);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
     relayer.relay();
   }
