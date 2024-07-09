@@ -103,10 +103,10 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       if (timestamp <= lastTimestamp) {
         revert TimestampNotNew();
       }
+    }
 
-      if (isTimestampExpired(timestamp)) {
-        revert ExpiredTimestamp();
-      }
+    if (isTimestampExpired(timestamp)) {
+      revert ExpiredTimestamp();
     }
 
     if (price < 0) {
