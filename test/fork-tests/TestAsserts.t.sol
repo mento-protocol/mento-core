@@ -13,22 +13,18 @@ import { Utils } from "./Utils.t.sol";
 import { IERC20Metadata } from "contracts/common/interfaces/IERC20Metadata.sol";
 import { FixidityLib } from "contracts/common/FixidityLib.sol";
 import { IBreaker } from "contracts/interfaces/IBreaker.sol";
+import { ITradingLimits } from "contracts/libraries/ITradingLimits.sol";
 
 import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
-import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
 import { WithCooldown } from "contracts/oracles/breakers/WithCooldown.sol";
 import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
 import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
 
 contract TestAsserts is Test {
   using Utils for Utils.Context;
-  using Utils for TradingLimits.Config;
-  using Utils for TradingLimits.State;
   using Utils for uint8;
   using Utils for uint256;
   using SafeMath for uint256;
-  using TradingLimits for TradingLimits.State;
-  using TradingLimits for TradingLimits.Config;
   using FixidityLib for FixidityLib.Fraction;
 
   uint8 private constant L0 = 1; // 0b001 Limit0
@@ -106,8 +102,8 @@ contract TestAsserts is Test {
     address to,
     uint8 limit
   ) internal {
-    TradingLimits.Config memory fromLimitConfig = ctx.tradingLimitsConfig(from);
-    TradingLimits.Config memory toLimitConfig = ctx.tradingLimitsConfig(to);
+    ITradingLimits.Config memory fromLimitConfig = ctx.tradingLimitsConfig(from);
+    ITradingLimits.Config memory toLimitConfig = ctx.tradingLimitsConfig(to);
     console.log(
       string(abi.encodePacked("Swapping ", IERC20Metadata(from).symbol(), " -> ", IERC20Metadata(to).symbol())),
       "with limit",
@@ -115,13 +111,13 @@ contract TestAsserts is Test {
     );
     console.log("========================================");
 
-    if (fromLimitConfig.isLimitEnabled(limit) && toLimitConfig.isLimitEnabled(limit)) {
+    if (Utils.isLimitEnabled(fromLimitConfig, limit) && Utils.isLimitEnabled(toLimitConfig, limit)) {
       // TODO: Figure out best way to implement fork tests
       // when two limits are configured.
       console.log("Both Limits enabled skipping for now");
-    } else if (fromLimitConfig.isLimitEnabled(limit)) {
+    } else if (Utils.isLimitEnabled(fromLimitConfig, limit)) {
       assert_swapOverLimitFails_onInflow(ctx, from, to, limit);
-    } else if (toLimitConfig.isLimitEnabled(limit)) {
+    } else if (Utils.isLimitEnabled(toLimitConfig, limit)) {
       assert_swapOverLimitFails_onOutflow(ctx, from, to, limit);
     }
   }
@@ -151,10 +147,10 @@ contract TestAsserts is Test {
       revert("Invalid limit");
     }
 
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
-    TradingLimits.State memory limitState = ctx.tradingLimitsState(from);
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    ITradingLimits.State memory limitState = ctx.tradingLimitsState(from);
 
-    uint256 inflowRequiredUnits = uint256(limitConfig.getLimit(limit) - limitState.getNetflow(limit)) + 1;
+    uint256 inflowRequiredUnits = uint256(Utils.getLimit(limitConfig, limit) - Utils.getNetflow(limitState, limit)) + 1;
     console.log("Inflow required to pass limit: ", inflowRequiredUnits);
     assert_swapInFails(ctx, from, to, inflowRequiredUnits.toSubunits(from), limit.revertReason());
   }
@@ -185,10 +181,11 @@ contract TestAsserts is Test {
       revert("Invalid limit");
     }
 
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.tradingLimitsState(to);
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    ITradingLimits.State memory limitState = ctx.tradingLimitsState(to);
 
-    uint256 outflowRequiredUnits = uint256(limitConfig.getLimit(limit) + limitState.getNetflow(limit)) + 1;
+    uint256 outflowRequiredUnits = uint256(Utils.getLimit(limitConfig, limit) + Utils.getNetflow(limitState, limit)) +
+      1;
     console.log("Outflow required: ", outflowRequiredUnits);
     assert_swapOutFails(ctx, from, to, outflowRequiredUnits.toSubunits(to), limit.revertReason());
   }
@@ -205,7 +202,7 @@ contract TestAsserts is Test {
      * of the limit because `from` flows into the reserve.
      */
 
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
     console.log("🏷️ [%d] Swap until L0=%d on inflow", block.timestamp, uint256(limitConfig.limit0));
     uint256 maxPossible;
     uint256 maxPossibleUntilLimit;
@@ -233,8 +230,8 @@ contract TestAsserts is Test {
      * during inflow on `from`, therfore we check the positive end
      * of the limit because `from` flows into the reserve.
      */
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
-    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
     console.log("🏷️ [%d] Swap until L1=%d on inflow", block.timestamp, uint256(limitConfig.limit1));
     int48 maxPerSwap = limitConfig.limit0;
     while (limitState.netflow1 + maxPerSwap <= limitConfig.limit1) {
@@ -260,11 +257,11 @@ contract TestAsserts is Test {
      * during inflow on `from`, therfore we check the positive end
      * of the limit because `from` flows into the reserve.
      */
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
-    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
     console.log("🏷️ [%d] Swap until LG=%d on inflow", block.timestamp, uint256(limitConfig.limitGlobal));
 
-    if (limitConfig.isLimitEnabled(L1)) {
+    if (Utils.isLimitEnabled(limitConfig, L1)) {
       int48 maxPerSwap = limitConfig.limit0;
       while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
@@ -273,7 +270,7 @@ contract TestAsserts is Test {
         limitState = ctx.tradingLimitsState(from);
       }
       skip(limitConfig.timestep1 + 1);
-    } else if (limitConfig.isLimitEnabled(L0)) {
+    } else if (Utils.isLimitEnabled(limitConfig, L0)) {
       int48 maxPerSwap = limitConfig.limit0;
       while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
@@ -297,7 +294,7 @@ contract TestAsserts is Test {
      * of the limit because `to` flows out of the reserve.
      */
 
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     console.log("🏷️ [%d] Swap until L0=%d on outflow", block.timestamp, uint256(limitConfig.limit0));
     uint256 maxPossible;
     uint256 maxPossibleUntilLimit;
@@ -325,8 +322,8 @@ contract TestAsserts is Test {
      * during outflow on `to`, therfore we check the negative end
      * of the limit because `to` flows out of the reserve.
      */
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
     console.log("🏷️ [%d] Swap until L1=%d on outflow", block.timestamp, uint256(limitConfig.limit1));
     int48 maxPerSwap = limitConfig.limit0;
@@ -356,11 +353,11 @@ contract TestAsserts is Test {
      * during outflow on `to`, therfore we check the negative end
      * of the limit because `to` flows out of the reserve.
      */
-    TradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    TradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
     console.log("🏷️ [%d] Swap until LG=%d on outflow", block.timestamp, uint256(limitConfig.limitGlobal));
 
-    if (limitConfig.isLimitEnabled(L1)) {
+    if (Utils.isLimitEnabled(limitConfig, L1)) {
       int48 maxPerSwap = limitConfig.limit0;
       while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
@@ -370,7 +367,7 @@ contract TestAsserts is Test {
         limitState = ctx.tradingLimitsState(to);
       }
       skip(limitConfig.timestep1 + 1);
-    } else if (limitConfig.isLimitEnabled(L0)) {
+    } else if (Utils.isLimitEnabled(limitConfig, L0)) {
       int48 maxPerSwap = limitConfig.limit0;
       while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);

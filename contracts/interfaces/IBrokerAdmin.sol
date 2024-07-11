@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity >=0.5.13 <0.8.19;
+pragma experimental ABIEncoderV2;
+
+import { ITradingLimits } from "../libraries/ITradingLimits.sol";
 
 /*
  * @title Broker Admin Interface
@@ -20,11 +23,25 @@ interface IBrokerAdmin {
   event ExchangeProviderRemoved(address indexed exchangeProvider);
 
   /**
-   * @notice Emitted when the reserve is updated.
-   * @param newAddress The new address.
-   * @param prevAddress The previous address.
+   * @notice Emitted when the reserve is updated for an ExchangeProvider.
+   * @param exchangeProvider The address of the ExchangeProvider.
+   * @param reserve The address of the reserve.
    */
-  event ReserveSet(address indexed newAddress, address indexed prevAddress);
+  event ReserveSet(address indexed exchangeProvider, address indexed reserve);
+
+  /**
+   * @notice Emitted when a new trading limit is configured.
+   * @param exchangeId the exchangeId to target.
+   * @param token the token to target.
+   * @param config the new trading limits config.
+   */
+  event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimits.Config config);
+
+  function configureTradingLimit(
+    bytes32 exchangeId,
+    address token,
+    ITradingLimits.Config calldata config
+  ) external;
 
   /**
    * @notice Remove an ExchangeProvider at a specified index.
@@ -38,11 +55,12 @@ interface IBrokerAdmin {
    * @param exchangeProvider The address of the ExchangeProvider to add.
    * @return index The index where the ExchangeProvider was inserted.
    */
-  function addExchangeProvider(address exchangeProvider) external returns (uint256 index);
+  function addExchangeProvider(address exchangeProvider, address reserve) external returns (uint256 index);
 
   /**
-   * @notice Set the Mento reserve address.
-   * @param reserve The Mento reserve address.
+   * @notice Sets the reserve addresses for the exchange providers.
+   * @param _exchangeProviders The addresses of the exchange providers.
+   * @param _reserves The addresses of the reserves.
    */
-  function setReserve(address reserve) external;
+  function setReserves(address[] calldata _exchangeProviders, address[] calldata _reserves) external;
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.5.13 <0.8.19;
+pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
+
+import { ITradingLimits } from "contracts/libraries/ITradingLimits.sol";
 
 /*
  * @title Broker Interface for trader functions
@@ -28,25 +30,16 @@ interface IBroker {
   );
 
   /**
-   * @notice Initialize the broker with the exchange providers and reserves.
-   * @param _exchangeProviders The addresses of the exchange providers.
-   * @param _reserves The addresses of the reserves.
+   * @notice Emitted when a new trading limit is configured.
+   * @param exchangeId the exchangeId to target.
+   * @param token the token to target.
+   * @param config the new trading limits config.
    */
-  function initialize(address[] calldata _exchangeProviders, address[] calldata _reserves) external;
+  event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimits.Config config);
 
-  /**
-   * @notice returns whether an exchange provider is registered.
-   * @param exchangeProvider the address of the exchange provider.
-   * @return isExchangeProvider true if the exchange provider is registered.
-   */
-  function isExchangeProvider(address exchangeProvider) external view returns (bool);
+  function initialize(address[] calldata _exchangeProviders, address _reserve) external;
 
-  /**
-   * @notice returns the reserve address for an exchange provider.
-   * @param exchangeProvider the address of the exchange provider.
-   * @return reserve the address of the reserve.
-   */
-  function exchangeReserve(address exchangeProvider) external view returns (address);
+  function reserve() external view returns (address);
 
   /**
    * @notice Execute a token swap with fixed amountIn.
