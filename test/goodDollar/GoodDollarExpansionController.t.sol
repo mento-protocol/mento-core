@@ -23,11 +23,13 @@ contract GoodDollarExpansionControllerTest is Test {
 
   event AvatarUpdated(address indexed avatar);
 
-  event ExpansionConfigSet(bytes32 indexed exchangeId, uint256 expansionRate, uint256 expansionfrequency);
+  event ExpansionConfigSet(bytes32 indexed exchangeId, uint64 expansionRate, uint32 expansionfrequency);
 
   event RewardMinted(bytes32 indexed exchangeId, address indexed to, uint256 amount);
 
-  event UBIMinted(bytes32 indexed exchangeId, uint256 amount);
+  event InterestUBIMinted(bytes32 indexed exchangeId, uint256 amount);
+
+  event ExpansionUBIMinted(bytes32 indexed exchangeId, uint256 amount);
 
   /* ------------------------------------------- */
 
@@ -41,8 +43,8 @@ contract GoodDollarExpansionControllerTest is Test {
 
   bytes32 exchangeId = "ExchangeId";
 
-  uint256 expansionRate = 1e18 * 0.01;
-  uint256 expansionFrequency = 1 days;
+  uint64 expansionRate = 1e18 * 0.01;
+  uint32 expansionFrequency = uint32(1 days);
 
   function setUp() public virtual {
     reserveToken = new ERC20Mock("cUSD", "cUSD", address(this), 1);
@@ -280,7 +282,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromInterest is GoodDollarExpa
     reserveToken.approve(address(expansionController), reserveInterest);
 
     vm.expectEmit(true, true, true, true);
-    emit UBIMinted(exchangeId, amountToMint);
+    emit InterestUBIMinted(exchangeId, amountToMint);
     expansionController.mintUBIFromInterest(exchangeId, reserveInterest);
 
     assertEq(reserveToken.balanceOf(reserveAddress), reserveBalanceBefore + reserveInterest);
@@ -336,7 +338,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromReserveBalance is GoodDoll
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
     vm.expectEmit(true, true, true, true);
-    emit UBIMinted(exchangeId, amountToMint);
+    emit InterestUBIMinted(exchangeId, amountToMint);
     uint256 amountMinted = expansionController.mintUBIFromReserveBalance(exchangeId);
 
     assertEq(amountMinted, amountToMint);
@@ -412,7 +414,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
     vm.expectEmit(true, true, true, true);
-    emit UBIMinted(exchangeId, amountToMint);
+    emit ExpansionUBIMinted(exchangeId, amountToMint);
 
     vm.expectCall(
       exchangeProvider,
@@ -450,7 +452,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
     vm.expectEmit(true, true, true, true);
-    emit UBIMinted(exchangeId, amountToMint);
+    emit ExpansionUBIMinted(exchangeId, amountToMint);
 
     vm.expectCall(
       exchangeProvider,
@@ -487,7 +489,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
     vm.expectEmit(true, true, true, true);
-    emit UBIMinted(exchangeId, amountToMint);
+    emit ExpansionUBIMinted(exchangeId, amountToMint);
 
     vm.expectCall(
       exchangeProvider,
@@ -527,7 +529,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
     vm.expectEmit(true, true, true, true);
-    emit UBIMinted(exchangeId, amountToMint);
+    emit ExpansionUBIMinted(exchangeId, amountToMint);
 
     vm.expectCall(
       exchangeProvider,

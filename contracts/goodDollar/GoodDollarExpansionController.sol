@@ -145,8 +145,8 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
    */
   function setExpansionConfig(
     bytes32 exchangeId,
-    uint256 expansionRate,
-    uint256 expansionFrequency
+    uint64 expansionRate,
+    uint32 expansionFrequency
   ) external onlyAvatar {
     require(expansionRate < MAX_WEIGHT, "Expansion rate must be less than 100%");
     require(expansionRate > 0, "Expansion rate must be greater than 0");
@@ -172,7 +172,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
     require(IERC20(exchange.reserveAsset).transferFrom(msg.sender, reserve, reserveInterest), "Transfer failed");
     IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountToMint);
-    emit UBIMinted(exchangeId, amountToMint);
+    emit InterestUBIMinted(exchangeId, amountToMint);
   }
 
   /**
@@ -190,7 +190,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
       amountMinted = goodDollarExchangeProvider.mintFromInterest(exchangeId, additionalReserveBalance);
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
 
-      emit UBIMinted(exchangeId, amountMinted);
+      emit InterestUBIMinted(exchangeId, amountMinted);
     }
   }
 
@@ -218,12 +218,12 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
       uint256 stepExpansionScaler = MAX_WEIGHT - config.expansionRate;
       uint256 expansionScaler = unwrap(powu(wrap(stepExpansionScaler), numberOfExpansions));
 
-      exchangeExpansionConfigs[exchangeId].lastExpansion = block.timestamp;
+      exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(block.timestamp);
       amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, expansionScaler);
 
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
       distributionHelper.onDistribution(amountMinted);
-      emit UBIMinted(exchangeId, amountMinted);
+      emit ExpansionUBIMinted(exchangeId, amountMinted);
     }
   }
 

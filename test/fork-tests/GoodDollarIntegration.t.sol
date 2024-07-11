@@ -154,8 +154,8 @@ contract GoodDollarIntegrationTest is Test {
   }
 
   function configureExpansionController() public {
-    uint256 expansionRate = 1e18 * 0.001;
-    uint256 expansionFrequency = 1 days;
+    uint64 expansionRate = uint64(1e18 * 0.001);
+    uint32 expansionFrequency = uint32(1 days);
 
     expansionController.initialize(address(exchangeProvider), distributionHelper, address(reserve), avatar);
     vm.prank(avatar);

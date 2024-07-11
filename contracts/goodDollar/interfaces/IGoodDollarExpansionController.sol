@@ -5,14 +5,14 @@ pragma experimental ABIEncoderV2;
 interface IGoodDollarExpansionController {
   /**
    * @notice Struct holding the configuration for the expansion of an exchange.
-   * @param expansionRate The rate of expansion.
-   * @param expansionfrequency The frequency of expansion.
-   * @param lastExpansion The last time expansion was done.
+   * @param expansionRate The rate of expansion in percentage with 1e18 being 100%.
+   * @param expansionfrequency The frequency of expansion in seconds.
+   * @param lastExpansion The last timestamp an expansion was done.
    */
   struct ExchangeExpansionConfig {
-    uint256 expansionRate;
-    uint256 expansionFrequency;
-    uint256 lastExpansion;
+    uint64 expansionRate;
+    uint32 expansionFrequency;
+    uint32 lastExpansion;
   }
 
   /* ------- Events ------- */
@@ -47,7 +47,7 @@ interface IGoodDollarExpansionController {
    * @param expansionRate The rate of expansion.
    * @param expansionfrequency The frequency of expansion.
    */
-  event ExpansionConfigSet(bytes32 indexed exchangeId, uint256 expansionRate, uint256 expansionfrequency);
+  event ExpansionConfigSet(bytes32 indexed exchangeId, uint64 expansionRate, uint32 expansionfrequency);
 
   /**
    * @notice Emitted when a reward is minted.
@@ -58,11 +58,18 @@ interface IGoodDollarExpansionController {
   event RewardMinted(bytes32 indexed exchangeId, address indexed to, uint256 amount);
 
   /**
-   * @notice Emitted when UBI is minted.
+   * @notice Emitted when UBI is minted through collecting reserve interest.
    * @param exchangeId The id of the exchange.
    * @param amount Amount of tokens minted.
    */
-  event UBIMinted(bytes32 indexed exchangeId, uint256 amount);
+  event InterestUBIMinted(bytes32 indexed exchangeId, uint256 amount);
+
+  /**
+   * @notice Emitted when UBI is minted through expansion.
+   * @param exchangeId The id of the exchange.
+   * @param amount Amount of tokens minted.
+   */
+  event ExpansionUBIMinted(bytes32 indexed exchangeId, uint256 amount);
 
   /* ------- Functions ------- */
 
@@ -112,8 +119,8 @@ interface IGoodDollarExpansionController {
    */
   function setExpansionConfig(
     bytes32 exchangeId,
-    uint256 expansionRate,
-    uint256 expansionFrequency
+    uint64 expansionRate,
+    uint32 expansionFrequency
   ) external;
 
   /**
