@@ -14,9 +14,9 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   IChainlinkRelayerFactory relayerFactory;
   address owner = actor("owner");
   address nonOwner = actor("nonOwner");
-  address mockSortedOracles = address(0x1337);
-  address[3] mockAggregators = [address(0xcafe), address(0xc0ffee), address(0xdecaf)];
-  address[3] rateFeeds = [address(0xbeef), address(0xbee5), address(0xca75)];
+  address mockSortedOracles = actor("sortedOracles");
+  address[3] mockAggregators = [actor("aggreagotor1"), actor("aggreagotor2"), actor("aggreagotor3")];
+  address[3] rateFeeds = [actor("rateFeed1"), actor("rateFeed2"), actor("rateFeed3")];
   address mockAggregator = mockAggregators[0];
   address aRateFeed = rateFeeds[0];
 

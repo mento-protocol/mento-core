@@ -16,7 +16,7 @@ contract ChainlinkRelayerTest is BaseTest {
   SortedOracles sortedOracles;
   MockAggregatorV3 chainlinkAggregator;
   IChainlinkRelayer relayer;
-  address rateFeedId = address(0xbeef);
+  address rateFeedId = actor("rateFeed");
   int256 aPrice = 420000000;
   uint256 expectedReport = 4200000000000000000000000;
   uint256 aReport = 4100000000000000000000000;
