@@ -91,7 +91,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * will fetch prices.
    * @return The address of the newly deployed relayer contract.
    */
-  function deployRelayer(address rateFeedId, address chainlinkAggregator) public returns (address) {
+  function deployRelayer(address rateFeedId, address chainlinkAggregator) public onlyOwner returns (address) {
     address expectedAddress = computedRelayerAddress(rateFeedId, chainlinkAggregator);
 
     if (address(deployedRelayers[rateFeedId]) == expectedAddress || expectedAddress.code.length > 0) {
@@ -120,7 +120,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @notice Removes a relayer from the list of deployed relayers.
    * @param rateFeedId The rate feed whose relayer should be removed.
    */
-  function removeRelayer(address rateFeedId) public {
+  function removeRelayer(address rateFeedId) public onlyOwner {
     address relayerAddress = address(deployedRelayers[rateFeedId]);
 
     if (relayerAddress == address(0)) {
@@ -151,7 +151,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * version of the relayer will fetch prices from.
    * @return The address of the newly deployed relayer contract.
    */
-  function redeployRelayer(address rateFeedId, address chainlinkAggregator) external returns (address) {
+  function redeployRelayer(address rateFeedId, address chainlinkAggregator) external onlyOwner returns (address) {
     removeRelayer(rateFeedId);
     return deployRelayer(rateFeedId, chainlinkAggregator);
   }
