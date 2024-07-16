@@ -4,12 +4,16 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
+import "openzeppelin-contracts/ownership/Ownable.sol";
+
 import "../utils/BaseTest.t.sol";
 import "contracts/interfaces/IChainlinkRelayerFactory.sol";
 import "contracts/interfaces/IChainlinkRelayer.sol";
 
 contract ChainlinkRelayerFactoryTest is BaseTest {
   IChainlinkRelayerFactory relayerFactory;
+  address owner = actor("owner");
+  address nonOwner = actor("nonOwner");
   address mockSortedOracles = address(0x1337);
   address[3] mockAggregators = [address(0xcafe), address(0xc0ffee), address(0xdecaf)];
   address[3] rateFeeds = [address(0xbeef), address(0xbee5), address(0xca75)];
@@ -20,9 +24,9 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   event RelayerRemoved(address indexed rateFeedId, address indexed relayerAddress);
 
   function setUp() public {
-    relayerFactory = IChainlinkRelayerFactory(
-      factory.createContract("ChainlinkRelayerFactory", abi.encode(mockSortedOracles))
-    );
+    relayerFactory = IChainlinkRelayerFactory(factory.createContract("ChainlinkRelayerFactory", abi.encode(false)));
+    vm.prank(owner);
+    relayerFactory.initialize(mockSortedOracles);
   }
 
   function expectedRelayerAddress(
@@ -71,10 +75,45 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   }
 }
 
-contract ChainlinkRelayerFactoryTest_constructor is ChainlinkRelayerFactoryTest {
+contract ChainlinkRelayerFactoryTest_initialize is ChainlinkRelayerFactoryTest {
   function test_setsSortedOracles() public {
     address realSortedOracles = relayerFactory.sortedOracles();
     assertEq(realSortedOracles, mockSortedOracles);
+  }
+
+  function test_setsOwner() public {
+    address realOwner = Ownable(address(relayerFactory)).owner();
+    assertEq(realOwner, owner);
+  }
+}
+
+contract ChainlinkRelayerFactoryTest_transferOwnership is ChainlinkRelayerFactoryTest {
+  function test_setsNewOwner() public {
+    vm.prank(owner);
+    Ownable(address(relayerFactory)).transferOwnership(nonOwner);
+    address realOwner = Ownable(address(relayerFactory)).owner();
+    assertEq(realOwner, nonOwner);
+  }
+
+  function test_failsWhenCalledByNonOwner() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(nonOwner);
+    Ownable(address(relayerFactory)).transferOwnership(nonOwner);
+  }
+}
+
+contract ChainlinkRelayerFactoryTest_renounceOwnership is ChainlinkRelayerFactoryTest {
+  function test_setsOwnerToZeroAddress() public {
+    vm.prank(owner);
+    Ownable(address(relayerFactory)).renounceOwnership();
+    address realOwner = Ownable(address(relayerFactory)).owner();
+    assertEq(realOwner, address(0));
+  }
+
+  function test_failsWhenCalledByNonOwner() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(nonOwner);
+    Ownable(address(relayerFactory)).renounceOwnership();
   }
 }
 

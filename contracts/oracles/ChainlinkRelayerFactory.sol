@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.18;
 
+import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+
 import "./ChainlinkRelayerV1.sol";
 import "../interfaces/IChainlinkRelayerFactory.sol";
 
@@ -11,7 +13,7 @@ import "../interfaces/IChainlinkRelayerFactory.sol";
  * TODO: choose a proxy implementation and make this contract upgradeable
  * TODO: make this contract ownable
  */
-contract ChainlinkRelayerFactory is IChainlinkRelayerFactory {
+contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable {
   /// @notice Address of the SortedOracles contract.
   address public sortedOracles;
   /// @notice Maps a rate feed ID to the relayer most recently deployed by this contract.
@@ -66,12 +68,19 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory {
    */
   error NoSuchRelayer(address rateFeedId);
 
+  constructor(bool disable) {
+    if (disable) {
+      _disableInitializers();
+    }
+  }
+
   /**
    * @notice Initializes the factory.
    * @param _sortedOracles The SortedOracles instance deployed relayers should
    * report to.
    */
-  constructor(address _sortedOracles) {
+  function initialize(address _sortedOracles) external initializer {
+    __Ownable_init();
     sortedOracles = _sortedOracles;
   }
 
