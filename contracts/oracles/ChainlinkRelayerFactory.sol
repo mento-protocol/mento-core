@@ -8,7 +8,6 @@ import { IChainlinkRelayerFactory } from "../interfaces/IChainlinkRelayerFactory
 /**
  * @title ChainlinkRelayerFactory
  * @notice The ChainlinkRelayerFactory creates and keeps track of ChainlinkRelayers.
- * TODO: choose a proxy implementation and make this contract upgradeable
  */
 contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable {
   /// @notice Address of the SortedOracles contract.
