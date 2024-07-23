@@ -21,6 +21,10 @@ verbosity = 3
 no_match_contract = "_random" # in order to reset the no_match_contract
 match_contract = "ForkTest"
 
+[profile.governance-fork-tests]
+no_match_contract = "_random" # in order to reset the no_match_contract
+match_contract = "GovernanceForkTest"
+
 [rpc_endpoints]
 celo_mainnet="${CELO_MAINNET_RPC_URL}"
 baklava="${BAKLAVA_RPC_URL}"
