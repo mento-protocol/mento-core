@@ -4,11 +4,10 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import "openzeppelin-contracts/ownership/Ownable.sol";
-
-import "../utils/BaseTest.t.sol";
-import "contracts/interfaces/IChainlinkRelayerFactory.sol";
-import "contracts/interfaces/IChainlinkRelayer.sol";
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { BaseTest } from "../utils/BaseTest.t.sol";
+import { IChainlinkRelayerFactory } from "contracts/interfaces/IChainlinkRelayerFactory.sol";
+import { IChainlinkRelayer } from "contracts/interfaces/IChainlinkRelayer.sol";
 
 contract ChainlinkRelayerFactoryTest is BaseTest {
   IChainlinkRelayerFactory relayerFactory;

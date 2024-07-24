@@ -4,10 +4,10 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import "../utils/BaseTest.t.sol";
-import "contracts/common/SortedOracles.sol";
-import "../mocks/MockAggregatorV3.sol";
-import "contracts/interfaces/IChainlinkRelayer.sol";
+import { BaseTest } from "../utils/BaseTest.t.sol";
+import { SortedOracles } from "contracts/common/SortedOracles.sol";
+import { MockAggregatorV3 } from "../mocks/MockAggregatorV3.sol";
+import { IChainlinkRelayer } from "contracts/interfaces/IChainlinkRelayer.sol";
 
 contract ChainlinkRelayerTest is BaseTest {
   bytes constant TIMESTAMP_NOT_NEW_ERROR = abi.encodeWithSignature("TimestampNotNew()");
