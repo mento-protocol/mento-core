@@ -1,26 +1,26 @@
-arrowParens: "avoid"
+arrowParens: avoid
 bracketSpacing: true
-endOfLine: "auto"
+endOfLine: auto
 printWidth: 120
 singleQuote: false
 tabWidth: 2
-trailingComma: "all"
+trailingComma: all
 
 overrides:
   - files: ["*.sol"]
     options:
-      compiler: "0.5.17"
+      compiler: 0.5.17
       tabWidth: 2
       printWidth: 120
-  - files: ["contracts/tokens/patched/*.sol"]
+  - files: [contracts/tokens/patched/*.sol]
     options:
-      compiler: "0.8.18"
-  - files: ["contracts/tokens/StableTokenV2.sol"]
+      compiler: 0.8.18
+  - files: [contracts/tokens/StableTokenV2.sol]
     options:
-      compiler: "0.8.18"
-  - files: ["contracts/governance/**/*.sol"]
+      compiler: 0.8.18
+  - files: [contracts/governance/**/*.sol]
     options:
-      compiler: "0.8.18"
-  - files: ["test/**/*.sol"]
+      compiler: 0.8.18
+  - files: [test/**/*.sol]
     options:
       compiler: ""
