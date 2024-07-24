@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
-// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, private-vars-leading-underscore
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase, one-contract-per-file
+pragma solidity ^0.5.17;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { BaseTest } from "../utils/BaseTest.t.sol";
@@ -14,13 +13,17 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   address owner = actor("owner");
   address nonOwner = actor("nonOwner");
   address mockSortedOracles = actor("sortedOracles");
-  address[3] mockAggregators = [actor("aggreagotor1"), actor("aggreagotor2"), actor("aggreagotor3")];
+  address[3] mockAggregators = [actor("aggregator1"), actor("aggregator2"), actor("aggregator3")];
   address[3] rateFeeds = [actor("rateFeed1"), actor("rateFeed2"), actor("rateFeed3")];
   address mockAggregator = mockAggregators[0];
   address aRateFeed = rateFeeds[0];
 
-  event RelayerDeployed(address indexed relayerAddress, address indexed rateFeedId, address indexed aggregator);
-  event RelayerRemoved(address indexed rateFeedId, address indexed relayerAddress);
+  event RelayerDeployed(
+    address indexed relayerAddress,
+    address indexed rateFeedId,
+    address indexed chainlinkAggregator
+  );
+  event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
 
   function setUp() public {
     relayerFactory = IChainlinkRelayerFactory(factory.createContract("ChainlinkRelayerFactory", abi.encode(false)));
@@ -33,7 +36,7 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
     address sortedOracles,
     address chainlinkAggregator,
     address relayerFactoryAddress
-  ) public returns (address) {
+  ) public returns (address expectedAddress) {
     bytes32 salt = keccak256("mento.chainlinkRelayer");
     return
       address(
@@ -57,20 +60,21 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
       );
   }
 
-  function relayerExistsError(
+  function contractAlreadyExistsError(
     address relayerAddress,
     address rateFeedId,
     address aggregator
-  ) public returns (bytes memory) {
-    return abi.encodeWithSignature("RelayerExists(address,address,address)", relayerAddress, rateFeedId, aggregator);
+  ) public pure returns (bytes memory ContractAlreadyExistsError) {
+    return
+      abi.encodeWithSignature("ContractAlreadyExists(address,address,address)", relayerAddress, rateFeedId, aggregator);
   }
 
-  function relayerForFeedExistsError(address rateFeedId) public returns (bytes memory) {
+  function relayerForFeedExistsError(address rateFeedId) public pure returns (bytes memory RelayerForFeedExistsError) {
     return abi.encodeWithSignature("RelayerForFeedExists(address)", rateFeedId);
   }
 
-  function noSuchRelayerError(address rateFeedId) public returns (bytes memory) {
-    return abi.encodeWithSignature("NoSuchRelayer(address)", rateFeedId);
+  function noRelayerForRateFeedId(address rateFeedId) public pure returns (bytes memory NoRelayerForRateFeedIdError) {
+    return abi.encodeWithSignature("NoRelayerForRateFeedId(address)", rateFeedId);
   }
 }
 
@@ -145,12 +149,12 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
     vm.prank(owner);
     address relayer = relayerFactory.deployRelayer(aRateFeed, mockAggregator);
 
-    address expectedAddress = expectedRelayerAddress(
-      aRateFeed,
-      mockSortedOracles,
-      mockAggregator,
-      address(relayerFactory)
-    );
+    address expectedAddress = expectedRelayerAddress({
+      rateFeedId: aRateFeed,
+      sortedOracles: mockSortedOracles,
+      chainlinkAggregator: mockAggregator,
+      relayerFactoryAddress: address(relayerFactory)
+    });
 
     assertEq(relayer, expectedAddress);
   }
@@ -162,8 +166,13 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
       mockAggregator,
       address(relayerFactory)
     );
+    // solhint-disable-next-line func-named-parameters
     vm.expectEmit(true, true, true, false, address(relayerFactory));
-    emit RelayerDeployed(expectedAddress, aRateFeed, mockAggregator);
+    emit RelayerDeployed({
+      relayerAddress: expectedAddress,
+      rateFeedId: aRateFeed,
+      chainlinkAggregator: mockAggregator
+    });
     vm.prank(owner);
     relayerFactory.deployRelayer(aRateFeed, mockAggregator);
   }
@@ -178,7 +187,7 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
   function test_revertsWhenDeployingTheSameRelayer() public {
     vm.prank(owner);
     address relayer = relayerFactory.deployRelayer(aRateFeed, mockAggregator);
-    vm.expectRevert(relayerExistsError(relayer, aRateFeed, mockAggregator));
+    vm.expectRevert(contractAlreadyExistsError(relayer, aRateFeed, mockAggregator));
     vm.prank(owner);
     relayerFactory.deployRelayer(aRateFeed, mockAggregator);
   }
@@ -274,25 +283,26 @@ contract ChainlinkRelayerFactoryTest_removeRelayer is ChainlinkRelayerFactoryTes
   }
 
   function test_emitsRelayerRemovedEvent() public {
+    // solhint-disable-next-line func-named-parameters
     vm.expectEmit(true, true, true, false, address(relayerFactory));
-    emit RelayerRemoved(aRateFeed, relayerAddress);
+    emit RelayerRemoved({ relayerAddress: relayerAddress, rateFeedId: aRateFeed });
     vm.prank(owner);
     relayerFactory.removeRelayer(aRateFeed);
   }
 
   function test_doesntRemoveOtherRelayers() public {
     vm.prank(owner);
-    address relayerAddress = relayerFactory.deployRelayer(rateFeeds[1], mockAggregators[1]);
+    address newRelayerAddress = relayerFactory.deployRelayer(rateFeeds[1], mockAggregators[1]);
     vm.prank(owner);
     relayerFactory.removeRelayer(aRateFeed);
     address[] memory relayers = relayerFactory.getRelayers();
 
     assertEq(relayers.length, 1);
-    assertEq(relayers[0], relayerAddress);
+    assertEq(relayers[0], newRelayerAddress);
   }
 
   function test_revertsOnNonexistentRelayer() public {
-    vm.expectRevert(noSuchRelayerError(rateFeeds[1]));
+    vm.expectRevert(noRelayerForRateFeedId(rateFeeds[1]));
     vm.prank(owner);
     relayerFactory.removeRelayer(rateFeeds[1]);
   }
@@ -352,16 +362,22 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
   }
 
   function test_emitsRelayerRemovedAndDeployedEvents() public {
-    address expectedAddress = expectedRelayerAddress(
-      aRateFeed,
-      mockSortedOracles,
-      mockAggregators[1],
-      address(relayerFactory)
-    );
+    address expectedAddress = expectedRelayerAddress({
+      rateFeedId: aRateFeed,
+      sortedOracles: mockSortedOracles,
+      chainlinkAggregator: mockAggregators[1],
+      relayerFactoryAddress: address(relayerFactory)
+    });
+    // solhint-disable-next-line func-named-parameters
     vm.expectEmit(true, true, true, false, address(relayerFactory));
-    emit RelayerRemoved(aRateFeed, oldAddress);
+    emit RelayerRemoved({ relayerAddress: oldAddress, rateFeedId: aRateFeed });
+    // solhint-disable-next-line func-named-parameters
     vm.expectEmit(true, true, true, false, address(relayerFactory));
-    emit RelayerDeployed(expectedAddress, aRateFeed, mockAggregators[1]);
+    emit RelayerDeployed({
+      relayerAddress: expectedAddress,
+      rateFeedId: aRateFeed,
+      chainlinkAggregator: mockAggregators[1]
+    });
     vm.prank(owner);
     relayerFactory.redeployRelayer(aRateFeed, mockAggregators[1]);
   }
@@ -374,7 +390,7 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
   }
 
   function test_revertsWhenDeployingTheSameExactRelayer() public {
-    vm.expectRevert(relayerExistsError(oldAddress, aRateFeed, mockAggregator));
+    vm.expectRevert(contractAlreadyExistsError(oldAddress, aRateFeed, mockAggregator));
     vm.prank(owner);
     relayerFactory.redeployRelayer(aRateFeed, mockAggregator);
   }

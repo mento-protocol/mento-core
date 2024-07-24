@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
-// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, private-vars-leading-underscore
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase, one-contract-per-file
+pragma solidity ^0.5.17;
 
 import { BaseTest } from "../utils/BaseTest.t.sol";
 import { SortedOracles } from "contracts/common/SortedOracles.sol";
