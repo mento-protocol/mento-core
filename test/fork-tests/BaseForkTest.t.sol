@@ -126,8 +126,8 @@ contract BaseForkTest is Test, TokenHelpers, TestAsserts {
     }
     require(exchanges.length > 0, "No exchanges found");
 
-    // The number of collateral assets 4 is hardcoded here [CELO, AxelarUSDC, EUROC, NativeUSDC]
-    for (uint256 i = 0; i < 4; i++) {
+    // The number of collateral assets 5 is hardcoded here [CELO, AxelarUSDC, EUROC, NativeUSDC, NativeUSDT]
+    for (uint256 i = 0; i < 5; i++) {
       address collateralAsset = reserve.collateralAssets(i);
       mint(collateralAsset, address(reserve), Utils.toSubunits(25_000_000, collateralAsset));
       console.log("Minting 25mil %s to reserve", IERC20Metadata(collateralAsset).symbol());
