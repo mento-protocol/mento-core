@@ -11,7 +11,9 @@ contract BaklavaForkTest is BaseForkTest(62320) {}
 contract BaklavaGoveranceForkTest is BaseGovernanceForkTest(62320) {}
 
 contract AlfajoresForkTest is BaseForkTest(44787) {}
+
 contract AlfajoresGoveranceForkTest is BaseGovernanceForkTest(44787) {}
 
 contract CeloMainnetForkTest is BaseForkTest(42220) {}
+
 contract CeloMainnetGoveranceForkTest is BaseGovernanceForkTest(42220) {}

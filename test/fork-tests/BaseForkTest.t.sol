@@ -44,12 +44,9 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
  * in the system, therfore each test should.
  */
 contract BaseForkTest is MentoFork {
+  constructor(uint256 _targetChainId) public MentoFork(_targetChainId) {}
 
-  constructor(uint256 _targetChainId) public MentoFork(_targetChainId) {
-  }
-
-  function setUp() public {
-  }
+  function setUp() public {}
 
   function test_biPoolManagerCanNotBeReinitialized() public {
     BiPoolManager biPoolManager = BiPoolManager(broker.getExchangeProviders()[0]);

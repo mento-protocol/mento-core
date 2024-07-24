@@ -17,12 +17,9 @@ import { console } from "forge-std/console.sol";
  * in the system, therfore each test should.
  */
 contract BaseGovernanceForkTest is MentoFork {
-
-  constructor(uint256 _targetChainId) public MentoFork(_targetChainId) {
-  }
+  constructor(uint256 _targetChainId) public MentoFork(_targetChainId) {}
 
   function setUp() public {
     console.log("Goverance firing for", targetChainId);
   }
-
 }
