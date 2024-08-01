@@ -70,6 +70,14 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    */
   error NoRelayerForRateFeedId(address rateFeedId);
 
+  /**
+   * @notice Constructor for the logic contract.
+   * @param disable If `true`, disables the initializer.
+   * @dev This contract is meant to be deployed with an upgradeable proxy in
+   * front of it. Set `disable` to `true` in production environments to disable
+   * contract initialization on the logic contract, only allowing initialization
+   * on the proxy.
+   */
   constructor(bool disable) {
     if (disable) {
       _disableInitializers();
