@@ -4,11 +4,13 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
-import "openzeppelin-contracts/ownership/Ownable.sol";
+import { Ownable } from "openzeppelin-contracts/ownership/Ownable.sol";
 
 import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
+import { MockAggregatorV3} from "../mocks/MockAggregatorV3.sol";
 
 import { IChainlinkRelayerFactory } from "contracts/interfaces/IChainlinkRelayerFactory.sol";
+import { IChainlinkRelayer } from "contracts/interfaces/IChainlinkRelayer.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 import { ITransparentProxy } from "contracts/interfaces/ITransparentProxy.sol";
 
