@@ -38,7 +38,7 @@ contract Factory {
     return addr;
   }
 
-  function contractPath(string memory _contract) public returns (string memory) {
+  function contractPath(string memory _contract) public pure returns (string memory) {
     return string(abi.encodePacked("out/", _contract, ".sol", "/", _contract, ".json"));
   }
 
