@@ -6,7 +6,7 @@ interface IChainlinkRelayer {
 
   function sortedOracles() external returns (address);
 
-  function chainlinkAggregator() external returns (address);
+  function pricePath() external returns (address[] memory, bool[] memory);
 
   function relay() external;
 }

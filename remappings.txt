@@ -5,3 +5,4 @@ ds-test/=lib/celo-foundry/lib/forge-std/lib/ds-test/src/
 test/=test/
 contracts/=contracts/
 safe-contracts/=lib/safe-contracts/
+@prb/math/=lib/prb-math/

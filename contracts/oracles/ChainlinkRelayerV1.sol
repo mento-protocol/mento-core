@@ -3,6 +3,7 @@ pragma solidity ^0.8.18;
 
 import "../interfaces/IChainlinkRelayer.sol";
 import "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol";
+import { UD60x18, ud, intoUint256 } from "@prb/math/src/UD60x18.sol";
 
 /**
  * @notice The minimal subset of the SortedOracles interface needed by the
@@ -12,12 +13,7 @@ import "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol
  * See https://github.com/mento-protocol/mento-core/blob/develop/contracts/common/SortedOracles.sol
  */
 interface ISortedOraclesMin {
-  function report(
-    address rateFeedId,
-    uint256 value,
-    address lesserKey,
-    address greaterKey
-  ) external;
+  function report(address rateFeedId, uint256 value, address lesserKey, address greaterKey) external;
 
   function medianTimestamp(address rateFeedId) external view returns (uint256);
 
@@ -29,7 +25,7 @@ interface ISortedOraclesMin {
  * @notice The ChainlinkRelayer relays rate feed data from a Chainlink price feed to
  * the SortedOracles contract. A separate instance should be deployed for each
  * rate feed.
- * @dev Assumes that it itself is the only reporter for the given SortedOracles
+ * @dev Assumes that it itself is the only reporter 3or the given SortedOracles
  * feed.
  */
 contract ChainlinkRelayerV1 is IChainlinkRelayer {
@@ -44,10 +40,24 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /// @notice The address of the SortedOracles contract to report to.
   address public immutable sortedOracles;
   /**
-   * @notice The address of the Chainlink aggregator this contract fetches
-   * data from.
+   * @notice The addresses and invert settings of the Chainlink aggregator this
+   * contract fetches data from, it's limited to 4 potential path segments,
+   * because we can't have dynamic types as immutable, and it's not worth the gas
+   * to do it this way.
    */
-  address public immutable chainlinkAggregator;
+  address public immutable chainlinkAggregator0;
+  address public immutable chainlinkAggregator1;
+  address public immutable chainlinkAggregator2;
+  address public immutable chainlinkAggregator3;
+  bool public immutable invertAggregator0;
+  bool public immutable invertAggregator1;
+  bool public immutable invertAggregator2;
+  bool public immutable invertAggregator3;
+  /**
+   * @notice Maximum deviation allowed between all prices pulled
+   * from the chainlink aggregators.
+   */
+  uint256 public immutable maxTimestampSpread;
 
   /**
    * @notice Used when a new price's timestamp is not newer than the most recent
@@ -64,21 +74,80 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * aggregator.
    */
   error NegativePrice();
+  /**
+   * @notice Used when a zero price is returned by the Chainlink
+   * aggregator.
+   */
+  error ZeroPrice();
+  /**
+   * @notice Used when the spread between the earliers and latest timestamp
+   * of the aggregators is above the maximum allowed.
+   */
+  error TimestampSpreadTooHigh();
+  /**
+   * @notice Used in the constructor when there's an address(0) chainlink
+   * aggregator followed by one with a set address, resulting in a gap.
+   */
+  error PricePathHasGaps();
 
   /**
    * @notice Initializes the contract and sets immutable parameters.
    * @param _rateFeedId ID of the rate feed this relayer instance relays for.
    * @param _sortedOracles Address of the SortedOracles contract to relay to.
-   * @param _chainlinkAggregator Address of the Chainlink price feed to fetch data from.
+   * @param _chainlinkAggregator0 Addresses of the Chainlink price feeds to fetch data from.
+   * @param _chainlinkAggregator1 Addresses of the Chainlink price feeds to fetch data from.
+   * @param _chainlinkAggregator2 Addresses of the Chainlink price feeds to fetch data from.
+   * @param _chainlinkAggregator3 Addresses of the Chainlink price feeds to fetch data from.
+   * @param _invertAggregator0 Bools of wether to invert Aggregators.
+   * @param _invertAggregator1 Bools of wether to invert Aggregators.
+   * @param _invertAggregator2 Bools of wether to invert Aggregators.
+   * @param _invertAggregator3 Bools of wether to invert Aggregators.
    */
   constructor(
     address _rateFeedId,
     address _sortedOracles,
-    address _chainlinkAggregator
+    uint256 _maxTimestampSpread,
+    address _chainlinkAggregator0,
+    address _chainlinkAggregator1,
+    address _chainlinkAggregator2,
+    address _chainlinkAggregator3,
+    bool _invertAggregator0,
+    bool _invertAggregator1,
+    bool _invertAggregator2,
+    bool _invertAggregator3
   ) {
+    if (
+      !((_chainlinkAggregator0 != address(0) &&
+        _chainlinkAggregator1 == address(0) &&
+        _chainlinkAggregator2 == address(0) &&
+        _chainlinkAggregator3 == address(0)) ||
+        (_chainlinkAggregator0 != address(0) &&
+          _chainlinkAggregator1 != address(0) &&
+          _chainlinkAggregator2 == address(0) &&
+          _chainlinkAggregator3 == address(0)) ||
+        (_chainlinkAggregator0 != address(0) &&
+          _chainlinkAggregator1 != address(0) &&
+          _chainlinkAggregator2 != address(0) &&
+          _chainlinkAggregator3 == address(0)) ||
+        (_chainlinkAggregator0 != address(0) &&
+          _chainlinkAggregator1 != address(0) &&
+          _chainlinkAggregator2 != address(0) &&
+          _chainlinkAggregator3 != address(0)))
+    ) {
+      revert PricePathHasGaps();
+    }
+
     rateFeedId = _rateFeedId;
     sortedOracles = _sortedOracles;
-    chainlinkAggregator = _chainlinkAggregator;
+    maxTimestampSpread = _maxTimestampSpread;
+    chainlinkAggregator0 = _chainlinkAggregator0;
+    chainlinkAggregator1 = _chainlinkAggregator1;
+    chainlinkAggregator2 = _chainlinkAggregator2;
+    chainlinkAggregator3 = _chainlinkAggregator3;
+    invertAggregator0 = _invertAggregator0;
+    invertAggregator1 = _invertAggregator1;
+    invertAggregator2 = _invertAggregator2;
+    invertAggregator3 = _invertAggregator3;
   }
 
   /**
@@ -95,31 +164,127 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   function relay() external {
     ISortedOraclesMin _sortedOracles = ISortedOraclesMin(sortedOracles);
-    (, int256 price, , uint256 timestamp, ) = AggregatorV3Interface(chainlinkAggregator).latestRoundData();
+    (UD60x18 report, uint256 minTimestamp, uint256 maxTimestamp) = getFirstReport();
+
+    if (chainlinkAggregator1 != address(0)) {
+      (report, minTimestamp, maxTimestamp) = addPriceToReport(
+        report,
+        minTimestamp,
+        maxTimestamp,
+        chainlinkAggregator1,
+        invertAggregator1
+      );
+    }
+    if (chainlinkAggregator2 != address(0)) {
+      (report, minTimestamp, maxTimestamp) = addPriceToReport(
+        report,
+        minTimestamp,
+        maxTimestamp,
+        chainlinkAggregator2,
+        invertAggregator2
+      );
+    }
+    if (chainlinkAggregator3 != address(0)) {
+      (report, minTimestamp, maxTimestamp) = addPriceToReport(
+        report,
+        minTimestamp,
+        maxTimestamp,
+        chainlinkAggregator3,
+        invertAggregator3
+      );
+    }
+
+    if (maxTimestamp - minTimestamp > maxTimestampSpread) {
+      revert TimestampSpreadTooHigh();
+    }
 
     uint256 lastTimestamp = _sortedOracles.medianTimestamp(rateFeedId);
 
-    if (lastTimestamp > 0) {
-      if (timestamp <= lastTimestamp) {
-        revert TimestampNotNew();
-      }
+    if (lastTimestamp > 0 && maxTimestamp <= lastTimestamp) {
+      revert TimestampNotNew();
     }
 
-    if (isTimestampExpired(timestamp)) {
+    if (isTimestampExpired(maxTimestamp)) {
       revert ExpiredTimestamp();
     }
 
-    if (price < 0) {
-      revert NegativePrice();
-    }
-
-    uint256 report = chainlinkToFixidity(price);
+    uint256 reportValue = intoUint256(report) * 10 ** 6; // 18 -> 24 decimals fixidity
 
     // This contract is built for a setup where it is the only reporter for the
     // given `rateFeedId`. As such, we don't need to compute and provide
     // `lesserKey`/`greaterKey` each time, the "null pointer" `address(0)` will
     // correctly place the report in SortedOracles' sorted linked list.
-    ISortedOraclesMin(sortedOracles).report(rateFeedId, report, address(0), address(0));
+    ISortedOraclesMin(sortedOracles).report(rateFeedId, reportValue, address(0), address(0));
+  }
+
+  function getFirstReport() internal view returns (UD60x18, uint256, uint256) {
+    (, int256 _price, , uint256 _timestamp, ) = AggregatorV3Interface(chainlinkAggregator0).latestRoundData();
+    if (_price < 0) {
+      revert NegativePrice();
+    }
+    if (_price == 0) {
+      revert ZeroPrice();
+    }
+    UD60x18 report = chainlinkToUD60x18(_price, chainlinkAggregator0);
+    if (invertAggregator0) {
+      report = ud(1e18).div(report);
+    }
+    return (report, _timestamp, _timestamp);
+  }
+
+  function addPriceToReport(
+    UD60x18 report,
+    uint256 minTimestamp,
+    uint256 maxTimestamp,
+    address aggregator,
+    bool invert
+  ) internal view returns (UD60x18, uint256, uint256) {
+    (, int256 _price, , uint256 timestamp, ) = AggregatorV3Interface(aggregator).latestRoundData();
+    if (_price < 0) {
+      revert NegativePrice();
+    }
+    if (_price == 0) {
+      revert ZeroPrice();
+    }
+    UD60x18 price = chainlinkToUD60x18(_price, chainlinkAggregator0);
+    if (invert) {
+      price = ud(1e18).div(price);
+    }
+    return (
+      report.mul(price),
+      timestamp < minTimestamp ? timestamp : minTimestamp,
+      timestamp > maxTimestamp ? timestamp : maxTimestamp
+    );
+  }
+
+  function pricePath() public view returns (address[] memory aggregators, bool[] memory toInvert) {
+    if (chainlinkAggregator3 != address(0)) {
+      aggregators = new address[](4);
+      toInvert = new bool[](4);
+    } else if (chainlinkAggregator2 != address(0)) {
+      aggregators = new address[](3);
+      toInvert = new bool[](3);
+    } else if (chainlinkAggregator1 != address(0)) {
+      aggregators = new address[](2);
+      toInvert = new bool[](2);
+    } else {
+      aggregators = new address[](1);
+      toInvert = new bool[](1);
+    }
+    aggregators[0] = chainlinkAggregator0;
+    toInvert[0] = invertAggregator0;
+    if (aggregators.length > 1) {
+      aggregators[1] = chainlinkAggregator1;
+      toInvert[1] = invertAggregator1;
+    }
+    if (aggregators.length > 2) {
+      aggregators[2] = chainlinkAggregator2;
+      toInvert[2] = invertAggregator2;
+    }
+    if (aggregators.length > 3) {
+      aggregators[3] = chainlinkAggregator3;
+      toInvert[3] = invertAggregator3;
+    }
   }
 
   /**
@@ -135,10 +300,10 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /**
    * @notice Converts a Chainlink price to an unwrapped Fixidity value.
    * @param price An price from the Chainlink aggregator.
-   * @return The converted Fixidity value (with 24 decimals).
+   * @return The converted UD60x18 value.
    */
-  function chainlinkToFixidity(int256 price) internal view returns (uint256) {
-    uint256 chainlinkDecimals = uint256(AggregatorV3Interface(chainlinkAggregator).decimals());
-    return uint256(price) * 10**(FIXIDITY_DECIMALS - chainlinkDecimals);
+  function chainlinkToUD60x18(int256 price, address aggregator) internal view returns (UD60x18) {
+    uint256 chainlinkDecimals = uint256(AggregatorV3Interface(aggregator).decimals());
+    return ud(uint256(price) * 10 ** (18 - chainlinkDecimals));
   }
 }

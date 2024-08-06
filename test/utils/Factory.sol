@@ -8,6 +8,10 @@ interface MiniVM {
   function etch(address _addr, bytes calldata _code) external;
 
   function getCode(string calldata _path) external view returns (bytes memory);
+
+  function getDeployedCode(string calldata _path) external view returns (bytes memory);
+
+  function prank(address pranker) external;
 }
 
 /**
@@ -31,6 +35,18 @@ contract Factory {
     return addr;
   }
 
+  function createFromPath(string memory _path, bytes memory args, address deployer) public returns (address) {
+    bytes memory bytecode = abi.encodePacked(VM.getCode(_path), args);
+    address addr;
+
+    VM.prank(deployer);
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      addr := create(0, add(bytecode, 0x20), mload(bytecode))
+    }
+    return addr;
+  }
+
   function createContract(string memory _contract, bytes memory args) public returns (address addr) {
     string memory path = string(abi.encodePacked("out/", _contract, ".sol", "/", _contract, ".json"));
     addr = createFromPath(path, args);
@@ -38,11 +54,7 @@ contract Factory {
     return addr;
   }
 
-  function createAt(
-    string memory _contract,
-    address dest,
-    bytes memory args
-  ) public {
+  function createAt(string memory _contract, address dest, bytes memory args) public {
     address addr = createContract(_contract, args);
     VM.etch(dest, GetCode.at(addr));
     console.log("Etched %s to %s", _contract, dest);

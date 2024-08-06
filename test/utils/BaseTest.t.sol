@@ -22,5 +22,11 @@ contract BaseTest is Test {
     factory.createAt("Registry", REGISTRY_ADDRESS, abi.encode(true));
     vm.prank(deployer);
     Registry(REGISTRY_ADDRESS).initialize();
+
+    // Deploy required libraries so that vm.getCode will automatically link
+    factory.createFromPath(
+      "contracts/common/linkedlists/AddressSortedLinkedListWithMedian.sol:AddressSortedLinkedListWithMedian",
+      abi.encodePacked()
+    );
   }
 }
