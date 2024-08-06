@@ -24,25 +24,6 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
   address[] public rateFeeds;
 
   /**
-   * @notice Emitted when a relayer is deployed.
-   * @param relayerAddress Address of the newly deployed relayer.
-   * @param rateFeedId Rate feed ID for which the relayer will report.
-   * @param chainlinkAggregator Address of the Chainlink aggregator the relayer will fetch prices from.
-   */
-  event RelayerDeployed(
-    address indexed relayerAddress,
-    address indexed rateFeedId,
-    address indexed chainlinkAggregator
-  );
-
-  /**
-   * @notice Emitted when a relayer is removed.
-   * @param relayerAddress Address of the removed relayer.
-   * @param rateFeedId Rate feed ID for which the relayer reported.
-   */
-  event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
-
-  /**
    * @notice Thrown when trying to deploy a relayer to an address that already has code.
    * @param contractAddress Address at which the relayer could not be deployed.
    * @param rateFeedId Rate feed ID for which the relayer would have reported.
