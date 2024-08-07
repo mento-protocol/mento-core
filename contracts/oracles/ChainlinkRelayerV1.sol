@@ -110,23 +110,17 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     bool _invertAggregator2,
     bool _invertAggregator3
   ) {
+    // (a0 & !a1 & !a2 & !a3) || -> only first
+    // (a0 & a1 & !a2 & !a3) ||  -> first two
+    // (a0 & a1 & a2 & !a3) ||   -> first three
+    // (a0 & a1 & a2 & a3)       -> all
+    // Can be simplified to:
+    // a0 & (a1 | !a2) & (a2 | !a3)
+    // Verified here: https://www.boolean-algebra.com/?q=KEEre0J9K3tDfSt7RH0pKEErQit7Q30re0R9KShBK0IrQyt7RH0pKEErQitDK0Qp
     if (
-      !((_chainlinkAggregator0 != address(0) &&
-        _chainlinkAggregator1 == address(0) &&
-        _chainlinkAggregator2 == address(0) &&
-        _chainlinkAggregator3 == address(0)) ||
-        (_chainlinkAggregator0 != address(0) &&
-          _chainlinkAggregator1 != address(0) &&
-          _chainlinkAggregator2 == address(0) &&
-          _chainlinkAggregator3 == address(0)) ||
-        (_chainlinkAggregator0 != address(0) &&
-          _chainlinkAggregator1 != address(0) &&
-          _chainlinkAggregator2 != address(0) &&
-          _chainlinkAggregator3 == address(0)) ||
-        (_chainlinkAggregator0 != address(0) &&
-          _chainlinkAggregator1 != address(0) &&
-          _chainlinkAggregator2 != address(0) &&
-          _chainlinkAggregator3 != address(0)))
+      !((_chainlinkAggregator0 != address(0)) &&
+        (_chainlinkAggregator1 != address(0) || _chainlinkAggregator2 == address(0)) &&
+        (_chainlinkAggregator2 != address(0) || _chainlinkAggregator3 == address(0)))
     ) {
       revert PricePathHasGaps();
     }
