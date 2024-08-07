@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.20;
+pragma solidity 0.8.18;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { ChainlinkRelayerV1 } from "./ChainlinkRelayerV1.sol";
@@ -21,25 +21,6 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @dev Used to enumerate the `deployedRelayer` mapping.
    */
   address[] public rateFeeds;
-
-  /**
-   * @notice Emitted when a relayer is deployed.
-   * @param relayerAddress Address of the newly deployed relayer.
-   * @param rateFeedId Rate feed ID for which the relayer will report.
-   * @param chainlinkAggregator Address of the Chainlink aggregator the relayer will fetch prices from.
-   */
-  event RelayerDeployed(
-    address indexed relayerAddress,
-    address indexed rateFeedId,
-    address indexed chainlinkAggregator
-  );
-
-  /**
-   * @notice Emitted when a relayer is removed.
-   * @param relayerAddress Address of the removed relayer.
-   * @param rateFeedId Rate feed ID for which the relayer reported.
-   */
-  event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
 
   /**
    * @notice Thrown when trying to deploy a relayer to an address that already has code.
