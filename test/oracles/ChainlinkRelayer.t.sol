@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
-// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, private-vars-leading-underscore
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase, one-contract-per-file
+pragma solidity ^0.5.17;
 
-import "../utils/BaseTest.t.sol";
-import "contracts/common/SortedOracles.sol";
-import "../mocks/MockAggregatorV3.sol";
-import "contracts/interfaces/IChainlinkRelayer.sol";
+import { BaseTest } from "../utils/BaseTest.t.sol";
+import { SortedOracles } from "contracts/common/SortedOracles.sol";
+import { MockAggregatorV3 } from "../mocks/MockAggregatorV3.sol";
+import { IChainlinkRelayer } from "contracts/interfaces/IChainlinkRelayer.sol";
 
 contract ChainlinkRelayerTest is BaseTest {
   bytes constant TIMESTAMP_NOT_NEW_ERROR = abi.encodeWithSignature("TimestampNotNew()");
@@ -16,7 +15,7 @@ contract ChainlinkRelayerTest is BaseTest {
   SortedOracles sortedOracles;
   MockAggregatorV3 chainlinkAggregator;
   IChainlinkRelayer relayer;
-  address rateFeedId = address(0xbeef);
+  address rateFeedId = actor("rateFeed");
   int256 aPrice = 420000000;
   uint256 expectedReport = 4200000000000000000000000;
   uint256 aReport = 4100000000000000000000000;

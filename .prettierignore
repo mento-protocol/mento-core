@@ -1,5 +1,6 @@
 # directories
 .yarn/
+.trunk/
 **/broadcast
 **/cache
 **/lib
