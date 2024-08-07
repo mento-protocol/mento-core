@@ -12,7 +12,12 @@ import "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol
  * See https://github.com/mento-protocol/mento-core/blob/develop/contracts/common/SortedOracles.sol
  */
 interface ISortedOraclesMin {
-  function report(address rateFeedId, uint256 value, address lesserKey, address greaterKey) external;
+  function report(
+    address rateFeedId,
+    uint256 value,
+    address lesserKey,
+    address greaterKey
+  ) external;
 
   function medianTimestamp(address rateFeedId) external view returns (uint256);
 
@@ -58,7 +63,11 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @param _sortedOracles Address of the SortedOracles contract to relay to.
    * @param _chainlinkAggregator Address of the Chainlink price feed to fetch data from.
    */
-  constructor(address _rateFeedId, address _sortedOracles, address _chainlinkAggregator) {
+  constructor(
+    address _rateFeedId,
+    address _sortedOracles,
+    address _chainlinkAggregator
+  ) {
     rateFeedId = _rateFeedId;
     sortedOracles = _sortedOracles;
     chainlinkAggregator = _chainlinkAggregator;
@@ -117,6 +126,6 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   function _chainlinkToFixidity(int256 price) internal view returns (uint256) {
     uint256 chainlinkDecimals = uint256(AggregatorV3Interface(chainlinkAggregator).decimals());
-    return uint256(price) * 10 ** (FIXIDITY_DECIMALS - chainlinkDecimals);
+    return uint256(price) * 10**(FIXIDITY_DECIMALS - chainlinkDecimals);
   }
 }
