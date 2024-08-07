@@ -51,7 +51,7 @@ contract ChainlinkRelayerTest is BaseTest {
   uint256 aReport = 4100000000000000000000000;
 
   IChainlinkRelayer relayer;
-  address rateFeedId = address(0xbeef);
+  address rateFeedId = actor("rateFeed");
   uint256 expirySeconds = 600;
 
   function newRelayer(

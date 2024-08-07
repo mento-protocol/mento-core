@@ -48,10 +48,14 @@ contract Factory {
   }
 
   function createContract(string memory _contract, bytes memory args) public returns (address addr) {
-    string memory path = string(abi.encodePacked("out/", _contract, ".sol", "/", _contract, ".json"));
+    string memory path = contractPath(_contract);
     addr = createFromPath(path, args);
     console.log("Deployed %s to %s", _contract, addr);
     return addr;
+  }
+
+  function contractPath(string memory _contract) public pure returns (string memory) {
+    return string(abi.encodePacked("out/", _contract, ".sol", "/", _contract, ".json"));
   }
 
   function createAt(string memory _contract, address dest, bytes memory args) public {
