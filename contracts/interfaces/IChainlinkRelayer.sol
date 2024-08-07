@@ -8,5 +8,7 @@ interface IChainlinkRelayer {
 
   function pricePath() external returns (address[] memory, bool[] memory);
 
+  function maxTimestampSpread() external returns (uint256);
+
   function relay() external;
 }

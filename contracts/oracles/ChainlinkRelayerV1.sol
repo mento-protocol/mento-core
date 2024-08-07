@@ -282,7 +282,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @param timestamp The timestamp returned by the Chainlink aggregator.
    * @return `true` if expired based on SortedOracles expiry parameter.
    */
-  function _isTimestampExpired(uint256 timestamp) internal view returns (bool) {
+  function isTimestampExpired(uint256 timestamp) internal view returns (bool) {
     return block.timestamp - timestamp >= ISortedOraclesMin(sortedOracles).getTokenReportExpirySeconds(rateFeedId);
   }
 
