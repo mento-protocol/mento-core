@@ -236,7 +236,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     if (_price == 0) {
       revert ZeroPrice();
     }
-    UD60x18 price = chainlinkToUD60x18(_price, chainlinkAggregator0);
+    UD60x18 price = chainlinkToUD60x18(_price, aggregator);
     if (invert) {
       price = ud(1e18).div(price);
     }

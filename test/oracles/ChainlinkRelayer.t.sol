@@ -136,10 +136,10 @@ contract ChainlinkRelayerTest is BaseTest {
     );
     sortedOracles.setTokenReportExpiry(rateFeedId, expirySeconds);
 
-    chainlinkAggregator0 = new MockAggregatorV3();
-    chainlinkAggregator1 = new MockAggregatorV3();
-    chainlinkAggregator2 = new MockAggregatorV3();
-    chainlinkAggregator3 = new MockAggregatorV3();
+    chainlinkAggregator0 = new MockAggregatorV3(8);
+    chainlinkAggregator1 = new MockAggregatorV3(12);
+    chainlinkAggregator2 = new MockAggregatorV3(8);
+    chainlinkAggregator3 = new MockAggregatorV3(6);
   }
 
   function setUpAggregators() public {
@@ -319,7 +319,7 @@ contract ChainlinkRelayerTest_fuzz_full is ChainlinkRelayerTest {
     if (invert0) {
       price0 = ud(1e18).div(price0);
     }
-    UD60x18 price1 = ud(uint256(aggregatorPrice1) * 1e10);
+    UD60x18 price1 = ud(uint256(aggregatorPrice1) * 1e6);
     if (invert1) {
       price1 = ud(1e18).div(price1);
     }
@@ -327,7 +327,7 @@ contract ChainlinkRelayerTest_fuzz_full is ChainlinkRelayerTest {
     if (invert2) {
       price2 = ud(1e18).div(price2);
     }
-    UD60x18 price3 = ud(uint256(aggregatorPrice3) * 1e10);
+    UD60x18 price3 = ud(uint256(aggregatorPrice3) * 1e12);
     if (invert3) {
       price3 = ud(1e18).div(price3);
     }
@@ -410,7 +410,7 @@ contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
 contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single {
   function setUpExpectations() internal virtual override {
     aggregatorPrice0 = 420000000; // 4.2 * 1e8
-    aggregatorPrice1 = 200000000; // 2 * 1e8
+    aggregatorPrice1 = 2000000000000; // 2 * 1e12
     // ^ results in 4.2 * 1 / 2 = 2.1
     expectedReport = 2100000000000000000000000;
   }
@@ -468,7 +468,7 @@ contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single 
 contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double {
   function setUpExpectations() internal virtual override {
     aggregatorPrice0 = 420000000; // 4.2 * 1e8
-    aggregatorPrice1 = 200000000; // 2 * 1e8
+    aggregatorPrice1 = 2000000000000; // 2 * 1e12
     aggregatorPrice2 = 300000000; // 3 * 1e8
     // ^ results in 4.2 * (1 / 2) * 3 = 6.3
     expectedReport = 6300000000000000000000000;
@@ -529,9 +529,9 @@ contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double 
 contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
   function setUpExpectations() internal override {
     aggregatorPrice0 = 420000000; // 4.2 * 1e8
-    aggregatorPrice1 = 200000000; // 2 * 1e8
+    aggregatorPrice1 = 2000000000000; // 2 * 1e12
     aggregatorPrice2 = 300000000; // 3 * 1e8
-    aggregatorPrice3 = 500000000; // 5 * 1e8
+    aggregatorPrice3 = 5000000; // 5 * 1e6
     // ^ results in 4.2 * (1 / 2) * 3 * (1/5) = 1.26
     // in the tests price1 and price3 are inverted
     expectedReport = 1260000000000000000000000;

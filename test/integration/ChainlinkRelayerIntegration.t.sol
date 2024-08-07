@@ -103,7 +103,7 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
   }
 
   function setUpRelayer() public {
-    chainlinkAggregator = new MockAggregatorV3();
+    chainlinkAggregator = new MockAggregatorV3(8);
     relayerConfig = IChainlinkRelayer.Config({
       maxTimestampSpread: 0,
       chainlinkAggregator0: address(chainlinkAggregator),
