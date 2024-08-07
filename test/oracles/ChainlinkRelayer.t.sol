@@ -54,56 +54,78 @@ contract ChainlinkRelayerTest is BaseTest {
   address rateFeedId = makeAddr("rateFeed");
   uint256 expirySeconds = 600;
 
-  function newRelayer(
-    address aggregator0,
-    address aggregator1,
-    address aggregator2,
-    address aggregator3
-  ) internal returns (IChainlinkRelayer) {
-    return
-      IChainlinkRelayer(
-        new ChainlinkRelayerV1(
-          rateFeedId,
-          address(sortedOracles),
-          1000,
-          aggregator0,
-          aggregator1,
-          aggregator2,
-          aggregator3,
-          invert0,
-          invert1,
-          invert2,
-          invert3
-        )
-      );
-  }
-
   function setUpRelayer_single() internal {
-    relayer = newRelayer(address(chainlinkAggregator0), address(0), address(0), address(0));
+    relayer = IChainlinkRelayer(
+      new ChainlinkRelayerV1(
+        rateFeedId,
+        address(sortedOracles),
+        1000,
+        address(chainlinkAggregator0),
+        address(0),
+        address(0),
+        address(0),
+        invert0,
+        false,
+        false,
+        false
+      )
+    );
     sortedOracles.addOracle(rateFeedId, address(relayer));
   }
 
   function setUpRelayer_double() internal {
-    relayer = newRelayer(address(chainlinkAggregator0), address(chainlinkAggregator1), address(0), address(0));
+    relayer = IChainlinkRelayer(
+      new ChainlinkRelayerV1(
+        rateFeedId,
+        address(sortedOracles),
+        1000,
+        address(chainlinkAggregator0),
+        address(chainlinkAggregator1),
+        address(0),
+        address(0),
+        invert0,
+        invert1,
+        false,
+        false
+      )
+    );
     sortedOracles.addOracle(rateFeedId, address(relayer));
   }
 
   function setUpRelayer_triple() internal {
-    relayer = newRelayer(
-      address(chainlinkAggregator0),
-      address(chainlinkAggregator1),
-      address(chainlinkAggregator2),
-      address(0)
+    relayer = IChainlinkRelayer(
+      new ChainlinkRelayerV1(
+        rateFeedId,
+        address(sortedOracles),
+        1000,
+        address(chainlinkAggregator0),
+        address(chainlinkAggregator1),
+        address(chainlinkAggregator2),
+        address(0),
+        invert0,
+        invert1,
+        invert2,
+        false
+      )
     );
     sortedOracles.addOracle(rateFeedId, address(relayer));
   }
 
   function setUpRelayer_full() internal {
-    relayer = newRelayer(
-      address(chainlinkAggregator0),
-      address(chainlinkAggregator1),
-      address(chainlinkAggregator2),
-      address(chainlinkAggregator3)
+    relayer = IChainlinkRelayer(
+      new ChainlinkRelayerV1(
+        rateFeedId,
+        address(sortedOracles),
+        1000,
+        address(chainlinkAggregator0),
+        address(chainlinkAggregator1),
+        address(chainlinkAggregator2),
+        address(chainlinkAggregator3),
+        invert0,
+        invert1,
+        invert2,
+        invert3
+      )
     );
     sortedOracles.addOracle(rateFeedId, address(relayer));
   }
@@ -168,11 +190,15 @@ contract ChainlinkRelayerTest_constructor_single is ChainlinkRelayerTest {
   }
 
   function test_constructorSetsAggregators() public virtual {
-    (address[] memory aggregators, bool[] memory inverts) = relayer.pricePath();
-    assertEq(aggregators.length, 1);
-    assertEq(inverts.length, 1);
-    assertEq(aggregators[0], address(chainlinkAggregator0));
-    assertEq(inverts[0], invert0);
+    IChainlinkRelayer.Config memory config = relayer.getConfig();
+    assertEq(config.chainlinkAggregator0, address(chainlinkAggregator0));
+    assertEq(config.chainlinkAggregator1, address(0));
+    assertEq(config.chainlinkAggregator2, address(0));
+    assertEq(config.chainlinkAggregator3, address(0));
+    assertEq(config.invertAggregator0, invert0);
+    assertEq(config.invertAggregator1, false);
+    assertEq(config.invertAggregator2, false);
+    assertEq(config.invertAggregator3, false);
   }
 }
 
@@ -182,13 +208,15 @@ contract ChainlinkRelayerTest_constructor_double is ChainlinkRelayerTest_constru
   }
 
   function test_constructorSetsAggregators() public override {
-    (address[] memory aggregators, bool[] memory inverts) = relayer.pricePath();
-    assertEq(aggregators.length, 2);
-    assertEq(inverts.length, 2);
-    assertEq(aggregators[0], address(chainlinkAggregator0));
-    assertEq(aggregators[1], address(chainlinkAggregator1));
-    assertEq(inverts[0], invert0);
-    assertEq(inverts[1], invert1);
+    IChainlinkRelayer.Config memory config = relayer.getConfig();
+    assertEq(config.chainlinkAggregator0, address(chainlinkAggregator0));
+    assertEq(config.chainlinkAggregator1, address(chainlinkAggregator1));
+    assertEq(config.chainlinkAggregator2, address(0));
+    assertEq(config.chainlinkAggregator3, address(0));
+    assertEq(config.invertAggregator0, invert0);
+    assertEq(config.invertAggregator1, invert1);
+    assertEq(config.invertAggregator2, false);
+    assertEq(config.invertAggregator3, false);
   }
 }
 
@@ -198,15 +226,15 @@ contract ChainlinkRelayerTest_constructor_triple is ChainlinkRelayerTest_constru
   }
 
   function test_constructorSetsAggregators() public override {
-    (address[] memory aggregators, bool[] memory inverts) = relayer.pricePath();
-    assertEq(aggregators.length, 3);
-    assertEq(inverts.length, 3);
-    assertEq(aggregators[0], address(chainlinkAggregator0));
-    assertEq(aggregators[1], address(chainlinkAggregator1));
-    assertEq(aggregators[2], address(chainlinkAggregator2));
-    assertEq(inverts[0], invert0);
-    assertEq(inverts[1], invert1);
-    assertEq(inverts[2], invert2);
+    IChainlinkRelayer.Config memory config = relayer.getConfig();
+    assertEq(config.chainlinkAggregator0, address(chainlinkAggregator0));
+    assertEq(config.chainlinkAggregator1, address(chainlinkAggregator1));
+    assertEq(config.chainlinkAggregator2, address(chainlinkAggregator2));
+    assertEq(config.chainlinkAggregator3, address(0));
+    assertEq(config.invertAggregator0, invert0);
+    assertEq(config.invertAggregator1, invert1);
+    assertEq(config.invertAggregator2, invert2);
+    assertEq(config.invertAggregator3, false);
   }
 }
 
@@ -216,17 +244,15 @@ contract ChainlinkRelayerTest_constructor_full is ChainlinkRelayerTest_construct
   }
 
   function test_constructorSetsAggregators() public override {
-    (address[] memory aggregators, bool[] memory inverts) = relayer.pricePath();
-    assertEq(aggregators.length, 4);
-    assertEq(inverts.length, 4);
-    assertEq(aggregators[0], address(chainlinkAggregator0));
-    assertEq(aggregators[1], address(chainlinkAggregator1));
-    assertEq(aggregators[2], address(chainlinkAggregator2));
-    assertEq(aggregators[3], address(chainlinkAggregator3));
-    assertEq(inverts[0], invert0);
-    assertEq(inverts[1], invert1);
-    assertEq(inverts[2], invert2);
-    assertEq(inverts[3], invert3);
+    IChainlinkRelayer.Config memory config = relayer.getConfig();
+    assertEq(config.chainlinkAggregator0, address(chainlinkAggregator0));
+    assertEq(config.chainlinkAggregator1, address(chainlinkAggregator1));
+    assertEq(config.chainlinkAggregator2, address(chainlinkAggregator2));
+    assertEq(config.chainlinkAggregator3, address(chainlinkAggregator3));
+    assertEq(config.invertAggregator0, invert0);
+    assertEq(config.invertAggregator1, invert1);
+    assertEq(config.invertAggregator2, invert2);
+    assertEq(config.invertAggregator3, invert3);
   }
 }
 

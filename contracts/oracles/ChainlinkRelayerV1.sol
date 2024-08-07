@@ -247,34 +247,16 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     );
   }
 
-  function pricePath() public view returns (address[] memory aggregators, bool[] memory toInvert) {
-    if (chainlinkAggregator3 != address(0)) {
-      aggregators = new address[](4);
-      toInvert = new bool[](4);
-    } else if (chainlinkAggregator2 != address(0)) {
-      aggregators = new address[](3);
-      toInvert = new bool[](3);
-    } else if (chainlinkAggregator1 != address(0)) {
-      aggregators = new address[](2);
-      toInvert = new bool[](2);
-    } else {
-      aggregators = new address[](1);
-      toInvert = new bool[](1);
-    }
-    aggregators[0] = chainlinkAggregator0;
-    toInvert[0] = invertAggregator0;
-    if (aggregators.length > 1) {
-      aggregators[1] = chainlinkAggregator1;
-      toInvert[1] = invertAggregator1;
-    }
-    if (aggregators.length > 2) {
-      aggregators[2] = chainlinkAggregator2;
-      toInvert[2] = invertAggregator2;
-    }
-    if (aggregators.length > 3) {
-      aggregators[3] = chainlinkAggregator3;
-      toInvert[3] = invertAggregator3;
-    }
+  function getConfig() public view returns (Config memory config) {
+    config.maxTimestampSpread = maxTimestampSpread;
+    config.chainlinkAggregator0 = chainlinkAggregator0;
+    config.chainlinkAggregator1 = chainlinkAggregator1;
+    config.chainlinkAggregator2 = chainlinkAggregator2;
+    config.chainlinkAggregator3 = chainlinkAggregator3;
+    config.invertAggregator0 = invertAggregator0;
+    config.invertAggregator1 = invertAggregator1;
+    config.invertAggregator2 = invertAggregator2;
+    config.invertAggregator3 = invertAggregator3;
   }
 
   /**

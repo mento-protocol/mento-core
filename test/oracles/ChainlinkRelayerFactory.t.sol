@@ -23,44 +23,14 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   address[3] rateFeeds = [makeAddr("rateFeed1"), makeAddr("rateFeed2"), makeAddr("rateFeed3")];
   address aRateFeed = rateFeeds[0];
 
-  IChainlinkRelayerFactory.ChainlinkRelayerConfig relayerConfig0 =
-    IChainlinkRelayerFactory.ChainlinkRelayerConfig(
-      0,
-      mockAggregators[0],
-      address(0),
-      address(0),
-      address(0),
-      false,
-      false,
-      false,
-      false
-    );
-  IChainlinkRelayerFactory.ChainlinkRelayerConfig relayerConfig1 =
-    IChainlinkRelayerFactory.ChainlinkRelayerConfig(
-      0,
-      mockAggregators[1],
-      address(0),
-      address(0),
-      address(0),
-      false,
-      false,
-      false,
-      false
-    );
-  IChainlinkRelayerFactory.ChainlinkRelayerConfig relayerConfig2 =
-    IChainlinkRelayerFactory.ChainlinkRelayerConfig(
-      0,
-      mockAggregators[2],
-      address(0),
-      address(0),
-      address(0),
-      false,
-      false,
-      false,
-      false
-    );
-  IChainlinkRelayerFactory.ChainlinkRelayerConfig relayerConfigComplex =
-    IChainlinkRelayerFactory.ChainlinkRelayerConfig(
+  IChainlinkRelayer.Config relayerConfig0 =
+    IChainlinkRelayer.Config(0, mockAggregators[0], address(0), address(0), address(0), false, false, false, false);
+  IChainlinkRelayer.Config relayerConfig1 =
+    IChainlinkRelayer.Config(0, mockAggregators[1], address(0), address(0), address(0), false, false, false, false);
+  IChainlinkRelayer.Config relayerConfig2 =
+    IChainlinkRelayer.Config(0, mockAggregators[2], address(0), address(0), address(0), false, false, false, false);
+  IChainlinkRelayer.Config relayerConfigComplex =
+    IChainlinkRelayer.Config(
       1024,
       mockAggregators[0],
       mockAggregators[1],
@@ -75,7 +45,7 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   event RelayerDeployed(
     address indexed relayerAddress,
     address indexed rateFeedId,
-    IChainlinkRelayerFactory.ChainlinkRelayerConfig relayerConfig
+    IChainlinkRelayer.Config relayerConfig
   );
   event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
 
@@ -85,41 +55,17 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
     relayerFactory.initialize(mockSortedOracles);
   }
 
-  function assertRelayerMatchesConfig(
-    IChainlinkRelayer relayer,
-    IChainlinkRelayerFactory.ChainlinkRelayerConfig memory relayerConfig
-  ) internal {
-    (address[] memory aggregators, bool[] memory inverts) = relayer.pricePath();
-    assert(aggregators.length > 0);
-    assertEq(relayer.maxTimestampSpread(), relayerConfig.maxTimestampSpread);
-    assertEq(aggregators[0], relayerConfig.chainlinkAggregator0);
-    assertEq(inverts[0], relayerConfig.invertAggregator0);
-    if (aggregators.length == 1) {
-      assertEq(relayerConfig.chainlinkAggregator1, address(0));
-      return;
-    }
-    assertEq(aggregators[1], relayerConfigComplex.chainlinkAggregator1);
-    assertEq(inverts[1], relayerConfigComplex.invertAggregator1);
-    if (aggregators.length == 2) {
-      assertEq(relayerConfig.chainlinkAggregator2, address(0));
-      return;
-    }
-    assertEq(aggregators[2], relayerConfigComplex.chainlinkAggregator2);
-    assertEq(inverts[2], relayerConfigComplex.invertAggregator2);
-    if (aggregators.length == 3) {
-      assertEq(relayerConfig.chainlinkAggregator3, address(0));
-      return;
-    }
-    assertEq(aggregators[3], relayerConfigComplex.chainlinkAggregator3);
-    assertEq(inverts[3], relayerConfigComplex.invertAggregator3);
+  function assertRelayerMatchesConfig(IChainlinkRelayer relayer, IChainlinkRelayer.Config memory expected) internal {
+    IChainlinkRelayer.Config memory actual = relayer.getConfig();
+    assertEq(keccak256(abi.encode(expected)), keccak256(abi.encode(actual)));
   }
 
   function expectedRelayerAddress(
     address rateFeedId,
     address sortedOracles,
-    IChainlinkRelayerFactory.ChainlinkRelayerConfig memory relayerConfig,
+    IChainlinkRelayer.Config memory relayerConfig,
     address relayerFactoryAddress
-  ) internal returns (address expectedAddress) {
+  ) internal view returns (address expectedAddress) {
     bytes32 salt = keccak256("mento.chainlinkRelayer");
     return
       address(

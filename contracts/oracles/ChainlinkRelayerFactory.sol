@@ -3,6 +3,7 @@ pragma solidity 0.8.18;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { ChainlinkRelayerV1 } from "./ChainlinkRelayerV1.sol";
+import { IChainlinkRelayer } from "../interfaces/IChainlinkRelayer.sol";
 import { IChainlinkRelayerFactory } from "../interfaces/IChainlinkRelayerFactory.sol";
 
 /**
@@ -81,7 +82,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    */
   function deployRelayer(
     address rateFeedId,
-    ChainlinkRelayerConfig calldata relayerConfig
+    IChainlinkRelayer.Config calldata relayerConfig
   ) public onlyOwner returns (address relayerAddress) {
     address expectedAddress = computedRelayerAddress(rateFeedId, relayerConfig);
 
@@ -156,7 +157,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    */
   function redeployRelayer(
     address rateFeedId,
-    ChainlinkRelayerConfig calldata relayerConfig
+    IChainlinkRelayer.Config calldata relayerConfig
   ) external onlyOwner returns (address relayerAddress) {
     removeRelayer(rateFeedId);
     return deployRelayer(rateFeedId, relayerConfig);
@@ -202,7 +203,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    */
   function computedRelayerAddress(
     address rateFeedId,
-    ChainlinkRelayerConfig calldata relayerConfig
+    IChainlinkRelayer.Config calldata relayerConfig
   ) public view returns (address) {
     bytes32 salt = _getSalt();
     return
