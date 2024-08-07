@@ -10,7 +10,7 @@ gas_reports = ["*"]
 optimizer = true
 optimizer_runs = 10_000
 legacy = true
-no_match_contract = "ForkTest"
+no_match_contract = "(ForkTest)|(GovernanceGasTest)"
 via_ir = true
 
 [profile.ci]
