@@ -154,34 +154,29 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   function relay() external {
     ISortedOraclesMin _sortedOracles = ISortedOraclesMin(sortedOracles);
-    (UD60x18 report, uint256 minTimestamp, uint256 maxTimestamp) = getFirstReport();
+    (UD60x18 report, uint256 timestamp) = readChainlinkAggregator(chainlinkAggregator0, invertAggregator0);
+    uint256 minTimestamp = timestamp;
+    uint256 maxTimestamp = timestamp;
 
     if (chainlinkAggregator1 != address(0)) {
-      (report, minTimestamp, maxTimestamp) = addPriceToReport(
-        report,
-        minTimestamp,
-        maxTimestamp,
-        chainlinkAggregator1,
-        invertAggregator1
-      );
-    }
-    if (chainlinkAggregator2 != address(0)) {
-      (report, minTimestamp, maxTimestamp) = addPriceToReport(
-        report,
-        minTimestamp,
-        maxTimestamp,
-        chainlinkAggregator2,
-        invertAggregator2
-      );
-    }
-    if (chainlinkAggregator3 != address(0)) {
-      (report, minTimestamp, maxTimestamp) = addPriceToReport(
-        report,
-        minTimestamp,
-        maxTimestamp,
-        chainlinkAggregator3,
-        invertAggregator3
-      );
+      UD60x18 nextReport;
+      uint256 nextTimestamp;
+      (nextReport, nextTimestamp) = readChainlinkAggregator(chainlinkAggregator1, invertAggregator1);
+      report = report.mul(nextReport);
+      minTimestamp = timestamp < minTimestamp ? timestamp : minTimestamp;
+      maxTimestamp = timestamp > maxTimestamp ? timestamp : maxTimestamp;
+      if (chainlinkAggregator2 != address(0)) {
+        (nextReport, nextTimestamp) = readChainlinkAggregator(chainlinkAggregator2, invertAggregator2);
+        report = report.mul(nextReport);
+        minTimestamp = timestamp < minTimestamp ? timestamp : minTimestamp;
+        maxTimestamp = timestamp > maxTimestamp ? timestamp : maxTimestamp;
+        if (chainlinkAggregator3 != address(0)) {
+          (nextReport, nextTimestamp) = readChainlinkAggregator(chainlinkAggregator3, invertAggregator3);
+          report = report.mul(nextReport);
+          minTimestamp = timestamp < minTimestamp ? timestamp : minTimestamp;
+          maxTimestamp = timestamp > maxTimestamp ? timestamp : maxTimestamp;
+        }
+      }
     }
 
     if (maxTimestamp - minTimestamp > maxTimestampSpread) {
@@ -207,28 +202,13 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     ISortedOraclesMin(sortedOracles).report(rateFeedId, reportValue, address(0), address(0));
   }
 
-  function getFirstReport() internal view returns (UD60x18, uint256, uint256) {
-    (, int256 _price, , uint256 _timestamp, ) = AggregatorV3Interface(chainlinkAggregator0).latestRoundData();
-    if (_price < 0) {
-      revert NegativePrice();
-    }
-    if (_price == 0) {
-      revert ZeroPrice();
-    }
-    UD60x18 report = chainlinkToUD60x18(_price, chainlinkAggregator0);
-    if (invertAggregator0) {
-      report = ud(1e18).div(report);
-    }
-    return (report, _timestamp, _timestamp);
-  }
-
-  function addPriceToReport(
-    UD60x18 report,
-    uint256 minTimestamp,
-    uint256 maxTimestamp,
-    address aggregator,
-    bool invert
-  ) internal view returns (UD60x18, uint256, uint256) {
+  /**
+   * @notice Read and validate a chainlink report from an aggregator.
+   * It inverts the value if necesarry
+   * @return price UD60x18 report value
+   * @return timestamp uint256 timestamp of the report
+   */
+  function readChainlinkAggregator(address aggregator, bool invert) internal view returns (UD60x18, uint256) {
     (, int256 _price, , uint256 timestamp, ) = AggregatorV3Interface(aggregator).latestRoundData();
     if (_price < 0) {
       revert NegativePrice();
@@ -240,13 +220,13 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     if (invert) {
       price = ud(1e18).div(price);
     }
-    return (
-      report.mul(price),
-      timestamp < minTimestamp ? timestamp : minTimestamp,
-      timestamp > maxTimestamp ? timestamp : maxTimestamp
-    );
+    return (price, timestamp);
   }
 
+  /**
+   * @notice Get the relayer configuration as a Config struct
+   * @return config Config structure populated with all relayer config fields
+   */
   function getConfig() public view returns (Config memory config) {
     config.maxTimestampSpread = maxTimestampSpread;
     config.chainlinkAggregator0 = chainlinkAggregator0;
