@@ -101,10 +101,11 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
       );
   }
 
-  function contractAlreadyExistsError(
-    address relayerAddress,
-    address rateFeedId
-  ) public pure returns (bytes memory ContractAlreadyExistsError) {
+  function contractAlreadyExistsError(address relayerAddress, address rateFeedId)
+    public
+    pure
+    returns (bytes memory ContractAlreadyExistsError)
+  {
     return abi.encodeWithSignature("ContractAlreadyExists(address,address)", relayerAddress, rateFeedId);
   }
 

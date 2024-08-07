@@ -13,9 +13,18 @@ import { UD60x18, ud, intoUint256 } from "@prb/math/src/UD60x18.sol";
 interface ISortedOracles {
   function addOracle(address, address) external;
 
-  function removeOracle(address, address, uint256) external;
+  function removeOracle(
+    address,
+    address,
+    uint256
+  ) external;
 
-  function report(address, uint256, address, address) external;
+  function report(
+    address,
+    uint256,
+    address,
+    address
+  ) external;
 
   function setTokenReportExpiry(address, uint256) external;
 
@@ -264,11 +273,11 @@ contract ChainlinkRelayerTest_fuzz_single is ChainlinkRelayerTest {
 
   function testFuzz_convertsChainlinkToFixidityCorrectly(int256 x) public {
     vm.assume(x > 0);
-    vm.assume(uint256(x) < uint256(2 ** 256 - 1) / (10 ** (24 - 8)));
+    vm.assume(uint256(x) < uint256(2**256 - 1) / (10**(24 - 8)));
     chainlinkAggregator0.setRoundData(x, uint256(block.timestamp));
     relayer.relay();
     (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
-    assertEq(medianRate, uint256(x) * 10 ** (24 - 8));
+    assertEq(medianRate, uint256(x) * 10**(24 - 8));
   }
 }
 
