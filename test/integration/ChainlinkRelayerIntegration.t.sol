@@ -31,7 +31,7 @@ contract ChainlinkRelayerIntegration is IntegrationTest {
     );
     proxy = ITransparentProxy(
       factory.createContract(
-        "TransparentUpgradeableProxy",
+        "ChainlinkRelayerFactoryProxy",
         abi.encode(
           address(relayerFactoryImplementation),
           address(proxyAdmin),
@@ -49,7 +49,6 @@ contract ChainlinkRelayerIntegration is IntegrationTest {
 
 contract ChainlinkRelayerIntegration_ProxySetup is ChainlinkRelayerIntegration {
   function test_proxyOwnedByAdmin() public {
-    vm.prank(owner);
     address admin = proxyAdmin.getProxyAdmin(address(proxy));
     assertEq(admin, address(proxyAdmin));
   }
