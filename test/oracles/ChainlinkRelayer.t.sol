@@ -271,7 +271,7 @@ contract ChainlinkRelayerTest_fuzz_single is ChainlinkRelayerTest {
     setUpRelayer_single();
   }
 
-  function testFuzz_convertsChainlinkToFixidityCorrectly(int256 x) public {
+  function testFuzz_convertsChainlinkToUD60x18Correctly(int256 x) public {
     vm.assume(x > 0);
     vm.assume(uint256(x) < uint256(2**256 - 1) / (10**(24 - 8)));
     chainlinkAggregator0.setRoundData(x, uint256(block.timestamp));
