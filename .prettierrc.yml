@@ -24,6 +24,6 @@ overrides:
   - files: [test/**/*.sol]
     options:
       compiler: ""
-  - files: [contracts/oracles/ChainlinkRelayerFactory.sol, contracts/oracles/ChainlinkRelayerV1.sol]
+  - files: [contracts/oracles/Chainlink*.sol]
     options:
       compiler: 0.8.18
