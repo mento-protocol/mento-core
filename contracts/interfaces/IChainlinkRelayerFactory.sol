@@ -28,24 +28,21 @@ interface IChainlinkRelayerFactory {
 
   function sortedOracles() external returns (address);
 
-  function deployRelayer(
-    address rateFeedId,
-    IChainlinkRelayer.Config calldata relayerConfig
-  ) external returns (address);
+  function deployRelayer(address rateFeedId, IChainlinkRelayer.Config calldata relayerConfig)
+    external
+    returns (address);
 
   function removeRelayer(address rateFeedId) external;
 
-  function redeployRelayer(
-    address rateFeedId,
-    IChainlinkRelayer.Config calldata relayerConfig
-  ) external returns (address);
+  function redeployRelayer(address rateFeedId, IChainlinkRelayer.Config calldata relayerConfig)
+    external
+    returns (address);
 
   function getRelayer(address rateFeedId) external view returns (address);
 
   function getRelayers() external view returns (address[] memory);
 
-  function computedRelayerAddress(
-    address rateFeedId,
-    IChainlinkRelayer.Config calldata relayerConfig
-  ) external returns (address);
+  function computedRelayerAddress(address rateFeedId, IChainlinkRelayer.Config calldata relayerConfig)
+    external
+    returns (address);
 }
