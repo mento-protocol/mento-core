@@ -34,4 +34,6 @@ interface IChainlinkRelayerFactory {
   function getRelayer(address rateFeedId) external view returns (address);
 
   function getRelayers() external view returns (address[] memory);
+
+  function computedRelayerAddress(address rateFeedId, address chainlinkAggregator) external returns (address);
 }
