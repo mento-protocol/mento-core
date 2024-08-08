@@ -38,7 +38,7 @@ contract ChainlinkRelayerTest is BaseTest {
   bytes constant EXPIRED_TIMESTAMP_ERROR = abi.encodeWithSignature("ExpiredTimestamp()");
   bytes constant NEGATIVE_PRICE_ERROR = abi.encodeWithSignature("NegativePrice()");
   bytes constant ZERO_PRICE_ERROR = abi.encodeWithSignature("ZeroPrice()");
-  bytes constant TIMESTAMP_SPREAD_TOO_HUGH = abi.encodeWithSignature("TimestampSpreadTooHigh()");
+  bytes constant TIMESTAMP_SPREAD_TOO_HIGH = abi.encodeWithSignature("TimestampSpreadTooHigh()");
   bytes constant PRICE_PATH_HAS_GAPS = abi.encodeWithSignature("PricePathHasGaps()");
 
   ISortedOracles sortedOracles;
