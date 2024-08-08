@@ -157,41 +157,41 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   function relay() external {
     ISortedOraclesMin _sortedOracles = ISortedOraclesMin(sortedOracles);
     (UD60x18 report, uint256 timestamp) = readChainlinkAggregator(chainlinkAggregator0, invertAggregator0);
-    uint256 minTimestamp = timestamp;
-    uint256 maxTimestamp = timestamp;
+    uint256 oldestChainlinkTs = timestamp;
+    uint256 newestChainlinkTs = timestamp;
 
     if (chainlinkAggregator1 != address(0)) {
       UD60x18 nextReport;
       uint256 nextTimestamp;
       (nextReport, nextTimestamp) = readChainlinkAggregator(chainlinkAggregator1, invertAggregator1);
       report = report.mul(nextReport);
-      minTimestamp = timestamp < minTimestamp ? timestamp : minTimestamp;
-      maxTimestamp = timestamp > maxTimestamp ? timestamp : maxTimestamp;
+      oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
+      newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
       if (chainlinkAggregator2 != address(0)) {
         (nextReport, nextTimestamp) = readChainlinkAggregator(chainlinkAggregator2, invertAggregator2);
         report = report.mul(nextReport);
-        minTimestamp = timestamp < minTimestamp ? timestamp : minTimestamp;
-        maxTimestamp = timestamp > maxTimestamp ? timestamp : maxTimestamp;
+        oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
+        newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
         if (chainlinkAggregator3 != address(0)) {
           (nextReport, nextTimestamp) = readChainlinkAggregator(chainlinkAggregator3, invertAggregator3);
           report = report.mul(nextReport);
-          minTimestamp = timestamp < minTimestamp ? timestamp : minTimestamp;
-          maxTimestamp = timestamp > maxTimestamp ? timestamp : maxTimestamp;
+          oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
+          newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
         }
       }
     }
 
-    if (maxTimestamp - minTimestamp > maxTimestampSpread) {
+    if (newestChainlinkTs - oldestChainlinkTs > maxTimestampSpread) {
       revert TimestampSpreadTooHigh();
     }
 
-    uint256 lastTimestamp = _sortedOracles.medianTimestamp(rateFeedId);
+    uint256 lastReportTs = _sortedOracles.medianTimestamp(rateFeedId);
 
-    if (lastTimestamp > 0 && maxTimestamp <= lastTimestamp) {
+    if (lastReportTs > 0 && newestChainlinkTs <= lastReportTs) {
       revert TimestampNotNew();
     }
 
-    if (isTimestampExpired(maxTimestamp)) {
+    if (isTimestampExpired(newestChainlinkTs)) {
       revert ExpiredTimestamp();
     }
 
@@ -220,7 +220,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     }
     UD60x18 price = chainlinkToUD60x18(_price, aggregator);
     if (invert) {
-      price = ud(1e18).div(price);
+      price = price.inv();
     }
     return (price, timestamp);
   }
