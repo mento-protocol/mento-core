@@ -162,18 +162,17 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
     if (chainlinkAggregator1 != address(0)) {
       UD60x18 nextReport;
-      uint256 nextTimestamp;
-      (nextReport, nextTimestamp) = readChainlinkAggregator(chainlinkAggregator1, invertAggregator1);
+      (nextReport, timestamp) = readChainlinkAggregator(chainlinkAggregator1, invertAggregator1);
       report = report.mul(nextReport);
       oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
       newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
       if (chainlinkAggregator2 != address(0)) {
-        (nextReport, nextTimestamp) = readChainlinkAggregator(chainlinkAggregator2, invertAggregator2);
+        (nextReport, timestamp) = readChainlinkAggregator(chainlinkAggregator2, invertAggregator2);
         report = report.mul(nextReport);
         oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
         newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
         if (chainlinkAggregator3 != address(0)) {
-          (nextReport, nextTimestamp) = readChainlinkAggregator(chainlinkAggregator3, invertAggregator3);
+          (nextReport, timestamp) = readChainlinkAggregator(chainlinkAggregator3, invertAggregator3);
           report = report.mul(nextReport);
           oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
           newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;

@@ -68,7 +68,7 @@ contract ChainlinkRelayerTest is BaseTest {
       new ChainlinkRelayerV1(
         rateFeedId,
         address(sortedOracles),
-        1000,
+        0,
         address(chainlinkAggregator0),
         address(0),
         address(0),
@@ -87,7 +87,7 @@ contract ChainlinkRelayerTest is BaseTest {
       new ChainlinkRelayerV1(
         rateFeedId,
         address(sortedOracles),
-        1000,
+        100,
         address(chainlinkAggregator0),
         address(chainlinkAggregator1),
         address(0),
@@ -106,7 +106,7 @@ contract ChainlinkRelayerTest is BaseTest {
       new ChainlinkRelayerV1(
         rateFeedId,
         address(sortedOracles),
-        1000,
+        100,
         address(chainlinkAggregator0),
         address(chainlinkAggregator1),
         address(chainlinkAggregator2),
@@ -125,7 +125,7 @@ contract ChainlinkRelayerTest is BaseTest {
       new ChainlinkRelayerV1(
         rateFeedId,
         address(sortedOracles),
-        1000,
+        100,
         address(chainlinkAggregator0),
         address(chainlinkAggregator1),
         address(chainlinkAggregator2),
@@ -345,7 +345,7 @@ contract ChainlinkRelayerTest_fuzz_full is ChainlinkRelayerTest {
 }
 
 contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
-  modifier withOneReport(uint256 report) {
+  modifier withReport(uint256 report) {
     vm.warp(2);
     vm.prank(address(relayer));
     sortedOracles.report(rateFeedId, report, address(0), address(0));
@@ -386,29 +386,31 @@ contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
     relayer.relay();
   }
 
-  function test_revertsOnEarlierTimestamp() public virtual withOneReport(aReport) {
+  function test_revertsOnEarlierTimestamp() public virtual withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
     chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
-  function test_relaysOnRecentTimestamp0() public {
-    skip(100);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
+  function test_relaysOnRecentTimestamp0() public withReport(aReport) {
+    vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
+    relayer.relay();
+    skip(50);
+    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
     relayer.relay();
     uint256 timestamp = sortedOracles.medianTimestamp(rateFeedId);
     assertEq(timestamp, block.timestamp);
   }
 
-  function test_revertsOnRepeatTimestamp0() public withOneReport(aReport) {
+  function test_revertsOnRepeatTimestamp0() public withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
     chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
-  function test_revertsWhenMostRecentTimestampIsExpired() public virtual withOneReport(aReport) {
+  function test_revertsWhenMostRecentTimestampIsExpired() public virtual withReport(aReport) {
     chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
     vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
@@ -440,7 +442,7 @@ contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single 
     relayer.relay();
   }
 
-  function test_revertsOnEarlierTimestamp() public virtual override withOneReport(aReport) {
+  function test_revertsOnEarlierTimestamp() public virtual override withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
 
     chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
@@ -450,26 +452,36 @@ contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single 
     relayer.relay();
   }
 
-  function test_relaysOnRecentTimestamp1() public {
-    skip(100);
+  function test_relaysOnRecentTimestamp1() public withReport(aReport) {
+    vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
+    relayer.relay();
+    skip(50);
     chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
     relayer.relay();
     uint256 timestamp = sortedOracles.medianTimestamp(rateFeedId);
     assertEq(timestamp, block.timestamp);
   }
 
-  function test_revertsOnRepeatTimestamp1() public withOneReport(aReport) {
+  function test_revertsOnRepeatTimestamp1() public withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
     chainlinkAggregator1.setRoundData(aggregatorPrice1, latestTimestamp);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
-  function test_revertsWhenMostRecentTimestampIsExpired() public virtual override withOneReport(aReport) {
+  function test_revertsWhenMostRecentTimestampIsExpired() public virtual override withReport(aReport) {
     chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
     chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
     vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
+  function test_revertsWhenTimestampSpreadTooLarge() public virtual {
+    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    vm.warp(block.timestamp + 101);
+    chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
+    vm.expectRevert(TIMESTAMP_SPREAD_TOO_HIGH);
     relayer.relay();
   }
 }
@@ -499,7 +511,7 @@ contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double 
     relayer.relay();
   }
 
-  function test_revertsOnEarlierTimestamp() public virtual override withOneReport(aReport) {
+  function test_revertsOnEarlierTimestamp() public virtual override withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
 
     chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
@@ -510,27 +522,37 @@ contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double 
     relayer.relay();
   }
 
-  function test_relaysOnRecentTimestamp2() public {
-    skip(100);
+  function test_relaysOnRecentTimestamp2() public withReport(aReport) {
+    vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
+    relayer.relay();
+    skip(50);
     chainlinkAggregator2.setRoundData(aggregatorPrice0, block.timestamp);
     relayer.relay();
     uint256 timestamp = sortedOracles.medianTimestamp(rateFeedId);
     assertEq(timestamp, block.timestamp);
   }
 
-  function test_revertsOnRepeatTimestamp2() public withOneReport(aReport) {
+  function test_revertsOnRepeatTimestamp2() public withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
     chainlinkAggregator2.setRoundData(aggregatorPrice2, latestTimestamp);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
-  function test_revertsWhenMostRecentTimestampIsExpired() public virtual override withOneReport(aReport) {
+  function test_revertsWhenMostRecentTimestampIsExpired() public virtual override withReport(aReport) {
     chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
     chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
     chainlinkAggregator2.setRoundData(aggregatorPrice2, block.timestamp + 1);
     vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
+  function test_revertsWhenTimestampSpreadTooLarge() public virtual override {
+    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    vm.warp(block.timestamp + 101);
+    chainlinkAggregator2.setRoundData(aggregatorPrice2, block.timestamp);
+    vm.expectRevert(TIMESTAMP_SPREAD_TOO_HIGH);
     relayer.relay();
   }
 }
@@ -562,7 +584,7 @@ contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
     relayer.relay();
   }
 
-  function test_revertsOnEarlierTimestamp() public override withOneReport(aReport) {
+  function test_revertsOnEarlierTimestamp() public override withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
 
     chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
@@ -574,22 +596,24 @@ contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
     relayer.relay();
   }
 
-  function test_relaysOnRecentTimestamp3() public {
-    skip(100);
+  function test_relaysOnRecentTimestamp3() public withReport(aReport) {
+    vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
+    relayer.relay();
+    skip(50);
     chainlinkAggregator3.setRoundData(aggregatorPrice3, block.timestamp);
     relayer.relay();
     uint256 timestamp = sortedOracles.medianTimestamp(rateFeedId);
     assertEq(timestamp, block.timestamp);
   }
 
-  function test_revertsOnRepeatTimestamp3() public withOneReport(aReport) {
+  function test_revertsOnRepeatTimestamp3() public withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
     chainlinkAggregator3.setRoundData(aggregatorPrice3, latestTimestamp);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
-  function test_revertsWhenMostRecentTimestampIsExpired() public override withOneReport(aReport) {
+  function test_revertsWhenMostRecentTimestampIsExpired() public override withReport(aReport) {
     chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
     chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
     chainlinkAggregator2.setRoundData(aggregatorPrice2, block.timestamp + 1);
@@ -597,6 +621,14 @@ contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
 
     vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
+  function test_revertsWhenTimestampSpreadTooLarge() public virtual override {
+    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    vm.warp(block.timestamp + 101);
+    chainlinkAggregator3.setRoundData(aggregatorPrice3, block.timestamp);
+    vm.expectRevert(TIMESTAMP_SPREAD_TOO_HIGH);
     relayer.relay();
   }
 }
