@@ -46,7 +46,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /// @notice The address of the SortedOracles contract to report to.
   address public immutable sortedOracles;
   /**
-   * @notice The addresses and invert settings of the Chainlink aggregator this
+   * @notice The addresses and invert settings of the Chainlink aggregators this
    * contract fetches data from, it's limited to 4 potential path segments,
    * because we can't have dynamic types as immutable, and it's not worth the gas
    * to do it this way.
@@ -60,7 +60,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   bool public immutable invertAggregator2;
   bool public immutable invertAggregator3;
   /**
-   * @notice Maximum deviation allowed between all prices pulled
+   * @notice Maximum timestamp deviation allowed between all prices pulled
    * from the chainlink aggregators.
    */
   uint256 public immutable maxTimestampSpread;
@@ -79,7 +79,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   error ZeroPrice();
   /**
-   * @notice Used when the spread between the earliers and latest timestamp
+   * @notice Used when the spread between the earliest and latest timestamp
    * of the aggregators is above the maximum allowed.
    */
   error TimestampSpreadTooHigh();
@@ -93,6 +93,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @notice Initializes the contract and sets immutable parameters.
    * @param _rateFeedId ID of the rate feed this relayer instance relays for.
    * @param _sortedOracles Address of the SortedOracles contract to relay to.
+   * @param _maxTimestampSpread Max difference in milliseconds between the earliest and latest timestamp of all aggregators in the price path
    * @param _chainlinkAggregator0 Addresses of the Chainlink price feeds to fetch data from.
    * @param _chainlinkAggregator1 Addresses of the Chainlink price feeds to fetch data from.
    * @param _chainlinkAggregator2 Addresses of the Chainlink price feeds to fetch data from.
@@ -204,7 +205,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
   /**
    * @notice Read and validate a chainlink report from an aggregator.
-   * It inverts the value if necesarry
+   * It inverts the value if necessary
    * @return price UD60x18 report value
    * @return timestamp uint256 timestamp of the report
    */
@@ -249,7 +250,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   }
 
   /**
-   * @notice Converts a Chainlink price to an unwrapped Fixidity value.
+   * @notice Converts a Chainlink price to a UD60x18 value.
    * @param price An price from the Chainlink aggregator.
    * @return The converted UD60x18 value.
    */

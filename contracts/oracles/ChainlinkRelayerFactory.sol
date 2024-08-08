@@ -77,7 +77,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
   /**
    * @notice Deploys a new relayer contract.
    * @param rateFeedId The rate feed ID for which the relayer will report.
-   * @param relayerConfig The relayer configuration specifiying one or more aggregators to compute the price from.
+   * @param relayerConfig The relayer configuration specifying one or more chainlink aggregators to compute the price from.
    * @return relayerAddress The address of the newly deployed relayer contract.
    */
   function deployRelayer(
@@ -152,7 +152,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    *         Chainlink aggregator (and/or different bytecode if the factory
    *         has been upgraded since the last deployment of the relayer).
    * @param rateFeedId The rate feed for which the relayer should be redeployed.
-   * @param relayerConfig The relayer configuration specifiying one or more aggregators to compute the price from.
+   * @param relayerConfig The relayer configuration specifying one or more chainlink aggregators to compute the price from.
    * @return relayerAddress The address of the newly deployed relayer contract.
    */
   function redeployRelayer(
@@ -198,7 +198,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
   /**
    * @notice Computes the expected CREATE2 address for given relayer parameters.
    * @param rateFeedId The rate feed ID.
-   * @param relayerConfig The relayer configuration specifiying one or more aggregators to compute the price from.
+   * @param relayerConfig The relayer configuration specifying one or more chainlink aggregators to compute the price from.
    * @dev See https://eips.ethereum.org/EIPS/eip-1014.
    */
   function computedRelayerAddress(
