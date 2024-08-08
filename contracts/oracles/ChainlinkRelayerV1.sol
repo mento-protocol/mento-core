@@ -30,7 +30,7 @@ interface ISortedOraclesMin {
  * @notice The ChainlinkRelayer relays rate feed data from a Chainlink price feed to
  * the SortedOracles contract. A separate instance should be deployed for each
  * rate feed.
- * @dev Assumes that it itself is the only reporter 3or the given SortedOracles
+ * @dev Assumes that it itself is the only reporter for the given SortedOracles
  * feed.
  */
 contract ChainlinkRelayerV1 is IChainlinkRelayer {
