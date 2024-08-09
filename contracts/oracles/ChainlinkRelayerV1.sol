@@ -161,21 +161,29 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     uint256 newestChainlinkTs = timestamp;
 
     if (chainlinkAggregator1 != address(0)) {
-      UD60x18 nextReport;
-      (nextReport, timestamp) = readChainlinkAggregator(chainlinkAggregator1, invertAggregator1);
-      report = report.mul(nextReport);
-      oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
-      newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
+      (report, oldestChainlinkTs, newestChainlinkTs) = combineReports(
+        report,
+        oldestChainlinkTs,
+        newestChainlinkTs,
+        chainlinkAggregator1,
+        invertAggregator1
+      );
       if (chainlinkAggregator2 != address(0)) {
-        (nextReport, timestamp) = readChainlinkAggregator(chainlinkAggregator2, invertAggregator2);
-        report = report.mul(nextReport);
-        oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
-        newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
+        (report, oldestChainlinkTs, newestChainlinkTs) = combineReports(
+          report,
+          oldestChainlinkTs,
+          newestChainlinkTs,
+          chainlinkAggregator2,
+          invertAggregator2
+        );
         if (chainlinkAggregator3 != address(0)) {
-          (nextReport, timestamp) = readChainlinkAggregator(chainlinkAggregator3, invertAggregator3);
-          report = report.mul(nextReport);
-          oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
-          newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
+          (report, oldestChainlinkTs, newestChainlinkTs) = combineReports(
+            report,
+            oldestChainlinkTs,
+            newestChainlinkTs,
+            chainlinkAggregator3,
+            invertAggregator3
+          );
         }
       }
     }
@@ -201,6 +209,41 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     // `lesserKey`/`greaterKey` each time, the "null pointer" `address(0)` will
     // correctly place the report in SortedOracles' sorted linked list.
     ISortedOraclesMin(sortedOracles).report(rateFeedId, reportValue, address(0), address(0));
+  }
+
+  /**
+   * @notice Reducer function which combines the current aggregated report
+   * with the next price read from the Chainlink aggregator.
+   * @param report The current aggregated report value.
+   * @param oldestChainlinkTs The olders chainlink timestamp seen so far.
+   * @param newestChainlinkTs The newest chainlink timestamp seen so far.
+   * @param aggregator The next chainlink aggregator to read from.
+   * @param invert Flag specifing wether to invert the chainlink price.
+   * @return report The next report value.
+   * @return oldestChainlinkTs The next oldest chainlink timestamp.
+   * @return newestChainlinkTs THe next newest chainlink timestamp.
+   */
+  function combineReports(
+    UD60x18 report,
+    uint256 oldestChainlinkTs,
+    uint256 newestChainlinkTs,
+    address aggregator,
+    bool invert
+  )
+    internal
+    view
+    returns (
+      UD60x18,
+      uint256,
+      uint256
+    )
+  {
+    (UD60x18 nextReport, uint256 timestamp) = readChainlinkAggregator(aggregator, invert);
+    return (
+      report = report.mul(nextReport),
+      timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs,
+      timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs
+    );
   }
 
   /**
