@@ -61,7 +61,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   bool public immutable invertAggregator3;
   /**
    * @notice Maximum timestamp deviation allowed between all prices pulled
-   * from the chainlink aggregators.
+   * from the Chainlink aggregators.
    */
   uint256 public immutable maxTimestampSpread;
 
@@ -94,7 +94,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @param _rateFeedId ID of the rate feed this relayer instance relays for.
    * @param _sortedOracles Address of the SortedOracles contract to relay to.
    * @param _maxTimestampSpread Max difference in milliseconds between the earliest and
-   *        latest timestamp of all aggregators in the price path
+   *        latest timestamp of all aggregators in the price path.
    * @param _chainlinkAggregator0 Addresses of the Chainlink price feeds to fetch data from.
    * @param _chainlinkAggregator1 Addresses of the Chainlink price feeds to fetch data from.
    * @param _chainlinkAggregator2 Addresses of the Chainlink price feeds to fetch data from.
@@ -204,10 +204,10 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   }
 
   /**
-   * @notice Read and validate a chainlink report from an aggregator.
-   * It inverts the value if necessary
-   * @return price UD60x18 report value
-   * @return timestamp uint256 timestamp of the report
+   * @notice Read and validate a Chainlink report from an aggregator.
+   * It inverts the value if necessary.
+   * @return price UD60x18 report value.
+   * @return timestamp uint256 timestamp of the report.
    */
   function readChainlinkAggregator(address aggregator, bool invert) internal view returns (UD60x18, uint256) {
     (, int256 _price, , uint256 timestamp, ) = AggregatorV3Interface(aggregator).latestRoundData();
@@ -225,8 +225,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   }
 
   /**
-   * @notice Get the relayer configuration as a Config struct
-   * @return config Config structure populated with all relayer config fields
+   * @notice Get the relayer configuration as a Config struct.
+   * @return config Config structure populated with all relayer config fields.
    */
   function getConfig() public view returns (Config memory config) {
     config.maxTimestampSpread = maxTimestampSpread;

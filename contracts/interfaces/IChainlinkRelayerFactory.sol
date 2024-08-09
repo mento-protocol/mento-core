@@ -9,7 +9,7 @@ interface IChainlinkRelayerFactory {
    * @notice Emitted when a relayer is deployed.
    * @param relayerAddress Address of the newly deployed relayer.
    * @param rateFeedId Rate feed ID for which the relayer will report.
-   * @param relayerConfig Chainlink aggregator configuration for the relayer
+   * @param relayerConfig Chainlink aggregator configuration for the relayer.
    */
   event RelayerDeployed(
     address indexed relayerAddress,

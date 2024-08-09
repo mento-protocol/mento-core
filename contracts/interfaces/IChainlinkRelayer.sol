@@ -8,9 +8,9 @@ interface IChainlinkRelayer {
    * up to 4 chainlink aggregators and their respective inversion
    * settings. For a relayer with N (1<=N<=4) aggregators, only
    * the first N must have a non-zero addresss.
-   * @param maxTimestampSpread maximum spread between aggregator timestamps.
-   * @param chainlinkAggregatorN the Nth chainlink aggregator address
-   * @param invertAggregatorN the Nth inversion setting for the price
+   * @param maxTimestampSpread Maximum spread between aggregator timestamps.
+   * @param chainlinkAggregatorN The Nth chainlink aggregator address.
+   * @param invertAggregatorN The Nth inversion setting for the price.
    */
   struct Config {
     uint256 maxTimestampSpread;
