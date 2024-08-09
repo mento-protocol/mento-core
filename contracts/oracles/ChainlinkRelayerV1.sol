@@ -71,13 +71,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /// @notice Used when a new price's timestamp would be considered expired by SortedOracles.
   error ExpiredTimestamp();
 
-  /// @notice Used when a negative price is returned by the Chainlink aggregator.
-  error NegativePrice();
-  /**
-   * @notice Used when a zero price is returned by the Chainlink
-   * aggregator.
-   */
-  error ZeroPrice();
+  /// @notice Used when a negative or zero price is returned by the Chainlink aggregator.
+  error InvalidPrice();
   /**
    * @notice Used when the spread between the earliest and latest timestamp
    * of the aggregators is above the maximum allowed.
@@ -254,11 +249,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   function readChainlinkAggregator(address aggregator, bool invert) internal view returns (UD60x18, uint256) {
     (, int256 _price, , uint256 timestamp, ) = AggregatorV3Interface(aggregator).latestRoundData();
-    if (_price < 0) {
-      revert NegativePrice();
-    }
-    if (_price == 0) {
-      revert ZeroPrice();
+    if (_price <= 0) {
+      revert InvalidPrice();
     }
     UD60x18 price = chainlinkToUD60x18(_price, aggregator);
     if (invert) {

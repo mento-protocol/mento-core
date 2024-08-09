@@ -36,8 +36,7 @@ interface ISortedOracles {
 contract ChainlinkRelayerTest is BaseTest {
   bytes constant TIMESTAMP_NOT_NEW_ERROR = abi.encodeWithSignature("TimestampNotNew()");
   bytes constant EXPIRED_TIMESTAMP_ERROR = abi.encodeWithSignature("ExpiredTimestamp()");
-  bytes constant NEGATIVE_PRICE_ERROR = abi.encodeWithSignature("NegativePrice()");
-  bytes constant ZERO_PRICE_ERROR = abi.encodeWithSignature("ZeroPrice()");
+  bytes constant INVALID_PRICE_ERROR = abi.encodeWithSignature("InvalidPrice()");
   bytes constant TIMESTAMP_SPREAD_TOO_HIGH = abi.encodeWithSignature("TimestampSpreadTooHigh()");
   bytes constant PRICE_PATH_HAS_GAPS = abi.encodeWithSignature("PricePathHasGaps()");
 
@@ -376,13 +375,13 @@ contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
 
   function test_revertsOnNegativePrice0() public {
     chainlinkAggregator0.setRoundData(-1 * aggregatorPrice0, block.timestamp);
-    vm.expectRevert(NEGATIVE_PRICE_ERROR);
+    vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
   function test_revertsOnZeroPrice0() public {
     chainlinkAggregator0.setRoundData(0, block.timestamp);
-    vm.expectRevert(ZERO_PRICE_ERROR);
+    vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
@@ -432,13 +431,13 @@ contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single 
 
   function test_revertsOnNegativePrice1() public {
     chainlinkAggregator1.setRoundData(-1 * aggregatorPrice1, block.timestamp);
-    vm.expectRevert(NEGATIVE_PRICE_ERROR);
+    vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
   function test_revertsOnZeroPrice1() public {
     chainlinkAggregator1.setRoundData(0, block.timestamp);
-    vm.expectRevert(ZERO_PRICE_ERROR);
+    vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
@@ -501,13 +500,13 @@ contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double 
 
   function test_revertsOnNegativePrice2() public {
     chainlinkAggregator2.setRoundData(-1 * aggregatorPrice2, block.timestamp);
-    vm.expectRevert(NEGATIVE_PRICE_ERROR);
+    vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
   function test_revertsOnZeroPrice2() public {
     chainlinkAggregator2.setRoundData(0, block.timestamp);
-    vm.expectRevert(ZERO_PRICE_ERROR);
+    vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
@@ -574,13 +573,13 @@ contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
 
   function test_revertsOnNegativePrice3() public {
     chainlinkAggregator3.setRoundData(-1 * aggregatorPrice3, block.timestamp);
-    vm.expectRevert(NEGATIVE_PRICE_ERROR);
+    vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
   function test_revertsOnZeroPrice3() public {
     chainlinkAggregator3.setRoundData(0, block.timestamp);
-    vm.expectRevert(ZERO_PRICE_ERROR);
+    vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
