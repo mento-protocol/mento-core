@@ -174,6 +174,48 @@ contract ChainlinkRelayerTest_constructor_invalid is ChainlinkRelayerTest {
       false,
       false
     );
+    vm.expectRevert(PRICE_PATH_HAS_GAPS);
+    new ChainlinkRelayerV1(
+      rateFeedId,
+      address(sortedOracles),
+      1000,
+      address(chainlinkAggregator0),
+      address(0),
+      address(0),
+      address(chainlinkAggregator3),
+      false,
+      false,
+      false,
+      false
+    );
+    vm.expectRevert(PRICE_PATH_HAS_GAPS);
+    new ChainlinkRelayerV1(
+      rateFeedId,
+      address(sortedOracles),
+      1000,
+      address(0),
+      address(chainlinkAggregator0),
+      address(0),
+      address(chainlinkAggregator3),
+      false,
+      false,
+      false,
+      false
+    );
+    vm.expectRevert(PRICE_PATH_HAS_GAPS);
+    new ChainlinkRelayerV1(
+      rateFeedId,
+      address(sortedOracles),
+      1000,
+      address(0),
+      address(0),
+      address(chainlinkAggregator0),
+      address(chainlinkAggregator3),
+      false,
+      false,
+      false,
+      false
+    );
   }
 }
 
