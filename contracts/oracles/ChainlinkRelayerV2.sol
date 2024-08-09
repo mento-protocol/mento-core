@@ -33,7 +33,7 @@ interface ISortedOraclesMin {
  * @dev Assumes that it itself is the only reporter for the given SortedOracles
  * feed.
  */
-contract ChainlinkRelayerV1 is IChainlinkRelayer {
+contract ChainlinkRelayerV2 is IChainlinkRelayer {
   /**
    * @notice The number of digits after the decimal point in FixidityLib values, as used by SortedOracles.
    * @dev See contracts/common/FixidityLib.sol
@@ -59,11 +59,15 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   bool public immutable invertAggregator1;
   bool public immutable invertAggregator2;
   bool public immutable invertAggregator3;
+  uint256 public immutable aggregatorsCount;
   /**
    * @notice Maximum timestamp deviation allowed between all prices pulled
    * from the Chainlink aggregators.
    */
   uint256 public immutable maxTimestampSpread;
+
+  /// @notice Used when an empty array of aggregators is passed into the constructor
+  error NoAggregators();
 
   /// @notice Used when a new price's timestamp is not newer than the most recent SortedOracles timestamp.
   error TimestampNotNew();
@@ -139,6 +143,19 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     invertAggregator1 = _invertAggregator1;
     invertAggregator2 = _invertAggregator2;
     invertAggregator3 = _invertAggregator3;
+
+    uint256 _aggregatorsCount;
+    if (_chainlinkAggregator3 != address(0)) {
+      _aggregatorsCount = 4;
+    } else if (_chainlinkAggregator2 != address(0)) {
+      _aggregatorsCount = 3;
+    } else if (_chainlinkAggregator1 != address(0)) {
+      _aggregatorsCount = 2;
+    } else {
+      _aggregatorsCount = 1;
+    }
+
+    aggregatorsCount = _aggregatorsCount;
   }
 
   /**
@@ -151,36 +168,18 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   function relay() external {
     ISortedOraclesMin _sortedOracles = ISortedOraclesMin(sortedOracles);
-    (UD60x18 report, uint256 timestamp) = readChainlinkAggregator(chainlinkAggregator0, invertAggregator0);
+    ChainlinkAggregator[] memory aggregators = getAggregators();
+
+    (UD60x18 report, uint256 timestamp) = readChainlinkAggregator(aggregators[0]);
     uint256 oldestChainlinkTs = timestamp;
     uint256 newestChainlinkTs = timestamp;
 
-    if (chainlinkAggregator1 != address(0)) {
-      (report, oldestChainlinkTs, newestChainlinkTs) = combineReports(
-        report,
-        oldestChainlinkTs,
-        newestChainlinkTs,
-        chainlinkAggregator1,
-        invertAggregator1
-      );
-      if (chainlinkAggregator2 != address(0)) {
-        (report, oldestChainlinkTs, newestChainlinkTs) = combineReports(
-          report,
-          oldestChainlinkTs,
-          newestChainlinkTs,
-          chainlinkAggregator2,
-          invertAggregator2
-        );
-        if (chainlinkAggregator3 != address(0)) {
-          (report, oldestChainlinkTs, newestChainlinkTs) = combineReports(
-            report,
-            oldestChainlinkTs,
-            newestChainlinkTs,
-            chainlinkAggregator3,
-            invertAggregator3
-          );
-        }
-      }
+    UD60x18 nextReport;
+    for (uint256 i = 1; i < aggregators.length; i++) {
+      (nextReport, timestamp) = readChainlinkAggregator(aggregators[i]);
+      report = report.mul(nextReport);
+      oldestChainlinkTs = timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs;
+      newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
     }
 
     if (newestChainlinkTs - oldestChainlinkTs > maxTimestampSpread) {
@@ -207,56 +206,41 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   }
 
   /**
-   * @notice Reducer function which combines the current aggregated report
-   * with the next price read from the Chainlink aggregator.
-   * @param report The current aggregated report value.
-   * @param oldestChainlinkTs The olders chainlink timestamp seen so far.
-   * @param newestChainlinkTs The newest chainlink timestamp seen so far.
-   * @param aggregator The next chainlink aggregator to read from.
-   * @param invert Flag specifing wether to invert the chainlink price.
-   * @return report The next report value.
-   * @return oldestChainlinkTs The next oldest chainlink timestamp.
-   * @return newestChainlinkTs THe next newest chainlink timestamp.
-   */
-  function combineReports(
-    UD60x18 report,
-    uint256 oldestChainlinkTs,
-    uint256 newestChainlinkTs,
-    address aggregator,
-    bool invert
-  )
-    internal
-    view
-    returns (
-      UD60x18,
-      uint256,
-      uint256
-    )
-  {
-    (UD60x18 nextReport, uint256 timestamp) = readChainlinkAggregator(aggregator, invert);
-    return (
-      report = report.mul(nextReport),
-      timestamp < oldestChainlinkTs ? timestamp : oldestChainlinkTs,
-      timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs
-    );
-  }
-
-  /**
    * @notice Read and validate a Chainlink report from an aggregator.
    * It inverts the value if necessary.
    * @return price UD60x18 report value.
    * @return timestamp uint256 timestamp of the report.
    */
-  function readChainlinkAggregator(address aggregator, bool invert) internal view returns (UD60x18, uint256) {
-    (, int256 _price, , uint256 timestamp, ) = AggregatorV3Interface(aggregator).latestRoundData();
+  function readChainlinkAggregator(ChainlinkAggregator memory aggCfg) internal view returns (UD60x18, uint256) {
+    (, int256 _price, , uint256 timestamp, ) = AggregatorV3Interface(aggCfg.aggregator).latestRoundData();
     if (_price <= 0) {
       revert InvalidPrice();
     }
-    UD60x18 price = chainlinkToUD60x18(_price, aggregator);
-    if (invert) {
+    UD60x18 price = chainlinkToUD60x18(_price, aggCfg.aggregator);
+    if (aggCfg.invert) {
       price = price.inv();
     }
     return (price, timestamp);
+  }
+
+  /**
+   * @notice Compose immutable variables into an in-memory array for better handling
+   * @return aggregators An array of structs for each aggregator in the price path
+   */
+  function getAggregators() internal view returns (ChainlinkAggregator[] memory aggregators) {
+    aggregators = new ChainlinkAggregator[](aggregatorsCount);
+    unchecked {
+      aggregators[0] = ChainlinkAggregator(chainlinkAggregator0, invertAggregator0);
+      if (aggregatorsCount > 1) {
+        aggregators[1] = ChainlinkAggregator(chainlinkAggregator1, invertAggregator1);
+        if (aggregatorsCount > 2) {
+          aggregators[2] = ChainlinkAggregator(chainlinkAggregator2, invertAggregator2);
+          if (aggregatorsCount > 3) {
+            aggregators[3] = ChainlinkAggregator(chainlinkAggregator3, invertAggregator3);
+          }
+        }
+      }
+    }
   }
 
   /**

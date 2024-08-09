@@ -24,6 +24,16 @@ interface IChainlinkRelayer {
     bool invertAggregator3;
   }
 
+  /**
+   * @notice Struct used to represent a segment in the price path.
+   * @member aggregator The address of the Chainink aggregator.
+   * @member invert Wether to invert the aggregator.
+   */
+  struct ChainlinkAggregator {
+    address aggregator;
+    bool invert;
+  }
+
   function rateFeedId() external returns (address);
 
   function sortedOracles() external returns (address);
