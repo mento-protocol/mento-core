@@ -210,7 +210,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @notice Reducer function which combines the current aggregated report
    * with the next price read from the Chainlink aggregator.
    * @param report The current aggregated report value.
-   * @param oldestChainlinkTs The olders chainlink timestamp seen so far.
+   * @param oldestChainlinkTs The oldest chainlink timestamp seen so far.
    * @param newestChainlinkTs The newest chainlink timestamp seen so far.
    * @param aggregator The next chainlink aggregator to read from.
    * @param invert Flag specifing wether to invert the chainlink price.
