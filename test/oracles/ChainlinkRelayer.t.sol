@@ -8,7 +8,7 @@ import "../mocks/MockAggregatorV3.sol";
 import "contracts/interfaces/IChainlinkRelayer.sol";
 import "contracts/oracles/ChainlinkRelayerV1.sol";
 
-import { UD60x18, ud, intoUint256 } from "@prb/math/src/UD60x18.sol";
+import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 
 interface ISortedOracles {
   function addOracle(address, address) external;

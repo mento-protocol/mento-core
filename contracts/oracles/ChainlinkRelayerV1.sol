@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 
 import "../interfaces/IChainlinkRelayer.sol";
 import "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol";
-import { UD60x18, ud, intoUint256 } from "@prb/math/src/UD60x18.sol";
+import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 
 /**
  * @notice The minimal subset of the SortedOracles interface needed by the
