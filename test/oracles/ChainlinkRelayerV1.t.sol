@@ -13,18 +13,9 @@ import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 interface ISortedOracles {
   function addOracle(address, address) external;
 
-  function removeOracle(
-    address,
-    address,
-    uint256
-  ) external;
+  function removeOracle(address, address, uint256) external;
 
-  function report(
-    address,
-    uint256,
-    address,
-    address
-  ) external;
+  function report(address, uint256, address, address) external;
 
   function setTokenReportExpiry(address, uint256) external;
 
@@ -33,19 +24,26 @@ interface ISortedOracles {
   function medianTimestamp(address token) external returns (uint256);
 }
 
-contract ChainlinkRelayerTest is BaseTest {
+contract ChainlinkRelayerV1Test is BaseTest {
   bytes constant TIMESTAMP_NOT_NEW_ERROR = abi.encodeWithSignature("TimestampNotNew()");
   bytes constant EXPIRED_TIMESTAMP_ERROR = abi.encodeWithSignature("ExpiredTimestamp()");
   bytes constant INVALID_PRICE_ERROR = abi.encodeWithSignature("InvalidPrice()");
   bytes constant TIMESTAMP_SPREAD_TOO_HIGH = abi.encodeWithSignature("TimestampSpreadTooHigh()");
-  bytes constant PRICE_PATH_HAS_GAPS = abi.encodeWithSignature("PricePathHasGaps()");
+  bytes constant INVALID_AGGREGATOR = abi.encodeWithSignature("InvalidAggregator()");
+  bytes constant NO_AGGREGATORS = abi.encodeWithSignature("NoAggregators()");
 
   ISortedOracles sortedOracles;
 
-  MockAggregatorV3 chainlinkAggregator0;
-  MockAggregatorV3 chainlinkAggregator1;
-  MockAggregatorV3 chainlinkAggregator2;
-  MockAggregatorV3 chainlinkAggregator3;
+  IChainlinkRelayer.ChainlinkAggregator aggregator0;
+  IChainlinkRelayer.ChainlinkAggregator aggregator1;
+  IChainlinkRelayer.ChainlinkAggregator aggregator2;
+  IChainlinkRelayer.ChainlinkAggregator aggregator3;
+
+  MockAggregatorV3 mockAggregator0;
+  MockAggregatorV3 mockAggregator1;
+  MockAggregatorV3 mockAggregator2;
+  MockAggregatorV3 mockAggregator3;
+
   bool invert0 = false;
   bool invert1 = true;
   bool invert2 = false;
@@ -55,6 +53,7 @@ contract ChainlinkRelayerTest is BaseTest {
   int256 aggregatorPrice1;
   int256 aggregatorPrice2;
   int256 aggregatorPrice3;
+
   uint256 expectedReport;
   uint256 aReport = 4100000000000000000000000;
 
@@ -62,78 +61,28 @@ contract ChainlinkRelayerTest is BaseTest {
   address rateFeedId = makeAddr("rateFeed");
   uint256 expirySeconds = 600;
 
-  function setUpRelayer_single() internal {
-    relayer = IChainlinkRelayer(
-      new ChainlinkRelayerV1(
-        rateFeedId,
-        address(sortedOracles),
-        0,
-        address(chainlinkAggregator0),
-        address(0),
-        address(0),
-        address(0),
-        invert0,
-        false,
-        false,
-        false
-      )
-    );
-    sortedOracles.addOracle(rateFeedId, address(relayer));
-  }
+  function setUpRelayer(uint256 aggregatorsCount) internal {
+    aggregator0 = IChainlinkRelayer.ChainlinkAggregator(address(mockAggregator0), invert0);
+    aggregator1 = IChainlinkRelayer.ChainlinkAggregator(address(mockAggregator1), invert1);
+    aggregator2 = IChainlinkRelayer.ChainlinkAggregator(address(mockAggregator2), invert2);
+    aggregator3 = IChainlinkRelayer.ChainlinkAggregator(address(mockAggregator3), invert3);
 
-  function setUpRelayer_double() internal {
-    relayer = IChainlinkRelayer(
-      new ChainlinkRelayerV1(
-        rateFeedId,
-        address(sortedOracles),
-        100,
-        address(chainlinkAggregator0),
-        address(chainlinkAggregator1),
-        address(0),
-        address(0),
-        invert0,
-        invert1,
-        false,
-        false
-      )
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregators = new IChainlinkRelayer.ChainlinkAggregator[](
+      aggregatorsCount
     );
-    sortedOracles.addOracle(rateFeedId, address(relayer));
-  }
+    aggregators[0] = aggregator0;
+    if (aggregatorsCount > 1) {
+      aggregators[1] = aggregator1;
+      if (aggregatorsCount > 2) {
+        aggregators[2] = aggregator2;
+        if (aggregatorsCount > 3) {
+          aggregators[3] = aggregator3;
+        }
+      }
+    }
 
-  function setUpRelayer_triple() internal {
     relayer = IChainlinkRelayer(
-      new ChainlinkRelayerV1(
-        rateFeedId,
-        address(sortedOracles),
-        100,
-        address(chainlinkAggregator0),
-        address(chainlinkAggregator1),
-        address(chainlinkAggregator2),
-        address(0),
-        invert0,
-        invert1,
-        invert2,
-        false
-      )
-    );
-    sortedOracles.addOracle(rateFeedId, address(relayer));
-  }
-
-  function setUpRelayer_full() internal {
-    relayer = IChainlinkRelayer(
-      new ChainlinkRelayerV1(
-        rateFeedId,
-        address(sortedOracles),
-        100,
-        address(chainlinkAggregator0),
-        address(chainlinkAggregator1),
-        address(chainlinkAggregator2),
-        address(chainlinkAggregator3),
-        invert0,
-        invert1,
-        invert2,
-        invert3
-      )
+      new ChainlinkRelayerV1(rateFeedId, "CELO/USD", address(sortedOracles), 300, aggregators)
     );
     sortedOracles.addOracle(rateFeedId, address(relayer));
   }
@@ -144,84 +93,47 @@ contract ChainlinkRelayerTest is BaseTest {
     );
     sortedOracles.setTokenReportExpiry(rateFeedId, expirySeconds);
 
-    chainlinkAggregator0 = new MockAggregatorV3(8);
-    chainlinkAggregator1 = new MockAggregatorV3(12);
-    chainlinkAggregator2 = new MockAggregatorV3(8);
-    chainlinkAggregator3 = new MockAggregatorV3(6);
+    mockAggregator0 = new MockAggregatorV3(8);
+    mockAggregator1 = new MockAggregatorV3(12);
+    mockAggregator2 = new MockAggregatorV3(8);
+    mockAggregator3 = new MockAggregatorV3(6);
   }
 
-  function setUpAggregators() public {
-    chainlinkAggregator0.setRoundData(int256(aggregatorPrice0), uint256(block.timestamp));
-    chainlinkAggregator1.setRoundData(int256(aggregatorPrice1), uint256(block.timestamp));
-    chainlinkAggregator2.setRoundData(int256(aggregatorPrice2), uint256(block.timestamp));
-    chainlinkAggregator3.setRoundData(int256(aggregatorPrice3), uint256(block.timestamp));
+  function setAggregatorPrices() public {
+    mockAggregator0.setRoundData(int256(aggregatorPrice0), uint256(block.timestamp));
+    mockAggregator1.setRoundData(int256(aggregatorPrice1), uint256(block.timestamp));
+    mockAggregator2.setRoundData(int256(aggregatorPrice2), uint256(block.timestamp));
+    mockAggregator3.setRoundData(int256(aggregatorPrice3), uint256(block.timestamp));
   }
 }
 
-contract ChainlinkRelayerTest_constructor_invalid is ChainlinkRelayerTest {
-  function test_constructorRevertsWhenPathInvalid() public {
-    vm.expectRevert(PRICE_PATH_HAS_GAPS);
+contract ChainlinkRelayerV1Test_constructor_invalid is ChainlinkRelayerV1Test {
+  function test_constructorRevertsWhenAggregatorsIsEmpty() public {
+    vm.expectRevert(NO_AGGREGATORS);
     new ChainlinkRelayerV1(
       rateFeedId,
+      "CELO/USD",
       address(sortedOracles),
       1000,
-      address(chainlinkAggregator0),
-      address(0),
-      address(chainlinkAggregator3),
-      address(0),
-      false,
-      false,
-      false,
-      false
+      new IChainlinkRelayer.ChainlinkAggregator[](0)
     );
-    vm.expectRevert(PRICE_PATH_HAS_GAPS);
+  }
+
+  function test_constructorRevertsWhenAggregatorsIsInvalid() public {
+    vm.expectRevert(INVALID_AGGREGATOR);
     new ChainlinkRelayerV1(
       rateFeedId,
+      "CELO/USD",
       address(sortedOracles),
       1000,
-      address(chainlinkAggregator0),
-      address(0),
-      address(0),
-      address(chainlinkAggregator3),
-      false,
-      false,
-      false,
-      false
-    );
-    vm.expectRevert(PRICE_PATH_HAS_GAPS);
-    new ChainlinkRelayerV1(
-      rateFeedId,
-      address(sortedOracles),
-      1000,
-      address(0),
-      address(chainlinkAggregator0),
-      address(0),
-      address(chainlinkAggregator3),
-      false,
-      false,
-      false,
-      false
-    );
-    vm.expectRevert(PRICE_PATH_HAS_GAPS);
-    new ChainlinkRelayerV1(
-      rateFeedId,
-      address(sortedOracles),
-      1000,
-      address(0),
-      address(0),
-      address(chainlinkAggregator0),
-      address(chainlinkAggregator3),
-      false,
-      false,
-      false,
-      false
+      new IChainlinkRelayer.ChainlinkAggregator[](1)
     );
   }
 }
 
-contract ChainlinkRelayerTest_constructor_single is ChainlinkRelayerTest {
+contract ChainlinkRelayerV1Test_constructor_single is ChainlinkRelayerV1Test {
   function setUpRelayer() internal virtual {
-    setUpRelayer_single();
+    setUpRelayer(1);
   }
 
   function setUp() public override {
@@ -239,93 +151,90 @@ contract ChainlinkRelayerTest_constructor_single is ChainlinkRelayerTest {
     assertEq(_sortedOracles, address(sortedOracles));
   }
 
+  function test_constructorSetsRateFeedDescription() public {
+    string memory rateFeedDescription = relayer.rateFeedDescription();
+    assertEq(rateFeedDescription, "CELO/USD");
+  }
+
   function test_constructorSetsAggregators() public virtual {
-    IChainlinkRelayer.Config memory config = relayer.getConfig();
-    assertEq(config.chainlinkAggregator0, address(chainlinkAggregator0));
-    assertEq(config.chainlinkAggregator1, address(0));
-    assertEq(config.chainlinkAggregator2, address(0));
-    assertEq(config.chainlinkAggregator3, address(0));
-    assertEq(config.invertAggregator0, invert0);
-    assertEq(config.invertAggregator1, false);
-    assertEq(config.invertAggregator2, false);
-    assertEq(config.invertAggregator3, false);
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregators = relayer.getAggregators();
+    assertEq(aggregators.length, 1);
+    assertEq(aggregators[0].aggregator, address(aggregator0.aggregator));
+    assertEq(aggregators[0].invert, aggregator0.invert);
   }
 }
 
-contract ChainlinkRelayerTest_constructor_double is ChainlinkRelayerTest_constructor_single {
+contract ChainlinkRelayerV1Test_constructor_double is ChainlinkRelayerV1Test_constructor_single {
   function setUpRelayer() internal override {
-    setUpRelayer_double();
+    setUpRelayer(2);
   }
 
   function test_constructorSetsAggregators() public override {
-    IChainlinkRelayer.Config memory config = relayer.getConfig();
-    assertEq(config.chainlinkAggregator0, address(chainlinkAggregator0));
-    assertEq(config.chainlinkAggregator1, address(chainlinkAggregator1));
-    assertEq(config.chainlinkAggregator2, address(0));
-    assertEq(config.chainlinkAggregator3, address(0));
-    assertEq(config.invertAggregator0, invert0);
-    assertEq(config.invertAggregator1, invert1);
-    assertEq(config.invertAggregator2, false);
-    assertEq(config.invertAggregator3, false);
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregators = relayer.getAggregators();
+    assertEq(aggregators.length, 2);
+    assertEq(aggregators[0].aggregator, address(aggregator0.aggregator));
+    assertEq(aggregators[1].aggregator, address(aggregator1.aggregator));
+    assertEq(aggregators[0].invert, aggregator0.invert);
+    assertEq(aggregators[1].invert, aggregator1.invert);
   }
 }
 
-contract ChainlinkRelayerTest_constructor_triple is ChainlinkRelayerTest_constructor_single {
+contract ChainlinkRelayerV1Test_constructor_triple is ChainlinkRelayerV1Test_constructor_single {
   function setUpRelayer() internal override {
-    setUpRelayer_triple();
+    setUpRelayer(3);
   }
 
   function test_constructorSetsAggregators() public override {
-    IChainlinkRelayer.Config memory config = relayer.getConfig();
-    assertEq(config.chainlinkAggregator0, address(chainlinkAggregator0));
-    assertEq(config.chainlinkAggregator1, address(chainlinkAggregator1));
-    assertEq(config.chainlinkAggregator2, address(chainlinkAggregator2));
-    assertEq(config.chainlinkAggregator3, address(0));
-    assertEq(config.invertAggregator0, invert0);
-    assertEq(config.invertAggregator1, invert1);
-    assertEq(config.invertAggregator2, invert2);
-    assertEq(config.invertAggregator3, false);
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregators = relayer.getAggregators();
+    assertEq(aggregators.length, 3);
+    assertEq(aggregators[0].aggregator, address(aggregator0.aggregator));
+    assertEq(aggregators[1].aggregator, address(aggregator1.aggregator));
+    assertEq(aggregators[2].aggregator, address(aggregator2.aggregator));
+    assertEq(aggregators[0].invert, aggregator0.invert);
+    assertEq(aggregators[1].invert, aggregator1.invert);
+    assertEq(aggregators[2].invert, aggregator2.invert);
   }
 }
 
-contract ChainlinkRelayerTest_constructor_full is ChainlinkRelayerTest_constructor_single {
+contract ChainlinkRelayerV1Test_constructor_full is ChainlinkRelayerV1Test_constructor_single {
   function setUpRelayer() internal override {
-    setUpRelayer_full();
+    setUpRelayer(4);
   }
 
   function test_constructorSetsAggregators() public override {
-    IChainlinkRelayer.Config memory config = relayer.getConfig();
-    assertEq(config.chainlinkAggregator0, address(chainlinkAggregator0));
-    assertEq(config.chainlinkAggregator1, address(chainlinkAggregator1));
-    assertEq(config.chainlinkAggregator2, address(chainlinkAggregator2));
-    assertEq(config.chainlinkAggregator3, address(chainlinkAggregator3));
-    assertEq(config.invertAggregator0, invert0);
-    assertEq(config.invertAggregator1, invert1);
-    assertEq(config.invertAggregator2, invert2);
-    assertEq(config.invertAggregator3, invert3);
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregators = relayer.getAggregators();
+    assertEq(aggregators.length, 4);
+    assertEq(aggregators[0].aggregator, address(aggregator0.aggregator));
+    assertEq(aggregators[1].aggregator, address(aggregator1.aggregator));
+    assertEq(aggregators[2].aggregator, address(aggregator2.aggregator));
+    assertEq(aggregators[3].aggregator, address(aggregator3.aggregator));
+    assertEq(aggregators[0].invert, aggregator0.invert);
+    assertEq(aggregators[1].invert, aggregator1.invert);
+    assertEq(aggregators[2].invert, aggregator2.invert);
+    assertEq(aggregators[3].invert, aggregator3.invert);
   }
 }
 
-contract ChainlinkRelayerTest_fuzz_single is ChainlinkRelayerTest {
+contract ChainlinkRelayerV1Test_fuzz_single is ChainlinkRelayerV1Test {
   function setUp() public override {
     super.setUp();
-    setUpRelayer_single();
+    setUpRelayer(1);
   }
 
   function testFuzz_convertsChainlinkToUD60x18Correctly(int256 x) public {
     vm.assume(x > 0);
-    vm.assume(uint256(x) < uint256(2**256 - 1) / (10**(24 - 8)));
-    chainlinkAggregator0.setRoundData(x, uint256(block.timestamp));
+    vm.assume(uint256(x) < uint256(2 ** 256 - 1) / (10 ** (24 - 8)));
+    mockAggregator0.setRoundData(x, uint256(block.timestamp));
     relayer.relay();
     (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
-    assertEq(medianRate, uint256(x) * 10**(24 - 8));
+    assertEq(medianRate, uint256(x) * 10 ** (24 - 8));
   }
 }
 
-contract ChainlinkRelayerTest_fuzz_full is ChainlinkRelayerTest {
+contract ChainlinkRelayerV1Test_fuzz_full is ChainlinkRelayerV1Test {
   function setUp() public override {
     super.setUp();
-    setUpRelayer_full();
+    setUpRelayer(4);
   }
 
   function testFuzz_calculatesReportsCorrectly(
@@ -356,8 +265,8 @@ contract ChainlinkRelayerTest_fuzz_full is ChainlinkRelayerTest {
     invert2 = _invert2;
     invert3 = _invert3;
 
-    setUpRelayer_full();
-    setUpAggregators();
+    setUpRelayer(4);
+    setAggregatorPrices();
 
     relayer.relay();
     (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
@@ -385,7 +294,7 @@ contract ChainlinkRelayerTest_fuzz_full is ChainlinkRelayerTest {
   }
 }
 
-contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
+contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
   modifier withReport(uint256 report) {
     vm.warp(2);
     vm.prank(address(relayer));
@@ -394,7 +303,7 @@ contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
   }
 
   function setUpRelayer() internal virtual {
-    setUpRelayer_single();
+    setUpRelayer(1);
   }
 
   function setUpExpectations() internal virtual {
@@ -406,7 +315,7 @@ contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
     super.setUp();
     setUpRelayer();
     setUpExpectations();
-    setUpAggregators();
+    setAggregatorPrices();
   }
 
   function test_relaysTheRate() public {
@@ -416,20 +325,20 @@ contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
   }
 
   function test_revertsOnNegativePrice0() public {
-    chainlinkAggregator0.setRoundData(-1 * aggregatorPrice0, block.timestamp);
+    mockAggregator0.setRoundData(-1 * aggregatorPrice0, block.timestamp);
     vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
   function test_revertsOnZeroPrice0() public {
-    chainlinkAggregator0.setRoundData(0, block.timestamp);
+    mockAggregator0.setRoundData(0, block.timestamp);
     vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
   function test_revertsOnEarlierTimestamp() public virtual withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
+    mockAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
@@ -438,7 +347,7 @@ contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
     skip(50);
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
     relayer.relay();
     uint256 timestamp = sortedOracles.medianTimestamp(rateFeedId);
     assertEq(timestamp, block.timestamp);
@@ -446,20 +355,20 @@ contract ChainlinkRelayerTest_relay_single is ChainlinkRelayerTest {
 
   function test_revertsOnRepeatTimestamp0() public withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp);
+    mockAggregator0.setRoundData(aggregatorPrice0, latestTimestamp);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
   function test_revertsWhenMostRecentTimestampIsExpired() public virtual withReport(aReport) {
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
     vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
     relayer.relay();
   }
 }
 
-contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single {
+contract ChainlinkRelayerV1Test_relay_double is ChainlinkRelayerV1Test_relay_single {
   function setUpExpectations() internal virtual override {
     aggregatorPrice0 = 420000000; // 4.2 * 1e8
     aggregatorPrice1 = 2000000000000; // 2 * 1e12
@@ -468,17 +377,17 @@ contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single 
   }
 
   function setUpRelayer() internal virtual override {
-    setUpRelayer_double();
+    setUpRelayer(2);
   }
 
   function test_revertsOnNegativePrice1() public {
-    chainlinkAggregator1.setRoundData(-1 * aggregatorPrice1, block.timestamp);
+    mockAggregator1.setRoundData(-1 * aggregatorPrice1, block.timestamp);
     vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
   function test_revertsOnZeroPrice1() public {
-    chainlinkAggregator1.setRoundData(0, block.timestamp);
+    mockAggregator1.setRoundData(0, block.timestamp);
     vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
@@ -486,8 +395,8 @@ contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single 
   function test_revertsOnEarlierTimestamp() public virtual override withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
 
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, latestTimestamp - 1);
+    mockAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
+    mockAggregator1.setRoundData(aggregatorPrice1, latestTimestamp - 1);
 
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
@@ -497,7 +406,7 @@ contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single 
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
     skip(50);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
+    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
     relayer.relay();
     uint256 timestamp = sortedOracles.medianTimestamp(rateFeedId);
     assertEq(timestamp, block.timestamp);
@@ -505,29 +414,29 @@ contract ChainlinkRelayerTest_relay_double is ChainlinkRelayerTest_relay_single 
 
   function test_revertsOnRepeatTimestamp1() public withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, latestTimestamp);
+    mockAggregator1.setRoundData(aggregatorPrice1, latestTimestamp);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
   function test_revertsWhenMostRecentTimestampIsExpired() public virtual override withReport(aReport) {
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
+    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
     vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
     relayer.relay();
   }
 
   function test_revertsWhenTimestampSpreadTooLarge() public virtual {
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
-    vm.warp(block.timestamp + 101);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    vm.warp(block.timestamp + 301);
+    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
     vm.expectRevert(TIMESTAMP_SPREAD_TOO_HIGH);
     relayer.relay();
   }
 }
 
-contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double {
+contract ChainlinkRelayerV1Test_relay_triple is ChainlinkRelayerV1Test_relay_double {
   function setUpExpectations() internal virtual override {
     aggregatorPrice0 = 420000000; // 4.2 * 1e8
     aggregatorPrice1 = 2000000000000; // 2 * 1e12
@@ -537,17 +446,17 @@ contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double 
   }
 
   function setUpRelayer() internal virtual override {
-    setUpRelayer_triple();
+    setUpRelayer(3);
   }
 
   function test_revertsOnNegativePrice2() public {
-    chainlinkAggregator2.setRoundData(-1 * aggregatorPrice2, block.timestamp);
+    mockAggregator2.setRoundData(-1 * aggregatorPrice2, block.timestamp);
     vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
   function test_revertsOnZeroPrice2() public {
-    chainlinkAggregator2.setRoundData(0, block.timestamp);
+    mockAggregator2.setRoundData(0, block.timestamp);
     vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
@@ -555,9 +464,9 @@ contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double 
   function test_revertsOnEarlierTimestamp() public virtual override withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
 
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, latestTimestamp - 1);
-    chainlinkAggregator2.setRoundData(aggregatorPrice2, latestTimestamp - 1);
+    mockAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
+    mockAggregator1.setRoundData(aggregatorPrice1, latestTimestamp - 1);
+    mockAggregator2.setRoundData(aggregatorPrice2, latestTimestamp - 1);
 
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
@@ -567,7 +476,7 @@ contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double 
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
     skip(50);
-    chainlinkAggregator2.setRoundData(aggregatorPrice0, block.timestamp);
+    mockAggregator2.setRoundData(aggregatorPrice0, block.timestamp);
     relayer.relay();
     uint256 timestamp = sortedOracles.medianTimestamp(rateFeedId);
     assertEq(timestamp, block.timestamp);
@@ -575,30 +484,30 @@ contract ChainlinkRelayerTest_relay_triple is ChainlinkRelayerTest_relay_double 
 
   function test_revertsOnRepeatTimestamp2() public withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
-    chainlinkAggregator2.setRoundData(aggregatorPrice2, latestTimestamp);
+    mockAggregator2.setRoundData(aggregatorPrice2, latestTimestamp);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
   function test_revertsWhenMostRecentTimestampIsExpired() public virtual override withReport(aReport) {
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
-    chainlinkAggregator2.setRoundData(aggregatorPrice2, block.timestamp + 1);
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
+    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
+    mockAggregator2.setRoundData(aggregatorPrice2, block.timestamp + 1);
     vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
     relayer.relay();
   }
 
   function test_revertsWhenTimestampSpreadTooLarge() public virtual override {
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
-    vm.warp(block.timestamp + 101);
-    chainlinkAggregator2.setRoundData(aggregatorPrice2, block.timestamp);
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    vm.warp(block.timestamp + 301);
+    mockAggregator2.setRoundData(aggregatorPrice2, block.timestamp);
     vm.expectRevert(TIMESTAMP_SPREAD_TOO_HIGH);
     relayer.relay();
   }
 }
 
-contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
+contract ChainlinkRelayerV1Test_relay_full is ChainlinkRelayerV1Test_relay_triple {
   function setUpExpectations() internal override {
     aggregatorPrice0 = 420000000; // 4.2 * 1e8
     aggregatorPrice1 = 2000000000000; // 2 * 1e12
@@ -610,17 +519,17 @@ contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
   }
 
   function setUpRelayer() internal override {
-    setUpRelayer_full();
+    setUpRelayer(4);
   }
 
   function test_revertsOnNegativePrice3() public {
-    chainlinkAggregator3.setRoundData(-1 * aggregatorPrice3, block.timestamp);
+    mockAggregator3.setRoundData(-1 * aggregatorPrice3, block.timestamp);
     vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
 
   function test_revertsOnZeroPrice3() public {
-    chainlinkAggregator3.setRoundData(0, block.timestamp);
+    mockAggregator3.setRoundData(0, block.timestamp);
     vm.expectRevert(INVALID_PRICE_ERROR);
     relayer.relay();
   }
@@ -628,10 +537,10 @@ contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
   function test_revertsOnEarlierTimestamp() public override withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
 
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, latestTimestamp - 1);
-    chainlinkAggregator2.setRoundData(aggregatorPrice2, latestTimestamp - 1);
-    chainlinkAggregator3.setRoundData(aggregatorPrice3, latestTimestamp - 1);
+    mockAggregator0.setRoundData(aggregatorPrice0, latestTimestamp - 1);
+    mockAggregator1.setRoundData(aggregatorPrice1, latestTimestamp - 1);
+    mockAggregator2.setRoundData(aggregatorPrice2, latestTimestamp - 1);
+    mockAggregator3.setRoundData(aggregatorPrice3, latestTimestamp - 1);
 
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
@@ -641,7 +550,7 @@ contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
     skip(50);
-    chainlinkAggregator3.setRoundData(aggregatorPrice3, block.timestamp);
+    mockAggregator3.setRoundData(aggregatorPrice3, block.timestamp);
     relayer.relay();
     uint256 timestamp = sortedOracles.medianTimestamp(rateFeedId);
     assertEq(timestamp, block.timestamp);
@@ -649,16 +558,16 @@ contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
 
   function test_revertsOnRepeatTimestamp3() public withReport(aReport) {
     uint256 latestTimestamp = sortedOracles.medianTimestamp(rateFeedId);
-    chainlinkAggregator3.setRoundData(aggregatorPrice3, latestTimestamp);
+    mockAggregator3.setRoundData(aggregatorPrice3, latestTimestamp);
     vm.expectRevert(TIMESTAMP_NOT_NEW_ERROR);
     relayer.relay();
   }
 
   function test_revertsWhenMostRecentTimestampIsExpired() public override withReport(aReport) {
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
-    chainlinkAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
-    chainlinkAggregator2.setRoundData(aggregatorPrice2, block.timestamp + 1);
-    chainlinkAggregator2.setRoundData(aggregatorPrice3, block.timestamp + 1);
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
+    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
+    mockAggregator2.setRoundData(aggregatorPrice2, block.timestamp + 1);
+    mockAggregator2.setRoundData(aggregatorPrice3, block.timestamp + 1);
 
     vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
@@ -666,9 +575,9 @@ contract ChainlinkRelayerTest_relay_full is ChainlinkRelayerTest_relay_triple {
   }
 
   function test_revertsWhenTimestampSpreadTooLarge() public virtual override {
-    chainlinkAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
-    vm.warp(block.timestamp + 101);
-    chainlinkAggregator3.setRoundData(aggregatorPrice3, block.timestamp);
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    vm.warp(block.timestamp + 301);
+    mockAggregator3.setRoundData(aggregatorPrice3, block.timestamp);
     vm.expectRevert(TIMESTAMP_SPREAD_TOO_HIGH);
     relayer.relay();
   }

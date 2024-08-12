@@ -9,12 +9,14 @@ interface IChainlinkRelayerFactory {
    * @notice Emitted when a relayer is deployed.
    * @param relayerAddress Address of the newly deployed relayer.
    * @param rateFeedId Rate feed ID for which the relayer will report.
-   * @param relayerConfig Chainlink aggregator configuration for the relayer.
+   * @param rateFeedDescription Human readable rate feed which the realyer will report.
+   * @param aggregators List of ChainlinkAggregator that the relayer chains.
    */
   event RelayerDeployed(
     address indexed relayerAddress,
     address indexed rateFeedId,
-    IChainlinkRelayer.Config relayerConfig
+    string rateFeedDescription,
+    IChainlinkRelayer.ChainlinkAggregator[] aggregators
   );
 
   /**
@@ -28,21 +30,30 @@ interface IChainlinkRelayerFactory {
 
   function sortedOracles() external returns (address);
 
-  function deployRelayer(address rateFeedId, IChainlinkRelayer.Config calldata relayerConfig)
-    external
-    returns (address);
+  function deployRelayer(
+    address rateFeedId,
+    string calldata rateFeedDescription,
+    uint256 maxTimestampSpread,
+    IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
+  ) external returns (address);
 
   function removeRelayer(address rateFeedId) external;
 
-  function redeployRelayer(address rateFeedId, IChainlinkRelayer.Config calldata relayerConfig)
-    external
-    returns (address);
+  function redeployRelayer(
+    address rateFeedId,
+    string calldata rateFeedDescription,
+    uint256 maxTimestampSpread,
+    IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
+  ) external returns (address);
 
   function getRelayer(address rateFeedId) external view returns (address);
 
   function getRelayers() external view returns (address[] memory);
 
-  function computedRelayerAddress(address rateFeedId, IChainlinkRelayer.Config calldata relayerConfig)
-    external
-    returns (address);
+  function computedRelayerAddress(
+    address rateFeedId,
+    string calldata rateFeedDescription,
+    uint256 maxTimestampSpread,
+    IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
+  ) external returns (address);
 }
