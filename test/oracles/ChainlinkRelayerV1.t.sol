@@ -40,6 +40,7 @@ contract ChainlinkRelayerV1Test is BaseTest {
   bytes constant TIMESTAMP_SPREAD_TOO_HIGH = abi.encodeWithSignature("TimestampSpreadTooHigh()");
   bytes constant INVALID_AGGREGATOR = abi.encodeWithSignature("InvalidAggregator()");
   bytes constant NO_AGGREGATORS = abi.encodeWithSignature("NoAggregators()");
+  bytes constant TOO_MANY_AGGREGATORS = abi.encodeWithSignature("TooManyAggregators()");
 
   ISortedOracles sortedOracles;
 
@@ -125,6 +126,17 @@ contract ChainlinkRelayerV1Test_constructor_invalid is ChainlinkRelayerV1Test {
       address(sortedOracles),
       1000,
       new IChainlinkRelayer.ChainlinkAggregator[](0)
+    );
+  }
+
+  function test_constructorRevertsWhenTooManyAggregators() public {
+    vm.expectRevert(TOO_MANY_AGGREGATORS);
+    new ChainlinkRelayerV1(
+      rateFeedId,
+      "CELO/USD",
+      address(sortedOracles),
+      1000,
+      new IChainlinkRelayer.ChainlinkAggregator[](5)
     );
   }
 

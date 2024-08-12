@@ -73,6 +73,9 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /// @notice Used when an empty array of aggregators is passed into the constructor.
   error NoAggregators();
 
+  /// @notice Used when an empty array of aggregators is passed into the constructor.
+  error TooManyAggregators();
+
   /// @notice Used when a new price's timestamp is not newer than the most recent SortedOracles timestamp.
   error TimestampNotNew();
 
@@ -116,6 +119,10 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     aggregatorCount = _aggregators.length;
     if (aggregatorCount == 0) {
       revert NoAggregators();
+    }
+
+    if (aggregatorCount > 4) {
+      revert TooManyAggregators();
     }
 
     ChainlinkAggregator[] memory aggregators = new ChainlinkAggregator[](4);
