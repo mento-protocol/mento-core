@@ -305,7 +305,7 @@ contract ChainlinkRelayerFactoryTest_getRelayers is ChainlinkRelayerFactoryTest 
     vm.prank(owner);
     address relayerAddress2 = relayerFactory.deployRelayer(rateFeeds[1], aRateFeedDescription, 0, oneAggregator(1));
     vm.prank(owner);
-    address relayerAddress3 = relayerFactory.deployRelayer(rateFeeds[2], aRateFeedDescription, 0, oneAggregator(2));
+    relayerFactory.deployRelayer(rateFeeds[2], aRateFeedDescription, 0, oneAggregator(2));
     vm.prank(owner);
     relayerFactory.removeRelayer(rateFeeds[2]);
     address[] memory relayers = relayerFactory.getRelayers();

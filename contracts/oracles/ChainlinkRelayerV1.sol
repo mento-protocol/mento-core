@@ -53,14 +53,14 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * The values are reconstructed into an array of ChainlinkAggregator structs
    * in the getAggregatorsArray() function
    */
-  address public immutable aggregator0_aggregator;
-  address public immutable aggregator1_aggregator;
-  address public immutable aggregator2_aggregator;
-  address public immutable aggregator3_aggregator;
-  bool public immutable aggregator0_invert;
-  bool public immutable aggregator1_invert;
-  bool public immutable aggregator2_invert;
-  bool public immutable aggregator3_invert;
+  address public immutable aggregator0Aggregator;
+  address public immutable aggregator1Aggregator;
+  address public immutable aggregator2Aggregator;
+  address public immutable aggregator3Aggregator;
+  bool public immutable aggregator0Invert;
+  bool public immutable aggregator1Invert;
+  bool public immutable aggregator2Invert;
+  bool public immutable aggregator3Invert;
   uint256 public immutable aggregatorsCount;
   /**
    * @notice Maximum timestamp deviation allowed between all prices pulled
@@ -126,14 +126,14 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       }
     }
 
-    aggregator0_aggregator = aggregators[0].aggregator;
-    aggregator1_aggregator = aggregators[1].aggregator;
-    aggregator2_aggregator = aggregators[2].aggregator;
-    aggregator3_aggregator = aggregators[3].aggregator;
-    aggregator0_invert = aggregators[0].invert;
-    aggregator1_invert = aggregators[1].invert;
-    aggregator2_invert = aggregators[2].invert;
-    aggregator3_invert = aggregators[3].invert;
+    aggregator0Aggregator = aggregators[0].aggregator;
+    aggregator1Aggregator = aggregators[1].aggregator;
+    aggregator2Aggregator = aggregators[2].aggregator;
+    aggregator3Aggregator = aggregators[3].aggregator;
+    aggregator0Invert = aggregators[0].invert;
+    aggregator1Invert = aggregators[1].invert;
+    aggregator2Invert = aggregators[2].invert;
+    aggregator3Invert = aggregators[3].invert;
   }
 
   /**
@@ -216,13 +216,13 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   function getAggregatorsArray() internal view returns (ChainlinkAggregator[] memory aggregators) {
     aggregators = new ChainlinkAggregator[](aggregatorsCount);
     unchecked {
-      aggregators[0] = ChainlinkAggregator(aggregator0_aggregator, aggregator0_invert);
+      aggregators[0] = ChainlinkAggregator(aggregator0Aggregator, aggregator0Invert);
       if (aggregatorsCount > 1) {
-        aggregators[1] = ChainlinkAggregator(aggregator1_aggregator, aggregator1_invert);
+        aggregators[1] = ChainlinkAggregator(aggregator1Aggregator, aggregator1Invert);
         if (aggregatorsCount > 2) {
-          aggregators[2] = ChainlinkAggregator(aggregator2_aggregator, aggregator2_invert);
+          aggregators[2] = ChainlinkAggregator(aggregator2Aggregator, aggregator2Invert);
           if (aggregatorsCount > 3) {
-            aggregators[3] = ChainlinkAggregator(aggregator3_aggregator, aggregator3_invert);
+            aggregators[3] = ChainlinkAggregator(aggregator3Aggregator, aggregator3Invert);
           }
         }
       }
