@@ -32,9 +32,10 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   );
   event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
 
-  function oneAggregator(
-    uint256 aggregatorIndex
-  ) internal returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators) {
+  function oneAggregator(uint256 aggregatorIndex)
+    internal
+    returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators)
+  {
     aggregators = new IChainlinkRelayer.ChainlinkAggregator[](1);
     aggregators[0] = IChainlinkRelayer.ChainlinkAggregator(mockAggregators[aggregatorIndex], false);
   }
@@ -89,10 +90,11 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
       );
   }
 
-  function contractAlreadyExistsError(
-    address relayerAddress,
-    address rateFeedId
-  ) public pure returns (bytes memory ContractAlreadyExistsError) {
+  function contractAlreadyExistsError(address relayerAddress, address rateFeedId)
+    public
+    pure
+    returns (bytes memory ContractAlreadyExistsError)
+  {
     return abi.encodeWithSignature("ContractAlreadyExists(address,address)", relayerAddress, rateFeedId);
   }
 
@@ -177,7 +179,7 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
     IChainlinkRelayer.ChainlinkAggregator[] memory expectedAggregators = fourAggregators();
     IChainlinkRelayer.ChainlinkAggregator[] memory actualAggregators = relayer.getAggregators();
     assertEq(expectedAggregators.length, actualAggregators.length);
-    for (uint i = 0; i < expectedAggregators.length; i++) {
+    for (uint256 i = 0; i < expectedAggregators.length; i++) {
       assertEq(expectedAggregators[i].aggregator, actualAggregators[i].aggregator);
       assertEq(expectedAggregators[i].invert, actualAggregators[i].invert);
     }
@@ -391,7 +393,7 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
     IChainlinkRelayer.ChainlinkAggregator[] memory expectedAggregators = oneAggregator(1);
     IChainlinkRelayer.ChainlinkAggregator[] memory actualAggregators = relayer.getAggregators();
     assertEq(expectedAggregators.length, actualAggregators.length);
-    for (uint i = 0; i < expectedAggregators.length; i++) {
+    for (uint256 i = 0; i < expectedAggregators.length; i++) {
       assertEq(expectedAggregators[i].aggregator, actualAggregators[i].aggregator);
       assertEq(expectedAggregators[i].invert, actualAggregators[i].invert);
     }
