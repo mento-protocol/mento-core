@@ -30,7 +30,7 @@ interface ISortedOraclesMin {
  * @notice The ChainlinkRelayer relays rate feed data from a Chainlink price feed to
  * the SortedOracles contract. A separate instance should be deployed for each
  * rate feed.
- * @dev Assumes that it itself is the only reporter for the given SortedOracles
+ * @dev Assumes that it is the only reporter for the given SortedOracles
  * feed.
  */
 contract ChainlinkRelayerV1 is IChainlinkRelayer {
@@ -61,7 +61,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   bool public immutable aggregator1Invert;
   bool public immutable aggregator2Invert;
   bool public immutable aggregator3Invert;
-  uint256 public immutable aggregatorsCount;
+  uint256 public immutable aggregatorCount;
   /**
    * @notice Maximum timestamp deviation allowed between all prices pulled
    * from the Chainlink aggregators.
@@ -113,8 +113,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     maxTimestampSpread = _maxTimestampSpread;
     rateFeedDescription = _rateFeedDescription;
 
-    aggregatorsCount = _aggregators.length;
-    if (aggregatorsCount == 0) {
+    aggregatorCount = _aggregators.length;
+    if (aggregatorCount == 0) {
       revert NoAggregators();
     }
 
@@ -214,14 +214,14 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @return aggregators An array of structs for each aggregator in the price path
    */
   function getAggregatorsArray() internal view returns (ChainlinkAggregator[] memory aggregators) {
-    aggregators = new ChainlinkAggregator[](aggregatorsCount);
+    aggregators = new ChainlinkAggregator[](aggregatorCount);
     unchecked {
       aggregators[0] = ChainlinkAggregator(aggregator0Aggregator, aggregator0Invert);
-      if (aggregatorsCount > 1) {
+      if (aggregatorCount > 1) {
         aggregators[1] = ChainlinkAggregator(aggregator1Aggregator, aggregator1Invert);
-        if (aggregatorsCount > 2) {
+        if (aggregatorCount > 2) {
           aggregators[2] = ChainlinkAggregator(aggregator2Aggregator, aggregator2Invert);
-          if (aggregatorsCount > 3) {
+          if (aggregatorCount > 3) {
             aggregators[3] = ChainlinkAggregator(aggregator3Aggregator, aggregator3Invert);
           }
         }

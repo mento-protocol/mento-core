@@ -6,7 +6,7 @@ interface IChainlinkRelayer {
   /**
    * @notice Struct used to represent a segment in the price path.
    * @member aggregator The address of the Chainink aggregator.
-   * @member invert Wether to invert the aggregator.
+   * @member invert Wether to invert the aggregator's price feed, i.e. convert CELO/USD to USD/CELO.
    */
   struct ChainlinkAggregator {
     address aggregator;
