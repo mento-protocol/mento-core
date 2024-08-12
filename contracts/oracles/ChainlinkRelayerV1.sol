@@ -13,12 +13,7 @@ import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
  * See https://github.com/mento-protocol/mento-core/blob/develop/contracts/common/SortedOracles.sol
  */
 interface ISortedOraclesMin {
-  function report(
-    address rateFeedId,
-    uint256 value,
-    address lesserKey,
-    address greaterKey
-  ) external;
+  function report(address rateFeedId, uint256 value, address lesserKey, address greaterKey) external;
 
   function medianTimestamp(address rateFeedId) external view returns (uint256);
 
@@ -38,7 +33,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @notice The number of digits after the decimal point in FixidityLib values, as used by SortedOracles.
    * @dev See contracts/common/FixidityLib.sol
    */
-  uint256 public constant UD60x18_TO_FIXIDITY_SCALE = 1e6; // 10 ** (24 - 18)
+  uint256 public constant UD60X18_TO_FIXIDITY_SCALE = 1e6; // 10 ** (24 - 18)
 
   /// @notice The rateFeedId this relayer relays for.
   address public immutable rateFeedId;
@@ -182,7 +177,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       revert ExpiredTimestamp();
     }
 
-    uint256 reportValue = intoUint256(report) * UD60x18_TO_FIXIDITY_SCALE;
+    uint256 reportValue = intoUint256(report) * UD60X18_TO_FIXIDITY_SCALE;
 
     // This contract is built for a setup where it is the only reporter for the
     // given `rateFeedId`. As such, we don't need to compute and provide
@@ -245,6 +240,6 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   function chainlinkToUD60x18(int256 price, address aggregator) internal view returns (UD60x18) {
     uint256 chainlinkDecimals = uint256(AggregatorV3Interface(aggregator).decimals());
-    return ud(uint256(price) * 10**(18 - chainlinkDecimals));
+    return ud(uint256(price) * 10 ** (18 - chainlinkDecimals));
   }
 }
