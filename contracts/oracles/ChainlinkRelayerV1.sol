@@ -58,8 +58,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /**
    * @dev We store an array of up to four IChainlinkRelayer.ChainlinkAggregator structs
    * in the following immutable variables.
-   * aggregator<i>Aggregator stores the i-th ChainlinkAggregator.aggregator member.
-   * aggregator<i>Invert stores the i-th ChainlinkAggregator.invert member.
+   * aggregator<i> stores the i-th ChainlinkAggregator.aggregator member.
+   * invert<i> stores the i-th ChainlinkAggregator.invert member.
    * aggregatorCount stores the length of the array.
    * These are built back up into an in-memory array in the buildAggregatorArray function.
    */
