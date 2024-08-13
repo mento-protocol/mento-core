@@ -65,16 +65,16 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
 
   /// @notice The addresses of the Chainlink aggregators this contract fetches data from.
-  address private immutable aggregator0Aggregator;
-  address private immutable aggregator1Aggregator;
-  address private immutable aggregator2Aggregator;
-  address private immutable aggregator3Aggregator;
+  address private immutable aggregator0;
+  address private immutable aggregator1;
+  address private immutable aggregator2;
+  address private immutable aggregator3;
 
   /// @notice The invert setting for each aggregator, if true it flips the rate feed, i.e. CELO/USD -> USD/CELO.
-  bool private immutable aggregator0Invert;
-  bool private immutable aggregator1Invert;
-  bool private immutable aggregator2Invert;
-  bool private immutable aggregator3Invert;
+  bool private immutable invert0;
+  bool private immutable invert1;
+  bool private immutable invert2;
+  bool private immutable invert3;
 
   /// @notice The number of aggregators provided during construction 1 <= aggregatorCount <= 4.
   uint256 private immutable aggregatorCount;
@@ -156,14 +156,14 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       }
     }
 
-    aggregator0Aggregator = aggregators[0].aggregator;
-    aggregator1Aggregator = aggregators[1].aggregator;
-    aggregator2Aggregator = aggregators[2].aggregator;
-    aggregator3Aggregator = aggregators[3].aggregator;
-    aggregator0Invert = aggregators[0].invert;
-    aggregator1Invert = aggregators[1].invert;
-    aggregator2Invert = aggregators[2].invert;
-    aggregator3Invert = aggregators[3].invert;
+    aggregator0 = aggregators[0].aggregator;
+    aggregator1 = aggregators[1].aggregator;
+    aggregator2 = aggregators[2].aggregator;
+    aggregator3 = aggregators[3].aggregator;
+    invert0 = aggregators[0].invert;
+    invert1 = aggregators[1].invert;
+    invert2 = aggregators[2].invert;
+    invert3 = aggregators[3].invert;
   }
 
   /**
@@ -248,13 +248,13 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   function buildAggregatorArray() internal view returns (ChainlinkAggregator[] memory aggregators) {
     aggregators = new ChainlinkAggregator[](aggregatorCount);
     unchecked {
-      aggregators[0] = ChainlinkAggregator(aggregator0Aggregator, aggregator0Invert);
+      aggregators[0] = ChainlinkAggregator(aggregator0, invert0);
       if (aggregatorCount > 1) {
-        aggregators[1] = ChainlinkAggregator(aggregator1Aggregator, aggregator1Invert);
+        aggregators[1] = ChainlinkAggregator(aggregator1, invert1);
         if (aggregatorCount > 2) {
-          aggregators[2] = ChainlinkAggregator(aggregator2Aggregator, aggregator2Invert);
+          aggregators[2] = ChainlinkAggregator(aggregator2, invert2);
           if (aggregatorCount > 3) {
-            aggregators[3] = ChainlinkAggregator(aggregator3Aggregator, aggregator3Invert);
+            aggregators[3] = ChainlinkAggregator(aggregator3, invert3);
           }
         }
       }
