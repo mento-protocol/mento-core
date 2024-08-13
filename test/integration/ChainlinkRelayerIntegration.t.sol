@@ -92,7 +92,6 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
 
   MockAggregatorV3 chainlinkAggregator;
   IChainlinkRelayer chainlinkRelayer;
-  IChainlinkRelayer.Config relayerConfig;
 
   function setUp() public {
     super.setUp();
@@ -103,19 +102,10 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
 
   function setUpRelayer() public {
     chainlinkAggregator = new MockAggregatorV3(8);
-    relayerConfig = IChainlinkRelayer.Config({
-      maxTimestampSpread: 0,
-      chainlinkAggregator0: address(chainlinkAggregator),
-      chainlinkAggregator1: address(0),
-      chainlinkAggregator2: address(0),
-      chainlinkAggregator3: address(0),
-      invertAggregator0: false,
-      invertAggregator1: false,
-      invertAggregator2: false,
-      invertAggregator3: false
-    });
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregators = new IChainlinkRelayer.ChainlinkAggregator[](1);
+    aggregators[0] = IChainlinkRelayer.ChainlinkAggregator(address(chainlinkAggregator), false);
     vm.prank(owner);
-    chainlinkRelayer = IChainlinkRelayer(relayerFactory.deployRelayer(rateFeedId, relayerConfig));
+    chainlinkRelayer = IChainlinkRelayer(relayerFactory.deployRelayer(rateFeedId, "CELO/USD", 0, aggregators));
 
     vm.prank(deployer);
     sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer));

@@ -77,14 +77,21 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
   /**
    * @notice Deploys a new relayer contract.
    * @param rateFeedId The rate feed ID for which the relayer will report.
-   * @param relayerConfig The relayer configuration specifying one or more chainlink aggregators to compute the price from.
+   * @param rateFeedDescription Human-readable rate feed, which the relayer will report on, i.e. "CELO/USD".
+   * @param maxTimestampSpread Max difference in milliseconds between the earliest and
+   *        latest timestamp of all aggregators in the price path.
+   * @param aggregators Array of ChainlinkAggregator structs defining the price path.
+   *        See contract-level @dev comment in the ChainlinkRelayerV1 contract,
+   *        for an explanation on price paths.
    * @return relayerAddress The address of the newly deployed relayer contract.
    */
   function deployRelayer(
     address rateFeedId,
-    IChainlinkRelayer.Config calldata relayerConfig
+    string calldata rateFeedDescription,
+    uint256 maxTimestampSpread,
+    IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
   ) public onlyOwner returns (address relayerAddress) {
-    address expectedAddress = computedRelayerAddress(rateFeedId, relayerConfig);
+    address expectedAddress = computedRelayerAddress(rateFeedId, rateFeedDescription, maxTimestampSpread, aggregators);
 
     if (address(deployedRelayers[rateFeedId]) == expectedAddress || expectedAddress.code.length > 0) {
       revert ContractAlreadyExists(expectedAddress, rateFeedId);
@@ -97,16 +104,10 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
     bytes32 salt = _getSalt();
     ChainlinkRelayerV1 relayer = new ChainlinkRelayerV1{ salt: salt }(
       rateFeedId,
+      rateFeedDescription,
       sortedOracles,
-      relayerConfig.maxTimestampSpread,
-      relayerConfig.chainlinkAggregator0,
-      relayerConfig.chainlinkAggregator1,
-      relayerConfig.chainlinkAggregator2,
-      relayerConfig.chainlinkAggregator3,
-      relayerConfig.invertAggregator0,
-      relayerConfig.invertAggregator1,
-      relayerConfig.invertAggregator2,
-      relayerConfig.invertAggregator3
+      maxTimestampSpread,
+      aggregators
     );
 
     if (address(relayer) != expectedAddress) {
@@ -116,7 +117,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
     deployedRelayers[rateFeedId] = relayer;
     rateFeeds.push(rateFeedId);
 
-    emit RelayerDeployed(address(relayer), rateFeedId, relayerConfig);
+    emit RelayerDeployed(address(relayer), rateFeedId, rateFeedDescription, aggregators);
 
     return address(relayer);
   }
@@ -151,16 +152,21 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @notice Removes the current relayer and redeploys a new one with a different
    *         Chainlink aggregator (and/or different bytecode if the factory
    *         has been upgraded since the last deployment of the relayer).
-   * @param rateFeedId The rate feed for which the relayer should be redeployed.
-   * @param relayerConfig The relayer configuration specifying one or more chainlink aggregators to compute the price from.
+   * @param rateFeedId The rate feed ID for which the relayer will report.
+   * @param rateFeedDescription Human-readable rate feed, which the relayer will report on, i.e. "CELO/USD".
+   * @param maxTimestampSpread Max difference in milliseconds between the earliest and
+   *        latest timestamp of all aggregators in the price path.
+   * @param aggregators Array of ChainlinkAggregator structs defining the price path.
    * @return relayerAddress The address of the newly deployed relayer contract.
    */
   function redeployRelayer(
     address rateFeedId,
-    IChainlinkRelayer.Config calldata relayerConfig
+    string calldata rateFeedDescription,
+    uint256 maxTimestampSpread,
+    IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
   ) external onlyOwner returns (address relayerAddress) {
     removeRelayer(rateFeedId);
-    return deployRelayer(rateFeedId, relayerConfig);
+    return deployRelayer(rateFeedId, rateFeedDescription, maxTimestampSpread, aggregators);
   }
 
   /**
@@ -198,12 +204,17 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
   /**
    * @notice Computes the expected CREATE2 address for given relayer parameters.
    * @param rateFeedId The rate feed ID.
-   * @param relayerConfig The relayer configuration specifying one or more chainlink aggregators to compute the price from.
+   * @param rateFeedDescription The human readable description of the reported rate feed.
+   * @param maxTimestampSpread Max difference in milliseconds between the earliest and
+   *        latest timestamp of all aggregators in the price path.
+   * @param aggregators Array of ChainlinkAggregator structs defining the price path.
    * @dev See https://eips.ethereum.org/EIPS/eip-1014.
    */
   function computedRelayerAddress(
     address rateFeedId,
-    IChainlinkRelayer.Config calldata relayerConfig
+    string calldata rateFeedDescription,
+    uint256 maxTimestampSpread,
+    IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
   ) public view returns (address) {
     bytes32 salt = _getSalt();
     return
@@ -218,19 +229,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
                 keccak256(
                   abi.encodePacked(
                     type(ChainlinkRelayerV1).creationCode,
-                    abi.encode(
-                      rateFeedId,
-                      sortedOracles,
-                      relayerConfig.maxTimestampSpread,
-                      relayerConfig.chainlinkAggregator0,
-                      relayerConfig.chainlinkAggregator1,
-                      relayerConfig.chainlinkAggregator2,
-                      relayerConfig.chainlinkAggregator3,
-                      relayerConfig.invertAggregator0,
-                      relayerConfig.invertAggregator1,
-                      relayerConfig.invertAggregator2,
-                      relayerConfig.invertAggregator3
-                    )
+                    abi.encode(rateFeedId, rateFeedDescription, sortedOracles, maxTimestampSpread, aggregators)
                   )
                 )
               )
