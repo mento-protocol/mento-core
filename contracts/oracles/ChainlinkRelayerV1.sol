@@ -112,7 +112,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /**
    * @notice Initializes the contract and sets immutable parameters.
    * @param _rateFeedId ID of the rate feed this relayer instance relays for.
-   * @param _rateFeedDescription The human readable description of the reported rate feed.
+   * @param _rateFeedDescription The-human readable description of the reported rate feed.
    * @param _sortedOracles Address of the SortedOracles contract to relay to.
    * @param _maxTimestampSpread Max difference in milliseconds between the earliest and
    *        latest timestamp of all aggregators in the price path.
@@ -159,7 +159,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
   /**
    * @notice Get the Chainlink aggregators and their invert settings.
-   * @return An array of ChainlinkAggregator that compose the price path.
+   * @return An array of ChainlinkAggregator segments that compose the price path.
    */
   function getAggregators() public view returns (ChainlinkAggregator[] memory) {
     return buildAggregatorArray();

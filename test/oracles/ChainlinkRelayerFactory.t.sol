@@ -33,14 +33,14 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
 
   function oneAggregator(uint256 aggregatorIndex)
-    internal
+    internal view
     returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators)
   {
     aggregators = new IChainlinkRelayer.ChainlinkAggregator[](1);
     aggregators[0] = IChainlinkRelayer.ChainlinkAggregator(mockAggregators[aggregatorIndex], false);
   }
 
-  function fourAggregators() internal returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators) {
+  function fourAggregators() internal view returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators) {
     aggregators = new IChainlinkRelayer.ChainlinkAggregator[](4);
     aggregators[0] = IChainlinkRelayer.ChainlinkAggregator(mockAggregators[0], false);
     aggregators[1] = IChainlinkRelayer.ChainlinkAggregator(mockAggregators[1], false);

@@ -77,7 +77,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
   /**
    * @notice Deploys a new relayer contract.
    * @param rateFeedId The rate feed ID for which the relayer will report.
-   * @param rateFeedDescription Human readable rate feed which the realyer will report.
+   * @param rateFeedDescription Human-readable rate feed, which the relayer will report on, i.e. "CELO/USD".
    * @param maxTimestampSpread Max difference in milliseconds between the earliest and
    *        latest timestamp of all aggregators in the price path.
    * @param aggregators Array of ChainlinkAggregator structs defining the price path.
@@ -151,7 +151,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    *         Chainlink aggregator (and/or different bytecode if the factory
    *         has been upgraded since the last deployment of the relayer).
    * @param rateFeedId The rate feed ID for which the relayer will report.
-   * @param rateFeedDescription Human readable rate feed which the realyer will report.
+   * @param rateFeedDescription Human-readable rate feed, which the relayer will report on, i.e. "CELO/USD".
    * @param maxTimestampSpread Max difference in milliseconds between the earliest and
    *        latest timestamp of all aggregators in the price path.
    * @param aggregators Array of ChainlinkAggregator structs defining the price path.

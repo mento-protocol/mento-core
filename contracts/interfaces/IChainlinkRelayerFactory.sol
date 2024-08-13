@@ -9,7 +9,7 @@ interface IChainlinkRelayerFactory {
    * @notice Emitted when a relayer is deployed.
    * @param relayerAddress Address of the newly deployed relayer.
    * @param rateFeedId Rate feed ID for which the relayer will report.
-   * @param rateFeedDescription Human readable rate feed which the realyer will report.
+   * @param rateFeedDescription Human-readable rate feed, which the relayer will report on, i.e. "CELO/USD"
    * @param aggregators List of ChainlinkAggregator that the relayer chains.
    */
   event RelayerDeployed(
