@@ -27,11 +27,20 @@ interface ISortedOraclesMin {
 
 /**
  * @title ChainlinkRelayer
- * @notice The ChainlinkRelayer relays rate feed data from a Chainlink price feed to
- * the SortedOracles contract. A separate instance should be deployed for each
- * rate feed.
- * @dev Assumes that it is the only reporter for the given SortedOracles
- * feed.
+ * @notice The ChainlinkRelayer relays rate feed data from a Chainlink price feed, or
+ * an aggregation of multiple Chainlink price feeds to the SortedOracles contract.
+ * A separate instance should be deployed for each rate feed.
+ * @dev Assumes that it is the only reporter for the given SortedOracles feed.
+ * This contract aggregates multiple Chainlink price feeds, which can be thought of as a
+ * price path, in order to provide dervied rate feeds to our trading engine. This is needed
+ * because in most cases oracle providers will prefer to report FX rates agains the dollar
+ * and crypto-asset rates against against the dollar, instead of all possible combinations.
+ * For example, for the Philipinean Peso, Chainlink reports PHP/USD, but does not report CELO/PHP
+ * which is required to pay for gas in a PHP stable token. But using both PHP/USD and CELO/USD,
+ * one can create a path: CELO/USD * inverse(PHP/USD) = CELO/PHP.
+ * Because of this we can provide up to four Chainlink price sources with inversion settings
+ * to the relayer, and they are chained through multiplication and inversion operations to
+ * derive the final rate.
  */
 contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /**
@@ -78,7 +87,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   uint256 public immutable maxTimestampSpread;
 
   /**
-   * @notice Human readable description of the rate feed.
+   * @notice Human-readable description of the rate feed.
    * @dev Should only be used off-chain for easier debugging / UI generation,
    * thus the only storage related gas spend occurs in the constructor.
    */
@@ -112,7 +121,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /**
    * @notice Initializes the contract and sets immutable parameters.
    * @param _rateFeedId ID of the rate feed this relayer instance relays for.
-   * @param _rateFeedDescription The-human readable description of the reported rate feed.
+   * @param _rateFeedDescription The human-readable description of the reported rate feed.
    * @param _sortedOracles Address of the SortedOracles contract to relay to.
    * @param _maxTimestampSpread Max difference in milliseconds between the earliest and
    *        latest timestamp of all aggregators in the price path.

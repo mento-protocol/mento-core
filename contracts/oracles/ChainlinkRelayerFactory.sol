@@ -81,6 +81,8 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @param maxTimestampSpread Max difference in milliseconds between the earliest and
    *        latest timestamp of all aggregators in the price path.
    * @param aggregators Array of ChainlinkAggregator structs defining the price path.
+   *        See contract-level @dev comment in the ChainlinkRelayerV1 contract,
+   *        for an explanation on price paths.
    * @return relayerAddress The address of the newly deployed relayer contract.
    */
   function deployRelayer(
