@@ -38,36 +38,50 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @notice The number of digits after the decimal point in FixidityLib values, as used by SortedOracles.
    * @dev See contracts/common/FixidityLib.sol
    */
-  uint256 public constant UD60X18_TO_FIXIDITY_SCALE = 1e6; // 10 ** (24 - 18)
+  uint256 private constant UD60X18_TO_FIXIDITY_SCALE = 1e6; // 10 ** (24 - 18)
 
   /// @notice The rateFeedId this relayer relays for.
   address public immutable rateFeedId;
 
   /// @notice The address of the SortedOracles contract to report to.
   address public immutable sortedOracles;
+
   /**
-   * @notice The addresses and invert settings of the Chainlink aggregators this
-   * contract fetches data from, it's limited to a maximum of 4 aggregators,
-   * because we can't have dynamic types as immutable, and it's not worth the gas
-   * to store these as arrays in storage.
-   * The values are reconstructed into an array of ChainlinkAggregator structs
-   * in the getAggregatorsArray() function
+   * @dev We store an array of up to four IChainlinkRelayer.ChainlinkAggregator structs
+   * in the following immutable variables.
+   * aggregator<i>Aggregator stores the i-th ChainlinkAggregator.aggregator member.
+   * aggregator<i>Invert stores the i-th ChainlinkAggregator.invert member.
+   * aggregatorCount stores the length of the array.
+   * These are built back up into an in-memory array in the buildAggregatorArray function.
    */
-  address public immutable aggregator0Aggregator;
-  address public immutable aggregator1Aggregator;
-  address public immutable aggregator2Aggregator;
-  address public immutable aggregator3Aggregator;
-  bool public immutable aggregator0Invert;
-  bool public immutable aggregator1Invert;
-  bool public immutable aggregator2Invert;
-  bool public immutable aggregator3Invert;
-  uint256 public immutable aggregatorCount;
+
+  /// @notice The addresses of the Chainlink aggregators this contract fetches data from.
+  address private immutable aggregator0Aggregator;
+  address private immutable aggregator1Aggregator;
+  address private immutable aggregator2Aggregator;
+  address private immutable aggregator3Aggregator;
+
+  /// @notice The invert setting for each aggregator, if true it flips the rate feed, i.e. CELO/USD -> USD/CELO.
+  bool private immutable aggregator0Invert;
+  bool private immutable aggregator1Invert;
+  bool private immutable aggregator2Invert;
+  bool private immutable aggregator3Invert;
+
+  /// @notice The number of aggregators provided during construction 1 <= aggregatorCount <= 4.
+  uint256 private immutable aggregatorCount;
+
   /**
-   * @notice Maximum timestamp deviation allowed between all prices pulled
+   * @notice Maximum timestamp deviation allowed between all report timestamps pulled
    * from the Chainlink aggregators.
+   * @dev Only relevant when aggregatorCount > 1.
    */
   uint256 public immutable maxTimestampSpread;
-  /// @notice Human readable description of the rate feed, used offchain
+
+  /**
+   * @notice Human readable description of the rate feed.
+   * @dev Should only be used off-chain for easier debugging / UI generation,
+   * thus the only storage related gas spend occurs in the constructor.
+   */
   string public rateFeedDescription;
 
   /// @notice Used when an empty array of aggregators is passed into the constructor.
@@ -148,7 +162,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @return An array of ChainlinkAggregator that compose the price path.
    */
   function getAggregators() public view returns (ChainlinkAggregator[] memory) {
-    return getAggregatorsArray();
+    return buildAggregatorArray();
   }
 
   /**
@@ -156,12 +170,14 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @dev Checks the price is non-negative (Chainlink uses `int256` rather than `uint256`.
    * @dev Converts the price to a Fixidity value, as expected by SortedOracles.
    * @dev Performs checks on the timestamp, will revert if any fails:
-   *      - The timestamp should be strictly newer than the most recent timestamp in SortedOracles.
-   *      - The timestamp should not be considered expired by SortedOracles.
+   *      - The most recent Chainlink timestamp should be strictly newer than the most
+   *        recent timestamp in SortedOracles.
+   *      - The most recent Chainlink timestamp should not be considered expired by SortedOracles.
+   *      - The spread between aggregator timestamps is less than the maxTimestampSpread.
    */
   function relay() external {
     ISortedOraclesMin _sortedOracles = ISortedOraclesMin(sortedOracles);
-    ChainlinkAggregator[] memory aggregators = getAggregatorsArray();
+    ChainlinkAggregator[] memory aggregators = buildAggregatorArray();
 
     (UD60x18 report, uint256 timestamp) = readChainlinkAggregator(aggregators[0]);
     uint256 oldestChainlinkTs = timestamp;
@@ -217,10 +233,10 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   }
 
   /**
-   * @notice Compose immutable variables into an in-memory array for better handling
-   * @return aggregators An array of structs for each aggregator in the price path
+   * @notice Compose immutable variables into an in-memory array for better handling.
+   * @return aggregators An array of ChainlinkAggregator structs.
    */
-  function getAggregatorsArray() internal view returns (ChainlinkAggregator[] memory aggregators) {
+  function buildAggregatorArray() internal view returns (ChainlinkAggregator[] memory aggregators) {
     aggregators = new ChainlinkAggregator[](aggregatorCount);
     unchecked {
       aggregators[0] = ChainlinkAggregator(aggregator0Aggregator, aggregator0Invert);
