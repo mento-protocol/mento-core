@@ -33,7 +33,8 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
 
   function oneAggregator(uint256 aggregatorIndex)
-    internal view
+    internal
+    view
     returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators)
   {
     aggregators = new IChainlinkRelayer.ChainlinkAggregator[](1);
@@ -53,11 +54,6 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
     vm.prank(owner);
     relayerFactory.initialize(mockSortedOracles);
   }
-
-  // function assertRelayerMatchesConfig(IChainlinkRelayer relayer, IChainlinkRelayer.Config memory expected) internal {
-  //   IChainlinkRelayer.Config memory actual = relayer.getConfig();
-  //   assertEq(keccak256(abi.encode(expected)), keccak256(abi.encode(actual)));
-  // }
 
   function expectedRelayerAddress(
     address rateFeedId,
