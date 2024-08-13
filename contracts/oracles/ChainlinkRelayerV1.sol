@@ -33,9 +33,9 @@ interface ISortedOraclesMin {
  * @dev Assumes that it is the only reporter for the given SortedOracles feed.
  * This contract aggregates multiple Chainlink price feeds in order to provide derived rate feeds
  * to the rest of the protocol. This is needed because it is more efficient for oracle providers
- * to report FX rates agains the dollar and crypto-asset rates against against the dollar,
+ * to report FX rates against the dollar and crypto-asset rates against the dollar,
  * instead of all possible combinations.
- * For example, for the Philipinean Peso, Chainlink reports PHP/USD, but does not report CELO/PHP
+ * For example, for the Philippine Peso, Chainlink reports PHP/USD, but does not report CELO/PHP
  * which is required to pay for gas in a PHP stable token. But using both PHP/USD and CELO/USD,
  * one can create a path: CELO/USD * inverse(PHP/USD) = CELO/PHP.
  * Because of this we can provide up to four Chainlink price sources with inversion settings
