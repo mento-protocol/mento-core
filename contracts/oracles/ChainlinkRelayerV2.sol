@@ -252,8 +252,8 @@ contract ChainlinkRelayerV2 is IChainlinkRelayer {
    * @param rate The rate to report.
    */
   function reportToSortedOracles(uint256 rate) internal {
-    uint256 numRates = ISortedOraclesMin(sortedOracles).numRates(rateFeedId);
     (address[] memory oracles, uint256[] memory rates, ) = ISortedOraclesMin(sortedOracles).getRates(rateFeedId);
+    uint256 numRates = oracles.length;
 
     if (numRates > 2 || (numRates == 2 && oracles[0] != address(this) && oracles[1] != address(this))) {
       revert UnableToComputeLesserGreater();
