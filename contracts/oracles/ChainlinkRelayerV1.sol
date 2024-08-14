@@ -13,16 +13,15 @@ import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
  * See https://github.com/mento-protocol/mento-core/blob/develop/contracts/common/SortedOracles.sol
  */
 interface ISortedOraclesMin {
-  function report(
-    address rateFeedId,
-    uint256 value,
-    address lesserKey,
-    address greaterKey
-  ) external;
+  function report(address rateFeedId, uint256 value, address lesserKey, address greaterKey) external;
+
+  function getRates(address rateFeedId) external returns (address[] memory, uint256[] memory, uint256[] memory);
 
   function medianTimestamp(address rateFeedId) external view returns (uint256);
 
   function getTokenReportExpirySeconds(address rateFeedId) external view returns (uint256);
+
+  function removeExpiredReports(address rateFeedId, uint256 n) external;
 }
 
 /**
@@ -48,6 +47,16 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @dev See contracts/common/FixidityLib.sol
    */
   uint256 private constant UD60X18_TO_FIXIDITY_SCALE = 1e6; // 10 ** (24 - 18)
+
+  /**
+   * @notice The revert data returned by sorted oracles when it reverts with lesser/greater
+   * @dev Most of the time the relayer is the only one reporting and doesn't need to set lesser/greater
+   * keys. When we replace a relayer because of a code update or parameter change, we want to catch
+   * this issue and compute the lesser/greater keys manually and trigger an update and also expire
+   * the existing report so we can get out of this situation.
+   */
+  bytes32 private constant GREATER_AND_LESSER_KEY_ZERO_REVERT_HASH =
+    keccak256(abi.encodeWithSignature("Error(string)", "greater and lesser key zero"));
 
   /// @notice The rateFeedId this relayer relays for.
   address public immutable rateFeedId;
@@ -107,6 +116,13 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
   /// @notice Used when a negative or zero price is returned by the Chainlink aggregator.
   error InvalidPrice();
+
+  /**
+   * @notice Used when trying to recover from a lesser/greater revert and we're not on one
+   * of the expected states.
+   */
+  error UnableToComputeLesserGreater();
+
   /**
    * @notice Used when the spread between the earliest and latest timestamp
    * of the aggregators is above the maximum allowed.
@@ -214,13 +230,73 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       revert ExpiredTimestamp();
     }
 
-    uint256 reportValue = intoUint256(report) * UD60X18_TO_FIXIDITY_SCALE;
+    reportWithRecovery(intoUint256(report) * UD60X18_TO_FIXIDITY_SCALE);
+  }
 
+  /**
+   * @notice Try to report to SortedOracles, and if it reverts try to rever from the
+   * "greater and lesser key zero" revert reason.
+   * @param rate The rate to report.
+   */
+  function reportWithRecovery(uint256 rate) internal {
     // This contract is built for a setup where it is the only reporter for the
-    // given `rateFeedId`. As such, we don't need to compute and provide
+    // given `rateFeedId`. As such, in 99.9% of the time we don't need to compute and provide
     // `lesserKey`/`greaterKey` each time, the "null pointer" `address(0)` will
     // correctly place the report in SortedOracles' sorted linked list.
-    ISortedOraclesMin(sortedOracles).report(rateFeedId, reportValue, address(0), address(0));
+    (bool ok, bytes memory returnData) = sortedOracles.call(
+      abi.encodeWithSelector(ISortedOraclesMin.report.selector, rateFeedId, rate, address(0), address(0))
+    );
+
+    // But, during upgrades, where we want to replace the relayer contract there will be
+    // a short time when there will also be a report from the previous relayer, because
+    // SortedOracles will never remove the last report even if it's expired.
+    // We want to recover from this error and compute lesser/greater on-chain, report and
+    // then also remove the expired report so we get back to the happy path.
+    if (!ok) {
+      bytes32 returnDataHash = keccak256(returnData);
+      if (returnDataHash == GREATER_AND_LESSER_KEY_ZERO_REVERT_HASH) {
+        reportWithLesserGreater(rate);
+      } else {
+        // Forward the revert if it's not the one we care about.
+        assembly {
+          revert(add(returnData, 32), mload(returnData))
+        }
+      }
+    }
+  }
+
+  /**
+   * @notice Report by looking up existing reports and building the lesser and greater keys.
+   * @dev Only treat the situations where there's a single report from the previous relayer or
+   * a report from the previous relayer and one from the current one.
+   * @param rate The rate to report.
+   */
+  function reportWithLesserGreater(uint256 rate) internal {
+    (address[] memory oracles, uint256[] memory rates, ) = ISortedOraclesMin(sortedOracles).getRates(rateFeedId);
+
+    // We will limit the situations that we want to deal with to:
+    // (a) One report from the previous relayer
+    // (b) One report from the previous relayer and one from the current relayer
+    if ((oracles.length == 2 && oracles[0] != address(this) && oracles[1] != address(this)) || oracles.length > 2) {
+      revert UnableToComputeLesserGreater();
+    }
+
+    address lesserKey;
+    address greaterKey;
+
+    for (uint i = 0; i < oracles.length; i++) {
+      if (oracles[i] != address(this)) {
+        if (rates[i] <= rate) {
+          lesserKey = oracles[i];
+        } else {
+          greaterKey = oracles[i];
+        }
+        break;
+      }
+    }
+
+    ISortedOraclesMin(sortedOracles).report(rateFeedId, rate, lesserKey, greaterKey);
+    ISortedOraclesMin(sortedOracles).removeExpiredReports(rateFeedId, 1);
   }
 
   /**
@@ -277,6 +353,6 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   function chainlinkToUD60x18(int256 price, address aggregator) internal view returns (UD60x18) {
     uint256 chainlinkDecimals = uint256(AggregatorV3Interface(aggregator).decimals());
-    return ud(uint256(price) * 10**(18 - chainlinkDecimals));
+    return ud(uint256(price) * 10 ** (18 - chainlinkDecimals));
   }
 }

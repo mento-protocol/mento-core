@@ -13,24 +13,17 @@ import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 interface ISortedOracles {
   function addOracle(address, address) external;
 
-  function removeOracle(
-    address,
-    address,
-    uint256
-  ) external;
+  function removeOracle(address, address, uint256) external;
 
-  function report(
-    address,
-    uint256,
-    address,
-    address
-  ) external;
+  function report(address, uint256, address, address) external;
 
   function setTokenReportExpiry(address, uint256) external;
 
   function medianRate(address) external returns (uint256, uint256);
 
   function medianTimestamp(address token) external returns (uint256);
+
+  function getRates(address rateFeedId) external returns (address[] memory, uint256[] memory, uint256[] memory);
 }
 
 contract ChainlinkRelayerV1Test is BaseTest {
@@ -41,6 +34,7 @@ contract ChainlinkRelayerV1Test is BaseTest {
   bytes constant INVALID_AGGREGATOR = abi.encodeWithSignature("InvalidAggregator()");
   bytes constant NO_AGGREGATORS = abi.encodeWithSignature("NoAggregators()");
   bytes constant TOO_MANY_AGGREGATORS = abi.encodeWithSignature("TooManyAggregators()");
+  bytes constant UNABLE_TO_COMPUTE_LESSER_GREATER = abi.encodeWithSignature("UnableToComputeLesserGreater()");
 
   ISortedOracles sortedOracles;
 
@@ -244,11 +238,11 @@ contract ChainlinkRelayerV1Test_fuzz_single is ChainlinkRelayerV1Test {
 
   function testFuzz_convertsChainlinkToUD60x18Correctly(int256 x) public {
     vm.assume(x > 0);
-    vm.assume(uint256(x) < uint256(2**256 - 1) / (10**(24 - 8)));
+    vm.assume(uint256(x) < uint256(2 ** 256 - 1) / (10 ** (24 - 8)));
     mockAggregator0.setRoundData(x, uint256(block.timestamp));
     relayer.relay();
     (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
-    assertEq(medianRate, uint256(x) * 10**(24 - 8));
+    assertEq(medianRate, uint256(x) * 10 ** (24 - 8));
   }
 }
 
@@ -343,6 +337,113 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
     relayer.relay();
     (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
     assertEq(medianRate, expectedReport);
+  }
+
+  function test_relaysTheRate_withLesserGreater_whenLesser_andCantExpireDirectly() public {
+    address oldRelayer = makeAddr("oldRelayer");
+    sortedOracles.addOracle(rateFeedId, oldRelayer);
+
+    vm.prank(oldRelayer);
+    sortedOracles.report(rateFeedId, expectedReport + 2, address(0), address(0));
+
+    vm.warp(block.timestamp + 200); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    relayer.relay();
+
+    (address[] memory oracles, uint256[] memory rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 2);
+    assertEq(oracles[1], address(relayer));
+    assertEq(rates[1], expectedReport);
+
+    vm.warp(block.timestamp + 400); // First report should be expired
+    setAggregatorPrices(); // Update timestamps
+    relayer.relay();
+
+    // Next report should also cause an expiry, resulting in only one report remaining
+    // from this oracle.
+    (oracles, rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 1);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+  }
+
+  function test_relaysTheRate_withLesserGreater_whenGreater_andCantExpireDirectly() public {
+    address oldRelayer = makeAddr("oldRelayer");
+    sortedOracles.addOracle(rateFeedId, oldRelayer);
+
+    vm.prank(oldRelayer);
+    sortedOracles.report(rateFeedId, expectedReport - 2, address(0), address(0));
+
+    vm.warp(block.timestamp + 200); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    relayer.relay();
+
+    (address[] memory oracles, uint256[] memory rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 2);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+
+    vm.warp(block.timestamp + 400); // First report should be expired
+    setAggregatorPrices(); // Update timestamps
+    relayer.relay();
+
+    // Next report should also cause an expiry, resulting in only one report remaining
+    // from this oracle.
+    (oracles, rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 1);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+  }
+
+  function test_relaysTheRate_withLesserGreater_whenLesser_andCanExpire() public {
+    address oldRelayer = makeAddr("oldRelayer");
+    sortedOracles.addOracle(rateFeedId, oldRelayer);
+
+    vm.prank(oldRelayer);
+    sortedOracles.report(rateFeedId, expectedReport + 2, address(0), address(0));
+
+    vm.warp(block.timestamp + 600); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    relayer.relay();
+
+    (address[] memory oracles, uint256[] memory rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 1);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+  }
+
+  function test_relaysTheRate_withLesserGreater_whenGreater_andCanExpire() public {
+    address oldRelayer = makeAddr("oldRelayer");
+    sortedOracles.addOracle(rateFeedId, oldRelayer);
+
+    vm.prank(oldRelayer);
+    sortedOracles.report(rateFeedId, expectedReport - 2, address(0), address(0));
+
+    vm.warp(block.timestamp + 600); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    relayer.relay();
+
+    (address[] memory oracles, uint256[] memory rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 1);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+  }
+
+  function test_revertsWhenComputingLesserGreaterWithTooManyReporters() public {
+    address oracle0 = makeAddr("oracle0");
+    address oracle1 = makeAddr("oracle1");
+    sortedOracles.addOracle(rateFeedId, oracle0);
+    sortedOracles.addOracle(rateFeedId, oracle1);
+
+    vm.prank(oracle0);
+    sortedOracles.report(rateFeedId, expectedReport - 2, address(0), address(0));
+    vm.prank(oracle1);
+    sortedOracles.report(rateFeedId, expectedReport, oracle0, address(0));
+
+    vm.warp(block.timestamp + 100); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    vm.expectRevert(UNABLE_TO_COMPUTE_LESSER_GREATER);
+    relayer.relay();
   }
 
   function test_revertsOnNegativePrice0() public {

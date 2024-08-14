@@ -86,6 +86,59 @@ contract ChainlinkRelayerIntegration_ProxySetup is ChainlinkRelayerIntegration {
   }
 }
 
+contract ChainlinkRelayerIntegration_ReportAfterRedeploy is ChainlinkRelayerIntegration {
+  // Fictional rate feed ID
+  address rateFeedId = address(bytes20(keccak256(("cUSD/FOO"))));
+
+  MockAggregatorV3 chainlinkAggregator0;
+  MockAggregatorV3 chainlinkAggregator1;
+
+  function setUp() public {
+    super.setUp();
+
+    chainlinkAggregator0 = new MockAggregatorV3(8);
+    chainlinkAggregator1 = new MockAggregatorV3(8);
+  }
+
+  function test_reportAfterRedeploy() public {
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregatorList0 = new IChainlinkRelayer.ChainlinkAggregator[](1);
+    aggregatorList0[0] = IChainlinkRelayer.ChainlinkAggregator(address(chainlinkAggregator0), false);
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregatorList1 = new IChainlinkRelayer.ChainlinkAggregator[](1);
+    aggregatorList1[0] = IChainlinkRelayer.ChainlinkAggregator(address(chainlinkAggregator1), false);
+
+    vm.prank(owner);
+    IChainlinkRelayer chainlinkRelayer0 = IChainlinkRelayer(
+      relayerFactory.deployRelayer(rateFeedId, "cUSD/FOO", 0, aggregatorList0)
+    );
+
+    vm.prank(deployer);
+    sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer0));
+
+    chainlinkAggregator0.setRoundData(1000000, block.timestamp);
+    chainlinkRelayer0.relay();
+
+    vm.warp(block.timestamp + 100);
+
+    vm.prank(owner);
+    IChainlinkRelayer chainlinkRelayer1 = IChainlinkRelayer(
+      relayerFactory.redeployRelayer(rateFeedId, "cUSD/FOO", 0, aggregatorList1)
+    );
+
+    vm.prank(deployer);
+    sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer1));
+
+    chainlinkAggregator1.setRoundData(1000000, block.timestamp);
+    chainlinkRelayer1.relay();
+    assertEq(sortedOracles.numRates(rateFeedId), 2);
+
+    vm.warp(block.timestamp + 1000);
+
+    chainlinkAggregator1.setRoundData(1000000, block.timestamp);
+    chainlinkRelayer1.relay();
+    assertEq(sortedOracles.numRates(rateFeedId), 1);
+  }
+}
+
 contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelayerIntegration {
   // Fictional rate feed ID
   address rateFeedId = address(bytes20(keccak256(("cUSD/FOO"))));
@@ -127,11 +180,11 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
     address[] memory rateFeeds = new address[](1);
     rateFeeds[0] = rateFeedId;
     uint256[] memory thresholds = new uint256[](1);
-    thresholds[0] = 10**23; // 10%
+    thresholds[0] = 10 ** 23; // 10%
     uint256[] memory cooldownTimes = new uint256[](1);
     cooldownTimes[0] = 1 minutes;
     uint256[] memory referenceValues = new uint256[](1);
-    referenceValues[0] = 10**24;
+    referenceValues[0] = 10 ** 24;
 
     vm.startPrank(deployer);
     valueDeltaBreaker.setRateChangeThresholds(rateFeeds, thresholds);
@@ -149,56 +202,56 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
   }
 
   function test_passesPriceFromAggregatorToSortedOracles() public {
-    chainlinkAggregator.setRoundData(10**8, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(10 ** 8, block.timestamp - 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
-    assertEq(price, 10**24);
-    assertEq(denominator, 10**24);
+    assertEq(price, 10 ** 24);
+    assertEq(denominator, 10 ** 24);
     assertEq(uint256(tradingMode), 0);
   }
 
   function test_whenPriceBeyondThresholdIsRelayed_breakerShouldTrigger() public {
-    chainlinkAggregator.setRoundData(12 * 10**7, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(12 * 10 ** 7, block.timestamp - 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
-    assertEq(price, 12 * 10**23);
-    assertEq(denominator, 10**24);
+    assertEq(price, 12 * 10 ** 23);
+    assertEq(denominator, 10 ** 24);
     assertEq(uint256(tradingMode), 3);
   }
 
   function test_whenPriceBeyondThresholdIsRelayedThenRecovers_breakerShouldTriggerThenRecover() public {
-    chainlinkAggregator.setRoundData(12 * 10**7, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(12 * 10 ** 7, block.timestamp - 1);
     chainlinkRelayer.relay();
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
     assertEq(uint256(tradingMode), 3);
 
     vm.warp(now + 1 minutes + 1);
 
-    chainlinkAggregator.setRoundData(105 * 10**6, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp - 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
-    assertEq(price, 105 * 10**22);
-    assertEq(denominator, 10**24);
+    assertEq(price, 105 * 10 ** 22);
+    assertEq(denominator, 10 ** 24);
     assertEq(uint256(tradingMode), 0);
   }
 
   function test_whenPriceBeyondThresholdIsRelayedAndCooldownIsntReached_breakerShouldTriggerAndNotRecover() public {
-    chainlinkAggregator.setRoundData(12 * 10**7, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(12 * 10 ** 7, block.timestamp - 1);
     chainlinkRelayer.relay();
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
     assertEq(uint256(tradingMode), 3);
 
     vm.warp(now + 1 minutes - 1);
 
-    chainlinkAggregator.setRoundData(105 * 10**6, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp - 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
-    assertEq(price, 105 * 10**22);
-    assertEq(denominator, 10**24);
+    assertEq(price, 105 * 10 ** 22);
+    assertEq(denominator, 10 ** 24);
     assertEq(uint256(tradingMode), 3);
   }
 }
