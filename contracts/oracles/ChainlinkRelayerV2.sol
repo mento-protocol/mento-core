@@ -255,14 +255,14 @@ contract ChainlinkRelayerV2 is IChainlinkRelayer {
     uint256 numRates = ISortedOraclesMin(sortedOracles).numRates(rateFeedId);
     (address[] memory oracles, uint256[] memory rates, ) = ISortedOraclesMin(sortedOracles).getRates(rateFeedId);
 
-    if (numRates > 2 || numRates == 2 && oracles[0] != address(this) && oracles[1] != address(this)) {
+    if (numRates > 2 || (numRates == 2 && oracles[0] != address(this) && oracles[1] != address(this))) {
       revert UnableToComputeLesserGreater();
     }
 
     address lesserKey;
     address greaterKey;
 
-    for (uint i = 0; i < oracles.length; i++) {
+    for (uint256 i = 0; i < oracles.length; i++) {
       if (oracles[i] != address(this)) {
         if (rates[i] <= rate) {
           lesserKey = oracles[i];
