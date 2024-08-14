@@ -32,9 +32,11 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   );
   event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
 
-  function oneAggregator(
-    uint256 aggregatorIndex
-  ) internal view returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators) {
+  function oneAggregator(uint256 aggregatorIndex)
+    internal
+    view
+    returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators)
+  {
     aggregators = new IChainlinkRelayer.ChainlinkAggregator[](1);
     aggregators[0] = IChainlinkRelayer.ChainlinkAggregator(mockAggregators[aggregatorIndex], false);
   }
@@ -83,10 +85,11 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
       );
   }
 
-  function contractAlreadyExistsError(
-    address relayerAddress,
-    address rateFeedId
-  ) public pure returns (bytes memory ContractAlreadyExistsError) {
+  function contractAlreadyExistsError(address relayerAddress, address rateFeedId)
+    public
+    pure
+    returns (bytes memory ContractAlreadyExistsError)
+  {
     return abi.encodeWithSignature("ContractAlreadyExists(address,address)", relayerAddress, rateFeedId);
   }
 
