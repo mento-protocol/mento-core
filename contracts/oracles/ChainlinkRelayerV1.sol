@@ -13,9 +13,20 @@ import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
  * See https://github.com/mento-protocol/mento-core/blob/develop/contracts/common/SortedOracles.sol
  */
 interface ISortedOraclesMin {
-  function report(address rateFeedId, uint256 value, address lesserKey, address greaterKey) external;
+  function report(
+    address rateFeedId,
+    uint256 value,
+    address lesserKey,
+    address greaterKey
+  ) external;
 
-  function getRates(address rateFeedId) external returns (address[] memory, uint256[] memory, uint256[] memory);
+  function getRates(address rateFeedId)
+    external
+    returns (
+      address[] memory,
+      uint256[] memory,
+      uint256[] memory
+    );
 
   function medianTimestamp(address rateFeedId) external view returns (uint256);
 
@@ -284,7 +295,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     address lesserKey;
     address greaterKey;
 
-    for (uint i = 0; i < oracles.length; i++) {
+    for (uint256 i = 0; i < oracles.length; i++) {
       if (oracles[i] != address(this)) {
         if (rates[i] <= rate) {
           lesserKey = oracles[i];
@@ -353,6 +364,6 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   function chainlinkToUD60x18(int256 price, address aggregator) internal view returns (UD60x18) {
     uint256 chainlinkDecimals = uint256(AggregatorV3Interface(aggregator).decimals());
-    return ud(uint256(price) * 10 ** (18 - chainlinkDecimals));
+    return ud(uint256(price) * 10**(18 - chainlinkDecimals));
   }
 }
