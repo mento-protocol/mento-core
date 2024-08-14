@@ -7,7 +7,7 @@ import { console } from "forge-std-next/console.sol";
 import "../utils/BaseTest.next.sol";
 import "../mocks/MockAggregatorV3.sol";
 import "contracts/interfaces/IChainlinkRelayer.sol";
-import "contracts/oracles/ChainlinkRelayerV1.sol";
+import "contracts/oracles/ChainlinkRelayerV2.sol";
 
 import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 
@@ -27,7 +27,7 @@ interface ISortedOracles {
   function getRates(address rateFeedId) external returns (address[] memory, uint256[] memory, uint256[] memory);
 }
 
-contract ChainlinkRelayerV1Test is BaseTest {
+contract ChainlinkRelayerV2Test is BaseTest {
   bytes constant TIMESTAMP_NOT_NEW_ERROR = abi.encodeWithSignature("TimestampNotNew()");
   bytes constant EXPIRED_TIMESTAMP_ERROR = abi.encodeWithSignature("ExpiredTimestamp()");
   bytes constant INVALID_PRICE_ERROR = abi.encodeWithSignature("InvalidPrice()");
@@ -87,7 +87,7 @@ contract ChainlinkRelayerV1Test is BaseTest {
     }
 
     relayer = IChainlinkRelayer(
-      new ChainlinkRelayerV1(rateFeedId, "CELO/USD", address(sortedOracles), 300, aggregators)
+      new ChainlinkRelayerV2(rateFeedId, "CELO/USD", address(sortedOracles), 300, aggregators)
     );
     sortedOracles.addOracle(rateFeedId, address(relayer));
   }
@@ -112,10 +112,10 @@ contract ChainlinkRelayerV1Test is BaseTest {
   }
 }
 
-contract ChainlinkRelayerV1Test_constructor_invalid is ChainlinkRelayerV1Test {
+contract ChainlinkRelayerV2Test_constructor_invalid is ChainlinkRelayerV2Test {
   function test_constructorRevertsWhenAggregatorsIsEmpty() public {
     vm.expectRevert(NO_AGGREGATORS);
-    new ChainlinkRelayerV1(
+    new ChainlinkRelayerV2(
       rateFeedId,
       "CELO/USD",
       address(sortedOracles),
@@ -126,7 +126,7 @@ contract ChainlinkRelayerV1Test_constructor_invalid is ChainlinkRelayerV1Test {
 
   function test_constructorRevertsWhenTooManyAggregators() public {
     vm.expectRevert(TOO_MANY_AGGREGATORS);
-    new ChainlinkRelayerV1(
+    new ChainlinkRelayerV2(
       rateFeedId,
       "CELO/USD",
       address(sortedOracles),
@@ -137,7 +137,7 @@ contract ChainlinkRelayerV1Test_constructor_invalid is ChainlinkRelayerV1Test {
 
   function test_constructorRevertsWhenAggregatorsIsInvalid() public {
     vm.expectRevert(INVALID_AGGREGATOR);
-    new ChainlinkRelayerV1(
+    new ChainlinkRelayerV2(
       rateFeedId,
       "CELO/USD",
       address(sortedOracles),
@@ -147,7 +147,7 @@ contract ChainlinkRelayerV1Test_constructor_invalid is ChainlinkRelayerV1Test {
   }
 }
 
-contract ChainlinkRelayerV1Test_constructor_single is ChainlinkRelayerV1Test {
+contract ChainlinkRelayerV2Test_constructor_single is ChainlinkRelayerV2Test {
   function setUpRelayer() internal virtual {
     setUpRelayer(1);
   }
@@ -180,7 +180,7 @@ contract ChainlinkRelayerV1Test_constructor_single is ChainlinkRelayerV1Test {
   }
 }
 
-contract ChainlinkRelayerV1Test_constructor_double is ChainlinkRelayerV1Test_constructor_single {
+contract ChainlinkRelayerV2Test_constructor_double is ChainlinkRelayerV2Test_constructor_single {
   function setUpRelayer() internal override {
     setUpRelayer(2);
   }
@@ -195,7 +195,7 @@ contract ChainlinkRelayerV1Test_constructor_double is ChainlinkRelayerV1Test_con
   }
 }
 
-contract ChainlinkRelayerV1Test_constructor_triple is ChainlinkRelayerV1Test_constructor_single {
+contract ChainlinkRelayerV2Test_constructor_triple is ChainlinkRelayerV2Test_constructor_single {
   function setUpRelayer() internal override {
     setUpRelayer(3);
   }
@@ -212,7 +212,7 @@ contract ChainlinkRelayerV1Test_constructor_triple is ChainlinkRelayerV1Test_con
   }
 }
 
-contract ChainlinkRelayerV1Test_constructor_full is ChainlinkRelayerV1Test_constructor_single {
+contract ChainlinkRelayerV2Test_constructor_full is ChainlinkRelayerV2Test_constructor_single {
   function setUpRelayer() internal override {
     setUpRelayer(4);
   }
@@ -231,7 +231,7 @@ contract ChainlinkRelayerV1Test_constructor_full is ChainlinkRelayerV1Test_const
   }
 }
 
-contract ChainlinkRelayerV1Test_fuzz_single is ChainlinkRelayerV1Test {
+contract ChainlinkRelayerV2Test_fuzz_single is ChainlinkRelayerV2Test {
   function setUp() public override {
     super.setUp();
     setUpRelayer(1);
@@ -247,7 +247,7 @@ contract ChainlinkRelayerV1Test_fuzz_single is ChainlinkRelayerV1Test {
   }
 }
 
-contract ChainlinkRelayerV1Test_fuzz_full is ChainlinkRelayerV1Test {
+contract ChainlinkRelayerV2Test_fuzz_full is ChainlinkRelayerV2Test {
   function setUp() public override {
     super.setUp();
     setUpRelayer(4);
@@ -310,7 +310,7 @@ contract ChainlinkRelayerV1Test_fuzz_full is ChainlinkRelayerV1Test {
   }
 }
 
-contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
+contract ChainlinkRelayerV2Test_relay_single is ChainlinkRelayerV2Test {
   modifier withReport(uint256 report) {
     vm.warp(2);
     vm.prank(address(relayer));
@@ -338,12 +338,11 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
     uint256 gasBefore = gasleft();
     relayer.relay();
     uint256 gasCost = gasBefore - gasleft();
-    console.log("RelayerV1[%s] cost = %d", label, gasCost);
+    console.log("RelayerV2[%s] cost = %d", label, gasCost);
   }
 
   function test_relaysTheRate() public {
     relayAndLogGas("happy path");
-    // relayer.relay();
     (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
     assertEq(medianRate, expectedReport);
   }
@@ -418,6 +417,7 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
     vm.warp(block.timestamp + 600); // Not enough to be able to expire the first report
     setAggregatorPrices(); // Update timestamps
     relayAndLogGas("other report with expiry");
+    // relayer.relay();
 
     (address[] memory oracles, uint256[] memory rates, ) = sortedOracles.getRates(rateFeedId);
     assertEq(oracles.length, 1);
@@ -504,7 +504,7 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
   }
 }
 
-contract ChainlinkRelayerV1Test_relay_double is ChainlinkRelayerV1Test_relay_single {
+contract ChainlinkRelayerV2Test_relay_double is ChainlinkRelayerV2Test_relay_single {
   function setUpExpectations() internal virtual override {
     aggregatorPrice0 = 420000000; // 4.2 * 1e8
     aggregatorPrice1 = 2000000000000; // 2 * 1e12
@@ -572,7 +572,7 @@ contract ChainlinkRelayerV1Test_relay_double is ChainlinkRelayerV1Test_relay_sin
   }
 }
 
-contract ChainlinkRelayerV1Test_relay_triple is ChainlinkRelayerV1Test_relay_double {
+contract ChainlinkRelayerV2Test_relay_triple is ChainlinkRelayerV2Test_relay_double {
   function setUpExpectations() internal virtual override {
     aggregatorPrice0 = 420000000; // 4.2 * 1e8
     aggregatorPrice1 = 2000000000000; // 2 * 1e12
@@ -643,7 +643,7 @@ contract ChainlinkRelayerV1Test_relay_triple is ChainlinkRelayerV1Test_relay_dou
   }
 }
 
-contract ChainlinkRelayerV1Test_relay_full is ChainlinkRelayerV1Test_relay_triple {
+contract ChainlinkRelayerV2Test_relay_full is ChainlinkRelayerV2Test_relay_triple {
   function setUpExpectations() internal override {
     aggregatorPrice0 = 420000000; // 4.2 * 1e8
     aggregatorPrice1 = 2000000000000; // 2 * 1e12
