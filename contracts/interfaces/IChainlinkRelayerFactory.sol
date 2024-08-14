@@ -33,7 +33,6 @@ interface IChainlinkRelayerFactory {
   function deployRelayer(
     address rateFeedId,
     string calldata rateFeedDescription,
-    uint256 maxTimestampSpread,
     IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
   ) external returns (address);
 
@@ -42,7 +41,6 @@ interface IChainlinkRelayerFactory {
   function redeployRelayer(
     address rateFeedId,
     string calldata rateFeedDescription,
-    uint256 maxTimestampSpread,
     IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
   ) external returns (address);
 
@@ -53,7 +51,6 @@ interface IChainlinkRelayerFactory {
   function computedRelayerAddress(
     address rateFeedId,
     string calldata rateFeedDescription,
-    uint256 maxTimestampSpread,
     IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
   ) external returns (address);
 }
