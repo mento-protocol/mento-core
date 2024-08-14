@@ -245,8 +245,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   }
 
   /**
-   * @notice Try to report to SortedOracles, and if it reverts try to rever from the
-   * "greater and lesser key zero" revert reason.
+   * @notice Try to report to SortedOracles, and if it reverts try to recover from the
+   * scenario where there's at most one report from another oracle.
    * @param rate The rate to report.
    */
   function reportWithRecovery(uint256 rate) internal {
@@ -288,8 +288,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     (address[] memory oracles, uint256[] memory rates, ) = ISortedOraclesMin(sortedOracles).getRates(rateFeedId);
 
     // We will limit the situations that we want to deal with to:
-    // (a) One report from the previous relayer
-    // (b) One report from the previous relayer and one from the current relayer
+    // (a) One report from another oracle.
+    // (b) One report from another oracle and one from the current relayer.
     if ((oracles.length == 2 && oracles[0] != address(this) && oracles[1] != address(this)) || oracles.length > 2) {
       revert UnableToComputeLesserGreater();
     }
