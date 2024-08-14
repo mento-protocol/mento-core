@@ -254,6 +254,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     // given `rateFeedId`. As such, in 99.9% of the time we don't need to compute and provide
     // `lesserKey`/`greaterKey` each time, the "null pointer" `address(0)` will
     // correctly place the report in SortedOracles' sorted linked list.
+    // solhint-disable-next-line avoid-low-level-calls
     (bool ok, bytes memory returnData) = sortedOracles.call(
       abi.encodeWithSelector(ISortedOraclesMin.report.selector, rateFeedId, rate, address(0), address(0))
     );
@@ -269,6 +270,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
         reportWithLesserGreater(rate);
       } else {
         // Forward the revert if it's not the one we care about.
+        // solhint-disable-next-line no-inline-assembly
         assembly {
           revert(add(returnData, 32), mload(returnData))
         }
