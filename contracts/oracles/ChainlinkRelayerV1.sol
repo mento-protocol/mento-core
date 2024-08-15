@@ -20,9 +20,19 @@ interface ISortedOraclesMin {
     address greaterKey
   ) external;
 
+  function getRates(address rateFeedId)
+    external
+    returns (
+      address[] memory,
+      uint256[] memory,
+      uint256[] memory
+    );
+
   function medianTimestamp(address rateFeedId) external view returns (uint256);
 
   function getTokenReportExpirySeconds(address rateFeedId) external view returns (uint256);
+
+  function removeExpiredReports(address rateFeedId, uint256 n) external;
 }
 
 /**
@@ -100,6 +110,12 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
   /// @notice Used when a negative or zero price is returned by the Chainlink aggregator.
   error InvalidPrice();
+
+  /**
+   * @notice Used when trying to recover from a lesser/greater revert and there are
+   * too many existing reports in SortedOracles.
+   */
+  error TooManyExistingReports();
 
   /**
    * @notice Used in the constructor when a ChainlinkAggregator
@@ -194,13 +210,60 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       revert ExpiredTimestamp();
     }
 
-    uint256 reportValue = intoUint256(report) * UD60X18_TO_FIXIDITY_SCALE;
+    reportRate(intoUint256(report) * UD60X18_TO_FIXIDITY_SCALE);
+  }
 
-    // This contract is built for a setup where it is the only reporter for the
-    // given `rateFeedId`. As such, we don't need to compute and provide
-    // `lesserKey`/`greaterKey` each time, the "null pointer" `address(0)` will
-    // correctly place the report in SortedOracles' sorted linked list.
-    ISortedOraclesMin(sortedOracles).report(rateFeedId, reportValue, address(0), address(0));
+  /**
+   * @notice Report by looking up existing reports and building the lesser and greater keys.
+   * @dev Depending on the state in SortedOracles we can be in the:
+   *   - Happy path: No reports, or a single report from this relayer.
+   *     We can report with lesser and greater keys as address(0)
+   *   - Unhappy path: There are reports from other oracles.
+   *     We restrain this path by only computing lesser and greater keys when there is
+   *     at most one report from a different oracle.
+   *     We also attempt to expire reports in order to get back to the happy path.
+   * @param rate The rate to report.
+   */
+  function reportRate(uint256 rate) internal {
+    (address[] memory oracles, uint256[] memory rates, ) = ISortedOraclesMin(sortedOracles).getRates(rateFeedId);
+    uint256 numRates = oracles.length;
+
+    if (numRates == 0 || (numRates == 1 && oracles[0] == address(this))) {
+      // Happy path: SortedOracles is empty, or there is a single report from this relayer.
+      ISortedOraclesMin(sortedOracles).report(rateFeedId, rate, address(0), address(0));
+      return;
+    }
+
+    if (numRates > 2 || (numRates == 2 && oracles[0] != address(this) && oracles[1] != address(this))) {
+      revert TooManyExistingReports();
+    }
+
+    // At this point we have ensured that either:
+    // - There is a single report from another oracle.
+    // - There are two reports and one is from this relayer.
+
+    address otherOracle;
+    uint256 otherRate;
+
+    if (numRates == 1 || oracles[0] != address(this)) {
+      otherOracle = oracles[0];
+      otherRate = rates[0];
+    } else {
+      otherOracle = oracles[1];
+      otherRate = rates[1];
+    }
+
+    address lesserKey;
+    address greaterKey;
+
+    if (otherRate < rate) {
+      lesserKey = otherOracle;
+    } else {
+      greaterKey = otherOracle;
+    }
+
+    ISortedOraclesMin(sortedOracles).report(rateFeedId, rate, lesserKey, greaterKey);
+    ISortedOraclesMin(sortedOracles).removeExpiredReports(rateFeedId, 1);
   }
 
   /**

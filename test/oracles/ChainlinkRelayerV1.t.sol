@@ -3,6 +3,7 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8.18;
 
+import { console } from "forge-std-next/console.sol";
 import "../utils/BaseTest.next.sol";
 import "../mocks/MockAggregatorV3.sol";
 import "contracts/interfaces/IChainlinkRelayer.sol";
@@ -31,6 +32,14 @@ interface ISortedOracles {
   function medianRate(address) external returns (uint256, uint256);
 
   function medianTimestamp(address token) external returns (uint256);
+
+  function getRates(address rateFeedId)
+    external
+    returns (
+      address[] memory,
+      uint256[] memory,
+      uint256[] memory
+    );
 }
 
 contract ChainlinkRelayerV1Test is BaseTest {
@@ -40,6 +49,7 @@ contract ChainlinkRelayerV1Test is BaseTest {
   bytes constant INVALID_AGGREGATOR = abi.encodeWithSignature("InvalidAggregator()");
   bytes constant NO_AGGREGATORS = abi.encodeWithSignature("NoAggregators()");
   bytes constant TOO_MANY_AGGREGATORS = abi.encodeWithSignature("TooManyAggregators()");
+  bytes constant TOO_MANY_EXISTING_REPORTS = abi.encodeWithSignature("TooManyExistingReports()");
 
   ISortedOracles sortedOracles;
 
@@ -333,10 +343,130 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
     setAggregatorPrices();
   }
 
-  function test_relaysTheRate() public {
+  function relayAndLogGas(string memory label) internal {
+    uint256 gasBefore = gasleft();
     relayer.relay();
+    uint256 gasCost = gasBefore - gasleft();
+    console.log("RelayerV1[%s] cost = %d", label, gasCost);
+  }
+
+  function test_relaysTheRate() public {
+    relayAndLogGas("happy path");
+    // relayer.relay();
     (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
     assertEq(medianRate, expectedReport);
+  }
+
+  function test_relaysTheRate_withLesserGreater_whenLesser_andCantExpireDirectly() public {
+    address oldRelayer = makeAddr("oldRelayer");
+    sortedOracles.addOracle(rateFeedId, oldRelayer);
+
+    vm.prank(oldRelayer);
+    sortedOracles.report(rateFeedId, expectedReport + 2, address(0), address(0));
+
+    vm.warp(block.timestamp + 200); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    relayAndLogGas("other report no expiry");
+    // relayer.relay();
+
+    (address[] memory oracles, uint256[] memory rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 2);
+    assertEq(oracles[1], address(relayer));
+    assertEq(rates[1], expectedReport);
+
+    vm.warp(block.timestamp + 400); // First report should be expired
+    setAggregatorPrices(); // Update timestamps
+    relayAndLogGas("2 reports with expiry");
+    // relayer.relay();
+
+    // Next report should also cause an expiry, resulting in only one report remaining
+    // from this oracle.
+    (oracles, rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 1);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+  }
+
+  function test_relaysTheRate_withLesserGreater_whenGreater_andCantExpireDirectly() public {
+    address oldRelayer = makeAddr("oldRelayer");
+    sortedOracles.addOracle(rateFeedId, oldRelayer);
+
+    vm.prank(oldRelayer);
+    sortedOracles.report(rateFeedId, expectedReport - 2, address(0), address(0));
+
+    vm.warp(block.timestamp + 200); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    relayAndLogGas("other report no expiry");
+    // relayer.relay();
+
+    (address[] memory oracles, uint256[] memory rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 2);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+
+    vm.warp(block.timestamp + 400); // First report should be expired
+    setAggregatorPrices(); // Update timestamps
+    relayAndLogGas("2 reports with expiry");
+    // relayer.relay();
+
+    // Next report should also cause an expiry, resulting in only one report remaining
+    // from this oracle.
+    (oracles, rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 1);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+  }
+
+  function test_relaysTheRate_withLesserGreater_whenLesser_andCanExpire() public {
+    address oldRelayer = makeAddr("oldRelayer");
+    sortedOracles.addOracle(rateFeedId, oldRelayer);
+
+    vm.prank(oldRelayer);
+    sortedOracles.report(rateFeedId, expectedReport + 2, address(0), address(0));
+
+    vm.warp(block.timestamp + 600); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    relayAndLogGas("other report with expiry");
+
+    (address[] memory oracles, uint256[] memory rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 1);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+  }
+
+  function test_relaysTheRate_withLesserGreater_whenGreater_andCanExpire() public {
+    address oldRelayer = makeAddr("oldRelayer");
+    sortedOracles.addOracle(rateFeedId, oldRelayer);
+
+    vm.prank(oldRelayer);
+    sortedOracles.report(rateFeedId, expectedReport - 2, address(0), address(0));
+
+    vm.warp(block.timestamp + 600); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    relayAndLogGas("other report with expiry");
+    // relayer.relay();
+
+    (address[] memory oracles, uint256[] memory rates, ) = sortedOracles.getRates(rateFeedId);
+    assertEq(oracles.length, 1);
+    assertEq(oracles[0], address(relayer));
+    assertEq(rates[0], expectedReport);
+  }
+
+  function test_revertsWhenComputingLesserGreaterWithTooManyReporters() public {
+    address oracle0 = makeAddr("oracle0");
+    address oracle1 = makeAddr("oracle1");
+    sortedOracles.addOracle(rateFeedId, oracle0);
+    sortedOracles.addOracle(rateFeedId, oracle1);
+
+    vm.prank(oracle0);
+    sortedOracles.report(rateFeedId, expectedReport - 2, address(0), address(0));
+    vm.prank(oracle1);
+    sortedOracles.report(rateFeedId, expectedReport, oracle0, address(0));
+
+    vm.warp(block.timestamp + 100); // Not enough to be able to expire the first report
+    setAggregatorPrices(); // Update timestamps
+    vm.expectRevert(TOO_MANY_EXISTING_REPORTS);
+    relayer.relay();
   }
 
   function test_revertsOnNegativePrice0() public {
