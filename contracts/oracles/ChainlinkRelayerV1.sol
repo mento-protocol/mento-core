@@ -20,8 +20,6 @@ interface ISortedOraclesMin {
     address greaterKey
   ) external;
 
-  function numRates(address rateFeedId) external returns (uint256);
-
   function getRates(address rateFeedId)
     external
     returns (
