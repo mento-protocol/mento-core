@@ -158,7 +158,7 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
     IChainlinkRelayer.ChainlinkAggregator[] memory aggregators = new IChainlinkRelayer.ChainlinkAggregator[](1);
     aggregators[0] = IChainlinkRelayer.ChainlinkAggregator(address(chainlinkAggregator), false);
     vm.prank(owner);
-    chainlinkRelayer = IChainlinkRelayer(relayerFactory.deployRelayer(rateFeedId, "CELO/USD", 0, aggregators));
+    chainlinkRelayer = IChainlinkRelayer(relayerFactory.deployRelayer(rateFeedId, "CELO/USD", aggregators));
 
     vm.prank(deployer);
     sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer));
