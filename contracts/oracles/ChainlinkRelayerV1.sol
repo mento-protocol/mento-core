@@ -59,15 +59,6 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   uint256 private constant UD60X18_TO_FIXIDITY_SCALE = 1e6; // 10 ** (24 - 18)
 
-  /**
-   * @notice Hash of the data returned by sorted oracles when it reverts with the
-   * "greater and lesser key zero" revert string.
-   * @dev We use it in order to discriminate between revert reasons when trying to
-   * recover from the situation in which there's already a report from a different oracle.
-   */
-  bytes32 private constant GREATER_AND_LESSER_KEY_ZERO_REVERT_HASH =
-    keccak256(abi.encodeWithSignature("Error(string)", "greater and lesser key zero"));
-
   /// @notice The rateFeedId this relayer relays for.
   address public immutable rateFeedId;
 
