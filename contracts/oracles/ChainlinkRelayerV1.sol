@@ -237,7 +237,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /**
    * @notice Report by looking up existing reports and building the lesser and greater keys.
    * @dev Depending on the state in SortedOracles we can be in the:
-   *   - Happy path: No reports, or a single report from this relayer
+   *   - Happy path: No reports, or a single report from this relayer.
    *     We can report with lesser and greater keys as address(0)
    *   - Unhappy path: There are reports from other oracles.
    *     We restrain this path by only computing lesser and greater keys when there is
@@ -260,8 +260,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
     }
 
     // At this point we have ensured that either:
-    // - There is a single report from another oracle
-    // - There are two reports and one is from this relayer
+    // - There is a single report from another oracle.
+    // - There are two reports and one is from this relayer.
 
     address otherOracle;
     uint256 otherRate;
