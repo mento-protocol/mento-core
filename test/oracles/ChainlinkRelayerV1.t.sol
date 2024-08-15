@@ -50,7 +50,7 @@ contract ChainlinkRelayerV1Test is BaseTest {
   bytes constant INVALID_AGGREGATOR = abi.encodeWithSignature("InvalidAggregator()");
   bytes constant NO_AGGREGATORS = abi.encodeWithSignature("NoAggregators()");
   bytes constant TOO_MANY_AGGREGATORS = abi.encodeWithSignature("TooManyAggregators()");
-  bytes constant UNABLE_TO_COMPUTE_LESSER_GREATER = abi.encodeWithSignature("UnableToComputeLesserGreater()");
+  bytes constant TOO_MANY_EXISTING_REPORTS = abi.encodeWithSignature("TooManyExistingReports()");
 
   ISortedOracles sortedOracles;
 
@@ -471,7 +471,7 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
 
     vm.warp(block.timestamp + 100); // Not enough to be able to expire the first report
     setAggregatorPrices(); // Update timestamps
-    vm.expectRevert(UNABLE_TO_COMPUTE_LESSER_GREATER);
+    vm.expectRevert(TOO_MANY_EXISTING_REPORTS);
     relayer.relay();
   }
 

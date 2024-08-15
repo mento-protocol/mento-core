@@ -20,6 +20,8 @@ interface ISortedOraclesMin {
     address greaterKey
   ) external;
 
+  function numRates(address rateFeedId) external returns (uint256);
+
   function getRates(address rateFeedId)
     external
     returns (
@@ -128,10 +130,10 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   error InvalidPrice();
 
   /**
-   * @notice Used when trying to recover from a lesser/greater revert and we're not on one
-   * of the expected states.
+   * @notice Used when trying to recover from a lesser/greater revert and there are
+   * too many existing reports in SortedOracles.
    */
-  error UnableToComputeLesserGreater();
+  error TooManyExistingReports();
 
   /**
    * @notice Used when the spread between the earliest and latest timestamp
@@ -240,71 +242,56 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       revert ExpiredTimestamp();
     }
 
-    reportWithRecovery(intoUint256(report) * UD60X18_TO_FIXIDITY_SCALE);
-  }
-
-  /**
-   * @notice Try to report to SortedOracles, and if it reverts try to recover from the
-   * scenario where there's at most one report from another oracle.
-   * @param rate The rate to report.
-   */
-  function reportWithRecovery(uint256 rate) internal {
-    // This contract is built for a setup where it is the only reporter for the
-    // given `rateFeedId`. As such, in 99.9% of the time we don't need to compute and provide
-    // `lesserKey`/`greaterKey` each time, the "null pointer" `address(0)` will
-    // correctly place the report in SortedOracles' sorted linked list.
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool ok, bytes memory returnData) = sortedOracles.call(
-      abi.encodeWithSelector(ISortedOraclesMin.report.selector, rateFeedId, rate, address(0), address(0))
-    );
-
-    // But, during upgrades, where we want to replace the relayer contract there will be
-    // a short time when there will also be a report from the previous relayer, because
-    // SortedOracles will never remove the last report even if it's expired.
-    // We want to recover from this error and compute lesser/greater on-chain, report and
-    // then also remove the expired report so we get back to the happy path.
-    if (!ok) {
-      bytes32 returnDataHash = keccak256(returnData);
-      if (returnDataHash == GREATER_AND_LESSER_KEY_ZERO_REVERT_HASH) {
-        reportWithLesserGreater(rate);
-      } else {
-        // Forward the revert if it's not the one we care about.
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-          revert(add(returnData, 32), mload(returnData))
-        }
-      }
-    }
+    reportRate(intoUint256(report) * UD60X18_TO_FIXIDITY_SCALE);
   }
 
   /**
    * @notice Report by looking up existing reports and building the lesser and greater keys.
-   * @dev Only treat the situations where there's a single report from the previous relayer or
-   * a report from the previous relayer and one from the current one.
+   * @dev Depending on the state in SortedOracles we can be in the:
+   *   - Happy path: No reports, or a single report from this relayer
+   *     We can report with lesser and greater keys as address(0)
+   *   - Unhappy path: There are reports from other oracles.
+   *     We restrain this path by only computing lesser and greater keys when there is
+   *     at most one report from a different oracle.
+   *     We also attempt to expire reports in order to get back to the happy path.
    * @param rate The rate to report.
    */
-  function reportWithLesserGreater(uint256 rate) internal {
+  function reportRate(uint256 rate) internal {
     (address[] memory oracles, uint256[] memory rates, ) = ISortedOraclesMin(sortedOracles).getRates(rateFeedId);
+    uint256 numRates = oracles.length;
 
-    // We will limit the situations that we want to deal with to:
-    // (a) One report from another oracle.
-    // (b) One report from another oracle and one from the current relayer.
-    if ((oracles.length == 2 && oracles[0] != address(this) && oracles[1] != address(this)) || oracles.length > 2) {
-      revert UnableToComputeLesserGreater();
+    if (numRates == 0 || (numRates == 1 && oracles[0] == address(this))) {
+      // Happy path: SortedOracles is empty, or there is a single report from this relayer.
+      ISortedOraclesMin(sortedOracles).report(rateFeedId, rate, address(0), address(0));
+      return;
+    }
+
+    if (numRates > 2 || (numRates == 2 && oracles[0] != address(this) && oracles[1] != address(this))) {
+      revert TooManyExistingReports();
+    }
+
+    // At this point we have ensured that either:
+    // - There is a single report from another oracle
+    // - There are two reports and one is from this relayer
+
+    address otherOracle;
+    uint256 otherRate;
+
+    if (numRates == 1 || oracles[0] != address(this)) {
+      otherOracle = oracles[0];
+      otherRate = rates[0];
+    } else {
+      otherOracle = oracles[1];
+      otherRate = rates[1];
     }
 
     address lesserKey;
     address greaterKey;
 
-    for (uint256 i = 0; i < oracles.length; i++) {
-      if (oracles[i] != address(this)) {
-        if (rates[i] <= rate) {
-          lesserKey = oracles[i];
-        } else {
-          greaterKey = oracles[i];
-        }
-        break;
-      }
+    if (otherRate < rate) {
+      lesserKey = otherOracle;
+    } else {
+      greaterKey = otherOracle;
     }
 
     ISortedOraclesMin(sortedOracles).report(rateFeedId, rate, lesserKey, greaterKey);
