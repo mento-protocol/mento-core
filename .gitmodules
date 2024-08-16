@@ -19,3 +19,7 @@
 [submodule "lib/foundry-chainlink-toolkit"]
 	path = lib/foundry-chainlink-toolkit
 	url = https://github.com/smartcontractkit/foundry-chainlink-toolkit
+[submodule "lib/prb-math"]
+	branch = "release-v4"
+	path = lib/prb-math
+	url = https://github.com/PaulRBerg/prb-math

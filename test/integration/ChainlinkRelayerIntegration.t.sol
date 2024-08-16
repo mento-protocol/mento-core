@@ -86,6 +86,59 @@ contract ChainlinkRelayerIntegration_ProxySetup is ChainlinkRelayerIntegration {
   }
 }
 
+contract ChainlinkRelayerIntegration_ReportAfterRedeploy is ChainlinkRelayerIntegration {
+  // Fictional rate feed ID
+  address rateFeedId = address(bytes20(keccak256(("cUSD/FOO"))));
+
+  MockAggregatorV3 chainlinkAggregator0;
+  MockAggregatorV3 chainlinkAggregator1;
+
+  function setUp() public {
+    super.setUp();
+
+    chainlinkAggregator0 = new MockAggregatorV3(8);
+    chainlinkAggregator1 = new MockAggregatorV3(8);
+  }
+
+  function test_reportAfterRedeploy() public {
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregatorList0 = new IChainlinkRelayer.ChainlinkAggregator[](1);
+    aggregatorList0[0] = IChainlinkRelayer.ChainlinkAggregator(address(chainlinkAggregator0), false);
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregatorList1 = new IChainlinkRelayer.ChainlinkAggregator[](1);
+    aggregatorList1[0] = IChainlinkRelayer.ChainlinkAggregator(address(chainlinkAggregator1), false);
+
+    vm.prank(owner);
+    IChainlinkRelayer chainlinkRelayer0 = IChainlinkRelayer(
+      relayerFactory.deployRelayer(rateFeedId, "cUSD/FOO", aggregatorList0)
+    );
+
+    vm.prank(deployer);
+    sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer0));
+
+    chainlinkAggregator0.setRoundData(1000000, block.timestamp);
+    chainlinkRelayer0.relay();
+
+    vm.warp(block.timestamp + 100);
+
+    vm.prank(owner);
+    IChainlinkRelayer chainlinkRelayer1 = IChainlinkRelayer(
+      relayerFactory.redeployRelayer(rateFeedId, "cUSD/FOO", aggregatorList1)
+    );
+
+    vm.prank(deployer);
+    sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer1));
+
+    chainlinkAggregator1.setRoundData(1000000, block.timestamp);
+    chainlinkRelayer1.relay();
+    assertEq(sortedOracles.numRates(rateFeedId), 2);
+
+    vm.warp(block.timestamp + 1000);
+
+    chainlinkAggregator1.setRoundData(1000000, block.timestamp);
+    chainlinkRelayer1.relay();
+    assertEq(sortedOracles.numRates(rateFeedId), 1);
+  }
+}
+
 contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelayerIntegration {
   // Fictional rate feed ID
   address rateFeedId = address(bytes20(keccak256(("cUSD/FOO"))));
@@ -101,9 +154,11 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
   }
 
   function setUpRelayer() public {
-    chainlinkAggregator = new MockAggregatorV3();
+    chainlinkAggregator = new MockAggregatorV3(8);
+    IChainlinkRelayer.ChainlinkAggregator[] memory aggregators = new IChainlinkRelayer.ChainlinkAggregator[](1);
+    aggregators[0] = IChainlinkRelayer.ChainlinkAggregator(address(chainlinkAggregator), false);
     vm.prank(owner);
-    chainlinkRelayer = IChainlinkRelayer(relayerFactory.deployRelayer(rateFeedId, address(chainlinkAggregator)));
+    chainlinkRelayer = IChainlinkRelayer(relayerFactory.deployRelayer(rateFeedId, "CELO/USD", aggregators));
 
     vm.prank(deployer);
     sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer));

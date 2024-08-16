@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.18;
+pragma solidity ^0.8.18;
 
 import { Test } from "forge-std-next/Test.sol";
 import { IRegistry } from "contracts/common/interfaces/IRegistry.sol";
@@ -24,5 +24,11 @@ contract BaseTest is Test {
     factory.createAt("Registry", REGISTRY_ADDRESS, abi.encode(true));
     vm.prank(deployer);
     IRegistryInit(REGISTRY_ADDRESS).initialize();
+
+    // Deploy required libraries so that vm.getCode will automatically link
+    factory.createFromPath(
+      "contracts/common/linkedlists/AddressSortedLinkedListWithMedian.sol:AddressSortedLinkedListWithMedian",
+      abi.encodePacked()
+    );
   }
 }
