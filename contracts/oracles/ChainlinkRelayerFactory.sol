@@ -3,6 +3,7 @@ pragma solidity 0.8.18;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { ChainlinkRelayerV1 } from "./ChainlinkRelayerV1.sol";
+import { IChainlinkRelayer } from "../interfaces/IChainlinkRelayer.sol";
 import { IChainlinkRelayerFactory } from "../interfaces/IChainlinkRelayerFactory.sol";
 
 /**
@@ -26,9 +27,8 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @notice Thrown when trying to deploy a relayer to an address that already has code.
    * @param contractAddress Address at which the relayer could not be deployed.
    * @param rateFeedId Rate feed ID for which the relayer would have reported.
-   * @param chainlinkAggregator Address of the Chainlink aggregator the relayer would have fetched prices from.
    */
-  error ContractAlreadyExists(address contractAddress, address rateFeedId, address chainlinkAggregator);
+  error ContractAlreadyExists(address contractAddress, address rateFeedId);
 
   /**
    * @notice Thrown when trying to deploy a relayer for a rate feed ID that already has a relayer.
@@ -77,25 +77,33 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
   /**
    * @notice Deploys a new relayer contract.
    * @param rateFeedId The rate feed ID for which the relayer will report.
-   * @param chainlinkAggregator The Chainlink aggregator from which the relayer will fetch prices.
+   * @param rateFeedDescription Human-readable rate feed, which the relayer will report on, i.e. "CELO/USD".
+   * @param aggregators Array of ChainlinkAggregator structs defining the price path.
+   *        See contract-level @dev comment in the ChainlinkRelayerV1 contract,
+   *        for an explanation on price paths.
    * @return relayerAddress The address of the newly deployed relayer contract.
    */
   function deployRelayer(
     address rateFeedId,
-    address chainlinkAggregator
+    string calldata rateFeedDescription,
+    IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
   ) public onlyOwner returns (address relayerAddress) {
-    address expectedAddress = computedRelayerAddress(rateFeedId, chainlinkAggregator);
-
-    if (address(deployedRelayers[rateFeedId]) == expectedAddress || expectedAddress.code.length > 0) {
-      revert ContractAlreadyExists(expectedAddress, rateFeedId, chainlinkAggregator);
-    }
-
     if (address(deployedRelayers[rateFeedId]) != address(0)) {
       revert RelayerForFeedExists(rateFeedId);
     }
 
+    address expectedAddress = computedRelayerAddress(rateFeedId, rateFeedDescription, aggregators);
+    if (expectedAddress.code.length > 0) {
+      revert ContractAlreadyExists(expectedAddress, rateFeedId);
+    }
+
     bytes32 salt = _getSalt();
-    ChainlinkRelayerV1 relayer = new ChainlinkRelayerV1{ salt: salt }(rateFeedId, sortedOracles, chainlinkAggregator);
+    ChainlinkRelayerV1 relayer = new ChainlinkRelayerV1{ salt: salt }(
+      rateFeedId,
+      rateFeedDescription,
+      sortedOracles,
+      aggregators
+    );
 
     if (address(relayer) != expectedAddress) {
       revert UnexpectedAddress(expectedAddress, address(relayer));
@@ -104,7 +112,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
     deployedRelayers[rateFeedId] = relayer;
     rateFeeds.push(rateFeedId);
 
-    emit RelayerDeployed(address(relayer), rateFeedId, chainlinkAggregator);
+    emit RelayerDeployed(address(relayer), rateFeedId, rateFeedDescription, aggregators);
 
     return address(relayer);
   }
@@ -139,16 +147,18 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @notice Removes the current relayer and redeploys a new one with a different
    *         Chainlink aggregator (and/or different bytecode if the factory
    *         has been upgraded since the last deployment of the relayer).
-   * @param rateFeedId The rate feed for which the relayer should be redeployed.
-   * @param chainlinkAggregator Address of the Chainlink aggregator the new relayer version will fetch prices from.
+   * @param rateFeedId The rate feed ID for which the relayer will report.
+   * @param rateFeedDescription Human-readable rate feed, which the relayer will report on, i.e. "CELO/USD".
+   * @param aggregators Array of ChainlinkAggregator structs defining the price path.
    * @return relayerAddress The address of the newly deployed relayer contract.
    */
   function redeployRelayer(
     address rateFeedId,
-    address chainlinkAggregator
+    string calldata rateFeedDescription,
+    IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
   ) external onlyOwner returns (address relayerAddress) {
     removeRelayer(rateFeedId);
-    return deployRelayer(rateFeedId, chainlinkAggregator);
+    return deployRelayer(rateFeedId, rateFeedDescription, aggregators);
   }
 
   /**
@@ -156,7 +166,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @param rateFeedId The rate feed ID whose relayer we want to get.
    * @return relayerAddress Address of the relayer contract.
    */
-  function getRelayer(address rateFeedId) public view returns (address relayerAddress) {
+  function getRelayer(address rateFeedId) external view returns (address relayerAddress) {
     return address(deployedRelayers[rateFeedId]);
   }
 
@@ -164,7 +174,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @notice Returns a list of all currently deployed relayers.
    * @return relayerAddresses An array of all relayer contract addresses.
    */
-  function getRelayers() public view returns (address[] memory relayerAddresses) {
+  function getRelayers() external view returns (address[] memory relayerAddresses) {
     address[] memory relayers = new address[](rateFeeds.length);
     for (uint256 i = 0; i < rateFeeds.length; i++) {
       relayers[i] = address(deployedRelayers[rateFeeds[i]]);
@@ -186,10 +196,15 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
   /**
    * @notice Computes the expected CREATE2 address for given relayer parameters.
    * @param rateFeedId The rate feed ID.
-   * @param chainlinkAggregator Address of the Chainlink aggregator.
+   * @param rateFeedDescription The human readable description of the reported rate feed.
+   * @param aggregators Array of ChainlinkAggregator structs defining the price path.
    * @dev See https://eips.ethereum.org/EIPS/eip-1014.
    */
-  function computedRelayerAddress(address rateFeedId, address chainlinkAggregator) public view returns (address) {
+  function computedRelayerAddress(
+    address rateFeedId,
+    string calldata rateFeedDescription,
+    IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
+  ) public view returns (address) {
     bytes32 salt = _getSalt();
     return
       address(
@@ -203,7 +218,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
                 keccak256(
                   abi.encodePacked(
                     type(ChainlinkRelayerV1).creationCode,
-                    abi.encode(rateFeedId, sortedOracles, chainlinkAggregator)
+                    abi.encode(rateFeedId, rateFeedDescription, sortedOracles, aggregators)
                   )
                 )
               )

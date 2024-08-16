@@ -8,6 +8,10 @@ interface MiniVM {
   function etch(address _addr, bytes calldata _code) external;
 
   function getCode(string calldata _path) external view returns (bytes memory);
+
+  function getDeployedCode(string calldata _path) external view returns (bytes memory);
+
+  function prank(address pranker) external;
 }
 
 /**
@@ -24,6 +28,22 @@ contract Factory {
     bytes memory bytecode = abi.encodePacked(VM.getCode(_path), args);
     address addr;
 
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      addr := create(0, add(bytecode, 0x20), mload(bytecode))
+    }
+    return addr;
+  }
+
+  function createFromPath(
+    string memory _path,
+    bytes memory args,
+    address deployer
+  ) public returns (address) {
+    bytes memory bytecode = abi.encodePacked(VM.getCode(_path), args);
+    address addr;
+
+    VM.prank(deployer);
     // solhint-disable-next-line no-inline-assembly
     assembly {
       addr := create(0, add(bytecode, 0x20), mload(bytecode))
