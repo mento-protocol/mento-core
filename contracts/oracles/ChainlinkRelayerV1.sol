@@ -99,7 +99,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /// @notice Used when an empty array of aggregators is passed into the constructor.
   error NoAggregators();
 
-  /// @notice Used when an empty array of aggregators is passed into the constructor.
+  /// @notice Used when more than four aggregators are passed into the constructor.
   error TooManyAggregators();
 
   /// @notice Used when a new price's timestamp is not newer than the most recent SortedOracles timestamp.
@@ -171,7 +171,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @notice Get the Chainlink aggregators and their invert settings.
    * @return An array of ChainlinkAggregator segments that compose the price path.
    */
-  function getAggregators() public view returns (ChainlinkAggregator[] memory) {
+  function getAggregators() external view returns (ChainlinkAggregator[] memory) {
     return buildAggregatorArray();
   }
 
@@ -315,7 +315,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
   /**
    * @notice Converts a Chainlink price to a UD60x18 value.
-   * @param price An price from the Chainlink aggregator.
+   * @param price A price from the Chainlink aggregator.
    * @return The converted UD60x18 value.
    */
   function chainlinkToUD60x18(int256 price, address aggregator) internal view returns (UD60x18) {
