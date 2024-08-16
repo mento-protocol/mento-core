@@ -151,10 +151,11 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
     ChainlinkAggregator[] memory aggregators = new ChainlinkAggregator[](4);
     for (uint256 i = 0; i < _aggregators.length; i++) {
-      aggregators[i] = _aggregators[i];
       if (_aggregators[i].aggregator == address(0)) {
         revert InvalidAggregator();
       }
+
+      aggregators[i] = _aggregators[i];
     }
 
     aggregator0 = aggregators[0].aggregator;

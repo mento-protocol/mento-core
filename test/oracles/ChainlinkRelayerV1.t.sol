@@ -14,18 +14,9 @@ import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 interface ISortedOracles {
   function addOracle(address, address) external;
 
-  function removeOracle(
-    address,
-    address,
-    uint256
-  ) external;
+  function removeOracle(address, address, uint256) external;
 
-  function report(
-    address,
-    uint256,
-    address,
-    address
-  ) external;
+  function report(address, uint256, address, address) external;
 
   function setTokenReportExpiry(address, uint256) external;
 
@@ -33,13 +24,7 @@ interface ISortedOracles {
 
   function medianTimestamp(address token) external returns (uint256);
 
-  function getRates(address rateFeedId)
-    external
-    returns (
-      address[] memory,
-      uint256[] memory,
-      uint256[] memory
-    );
+  function getRates(address rateFeedId) external returns (address[] memory, uint256[] memory, uint256[] memory);
 }
 
 contract ChainlinkRelayerV1Test is BaseTest {
@@ -117,10 +102,10 @@ contract ChainlinkRelayerV1Test is BaseTest {
   }
 
   function setAggregatorPrices() public {
-    mockAggregator0.setRoundData(int256(aggregatorPrice0), uint256(block.timestamp));
-    mockAggregator1.setRoundData(int256(aggregatorPrice1), uint256(block.timestamp));
-    mockAggregator2.setRoundData(int256(aggregatorPrice2), uint256(block.timestamp));
-    mockAggregator3.setRoundData(int256(aggregatorPrice3), uint256(block.timestamp));
+    mockAggregator0.setRoundData(aggregatorPrice0, uint256(block.timestamp));
+    mockAggregator1.setRoundData(aggregatorPrice1, uint256(block.timestamp));
+    mockAggregator2.setRoundData(aggregatorPrice2, uint256(block.timestamp));
+    mockAggregator3.setRoundData(aggregatorPrice3, uint256(block.timestamp));
   }
 }
 
@@ -246,13 +231,13 @@ contract ChainlinkRelayerV1Test_fuzz_single is ChainlinkRelayerV1Test {
     setUpRelayer(1);
   }
 
-  function testFuzz_convertsChainlinkToUD60x18Correctly(int256 x) public {
-    vm.assume(x > 0);
-    vm.assume(uint256(x) < uint256(2**256 - 1) / (10**(24 - 8)));
-    mockAggregator0.setRoundData(x, uint256(block.timestamp));
+  function testFuzz_convertsChainlinkToUD60x18Correctly(int256 _rate) public {
+    int256 rate = bound(_rate, 1, type(int256).max / 10 ** 18);
+    mockAggregator0.setRoundData(rate, uint256(block.timestamp));
+
     relayer.relay();
     (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
-    assertEq(medianRate, uint256(x) * 10**(24 - 8));
+    assertEq(medianRate, uint256(rate) * 10 ** (24 - mockAggregator0.decimals()));
   }
 }
 
@@ -272,19 +257,11 @@ contract ChainlinkRelayerV1Test_fuzz_full is ChainlinkRelayerV1Test {
     bool _invert2,
     bool _invert3
   ) public {
-    vm.assume(_aggregatorPrice0 > 0);
-    vm.assume(_aggregatorPrice1 > 0);
-    vm.assume(_aggregatorPrice2 > 0);
-    vm.assume(_aggregatorPrice3 > 0);
-    vm.assume(_aggregatorPrice0 <= 1e5 * 1e6); // sane max for a price source
-    vm.assume(_aggregatorPrice1 <= 1e5 * 1e6); // sane max for a price source
-    vm.assume(_aggregatorPrice2 <= 1e5 * 1e6); // sane max for a price source
-    vm.assume(_aggregatorPrice3 <= 1e5 * 1e6); // sane max for a price source
+    aggregatorPrice0 = bound(_aggregatorPrice0, 1, 1e5 * 1e6);
+    aggregatorPrice1 = bound(_aggregatorPrice1, 1, 1e5 * 1e6);
+    aggregatorPrice2 = bound(_aggregatorPrice2, 1, 1e5 * 1e6);
+    aggregatorPrice3 = bound(_aggregatorPrice3, 1, 1e5 * 1e6);
 
-    aggregatorPrice0 = _aggregatorPrice0;
-    aggregatorPrice1 = _aggregatorPrice1;
-    aggregatorPrice2 = _aggregatorPrice2;
-    aggregatorPrice3 = _aggregatorPrice3;
     invert0 = _invert0;
     invert1 = _invert1;
     invert2 = _invert2;

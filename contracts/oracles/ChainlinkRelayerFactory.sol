@@ -167,7 +167,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @param rateFeedId The rate feed ID whose relayer we want to get.
    * @return relayerAddress Address of the relayer contract.
    */
-  function getRelayer(address rateFeedId) public view returns (address relayerAddress) {
+  function getRelayer(address rateFeedId) external view returns (address relayerAddress) {
     return address(deployedRelayers[rateFeedId]);
   }
 
@@ -175,7 +175,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @notice Returns a list of all currently deployed relayers.
    * @return relayerAddresses An array of all relayer contract addresses.
    */
-  function getRelayers() public view returns (address[] memory relayerAddresses) {
+  function getRelayers() external view returns (address[] memory relayerAddresses) {
     address[] memory relayers = new address[](rateFeeds.length);
     for (uint256 i = 0; i < rateFeeds.length; i++) {
       relayers[i] = address(deployedRelayers[rateFeeds[i]]);
