@@ -14,9 +14,18 @@ import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 interface ISortedOracles {
   function addOracle(address, address) external;
 
-  function removeOracle(address, address, uint256) external;
+  function removeOracle(
+    address,
+    address,
+    uint256
+  ) external;
 
-  function report(address, uint256, address, address) external;
+  function report(
+    address,
+    uint256,
+    address,
+    address
+  ) external;
 
   function setTokenReportExpiry(address, uint256) external;
 
@@ -24,7 +33,13 @@ interface ISortedOracles {
 
   function medianTimestamp(address token) external returns (uint256);
 
-  function getRates(address rateFeedId) external returns (address[] memory, uint256[] memory, uint256[] memory);
+  function getRates(address rateFeedId)
+    external
+    returns (
+      address[] memory,
+      uint256[] memory,
+      uint256[] memory
+    );
 }
 
 contract ChainlinkRelayerV1Test is BaseTest {
@@ -232,12 +247,12 @@ contract ChainlinkRelayerV1Test_fuzz_single is ChainlinkRelayerV1Test {
   }
 
   function testFuzz_convertsChainlinkToUD60x18Correctly(int256 _rate) public {
-    int256 rate = bound(_rate, 1, type(int256).max / 10 ** 18);
+    int256 rate = bound(_rate, 1, type(int256).max / 10**18);
     mockAggregator0.setRoundData(rate, uint256(block.timestamp));
 
     relayer.relay();
     (uint256 medianRate, ) = sortedOracles.medianRate(rateFeedId);
-    assertEq(medianRate, uint256(rate) * 10 ** (24 - mockAggregator0.decimals()));
+    assertEq(medianRate, uint256(rate) * 10**(24 - mockAggregator0.decimals()));
   }
 }
 
