@@ -88,14 +88,13 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
     string calldata rateFeedDescription,
     IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
   ) public onlyOwner returns (address relayerAddress) {
-    address expectedAddress = computedRelayerAddress(rateFeedId, rateFeedDescription, aggregators);
-
-    if (address(deployedRelayers[rateFeedId]) == expectedAddress || expectedAddress.code.length > 0) {
-      revert ContractAlreadyExists(expectedAddress, rateFeedId);
-    }
-
     if (address(deployedRelayers[rateFeedId]) != address(0)) {
       revert RelayerForFeedExists(rateFeedId);
+    }
+
+    address expectedAddress = computedRelayerAddress(rateFeedId, rateFeedDescription, aggregators);
+    if (expectedAddress.code.length > 0) {
+      revert ContractAlreadyExists(expectedAddress, rateFeedId);
     }
 
     bytes32 salt = _getSalt();
