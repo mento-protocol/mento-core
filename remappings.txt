@@ -1,4 +1,5 @@
 openzeppelin-solidity/=lib/openzeppelin-contracts/
+openzeppelin-contracts/=lib/openzeppelin-contracts-next/
 forge-std/=lib/mento-std/lib/forge-std/src/
 test/=test/
 safe-contracts/=lib/safe-contracts/
