@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
-
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+pragma solidity ^0.8;
 
 import "../utils/TokenHelpers.t.sol";
 import "../utils/BaseTest.t.sol";
@@ -108,11 +105,7 @@ contract ExchangeTest is BaseTest, TokenHelpers {
     );
   }
 
-  function getBuyTokenAmount(
-    uint256 sellAmount,
-    uint256 sellSupply,
-    uint256 buySupply
-  ) public view returns (uint256) {
+  function getBuyTokenAmount(uint256 sellAmount, uint256 sellSupply, uint256 buySupply) public view returns (uint256) {
     return getBuyTokenAmount(sellAmount, sellSupply, buySupply, spread);
   }
 
@@ -130,11 +123,7 @@ contract ExchangeTest is BaseTest, TokenHelpers {
     return numerator.unwrap().div(denominator.unwrap());
   }
 
-  function getSellTokenAmount(
-    uint256 buyAmount,
-    uint256 sellSupply,
-    uint256 buySupply
-  ) public view returns (uint256) {
+  function getSellTokenAmount(uint256 buyAmount, uint256 sellSupply, uint256 buySupply) public view returns (uint256) {
     return getSellTokenAmount(buyAmount, sellSupply, buySupply, spread);
   }
 
@@ -346,11 +335,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
   }
 
   // This function will be overriden to test both `sell` and `exchange` functions
-  function sell(
-    uint256 amount,
-    uint256 minBuyAmount,
-    bool sellCelo
-  ) internal returns (uint256) {
+  function sell(uint256 amount, uint256 minBuyAmount, bool sellCelo) internal returns (uint256) {
     return exchange.sell(amount, minBuyAmount, sellCelo);
   }
 
@@ -532,11 +517,7 @@ contract ExchangeTest_sell is ExchangeTest_stableActivated {
 }
 
 contract ExchangeTest_exchange is ExchangeTest_sell {
-  function sell(
-    uint256 amount,
-    uint256 minBuyAmount,
-    bool sellCelo
-  ) internal returns (uint256) {
+  function sell(uint256 amount, uint256 minBuyAmount, bool sellCelo) internal returns (uint256) {
     changePrank(seller);
     return exchange.exchange(amount, minBuyAmount, sellCelo);
   }
