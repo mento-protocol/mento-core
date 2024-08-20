@@ -40,5 +40,7 @@
     "fork-test:alfajores": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Alfajores",
     "fork-test:celo-mainnet": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract CeloMainnet"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@celo/contracts": "^11.0.0"
+  }
 }

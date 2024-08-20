@@ -3,7 +3,7 @@ pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
 import { IPricingModule } from "./IPricingModule.sol";
-import { FixidityLib } from "../common/FixidityLib.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 /**
  * @title BiPool Manager interface

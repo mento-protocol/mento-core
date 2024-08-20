@@ -8,8 +8,8 @@ import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 import { IBreaker } from "../interfaces/IBreaker.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 
-import { AddressLinkedList, LinkedList } from "../common/linkedlists/AddressLinkedList.sol";
-import { Initializable } from "../common/Initializable.sol";
+import { AddressLinkedList, LinkedList } from "celo/contracts/common/linkedlists/AddressLinkedList.sol";
+import { Initializable } from "celo/contracts/common/Initializable.sol";
 
 /**
  * @title   BreakerBox
@@ -135,11 +135,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param enable Boolean indicating whether the breaker should be
    *               enabled or disabled for the given rateFeed.
    */
-  function toggleBreaker(
-    address breakerAddress,
-    address rateFeedID,
-    bool enable
-  ) public onlyOwner {
+  function toggleBreaker(address breakerAddress, address rateFeedID, bool enable) public onlyOwner {
     require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");

@@ -2,7 +2,7 @@
 pragma solidity ^0.5.13;
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { FixidityLib } from "../../common/FixidityLib.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 /**
  * @title   Breaker With Thershold
@@ -56,10 +56,10 @@ contract WithThreshold {
     uint256 fixed1 = FixidityLib.fixed1().unwrap();
 
     uint256 maxPercent = uint256(fixed1).add(allowedThreshold);
-    uint256 maxValue = (referenceValue.mul(maxPercent)).div(10**24);
+    uint256 maxValue = (referenceValue.mul(maxPercent)).div(10 ** 24);
 
     uint256 minPercent = uint256(fixed1).sub(allowedThreshold);
-    uint256 minValue = (referenceValue.mul(minPercent)).div(10**24);
+    uint256 minValue = (referenceValue.mul(minPercent)).div(10 ** 24);
 
     return (currentValue < minValue || currentValue > maxValue);
   }

@@ -1,23 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
-
-import "../common/linkedlists/SortedLinkedListWithMedian.sol";
+pragma solidity >0.5.13 <0.9;
 
 interface ISortedOracles {
+  enum MedianRelation {
+    Undefined,
+    Lesser,
+    Greater,
+    Equal
+  }
+
   function addOracle(address, address) external;
 
-  function removeOracle(
-    address,
-    address,
-    uint256
-  ) external;
+  function removeOracle(address, address, uint256) external;
 
-  function report(
-    address,
-    uint256,
-    address,
-    address
-  ) external;
+  function report(address, uint256, address, address) external;
 
   function removeExpiredReports(address, uint256) external;
 
@@ -33,12 +29,7 @@ interface ISortedOracles {
 
   function getOracles(address) external view returns (address[] memory);
 
-  function getTimestamps(address token)
-    external
-    view
-    returns (
-      address[] memory,
-      uint256[] memory,
-      SortedLinkedListWithMedian.MedianRelation[] memory
-    );
+  function getTimestamps(
+    address token
+  ) external view returns (address[] memory, uint256[] memory, MedianRelation[] memory);
 }

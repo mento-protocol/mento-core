@@ -4,19 +4,19 @@ pragma experimental ABIEncoderV2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeERC20 } from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
 import { IBroker } from "../interfaces/IBroker.sol";
 import { IBrokerAdmin } from "../interfaces/IBrokerAdmin.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
-import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
+import { IERC20 as IERC20Metadata } from "../interfaces/IERC20.sol";
 import { IStableTokenV2 } from "../interfaces/IStableTokenV2.sol";
 
-import { Initializable } from "../common/Initializable.sol";
 import { TradingLimits } from "../libraries/TradingLimits.sol";
-import { ReentrancyGuard } from "../common/ReentrancyGuard.sol";
+import { Initializable } from "celo/contracts/common/Initializable.sol";
+import { ReentrancyGuard } from "celo/contracts/common/libraries/ReentrancyGuard.sol";
 
 /**
  * @title Broker
@@ -242,11 +242,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param token The asset to transfer.
    * @param amount The amount of `token` to be transferred.
    */
-  function transferOut(
-    address payable to,
-    address token,
-    uint256 amount
-  ) internal {
+  function transferOut(address payable to, address token, uint256 amount) internal {
     if (reserve.isStableAsset(token)) {
       require(IStableTokenV2(token).mint(to, amount), "Minting of the stable asset failed");
     } else if (reserve.isCollateralAsset(token)) {
@@ -264,11 +260,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param token The asset to transfer.
    * @param amount The amount of `token` to be transferred.
    */
-  function transferIn(
-    address payable from,
-    address token,
-    uint256 amount
-  ) internal {
+  function transferIn(address payable from, address token, uint256 amount) internal {
     if (reserve.isStableAsset(token)) {
       IERC20(token).safeTransferFrom(from, address(this), amount);
       require(IStableTokenV2(token).burn(amount), "Burning of the stable asset failed");
@@ -311,11 +303,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param deltaFlow the deltaflow of this token, negative for outflow, positive for inflow.
    * @param token the address of the token, used to lookup decimals.
    */
-  function guardTradingLimit(
-    bytes32 tradingLimitId,
-    int256 deltaFlow,
-    address token
-  ) internal {
+  function guardTradingLimit(bytes32 tradingLimitId, int256 deltaFlow, address token) internal {
     TradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
       TradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];

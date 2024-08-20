@@ -6,14 +6,14 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/utils/Address.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
+import "celo/contracts/common/FixidityLib.sol";
+import "celo/contracts/common/Initializable.sol";
+import { UsingRegistry } from "../common/UsingRegistry.sol";
+import "celo/contracts/common/interfaces/ICeloVersionedContract.sol";
+import "celo/contracts/common/libraries/ReentrancyGuard.sol";
+
 import "../interfaces/IReserve.sol";
 import "../interfaces/ISortedOracles.sol";
-
-import "../common/FixidityLib.sol";
-import "../common/Initializable.sol";
-import "../common/UsingRegistry.sol";
-import "../common/interfaces/ICeloVersionedContract.sol";
-import "../common/ReentrancyGuard.sol";
 
 /**
  * @title Ensures price stability of StableTokens with respect to their pegs
@@ -97,16 +97,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @return Minor version of the contract.
    * @return Patch version of the contract.
    */
-  function getVersionNumber()
-    external
-    pure
-    returns (
-      uint256,
-      uint256,
-      uint256,
-      uint256
-    )
-  {
+  function getVersionNumber() external pure returns (uint256, uint256, uint256, uint256) {
     return (2, 1, 0, 0);
   }
 
@@ -455,11 +446,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of collateral assets to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferCollateralAsset(
-    address collateralAsset,
-    address payable to,
-    uint256 value
-  ) external returns (bool) {
+  function transferCollateralAsset(address collateralAsset, address payable to, uint256 value) external returns (bool) {
     require(isSpender[msg.sender], "sender not allowed to transfer Reserve funds");
     require(isOtherReserveAddress[to], "can only transfer to other reserve address");
     require(
@@ -538,11 +525,10 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of gold to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferExchangeGold(address payable to, uint256 value)
-    external
-    isAllowedToSpendExchange(msg.sender)
-    returns (bool)
-  {
+  function transferExchangeGold(
+    address payable to,
+    uint256 value
+  ) external isAllowedToSpendExchange(msg.sender) returns (bool) {
     return _transferGold(to, value);
   }
 

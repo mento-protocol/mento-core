@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity >0.5.13 <0.9;
+pragma experimental ABIEncoderV2;
+
+import { ISortedOracles } from "./ISortedOracles.sol";
 
 /**
  * @title Breaker Box Interface
@@ -137,4 +140,93 @@ interface IBreakerBox {
    * @param rateFeedID The address of the rate feed to retrieve the trading mode for.
    */
   function getRateFeedTradingMode(address rateFeedID) external view returns (uint8 tradingMode);
+
+  /**
+   * @notice Adds a breaker to the end of the list of breakers & the breakerTradingMode mapping.
+   * @param breaker The address of the breaker to be added.
+   * @param tradingMode The trading mode of the breaker to be added.
+   */
+  function addBreaker(address breaker, uint8 tradingMode) external;
+
+  /**
+   * @notice Removes the specified breaker from the list of breakers
+   *         and resets breakerTradingMode mapping + BreakerStatus.
+   * @param breaker The address of the breaker to be removed.
+   */
+  function removeBreaker(address breaker) external;
+
+  /**
+   * @notice Enables or disables a breaker for the specified rate feed.
+   * @param breakerAddress The address of the breaker.
+   * @param rateFeedID The address of the rateFeed to be toggled.
+   * @param enable Boolean indicating whether the breaker should be
+   *               enabled or disabled for the given rateFeed.
+   */
+  function toggleBreaker(address breakerAddress, address rateFeedID, bool enable) external;
+
+  /**
+   * @notice Adds a rateFeedID to the mapping of monitored rateFeedIDs.
+   * @param rateFeedID The address of the rateFeed to be added.
+   */
+  function addRateFeed(address rateFeedID) external;
+
+  /**
+   * @notice Adds the specified rateFeedIDs to the mapping of monitored rateFeedIDs.
+   * @param newRateFeedIDs The array of rateFeed addresses to be added.
+   */
+  function addRateFeeds(address[] calldata newRateFeedIDs) external;
+
+  /**
+   * @notice Sets dependent rate feeds for a given rate feed.
+   * @param rateFeedID The address of the rate feed.
+   * @param dependencies The array of dependent rate feeds.
+   */
+  function setRateFeedDependencies(address rateFeedID, address[] calldata dependencies) external;
+
+  /**
+   * @notice Removes a rateFeed from the mapping of monitored rateFeeds
+   *         and resets all the BreakerStatus entries for that rateFeed.
+   * @param rateFeedID The address of the rateFeed to be removed.
+   */
+  function removeRateFeed(address rateFeedID) external;
+
+  /**
+   * @notice Sets the trading mode for the specified rateFeed.
+   * @param rateFeedID The address of the rateFeed.
+   * @param tradingMode The trading mode that should be set.
+   */
+  function setRateFeedTradingMode(address rateFeedID, uint8 tradingMode) external;
+
+  /**
+   * @notice Returns addresses of rateFeedIDs that have been added.
+   */
+  function getRateFeeds() external view returns (address[] memory);
+
+  /**
+   * @notice Checks if a breaker is enabled for a specific rate feed.
+   * @param breaker The address of the breaker we're checking for.
+   * @param rateFeedID The address of the rateFeed.
+   */
+  function isBreakerEnabled(address breaker, address rateFeedID) external view returns (bool);
+
+  /**
+   * @notice Sets the address of the sortedOracles contract.
+   * @param _sortedOracles The new address of the sorted oracles contract.
+   */
+  function setSortedOracles(ISortedOracles _sortedOracles) external;
+
+  /// @notice Public state variable getters:
+  function breakerTradingMode(address) external view returns (uint8);
+
+  function sortedOracles() external view returns (address);
+
+  function rateFeedStatus(address) external view returns (bool);
+
+  function owner() external view returns (address);
+
+  function rateFeedBreakerStatus(address, address) external view returns (BreakerStatus memory);
+
+  function rateFeedDependencies(address, uint256) external view returns (address);
+
+  function rateFeedTradingMode(address) external view returns (uint8);
 }

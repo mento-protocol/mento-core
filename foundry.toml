@@ -12,6 +12,16 @@ optimizer_runs = 10_000
 legacy = true
 no_match_contract = "(ForkTest)|(GovernanceGasTest)"
 via_ir = true
+allow_paths = [
+  "*"
+]
+
+[profile.test-v2]
+test = "test-v2"
+allow_paths = [
+  "node_modules/@celo"
+]
+unchecked_cheatcode_artifacts = true
 
 [profile.ci]
 fuzz_runs = 1_000

@@ -3,8 +3,8 @@ pragma solidity ^0.5.13;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
-import { FixidityLib } from "../../common/FixidityLib.sol";
 import { IBreaker } from "../../interfaces/IBreaker.sol";
 import { ISortedOracles } from "../../interfaces/ISortedOracles.sol";
 
@@ -87,10 +87,10 @@ contract ValueDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
    * @param rateFeedIDs Collection of the addresses rate feeds.
    * @param rateChangeThresholds Collection of the rate thresholds.
    */
-  function setRateChangeThresholds(address[] calldata rateFeedIDs, uint256[] calldata rateChangeThresholds)
-    external
-    onlyOwner
-  {
+  function setRateChangeThresholds(
+    address[] calldata rateFeedIDs,
+    uint256[] calldata rateChangeThresholds
+  ) external onlyOwner {
     _setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
 
