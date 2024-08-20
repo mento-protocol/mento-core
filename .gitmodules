@@ -23,3 +23,6 @@
 	branch = "release-v4"
 	path = lib/prb-math
 	url = https://github.com/PaulRBerg/prb-math
+[submodule "lib/mento-std"]
+	path = lib/mento-std
+	url = https://github.com/mento-protocol/mento-std
