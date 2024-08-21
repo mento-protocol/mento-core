@@ -3,6 +3,7 @@ src = "contracts"
 out = "out"
 test = "test"
 libs = ["lib"]
+script = "script"
 auto_detect_solc = true
 bytecode_hash = "none"
 fuzz_runs = 256
@@ -13,14 +14,19 @@ legacy = true
 no_match_contract = "(ForkTest)|(GovernanceGasTest)"
 via_ir = false
 
-script = "script"
+
+include_paths = [
+  "node_modules"
+]
+
 allow_paths = [
   "node_modules/@celo"
 ]
 unchecked_cheatcode_artifacts = true
+
 fs_permissions = [
     { access = "read", path = "out" },
-    { access = "read-write", path = "test-v2/fixtures" }
+    { access = "read-write", path = "test/fixtures" }
 ]
 
 additional_compiler_profiles = [ 

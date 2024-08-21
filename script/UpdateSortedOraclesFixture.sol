@@ -17,22 +17,24 @@ contract UpdateSortedOraclesFixture {
   Vm private constant vm = Vm(VM_ADDRESS);
 
   bool public constant IS_SCRIPT = true;
+  // cat out/SortedOracles.sol/SortedOracles.json | jq '.deployedBytecode.linkReferences'
+  // Get the first offset from the output, that's the magic number 2183.
+  // If Sorted oracles changes we need to recompute this offset.
+  // See test/fixtures/README.md for more details.
+  uint256 public constant LIBRARY_OFFSET = 3731;
 
   function run() public {
     SortedOracles sortedOracles = new SortedOracles(true);
     bytes memory sortedOraclesCode = codeAt(address(sortedOracles));
-    vm.writeFileBinary("./test-v2/fixtures/SortedOracles.bin", sortedOraclesCode);
+    vm.writeFileBinary("./test/fixtures/SortedOracles.bin", sortedOraclesCode);
     address libAddress;
-    // cat out/SortedOracles.sol/SortedOracles.json | jq '.deployedBytecode.linkReferences'
-    // Get the first offset from the output, that's the magic number 2183.
-    // If Sorted oracles changes we need to recompute this offset.
-    uint256 libraryOffset = 2183 - 12;
+    uint256 libraryOffset = LIBRARY_OFFSET - 12;
     assembly {
       libAddress := mload(add(add(sortedOraclesCode, 0x20), libraryOffset))
     }
     console.log(libAddress);
     bytes memory libCode = codeAt(libAddress);
-    vm.writeFileBinary("./test-v2/fixtures/AddressSortedLinkedListWithMedian.bin", libCode);
+    vm.writeFileBinary("./test/fixtures/AddressSortedLinkedListWithMedian.bin", libCode);
   }
 
   function codeAt(address _addr) internal view returns (bytes memory o_code) {

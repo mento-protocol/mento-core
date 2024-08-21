@@ -5,13 +5,14 @@ import { IOwnable } from "contracts/interfaces/IOwnable.sol";
 import { console } from "forge-std/console.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { VM_ADDRESS } from "mento-std/Constants.sol";
+import { CVS } from "mento-std/CVS.sol";
 
 library Fixtures {
   Vm internal constant vm = Vm(VM_ADDRESS);
   // Address of the AddressSortedLinkedListWithMedian library as
   // linked in the SortedOracles binary fixture.
   // If the fixture is regenerated, this address must be updated.
-  address constant ASLLWMAddress = 0x694167c0c678b13fD1ED94DD1ddCe20464D66653;
+  address constant ASLLWMAddress = 0xA15Abfd0fdB2BD342b52465e9FcF970aeDD4B853;
 
   function sortedOracles() internal returns (address) {
     initAt("AddressSortedLinkedListWithMedian", ASLLWMAddress);
@@ -32,7 +33,7 @@ library Fixtures {
   }
 
   function initAt(string memory fixture, address at) internal returns (address) {
-    bytes memory code = vm.readFileBinary(string(abi.encodePacked("./test-v2/fixtures/", fixture, ".bin")));
+    bytes memory code = vm.readFileBinary(string(abi.encodePacked("./test/fixtures/", fixture, ".bin")));
     vm.etch(at, code);
     vm.label(at, fixture);
     return at;
