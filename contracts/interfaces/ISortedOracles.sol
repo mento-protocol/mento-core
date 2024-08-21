@@ -40,4 +40,8 @@ interface ISortedOracles {
   function initialize(uint256) external;
 
   function setBreakerBox(IBreakerBox) external;
+
+  function getTokenReportExpirySeconds(address token) external view returns (uint256);
+
+  function oracles(address, uint256) external view returns (address);
 }

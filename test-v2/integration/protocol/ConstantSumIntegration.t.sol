@@ -1,35 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import { Test, console2 as console } from "celo-foundry/Test.sol";
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { ProtocolTest } from "./ProtocolTest.sol";
+import { console } from "forge-std/console.sol";
 
-import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
-import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
 
-import { Broker } from "contracts/swap/Broker.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
-import { FixidityLib } from "contracts/common/FixidityLib.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+contract ConstantSumIntegrationTest is ProtocolTest {
+  address trader = makeAddr("trader");
 
-contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
-  using SafeMath for uint256;
+  function setUp() public override {
+    super.setUp();
 
-  address trader;
-
-  function setUp() public {
-    IntegrationTest.setUp();
-
-    trader = actor("trader");
-
-    mint(cUSDToken, trader, 10**22); // Mint 10k to trader
-    deal(address(usdcToken), address(reserve), 10**(6 + 6)); // Gift 1Mil USDC to reserve
+    deal(address(cUSDToken), trader, 10 ** 22, true); // Mint 10k to trader
+    deal(address(usdcToken), address(reserve), 10 ** (6 + 6), true); // Gift 1Mil USDC to reserve
   }
 
   /**
@@ -50,20 +41,21 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     }
     expectedOut = broker.getAmountOut(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn);
 
-    changePrank(trader);
+    vm.prank(trader);
     IERC20(tokenIn).approve(address(broker), amountIn);
 
     // Execute swap
     if (shouldRevert) {
       vm.expectRevert("no valid median");
     }
+    vm.prank(trader);
     actualOut = broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, amountIn, 0);
   }
 
   function test_swap_whenConstantSum_pricesShouldStayTheSameInBetweenBucketUpdates() public {
-    uint256 amountIn = 5000 * 10**18; // 5k cUSD
+    uint256 amountIn = 5000 * 10 ** 18; // 5k cUSD
     IERC20 tokenIn = IERC20(address(cUSDToken));
-    IERC20 tokenOut = usdcToken;
+    IERC20 tokenOut = IERC20(address(usdcToken));
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
 
     // Buckets before
@@ -73,7 +65,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
 
     // Execute swap cUSD -> USDC
     (, uint256 actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), false);
-    assertEq(actualOut, 5000 * 0.995 * 10**6); //  4975(6 decimals)
+    assertEq(actualOut, 5000 * 0.995 * 10 ** 6); //  4975(6 decimals)
 
     IBiPoolManager.PoolExchange memory exchangeAfter1 = biPoolManager.getPoolExchange(poolId);
     assertEq(exchangeBefore.bucket0, exchangeAfter1.bucket0);
@@ -88,9 +80,9 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(exchangeBefore.bucket1, exchangeAfter2.bucket1);
 
     // Execute swap USDC -> cUSD
-    amountIn = 5000 * 10**6; // 5k USDC
+    amountIn = 5000 * 10 ** 6; // 5k USDC
     (, uint256 actualOut3) = doSwapIn(poolId, amountIn, address(tokenOut), address(tokenIn), false);
-    assertEq(actualOut3, 5000 * 0.995 * 10**18); //  4975(18 decimals)
+    assertEq(actualOut3, 5000 * 0.995 * 10 ** 18); //  4975(18 decimals)
 
     IBiPoolManager.PoolExchange memory exchangeAfter3 = biPoolManager.getPoolExchange(poolId);
     assertEq(exchangeBefore.bucket0, exchangeAfter3.bucket0);
@@ -98,9 +90,9 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swap_whenConstantSum_pricesShouldChangeWhenBucketRatioChanges() public {
-    uint256 amountIn = 5000 * 10**18; // 5k cUSD
+    uint256 amountIn = 5000 * 10 ** 18; // 5k cUSD
     IERC20 tokenIn = IERC20(address(cUSDToken));
-    IERC20 tokenOut = usdcToken;
+    IERC20 tokenOut = IERC20(address(usdcToken));
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
     IBiPoolManager.PoolExchange memory exchangeBefore = biPoolManager.getPoolExchange(poolId);
 
@@ -109,9 +101,9 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
 
     // Execute swap cUSD -> USDC
     (, uint256 actualOut) = doSwapIn(poolId, amountIn, address(tokenIn), address(tokenOut), false);
-    assertEq(actualOut, 5000 * 0.995 * 10**6); //  4975(6 decimals)
+    assertEq(actualOut, 5000 * 0.995 * 10 ** 6); //  4975(6 decimals)
 
-    vm.warp(now + exchangeBefore.config.referenceRateResetFrequency); // time travel enable bucket update
+    vm.warp(block.timestamp + exchangeBefore.config.referenceRateResetFrequency); // time travel enable bucket update
     setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24 * 1.1); // new valid Median that wont trigger breaker 0.13
 
     // Execute swap cUSD -> USDC
@@ -124,9 +116,9 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swap_whenConstantSumAndOldestReportExpired_shouldRevert() public {
-    uint256 amountIn = 5000 * 10**18; // 5k cUSD
+    uint256 amountIn = 5000 * 10 ** 18; // 5k cUSD
     IERC20 tokenIn = IERC20(address(cUSDToken));
-    IERC20 tokenOut = usdcToken;
+    IERC20 tokenOut = IERC20(address(usdcToken));
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
 
     // Oldest report is not expired
@@ -135,7 +127,7 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(false, expired);
 
     // Expire report
-    vm.warp(now + tokenExpiry);
+    vm.warp(block.timestamp + tokenExpiry);
     (expired, ) = sortedOracles.isOldestReportExpired(cUSD_bridgedUSDC_referenceRateFeedID);
     assertEq(true, expired);
 
@@ -144,22 +136,22 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swap_whenConstantSumAndMedianExpired_shouldRevert() public {
-    uint256 amountIn = 5000 * 10**18; // 5k cUSD
+    uint256 amountIn = 5000 * 10 ** 18; // 5k cUSD
     IERC20 tokenIn = IERC20(address(cUSDToken));
-    IERC20 tokenOut = usdcToken;
+    IERC20 tokenOut = IERC20(address(usdcToken));
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
     IBiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(poolId);
 
     // Median is recent enough
     bool medianReportRecent = sortedOracles.medianTimestamp(cUSD_bridgedUSDC_referenceRateFeedID) >
-      now.sub(exchange.config.referenceRateResetFrequency);
+      block.timestamp - exchange.config.referenceRateResetFrequency;
     assertEq(true, medianReportRecent);
 
     // Expire median
-    vm.warp(now + exchange.config.referenceRateResetFrequency);
+    vm.warp(block.timestamp + exchange.config.referenceRateResetFrequency);
     medianReportRecent =
       sortedOracles.medianTimestamp(cUSD_bridgedUSDC_referenceRateFeedID) >
-      now.sub(exchange.config.referenceRateResetFrequency);
+      block.timestamp - exchange.config.referenceRateResetFrequency;
     assertEq(false, medianReportRecent);
 
     // Execute swap cUSD -> USDC with shouldRevert true
@@ -167,9 +159,9 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
   }
 
   function test_swap_whenConstantSumAndNotEnoughReports_shouldRevert() public {
-    uint256 amountIn = 5000 * 10**18; // 5k cUSD
+    uint256 amountIn = 5000 * 10 ** 18; // 5k cUSD
     IERC20 tokenIn = IERC20(address(cUSDToken));
-    IERC20 tokenOut = usdcToken;
+    IERC20 tokenOut = IERC20(address(usdcToken));
     bytes32 poolId = pair_cUSD_bridgedUSDC_ID;
     IBiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(poolId);
 
@@ -179,7 +171,6 @@ contract ConstantSumIntegrationTest is IntegrationTest, TokenHelpers {
 
     // remove reports by removing oracles
     while (numReports >= exchange.config.minimumReports) {
-      changePrank(deployer);
       address oracle = sortedOracles.oracles(cUSD_bridgedUSDC_referenceRateFeedID, 0);
       sortedOracles.removeOracle(cUSD_bridgedUSDC_referenceRateFeedID, oracle, 0);
       numReports = sortedOracles.numRates(cUSD_bridgedUSDC_referenceRateFeedID);

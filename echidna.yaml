@@ -2,12 +2,8 @@ cryticArgs:
   - --foundry-ignore-compile
   - --solc-remaps
   - "openzeppelin-solidity/=lib/openzeppelin-contracts/ celo-foundry/=lib/celo-foundry/src/ forge-std/=lib/celo-foundry/lib/forge-std/src/ ds-test/=lib/celo-foundry/lib/forge-std/lib/ds-test/src/ test/=test/ contracts/=contracts/"
-  - --compile-libraries
-  - "(AddressSortedLinkedListWithMedian,0x1f)"
 format: text
 deployBytecodes:
   [["0x00000000000000000000000000000000000000fc", "601d565b6000600060009150600090508082f3965096945050505050565b"]]
-deployContracts:
-  - ["0x1f", "AddressSortedLinkedListWithMedian"]
 sender: ["0x10000"]
 codeSize: 0x7203
