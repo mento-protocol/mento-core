@@ -2,9 +2,8 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
-import { GovernanceTest } from "../../governance/GovernanceTest.sol";
-import { Vm } from "forge-std-next/Vm.sol";
-import { VmExtension } from "test/utils/VmExtension.sol";
+import { addresses, uints, bytes32s } from "mento-std/Array.sol";
+import { Vm } from "forge-std/Vm.sol";
 
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
@@ -14,8 +13,9 @@ import { Emission } from "contracts/governance/Emission.sol";
 import { Locking } from "contracts/governance/locking/Locking.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
 
+import { VmExtension } from "test/utils/VmExtension.sol";
+import { GovernanceTest } from "test/governance/GovernanceTest.sol";
 import { Proposals } from "./Proposals.sol";
-import { Arrays } from "test/utils/Arrays.sol";
 
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
@@ -75,8 +75,8 @@ contract GovernanceGasTest is GovernanceTest {
       .MentoTokenAllocationParams({
         airgrabAllocation: 50,
         mentoTreasuryAllocation: 100,
-        additionalAllocationRecipients: Arrays.addresses(address(mentoLabsMultisig)),
-        additionalAllocationAmounts: Arrays.uints(200)
+        additionalAllocationRecipients: addresses(address(mentoLabsMultisig)),
+        additionalAllocationAmounts: uints(200)
       });
 
     vm.prank(owner);

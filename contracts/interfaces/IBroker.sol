@@ -145,4 +145,8 @@ interface IBroker {
   function setReserve(address _reserve) external;
 
   function configureTradingLimit(bytes32 exchangeId, address token, ITradingLimits.Config calldata config) external;
+
+  function tradingLimitsConfig(bytes32 id) external view returns (ITradingLimits.Config memory);
+
+  function tradingLimitsState(bytes32 id) external view returns (ITradingLimits.State memory);
 }

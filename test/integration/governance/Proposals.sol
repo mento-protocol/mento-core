@@ -2,15 +2,15 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length
 
-import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
-import { TimelockController } from "contracts/governance/TimelockController.sol";
-import { Locking } from "contracts/governance/locking/Locking.sol";
-import { Emission } from "contracts/governance/Emission.sol";
-
 import { uints, addresses, bytesList } from "mento-std/Array.sol";
 
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
+import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
+import { TimelockController } from "contracts/governance/TimelockController.sol";
+import { Locking } from "contracts/governance/locking/Locking.sol";
+import { Emission } from "contracts/governance/Emission.sol";
 
 library Proposals {
   function _proposeChangeEmissionTarget(

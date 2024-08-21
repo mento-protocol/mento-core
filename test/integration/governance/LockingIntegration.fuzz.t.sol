@@ -2,10 +2,11 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
-import { GovernanceTest } from "../../governance/GovernanceTest.sol";
-import { Vm } from "forge-std-next/Vm.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { addresses, uints } from "mento-std/Array.sol";
+
 import { VmExtension } from "test/utils/VmExtension.sol";
-import { Arrays } from "test/utils/Arrays.sol";
+import { GovernanceTest } from "test/governance/GovernanceTest.sol";
 
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
@@ -44,8 +45,8 @@ contract FuzzLockingIntegrationTest is GovernanceTest {
       .MentoTokenAllocationParams({
         airgrabAllocation: 50,
         mentoTreasuryAllocation: 100,
-        additionalAllocationRecipients: Arrays.addresses(address(mentoLabsMultisig)),
-        additionalAllocationAmounts: Arrays.uints(200)
+        additionalAllocationRecipients: addresses(address(mentoLabsMultisig)),
+        additionalAllocationAmounts: uints(200)
       });
 
     vm.prank(celoGovernance);

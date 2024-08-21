@@ -2,9 +2,8 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
-import { GovernanceTest } from "../../governance/GovernanceTest.sol";
-import { Vm } from "forge-std-next/Vm.sol";
-import { VmExtension } from "test/utils/VmExtension.sol";
+import { addresses, uints, bytes32s } from "mento-std/Array.sol";
+import { Vm } from "forge-std/Vm.sol";
 
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
@@ -15,8 +14,9 @@ import { Locking } from "contracts/governance/locking/Locking.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
 
 import { Proposals } from "./Proposals.sol";
-import { Arrays } from "test/utils/Arrays.sol";
-import { TestLocking } from "test/utils/TestLocking.sol";
+import { VmExtension } from "test/utils/VmExtension.sol";
+import { GovernanceTest } from "test/governance/GovernanceTest.sol";
+import { LockingHarness } from "test/harnesses/LockingHarness.sol";
 
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { GnosisSafe } from "safe-contracts/contracts/GnosisSafe.sol";
@@ -58,10 +58,10 @@ contract GovernanceIntegrationTest is GovernanceTest {
   bytes32 public merkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809;
   address public claimer0 = 0x547a9687D36e51DA064eE7C6ac82590E344C4a0e;
   uint96 public claimer0Amount = 100e18;
-  bytes32[] public claimer0Proof = Arrays.bytes32s(0xf213211627972cf2d02a11f800ed3f60110c1d11d04ec1ea8cb1366611efdaa3);
+  bytes32[] public claimer0Proof = bytes32s(0xf213211627972cf2d02a11f800ed3f60110c1d11d04ec1ea8cb1366611efdaa3);
   address public claimer1 = 0x6B70014D9c0BF1F53695a743Fe17996f132e9482;
   uint96 public claimer1Amount = 20_000e18;
-  bytes32[] public claimer1Proof = Arrays.bytes32s(0x0294d3fc355e136dd6fea7f5c2934dd7cb67c2b4607110780e5fbb23d65d7ac4);
+  bytes32[] public claimer1Proof = bytes32s(0x0294d3fc355e136dd6fea7f5c2934dd7cb67c2b4607110780e5fbb23d65d7ac4);
 
   string public constant EXPECTED_CREDENTIAL =
     "level:plus+liveness;citizenship_not:;residency_not:cd,cu,gb,ir,kp,ml,mm,ss,sy,us,ye";
@@ -127,8 +127,8 @@ contract GovernanceIntegrationTest is GovernanceTest {
       .MentoTokenAllocationParams({
         airgrabAllocation: 50,
         mentoTreasuryAllocation: 100,
-        additionalAllocationRecipients: Arrays.addresses(address(mentoLabsMultisig)),
-        additionalAllocationAmounts: Arrays.uints(200)
+        additionalAllocationRecipients: addresses(address(mentoLabsMultisig)),
+        additionalAllocationAmounts: uints(200)
       });
 
     vm.prank(owner);
@@ -542,7 +542,7 @@ contract GovernanceIntegrationTest is GovernanceTest {
 
   function test_governor_propose_whenExecutedForImplementationUpgrade_shouldUpgradeTheContracts() public s_governance {
     // create new implementations
-    TestLocking newLockingContract = new TestLocking();
+    LockingHarness newLockingContract = new LockingHarness();
     TimelockController newGovernanceTimelockContract = new TimelockController();
     MentoGovernor newGovernorContract = new MentoGovernor();
     Emission newEmissionContract = new Emission(false);
@@ -592,7 +592,7 @@ contract GovernanceIntegrationTest is GovernanceTest {
 
     // the old implementation has no such method
     vm.expectRevert();
-    TestLocking(address(locking)).setEpochShift(1);
+    LockingHarness(address(locking)).setEpochShift(1);
 
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
@@ -605,6 +605,6 @@ contract GovernanceIntegrationTest is GovernanceTest {
     assertEq(address(proxyAdmin.getProxyImplementation(emissionProxy)), address(newEmissionContract));
 
     // new implementation has the method and governance upgraded the contract
-    TestLocking(address(locking)).setEpochShift(1);
+    LockingHarness(address(locking)).setEpochShift(1);
   }
 }

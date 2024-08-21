@@ -1,7 +1,7 @@
 [profile.default]
 src = "contracts"
 out = "out"
-test = "test-v2"
+test = "test"
 libs = ["lib"]
 auto_detect_solc = true
 bytecode_hash = "none"
@@ -41,6 +41,6 @@ no_match_contract = "_random" # in order to reset the no_match_contract
 match_contract = "ForkTest"
 
 [rpc_endpoints]
-celo_mainnet="${CELO_MAINNET_RPC_URL}"
+celo="${CELO_MAINNET_RPC_URL}"
 baklava="${BAKLAVA_RPC_URL}"
 alfajores="${ALFAJORES_RPC_URL}"
