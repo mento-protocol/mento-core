@@ -2,10 +2,10 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
-import { Locking_Test } from "./Base.t.sol";
+import { LockingTest } from "./LockingTest.sol";
 import { MockLocking } from "../../mocks/MockLocking.sol";
 
-contract Lock_Locking_Test is Locking_Test {
+contract Lock_LockingTest is LockingTest {
   function test_init_shouldSetState() public {
     assertEq(address(locking.token()), address(mentoToken));
 

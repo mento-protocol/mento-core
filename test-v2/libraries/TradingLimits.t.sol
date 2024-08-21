@@ -6,7 +6,7 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 import { CVS } from "mento-std/CVS.sol";
 import { console } from "forge-std/console.sol";
-import { ITradingLimitsHarness } from "../mocks/ITradingLimitsHarness.sol";
+import { ITradingLimitsHarness } from "../harnesses/ITradingLimitsHarness.sol";
 
 // forge test --match-contract TradingLimits -vvv
 contract TradingLimitsTest is Test {

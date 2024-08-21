@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import { Test } from "forge-std-next/Test.sol";
+import { Test } from "mento-std/Test.sol";
 
-contract TestSetup is Test {
+contract GovernanceTest is Test {
   address public owner = makeAddr("owner");
   address public alice = makeAddr("alice");
   address public bob = makeAddr("bob");

@@ -2,11 +2,11 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase
 
-import { TestSetup } from "./TestSetup.sol";
+import { uints, addresses } from "mento-std/Array.sol";
+import { GovernanceTest } from "./GovernanceTest.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
-import { Arrays } from "test/utils/Arrays.sol";
 
-contract MentoTokenTest is TestSetup {
+contract MentoTokenTest is GovernanceTest {
   event Paused(address account);
 
   MentoToken public mentoToken;
@@ -18,9 +18,9 @@ contract MentoTokenTest is TestSetup {
   address public emission = makeAddr("emission");
   address public locking = makeAddr("locking");
 
-  uint256[] public allocationAmounts = Arrays.uints(80, 120, 50, 100);
+  uint256[] public allocationAmounts = uints(80, 120, 50, 100);
   address[] public allocationRecipients =
-    Arrays.addresses(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, governanceTimelock);
+    addresses(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, governanceTimelock);
 
   modifier notPaused() {
     mentoToken.unpause();
@@ -43,13 +43,13 @@ contract MentoTokenTest is TestSetup {
 
   function test_constructor_whenAllocationRecipientsAndAmountsLengthMismatch_shouldRevert() public {
     vm.expectRevert("MentoToken: recipients and amounts length mismatch");
-    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50), emission, locking);
+    mentoToken = new MentoToken(allocationRecipients, uints(80, 120, 50), emission, locking);
   }
 
   function test_constructor_whenAllocationRecipientIsZero_shouldRevert() public {
     vm.expectRevert("MentoToken: allocation recipient is zero address");
     mentoToken = new MentoToken(
-      Arrays.addresses(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, address(0)),
+      addresses(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, address(0)),
       allocationAmounts,
       emission,
       locking
@@ -58,13 +58,13 @@ contract MentoTokenTest is TestSetup {
 
   function test_constructor_whenTotalAllocationExceeds1000_shouldRevert() public {
     vm.expectRevert("MentoToken: total allocation exceeds 100%");
-    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50, 1000), emission, locking);
+    mentoToken = new MentoToken(allocationRecipients, uints(80, 120, 50, 1000), emission, locking);
   }
 
   function test_constructor_shouldPauseTheContract() public {
     vm.expectEmit(true, true, true, true);
     emit Paused(address(this));
-    mentoToken = new MentoToken(allocationRecipients, Arrays.uints(80, 120, 50, 100), emission, locking);
+    mentoToken = new MentoToken(allocationRecipients, uints(80, 120, 50, 100), emission, locking);
 
     assertEq(mentoToken.paused(), true);
   }

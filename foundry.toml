@@ -1,27 +1,36 @@
 [profile.default]
 src = "contracts"
 out = "out"
-test = "test"
+test = "test-v2"
 libs = ["lib"]
 auto_detect_solc = true
 bytecode_hash = "none"
 fuzz_runs = 256
 gas_reports = ["*"]
-optimizer = true
-optimizer_runs = 10_000
+optimizer = false
+optimizer_runs = 1
 legacy = true
 no_match_contract = "(ForkTest)|(GovernanceGasTest)"
-via_ir = true
-allow_paths = [
-  "*"
-]
+via_ir = false
 
-[profile.test-v2]
-test = "test-v2"
+script = "script"
 allow_paths = [
   "node_modules/@celo"
 ]
 unchecked_cheatcode_artifacts = true
+fs_permissions = [
+    { access = "read", path = "out" },
+    { access = "read-write", path = "test-v2/fixtures" }
+]
+
+additional_compiler_profiles = [ 
+    { name = "via-ir-opt", via_ir = true, optimizer = true } 
+]
+
+compilation_restrictions = [
+  { paths = "contracts/governance/Airgrab.sol", via_ir = true, optimizer = true },
+  { paths = "contracts/tokens/StableTokenV2.sol", via_ir = true, optimizer = true },
+]
 
 [profile.ci]
 fuzz_runs = 1_000

@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase
 
-import { GovernanceFactory } from "../../contracts/governance/GovernanceFactory.sol";
+import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 
 contract GovernanceFactoryHarness is GovernanceFactory {
   constructor(address owner_) GovernanceFactory(owner_) {}

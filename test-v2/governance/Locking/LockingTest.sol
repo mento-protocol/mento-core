@@ -2,20 +2,20 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
-import { TestSetup } from "../TestSetup.sol";
-import { TestLocking } from "../../utils/TestLocking.sol";
+import { GovernanceTest } from "../GovernanceTest.sol";
+import { LockingHarness } from "../../harnesses/LockingHarness.sol";
 import { MockMentoToken } from "../../mocks/MockMentoToken.sol";
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
-contract Locking_Test is TestSetup {
-  TestLocking public locking;
+contract LockingTest is GovernanceTest {
+  LockingHarness public locking;
   MockMentoToken public mentoToken;
 
   uint32 public weekInBlocks;
 
   function setUp() public virtual {
     mentoToken = new MockMentoToken();
-    locking = new TestLocking();
+    locking = new LockingHarness();
 
     vm.prank(owner);
     locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), 0, 0, 0);

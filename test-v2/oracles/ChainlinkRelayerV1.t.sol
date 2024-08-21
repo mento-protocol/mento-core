@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 
 import { console } from "forge-std/console.sol";
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
+import { Fixtures } from "../utils/Fixtures.sol";
 
 import "../mocks/MockAggregatorV3.sol";
 
@@ -15,6 +15,8 @@ import "contracts/oracles/ChainlinkRelayerV1.sol";
 import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 
 interface ISortedOracles {
+  function initialize(uint256) external;
+
   function addOracle(address, address) external;
 
   function removeOracle(address, address, uint256) external;
@@ -93,10 +95,8 @@ contract ChainlinkRelayerV1Test is Test {
   }
 
   function setUp() public virtual {
-    CVS.deploy(
-      "node_modules/@celo/contracts/common/linkedlists/AddressSortedLinkedListWithMedian.sol:AddressSortedLinkedListWithMedian"
-    );
-    sortedOracles = ISortedOracles(CVS.deploy("SortedOracles.sol", abi.encode(true)));
+    sortedOracles = ISortedOracles(Fixtures.sortedOracles());
+    sortedOracles.initialize(expirySeconds);
     sortedOracles.setTokenReportExpiry(rateFeedId, expirySeconds);
 
     mockAggregator0 = new MockAggregatorV3(8);

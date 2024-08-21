@@ -2,9 +2,9 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
-import { Locking_Test } from "./Base.t.sol";
+import { LockingTest } from "./LockingTest.sol";
 
-contract Relock_Locking_Test is Locking_Test {
+contract Relock_LockingTest is LockingTest {
   uint256 public lockId;
 
   function test_relock_whenDelegateZero_shouldRevert() public {

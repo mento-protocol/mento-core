@@ -2,10 +2,10 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
-import { TestSetup } from "../TestSetup.sol";
+import { GovernanceTest } from "../GovernanceTest.sol";
 import { LibBrokenLine } from "contracts/governance/locking/libs/LibBrokenLine.sol";
 
-contract LibBrokenLine_Test is TestSetup {
+contract LibBrokenLine_Test is GovernanceTest {
   LibBrokenLine.BrokenLine public brokenLine;
 
   function assertLineEq(LibBrokenLine.Line memory a, LibBrokenLine.Line memory b) internal {

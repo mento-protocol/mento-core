@@ -220,7 +220,6 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
   }
 
   function test_revertsWhenDeployingToAddressWithCode() public {
-    vm.prank(owner);
     address futureAddress = expectedRelayerAddress(
       aRateFeed,
       aRateFeedDescription,

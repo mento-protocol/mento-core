@@ -2,11 +2,11 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase
 
-import { TestSetup } from "./TestSetup.sol";
+import { GovernanceTest } from "./GovernanceTest.sol";
 import { Emission } from "contracts/governance/Emission.sol";
 import { MockMentoToken } from "../mocks/MockMentoToken.sol";
 
-contract EmissionTest is TestSetup {
+contract EmissionTest is GovernanceTest {
   Emission public emission;
 
   MockMentoToken public mentoToken;

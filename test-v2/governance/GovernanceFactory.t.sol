@@ -2,17 +2,20 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length
 
-import { TestSetup } from "./TestSetup.sol";
-import { Arrays } from "test/utils/Arrays.sol";
-import { TestLocking } from "../utils/TestLocking.sol";
+import { GovernanceTest } from "./GovernanceTest.sol";
+import { addresses, uints } from "mento-std/Array.sol";
+
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
+import { LockingHarness } from "../harnesses/LockingHarness.sol";
+import { GovernanceFactoryHarness } from "../harnesses/GovernanceFactoryHarness.t.sol";
+
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
-import { GovernanceFactoryHarness } from "./GovernanceFactoryHarness.t.sol";
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
 
-contract GovernanceFactoryTest is TestSetup {
+contract GovernanceFactoryTest is GovernanceTest {
   GovernanceFactoryHarness public factory;
 
   address public mentoLabsMultiSig = makeAddr("MentoLabsVestingMultisig");
@@ -38,8 +41,8 @@ contract GovernanceFactoryTest is TestSetup {
       .MentoTokenAllocationParams({
         airgrabAllocation: 50,
         mentoTreasuryAllocation: 100,
-        additionalAllocationRecipients: Arrays.addresses(mentoLabsMultiSig),
-        additionalAllocationAmounts: Arrays.uints(200)
+        additionalAllocationRecipients: addresses(mentoLabsMultiSig),
+        additionalAllocationAmounts: uints(200)
       });
 
     factory.createGovernance(watchdogMultiSig, airgrabMerkleRoot, fractalSigner, allocationParams);
@@ -97,17 +100,13 @@ contract GovernanceFactoryTest is TestSetup {
   }
 
   function test_createGovernance_whenAdditionalAllocationRecipients_shouldCombineRecipients() public i_setUp {
-    uint256 supply = 1_000_000_000 * 10**18;
+    uint256 supply = 1_000_000_000 * 10 ** 18;
     GovernanceFactory.MentoTokenAllocationParams memory allocationParams = GovernanceFactory
       .MentoTokenAllocationParams({
         airgrabAllocation: 50,
         mentoTreasuryAllocation: 100,
-        additionalAllocationRecipients: Arrays.addresses(
-          makeAddr("Recipient1"),
-          makeAddr("Recipient2"),
-          mentoLabsMultiSig
-        ),
-        additionalAllocationAmounts: Arrays.uints(55, 50, 80)
+        additionalAllocationRecipients: addresses(makeAddr("Recipient1"), makeAddr("Recipient2"), mentoLabsMultiSig),
+        additionalAllocationAmounts: uints(55, 50, 80)
       });
 
     vm.prank(owner);
@@ -167,7 +166,7 @@ contract GovernanceFactoryTest is TestSetup {
     assertEq(initialImpl, precalculatedAddress, "Factory: lockingProxy should have an implementation");
 
     // deploy and upgrade to new implementation
-    TestLocking newImplContract = new TestLocking();
+    LockingHarness newImplContract = new LockingHarness();
     vm.prank(address(factory.governanceTimelock()));
     proxyAdmin.upgrade(proxy, address(newImplContract));
 

@@ -2,14 +2,14 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length
 
-import { TestSetup } from "./TestSetup.sol";
+import { GovernanceTest } from "./GovernanceTest.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { MockOwnable } from "../mocks/MockOwnable.sol";
 import { MockVeMento } from "../mocks/MockVeMento.sol";
 import { IVotesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorVotesUpgradeable.sol";
 
-contract MentoGovernorTest is TestSetup {
+contract MentoGovernorTest is GovernanceTest {
   TimelockController public timelockController;
   MentoGovernor public mentoGovernor;
 
