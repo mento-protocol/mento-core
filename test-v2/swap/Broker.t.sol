@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import { Test } from "celo-foundry/Test.sol";
+import { Test } from "mento-std/Test.sol";
 
 import { MockStableToken } from "../mocks/MockStableToken.sol";
 import { MockExchangeProvider } from "../mocks/MockExchangeProvider.sol";
 import { MockReserve } from "../mocks/MockReserve.sol";
-import { DummyERC20 } from "../utils/DummyErc20.sol";
+import { TestERC20 } from "../mocks/TestERC20.sol";
 
-import { FixidityLib } from "contracts/common/FixidityLib.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 
-import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
+import { ITradingLimitsHarness } from "../harnesses/ITradingLimitsHarness.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 
 // forge test --match-contract Broker -vvv
@@ -35,7 +35,7 @@ contract BrokerTest is Test {
   event ExchangeProviderAdded(address indexed exchangeProvider);
   event ExchangeProviderRemoved(address indexed exchangeProvider);
   event ReserveSet(address indexed newAddress, address indexed prevAddress);
-  event TradingLimitConfigured(bytes32 exchangeId, address token, TradingLimits.Config config);
+  event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimitsHarness.Config config);
 
   address deployer = actor("deployer");
   address notDeployer = actor("notDeployer");
@@ -485,7 +485,7 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapIn_whenTradingLimitWasNotMet_shouldSwap() public {
-    TradingLimits.Config memory config;
+    ITradingLimitsHarness.Config memory config;
     config.flags = 1;
     config.timestep0 = 10000;
     config.limit0 = 1000;

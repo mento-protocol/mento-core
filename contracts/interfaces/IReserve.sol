@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity >0.5.13 <0.9;
 
 interface IReserve {
   function setTobinTaxStalenessThreshold(uint256) external;
@@ -12,11 +12,7 @@ interface IReserve {
 
   function transferExchangeGold(address payable, uint256) external returns (bool);
 
-  function transferCollateralAsset(
-    address collateralAsset,
-    address payable to,
-    uint256 value
-  ) external returns (bool);
+  function transferCollateralAsset(address collateralAsset, address payable to, uint256 value) external returns (bool);
 
   function getReserveGoldBalance() external view returns (uint256);
 

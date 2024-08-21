@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity ^0.8;
 
 contract MockERC20 {
   string private _name;
   string private _symbol;
   uint256 private _decimals;
 
-  constructor(
-    string memory name_,
-    string memory symbol_,
-    uint256 decimals_
-  ) public {
+  constructor(string memory name_, string memory symbol_, uint256 decimals_) {
     _name = name_;
     _symbol = symbol_;
     _decimals = decimals_;

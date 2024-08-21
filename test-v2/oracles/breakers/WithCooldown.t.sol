@@ -1,18 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.5.13;
+pragma solidity ^0.8;
 
-import { Test, console2 as console } from "celo-foundry/Test.sol";
-import { WithCooldown } from "contracts/oracles/breakers/WithCooldown.sol";
+import { Test } from "mento-std/Test.sol";
+import { CVS } from "mento-std/CVS.sol";
+import { console } from "forge-std/Test.sol";
+import { IWithCooldownHarness } from "../../harnesses/IWithCooldownHarness.sol";
 
-contract WithCooldownTest is WithCooldown, Test {
+contract WithCooldownTest is Test {
+  event DefaultCooldownTimeUpdated(uint256 newCooldownTime);
+  event RateFeedCooldownTimeUpdated(address rateFeedID, uint256 newCooldownTime);
+
+  IWithCooldownHarness harness;
+
+  function setUp() public {
+    harness = IWithCooldownHarness(CVS.deploy("WithCooldownHarness"));
+  }
+
   function test_setDefaultCooldownTime() public {
     uint256 testCooldown = 39 minutes;
     vm.expectEmit(true, true, true, true);
     emit DefaultCooldownTimeUpdated(testCooldown);
-    _setDefaultCooldownTime(testCooldown);
-    assertEq(defaultCooldownTime, testCooldown);
+    harness.setDefaultCooldownTime(testCooldown);
+    assertEq(harness.defaultCooldownTime(), testCooldown);
   }
 
   function test_setCooldownTimes_withZeroAddress_reverts() public {
@@ -20,7 +31,7 @@ contract WithCooldownTest is WithCooldown, Test {
     uint256[] memory cooldownTimes = new uint256[](1);
 
     vm.expectRevert("rate feed invalid");
-    _setCooldownTimes(rateFeedIDs, cooldownTimes);
+    harness.setCooldownTimes(rateFeedIDs, cooldownTimes);
   }
 
   function test_setCooldownTimes_withMismatchingArrays_reverts() public {
@@ -28,7 +39,7 @@ contract WithCooldownTest is WithCooldown, Test {
     uint256[] memory cooldownTimes = new uint256[](1);
 
     vm.expectRevert("array length missmatch");
-    _setCooldownTimes(rateFeedIDs, cooldownTimes);
+    harness.setCooldownTimes(rateFeedIDs, cooldownTimes);
   }
 
   function test_setCoolDownTimes_emitsEvents() public {
@@ -45,18 +56,18 @@ contract WithCooldownTest is WithCooldown, Test {
     vm.expectEmit(true, true, true, true);
     emit RateFeedCooldownTimeUpdated(rateFeedIDs[1], cooldownTimes[1]);
 
-    _setCooldownTimes(rateFeedIDs, cooldownTimes);
+    harness.setCooldownTimes(rateFeedIDs, cooldownTimes);
 
-    assertEq(rateFeedCooldownTime[rateFeedIDs[0]], cooldownTimes[0]);
-    assertEq(rateFeedCooldownTime[rateFeedIDs[1]], cooldownTimes[1]);
+    assertEq(harness.rateFeedCooldownTime(rateFeedIDs[0]), cooldownTimes[0]);
+    assertEq(harness.rateFeedCooldownTime(rateFeedIDs[1]), cooldownTimes[1]);
   }
 
   function test_getCooldown_whenNoRateFeedSpecific_usesDefault() public {
     uint256 testCooldown = 39 minutes;
     address rateFeedID = address(1111);
-    _setDefaultCooldownTime(testCooldown);
+    harness.setDefaultCooldownTime(testCooldown);
 
-    assertEq(getCooldown(rateFeedID), testCooldown);
+    assertEq(harness.getCooldown(rateFeedID), testCooldown);
   }
 
   function test_getCooldown_whenRateFeedSpecific_usesRateSpecific() public {
@@ -69,9 +80,9 @@ contract WithCooldownTest is WithCooldown, Test {
     uint256[] memory cooldownTimes = new uint256[](1);
     cooldownTimes[0] = testCooldown;
 
-    _setCooldownTimes(rateFeedIDs, cooldownTimes);
-    _setDefaultCooldownTime(defaultCooldown);
+    harness.setCooldownTimes(rateFeedIDs, cooldownTimes);
+    harness.setDefaultCooldownTime(defaultCooldown);
 
-    assertEq(getCooldown(rateFeedID), testCooldown);
+    assertEq(harness.getCooldown(rateFeedID), testCooldown);
   }
 }

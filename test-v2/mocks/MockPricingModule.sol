@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity ^0.8;
 
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
@@ -8,7 +8,7 @@ contract MockPricingModule is IPricingModule {
   uint256 private _nextGetAmountOut;
   uint256 private _nextGetAmountIn;
 
-  constructor(string memory name_) public {
+  constructor(string memory name_) {
     _name = name_;
   }
 
@@ -24,21 +24,11 @@ contract MockPricingModule is IPricingModule {
     _nextGetAmountIn = amount;
   }
 
-  function getAmountOut(
-    uint256,
-    uint256,
-    uint256,
-    uint256
-  ) external view returns (uint256) {
+  function getAmountOut(uint256, uint256, uint256, uint256) external view returns (uint256) {
     return _nextGetAmountOut;
   }
 
-  function getAmountIn(
-    uint256,
-    uint256,
-    uint256,
-    uint256
-  ) external view returns (uint256) {
+  function getAmountIn(uint256, uint256, uint256, uint256) external view returns (uint256) {
     return _nextGetAmountIn;
   }
 }

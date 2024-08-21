@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { console2 as console } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
+import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
-import { BaseTest } from "../../utils/BaseTest.t.sol";
+import { Test } from "mento-std/Test.sol";
+import { CVS } from "mento-std/CVS.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
 import { MockSortedOracles } from "../../mocks/MockSortedOracles.sol";
 
-import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
-import { FixidityLib } from "contracts/common/FixidityLib.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
-import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
 
-contract ValueDeltaBreakerTest is BaseTest {
+contract ValueDeltaBreakerTest is Test {
   using FixidityLib for FixidityLib.Fraction;
 
   address notDeployer;
@@ -24,9 +24,9 @@ contract ValueDeltaBreakerTest is BaseTest {
   address rateFeedID2;
   address rateFeedID3;
   MockSortedOracles sortedOracles;
-  ValueDeltaBreaker breaker;
+  IValueDeltaBreaker breaker;
 
-  uint256 defaultThreshold = 0.15 * 10**24; // 15%
+  uint256 defaultThreshold = 0.15 * 10 ** 24; // 15%
   uint256 defaultCooldownTime = 5 minutes;
 
   address[] rateFeedIDs = new address[](1);
@@ -41,30 +41,34 @@ contract ValueDeltaBreakerTest is BaseTest {
   event SortedOraclesUpdated(address newSortedOracles);
   event RateChangeThresholdUpdated(address rateFeedID1, uint256 rateChangeThreshold);
 
-  function setUp() public {
-    notDeployer = actor("notDeployer");
-    rateFeedID1 = actor("rateFeedID1");
-    rateFeedID2 = actor("rateFeedID2");
-    rateFeedID3 = actor("rateFeedID3");
+  function setUp() public virtual {
+    notDeployer = makeAddr("notDeployer");
+    rateFeedID1 = makeAddr("rateFeedID1");
+    rateFeedID2 = makeAddr("rateFeedID2");
+    rateFeedID3 = makeAddr("rateFeedID3");
 
     rateFeedIDs[0] = rateFeedID2;
-    rateChangeThresholds[0] = 0.9 * 10**24;
+    rateChangeThresholds[0] = 0.9 * 10 ** 24;
     cooldownTimes[0] = 10 minutes;
 
-    vm.startPrank(deployer);
     sortedOracles = new MockSortedOracles();
 
-    sortedOracles.addOracle(rateFeedID1, actor("OracleClient"));
-    sortedOracles.addOracle(rateFeedID2, actor("oracleClient"));
-    sortedOracles.addOracle(rateFeedID3, actor("oracleClient1"));
+    sortedOracles.addOracle(rateFeedID1, makeAddr("OracleClient"));
+    sortedOracles.addOracle(rateFeedID2, makeAddr("oracleClient"));
+    sortedOracles.addOracle(rateFeedID3, makeAddr("oracleClient1"));
 
-    breaker = new ValueDeltaBreaker(
-      defaultCooldownTime,
-      defaultThreshold,
-      ISortedOracles(address(sortedOracles)),
-      rateFeedIDs,
-      rateChangeThresholds,
-      cooldownTimes
+    breaker = IValueDeltaBreaker(
+      CVS.deploy(
+        "ValueDeltaBreaker",
+        abi.encode(
+          defaultCooldownTime,
+          defaultThreshold,
+          ISortedOracles(address(sortedOracles)),
+          rateFeedIDs,
+          rateChangeThresholds,
+          cooldownTimes
+        )
+      )
     );
   }
 }
@@ -73,7 +77,7 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
   /* ---------- Constructor ---------- */
 
   function test_constructor_shouldSetOwner() public {
-    assertEq(breaker.owner(), deployer);
+    assertEq(breaker.owner(), address(this));
   }
 
   function test_constructor_shouldSetDefaultCooldownTime() public {
@@ -100,7 +104,7 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
 
   function test_setDefaultCooldownTime_whenCallerIsNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
-    changePrank(notDeployer);
+    vm.prank(notDeployer);
     breaker.setDefaultCooldownTime(2 minutes);
   }
 
@@ -116,18 +120,18 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
 
   function test_setRateChangeThreshold_whenCallerIsNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
-    changePrank(notDeployer);
+    vm.prank(notDeployer);
 
     breaker.setDefaultRateChangeThreshold(123456);
   }
 
   function test_setDefaultRateChangeThreshold_whenValueGreaterThanOne_shouldRevert() public {
     vm.expectRevert("value must be less than 1");
-    breaker.setDefaultRateChangeThreshold(1 * 10**24);
+    breaker.setDefaultRateChangeThreshold(1 * 10 ** 24);
   }
 
   function test_setDefaultRateChangeThreshold_whenCallerIsOwner_shouldUpdateAndEmit() public {
-    uint256 testThreshold = 0.1 * 10**24;
+    uint256 testThreshold = 0.1 * 10 ** 24;
     vm.expectEmit(false, false, false, true);
     emit DefaultRateChangeThresholdUpdated(testThreshold);
 
@@ -137,7 +141,7 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
   }
 
   function test_setSortedOracles_whenSenderIsNotOwner_shouldRevert() public {
-    changePrank(notDeployer);
+    vm.prank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     breaker.setSortedOracles(ISortedOracles(address(0)));
   }
@@ -148,7 +152,7 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
   }
 
   function test_setSortedOracles_whenSenderIsOwner_shouldUpdateAndEmit() public {
-    address newSortedOracles = actor("newSortedOracles");
+    address newSortedOracles = makeAddr("newSortedOracles");
     vm.expectEmit(true, true, true, true);
     emit SortedOraclesUpdated(newSortedOracles);
 
@@ -158,21 +162,21 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
   }
 
   function test_setRateChangeThresholds_whenSenderIsNotOwner_shouldRevert() public {
-    changePrank(notDeployer);
+    vm.prank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
 
   function test_setRateChangeThresholds_whenValuesAreDifferentLengths_shouldRevert() public {
     address[] memory rateFeedIDs2 = new address[](2);
-    rateFeedIDs2[0] = actor("randomRateFeed");
-    rateFeedIDs2[1] = actor("randomRateFeed2");
+    rateFeedIDs2[0] = makeAddr("randomRateFeed");
+    rateFeedIDs2[1] = makeAddr("randomRateFeed2");
     vm.expectRevert("array length missmatch");
     breaker.setRateChangeThresholds(rateFeedIDs2, rateChangeThresholds);
   }
 
   function test_setRateChangeThresholds_whenThresholdIsMoreThan0_shouldRevert() public {
-    rateChangeThresholds[0] = 1 * 10**24;
+    rateChangeThresholds[0] = 1 * 10 ** 24;
     vm.expectRevert("value must be less than 1");
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
   }
@@ -195,7 +199,9 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
 }
 
 contract ValueDeltaBreakerTest_shouldTrigger is ValueDeltaBreakerTest {
-  function setUp() public {
+  using FixidityLib for FixidityLib.Fraction;
+
+  function setUp() public override {
     super.setUp();
 
     address[] memory _rateFeedIDs = new address[](3);
@@ -211,8 +217,8 @@ contract ValueDeltaBreakerTest_shouldTrigger is ValueDeltaBreakerTest {
   }
 
   function updateMedianByPercent(uint256 medianChangeScaleFactor, address _rateFeedID) public {
-    uint256 previousMedianRate = 10**24;
-    uint256 currentMedianRate = (previousMedianRate * medianChangeScaleFactor) / 10**24;
+    uint256 previousMedianRate = 10 ** 24;
+    uint256 currentMedianRate = (previousMedianRate * medianChangeScaleFactor) / 10 ** 24;
     vm.mockCall(
       address(sortedOracles),
       abi.encodeWithSelector(sortedOracles.medianRate.selector),
@@ -223,14 +229,14 @@ contract ValueDeltaBreakerTest_shouldTrigger is ValueDeltaBreakerTest {
 
   function test_shouldTrigger_withDefaultThreshold_shouldTrigger() public {
     assertEq(breaker.rateChangeThreshold(rateFeedID1), 0);
-    updateMedianByPercent(0.7 * 10**24, rateFeedID1);
+    updateMedianByPercent(0.7 * 10 ** 24, rateFeedID1);
     assertTrue(breaker.shouldTrigger(rateFeedID1));
   }
 
   function test_shouldTrigger_whenThresholdIsLargerThanMedian_shouldNotTrigger() public {
-    updateMedianByPercent(0.7 * 10**24, rateFeedID1);
+    updateMedianByPercent(0.7 * 10 ** 24, rateFeedID1);
 
-    rateChangeThresholds[0] = 0.8 * 10**24;
+    rateChangeThresholds[0] = 0.8 * 10 ** 24;
     rateFeedIDs[0] = rateFeedID1;
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     assertEq(breaker.rateChangeThreshold(rateFeedID1), rateChangeThresholds[0]);
@@ -241,14 +247,14 @@ contract ValueDeltaBreakerTest_shouldTrigger is ValueDeltaBreakerTest {
   function test_shouldTrigger_whithDefaultThreshold_ShouldNotTrigger() public {
     assertEq(breaker.rateChangeThreshold(rateFeedID3), 0);
 
-    updateMedianByPercent(1.1 * 10**24, rateFeedID3);
+    updateMedianByPercent(1.1 * 10 ** 24, rateFeedID3);
 
     assertFalse(breaker.shouldTrigger(rateFeedID3));
   }
 
   function test_shouldTrigger_whenThresholdIsSmallerThanMedian_ShouldTrigger() public {
-    updateMedianByPercent(1.1 * 10**24, rateFeedID3);
-    rateChangeThresholds[0] = 0.01 * 10**24;
+    updateMedianByPercent(1.1 * 10 ** 24, rateFeedID3);
+    rateChangeThresholds[0] = 0.01 * 10 ** 24;
     rateFeedIDs[0] = rateFeedID3;
     breaker.setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     assertEq(breaker.rateChangeThreshold(rateFeedID3), rateChangeThresholds[0]);
