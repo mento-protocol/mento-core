@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import { console2 as console } from "forge-std/console2.sol";
-import { stdStorage } from "forge-std/Test.sol";
-import { BaseTest } from "../utils/BaseTest.t.sol";
+import { console } from "forge-std/console.sol";
+import { Test } from "mento-std/Test.sol";
 
-import { FixidityLib } from "contracts/common/FixidityLib.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
-import { ConstantProductPricingModule } from "contracts/swap/ConstantProductPricingModule.sol";
 
-contract ConstantProductPricingModuleTest is BaseTest {
+contract ConstantProductPricingModuleTest is Test {
   IPricingModule constantProduct;
 
   uint256 pc1 = 1 * 1e22;
@@ -21,10 +18,9 @@ contract ConstantProductPricingModuleTest is BaseTest {
 
   function setUp() public {
     vm.warp(24 * 60 * 60);
-    constantProduct = new ConstantProductPricingModule();
   }
 
-  // TODO: Add tests
+  // TODO: Add tests that don't rely on the legacy exchange.
 
   // function test_getAmountOut_compareWithLegacyExchange_t1() public {
   //   uint256 expectedAmountOut = legacyExchange.getAmountOut(1e24, 2e24, pc1, 1e23);

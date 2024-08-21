@@ -7,7 +7,7 @@ import { TimelockController } from "contracts/governance/TimelockController.sol"
 import { Locking } from "contracts/governance/locking/Locking.sol";
 import { Emission } from "contracts/governance/Emission.sol";
 
-import { Arrays } from "../../utils/Arrays.sol";
+import { uints, addresses, bytesList } from "mento-std/Array.sol";
 
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -27,9 +27,9 @@ library Proposals {
       string memory description
     )
   {
-    targets = Arrays.addresses(address(emission));
-    values = Arrays.uints(0);
-    calldatas = Arrays.bytess(abi.encodeWithSelector(emission.setEmissionTarget.selector, newTarget));
+    targets = addresses(address(emission));
+    values = uints(0);
+    calldatas = bytesList(abi.encodeWithSelector(emission.setEmissionTarget.selector, newTarget));
     description = "Change emission target";
 
     proposalId = mentoGovernor.propose(targets, values, calldatas, description);
@@ -56,7 +56,7 @@ library Proposals {
       string memory description
     )
   {
-    targets = Arrays.addresses(
+    targets = addresses(
       address(mentoGovernor),
       address(mentoGovernor),
       address(mentoGovernor),
@@ -65,8 +65,8 @@ library Proposals {
       address(locking),
       address(locking)
     );
-    values = Arrays.uints(0, 0, 0, 0, 0, 0, 0);
-    calldatas = Arrays.bytess(
+    values = uints(0, 0, 0, 0, 0, 0, 0);
+    calldatas = bytesList(
       abi.encodeWithSelector(mentoGovernor.setVotingDelay.selector, votingDelay),
       abi.encodeWithSelector(mentoGovernor.setVotingPeriod.selector, votingPeriod),
       abi.encodeWithSelector(mentoGovernor.setProposalThreshold.selector, threshold),
@@ -101,9 +101,9 @@ library Proposals {
       string memory description
     )
   {
-    targets = Arrays.addresses(address(proxyAdmin), address(proxyAdmin), address(proxyAdmin), address(proxyAdmin));
-    values = Arrays.uints(0, 0, 0, 0);
-    calldatas = Arrays.bytess(
+    targets = addresses(address(proxyAdmin), address(proxyAdmin), address(proxyAdmin), address(proxyAdmin));
+    values = uints(0, 0, 0, 0);
+    calldatas = bytesList(
       abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy0, newImpl0),
       abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy1, newImpl1),
       abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy2, newImpl2),
@@ -128,9 +128,9 @@ library Proposals {
       string memory description
     )
   {
-    targets = Arrays.addresses(address(mentoLabsTreasury));
-    values = Arrays.uints(0);
-    calldatas = Arrays.bytess(abi.encodeWithSelector(mentoLabsTreasury.cancel.selector, id));
+    targets = addresses(address(mentoLabsTreasury));
+    values = uints(0);
+    calldatas = bytesList(abi.encodeWithSelector(mentoLabsTreasury.cancel.selector, id));
     description = "Cancel queued tx";
 
     proposalId = mentoGovernor.propose(targets, values, calldatas, description);

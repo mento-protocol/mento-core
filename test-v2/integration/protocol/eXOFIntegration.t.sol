@@ -1,61 +1,63 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import { Test, console2 as console } from "celo-foundry/Test.sol";
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
+import { console } from "forge-std/console.sol";
+import { CVS } from "mento-std/CVS.sol";
 
-import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
-import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
-import { Arrays } from "../utils/Arrays.sol";
+import { ProtocolTest } from "./ProtocolTest.sol";
+
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
+
+import { addresses, uints } from "mento-std/Array.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 
-import { FixidityLib } from "contracts/common/FixidityLib.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
-contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
-  using SafeMath for uint256;
-  address trader;
-  ValueDeltaBreaker valueDeltaBreaker2;
+contract EXOFIntegrationTest is ProtocolTest {
+  address trader = makeAddr("trader");
+  IValueDeltaBreaker valueDeltaBreaker2;
 
   bytes32 pair_eXOF_EUROC_ID;
 
-  function setUp() public {
-    IntegrationTest.setUp();
+  function setUp() public override {
+    super.setUp();
 
-    trader = actor("trader");
-
-    mint(eXOFToken, trader, 10**22); // Mint 10k to trader
-    deal(address(eurocToken), trader, 10**(6 + 4)); // Gift 10K EUROC to Trader
-    deal(address(eurocToken), address(reserve), 10**(6 + 6)); // Gift 1Mil EUROC to reserve
+    deal(address(eXOFToken), trader, 10 ** 22, true); // Mint 10k to trader
+    deal(address(eurocToken), trader, 10 ** (6 + 4), true); // Gift 10K EUROC to Trader
+    deal(address(eurocToken), address(reserve), 10 ** (6 + 6), true); // Gift 1Mil EUROC to reserve
 
     // set up second ValueDeltaBreaker used for eXOF
-    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;
+    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10 ** 24;
     uint256 valueDeltaBreakerDefaultCooldown = 0 seconds;
 
-    address[] memory rateFeed = Arrays.addresses(eXOF_bridgedEUROC_referenceRateFeedID);
+    address[] memory rateFeed = addresses(eXOF_bridgedEUROC_referenceRateFeedID);
 
-    uint256[] memory rateChangeThreshold = Arrays.uints(0.2 * 10**24); // 20% -> potential rebase
+    uint256[] memory rateChangeThreshold = uints(0.2 * 10 ** 24); // 20% -> potential rebase
 
-    uint256[] memory cooldownTime = Arrays.uints(0 seconds); // 0 seconds cooldown -> non-recoverable
+    uint256[] memory cooldownTime = uints(0 seconds); // 0 seconds cooldown -> non-recoverable
 
-    valueDeltaBreaker2 = new ValueDeltaBreaker(
-      valueDeltaBreakerDefaultCooldown,
-      valueDeltaBreakerDefaultThreshold,
-      ISortedOracles(address(sortedOracles)),
-      rateFeed,
-      rateChangeThreshold,
-      cooldownTime
+    valueDeltaBreaker2 = IValueDeltaBreaker(
+      CVS.deploy(
+        "ValueDeltaBreaker",
+        abi.encode(
+          valueDeltaBreakerDefaultCooldown,
+          valueDeltaBreakerDefaultThreshold,
+          sortedOracles,
+          rateFeed,
+          rateChangeThreshold,
+          cooldownTime
+        )
+      )
     );
 
-    uint256[] memory referenceValues = Arrays.uints(656 * 1e24); // 1 eXOF ≈  0.001524 EUROC
+    uint256[] memory referenceValues = uints(656 * 1e24); // 1 eXOF ≈  0.001524 EUROC
     valueDeltaBreaker2.setReferenceValues(rateFeed, referenceValues);
 
-    vm.startPrank(deployer);
     breakerBox.addBreaker(address(valueDeltaBreaker2), 3);
     breakerBox.toggleBreaker(address(valueDeltaBreaker2), eXOF_bridgedEUROC_referenceRateFeedID, true);
   }
@@ -83,45 +85,34 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     }
     broker.getAmountOut(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn);
 
-    changePrank(trader);
+    vm.prank(trader);
     IERC20(tokenIn).approve(address(broker), amountIn);
 
     if (swapInReverts) {
       vm.expectRevert(bytes(swapInRevertMessage));
     }
+    vm.prank(trader);
     broker.swapIn(address(exchangeProviders[0]), poolId, tokenIn, tokenOut, amountIn, 0);
   }
 
   /**
    * @notice Test helper function to do a succesful swap
    */
-  function assert_swapIn_successful(
-    uint256 amountIn,
-    address tokenIn,
-    address tokenOut
-  ) public {
+  function assert_swapIn_successful(uint256 amountIn, address tokenIn, address tokenOut) public {
     assert_swapIn(tokenIn, tokenOut, amountIn, false, "", false, "");
   }
 
   /**
    * @notice Test helper function to do a swap that reverts on circuit breaker
    */
-  function assert_swapIn_tradingSuspended(
-    uint256 amountIn,
-    address tokenIn,
-    address tokenOut
-  ) public {
+  function assert_swapIn_tradingSuspended(uint256 amountIn, address tokenIn, address tokenOut) public {
     assert_swapIn(tokenIn, tokenOut, amountIn, false, "", true, "Trading is suspended for this reference rate");
   }
 
   /**
    * @notice Test helper function to do a swap that reverts on invalid median
    */
-  function assert_swapIn_noValidMedian(
-    uint256 amountIn,
-    address tokenIn,
-    address tokenOut
-  ) public {
+  function assert_swapIn_noValidMedian(uint256 amountIn, address tokenIn, address tokenOut) public {
     assert_swapIn(tokenIn, tokenOut, amountIn, true, "no valid median", true, "no valid median");
   }
 
@@ -169,20 +160,20 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
 
     // Check breakers: verify that only recoverable breaker has triggered
     uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
-    (uint8 valueDelta1TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (uint8 valueDelta2TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory valueBreaker2Status = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
       address(valueDeltaBreaker2)
     );
     assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
-    assertEq(uint256(valueDelta1TradingMode), 3); // 3 = trading halted
-    assertEq(uint256(valueDelta2TradingMode), 0); // 0 = bidirectional trading
+    assertEq(uint256(valueBreakerStatus.tradingMode), 3); // 3 = trading halted
+    assertEq(uint256(valueBreaker2Status.tradingMode), 0); // 0 = bidirectional trading
 
     // New median that is below recoverable breaker threshold: 15%
-    vm.warp(now + 1 seconds);
+    vm.warp(block.timestamp + 1 seconds);
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656 - (1e24 * 656 * 0.14));
 
     // Try succesful swap -> trading should be possible again
@@ -190,17 +181,17 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
 
     // Check breakers: verify that recoverable breaker has recovered
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
-    (valueDelta1TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (valueDelta2TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    valueBreaker2Status = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
       address(valueDeltaBreaker2)
     );
     assertEq(uint256(rateFeedTradingMode), 0); // 0 = bidirectional trading
-    assertEq(uint256(valueDelta1TradingMode), 0); // 0 = bidirectional trading
-    assertEq(uint256(valueDelta2TradingMode), 0); // 0 = bidirectional trading
+    assertEq(uint256(valueBreakerStatus.tradingMode), 0); // 0 = bidirectional trading
+    assertEq(uint256(valueBreaker2Status.tradingMode), 0); // 0 = bidirectional trading
   }
 
   function test_eXOFPool_whenMedianExceedsNonRecoverableBreaker_shouldBreakAndNeverRecover() public {
@@ -212,20 +203,20 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
 
     // Check breakers: verify that non recoverable breaker has triggered
     uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
-    (uint8 valueDelta1TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (uint8 valueDelta2TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory valueBreaker2Status = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
       address(valueDeltaBreaker2)
     );
     assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
-    assertEq(uint256(valueDelta1TradingMode), 3); // 3 = trading halted
-    assertEq(uint256(valueDelta2TradingMode), 3); // 3 = trading halted
+    assertEq(uint256(valueBreakerStatus.tradingMode), 3); // 3 = trading halted
+    assertEq(uint256(valueBreaker2Status.tradingMode), 3); // 3 = trading halted
 
     // New median that is below non recoverable breaker threshold: 20%
-    vm.warp(now + 5 minutes);
+    vm.warp(block.timestamp + 5 minutes);
     setMedianRate(eXOF_bridgedEUROC_referenceRateFeedID, 1e24 * 656);
 
     // Try swap that should still revert
@@ -233,17 +224,17 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
 
     // Check breakers: verify that recoverable breaker has recovered and non recoverable breaker hasn't
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(eXOF_bridgedEUROC_referenceRateFeedID);
-    (valueDelta1TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (valueDelta2TradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    valueBreaker2Status = breakerBox.rateFeedBreakerStatus(
       eXOF_bridgedEUROC_referenceRateFeedID,
       address(valueDeltaBreaker2)
     );
-    assertEq(uint256(rateFeedTradingMode), 3); //  3 = trading halted
-    assertEq(uint256(valueDelta1TradingMode), 0); // 0 = bidirectional trading
-    assertEq(uint256(valueDelta2TradingMode), 3); // 3 = trading halted
+    assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
+    assertEq(uint256(valueBreakerStatus.tradingMode), 0); // 0 = bidirectional trading
+    assertEq(uint256(valueBreaker2Status.tradingMode), 3); // 3 = trading halted
   }
 
   function test_eXOFPool_whenEUROCDepegs_shouldHaltTrading() public {
@@ -262,7 +253,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     assertEq(uint256(dependencyTradingMode), 3); // 3 = trading halted
 
     // New median that is below EUROC/EUR breaker threshold: 5%
-    vm.warp(now + 5 seconds);
+    vm.warp(block.timestamp + 5 seconds);
     setMedianRate(bridgedEUROC_EUR_referenceRateFeedID, 1e24 * 1.04);
 
     // Try succesful swap -> trading should be possible again
@@ -285,7 +276,7 @@ contract EXOFIntegrationTest is IntegrationTest, TokenHelpers {
     assert_swapIn_successful(1e6, address(eurocToken), address(eXOFToken));
 
     // time jump that expires reports
-    vm.warp(now + 5 minutes);
+    vm.warp(block.timestamp + 5 minutes);
 
     // Try swap that should revert
     assert_swapIn_noValidMedian(1e6, address(eurocToken), address(eXOFToken));

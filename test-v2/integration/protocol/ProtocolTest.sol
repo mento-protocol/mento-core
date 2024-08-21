@@ -1,44 +1,38 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
+import { Test } from "mento-std/Test.sol";
+import { CVS } from "mento-std/CVS.sol";
+import { bytes32s, addresses, uints } from "mento-std/Array.sol";
+import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
 import { console } from "forge-std/console.sol";
-import { Factory } from "./Factory.sol";
 
-import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+import { IFreezer } from "celo/contracts/common/interfaces/IFreezer.sol";
+
+import { MockSortedOracles } from "../../mocks/MockSortedOracles.sol";
+import { TestERC20 } from "../../mocks/TestERC20.sol";
+import { USDC } from "../../mocks/USDC.sol";
+import { Fixtures } from "../../utils/Fixtures.sol";
+import { WithRegistry } from "../../utils/WithRegistry.sol";
+
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
-
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
+import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
+import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
+import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 
-import { FixidityLib } from "contracts/common/FixidityLib.sol";
-import { Freezer } from "contracts/common/Freezer.sol";
-import { AddressSortedLinkedListWithMedian } from "contracts/common/linkedlists/AddressSortedLinkedListWithMedian.sol";
-import { SortedLinkedListWithMedian } from "contracts/common/linkedlists/SortedLinkedListWithMedian.sol";
-
-import { BiPoolManager } from "contracts/swap/BiPoolManager.sol";
-import { Broker } from "contracts/swap/Broker.sol";
-import { ConstantProductPricingModule } from "contracts/swap/ConstantProductPricingModule.sol";
-import { ConstantSumPricingModule } from "contracts/swap/ConstantSumPricingModule.sol";
-import { Reserve } from "contracts/swap/Reserve.sol";
-import { SortedOracles } from "contracts/common/SortedOracles.sol";
-import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
-import { MedianDeltaBreaker } from "contracts/oracles/breakers/MedianDeltaBreaker.sol";
-import { ValueDeltaBreaker } from "contracts/oracles/breakers/ValueDeltaBreaker.sol";
-import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
-
-import { Arrays } from "./Arrays.sol";
-import { Token } from "./Token.sol";
-import { BaseTest } from "./BaseTest.t.sol";
-
-contract IntegrationTest is BaseTest {
+contract ProtocolTest is Test, WithRegistry {
   using FixidityLib for FixidityLib.Fraction;
-  using AddressSortedLinkedListWithMedian for SortedLinkedListWithMedian.List;
-  using TradingLimits for TradingLimits.Config;
 
   uint256 constant tobinTaxStalenessThreshold = 600;
   uint256 constant dailySpendingRatio = 1000000000000000000000000;
@@ -50,24 +44,24 @@ contract IntegrationTest is BaseTest {
 
   mapping(address => uint256) oracleCounts;
 
-  Broker broker;
-  BiPoolManager biPoolManager;
-  Reserve reserve;
+  IBroker broker;
+  IBiPoolManager biPoolManager;
+  IReserve reserve;
   IPricingModule constantProduct;
   IPricingModule constantSum;
 
-  SortedOracles sortedOracles;
-  BreakerBox breakerBox;
-  MedianDeltaBreaker medianDeltaBreaker;
-  ValueDeltaBreaker valueDeltaBreaker;
+  ISortedOracles sortedOracles;
+  IBreakerBox breakerBox;
+  IMedianDeltaBreaker medianDeltaBreaker;
+  IValueDeltaBreaker valueDeltaBreaker;
 
-  Token celoToken;
-  Token usdcToken;
-  Token eurocToken;
+  TestERC20 celoToken;
+  TestERC20 usdcToken;
+  TestERC20 eurocToken;
   IStableTokenV2 cUSDToken;
   IStableTokenV2 cEURToken;
   IStableTokenV2 eXOFToken;
-  Freezer freezer;
+  IFreezer freezer;
 
   address cUSD_CELO_referenceRateFeedID;
   address cEUR_CELO_referenceRateFeedID;
@@ -84,10 +78,9 @@ contract IntegrationTest is BaseTest {
   bytes32 pair_cUSD_cEUR_ID;
   bytes32 pair_eXOF_bridgedEUROC_ID;
 
-  function setUp() public {
+  function setUp() public virtual {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
-    vm.startPrank(deployer);
-    broker = new Broker(true);
+    broker = IBroker(CVS.deploy("Broker", abi.encode(true)));
 
     setUp_assets();
     setUp_reserve();
@@ -101,19 +94,19 @@ contract IntegrationTest is BaseTest {
   function setUp_assets() internal {
     /* ===== Deploy collateral and stable assets ===== */
 
-    celoToken = new Token("Celo", "cGLD", 18);
-    usdcToken = new Token("bridgedUSDC", "bridgedUSDC", 6);
-    eurocToken = new Token("bridgedEUROC", "bridgedEUROC", 6);
+    celoToken = new TestERC20("Celo", "cGLD");
+    usdcToken = new USDC("bridgedUSDC", "bridgedUSDC");
+    eurocToken = new USDC("bridgedEUROC", "bridgedEUROC");
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
 
-    cUSDToken = IStableTokenV2(factory.createContract("StableTokenV2", abi.encode(false)));
+    cUSDToken = IStableTokenV2(CVS.deploy("StableTokenV2", abi.encode(false)));
     cUSDToken.initialize(
       "cUSD",
       "cUSD",
       18,
-      REGISTRY_ADDRESS,
+      CELO_REGISTRY_ADDRESS,
       FixidityLib.unwrap(FixidityLib.fixed1()),
       60 * 60 * 24 * 7,
       initialAddresses,
@@ -122,12 +115,12 @@ contract IntegrationTest is BaseTest {
     );
     cUSDToken.initializeV2(address(broker), address(0x0), address(0x0));
 
-    cEURToken = IStableTokenV2(factory.createContract("StableTokenV2", abi.encode(false)));
+    cEURToken = IStableTokenV2(CVS.deploy("StableTokenV2", abi.encode(false)));
     cEURToken.initialize(
       "cEUR",
       "cEUR",
       18,
-      REGISTRY_ADDRESS,
+      CELO_REGISTRY_ADDRESS,
       FixidityLib.unwrap(FixidityLib.fixed1()),
       60 * 60 * 24 * 7,
       initialAddresses,
@@ -136,12 +129,12 @@ contract IntegrationTest is BaseTest {
     );
     cEURToken.initializeV2(address(broker), address(0x0), address(0x0));
 
-    eXOFToken = IStableTokenV2(factory.createContract("StableTokenV2", abi.encode(false)));
+    eXOFToken = IStableTokenV2(CVS.deploy("StableTokenV2", abi.encode(false)));
     eXOFToken.initialize(
       "eXOF",
       "eXOF",
       18,
-      REGISTRY_ADDRESS,
+      CELO_REGISTRY_ADDRESS,
       FixidityLib.unwrap(FixidityLib.fixed1()),
       60 * 60 * 24 * 7,
       initialAddresses,
@@ -156,9 +149,7 @@ contract IntegrationTest is BaseTest {
   }
 
   function setUp_reserve() internal {
-    changePrank(deployer);
     /* ===== Deploy reserve ===== */
-
     bytes32[] memory initialAssetAllocationSymbols = new bytes32[](3);
     uint256[] memory initialAssetAllocationWeights = new uint256[](3);
     initialAssetAllocationSymbols[0] = bytes32("cGLD");
@@ -176,9 +167,9 @@ contract IntegrationTest is BaseTest {
     assetDailySpendingRatios[1] = 100000000000000000000000;
     assets[2] = address(eurocToken);
     assetDailySpendingRatios[2] = 100000000000000000000000;
-    reserve = new Reserve(true);
+    reserve = IReserve(CVS.deploy("Reserve", abi.encode(true)));
     reserve.initialize(
-      REGISTRY_ADDRESS,
+      CELO_REGISTRY_ADDRESS,
       tobinTaxStalenessThreshold,
       dailySpendingRatio,
       0,
@@ -197,10 +188,9 @@ contract IntegrationTest is BaseTest {
   }
 
   function setUp_sortedOracles() internal {
-    changePrank(deployer);
     /* ===== Deploy SortedOracles ===== */
 
-    sortedOracles = new SortedOracles(true);
+    sortedOracles = ISortedOracles(Fixtures.sortedOracles());
     sortedOracles.initialize(60 * 10);
 
     cUSD_CELO_referenceRateFeedID = address(cUSDToken);
@@ -254,9 +244,8 @@ contract IntegrationTest is BaseTest {
         if (values[i] >= rate) greaterKey = keys[i];
       }
 
-      changePrank(oracleAddy);
+      vm.prank(oracleAddy);
       sortedOracles.report(rateFeedID, rate, lesserKey, greaterKey);
-      changePrank(deployer);
     }
   }
 
@@ -266,7 +255,7 @@ contract IntegrationTest is BaseTest {
 
   function setUp_breakers() internal {
     /* ========== Deploy Breaker Box =============== */
-    address[] memory rateFeedIDs = Arrays.addresses(
+    address[] memory rateFeedIDs = addresses(
       cUSD_CELO_referenceRateFeedID,
       cEUR_CELO_referenceRateFeedID,
       cUSD_bridgedUSDC_referenceRateFeedID,
@@ -276,19 +265,19 @@ contract IntegrationTest is BaseTest {
       eXOF_bridgedEUROC_referenceRateFeedID
     );
 
-    breakerBox = new BreakerBox(rateFeedIDs, ISortedOracles(address(sortedOracles)));
+    breakerBox = IBreakerBox(CVS.deploy("BreakerBox", abi.encode(rateFeedIDs, ISortedOracles(address(sortedOracles)))));
     sortedOracles.setBreakerBox(breakerBox);
 
     // set rate feed dependencies
 
-    address[] memory cEUR_bridgedUSDC_dependencies = Arrays.addresses(cUSD_bridgedUSDC_referenceRateFeedID);
+    address[] memory cEUR_bridgedUSDC_dependencies = addresses(cUSD_bridgedUSDC_referenceRateFeedID);
     breakerBox.setRateFeedDependencies(cEUR_bridgedUSDC_referenceRateFeedID, cEUR_bridgedUSDC_dependencies);
 
-    address[] memory eXOF_bridgedEUROC_dependencies = Arrays.addresses(bridgedEUROC_EUR_referenceRateFeedID);
+    address[] memory eXOF_bridgedEUROC_dependencies = addresses(bridgedEUROC_EUR_referenceRateFeedID);
     breakerBox.setRateFeedDependencies(eXOF_bridgedEUROC_referenceRateFeedID, eXOF_bridgedEUROC_dependencies);
 
     /* ========== Deploy Median Delta Breaker =============== */
-    address[] memory medianDeltaBreakerRateFeedIDs = Arrays.addresses(
+    address[] memory medianDeltaBreakerRateFeedIDs = addresses(
       cUSD_CELO_referenceRateFeedID,
       cEUR_CELO_referenceRateFeedID,
       cUSD_bridgedUSDC_referenceRateFeedID,
@@ -296,14 +285,14 @@ contract IntegrationTest is BaseTest {
       cUSD_cEUR_referenceRateFeedID
     );
 
-    uint256[] memory medianDeltaBreakerRateChangeThresholds = Arrays.uints(
-      0.15 * 10**24,
-      0.14 * 10**24,
-      0.13 * 10**24,
-      0.12 * 10**24,
-      0.11 * 10**24
+    uint256[] memory medianDeltaBreakerRateChangeThresholds = uints(
+      0.15 * 10 ** 24,
+      0.14 * 10 ** 24,
+      0.13 * 10 ** 24,
+      0.12 * 10 ** 24,
+      0.11 * 10 ** 24
     );
-    uint256[] memory medianDeltaBreakerCooldownTimes = Arrays.uints(
+    uint256[] memory medianDeltaBreakerCooldownTimes = uints(
       5 minutes,
       0 minutes, // non recoverable median delta breaker
       5 minutes,
@@ -311,17 +300,22 @@ contract IntegrationTest is BaseTest {
       5 minutes
     );
 
-    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10**24; // 15%
+    uint256 medianDeltaBreakerDefaultThreshold = 0.15 * 10 ** 24; // 15%
     uint256 medianDeltaBreakerDefaultCooldown = 0 seconds;
 
-    medianDeltaBreaker = new MedianDeltaBreaker(
-      medianDeltaBreakerDefaultCooldown,
-      medianDeltaBreakerDefaultThreshold,
-      ISortedOracles(address(sortedOracles)),
-      address(breakerBox),
-      medianDeltaBreakerRateFeedIDs,
-      medianDeltaBreakerRateChangeThresholds,
-      medianDeltaBreakerCooldownTimes
+    medianDeltaBreaker = IMedianDeltaBreaker(
+      CVS.deploy(
+        "MedianDeltaBreaker",
+        abi.encode(
+          medianDeltaBreakerDefaultCooldown,
+          medianDeltaBreakerDefaultThreshold,
+          ISortedOracles(address(sortedOracles)),
+          address(breakerBox),
+          medianDeltaBreakerRateFeedIDs,
+          medianDeltaBreakerRateChangeThresholds,
+          medianDeltaBreakerCooldownTimes
+        )
+      )
     );
 
     breakerBox.addBreaker(address(medianDeltaBreaker), 3);
@@ -335,34 +329,39 @@ contract IntegrationTest is BaseTest {
 
     /* ============= Value Delta Breaker =============== */
 
-    address[] memory valueDeltaBreakerRateFeedIDs = Arrays.addresses(
+    address[] memory valueDeltaBreakerRateFeedIDs = addresses(
       cUSD_bridgedUSDC_referenceRateFeedID,
       eXOF_bridgedEUROC_referenceRateFeedID,
       bridgedEUROC_EUR_referenceRateFeedID,
       cUSD_cEUR_referenceRateFeedID
     );
-    uint256[] memory valueDeltaBreakerRateChangeThresholds = Arrays.uints(
-      0.1 * 10**24,
-      0.15 * 10**24,
-      0.05 * 10**24,
-      0.05 * 10**24
+    uint256[] memory valueDeltaBreakerRateChangeThresholds = uints(
+      0.1 * 10 ** 24,
+      0.15 * 10 ** 24,
+      0.05 * 10 ** 24,
+      0.05 * 10 ** 24
     );
-    uint256[] memory valueDeltaBreakerCooldownTimes = Arrays.uints(1 seconds, 1 seconds, 1 seconds, 0 seconds);
+    uint256[] memory valueDeltaBreakerCooldownTimes = uints(1 seconds, 1 seconds, 1 seconds, 0 seconds);
 
-    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10**24;
+    uint256 valueDeltaBreakerDefaultThreshold = 0.1 * 10 ** 24;
     uint256 valueDeltaBreakerDefaultCooldown = 0 seconds;
 
-    valueDeltaBreaker = new ValueDeltaBreaker(
-      valueDeltaBreakerDefaultCooldown,
-      valueDeltaBreakerDefaultThreshold,
-      ISortedOracles(address(sortedOracles)),
-      valueDeltaBreakerRateFeedIDs,
-      valueDeltaBreakerRateChangeThresholds,
-      valueDeltaBreakerCooldownTimes
+    valueDeltaBreaker = IValueDeltaBreaker(
+      CVS.deploy(
+        "ValueDeltaBreaker",
+        abi.encode(
+          valueDeltaBreakerDefaultCooldown,
+          valueDeltaBreakerDefaultThreshold,
+          ISortedOracles(address(sortedOracles)),
+          valueDeltaBreakerRateFeedIDs,
+          valueDeltaBreakerRateChangeThresholds,
+          valueDeltaBreakerCooldownTimes
+        )
+      )
     );
 
     // set reference value
-    uint256[] memory valueDeltaBreakerReferenceValues = Arrays.uints(1e24, 656 * 10**24, 1e24, 1.1 * 10**24);
+    uint256[] memory valueDeltaBreakerReferenceValues = uints(1e24, 656 * 10 ** 24, 1e24, 1.1 * 10 ** 24);
     valueDeltaBreaker.setReferenceValues(valueDeltaBreakerRateFeedIDs, valueDeltaBreakerReferenceValues);
 
     // add value delta breaker and enable for rate feeds
@@ -376,16 +375,16 @@ contract IntegrationTest is BaseTest {
   function setUp_broker() internal {
     /* ===== Deploy BiPoolManager & Broker ===== */
 
-    constantProduct = new ConstantProductPricingModule();
-    constantSum = new ConstantSumPricingModule();
-    biPoolManager = new BiPoolManager(true);
+    constantProduct = IPricingModule(CVS.deploy("ConstantProductPricingModule"));
+    constantSum = IPricingModule(CVS.deploy("ConstantSumPricingModule"));
+    biPoolManager = IBiPoolManager(CVS.deploy("BiPoolManager", abi.encode(true)));
 
-    bytes32[] memory pricingModuleIdentifiers = Arrays.bytes32s(
+    bytes32[] memory pricingModuleIdentifiers = bytes32s(
       keccak256(abi.encodePacked(constantProduct.name())),
       keccak256(abi.encodePacked(constantSum.name()))
     );
 
-    address[] memory pricingModules = Arrays.addresses(address(constantProduct), address(constantSum));
+    address[] memory pricingModules = addresses(address(constantProduct), address(constantSum));
 
     biPoolManager.initialize(
       address(broker),
@@ -403,11 +402,11 @@ contract IntegrationTest is BaseTest {
 
     /* ====== Create pairs for all asset combinations ======= */
 
-    BiPoolManager.PoolExchange memory pair_cUSD_CELO;
+    IBiPoolManager.PoolExchange memory pair_cUSD_CELO;
     pair_cUSD_CELO.asset0 = address(cUSDToken);
     pair_cUSD_CELO.asset1 = address(celoToken);
     pair_cUSD_CELO.pricingModule = constantProduct;
-    pair_cUSD_CELO.lastBucketUpdate = now;
+    pair_cUSD_CELO.lastBucketUpdate = block.timestamp;
     pair_cUSD_CELO.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cUSD_CELO.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_CELO.config.minimumReports = 5;
@@ -416,11 +415,11 @@ contract IntegrationTest is BaseTest {
 
     pair_cUSD_CELO_ID = biPoolManager.createExchange(pair_cUSD_CELO);
 
-    BiPoolManager.PoolExchange memory pair_cEUR_CELO;
+    IBiPoolManager.PoolExchange memory pair_cEUR_CELO;
     pair_cEUR_CELO.asset0 = address(cEURToken);
     pair_cEUR_CELO.asset1 = address(celoToken);
     pair_cEUR_CELO.pricingModule = constantProduct;
-    pair_cEUR_CELO.lastBucketUpdate = now;
+    pair_cEUR_CELO.lastBucketUpdate = block.timestamp;
     pair_cEUR_CELO.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cEUR_CELO.config.referenceRateResetFrequency = 60 * 5;
     pair_cEUR_CELO.config.minimumReports = 5;
@@ -429,11 +428,11 @@ contract IntegrationTest is BaseTest {
 
     pair_cEUR_CELO_ID = biPoolManager.createExchange(pair_cEUR_CELO);
 
-    BiPoolManager.PoolExchange memory pair_cUSD_bridgedUSDC;
+    IBiPoolManager.PoolExchange memory pair_cUSD_bridgedUSDC;
     pair_cUSD_bridgedUSDC.asset0 = address(cUSDToken);
     pair_cUSD_bridgedUSDC.asset1 = address(usdcToken);
     pair_cUSD_bridgedUSDC.pricingModule = constantSum;
-    pair_cUSD_bridgedUSDC.lastBucketUpdate = now;
+    pair_cUSD_bridgedUSDC.lastBucketUpdate = block.timestamp;
     pair_cUSD_bridgedUSDC.config.spread = FixidityLib.newFixedFraction(5, 1000);
     pair_cUSD_bridgedUSDC.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_bridgedUSDC.config.minimumReports = 5;
@@ -442,11 +441,11 @@ contract IntegrationTest is BaseTest {
 
     pair_cUSD_bridgedUSDC_ID = biPoolManager.createExchange(pair_cUSD_bridgedUSDC);
 
-    BiPoolManager.PoolExchange memory pair_cEUR_bridgedUSDC;
+    IBiPoolManager.PoolExchange memory pair_cEUR_bridgedUSDC;
     pair_cEUR_bridgedUSDC.asset0 = address(cEURToken);
     pair_cEUR_bridgedUSDC.asset1 = address(usdcToken);
     pair_cEUR_bridgedUSDC.pricingModule = constantSum;
-    pair_cEUR_bridgedUSDC.lastBucketUpdate = now;
+    pair_cEUR_bridgedUSDC.lastBucketUpdate = block.timestamp;
     pair_cEUR_bridgedUSDC.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cEUR_bridgedUSDC.config.referenceRateResetFrequency = 60 * 5;
     pair_cEUR_bridgedUSDC.config.minimumReports = 5;
@@ -455,11 +454,11 @@ contract IntegrationTest is BaseTest {
 
     pair_cEUR_bridgedUSDC_ID = biPoolManager.createExchange(pair_cEUR_bridgedUSDC);
 
-    BiPoolManager.PoolExchange memory pair_cUSD_cEUR;
+    IBiPoolManager.PoolExchange memory pair_cUSD_cEUR;
     pair_cUSD_cEUR.asset0 = address(cUSDToken);
     pair_cUSD_cEUR.asset1 = address(cEURToken);
     pair_cUSD_cEUR.pricingModule = constantProduct;
-    pair_cUSD_cEUR.lastBucketUpdate = now;
+    pair_cUSD_cEUR.lastBucketUpdate = block.timestamp;
     pair_cUSD_cEUR.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_cUSD_cEUR.config.referenceRateResetFrequency = 60 * 5;
     pair_cUSD_cEUR.config.minimumReports = 5;
@@ -468,11 +467,11 @@ contract IntegrationTest is BaseTest {
 
     pair_cUSD_cEUR_ID = biPoolManager.createExchange(pair_cUSD_cEUR);
 
-    BiPoolManager.PoolExchange memory pair_eXOF_bridgedEUROC;
+    IBiPoolManager.PoolExchange memory pair_eXOF_bridgedEUROC;
     pair_eXOF_bridgedEUROC.asset0 = address(eXOFToken);
     pair_eXOF_bridgedEUROC.asset1 = address(eurocToken);
     pair_eXOF_bridgedEUROC.pricingModule = constantSum;
-    pair_eXOF_bridgedEUROC.lastBucketUpdate = now;
+    pair_eXOF_bridgedEUROC.lastBucketUpdate = block.timestamp;
     pair_eXOF_bridgedEUROC.config.spread = FixidityLib.newFixedFraction(5, 1000);
     pair_eXOF_bridgedEUROC.config.referenceRateResetFrequency = 60 * 5;
     pair_eXOF_bridgedEUROC.config.minimumReports = 5;
@@ -485,13 +484,13 @@ contract IntegrationTest is BaseTest {
   function setUp_freezer() internal {
     /* ========== Deploy Freezer =============== */
 
-    freezer = new Freezer(true);
+    freezer = IFreezer(CVS.deploy("Freezer", abi.encode(true)));
     registry.setAddressFor("Freezer", address(freezer));
   }
 
   function setUp_tradingLimits() internal {
     /* ========== Config Trading Limits =============== */
-    TradingLimits.Config memory config = configL0L1LG(100, 10000, 1000, 100000, 1000000);
+    ITradingLimits.Config memory config = configL0L1LG(100, 10000, 1000, 100000, 1000000);
     broker.configureTradingLimit(pair_cUSD_CELO_ID, address(cUSDToken), config);
     broker.configureTradingLimit(pair_cEUR_CELO_ID, address(cEURToken), config);
     broker.configureTradingLimit(pair_cUSD_bridgedUSDC_ID, address(usdcToken), config);
@@ -506,7 +505,7 @@ contract IntegrationTest is BaseTest {
     uint32 timestep1,
     int48 limit1,
     int48 limitGlobal
-  ) internal pure returns (TradingLimits.Config memory config) {
+  ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0 = limit0;
     config.timestep1 = timestep1;

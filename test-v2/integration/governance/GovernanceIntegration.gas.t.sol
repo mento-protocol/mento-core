@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
-import { TestSetup } from "../TestSetup.sol";
+import { GovernanceTest } from "../../governance/GovernanceTest.sol";
 import { Vm } from "forge-std-next/Vm.sol";
 import { VmExtension } from "test/utils/VmExtension.sol";
 
@@ -19,7 +19,7 @@ import { Arrays } from "test/utils/Arrays.sol";
 
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
-contract GovernanceGasTest is TestSetup {
+contract GovernanceGasTest is GovernanceTest {
   using VmExtension for Vm;
 
   GovernanceFactory public factory;

@@ -1,38 +1,39 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility,
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import { Ownable } from "openzeppelin-contracts/ownership/Ownable.sol";
+import { CVS } from "mento-std/CVS.sol";
 
-import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
-import { MockAggregatorV3 } from "../mocks/MockAggregatorV3.sol";
+import { ProtocolTest } from "./ProtocolTest.sol";
+import { MockAggregatorV3 } from "../../mocks/MockAggregatorV3.sol";
 
-import { IChainlinkRelayerFactory } from "contracts/interfaces/IChainlinkRelayerFactory.sol";
-import { IChainlinkRelayer } from "contracts/interfaces/IChainlinkRelayer.sol";
-import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
-import { ITransparentProxy } from "contracts/interfaces/ITransparentProxy.sol";
+import { IOwnable } from "contracts/interfaces/IOwnable.sol";
 
-contract ChainlinkRelayerIntegration is IntegrationTest {
-  address owner = actor("owner");
+import "contracts/interfaces/IChainlinkRelayerFactory.sol";
+import "contracts/interfaces/ITransparentProxy.sol";
+import "contracts/oracles/ChainlinkRelayerFactoryProxyAdmin.sol";
+import "contracts/oracles/ChainlinkRelayerFactoryProxy.sol";
+import "contracts/oracles/ChainlinkRelayerFactory.sol";
+import "contracts/oracles/ChainlinkRelayerV1.sol";
+import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-  IChainlinkRelayerFactory relayerFactoryImplementation;
+contract ChainlinkRelayerIntegration is ProtocolTest {
+  address owner = makeAddr("owner");
+
+  ChainlinkRelayerFactory relayerFactoryImplementation;
+  ChainlinkRelayerFactoryProxyAdmin proxyAdmin;
+  ITransparentUpgradeableProxy proxy;
   IChainlinkRelayerFactory relayerFactory;
-  IProxyAdmin proxyAdmin;
-  ITransparentProxy proxy;
 
-  function setUp() public {
-    IntegrationTest.setUp();
+  function setUp() public virtual override {
+    super.setUp();
 
-    proxyAdmin = IProxyAdmin(factory.createContract("ChainlinkRelayerFactoryProxyAdmin", ""));
-    relayerFactoryImplementation = IChainlinkRelayerFactory(
-      factory.createContract("ChainlinkRelayerFactory", abi.encode(true))
-    );
-    proxy = ITransparentProxy(
-      factory.createContract(
-        "ChainlinkRelayerFactoryProxy",
-        abi.encode(
+    proxyAdmin = new ChainlinkRelayerFactoryProxyAdmin();
+    relayerFactoryImplementation = new ChainlinkRelayerFactory(true);
+    proxy = ITransparentUpgradeableProxy(
+      address(
+        new ChainlinkRelayerFactoryProxy(
           address(relayerFactoryImplementation),
           address(proxyAdmin),
           abi.encodeWithSignature("initialize(address)", address(sortedOracles))
@@ -40,21 +41,20 @@ contract ChainlinkRelayerIntegration is IntegrationTest {
       )
     );
     relayerFactory = IChainlinkRelayerFactory(address(proxy));
-    vm.startPrank(address(factory));
-    Ownable(address(proxyAdmin)).transferOwnership(owner);
-    Ownable(address(relayerFactory)).transferOwnership(owner);
-    vm.stopPrank();
+
+    IOwnable(address(proxyAdmin)).transferOwnership(owner);
+    IOwnable(address(relayerFactory)).transferOwnership(owner);
   }
 }
 
 contract ChainlinkRelayerIntegration_ProxySetup is ChainlinkRelayerIntegration {
-  function test_proxyOwnedByAdmin() public {
-    address admin = proxyAdmin.getProxyAdmin(address(proxy));
+  function test_proxyOwnedByAdmin() public view {
+    address admin = proxyAdmin.getProxyAdmin(proxy);
     assertEq(admin, address(proxyAdmin));
   }
 
-  function test_adminOwnedByOwner() public {
-    address realOwner = Ownable(address(proxyAdmin)).owner();
+  function test_adminOwnedByOwner() public view {
+    address realOwner = IOwnable(address(proxyAdmin)).owner();
     assertEq(realOwner, owner);
   }
 
@@ -70,13 +70,13 @@ contract ChainlinkRelayerIntegration_ProxySetup is ChainlinkRelayerIntegration {
     proxy.implementation();
   }
 
-  function test_implementationOwnedByOwner() public {
-    address realOwner = Ownable(address(relayerFactory)).owner();
+  function test_implementationOwnedByOwner() public view {
+    address realOwner = IOwnable(address(relayerFactory)).owner();
     assertEq(realOwner, owner);
   }
 
-  function test_implementationSetCorrectly() public {
-    address implementation = proxyAdmin.getProxyImplementation(address(proxy));
+  function test_implementationSetCorrectly() public view {
+    address implementation = proxyAdmin.getProxyImplementation(proxy);
     assertEq(implementation, address(relayerFactoryImplementation));
   }
 
@@ -93,7 +93,7 @@ contract ChainlinkRelayerIntegration_ReportAfterRedeploy is ChainlinkRelayerInte
   MockAggregatorV3 chainlinkAggregator0;
   MockAggregatorV3 chainlinkAggregator1;
 
-  function setUp() public {
+  function setUp() public override {
     super.setUp();
 
     chainlinkAggregator0 = new MockAggregatorV3(8);
@@ -111,7 +111,6 @@ contract ChainlinkRelayerIntegration_ReportAfterRedeploy is ChainlinkRelayerInte
       relayerFactory.deployRelayer(rateFeedId, "cUSD/FOO", aggregatorList0)
     );
 
-    vm.prank(deployer);
     sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer0));
 
     chainlinkAggregator0.setRoundData(1000000, block.timestamp);
@@ -124,7 +123,6 @@ contract ChainlinkRelayerIntegration_ReportAfterRedeploy is ChainlinkRelayerInte
       relayerFactory.redeployRelayer(rateFeedId, "cUSD/FOO", aggregatorList1)
     );
 
-    vm.prank(deployer);
     sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer1));
 
     chainlinkAggregator1.setRoundData(1000000, block.timestamp);
@@ -146,7 +144,7 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
   MockAggregatorV3 chainlinkAggregator;
   IChainlinkRelayer chainlinkRelayer;
 
-  function setUp() public {
+  function setUp() public override {
     super.setUp();
 
     setUpRelayer();
@@ -160,7 +158,6 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
     vm.prank(owner);
     chainlinkRelayer = IChainlinkRelayer(relayerFactory.deployRelayer(rateFeedId, "CELO/USD", aggregators));
 
-    vm.prank(deployer);
     sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer));
   }
 
@@ -170,27 +167,23 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
   }
 
   function setUpBreakerBox() public {
-    vm.startPrank(deployer);
     breakerBox.addRateFeed(rateFeedId);
     breakerBox.toggleBreaker(address(valueDeltaBreaker), rateFeedId, true);
-    vm.stopPrank();
   }
 
   function setUpBreaker() public {
     address[] memory rateFeeds = new address[](1);
     rateFeeds[0] = rateFeedId;
     uint256[] memory thresholds = new uint256[](1);
-    thresholds[0] = 10**23; // 10%
+    thresholds[0] = 10 ** 23; // 10%
     uint256[] memory cooldownTimes = new uint256[](1);
     cooldownTimes[0] = 1 minutes;
     uint256[] memory referenceValues = new uint256[](1);
-    referenceValues[0] = 10**24;
+    referenceValues[0] = 10 ** 24;
 
-    vm.startPrank(deployer);
     valueDeltaBreaker.setRateChangeThresholds(rateFeeds, thresholds);
     valueDeltaBreaker.setCooldownTimes(rateFeeds, cooldownTimes);
     valueDeltaBreaker.setReferenceValues(rateFeeds, referenceValues);
-    vm.stopPrank();
   }
 
   function test_initiallyNoPrice() public {
@@ -202,56 +195,56 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
   }
 
   function test_passesPriceFromAggregatorToSortedOracles() public {
-    chainlinkAggregator.setRoundData(10**8, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(10 ** 8, block.timestamp - 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
-    assertEq(price, 10**24);
-    assertEq(denominator, 10**24);
+    assertEq(price, 10 ** 24);
+    assertEq(denominator, 10 ** 24);
     assertEq(uint256(tradingMode), 0);
   }
 
   function test_whenPriceBeyondThresholdIsRelayed_breakerShouldTrigger() public {
-    chainlinkAggregator.setRoundData(12 * 10**7, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(12 * 10 ** 7, block.timestamp - 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
-    assertEq(price, 12 * 10**23);
-    assertEq(denominator, 10**24);
+    assertEq(price, 12 * 10 ** 23);
+    assertEq(denominator, 10 ** 24);
     assertEq(uint256(tradingMode), 3);
   }
 
   function test_whenPriceBeyondThresholdIsRelayedThenRecovers_breakerShouldTriggerThenRecover() public {
-    chainlinkAggregator.setRoundData(12 * 10**7, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(12 * 10 ** 7, block.timestamp - 1);
     chainlinkRelayer.relay();
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
     assertEq(uint256(tradingMode), 3);
 
-    vm.warp(now + 1 minutes + 1);
+    vm.warp(block.timestamp + 1 minutes + 1);
 
-    chainlinkAggregator.setRoundData(105 * 10**6, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp - 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
-    assertEq(price, 105 * 10**22);
-    assertEq(denominator, 10**24);
+    assertEq(price, 105 * 10 ** 22);
+    assertEq(denominator, 10 ** 24);
     assertEq(uint256(tradingMode), 0);
   }
 
   function test_whenPriceBeyondThresholdIsRelayedAndCooldownIsntReached_breakerShouldTriggerAndNotRecover() public {
-    chainlinkAggregator.setRoundData(12 * 10**7, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(12 * 10 ** 7, block.timestamp - 1);
     chainlinkRelayer.relay();
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
     assertEq(uint256(tradingMode), 3);
 
-    vm.warp(now + 1 minutes - 1);
+    vm.warp(block.timestamp + 1 minutes - 1);
 
-    chainlinkAggregator.setRoundData(105 * 10**6, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp - 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
-    assertEq(price, 105 * 10**22);
-    assertEq(denominator, 10**24);
+    assertEq(price, 105 * 10 ** 22);
+    assertEq(denominator, 10 ** 24);
     assertEq(uint256(tradingMode), 3);
   }
 }

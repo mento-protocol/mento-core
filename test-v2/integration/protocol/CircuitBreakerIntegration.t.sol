@@ -1,34 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
-pragma solidity ^0.5.13;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import { Test, console2 as console } from "celo-foundry/Test.sol";
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { ProtocolTest } from "./ProtocolTest.sol";
+import { console } from "forge-std/console.sol";
 
-import { IntegrationTest } from "../utils/IntegrationTest.t.sol";
-import { TokenHelpers } from "../utils/TokenHelpers.t.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
-import { BreakerBox } from "contracts/oracles/BreakerBox.sol";
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 
-import { FixidityLib } from "contracts/common/FixidityLib.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-
-contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
-  using SafeMath for uint256;
+contract CircuitBreakerIntegration is ProtocolTest {
   using FixidityLib for FixidityLib.Fraction;
 
   uint256 fixed1 = FixidityLib.fixed1().unwrap();
 
-  address trader;
+  address trader = makeAddr("trader");
 
-  function setUp() public {
-    IntegrationTest.setUp();
+  function setUp() public override {
+    super.setUp();
 
-    trader = actor("trader");
-
-    mint(cUSDToken, trader, 10**22); // Mint 10k to trader
-    mint(cEURToken, trader, 10**22); // Mint 10k to trader
+    deal(address(cUSDToken), trader, 10 ** 22, true); // Mint 10k to trader
+    deal(address(cEURToken), trader, 10 ** 22, true); // Mint 10k to trader
     deal(address(celoToken), address(reserve), 1e24); // Gift 1Mil Celo to reserve
     deal(address(usdcToken), address(reserve), 1e24); // Gift 1Mil USDC to reserve
   }
@@ -36,23 +29,19 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
   /**
    * @notice Test helper function to do swap in
    */
-  function doSwapIn(
-    bytes32 poolId,
-    address tokenIn,
-    address tokenOut,
-    bool shouldBreak
-  ) public {
-    uint256 amountIn = 10**18;
+  function doSwapIn(bytes32 poolId, address tokenIn, address tokenOut, bool shouldBreak) public {
+    uint256 amountIn = 10 ** 18;
     address[] memory exchangeProviders = broker.getExchangeProviders();
     assertEq(exchangeProviders.length, 1);
 
-    changePrank(trader);
+    vm.prank(trader);
     IERC20(tokenIn).approve(address(broker), amountIn);
 
     if (shouldBreak) {
       vm.expectRevert("Trading is suspended for this reference rate");
     }
     // Execute swap
+    vm.prank(trader);
     broker.swapIn(exchangeProviders[0], poolId, tokenIn, tokenOut, amountIn, 0);
   }
 
@@ -68,7 +57,7 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
     assertEq(uint256(tradingMode), 3); // 3 = trading halted
 
     // Cool down breaker and set new median that doesnt exceed threshold
-    vm.warp(now + 5 minutes);
+    vm.warp(block.timestamp + 5 minutes);
     setMedianRate(cUSD_CELO_referenceRateFeedID, 5e23);
 
     // Check trading mode
@@ -92,7 +81,7 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
     assertEq(uint256(tradingMode), 3); // 3 = trading halted
 
     // Cool down breaker and set new median that doesnt exceed threshold
-    vm.warp(now + 5 minutes);
+    vm.warp(block.timestamp + 5 minutes);
     newMedian = newMedian + (5e23 - 5e23 * 0.151) * 0.14;
     setMedianRate(cUSD_CELO_referenceRateFeedID, newMedian);
 
@@ -113,37 +102,37 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
 
     // Check trading modes & ensure only value delta breaker tripped
     uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cUSD_bridgedUSDC_referenceRateFeedID);
-    (uint8 valueDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (uint8 medianDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory medianBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(medianDeltaBreaker)
     );
     assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
-    assertEq(uint256(valueDeltaTradingMode), 3); // 3 = trading halted
-    assertEq(uint256(medianDeltaTradingMode), 0); // 0 = bidirectional trading
+    assertEq(uint256(valueBreakerStatus.tradingMode), 3); // 3 = trading halted
+    assertEq(uint256(medianBreakerStatus.tradingMode), 0); // 0 = bidirectional trading
 
     setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24 + 1e24 * 0.11);
 
     // Cool down breaker and set new median that doesnt exceed threshold
-    vm.warp(now + 1 seconds);
+    vm.warp(block.timestamp + 1 seconds);
     setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24);
 
     // Check trading modes
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cUSD_bridgedUSDC_referenceRateFeedID);
-    (valueDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (medianDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    medianBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(medianDeltaBreaker)
     );
     assertEq(uint256(rateFeedTradingMode), 0); // 0 = bidirectional trading
-    assertEq(uint256(valueDeltaTradingMode), 0); // 0 = bidirectional trading
-    assertEq(uint256(medianDeltaTradingMode), 0); // 0 = bidirectional trading
+    assertEq(uint256(valueBreakerStatus.tradingMode), 0); // 0 = bidirectional trading
+    assertEq(uint256(medianBreakerStatus.tradingMode), 0); // 0 = bidirectional trading
 
     // Try swap with shouldBreak false -> trading is bidirectional again
     doSwapIn(pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), false);
@@ -158,35 +147,35 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
 
     // Check trading modes & ensure only value delta breaker tripped
     uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cUSD_bridgedUSDC_referenceRateFeedID);
-    (uint8 valueDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (uint8 medianDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory medianBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(medianDeltaBreaker)
     );
-    assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
-    assertEq(uint256(valueDeltaTradingMode), 3); // 3 = trading halted
-    assertEq(uint256(medianDeltaTradingMode), 0); // 0 = bidirectional trading
+    assertEq(rateFeedTradingMode, 3); // 3 = trading halted
+    assertEq(valueBreakerStatus.tradingMode, 3); // 3 = trading halted
+    assertEq(medianBreakerStatus.tradingMode, 0); // 0 = bidirectional trading
 
     // Cool down breaker and set new median that doesnt exceed threshold
-    vm.warp(now + 1 seconds);
+    vm.warp(block.timestamp + 1 seconds);
     setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24);
 
     // Check trading modes
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cUSD_bridgedUSDC_referenceRateFeedID);
-    (valueDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (medianDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    medianBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(medianDeltaBreaker)
     );
     assertEq(uint256(rateFeedTradingMode), 0); // 0 = bidirectional trading
-    assertEq(uint256(valueDeltaTradingMode), 0); // 0 = bidirectional trading
-    assertEq(uint256(medianDeltaTradingMode), 0); // 0 = bidirectional trading
+    assertEq(uint256(valueBreakerStatus.tradingMode), 0); // 0 = bidirectional trading
+    assertEq(uint256(medianBreakerStatus.tradingMode), 0); // 0 = bidirectional trading
 
     // Try swap with shouldBreak false -> trading is bidirectional again
     doSwapIn(pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), false);
@@ -204,7 +193,7 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
     assertEq(uint256(tradingMode), 3); // 3 = trading halted
 
     // Cool down breaker
-    vm.warp(now + 5 minutes);
+    vm.warp(block.timestamp + 5 minutes);
     setMedianRate(cUSD_CELO_referenceRateFeedID, 5e23 * 0.95);
 
     // Check trading mode
@@ -224,35 +213,35 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
 
     // Check trading modes
     uint8 rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cUSD_bridgedUSDC_referenceRateFeedID);
-    (uint8 valueDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (uint8 medianDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    IBreakerBox.BreakerStatus memory medianBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(medianDeltaBreaker)
     );
-    assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
-    assertEq(uint256(valueDeltaTradingMode), 3); // 3 = trading halted
-    assertEq(uint256(medianDeltaTradingMode), 0); // 0 = bidirectional trading
+    assertEq(rateFeedTradingMode, 3); // 3 = trading halted
+    assertEq(valueBreakerStatus.tradingMode, 3); // 3 = trading halted
+    assertEq(medianBreakerStatus.tradingMode, 0); // 0 = bidirectional trading
 
     // Cool down breaker
-    vm.warp(now + 1 seconds);
+    vm.warp(block.timestamp + 1 seconds);
     setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24 + 1e24 * 0.11);
 
     // Check trading modes
     rateFeedTradingMode = breakerBox.getRateFeedTradingMode(cUSD_bridgedUSDC_referenceRateFeedID);
-    (valueDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    valueBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(valueDeltaBreaker)
     );
-    (medianDeltaTradingMode, , ) = breakerBox.rateFeedBreakerStatus(
+    medianBreakerStatus = breakerBox.rateFeedBreakerStatus(
       cUSD_bridgedUSDC_referenceRateFeedID,
       address(medianDeltaBreaker)
     );
-    assertEq(uint256(rateFeedTradingMode), 3); // 0 = bidirectional trading
-    assertEq(uint256(valueDeltaTradingMode), 3); // 0 = bidirectional trading
-    assertEq(uint256(medianDeltaTradingMode), 0); // 0 = bidirectional trading
+    assertEq(rateFeedTradingMode, 3); // 3 = trading halted
+    assertEq(valueBreakerStatus.tradingMode, 3); // 3 = trading halted
+    assertEq(medianBreakerStatus.tradingMode, 0); // 0 = bidirectional trading
 
     // Try swap with shouldBreak true -> median still exceeds threshold
     doSwapIn(pair_cUSD_bridgedUSDC_ID, address(cUSDToken), address(usdcToken), true);
@@ -270,7 +259,7 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
     assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
 
     // Cool down breaker
-    vm.warp(now + 5 seconds);
+    vm.warp(block.timestamp + 5 seconds);
     setMedianRate(cUSD_cEUR_referenceRateFeedID, 11e23 + 11e23 * 0.01);
 
     // Try swap with shouldBreak true
@@ -293,7 +282,7 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
     assertEq(uint256(rateFeedTradingMode), 3); // 3 = trading halted
 
     // Cool down breaker
-    vm.warp(now + 5 seconds);
+    vm.warp(block.timestamp + 5 seconds);
     setMedianRate(cEUR_CELO_referenceRateFeedID, 1e24 + 1e24 * 0.1);
 
     // Try swap with shouldBreak true
@@ -320,7 +309,7 @@ contract CircuitBreakerIntegration is IntegrationTest, TokenHelpers {
     doSwapIn(pair_cEUR_bridgedUSDC_ID, address(cEURToken), address(usdcToken), true);
 
     // Cool down breaker and set new median that doesnt exceed threshold
-    vm.warp(now + 1 seconds);
+    vm.warp(block.timestamp + 1 seconds);
     setMedianRate(cUSD_bridgedUSDC_referenceRateFeedID, 1e24);
 
     // Check that trading modes are set correctly

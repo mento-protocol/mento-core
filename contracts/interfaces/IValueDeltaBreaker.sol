@@ -18,7 +18,7 @@ interface IValueDeltaBreaker is IBreaker, IOwnable {
 
   function setBreakerBox(address _breakerBox) external;
 
-  function setCooldownTime(address[] calldata rateFeedIDs, uint256 cooldownTime) external;
+  function setCooldownTimes(address[] calldata rateFeedIDs, uint256[] calldata cooldownTime) external;
 
   function getCoolDown(address rateFeedID) external view returns (uint256);
 

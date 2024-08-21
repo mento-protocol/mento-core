@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
-import { TestSetup } from "../TestSetup.sol";
+import { GovernanceTest } from "../../governance/GovernanceTest.sol";
 import { Vm } from "forge-std-next/Vm.sol";
 import { VmExtension } from "test/utils/VmExtension.sol";
 
@@ -25,7 +25,7 @@ import { Enum } from "safe-contracts/contracts/common/Enum.sol";
 
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-contract GovernanceIntegrationTest is TestSetup {
+contract GovernanceIntegrationTest is GovernanceTest {
   using VmExtension for Vm;
 
   GovernanceFactory public factory;
@@ -157,10 +157,10 @@ contract GovernanceIntegrationTest is TestSetup {
   }
 
   function test_factory_shouldCreateAndSetupContracts() public {
-    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 200_000_000 * 10**18);
-    assertEq(mentoToken.balanceOf(address(airgrab)), 50_000_000 * 10**18);
-    assertEq(mentoToken.balanceOf(governanceTimelockAddress), 100_000_000 * 10**18);
-    assertEq(mentoToken.emissionSupply(), 650_000_000 * 10**18);
+    assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 200_000_000 * 10 ** 18);
+    assertEq(mentoToken.balanceOf(address(airgrab)), 50_000_000 * 10 ** 18);
+    assertEq(mentoToken.balanceOf(governanceTimelockAddress), 100_000_000 * 10 ** 18);
+    assertEq(mentoToken.emissionSupply(), 650_000_000 * 10 ** 18);
     assertEq(mentoToken.emission(), address(emission));
     assertEq(mentoToken.symbol(), "MENTO");
     assertEq(mentoToken.name(), "Mento Token");
@@ -168,7 +168,7 @@ contract GovernanceIntegrationTest is TestSetup {
     assertEq(emission.emissionStartTime(), block.timestamp);
     assertEq(address(emission.mentoToken()), address(mentoToken));
     assertEq(emission.emissionTarget(), address(governanceTimelockAddress));
-    assertEq(emission.emissionSupply(), 650_000_000 * 10**18);
+    assertEq(emission.emissionSupply(), 650_000_000 * 10 ** 18);
     assertEq(emission.owner(), governanceTimelockAddress);
 
     assertEq(airgrab.root(), merkleRoot);

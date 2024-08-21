@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity >0.5.13 <0.9;
 
+import { IBreakerBox } from "./IBreakerBox.sol";
+
 interface ISortedOracles {
   enum MedianRelation {
     Undefined,
@@ -29,7 +31,13 @@ interface ISortedOracles {
 
   function getOracles(address) external view returns (address[] memory);
 
+  function getRates(address token) external view returns (address[] memory, uint256[] memory, MedianRelation[] memory);
+
   function getTimestamps(
     address token
   ) external view returns (address[] memory, uint256[] memory, MedianRelation[] memory);
+
+  function initialize(uint256) external;
+
+  function setBreakerBox(IBreakerBox) external;
 }

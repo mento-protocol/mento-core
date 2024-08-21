@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
-import { TestSetup } from "../TestSetup.sol";
+import { GovernanceTest } from "../../governance/GovernanceTest.sol";
 import { Vm } from "forge-std-next/Vm.sol";
 import { VmExtension } from "test/utils/VmExtension.sol";
 import { Arrays } from "test/utils/Arrays.sol";
@@ -17,7 +17,7 @@ import { console } from "forge-std-next/console.sol";
  * @title Fuzz Testing for Locking Integration
  * @dev Fuzz tests to ensure the locking mechanism integrates correctly with the governance system, providing the expected voting power based on token lock amount and duration.
  */
-contract FuzzLockingIntegrationTest is TestSetup {
+contract FuzzLockingIntegrationTest is GovernanceTest {
   using VmExtension for Vm;
 
   GovernanceFactory public factory;
@@ -152,11 +152,7 @@ contract FuzzLockingIntegrationTest is TestSetup {
   /**
    * @dev Calculates the expected voting power based on lock amount, slope, and cliff.
    */
-  function calculateVotes(
-    uint96 amount,
-    uint32 slope,
-    uint32 cliff
-  ) public pure returns (uint96) {
+  function calculateVotes(uint96 amount, uint32 slope, uint32 cliff) public pure returns (uint96) {
     uint96 cliffSide = (uint96(cliff) * 1e8) / 103;
     uint96 slopeSide = (uint96(slope) * 1e8) / 104;
     uint96 multiplier = cliffSide + slopeSide;
