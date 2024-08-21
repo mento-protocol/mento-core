@@ -2,12 +2,11 @@
 pragma solidity 0.8.18;
 // solhint-disable state-visibility
 
+import { Test } from "mento-std/Test.sol";
+import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
+
 import { TestERC20 } from "../../mocks/TestERC20.sol";
 import { LockingHarness } from "../../harnesses/LockingHarness.sol";
-import { Test } from "mento-std/Test.sol";
-
-// import { Vm } from "forge-std/Vm.sol";
-// import { DSTest } from "ds-test/test.sol";
 
 /**
  * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb
@@ -25,10 +24,10 @@ contract FuzzTestLocking is Test {
     vm.deal(user0, 100 ether);
     user1 = address(200);
     vm.deal(user1, 100 ether);
-    testERC20 = new TestERC20();
+    testERC20 = new TestERC20("Test", "TST");
 
     locking = new LockingHarness();
-    locking.__Locking_init(testERC20, 0, 1, 3);
+    locking.__Locking_init(IERC20Upgradeable(address(testERC20)), 0, 1, 3);
     locking.incrementBlock(locking.WEEK() + 1);
   }
 

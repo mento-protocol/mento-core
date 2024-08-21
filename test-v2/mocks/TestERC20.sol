@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
+import "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
 
-contract TestERC20 is ERC20Upgradeable {
-  function mint(address to, uint256 amount) external {
+contract TestERC20 is ERC20 {
+  constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+
+  function mint(address to, uint256 amount) external returns (bool) {
     _mint(to, amount);
+    return true;
   }
 
-  function init() external {
-    __ERC20_init("TestERC20", "TE20");
+  function burn(uint256 amount) public returns (bool) {
+    _burn(msg.sender, amount);
+    return true;
   }
 }

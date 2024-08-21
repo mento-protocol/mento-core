@@ -4,8 +4,8 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
+import { CVS } from "mento-std/CVS.sol";
 
-import { MockStableToken } from "../mocks/MockStableToken.sol";
 import { MockExchangeProvider } from "../mocks/MockExchangeProvider.sol";
 import { MockReserve } from "../mocks/MockReserve.sol";
 import { TestERC20 } from "../mocks/TestERC20.sol";
@@ -15,9 +15,8 @@ import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
-
-import { ITradingLimitsHarness } from "../harnesses/ITradingLimitsHarness.sol";
-import { Broker } from "contracts/swap/Broker.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
+import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 
 // forge test --match-contract Broker -vvv
 contract BrokerTest is Test {
@@ -35,79 +34,75 @@ contract BrokerTest is Test {
   event ExchangeProviderAdded(address indexed exchangeProvider);
   event ExchangeProviderRemoved(address indexed exchangeProvider);
   event ReserveSet(address indexed newAddress, address indexed prevAddress);
-  event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimitsHarness.Config config);
+  event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimits.Config config);
 
-  address deployer = actor("deployer");
-  address notDeployer = actor("notDeployer");
-  address trader = actor("trader");
-  address randomExchangeProvider = actor("randomExchangeProvider");
-  address randomAsset = actor("randomAsset");
+  address deployer = makeAddr("deployer");
+  address notDeployer = makeAddr("notDeployer");
+  address trader = makeAddr("trader");
+  address randomExchangeProvider = makeAddr("randomExchangeProvider");
+  address randomAsset = makeAddr("randomAsset");
 
   MockReserve reserve;
-  MockStableToken stableAsset;
-  DummyERC20 collateralAsset;
+  TestERC20 stableAsset;
+  TestERC20 collateralAsset;
 
-  Broker broker;
+  IBroker broker;
 
   MockExchangeProvider exchangeProvider;
-  address exchangeProvider1 = actor("exchangeProvider1");
-  address exchangeProvider2 = actor("exchangeProvider2");
+  address exchangeProvider1 = makeAddr("exchangeProvider1");
+  address exchangeProvider2 = makeAddr("exchangeProvider2");
 
   address[] public exchangeProviders;
 
-  function setUp() public {
-    /* Dependencies and actors */
+  function setUp() public virtual {
+    /* Dependencies and makeAddrs */
     reserve = new MockReserve();
-    collateralAsset = new DummyERC20("Collateral", "CL", 18);
-    stableAsset = new MockStableToken();
-    randomAsset = actor("randomAsset");
-    broker = new Broker(true);
+    collateralAsset = new TestERC20("Collateral", "CL");
+    stableAsset = new TestERC20("StableAsset", "SA0");
+    randomAsset = makeAddr("randomAsset");
+    broker = IBroker(CVS.deploy("Broker", abi.encode(true)));
     exchangeProvider = new MockExchangeProvider();
 
     reserve.addToken(address(stableAsset));
     reserve.addCollateralAsset(address(collateralAsset));
 
-    vm.startPrank(deployer);
     exchangeProviders.push(exchangeProvider1);
     exchangeProviders.push(exchangeProvider2);
     exchangeProviders.push((address(exchangeProvider)));
     broker.initialize(exchangeProviders, address(reserve));
-    changePrank(trader);
   }
 }
 
 contract BrokerTest_initilizerAndSetters is BrokerTest {
   /* ---------- Initilizer ---------- */
 
-  function test_initilize_shouldSetOwner() public {
-    assertEq(broker.owner(), deployer);
+  function test_initilize_shouldSetOwner() public view {
+    assertEq(broker.owner(), address(this));
   }
 
-  function test_initilize_shouldSetExchangeProviderAddresseses() public {
+  function test_initilize_shouldSetExchangeProviderAddresseses() public view {
     assertEq(broker.getExchangeProviders(), exchangeProviders);
   }
 
-  function test_initilize_shouldSetReserve() public {
+  function test_initilize_shouldSetReserve() public view {
     assertEq(address(broker.reserve()), address(reserve));
   }
 
   /* ---------- Setters ---------- */
 
   function test_addExchangeProvider_whenSenderIsNotOwner_shouldRevert() public {
-    changePrank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(notDeployer);
     broker.addExchangeProvider(address(0));
   }
 
   function test_addExchangeProvider_whenAddressIsZero_shouldRevert() public {
-    changePrank(deployer);
     vm.expectRevert("ExchangeProvider address can't be 0");
     broker.addExchangeProvider(address(0));
   }
 
   function test_addExchangeProvider_whenSenderIsOwner_shouldUpdateAndEmit() public {
-    changePrank(deployer);
-    address newExchangeProvider = actor("newExchangeProvider");
+    address newExchangeProvider = makeAddr("newExchangeProvider");
     vm.expectEmit(true, false, false, false);
     emit ExchangeProviderAdded(newExchangeProvider);
     broker.addExchangeProvider(newExchangeProvider);
@@ -117,13 +112,11 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
   }
 
   function test_addExchangeProvider_whenAlreadyAdded_shouldRevert() public {
-    changePrank(deployer);
     vm.expectRevert("ExchangeProvider already exists in the list");
     broker.addExchangeProvider(address(exchangeProvider));
   }
 
   function test_removeExchangeProvider_whenSenderIsOwner_shouldUpdateAndEmit() public {
-    changePrank(deployer);
     vm.expectEmit(true, true, true, true);
     emit ExchangeProviderRemoved(exchangeProvider1);
     broker.removeExchangeProvider(exchangeProvider1, 0);
@@ -131,38 +124,34 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
   }
 
   function test_removeExchangeProvider_whenAddressDoesNotExist_shouldRevert() public {
-    changePrank(deployer);
     vm.expectRevert("index doesn't match provider");
     broker.removeExchangeProvider(notDeployer, 1);
   }
 
   function test_removeExchangeProvider_whenIndexOutOfRange_shouldRevert() public {
-    changePrank(deployer);
     vm.expectRevert("index doesn't match provider");
     broker.removeExchangeProvider(exchangeProvider1, 1);
   }
 
   function test_removeExchangeProvider_whenNotOwner_shouldRevert() public {
-    changePrank(notDeployer);
+    vm.prank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     broker.removeExchangeProvider(exchangeProvider1, 0);
   }
 
   function test_setReserve_whenSenderIsNotOwner_shouldRevert() public {
-    changePrank(notDeployer);
+    vm.prank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
     broker.setReserve(address(0));
   }
 
   function test_setReserve_whenAddressIsZero_shouldRevert() public {
-    changePrank(deployer);
     vm.expectRevert("Reserve address must be set");
     broker.setReserve(address(0));
   }
 
   function test_setReserve_whenSenderIsOwner_shouldUpdateAndEmit() public {
-    changePrank(deployer);
-    address newReserve = actor("newReserve");
+    address newReserve = makeAddr("newReserve");
     vm.expectEmit(true, false, false, false);
     emit ReserveSet(newReserve, address(reserve));
 
@@ -172,9 +161,10 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
 }
 
 contract BrokerTest_getAmounts is BrokerTest {
+  using FixidityLib for FixidityLib.Fraction;
   bytes32 exchangeId = keccak256(abi.encode("exhcangeId"));
 
-  function setUp() public {
+  function setUp() public override {
     super.setUp();
     exchangeProvider.setRate(
       exchangeId,
@@ -189,7 +179,7 @@ contract BrokerTest_getAmounts is BrokerTest {
     broker.getAmountIn(randomExchangeProvider, exchangeId, address(stableAsset), address(collateralAsset), 1e24);
   }
 
-  function test_getAmountIn_whenExchangeProviderIsSet_shouldReceiveCall() public {
+  function test_getAmountIn_whenExchangeProviderIsSet_shouldReceiveCall() public view {
     uint256 amountIn = broker.getAmountIn(
       address(exchangeProvider),
       exchangeId,
@@ -233,15 +223,15 @@ contract BrokerTest_BurnStableTokens is BrokerTest {
   uint256 burnAmount = 1;
 
   function test_burnStableTokens_whenTokenIsNotReserveStable_shouldRevert() public {
-    changePrank(notDeployer);
+    vm.prank(notDeployer);
     vm.expectRevert("Token must be a reserve stable asset");
     broker.burnStableTokens(randomAsset, 2);
   }
 
   function test_burnStableTokens_whenTokenIsAReserveStable_shouldBurnAndEmit() public {
     stableAsset.mint(notDeployer, 2);
-
-    changePrank(notDeployer);
+    vm.prank(notDeployer);
+    stableAsset.approve(address(broker), 2);
 
     vm.expectCall(
       address(IStableTokenV2(address(stableAsset))),
@@ -258,6 +248,7 @@ contract BrokerTest_BurnStableTokens is BrokerTest {
       abi.encodeWithSelector(IStableTokenV2(address(stableAsset)).burn.selector, burnAmount)
     );
 
+    vm.prank(notDeployer);
     bool result = broker.burnStableTokens(address(stableAsset), 1);
 
     assertEq(result, true);
@@ -267,6 +258,7 @@ contract BrokerTest_BurnStableTokens is BrokerTest {
 }
 
 contract BrokerTest_swap is BrokerTest {
+  using FixidityLib for FixidityLib.Fraction;
   struct AccountBalanceSnapshot {
     uint256 stable;
     uint256 collateral;
@@ -280,7 +272,7 @@ contract BrokerTest_swap is BrokerTest {
 
   bytes32 exchangeId = keccak256(abi.encode("exhcangeId"));
 
-  function setUp() public {
+  function setUp() public override {
     super.setUp();
     exchangeProvider.setRate(
       exchangeId,
@@ -314,7 +306,6 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapIn_whenTokenInStableAsset_shouldUpdateAndEmit() public {
-    changePrank(trader);
     uint256 amountIn = 1e16;
     uint256 expectedAmountOut = exchangeProvider.getAmountOut(
       exchangeId,
@@ -322,6 +313,9 @@ contract BrokerTest_swap is BrokerTest {
       address(collateralAsset),
       amountIn
     );
+
+    vm.prank(trader);
+    stableAsset.approve(address(broker), amountIn);
 
     BalanceSnapshot memory balBefore = makeBalanceSnapshot();
 
@@ -335,6 +329,7 @@ contract BrokerTest_swap is BrokerTest {
       amountIn,
       expectedAmountOut
     );
+    vm.prank(trader);
     uint256 amountOut = broker.swapIn(
       address(exchangeProvider),
       exchangeId,
@@ -355,7 +350,6 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapIn_whenTokenInCollateralAsset_shouldUpdateAndEmit() public {
-    changePrank(trader);
     uint256 amountIn = 1e16;
     uint256 expectedAmountOut = exchangeProvider.getAmountOut(
       exchangeId,
@@ -364,6 +358,7 @@ contract BrokerTest_swap is BrokerTest {
       amountIn
     );
 
+    vm.prank(trader);
     collateralAsset.approve(address(broker), amountIn);
     BalanceSnapshot memory balBefore = makeBalanceSnapshot();
 
@@ -377,6 +372,7 @@ contract BrokerTest_swap is BrokerTest {
       amountIn,
       expectedAmountOut
     );
+    vm.prank(trader);
     uint256 amountOut = broker.swapIn(
       address(exchangeProvider),
       exchangeId,
@@ -397,7 +393,6 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapOut_whenTokenInStableAsset_shoulUpdateAndEmit() public {
-    changePrank(trader);
     uint256 amountOut = 1e16;
     uint256 expectedAmountIn = exchangeProvider.getAmountIn(
       exchangeId,
@@ -406,7 +401,10 @@ contract BrokerTest_swap is BrokerTest {
       amountOut
     );
 
+    vm.prank(trader);
+    stableAsset.approve(address(broker), expectedAmountIn);
     BalanceSnapshot memory balBefore = makeBalanceSnapshot();
+
     vm.expectEmit(true, true, true, true);
     emit Swap(
       address(exchangeProvider),
@@ -417,7 +415,7 @@ contract BrokerTest_swap is BrokerTest {
       expectedAmountIn,
       amountOut
     );
-
+    vm.prank(trader);
     uint256 amountIn = broker.swapOut(
       address(exchangeProvider),
       exchangeId,
@@ -438,7 +436,6 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapOut_whenTokenInCollateralAsset_shouldUpdateAndEmit() public {
-    changePrank(trader);
     uint256 amountOut = 1e16;
     uint256 expectedAmountIn = exchangeProvider.getAmountIn(
       exchangeId,
@@ -447,6 +444,7 @@ contract BrokerTest_swap is BrokerTest {
       amountOut
     );
 
+    vm.prank(trader);
     collateralAsset.approve(address(broker), expectedAmountIn);
     BalanceSnapshot memory balBefore = makeBalanceSnapshot();
 
@@ -460,6 +458,7 @@ contract BrokerTest_swap is BrokerTest {
       expectedAmountIn,
       amountOut
     );
+    vm.prank(trader);
     uint256 amountIn = broker.swapOut(
       address(exchangeProvider),
       exchangeId,
@@ -485,32 +484,33 @@ contract BrokerTest_swap is BrokerTest {
   }
 
   function test_swapIn_whenTradingLimitWasNotMet_shouldSwap() public {
-    ITradingLimitsHarness.Config memory config;
+    ITradingLimits.Config memory config;
     config.flags = 1;
     config.timestep0 = 10000;
     config.limit0 = 1000;
-    changePrank(deployer);
+
     vm.expectEmit(true, true, true, true);
     emit TradingLimitConfigured(exchangeId, address(stableAsset), config);
     broker.configureTradingLimit(exchangeId, address(stableAsset), config);
-    changePrank(trader);
 
+    vm.prank(trader);
     collateralAsset.approve(address(broker), 1e21);
+    vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 1e20, 1e16);
   }
 
   function test_swapIn_whenTradingLimitWasMet_shouldNotSwap() public {
-    TradingLimits.Config memory config;
+    ITradingLimits.Config memory config;
     config.flags = 1;
     config.timestep0 = 10000;
     config.limit0 = 100;
-    changePrank(deployer);
+
     vm.expectEmit(true, true, true, true);
     emit TradingLimitConfigured(exchangeId, address(stableAsset), config);
     broker.configureTradingLimit(exchangeId, address(stableAsset), config);
-    changePrank(trader);
 
     vm.expectRevert(bytes("L0 Exceeded"));
+    vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 5e20, 0);
   }
 }

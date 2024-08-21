@@ -6,6 +6,8 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 import { CVS } from "mento-std/CVS.sol";
 import { console } from "forge-std/console.sol";
+import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
+
 import { ITradingLimitsHarness } from "../harnesses/ITradingLimitsHarness.sol";
 
 // forge test --match-contract TradingLimits -vvv
@@ -14,24 +16,24 @@ contract TradingLimitsTest is Test {
   uint8 private constant L1 = 2; // 0b010
   uint8 private constant LG = 4; // 0b100
 
-  ITradingLimitsHarness.State private state;
+  ITradingLimits.State private state;
   ITradingLimitsHarness private harness;
 
-  function configEmpty() internal pure returns (ITradingLimitsHarness.Config memory config) {}
+  function configEmpty() internal pure returns (ITradingLimits.Config memory config) {}
 
-  function configL0(uint32 timestep0, int48 limit0) internal pure returns (ITradingLimitsHarness.Config memory config) {
+  function configL0(uint32 timestep0, int48 limit0) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0 = limit0;
     config.flags = L0;
   }
 
-  function configL1(uint32 timestep1, int48 limit1) internal pure returns (ITradingLimitsHarness.Config memory config) {
+  function configL1(uint32 timestep1, int48 limit1) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep1 = timestep1;
     config.limit1 = limit1;
     config.flags = L1;
   }
 
-  function configLG(int48 limitGlobal) internal pure returns (ITradingLimitsHarness.Config memory config) {
+  function configLG(int48 limitGlobal) internal pure returns (ITradingLimits.Config memory config) {
     config.limitGlobal = limitGlobal;
     config.flags = LG;
   }
@@ -41,7 +43,7 @@ contract TradingLimitsTest is Test {
     int48 limit0,
     uint32 timestep1,
     int48 limit1
-  ) internal pure returns (ITradingLimitsHarness.Config memory config) {
+  ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0 = limit0;
     config.timestep1 = timestep1;
@@ -55,7 +57,7 @@ contract TradingLimitsTest is Test {
     uint32 timestep1,
     int48 limit1,
     int48 limitGlobal
-  ) internal pure returns (ITradingLimitsHarness.Config memory config) {
+  ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0 = limit0;
     config.timestep1 = timestep1;
@@ -68,7 +70,7 @@ contract TradingLimitsTest is Test {
     uint32 timestep1,
     int48 limit1,
     int48 limitGlobal
-  ) internal pure returns (ITradingLimitsHarness.Config memory config) {
+  ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep1 = timestep1;
     config.limit1 = limit1;
     config.limitGlobal = limitGlobal;
@@ -79,7 +81,7 @@ contract TradingLimitsTest is Test {
     uint32 timestep0,
     int48 limit0,
     int48 limitGlobal
-  ) internal pure returns (ITradingLimitsHarness.Config memory config) {
+  ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0 = limit0;
     config.limitGlobal = limitGlobal;
@@ -93,70 +95,70 @@ contract TradingLimitsTest is Test {
   /* ==================== Config#validate ==================== */
 
   function test_validate_withL0_isValid() public view {
-    ITradingLimitsHarness.Config memory config = configL0(100, 1000);
+    ITradingLimits.Config memory config = configL0(100, 1000);
     harness.validate(config);
   }
 
   function test_validate_withL0_withoutTimestep_isNotValid() public {
-    ITradingLimitsHarness.Config memory config = configL0(0, 1000);
+    ITradingLimits.Config memory config = configL0(0, 1000);
     vm.expectRevert(bytes("timestep0 can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0_withoutLimit0_isNotValid() public {
-    ITradingLimitsHarness.Config memory config = configL0(100, 0);
+    ITradingLimits.Config memory config = configL0(100, 0);
     vm.expectRevert(bytes("limit0 can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0L1_isValid() public view {
-    ITradingLimitsHarness.Config memory config = configL0L1(100, 1000, 1000, 10000);
+    ITradingLimits.Config memory config = configL0L1(100, 1000, 1000, 10000);
     harness.validate(config);
   }
 
   function test_validate_withL1_withoutLimit1_isNotValid() public {
-    ITradingLimitsHarness.Config memory config = configL0L1(100, 1000, 1000, 0);
+    ITradingLimits.Config memory config = configL0L1(100, 1000, 1000, 0);
     vm.expectRevert(bytes("limit1 can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0L1_withoutTimestape_isNotValid() public {
-    ITradingLimitsHarness.Config memory config = configL0L1(0, 1000, 1000, 10000);
+    ITradingLimits.Config memory config = configL0L1(0, 1000, 1000, 10000);
     vm.expectRevert(bytes("timestep0 can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0L1_withLimit0LargerLimit1_isNotValid() public {
-    ITradingLimitsHarness.Config memory config = configL0L1(10000, 10000, 1000, 1000);
+    ITradingLimits.Config memory config = configL0L1(10000, 10000, 1000, 1000);
     vm.expectRevert(bytes("limit1 must be greater than limit0"));
     harness.validate(config);
   }
 
   function test_validate_withLG_withoutLimitGlobal_isNotValid() public {
-    ITradingLimitsHarness.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 0);
+    ITradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 0);
     vm.expectRevert(bytes("limitGlobal can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0LG_withLimit0LargerLimitGlobal_isNotValid() public {
-    ITradingLimitsHarness.Config memory config = configL0LG(10000, 10000, 1000);
+    ITradingLimits.Config memory config = configL0LG(10000, 10000, 1000);
     vm.expectRevert(bytes("limitGlobal must be greater than limit0"));
     harness.validate(config);
   }
 
   function test_validate_withL1LG_withLimit1LargerLimitGlobal_isNotValid() public {
-    ITradingLimitsHarness.Config memory config = configL0L1LG(100, 1000, 10000, 10000, 1000);
+    ITradingLimits.Config memory config = configL0L1LG(100, 1000, 10000, 10000, 1000);
     vm.expectRevert(bytes("limitGlobal must be greater than limit1"));
     harness.validate(config);
   }
 
   function test_validate_withL0L1LG_isValid() public view {
-    ITradingLimitsHarness.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 100000);
+    ITradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 100000);
     harness.validate(config);
   }
 
   function test_configure_withL1LG_isNotValid() public {
-    ITradingLimitsHarness.Config memory config = configL1LG(1000, 10000, 100000);
+    ITradingLimits.Config memory config = configL1LG(1000, 10000, 100000);
     vm.expectRevert(bytes("L1 without L0 not allowed"));
     harness.validate(config);
   }
@@ -195,7 +197,7 @@ contract TradingLimitsTest is Test {
   /* ==================== State#verify ==================== */
 
   function test_verify_withNothingOn() public view {
-    ITradingLimitsHarness.Config memory config;
+    ITradingLimits.Config memory config;
     harness.verify(state, config);
   }
 
@@ -297,7 +299,7 @@ contract TradingLimitsTest is Test {
   }
 
   function test_update_withOverflowOnAdd_reverts() public {
-    ITradingLimitsHarness.Config memory config = configLG(int48(uint48(2 ** 47)));
+    ITradingLimits.Config memory config = configLG(int48(uint48(2 ** 47)));
     int256 maxFlow = int256(uint256(type(uint48).max / 2));
 
     state = harness.update(state, config, (maxFlow - 1000) * 1e18, 18);
