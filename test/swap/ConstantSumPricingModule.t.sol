@@ -4,7 +4,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
 import { console } from "forge-std/console.sol";
 
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
@@ -14,7 +13,7 @@ contract ConstantSumPricingModuleTest is Test {
   IPricingModule constantSum;
 
   function setUp() public {
-    constantSum = IPricingModule(CVS.deploy("ConstantSumPricingModule"));
+    constantSum = IPricingModule(deployCode("ConstantSumPricingModule"));
   }
 
   /* ---------- getAmountOut ---------- */

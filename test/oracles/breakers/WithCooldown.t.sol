@@ -4,7 +4,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
 import { console } from "forge-std/Test.sol";
 import { IWithCooldownHarness } from "../../harnesses/IWithCooldownHarness.sol";
 
@@ -15,7 +14,7 @@ contract WithCooldownTest is Test {
   IWithCooldownHarness harness;
 
   function setUp() public {
-    harness = IWithCooldownHarness(CVS.deploy("WithCooldownHarness"));
+    harness = IWithCooldownHarness(deployCode("WithCooldownHarness"));
   }
 
   function test_setDefaultCooldownTime() public {

@@ -27,19 +27,19 @@ contract EmissionTest is GovernanceTest {
     emission.initialize(address(mentoToken), emissionTarget, EMISSION_SUPPLY);
   }
 
-  function test_initialize_shouldSetOwner() public {
+  function test_initialize_shouldSetOwner() public view {
     assertEq(emission.owner(), owner);
   }
 
-  function test_initialize_shouldSetStartTime() public {
+  function test_initialize_shouldSetStartTime() public view {
     assertEq(emission.emissionStartTime(), 1);
   }
 
-  function test_initialize_shouldSetEmissionToken() public {
+  function test_initialize_shouldSetEmissionToken() public view {
     assertEq(address(emission.mentoToken()), address(mentoToken));
   }
 
-  function test_initialize_shouldSetEmissionTarget() public {
+  function test_initialize_shouldSetEmissionTarget() public view {
     assertEq(emission.emissionTarget(), emissionTarget);
   }
 

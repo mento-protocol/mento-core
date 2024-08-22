@@ -4,7 +4,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
 import { console } from "forge-std/console.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 
@@ -89,7 +88,7 @@ contract TradingLimitsTest is Test {
   }
 
   function setUp() public {
-    harness = ITradingLimitsHarness(CVS.deploy("TradingLimitsHarness"));
+    harness = ITradingLimitsHarness(deployCode("TradingLimitsHarness"));
   }
 
   /* ==================== Config#validate ==================== */

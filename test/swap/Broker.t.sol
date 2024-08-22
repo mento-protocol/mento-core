@@ -4,7 +4,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
 
 import { MockExchangeProvider } from "../mocks/MockExchangeProvider.sol";
 import { MockReserve } from "../mocks/MockReserve.sol";
@@ -60,7 +59,7 @@ contract BrokerTest is Test {
     collateralAsset = new TestERC20("Collateral", "CL");
     stableAsset = new TestERC20("StableAsset", "SA0");
     randomAsset = makeAddr("randomAsset");
-    broker = IBroker(CVS.deploy("Broker", abi.encode(true)));
+    broker = IBroker(deployCode("Broker", abi.encode(true)));
     exchangeProvider = new MockExchangeProvider();
 
     reserve.addToken(address(stableAsset));

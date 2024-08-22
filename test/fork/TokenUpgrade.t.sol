@@ -4,7 +4,6 @@ pragma solidity ^0.8;
 import { console } from "forge-std/console.sol";
 import { Test } from "mento-std/Test.sol";
 import { CELO_ID } from "mento-std/Constants.sol";
-import { CVS } from "mento-std/CVS.sol";
 
 import { WithRegistry } from "../utils/WithRegistry.sol";
 
@@ -22,7 +21,7 @@ contract TokenUpgradeForkTest is Test, WithRegistry {
     console.log(ICeloProxy(stableToken)._getImplementation());
     console.log(ICeloProxy(stableToken)._getOwner());
     vm.startPrank(ICeloProxy(stableToken)._getOwner());
-    address mentoERC20Impl = CVS.deploy("StableTokenV2", abi.encode(false));
+    address mentoERC20Impl = deployCode("StableTokenV2", abi.encode(false));
     stableTokenProxy._setImplementation(mentoERC20Impl);
 
     IStableTokenV2 cusd = IStableTokenV2(stableToken);

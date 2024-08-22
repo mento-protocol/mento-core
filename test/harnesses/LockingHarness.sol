@@ -15,11 +15,11 @@ contract LockingHarness is Locking {
     return blockNumberMocked;
   }
 
-  function getMaxSlopePeriod() public view returns (uint32) {
+  function getMaxSlopePeriod() public pure returns (uint32) {
     return MAX_SLOPE_PERIOD;
   }
 
-  function getMaxCliffPeriod() public view returns (uint32) {
+  function getMaxCliffPeriod() public pure returns (uint32) {
     return MAX_CLIFF_PERIOD;
   }
 

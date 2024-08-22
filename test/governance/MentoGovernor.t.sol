@@ -58,7 +58,7 @@ contract MentoGovernorTest is GovernanceTest {
     vm.stopPrank();
   }
 
-  function test_init_shouldSetStateCorrectly() public {
+  function test_init_shouldSetStateCorrectly() public view {
     assertEq(mentoGovernor.votingDelay(), BLOCKS_DAY);
     assertEq(mentoGovernor.votingPeriod(), BLOCKS_WEEK);
     assertEq(mentoGovernor.proposalThreshold(), 1_000e18);
@@ -66,7 +66,7 @@ contract MentoGovernorTest is GovernanceTest {
     assertEq(timelockController.getMinDelay(), 1 days);
   }
 
-  function test_hasRole_shouldReturnCorrectRoles() public {
+  function test_hasRole_shouldReturnCorrectRoles() public view {
     bytes32 proposerRole = timelockController.PROPOSER_ROLE();
     bytes32 executorRole = timelockController.EXECUTOR_ROLE();
     bytes32 adminRole = timelockController.TIMELOCK_ADMIN_ROLE();

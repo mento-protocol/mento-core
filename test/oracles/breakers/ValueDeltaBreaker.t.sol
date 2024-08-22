@@ -5,13 +5,11 @@ pragma solidity ^0.8;
 
 import { console } from "forge-std/console.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
+
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
-import { MockSortedOracles } from "../../mocks/MockSortedOracles.sol";
-
+import { MockSortedOracles } from "test/mocks/MockSortedOracles.sol";
 import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 
@@ -58,7 +56,7 @@ contract ValueDeltaBreakerTest is Test {
     sortedOracles.addOracle(rateFeedID3, makeAddr("oracleClient1"));
 
     breaker = IValueDeltaBreaker(
-      CVS.deploy(
+      deployCode(
         "ValueDeltaBreaker",
         abi.encode(
           defaultCooldownTime,
@@ -76,27 +74,27 @@ contract ValueDeltaBreakerTest is Test {
 contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
   /* ---------- Constructor ---------- */
 
-  function test_constructor_shouldSetOwner() public {
+  function test_constructor_shouldSetOwner() public view {
     assertEq(breaker.owner(), address(this));
   }
 
-  function test_constructor_shouldSetDefaultCooldownTime() public {
+  function test_constructor_shouldSetDefaultCooldownTime() public view {
     assertEq(breaker.defaultCooldownTime(), defaultCooldownTime);
   }
 
-  function test_constructor_shouldSetDefaultRateChangeThreshold() public {
+  function test_constructor_shouldSetDefaultRateChangeThreshold() public view {
     assertEq(breaker.defaultRateChangeThreshold(), defaultThreshold);
   }
 
-  function test_constructor_shouldSetSortedOracles() public {
+  function test_constructor_shouldSetSortedOracles() public view {
     assertEq(address(breaker.sortedOracles()), address(sortedOracles));
   }
 
-  function test_constructor_shouldSetRateChangeThresholds() public {
+  function test_constructor_shouldSetRateChangeThresholds() public view {
     assertEq(breaker.rateChangeThreshold(rateFeedIDs[0]), rateChangeThresholds[0]);
   }
 
-  function test_constructor_shouldSetCooldownTimes() public {
+  function test_constructor_shouldSetCooldownTimes() public view {
     assertEq(breaker.getCooldown(rateFeedIDs[0]), cooldownTimes[0]);
   }
 
@@ -189,11 +187,11 @@ contract ValueDeltaBreakerTest_constructorAndSetters is ValueDeltaBreakerTest {
   }
 
   /* ---------- Getters ---------- */
-  function test_getCooldown_withDefault_shouldReturnDefaultCooldown() public {
+  function test_getCooldown_withDefault_shouldReturnDefaultCooldown() public view {
     assertEq(breaker.getCooldown(rateFeedID1), defaultCooldownTime);
   }
 
-  function test_getCooldown_withoutdefault_shouldReturnSpecificCooldown() public {
+  function test_getCooldown_withoutdefault_shouldReturnSpecificCooldown() public view {
     assertEq(breaker.getCooldown(rateFeedIDs[0]), cooldownTimes[0]);
   }
 }

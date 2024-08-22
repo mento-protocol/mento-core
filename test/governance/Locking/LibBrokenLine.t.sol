@@ -8,7 +8,7 @@ import { LibBrokenLine } from "contracts/governance/locking/libs/LibBrokenLine.s
 contract LibBrokenLine_Test is GovernanceTest {
   LibBrokenLine.BrokenLine public brokenLine;
 
-  function assertLineEq(LibBrokenLine.Line memory a, LibBrokenLine.Line memory b) internal {
+  function assertLineEq(LibBrokenLine.Line memory a, LibBrokenLine.Line memory b) internal pure {
     assertEq(a.start, b.start);
     assertEq(a.bias, b.bias);
     assertEq(a.slope, b.slope);

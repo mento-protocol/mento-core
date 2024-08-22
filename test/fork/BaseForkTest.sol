@@ -20,6 +20,7 @@ import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
+import { ITradingLimitsHarness } from "test/harnesses/ITradingLimitsHarness.sol";
 
 interface IMint {
   function mint(address, uint256) external;
@@ -53,6 +54,7 @@ contract BaseForkTest is Test, TestAsserts {
   IBreakerBox public breakerBox;
   ISortedOracles public sortedOracles;
   IReserve public reserve;
+  ITradingLimitsHarness public tradingLimits;
 
   address public trader;
 
@@ -82,6 +84,7 @@ contract BaseForkTest is Test, TestAsserts {
     // The precompile handler needs to be reinitialized after forking.
     __CeloPrecompiles_init();
 
+    tradingLimits = ITradingLimitsHarness(deployCode("TradingLimitsHarness"));
     broker = IBroker(lookup("Broker"));
     sortedOracles = ISortedOracles(lookup("SortedOracles"));
     governance = lookup("Governance");
@@ -92,27 +95,11 @@ contract BaseForkTest is Test, TestAsserts {
 
     vm.startPrank(trader);
 
-    // Use this by running tests like:
-    // env ONLY={exchangeId} yarn fork-tests:baklava
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool success, bytes memory data) = address(vm).call(abi.encodeWithSignature("envBytes32(string)", "ONLY"));
-    bytes32 exchangeIdFilter;
-    if (success) {
-      exchangeIdFilter = abi.decode(data, (bytes32));
-    }
-
-    if (exchangeIdFilter != bytes32(0)) {
-      console.log(unicode"🚨 Filtering exchanges by exchangeId:");
-      console.logBytes32(exchangeIdFilter);
-      console.log("------------------------------------------------------------------");
-    }
-
     address[] memory exchangeProviders = broker.getExchangeProviders();
     for (uint256 i = 0; i < exchangeProviders.length; i++) {
       vm.label(exchangeProviders[i], "ExchangeProvider");
       IExchangeProvider.Exchange[] memory _exchanges = IExchangeProvider(exchangeProviders[i]).getExchanges();
       for (uint256 j = 0; j < _exchanges.length; j++) {
-        if (exchangeIdFilter != bytes32(0) && _exchanges[j].exchangeId != exchangeIdFilter) continue;
         exchanges.push(ExchangeWithProvider(exchangeProviders[i], _exchanges[j]));
         exchangeMap[exchangeProviders[i]][_exchanges[j].exchangeId] = ExchangeWithProvider(
           exchangeProviders[i],

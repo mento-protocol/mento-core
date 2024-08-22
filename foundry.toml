@@ -22,7 +22,7 @@ include_paths = [
 allow_paths = [
   "node_modules/@celo"
 ]
-unchecked_cheatcode_artifacts = true
+unchecked_cheatcode_artifacts = false
 
 fs_permissions = [
     { access = "read", path = "out" },

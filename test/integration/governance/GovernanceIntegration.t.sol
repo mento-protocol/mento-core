@@ -156,7 +156,7 @@ contract GovernanceIntegrationTest is GovernanceTest {
     mentoToken.approve(address(locking), type(uint256).max);
   }
 
-  function test_factory_shouldCreateAndSetupContracts() public {
+  function test_factory_shouldCreateAndSetupContracts() public view {
     assertEq(mentoToken.balanceOf(address(mentoLabsMultisig)), 200_000_000 * 10 ** 18);
     assertEq(mentoToken.balanceOf(address(airgrab)), 50_000_000 * 10 ** 18);
     assertEq(mentoToken.balanceOf(governanceTimelockAddress), 100_000_000 * 10 ** 18);

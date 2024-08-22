@@ -2,15 +2,13 @@
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
 pragma solidity ^0.8;
 
+import { addresses, uints } from "mento-std/Array.sol";
 import { console } from "forge-std/console.sol";
-import { CVS } from "mento-std/CVS.sol";
 
 import { ProtocolTest } from "./ProtocolTest.sol";
 
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
-
-import { addresses, uints } from "mento-std/Array.sol";
 
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
@@ -42,7 +40,7 @@ contract EXOFIntegrationTest is ProtocolTest {
     uint256[] memory cooldownTime = uints(0 seconds); // 0 seconds cooldown -> non-recoverable
 
     valueDeltaBreaker2 = IValueDeltaBreaker(
-      CVS.deploy(
+      deployCode(
         "ValueDeltaBreaker",
         abi.encode(
           valueDeltaBreakerDefaultCooldown,
@@ -116,7 +114,7 @@ contract EXOFIntegrationTest is ProtocolTest {
     assert_swapIn(tokenIn, tokenOut, amountIn, true, "no valid median", true, "no valid median");
   }
 
-  function test_setUp_isCorrect() public {
+  function test_setUp_isCorrect() public view {
     assertTrue(breakerBox.isBreakerEnabled(address(valueDeltaBreaker), eXOF_bridgedEUROC_referenceRateFeedID));
     assertTrue(breakerBox.isBreakerEnabled(address(valueDeltaBreaker2), eXOF_bridgedEUROC_referenceRateFeedID));
     assertEq(

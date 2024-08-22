@@ -3,7 +3,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
 import { bytes32s, addresses, uints } from "mento-std/Array.sol";
 import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
 import { console } from "forge-std/console.sol";
@@ -14,7 +13,6 @@ import { IFreezer } from "celo/contracts/common/interfaces/IFreezer.sol";
 import { MockSortedOracles } from "../../mocks/MockSortedOracles.sol";
 import { TestERC20 } from "../../mocks/TestERC20.sol";
 import { USDC } from "../../mocks/USDC.sol";
-import { Fixtures } from "../../utils/Fixtures.sol";
 import { WithRegistry } from "../../utils/WithRegistry.sol";
 
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
@@ -80,7 +78,7 @@ contract ProtocolTest is Test, WithRegistry {
 
   function setUp() public virtual {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp.
-    broker = IBroker(CVS.deploy("Broker", abi.encode(true)));
+    broker = IBroker(deployCode("Broker", abi.encode(true)));
 
     setUp_assets();
     setUp_reserve();
@@ -101,7 +99,7 @@ contract ProtocolTest is Test, WithRegistry {
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
 
-    cUSDToken = IStableTokenV2(CVS.deploy("StableTokenV2", abi.encode(false)));
+    cUSDToken = IStableTokenV2(deployCode("StableTokenV2", abi.encode(false)));
     cUSDToken.initialize(
       "cUSD",
       "cUSD",
@@ -115,7 +113,7 @@ contract ProtocolTest is Test, WithRegistry {
     );
     cUSDToken.initializeV2(address(broker), address(0x0), address(0x0));
 
-    cEURToken = IStableTokenV2(CVS.deploy("StableTokenV2", abi.encode(false)));
+    cEURToken = IStableTokenV2(deployCode("StableTokenV2", abi.encode(false)));
     cEURToken.initialize(
       "cEUR",
       "cEUR",
@@ -129,7 +127,7 @@ contract ProtocolTest is Test, WithRegistry {
     );
     cEURToken.initializeV2(address(broker), address(0x0), address(0x0));
 
-    eXOFToken = IStableTokenV2(CVS.deploy("StableTokenV2", abi.encode(false)));
+    eXOFToken = IStableTokenV2(deployCode("StableTokenV2", abi.encode(false)));
     eXOFToken.initialize(
       "eXOF",
       "eXOF",
@@ -167,7 +165,7 @@ contract ProtocolTest is Test, WithRegistry {
     assetDailySpendingRatios[1] = 100000000000000000000000;
     assets[2] = address(eurocToken);
     assetDailySpendingRatios[2] = 100000000000000000000000;
-    reserve = IReserve(CVS.deploy("Reserve", abi.encode(true)));
+    reserve = IReserve(deployCode("Reserve", abi.encode(true)));
     reserve.initialize(
       CELO_REGISTRY_ADDRESS,
       tobinTaxStalenessThreshold,
@@ -190,7 +188,7 @@ contract ProtocolTest is Test, WithRegistry {
   function setUp_sortedOracles() internal {
     /* ===== Deploy SortedOracles ===== */
 
-    sortedOracles = ISortedOracles(Fixtures.sortedOracles());
+    sortedOracles = ISortedOracles(deployCode("SortedOracles", abi.encode(true)));
     sortedOracles.initialize(60 * 10);
 
     cUSD_CELO_referenceRateFeedID = address(cUSDToken);
@@ -265,7 +263,7 @@ contract ProtocolTest is Test, WithRegistry {
       eXOF_bridgedEUROC_referenceRateFeedID
     );
 
-    breakerBox = IBreakerBox(CVS.deploy("BreakerBox", abi.encode(rateFeedIDs, ISortedOracles(address(sortedOracles)))));
+    breakerBox = IBreakerBox(deployCode("BreakerBox", abi.encode(rateFeedIDs, ISortedOracles(address(sortedOracles)))));
     sortedOracles.setBreakerBox(breakerBox);
 
     // set rate feed dependencies
@@ -304,7 +302,7 @@ contract ProtocolTest is Test, WithRegistry {
     uint256 medianDeltaBreakerDefaultCooldown = 0 seconds;
 
     medianDeltaBreaker = IMedianDeltaBreaker(
-      CVS.deploy(
+      deployCode(
         "MedianDeltaBreaker",
         abi.encode(
           medianDeltaBreakerDefaultCooldown,
@@ -347,7 +345,7 @@ contract ProtocolTest is Test, WithRegistry {
     uint256 valueDeltaBreakerDefaultCooldown = 0 seconds;
 
     valueDeltaBreaker = IValueDeltaBreaker(
-      CVS.deploy(
+      deployCode(
         "ValueDeltaBreaker",
         abi.encode(
           valueDeltaBreakerDefaultCooldown,
@@ -375,9 +373,9 @@ contract ProtocolTest is Test, WithRegistry {
   function setUp_broker() internal {
     /* ===== Deploy BiPoolManager & Broker ===== */
 
-    constantProduct = IPricingModule(CVS.deploy("ConstantProductPricingModule"));
-    constantSum = IPricingModule(CVS.deploy("ConstantSumPricingModule"));
-    biPoolManager = IBiPoolManager(CVS.deploy("BiPoolManager", abi.encode(true)));
+    constantProduct = IPricingModule(deployCode("ConstantProductPricingModule"));
+    constantSum = IPricingModule(deployCode("ConstantSumPricingModule"));
+    biPoolManager = IBiPoolManager(deployCode("BiPoolManager", abi.encode(true)));
 
     bytes32[] memory pricingModuleIdentifiers = bytes32s(
       keccak256(abi.encodePacked(constantProduct.name())),
@@ -484,7 +482,7 @@ contract ProtocolTest is Test, WithRegistry {
   function setUp_freezer() internal {
     /* ========== Deploy Freezer =============== */
 
-    freezer = IFreezer(CVS.deploy("Freezer", abi.encode(true)));
+    freezer = IFreezer(deployCode("Freezer", abi.encode(true)));
     registry.setAddressFor("Freezer", address(freezer));
   }
 

@@ -3,10 +3,9 @@
 pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 
-import { CVS } from "mento-std/CVS.sol";
-import { VM_ADDRESS } from "mento-std/Constants.sol";
 import { console } from "forge-std/console.sol";
 import { Vm } from "forge-std/Vm.sol";
+import { VM_ADDRESS } from "mento-std/Constants.sol";
 
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
@@ -14,7 +13,6 @@ import { BaseForkTest } from "./BaseForkTest.sol";
 
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
-
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
@@ -22,7 +20,6 @@ import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
 import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
-
 import { ITradingLimitsHarness } from "test/harnesses/ITradingLimitsHarness.sol";
 
 library Utils {
@@ -47,7 +44,7 @@ library Utils {
     ITradingLimitsHarness tradingLimits;
   }
 
-  function newContext(address _t, uint256 index) public returns (Context memory ctx) {
+  function newContext(address _t, uint256 index) public view returns (Context memory ctx) {
     BaseForkTest t = BaseForkTest(_t);
     (address exchangeProvider, IExchangeProvider.Exchange memory exchange) = t.exchanges(index);
 
@@ -61,11 +58,11 @@ library Utils {
       address(0),
       exchange,
       t.trader(),
-      ITradingLimitsHarness(CVS.deploy("TradingLimitsHarness"))
+      t.tradingLimits()
     );
   }
 
-  function newRateFeedContext(address _t, address rateFeed) public returns (Context memory ctx) {
+  function newRateFeedContext(address _t, address rateFeed) public view returns (Context memory ctx) {
     BaseForkTest t = BaseForkTest(_t);
 
     ctx = Context(
@@ -78,11 +75,11 @@ library Utils {
       rateFeed,
       IExchangeProvider.Exchange(0, new address[](0)),
       t.trader(),
-      ITradingLimitsHarness(CVS.deploy("TradingLimitsHarness"))
+      t.tradingLimits()
     );
   }
 
-  function getContextForRateFeedID(address _t, address rateFeedID) public returns (Context memory) {
+  function getContextForRateFeedID(address _t, address rateFeedID) public view returns (Context memory) {
     BaseForkTest t = BaseForkTest(_t);
     (address biPoolManagerAddr, ) = t.exchanges(0);
     uint256 nOfExchanges = IBiPoolManager(biPoolManagerAddr).getExchanges().length;

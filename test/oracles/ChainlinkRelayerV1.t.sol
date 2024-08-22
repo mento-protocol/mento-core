@@ -5,10 +5,8 @@ pragma solidity ^0.8.18;
 
 import { console } from "forge-std/console.sol";
 import { Test } from "mento-std/Test.sol";
-import { Fixtures } from "../utils/Fixtures.sol";
 
-import "../mocks/MockAggregatorV3.sol";
-
+import "test/mocks/MockAggregatorV3.sol";
 import "contracts/interfaces/IChainlinkRelayer.sol";
 import "contracts/oracles/ChainlinkRelayerV1.sol";
 
@@ -95,7 +93,7 @@ contract ChainlinkRelayerV1Test is Test {
   }
 
   function setUp() public virtual {
-    sortedOracles = ISortedOracles(Fixtures.sortedOracles());
+    sortedOracles = ISortedOracles(deployCode("SortedOracles", abi.encode(true)));
     sortedOracles.initialize(expirySeconds);
     sortedOracles.setTokenReportExpiry(rateFeedId, expirySeconds);
 

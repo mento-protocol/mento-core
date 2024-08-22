@@ -6,7 +6,7 @@ import { LockingTest } from "./LockingTest.sol";
 import { MockLocking } from "../../mocks/MockLocking.sol";
 
 contract Lock_LockingTest is LockingTest {
-  function test_init_shouldSetState() public {
+  function test_init_shouldSetState() public view {
     assertEq(address(locking.token()), address(mentoToken));
 
     assertEq(locking.startingPointWeek(), 0);
@@ -169,7 +169,7 @@ contract Lock_LockingTest is LockingTest {
     assertEq(locking.balanceOf(alice), 0);
   }
 
-  function test_getLock_shouldReturnCorrectValues() public {
+  function test_getLock_shouldReturnCorrectValues() public view {
     uint96 amount = 60000e18;
     uint32 slopePeriod = 30;
     uint32 cliff = 30;

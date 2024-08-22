@@ -4,7 +4,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
 import { WithRegistry } from "../utils/WithRegistry.sol";
@@ -53,7 +52,7 @@ contract ReserveTest is Test, WithRegistry {
 
   function setUp() public virtual {
     notDeployer = makeAddr("notDeployer");
-    reserve = IReserve(CVS.deploy("Reserve", abi.encode(true)));
+    reserve = IReserve(deployCode("Reserve", abi.encode(true)));
     sortedOracles = new MockSortedOracles();
     broker = makeAddr("broker");
 

@@ -5,10 +5,9 @@ pragma solidity ^0.8.26;
 
 import { console } from "forge-std/Test.sol";
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
 
-import { MockBreaker } from "../mocks/MockBreaker.sol";
-import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
+import { MockBreaker } from "test/mocks/MockBreaker.sol";
+import { MockSortedOracles } from "test/mocks/MockSortedOracles.sol";
 
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
@@ -58,7 +57,7 @@ contract BreakerBoxTest is Test {
     sortedOracles.addOracle(rateFeedID1, makeAddr("oracleClient1"));
     sortedOracles.addOracle(rateFeedID2, makeAddr("oracleClient1"));
 
-    breakerBox = IBreakerBox(CVS.deploy("BreakerBox", abi.encode(testRateFeedIDs, sortedOracles)));
+    breakerBox = IBreakerBox(deployCode("BreakerBox", abi.encode(testRateFeedIDs, sortedOracles)));
     breakerBox.addBreaker(address(mockBreaker1), 1);
   }
 
@@ -90,20 +89,20 @@ contract BreakerBoxTest is Test {
 contract BreakerBoxTest_constructorAndSetters is BreakerBoxTest {
   /* ---------- Constructor ---------- */
 
-  function test_constructor_shouldSetOwner() public {
+  function test_constructor_shouldSetOwner() public view {
     assertEq(breakerBox.owner(), address(this));
   }
 
-  function test_constructor_shouldSetInitialBreaker() public {
+  function test_constructor_shouldSetInitialBreaker() public view {
     assertEq(uint256(breakerBox.breakerTradingMode(address(mockBreaker1))), 1);
     assertTrue(breakerBox.isBreaker(address(mockBreaker1)));
   }
 
-  function test_constructor_shouldSetSortedOracles() public {
+  function test_constructor_shouldSetSortedOracles() public view {
     assertEq(address(breakerBox.sortedOracles()), address(sortedOracles));
   }
 
-  function test_constructor_shouldAddRateFeedIdsWithDefaultMode() public {
+  function test_constructor_shouldAddRateFeedIdsWithDefaultMode() public view {
     assertTrue(breakerBox.rateFeedStatus(rateFeedID1));
     assertEq(uint256(breakerBox.getRateFeedTradingMode(rateFeedID1)), 0);
 

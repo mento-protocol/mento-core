@@ -4,7 +4,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
 import { bytes32s, addresses } from "mento-std/Array.sol";
 import { console } from "forge-std/console.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
@@ -88,7 +87,7 @@ contract BiPoolManagerTest is Test {
     sortedOracles = new MockSortedOracles();
 
     reserve = new MockReserve();
-    biPoolManager = IBiPoolManager(CVS.deploy("BiPoolManager", abi.encode(true)));
+    biPoolManager = IBiPoolManager(deployCode("BiPoolManager", abi.encode(true)));
     breaker = new MockBreakerBox();
 
     vm.mockCall(
@@ -225,23 +224,23 @@ contract BiPoolManagerTest is Test {
 contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
   /* ---------- Initilizer ---------- */
 
-  function test_initilize_shouldSetOwner() public {
+  function test_initilize_shouldSetOwner() public view {
     assertEq(biPoolManager.owner(), deployer);
   }
 
-  function test_initilize_shouldSetBroker() public {
+  function test_initilize_shouldSetBroker() public view {
     assertEq(biPoolManager.broker(), broker);
   }
 
-  function test_initilize_shouldSetReserve() public {
+  function test_initilize_shouldSetReserve() public view {
     assertEq(address(biPoolManager.reserve()), address(reserve));
   }
 
-  function test_initilize_shouldSetSortedOracles() public {
+  function test_initilize_shouldSetSortedOracles() public view {
     assertEq(address(biPoolManager.sortedOracles()), address(sortedOracles));
   }
 
-  function test_initialize_shouldSetBreakerBox() public {
+  function test_initialize_shouldSetBreakerBox() public view {
     assertEq(address(biPoolManager.breakerBox()), address(breaker));
   }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8;
 
-import { CVS } from "mento-std/CVS.sol";
+import { Test } from "mento-std/Test.sol";
 import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
 
 import { IRegistry } from "celo/contracts/common/interfaces/IRegistry.sol";
@@ -10,11 +10,11 @@ interface IRegistryInit {
   function initialize() external;
 }
 
-contract WithRegistry {
+contract WithRegistry is Test {
   IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
 
   constructor() {
-    CVS.deployTo(CELO_REGISTRY_ADDRESS, "Registry", abi.encode(true));
+    deployCodeTo("Registry", abi.encode(true), CELO_REGISTRY_ADDRESS);
     IRegistryInit(CELO_REGISTRY_ADDRESS).initialize();
   }
 }

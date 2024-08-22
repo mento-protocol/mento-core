@@ -4,7 +4,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { CVS } from "mento-std/CVS.sol";
 import { console } from "forge-std/Test.sol";
 import { IWithThresholdHarness } from "../../harnesses/IWithThresholdHarness.sol";
 
@@ -15,7 +14,7 @@ contract WithThresholdTest is Test {
   IWithThresholdHarness harness;
 
   function setUp() public virtual {
-    harness = IWithThresholdHarness(CVS.deploy("WithThresholdHarness"));
+    harness = IWithThresholdHarness(deployCode("WithThresholdHarness"));
   }
 
   function test_setDefaultRateChangeThreshold() public {
@@ -85,24 +84,24 @@ contract WithThresholdTest_exceedsThreshold is WithThresholdTest {
     harness.setRateChangeThresholds(rateFeedIDs, ts);
   }
 
-  function test_exceedsThreshold_withDefault_whenWithin_isFalse() public {
+  function test_exceedsThreshold_withDefault_whenWithin_isFalse() public view {
     assertEq(harness.exceedsThreshold(1e24, 1.1 * 1e24, rateFeedID2), false);
     assertEq(harness.exceedsThreshold(1e24, 0.9 * 1e24, rateFeedID2), false);
   }
 
-  function test_exceedsThreshold_withDefault_whenNotWithin_isTrue() public {
+  function test_exceedsThreshold_withDefault_whenNotWithin_isTrue() public view {
     assertEq(harness.exceedsThreshold(1e24, 1.3 * 1e24, rateFeedID2), true);
     assertEq(harness.exceedsThreshold(1e24, 0.7 * 1e24, rateFeedID2), true);
   }
 
-  function test_exceedsThreshold_withOverride_whenWithin_isTrue() public {
+  function test_exceedsThreshold_withOverride_whenWithin_isTrue() public view {
     assertEq(harness.exceedsThreshold(1e24, 1.1 * 1e24, rateFeedID1), true);
     assertEq(harness.exceedsThreshold(1e24, 0.9 * 1e24, rateFeedID1), true);
     assertEq(harness.exceedsThreshold(1e24, 1.11 * 1e24, rateFeedID0), true);
     assertEq(harness.exceedsThreshold(1e24, 0.89 * 1e24, rateFeedID0), true);
   }
 
-  function test_exceedsThreshold_withOverride_whenNotWithin_isFalse() public {
+  function test_exceedsThreshold_withOverride_whenNotWithin_isFalse() public view {
     assertEq(harness.exceedsThreshold(1e24, 1.01 * 1e24, rateFeedID1), false);
     assertEq(harness.exceedsThreshold(1e24, 1.01 * 1e24, rateFeedID0), false);
   }

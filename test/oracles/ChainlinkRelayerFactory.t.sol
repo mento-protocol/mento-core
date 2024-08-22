@@ -106,7 +106,7 @@ contract ChainlinkRelayerFactoryTest_initialize is ChainlinkRelayerFactoryTest {
     assertEq(realSortedOracles, mockSortedOracles);
   }
 
-  function test_setsOwner() public {
+  function test_setsOwner() public view {
     address realOwner = Ownable(address(relayerFactory)).owner();
     assertEq(realOwner, owner);
   }
@@ -257,7 +257,7 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
 }
 
 contract ChainlinkRelayerFactoryTest_getRelayers is ChainlinkRelayerFactoryTest {
-  function test_emptyWhenNoRelayers() public {
+  function test_emptyWhenNoRelayers() public view {
     address[] memory relayers = relayerFactory.getRelayers();
     assertEq(relayers.length, 0);
   }

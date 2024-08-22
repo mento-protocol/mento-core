@@ -38,7 +38,7 @@ contract MockExchangeProvider is IExchangeProvider {
     address tokenIn,
     address tokenOut,
     uint256 amountIn
-  ) external returns (uint256 amountOut) {
+  ) external view returns (uint256 amountOut) {
     return _getAmountOut(exchangeId, tokenIn, tokenOut, amountIn);
   }
 
@@ -47,7 +47,7 @@ contract MockExchangeProvider is IExchangeProvider {
     address tokenIn,
     address tokenOut,
     uint256 amountOut
-  ) external returns (uint256 amountIn) {
+  ) external view returns (uint256 amountIn) {
     return _getAmountIn(exchangeId, tokenIn, tokenOut, amountOut);
   }
 

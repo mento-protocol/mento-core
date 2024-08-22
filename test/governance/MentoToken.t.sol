@@ -70,14 +70,14 @@ contract MentoTokenTest is GovernanceTest {
   }
 
   /// @dev Test the state initialization post-construction of the MentoToken contract.
-  function test_constructor_shouldSetCorrectState() public {
+  function test_constructor_shouldSetCorrectState() public view {
     assertEq(mentoToken.emission(), emission);
     assertEq(mentoToken.emissionSupply(), EMISSION_SUPPLY);
     assertEq(mentoToken.emittedAmount(), 0);
   }
 
   /// @dev Test the correct token amounts are minted to respective contracts during initialization.
-  function test_constructor_shouldMintCorrectAmounts() public {
+  function test_constructor_shouldMintCorrectAmounts() public view {
     uint256 mentoLabsMultiSigSupply = mentoToken.balanceOf(mentoLabsMultiSig);
     uint256 mentoLabsTreasurySupply = mentoToken.balanceOf(mentoLabsTreasuryTimelock);
     uint256 airgrabSupply = mentoToken.balanceOf(airgrab);

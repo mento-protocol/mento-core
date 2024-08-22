@@ -3,8 +3,6 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { CVS } from "mento-std/CVS.sol";
-
 import { ProtocolTest } from "./ProtocolTest.sol";
 import { MockAggregatorV3 } from "../../mocks/MockAggregatorV3.sol";
 
@@ -186,7 +184,7 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
     valueDeltaBreaker.setReferenceValues(rateFeeds, referenceValues);
   }
 
-  function test_initiallyNoPrice() public {
+  function test_initiallyNoPrice() public view {
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
     assertEq(price, 0);
