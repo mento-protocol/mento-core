@@ -11,13 +11,19 @@ import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
 import { IBroker } from "../interfaces/IBroker.sol";
 import { IBrokerAdmin } from "../interfaces/IBrokerAdmin.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
-import { IERC20 as IERC20Metadata } from "../interfaces/IERC20.sol";
 import { IStableTokenV2 } from "../interfaces/IStableTokenV2.sol";
 import { ITradingLimits } from "../interfaces/ITradingLimits.sol";
 
 import { TradingLimits } from "../libraries/TradingLimits.sol";
 import { Initializable } from "celo/contracts/common/Initializable.sol";
 import { ReentrancyGuard } from "celo/contracts/common/libraries/ReentrancyGuard.sol";
+
+interface IERC20Metadata {
+  /**
+   * @dev Returns the decimals places of the token.
+   */
+  function decimals() external view returns (uint8);
+}
 
 /**
  * @title Broker

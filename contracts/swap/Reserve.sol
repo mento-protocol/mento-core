@@ -8,12 +8,12 @@ import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
 import "celo/contracts/common/FixidityLib.sol";
 import "celo/contracts/common/Initializable.sol";
-import { UsingRegistry } from "contracts/common/UsingRegistry.sol";
 import "celo/contracts/common/interfaces/ICeloVersionedContract.sol";
 import "celo/contracts/common/libraries/ReentrancyGuard.sol";
 
-import "../interfaces/IReserve.sol";
-import "../interfaces/ISortedOracles.sol";
+import "contracts/common/UsingRegistry.sol";
+import "contracts/interfaces/IReserve.sol";
+import "contracts/interfaces/ISortedOracles.sol";
 
 /**
  * @title Ensures price stability of StableTokens with respect to their pegs

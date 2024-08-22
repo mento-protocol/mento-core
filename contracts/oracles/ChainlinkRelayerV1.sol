@@ -13,20 +13,9 @@ import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
  * See https://github.com/mento-protocol/mento-core/blob/develop/contracts/common/SortedOracles.sol
  */
 interface ISortedOraclesMin {
-  function report(
-    address rateFeedId,
-    uint256 value,
-    address lesserKey,
-    address greaterKey
-  ) external;
+  function report(address rateFeedId, uint256 value, address lesserKey, address greaterKey) external;
 
-  function getRates(address rateFeedId)
-    external
-    returns (
-      address[] memory,
-      uint256[] memory,
-      uint256[] memory
-    );
+  function getRates(address rateFeedId) external returns (address[] memory, uint256[] memory, uint256[] memory);
 
   function medianTimestamp(address rateFeedId) external view returns (uint256);
 
@@ -226,6 +215,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @param rate The rate to report.
    */
   function reportRate(uint256 rate) internal {
+    // slither-disable-next-line unused-return
     (address[] memory oracles, uint256[] memory rates, ) = ISortedOraclesMin(sortedOracles).getRates(rateFeedId);
     uint256 numRates = oracles.length;
 
@@ -259,7 +249,9 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
     if (otherRate < rate) {
       lesserKey = otherOracle;
+      greaterKey = address(0);
     } else {
+      lesserKey = address(0);
       greaterKey = otherOracle;
     }
 
@@ -274,6 +266,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @return timestamp uint256 timestamp of the report.
    */
   function readChainlinkAggregator(ChainlinkAggregator memory aggCfg) internal view returns (UD60x18, uint256) {
+    // slither-disable-next-line unused-return
     (, int256 _price, , uint256 timestamp, ) = AggregatorV3Interface(aggCfg.aggregator).latestRoundData();
     if (_price <= 0) {
       revert InvalidPrice();
@@ -321,6 +314,6 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    */
   function chainlinkToUD60x18(int256 price, address aggregator) internal view returns (UD60x18) {
     uint256 chainlinkDecimals = uint256(AggregatorV3Interface(aggregator).decimals());
-    return ud(uint256(price) * 10**(18 - chainlinkDecimals));
+    return ud(uint256(price) * 10 ** (18 - chainlinkDecimals));
   }
 }

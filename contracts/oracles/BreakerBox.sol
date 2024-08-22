@@ -141,7 +141,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
     if (enable) {
       rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled = enable;
-      // slither-isable-next-line reentrancy-events
+      // slither-disable-next-line reentrancy-events
       _checkAndSetBreakers(rateFeedID);
     } else {
       delete rateFeedBreakerStatus[rateFeedID][breakerAddress];
