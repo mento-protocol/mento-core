@@ -1,4 +1,8 @@
 name: "Storage Layout"
+
+env:
+  FOUNDRY_PROFILE: "ci"
+
 on:
   workflow_dispatch:
   push:
