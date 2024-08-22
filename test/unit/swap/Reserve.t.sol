@@ -701,13 +701,20 @@ contract ReserveTest_transfers is ReserveTest {
     vm.startPrank(spender);
     vm.expectRevert("Exceeding spending limit");
     reserve.transferGold(otherReserveAddress, 1);
-    vm.warp(block.timestamp + 3600 * 24);
+
+    uint256 day1 = block.timestamp + 3600 * 24;
+    uint256 day2 = day1 + 3600 * 24;
+    uint256 day3 = day2 + 3600 * 24;
+
+    vm.warp(day1);
     assertEq(reserve.getUnfrozenBalance(), dailyUnlock);
     reserve.transferGold(otherReserveAddress, dailyUnlock);
-    vm.warp(block.timestamp + 3600 * 24);
+
+    vm.warp(day2);
     assertEq(reserve.getUnfrozenBalance(), dailyUnlock);
     reserve.transferGold(otherReserveAddress, dailyUnlock);
-    vm.warp(block.timestamp + 3600 * 24);
+
+    vm.warp(day3);
     assertEq(reserve.getUnfrozenBalance(), dailyUnlock + 1);
     reserve.transferGold(otherReserveAddress, dailyUnlock);
     vm.stopPrank();
