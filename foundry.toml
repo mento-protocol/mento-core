@@ -14,15 +14,9 @@ legacy = true
 no_match_contract = "(ForkTest)|(GovernanceGasTest)"
 via_ir = false
 
-
-include_paths = [
-  "node_modules"
-]
-
 allow_paths = [
   "node_modules/@celo"
 ]
-unchecked_cheatcode_artifacts = false
 
 fs_permissions = [
     { access = "read", path = "out" },
@@ -39,6 +33,8 @@ compilation_restrictions = [
 ]
 
 [profile.ci]
+via_ir=true
+optimizer=true
 fuzz_runs = 1_000
 verbosity = 3
 

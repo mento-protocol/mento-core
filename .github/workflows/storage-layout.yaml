@@ -32,6 +32,14 @@ jobs:
         uses: onbjerg/foundry-toolchain@v1
         with:
           version: "nightly"
+      - name: "Install Node.js"
+        uses: "actions/setup-node@v3"
+        with:
+          cache: "yarn"
+          node-version: "20"
+
+      - name: "Install the Node.js dependencies"
+        run: "yarn install --immutable"
       - name: Check storage layout
         uses: Rubilmax/foundry-storage-check@v3.2.1
         with:
