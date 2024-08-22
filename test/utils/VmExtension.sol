@@ -54,12 +54,7 @@ library VmExtension {
   /// @param r The first 32 bytes of the signature, representing the R value in ECDSA.
   /// @param s The next 32 bytes of the signature, representing the S value in ECDSA.
   /// @return signature A 65-byte long digital signature composed of r, s, and v.
-  function constructSignature(
-    Vm,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) internal pure returns (bytes memory signature) {
+  function constructSignature(Vm, uint8 v, bytes32 r, bytes32 s) internal pure returns (bytes memory signature) {
     signature = new bytes(65);
 
     assembly {

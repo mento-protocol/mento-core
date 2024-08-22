@@ -83,25 +83,22 @@ contract MentoGovernor is
     return super.proposalThreshold();
   }
 
-  function quorum(uint256 blockNumber)
-    public
-    view
-    override(IGovernorUpgradeable, GovernorVotesQuorumFractionUpgradeable)
-    returns (uint256)
-  {
+  function quorum(
+    uint256 blockNumber
+  ) public view override(IGovernorUpgradeable, GovernorVotesQuorumFractionUpgradeable) returns (uint256) {
     return super.quorum(blockNumber);
   }
 
-  function getVotes(address account, uint256 blockNumber)
-    public
-    view
-    override(GovernorUpgradeable, IGovernorUpgradeable)
-    returns (uint256)
-  {
+  function getVotes(
+    address account,
+    uint256 blockNumber
+  ) public view override(GovernorUpgradeable, IGovernorUpgradeable) returns (uint256) {
     return super.getVotes(account, blockNumber);
   }
 
-  function state(uint256 proposalId)
+  function state(
+    uint256 proposalId
+  )
     public
     view
     override(GovernorUpgradeable, IGovernorUpgradeable, GovernorTimelockControlUpgradeable)
@@ -151,12 +148,9 @@ contract MentoGovernor is
     return super._executor();
   }
 
-  function supportsInterface(bytes4 interfaceId)
-    public
-    view
-    override(GovernorUpgradeable, IERC165Upgradeable, GovernorTimelockControlUpgradeable)
-    returns (bool)
-  {
+  function supportsInterface(
+    bytes4 interfaceId
+  ) public view override(GovernorUpgradeable, IERC165Upgradeable, GovernorTimelockControlUpgradeable) returns (bool) {
     return super.supportsInterface(interfaceId);
   }
 }

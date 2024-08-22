@@ -31,7 +31,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
    * @dev Basis for locking formula calculations
    */
-  uint32 constant ST_FORMULA_BASIS = 1 * (10**8);
+  uint32 constant ST_FORMULA_BASIS = 1 * (10 ** 8);
   /**
    * @dev ERC20 token that will be locked
    */
@@ -189,11 +189,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @param _delegate address of delegate that owns the voting power
    * @param time week number till which to update lines
    */
-  function updateLines(
-    address account,
-    address _delegate,
-    uint32 time
-  ) internal {
+  function updateLines(address account, address _delegate, uint32 time) internal {
     totalSupplyLine.update(time);
     accounts[_delegate].balance.update(time);
     accounts[account].locked.update(time);

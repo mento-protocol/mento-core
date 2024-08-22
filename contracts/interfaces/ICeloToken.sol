@@ -6,11 +6,7 @@ pragma solidity ^0.5.13;
  * in the absence of interface inheritance is intended as a companion to IERC20.sol.
  */
 interface ICeloToken {
-  function transferWithComment(
-    address,
-    uint256,
-    string calldata
-  ) external returns (bool);
+  function transferWithComment(address, uint256, string calldata) external returns (bool);
 
   function name() external view returns (string memory);
 

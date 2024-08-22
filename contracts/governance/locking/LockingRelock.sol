@@ -96,12 +96,7 @@ abstract contract LockingRelock is LockingBase {
    * @param delegate address of delegate that owns the voting power
    * @return residue amount of tokens still locked in the old lock
    */
-  function removeLines(
-    uint256 id,
-    address account,
-    address delegate,
-    uint32 toTime
-  ) internal returns (uint96 residue) {
+  function removeLines(uint256 id, address account, address delegate, uint32 toTime) internal returns (uint96 residue) {
     updateLines(account, delegate, toTime);
     uint32 currentBlock = getBlockNumber();
     // slither-disable-start unused-return
@@ -119,13 +114,7 @@ abstract contract LockingRelock is LockingBase {
    * @param residue amount of tokens still locked in the old lock
    * @param newAmount new amount to lock
    */
-  function rebalance(
-    uint256 id,
-    address account,
-    uint96 bias,
-    uint96 residue,
-    uint96 newAmount
-  ) internal {
+  function rebalance(uint256 id, address account, uint96 bias, uint96 residue, uint96 newAmount) internal {
     require(residue <= newAmount, "Impossible to relock: less amount, then now is");
     uint96 addAmount = newAmount - (residue);
     uint96 amount = accounts[account].amount;

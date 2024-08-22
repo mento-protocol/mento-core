@@ -62,11 +62,7 @@ library LibBrokenLine {
    * @param id the id of the line to add
    * @param line the line to add
    */
-  function _addOneLine(
-    BrokenLine storage brokenLine,
-    uint256 id,
-    Line memory line
-  ) internal {
+  function _addOneLine(BrokenLine storage brokenLine, uint256 id, Line memory line) internal {
     require(line.slope != 0, "Slope == 0, unacceptable value for slope");
     require(line.slope <= line.bias, "Slope > bias, unacceptable value for slope");
     require(brokenLine.initiatedLines[id].bias == 0, "Line with given id is already exist");
@@ -106,12 +102,7 @@ library LibBrokenLine {
    * @param line the line to add
    * @param blockNumber the block number when the line is added
    */
-  function addOneLine(
-    BrokenLine storage brokenLine,
-    uint256 id,
-    Line memory line,
-    uint32 blockNumber
-  ) internal {
+  function addOneLine(BrokenLine storage brokenLine, uint256 id, Line memory line, uint32 blockNumber) internal {
     _addOneLine(brokenLine, id, line);
     saveSnapshot(brokenLine, line.start, blockNumber);
   }
@@ -129,14 +120,7 @@ library LibBrokenLine {
     BrokenLine storage brokenLine,
     uint256 id,
     uint32 toTime
-  )
-    internal
-    returns (
-      uint96 bias,
-      uint96 slope,
-      uint32 cliff
-    )
-  {
+  ) internal returns (uint96 bias, uint96 slope, uint32 cliff) {
     Line memory line = brokenLine.initiatedLines[id];
     require(line.bias != 0, "Removing Line, which not exists");
 
@@ -201,14 +185,7 @@ library LibBrokenLine {
     uint256 id,
     uint32 toTime,
     uint32 blockNumber
-  )
-    internal
-    returns (
-      uint96 bias,
-      uint96 slope,
-      uint32 cliff
-    )
-  {
+  ) internal returns (uint96 bias, uint96 slope, uint32 cliff) {
     (bias, slope, cliff) = _remove(brokenLine, id, toTime);
     saveSnapshot(brokenLine, toTime, blockNumber);
   }
@@ -249,11 +226,7 @@ library LibBrokenLine {
    * @param toBlock the block number to get the value at
    * @return the y value of the BrokenLine at the given week and block number
    */
-  function actualValue(
-    BrokenLine storage brokenLine,
-    uint32 toTime,
-    uint32 toBlock
-  ) internal view returns (uint96) {
+  function actualValue(BrokenLine storage brokenLine, uint32 toTime, uint32 toBlock) internal view returns (uint96) {
     uint32 fromTime = brokenLine.initial.start;
     if (fromTime == toTime) {
       if (brokenLine.history[brokenLine.history.length - 1].blockNumber < toBlock) {
@@ -325,7 +298,7 @@ library LibBrokenLine {
    * @return result the int96 represesntation of the given uint96 value
    */
   function safeInt(uint96 value) internal pure returns (int96 result) {
-    require(value < 2**95, "int cast error");
+    require(value < 2 ** 95, "int cast error");
     result = int96(value);
   }
 
@@ -335,11 +308,7 @@ library LibBrokenLine {
    * @param epoch The week number of the snapshot
    * @param blockNumber The block number of the snapshot
    */
-  function saveSnapshot(
-    BrokenLine storage brokenLine,
-    uint32 epoch,
-    uint32 blockNumber
-  ) internal {
+  function saveSnapshot(BrokenLine storage brokenLine, uint32 epoch, uint32 blockNumber) internal {
     brokenLine.history.push(
       Point({ blockNumber: blockNumber, bias: brokenLine.initial.bias, slope: brokenLine.initial.slope, epoch: epoch })
     );
@@ -355,15 +324,7 @@ library LibBrokenLine {
    * @return slope The slope of the point
    * @return epoch The week number of the point
    */
-  function binarySearch(Point[] storage history, uint32 toBlock)
-    internal
-    view
-    returns (
-      uint96,
-      uint96,
-      uint32
-    )
-  {
+  function binarySearch(Point[] storage history, uint32 toBlock) internal view returns (uint96, uint96, uint32) {
     uint256 len = history.length;
     if (len == 0 || history[0].blockNumber > toBlock) {
       return (0, 0, 0);

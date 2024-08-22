@@ -144,11 +144,11 @@ contract GovernanceFactory is Ownable {
     }
 
     mentoToken = MentoTokenDeployerLib.deploy( // NONCE:2
-      allocationRecipients,
-      allocationAmounts,
-      emissionPrecalculated,
-      lockingPrecalculated
-    );
+        allocationRecipients,
+        allocationAmounts,
+        emissionPrecalculated,
+        lockingPrecalculated
+      );
 
     assert(address(mentoToken) == tokenPrecalculated);
 
@@ -158,15 +158,15 @@ contract GovernanceFactory is Ownable {
     Emission emissionImpl = EmissionDeployerLib.deploy(); // NONCE:3
     // slither-disable-next-line reentrancy-benign
     TransparentUpgradeableProxy emissionProxy = ProxyDeployerLib.deployProxy( // NONCE:4
-      address(emissionImpl),
-      address(proxyAdmin),
-      abi.encodeWithSelector(
-        emissionImpl.initialize.selector,
-        tokenPrecalculated, ///               @param mentoToken_ The address of the MentoToken contract.
-        governanceTimelockPrecalculated, ///  @param governanceTimelock_ The address of the mento treasury contract.
-        mentoToken.emissionSupply() ///       @param emissionSupply_ The total amount of tokens that can be emitted.
-      )
-    );
+        address(emissionImpl),
+        address(proxyAdmin),
+        abi.encodeWithSelector(
+          emissionImpl.initialize.selector,
+          tokenPrecalculated, ///               @param mentoToken_ The address of the MentoToken contract.
+          governanceTimelockPrecalculated, ///  @param governanceTimelock_ The address of the mento treasury contract.
+          mentoToken.emissionSupply() ///       @param emissionSupply_ The total amount of tokens that can be emitted.
+        )
+      );
 
     emission = Emission(address(emissionProxy));
     assert(address(emission) == emissionPrecalculated);
@@ -177,16 +177,16 @@ contract GovernanceFactory is Ownable {
     airgrabEnds = block.timestamp + AIRGRAB_DURATION;
     // slither-disable-next-line reentrancy-benign
     airgrab = AirgrabDeployerLib.deploy( // NONCE:5
-      airgrabRoot,
-      fractalSigner,
-      FRACTAL_MAX_AGE,
-      airgrabEnds,
-      AIRGRAB_LOCK_CLIFF,
-      AIRGRAB_LOCK_SLOPE,
-      tokenPrecalculated,
-      lockingPrecalculated,
-      payable(governanceTimelockPrecalculated)
-    );
+        airgrabRoot,
+        fractalSigner,
+        FRACTAL_MAX_AGE,
+        airgrabEnds,
+        AIRGRAB_LOCK_CLIFF,
+        AIRGRAB_LOCK_SLOPE,
+        tokenPrecalculated,
+        lockingPrecalculated,
+        payable(governanceTimelockPrecalculated)
+      );
     assert(address(airgrab) == airgrabPrecalculated);
 
     // ==========================================
@@ -196,16 +196,16 @@ contract GovernanceFactory is Ownable {
     uint32 startingPointWeek = uint32(Locking(lockingImpl).getWeek() - 1);
     // slither-disable-next-line reentrancy-benign
     TransparentUpgradeableProxy lockingProxy = ProxyDeployerLib.deployProxy( // NONCE:7
-      address(lockingImpl),
-      address(proxyAdmin),
-      abi.encodeWithSelector(
-        lockingImpl.__Locking_init.selector,
-        address(mentoToken), /// @param _token The token to be locked in exchange for voting power in form of veTokens.
-        startingPointWeek, ///   @param _startingPointWeek The locking epoch start in weeks. We start the locking contract from week 1 with min slope duration of 1
-        0, ///                   @param _minCliffPeriod minimum cliff period in weeks.
-        1 ///                    @param _minSlopePeriod minimum slope period in weeks.
-      )
-    );
+        address(lockingImpl),
+        address(proxyAdmin),
+        abi.encodeWithSelector(
+          lockingImpl.__Locking_init.selector,
+          address(mentoToken), /// @param _token The token to be locked in exchange for voting power in form of veTokens.
+          startingPointWeek, ///   @param _startingPointWeek The locking epoch start in weeks. We start the locking contract from week 1 with min slope duration of 1
+          0, ///                   @param _minCliffPeriod minimum cliff period in weeks.
+          1 ///                    @param _minSlopePeriod minimum slope period in weeks.
+        )
+      );
     locking = Locking(address(lockingProxy));
     assert(address(locking) == lockingPrecalculated);
 
@@ -225,17 +225,17 @@ contract GovernanceFactory is Ownable {
 
     // slither-disable-next-line reentrancy-benign
     TransparentUpgradeableProxy governanceTimelockProxy = ProxyDeployerLib.deployProxy( // NONCE:9
-      address(timelockControllerImpl),
-      address(proxyAdmin),
-      abi.encodeWithSelector(
-        timelockControllerImpl.__MentoTimelockController_init.selector,
-        GOVERNANCE_TIMELOCK_DELAY, /// @param minDelay The minimum delay before a proposal can be executed.
-        governanceProposers, ///       @param proposers List of addresses that are allowed to queue AND cancel operations.
-        governanceExecutors, ///       @param executors List of addresses that are allowed to execute proposals.
-        address(0), ///                @param admin No admin necessary as proposers are preset upon deployment.
-        watchdogMultiSig ///           @param canceller An additional canceller address with the rights to cancel awaiting proposals.
-      )
-    );
+        address(timelockControllerImpl),
+        address(proxyAdmin),
+        abi.encodeWithSelector(
+          timelockControllerImpl.__MentoTimelockController_init.selector,
+          GOVERNANCE_TIMELOCK_DELAY, /// @param minDelay The minimum delay before a proposal can be executed.
+          governanceProposers, ///       @param proposers List of addresses that are allowed to queue AND cancel operations.
+          governanceExecutors, ///       @param executors List of addresses that are allowed to execute proposals.
+          address(0), ///                @param admin No admin necessary as proposers are preset upon deployment.
+          watchdogMultiSig ///           @param canceller An additional canceller address with the rights to cancel awaiting proposals.
+        )
+      );
     governanceTimelock = TimelockController(payable(governanceTimelockProxy));
     assert(address(governanceTimelock) == governanceTimelockPrecalculated);
 
@@ -245,18 +245,18 @@ contract GovernanceFactory is Ownable {
     // slither-disable-next-line reentrancy-benign
     MentoGovernor mentoGovernorImpl = MentoGovernorDeployerLib.deploy(); // NONCE:10
     TransparentUpgradeableProxy mentoGovernorProxy = ProxyDeployerLib.deployProxy( // NONCE: 11
-      address(mentoGovernorImpl),
-      address(proxyAdmin),
-      abi.encodeWithSelector(
-        mentoGovernorImpl.__MentoGovernor_init.selector,
-        address(lockingProxy), ///       @param veToken The escrowed Mento Token used for voting.
-        governanceTimelockProxy, ///     @param timelockController The timelock controller used by the governor.
-        GOVERNOR_VOTING_DELAY, ///       @param votingDelay_ The delay time in blocks between the proposal creation and the start of voting.
-        GOVERNOR_VOTING_PERIOD, ///      @param votingPeriod_ The voting duration in blocks between the vote start and vote end.
-        GOVERNOR_PROPOSAL_THRESHOLD, /// @param threshold_ The number of votes required in order for a voter to become a proposer.
-        GOVERNOR_QUORUM ///              @param quorum_ The minimum number of votes in percent of total supply required in order for a proposal to succeed.
-      )
-    );
+        address(mentoGovernorImpl),
+        address(proxyAdmin),
+        abi.encodeWithSelector(
+          mentoGovernorImpl.__MentoGovernor_init.selector,
+          address(lockingProxy), ///       @param veToken The escrowed Mento Token used for voting.
+          governanceTimelockProxy, ///     @param timelockController The timelock controller used by the governor.
+          GOVERNOR_VOTING_DELAY, ///       @param votingDelay_ The delay time in blocks between the proposal creation and the start of voting.
+          GOVERNOR_VOTING_PERIOD, ///      @param votingPeriod_ The voting duration in blocks between the vote start and vote end.
+          GOVERNOR_PROPOSAL_THRESHOLD, /// @param threshold_ The number of votes required in order for a voter to become a proposer.
+          GOVERNOR_QUORUM ///              @param quorum_ The minimum number of votes in percent of total supply required in order for a proposal to succeed.
+        )
+      );
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
     assert(address(mentoGovernor) == governorPrecalculated);
 

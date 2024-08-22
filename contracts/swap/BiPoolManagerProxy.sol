@@ -4,6 +4,4 @@ pragma solidity ^0.5.13;
 import "celo/contracts/common/Proxy.sol";
 
 /* solhint-disable-next-line no-empty-blocks */
-contract BiPoolManagerProxy is Proxy {
-
-}
+contract BiPoolManagerProxy is Proxy {}

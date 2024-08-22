@@ -4,6 +4,4 @@ pragma solidity ^0.5.13;
 import "celo/contracts/common/Proxy.sol";
 
 /* solhint-disable-next-line no-empty-blocks */
-contract StableTokenBRLProxy is Proxy {
-
-}
+contract StableTokenBRLProxy is Proxy {}
