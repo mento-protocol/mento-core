@@ -3,7 +3,6 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8.26;
 
-import { console } from "forge-std/Test.sol";
 import { Test } from "mento-std/Test.sol";
 
 import { MockBreaker } from "test/utils/mocks/MockBreaker.sol";

@@ -8,9 +8,6 @@ import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 import { IBreaker } from "../interfaces/IBreaker.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 
-import { AddressLinkedList, LinkedList } from "celo/contracts/common/linkedlists/AddressLinkedList.sol";
-import { Initializable } from "celo/contracts/common/Initializable.sol";
-
 /**
  * @title   BreakerBox
  * @notice  The BreakerBox checks the criteria defined in separate breaker contracts

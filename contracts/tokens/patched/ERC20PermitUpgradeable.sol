@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable gas-custom-errors
 // OpenZeppelin Contracts (last updated v4.8.0) (token/ERC20/extensions/draft-ERC20Permit.sol)
 /*
  * 🔥 MentoLabs: This is a copied file from v4.8.0 of OZ-Upgradable,

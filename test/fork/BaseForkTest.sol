@@ -12,14 +12,12 @@ import { IRegistry } from "celo/contracts/common/interfaces/IRegistry.sol";
 import { Utils } from "./Utils.sol";
 import { TestAsserts } from "./TestAsserts.sol";
 
-import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
-import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";
 
 interface IMint {

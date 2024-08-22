@@ -3,7 +3,6 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
 import { LockingTest } from "./LockingTest.sol";
-import { MockLocking } from "test/utils/mocks/MockLocking.sol";
 
 contract Lock_LockingTest is LockingTest {
   function test_init_shouldSetState() public view {

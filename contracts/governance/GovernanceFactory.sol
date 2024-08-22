@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
-// solhint-disable max-line-length
+// solhint-disable max-line-length, gas-custom-errors
 // slither-disable-start reentrancy-events
 
 import { MentoToken } from "./MentoToken.sol";
@@ -24,7 +24,6 @@ import {
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
-import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
 /**
  * @title GovernanceFactory

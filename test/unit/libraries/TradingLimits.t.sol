@@ -4,7 +4,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { console } from "forge-std/console.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 
 import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";

@@ -7,7 +7,6 @@ import { CELO_ID } from "mento-std/Constants.sol";
 
 import { WithRegistry } from "../utils/WithRegistry.sol";
 
-import { IRegistry } from "celo/contracts/common/interfaces/IRegistry.sol";
 import { ICeloProxy } from "contracts/interfaces/ICeloProxy.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 

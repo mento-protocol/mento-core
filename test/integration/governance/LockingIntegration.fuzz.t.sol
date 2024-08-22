@@ -12,7 +12,6 @@ import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
 import { Locking } from "contracts/governance/locking/Locking.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
-import { console } from "forge-std-next/console.sol";
 
 /**
  * @title Fuzz Testing for Locking Integration

@@ -14,6 +14,7 @@ import "contracts/oracles/ChainlinkRelayerFactoryProxyAdmin.sol";
 import "contracts/oracles/ChainlinkRelayerFactoryProxy.sol";
 import "contracts/oracles/ChainlinkRelayerFactory.sol";
 import "contracts/oracles/ChainlinkRelayerV1.sol";
+// solhint-disable-next-line max-line-length
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract ChainlinkRelayerIntegration is ProtocolTest {

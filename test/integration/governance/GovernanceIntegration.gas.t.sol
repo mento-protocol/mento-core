@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, max-states-count
 
-import { addresses, uints, bytes32s } from "mento-std/Array.sol";
+import { addresses, uints } from "mento-std/Array.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";

@@ -12,8 +12,6 @@ import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
-import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
-import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 

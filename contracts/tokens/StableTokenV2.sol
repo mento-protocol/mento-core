@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable gas-custom-errors
 pragma solidity 0.8.18;
 
 import { ERC20PermitUpgradeable } from "./patched/ERC20PermitUpgradeable.sol";

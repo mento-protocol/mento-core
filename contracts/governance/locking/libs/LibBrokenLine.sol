@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable gas-custom-errors
 pragma solidity 0.8.18;
 
 import "./LibIntMapping.sol";

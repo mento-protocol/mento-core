@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable immutable-vars-naming, gas-custom-errors
 pragma solidity 0.8.18;
 
 import { MerkleProof } from "openzeppelin-contracts-next/contracts/utils/cryptography/MerkleProof.sol";

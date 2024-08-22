@@ -16,7 +16,10 @@ contract MockReserve {
   bool public reserveSpender;
 
   // solhint-disable-next-line no-empty-blocks
-  fallback() external {}
+  fallback() external payable {}
+
+  // solhint-disable-next-line no-empty-blocks
+  receive() external payable {}
 
   function setGoldToken(address goldTokenAddress) external {
     goldToken = IERC20(goldTokenAddress);

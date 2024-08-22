@@ -5,7 +5,6 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { bytes32s, addresses } from "mento-std/Array.sol";
-import { console } from "forge-std/console.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 import { MockReserve } from "test/utils//mocks/MockReserve.sol";

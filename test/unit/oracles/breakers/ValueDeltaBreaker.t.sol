@@ -3,8 +3,6 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { console } from "forge-std/console.sol";
-import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { Test } from "mento-std/Test.sol";
 
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";

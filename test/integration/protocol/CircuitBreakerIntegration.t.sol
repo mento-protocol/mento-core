@@ -3,7 +3,6 @@
 pragma solidity ^0.8;
 
 import { ProtocolTest } from "./ProtocolTest.sol";
-import { console } from "forge-std/console.sol";
 
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 

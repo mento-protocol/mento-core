@@ -3,11 +3,7 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { console } from "forge-std/console.sol";
 import { Test } from "mento-std/Test.sol";
-
-import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
-import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
 contract ConstantProductPricingModuleTest is Test {
   IPricingModule constantProduct;

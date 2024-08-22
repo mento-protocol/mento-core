@@ -9,8 +9,6 @@ import { Utils } from "./Utils.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { IBreaker } from "contracts/interfaces/IBreaker.sol";
-
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";

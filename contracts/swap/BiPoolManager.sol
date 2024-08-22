@@ -9,7 +9,6 @@ import { IERC20 } from "../interfaces/IERC20.sol";
 import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
 import { IBiPoolManager } from "../interfaces/IBiPoolManager.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
-import { IPricingModule } from "../interfaces/IPricingModule.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 

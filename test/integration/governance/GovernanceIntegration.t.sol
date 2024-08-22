@@ -21,7 +21,6 @@ import { LockingHarness } from "test/utils/harnesses/LockingHarness.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { GnosisSafe } from "safe-contracts/contracts/GnosisSafe.sol";
 import { GnosisSafeProxyFactory } from "safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
-import { Enum } from "safe-contracts/contracts/common/Enum.sol";
 
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 

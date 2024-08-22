@@ -3,18 +3,13 @@
 pragma solidity ^0.8;
 
 import { addresses, uints } from "mento-std/Array.sol";
-import { console } from "forge-std/console.sol";
 
 import { ProtocolTest } from "./ProtocolTest.sol";
 
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
 
-import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
-
-import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 contract EXOFIntegrationTest is ProtocolTest {
   address trader = makeAddr("trader");

@@ -3,15 +3,9 @@
 pragma solidity ^0.8;
 
 import { ProtocolTest } from "./ProtocolTest.sol";
-import { console } from "forge-std/console.sol";
 
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-
-import { IBroker } from "contracts/interfaces/IBroker.sol";
-import { IReserve } from "contracts/interfaces/IReserve.sol";
-import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
-import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
 contract ConstantSumIntegrationTest is ProtocolTest {
   address trader = makeAddr("trader");

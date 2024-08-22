@@ -5,18 +5,15 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 import { bytes32s, addresses, uints } from "mento-std/Array.sol";
 import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
-import { console } from "forge-std/console.sol";
 
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { IFreezer } from "celo/contracts/common/interfaces/IFreezer.sol";
 
-import { MockSortedOracles } from "test/utils/mocks/MockSortedOracles.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { USDC } from "test/utils/mocks/USDC.sol";
 import { WithRegistry } from "test/utils/WithRegistry.sol";
 
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
-import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
