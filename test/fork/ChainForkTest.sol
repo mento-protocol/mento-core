@@ -4,6 +4,9 @@ pragma solidity ^0.8;
 
 import "./BaseForkTest.sol";
 
+import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
+
 contract ChainForkTest is BaseForkTest {
   using FixidityLib for FixidityLib.Fraction;
 

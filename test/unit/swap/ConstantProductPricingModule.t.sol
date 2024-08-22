@@ -5,6 +5,8 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 
+import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
+
 contract ConstantProductPricingModuleTest is Test {
   IPricingModule constantProduct;
 
