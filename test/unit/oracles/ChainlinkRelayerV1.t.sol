@@ -354,7 +354,7 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
     assertEq(oracles[1], address(relayer));
     assertEq(rates[1], expectedReport);
 
-    vm.warp(t0 + 400); // First report should be expired
+    vm.warp(t0 + 600); // First report should be expired
     setAggregatorPrices(); // Update timestamps
     relayAndLogGas("2 reports with expiry");
     // relayer.relay();
@@ -375,7 +375,7 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
     vm.prank(oldRelayer);
     sortedOracles.report(rateFeedId, expectedReport - 2, address(0), address(0));
 
-    vm.warp(to + 200); // Not enough to be able to expire the first report
+    vm.warp(t0 + 200); // Not enough to be able to expire the first report
     setAggregatorPrices(); // Update timestamps
     relayAndLogGas("other report no expiry");
     // relayer.relay();
@@ -385,7 +385,7 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
     assertEq(oracles[0], address(relayer));
     assertEq(rates[0], expectedReport);
 
-    vm.warp(t0 + 400); // First report should be expired
+    vm.warp(t0 + 600); // First report should be expired
     setAggregatorPrices(); // Update timestamps
     relayAndLogGas("2 reports with expiry");
     // relayer.relay();
