@@ -24,6 +24,11 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
   address[] public rateFeeds;
 
   /**
+   * @notice Account that is allowed to deploy relayers.
+   */
+  address public relayerDeployer;
+
+  /**
    * @notice Thrown when trying to deploy a relayer to an address that already has code.
    * @param contractAddress Address at which the relayer could not be deployed.
    * @param rateFeedId Rate feed ID for which the relayer would have reported.
@@ -51,6 +56,17 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    */
   error NoRelayerForRateFeedId(address rateFeedId);
 
+  /// @notice Thrown when a non-deployer tries to call a deployer-only function.
+  error NotAllowed();
+
+  /// @notice Modifier to restrict a function to the deployer.
+  modifier onlyDeployer() {
+    if (msg.sender != relayerDeployer && msg.sender != owner()) {
+      revert NotAllowed();
+    }
+    _;
+  }
+
   /**
    * @notice Constructor for the logic contract.
    * @param disable If `true`, disables the initializer.
@@ -69,9 +85,20 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @notice Initializes the factory.
    * @param _sortedOracles The SortedOracles instance deployed relayers should report to.
    */
-  function initialize(address _sortedOracles) external initializer {
+  function initialize(address _sortedOracles, address _relayerDeployer) external initializer {
     __Ownable_init();
     sortedOracles = _sortedOracles;
+    relayerDeployer = _relayerDeployer;
+  }
+
+  /**
+   * @notice Sets the address of the relayer deployer.
+   * @param newRelayerDeployer The address of the relayer deployer.
+   */
+  function setRelayerDeployer(address newRelayerDeployer) external onlyOwner {
+    address oldRelayerDeployer = relayerDeployer;
+    relayerDeployer = newRelayerDeployer;
+    emit RelayerDeployerUpdated(newRelayerDeployer, oldRelayerDeployer);
   }
 
   /**
@@ -87,7 +114,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
     address rateFeedId,
     string calldata rateFeedDescription,
     IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
-  ) public onlyOwner returns (address relayerAddress) {
+  ) public onlyDeployer returns (address relayerAddress) {
     if (address(deployedRelayers[rateFeedId]) != address(0)) {
       revert RelayerForFeedExists(rateFeedId);
     }
@@ -121,7 +148,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    * @notice Removes a relayer from the list of deployed relayers.
    * @param rateFeedId The rate feed whose relayer should be removed.
    */
-  function removeRelayer(address rateFeedId) public onlyOwner {
+  function removeRelayer(address rateFeedId) public onlyDeployer {
     address relayerAddress = address(deployedRelayers[rateFeedId]);
 
     if (relayerAddress == address(0)) {
@@ -156,7 +183,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
     address rateFeedId,
     string calldata rateFeedDescription,
     IChainlinkRelayer.ChainlinkAggregator[] calldata aggregators
-  ) external onlyOwner returns (address relayerAddress) {
+  ) external onlyDeployer returns (address relayerAddress) {
     removeRelayer(rateFeedId);
     return deployRelayer(rateFeedId, rateFeedDescription, aggregators);
   }
