@@ -226,6 +226,8 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param token the token to target.
    * @param config the new trading limits config.
    */
+  // TODO: Make this external with next update.
+  // slither-disable-next-line external-function
   function configureTradingLimit(
     bytes32 exchangeId,
     address token,

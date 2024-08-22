@@ -203,6 +203,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
    */
   function getRelayers() external view returns (address[] memory relayerAddresses) {
     address[] memory relayers = new address[](rateFeeds.length);
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < rateFeeds.length; i++) {
       relayers[i] = address(deployedRelayers[rateFeeds[i]]);
     }

@@ -261,6 +261,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       sum = sum.add(FixidityLib.wrap(weights[i]));
     }
     require(sum.equals(FixidityLib.fixed1()), "Sum of asset allocation must be 1");
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < assetAllocationSymbols.length; i = i.add(1)) {
       delete assetAllocationWeights[assetAllocationSymbols[i]];
     }
@@ -576,6 +577,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    */
   function getAssetAllocationWeights() external view returns (uint256[] memory) {
     uint256[] memory weights = new uint256[](assetAllocationSymbols.length);
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < assetAllocationSymbols.length; i = i.add(1)) {
       weights[i] = assetAllocationWeights[assetAllocationSymbols[i]];
     }
@@ -606,6 +608,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    */
   function getOtherReserveAddressesGoldBalance() public view returns (uint256) {
     uint256 reserveGoldBalance = 0;
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < otherReserveAddresses.length; i = i.add(1)) {
       reserveGoldBalance = reserveGoldBalance.add(otherReserveAddresses[i].balance);
     }
@@ -629,6 +632,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   function getReserveAddressesCollateralAssetBalance(address collateralAsset) public view returns (uint256) {
     require(checkIsCollateralAsset(collateralAsset), "specified address is not a collateral asset");
     uint256 reserveCollateralAssetBalance = 0;
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < otherReserveAddresses.length; i++) {
       // slither-disable-next-line calls-loop
       reserveCollateralAssetBalance = reserveCollateralAssetBalance.add(
@@ -702,6 +706,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     uint256 stableTokensValueInGold = 0;
     FixidityLib.Fraction memory cgldWeight = FixidityLib.wrap(assetAllocationWeights["cGLD"]);
 
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < _tokens.length; i = i.add(1)) {
       uint256 stableAmount;
       uint256 goldAmount;
