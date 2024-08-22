@@ -34,7 +34,7 @@ contract ChainlinkRelayerIntegration is ProtocolTest {
         new ChainlinkRelayerFactoryProxy(
           address(relayerFactoryImplementation),
           address(proxyAdmin),
-          abi.encodeWithSignature("initialize(address)", address(sortedOracles))
+          abi.encodeWithSignature("initialize(address,address)", address(sortedOracles), owner)
         )
       )
     );
@@ -80,7 +80,7 @@ contract ChainlinkRelayerIntegration_ProxySetup is ChainlinkRelayerIntegration {
 
   function test_implementationNotInitializable() public {
     vm.expectRevert("Initializable: contract is already initialized");
-    relayerFactoryImplementation.initialize(address(sortedOracles));
+    relayerFactoryImplementation.initialize(address(sortedOracles), address(this));
   }
 }
 
