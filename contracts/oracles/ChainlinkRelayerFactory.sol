@@ -61,7 +61,7 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
 
   /// @notice Modifier to restrict a function to the deployer.
   modifier onlyDeployer() {
-    if (msg.sender != relayerDeployer) {
+    if (msg.sender != relayerDeployer && msg.sender != owner()) {
       revert NotAllowed();
     }
     _;
@@ -93,11 +93,12 @@ contract ChainlinkRelayerFactory is IChainlinkRelayerFactory, OwnableUpgradeable
 
   /**
    * @notice Sets the address of the relayer deployer.
-   * @param _relayerDeployer The address of the relayer deployer.
+   * @param newRelayerDeployer The address of the relayer deployer.
    */
-  function setRelayerDeployer(address _relayerDeployer) external onlyOwner {
-    emit RelayerDeployerUpdated(_relayerDeployer, relayerDeployer);
-    relayerDeployer = _relayerDeployer;
+  function setRelayerDeployer(address newRelayerDeployer) external onlyOwner {
+    address oldRelayerDeployer = relayerDeployer;
+    relayerDeployer = newRelayerDeployer;
+    emit RelayerDeployerUpdated(newRelayerDeployer, oldRelayerDeployer);
   }
 
   /**

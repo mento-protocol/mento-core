@@ -26,7 +26,7 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   address aRateFeed = rateFeeds[0];
   string aRateFeedDescription = "CELO/USD";
 
-  bytes constant NOT_ALLOWED = abi.encodeWithSignature("NotAllowed()");
+  bytes constant NOT_ALLOWED_ERROR = abi.encodeWithSignature("NotAllowed()");
 
   event RelayerDeployed(
     address indexed relayerAddress,
@@ -37,11 +37,9 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
   event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
   event RelayerDeployerUpdated(address indexed newRelayerDeployer, address indexed oldRelayerDeployer);
 
-  function oneAggregator(uint256 aggregatorIndex)
-    internal
-    view
-    returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators)
-  {
+  function oneAggregator(
+    uint256 aggregatorIndex
+  ) internal view returns (IChainlinkRelayer.ChainlinkAggregator[] memory aggregators) {
     aggregators = new IChainlinkRelayer.ChainlinkAggregator[](1);
     aggregators[0] = IChainlinkRelayer.ChainlinkAggregator(mockAggregators[aggregatorIndex], false);
   }
@@ -90,11 +88,10 @@ contract ChainlinkRelayerFactoryTest is BaseTest {
       );
   }
 
-  function contractAlreadyExistsError(address relayerAddress, address rateFeedId)
-    public
-    pure
-    returns (bytes memory ContractAlreadyExistsError)
-  {
+  function contractAlreadyExistsError(
+    address relayerAddress,
+    address rateFeedId
+  ) public pure returns (bytes memory ContractAlreadyExistsError) {
     return abi.encodeWithSignature("ContractAlreadyExists(address,address)", relayerAddress, rateFeedId);
   }
 
@@ -277,8 +274,13 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
   }
 
   function test_revertsWhenCalledByNonDeployer() public {
-    vm.expectRevert(NOT_ALLOWED);
+    vm.expectRevert(NOT_ALLOWED_ERROR);
     vm.prank(nonDeployer);
+    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators());
+  }
+
+  function test_worksWhenCalledByOwner() public {
+    vm.prank(owner);
     relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators());
   }
 }
@@ -384,8 +386,13 @@ contract ChainlinkRelayerFactoryTest_removeRelayer is ChainlinkRelayerFactoryTes
   }
 
   function test_revertsWhenCalledByNonDeployer() public {
-    vm.expectRevert(NOT_ALLOWED);
+    vm.expectRevert(NOT_ALLOWED_ERROR);
     vm.prank(nonDeployer);
+    relayerFactory.removeRelayer(aRateFeed);
+  }
+
+  function test_worksWhenCalledByOwner() public {
+    vm.prank(owner);
     relayerFactory.removeRelayer(aRateFeed);
   }
 }
@@ -488,8 +495,13 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
   }
 
   function test_revertsWhenCalledByNonDeployer() public {
-    vm.expectRevert(NOT_ALLOWED);
+    vm.expectRevert(NOT_ALLOWED_ERROR);
     vm.prank(nonDeployer);
+    relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1));
+  }
+
+  function test_worksWhenCalledByOwner() public {
+    vm.prank(owner);
     relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1));
   }
 }
