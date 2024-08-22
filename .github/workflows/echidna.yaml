@@ -50,7 +50,13 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: "Build for echidna"
-        run: forge build --build-info --skip "test/**/*" "script/**/"
+        run: |
+          forge build --build-info --skip \
+                "test/fork/**/*" \
+                "test/integration/**/*" \
+                "test/unit/**/*" \
+                "test/utils/**/*" \
+                "script/**/"
 
       - name: "Run Echidna"
         uses: crytic/echidna-action@v2
