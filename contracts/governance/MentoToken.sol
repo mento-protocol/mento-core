@@ -54,6 +54,7 @@ contract MentoToken is Ownable, Pausable, ERC20Burnable {
 
     uint256 supply = 1_000_000_000 * 10 ** decimals();
 
+    // slither-disable-next-line uninitialized-local
     uint256 totalAllocated;
     for (uint256 i = 0; i < allocationRecipients_.length; i++) {
       require(allocationRecipients_[i] != address(0), "MentoToken: allocation recipient is zero address");
