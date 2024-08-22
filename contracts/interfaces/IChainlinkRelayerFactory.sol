@@ -20,15 +20,26 @@ interface IChainlinkRelayerFactory {
   );
 
   /**
+   * @notice Emitted when the relayer deployer is updated.
+   * @param newRelayerDeployer Address of the new relayer deployer.
+   * @param oldRelayerDeployer Address of the old relayer deployer.
+   */
+  event RelayerDeployerUpdated(address indexed newRelayerDeployer, address indexed oldRelayerDeployer);
+
+  /**
    * @notice Emitted when a relayer is removed.
    * @param relayerAddress Address of the removed relayer.
    * @param rateFeedId Rate feed ID for which the relayer reported.
    */
   event RelayerRemoved(address indexed relayerAddress, address indexed rateFeedId);
 
-  function initialize(address _sortedOracles) external;
+  function initialize(address _sortedOracles, address _relayerDeployer) external;
 
   function sortedOracles() external returns (address);
+
+  function setRelayerDeployer(address _relayerDeployer) external;
+
+  function relayerDeployer() external returns (address);
 
   function deployRelayer(
     address rateFeedId,
