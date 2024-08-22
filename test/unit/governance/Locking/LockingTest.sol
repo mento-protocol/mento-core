@@ -3,8 +3,8 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, contract-name-camelcase
 
 import { GovernanceTest } from "../GovernanceTest.sol";
-import { LockingHarness } from "../../harnesses/LockingHarness.sol";
-import { MockMentoToken } from "../../mocks/MockMentoToken.sol";
+import { LockingHarness } from "test/utils/harnesses/LockingHarness.sol";
+import { MockMentoToken } from "test/utils/mocks/MockMentoToken.sol";
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
 contract LockingTest is GovernanceTest {

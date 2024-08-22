@@ -8,8 +8,8 @@ import { addresses, uints } from "mento-std/Array.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import { LockingHarness } from "../harnesses/LockingHarness.sol";
-import { GovernanceFactoryHarness } from "../harnesses/GovernanceFactoryHarness.t.sol";
+import { LockingHarness } from "test/utils/harnesses/LockingHarness.sol";
+import { GovernanceFactoryHarness } from "test/utils/harnesses/GovernanceFactoryHarness.t.sol";
 
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";

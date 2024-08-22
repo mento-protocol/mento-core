@@ -6,8 +6,8 @@ pragma solidity ^0.8.26;
 import { console } from "forge-std/Test.sol";
 import { Test } from "mento-std/Test.sol";
 
-import { MockBreaker } from "test/mocks/MockBreaker.sol";
-import { MockSortedOracles } from "test/mocks/MockSortedOracles.sol";
+import { MockBreaker } from "test/utils/mocks/MockBreaker.sol";
+import { MockSortedOracles } from "test/utils/mocks/MockSortedOracles.sol";
 
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";

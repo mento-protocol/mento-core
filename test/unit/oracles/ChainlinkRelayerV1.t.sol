@@ -6,7 +6,7 @@ pragma solidity ^0.8.18;
 import { console } from "forge-std/console.sol";
 import { Test } from "mento-std/Test.sol";
 
-import "test/mocks/MockAggregatorV3.sol";
+import "test/utils/mocks/MockAggregatorV3.sol";
 import "contracts/interfaces/IChainlinkRelayer.sol";
 import "contracts/oracles/ChainlinkRelayerV1.sol";
 

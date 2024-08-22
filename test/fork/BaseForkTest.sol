@@ -20,7 +20,7 @@ import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
-import { ITradingLimitsHarness } from "test/harnesses/ITradingLimitsHarness.sol";
+import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";
 
 interface IMint {
   function mint(address, uint256) external;

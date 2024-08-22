@@ -5,9 +5,9 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 
-import { MockExchangeProvider } from "../mocks/MockExchangeProvider.sol";
-import { MockReserve } from "../mocks/MockReserve.sol";
-import { TestERC20 } from "../mocks/TestERC20.sol";
+import { MockExchangeProvider } from "test/utils/mocks/MockExchangeProvider.sol";
+import { MockReserve } from "test/utils/mocks/MockReserve.sol";
+import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 

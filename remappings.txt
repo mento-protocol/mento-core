@@ -5,7 +5,6 @@ test/=test/
 forge-std/=lib/forge-std-next/src/
 safe-contracts/=lib/safe-contracts/
 prb/math/=lib/prb-math/src/
-node_modules/@celo/lib/mento-core/contracts/=contracts/
 celo/=node_modules/@celo/
 contracts/=contracts/
 

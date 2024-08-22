@@ -9,7 +9,7 @@ import { Test } from "mento-std/Test.sol";
 
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
-import { MockSortedOracles } from "test/mocks/MockSortedOracles.sol";
+import { MockSortedOracles } from "test/utils/mocks/MockSortedOracles.sol";
 import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 

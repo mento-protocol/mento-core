@@ -8,11 +8,11 @@ import { bytes32s, addresses } from "mento-std/Array.sol";
 import { console } from "forge-std/console.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
-import { MockReserve } from "../mocks/MockReserve.sol";
-import { MockBreakerBox } from "../mocks/MockBreakerBox.sol";
-import { MockERC20 } from "../mocks/MockERC20.sol";
-import { MockPricingModule } from "../mocks/MockPricingModule.sol";
-import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
+import { MockReserve } from "test/utils//mocks/MockReserve.sol";
+import { MockBreakerBox } from "test/utils/mocks/MockBreakerBox.sol";
+import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
+import { MockPricingModule } from "test/utils/mocks/MockPricingModule.sol";
+import { MockSortedOracles } from "test/utils/mocks/MockSortedOracles.sol";
 
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";

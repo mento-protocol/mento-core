@@ -14,7 +14,7 @@ import { Locking } from "contracts/governance/locking/Locking.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
 
 import { VmExtension } from "test/utils/VmExtension.sol";
-import { GovernanceTest } from "test/governance/GovernanceTest.sol";
+import { GovernanceTest } from "test/unit/governance/GovernanceTest.sol";
 import { Proposals } from "./Proposals.sol";
 
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";

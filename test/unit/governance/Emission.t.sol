@@ -4,7 +4,7 @@ pragma solidity 0.8.18;
 
 import { GovernanceTest } from "./GovernanceTest.sol";
 import { Emission } from "contracts/governance/Emission.sol";
-import { MockMentoToken } from "../mocks/MockMentoToken.sol";
+import { MockMentoToken } from "test/utils/mocks/MockMentoToken.sol";
 
 contract EmissionTest is GovernanceTest {
   Emission public emission;

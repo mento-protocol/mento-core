@@ -8,7 +8,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
 import "celo/contracts/common/FixidityLib.sol";
 import "celo/contracts/common/Initializable.sol";
-import { UsingRegistry } from "../common/UsingRegistry.sol";
+import { UsingRegistry } from "contracts/common/UsingRegistry.sol";
 import "celo/contracts/common/interfaces/ICeloVersionedContract.sol";
 import "celo/contracts/common/libraries/ReentrancyGuard.sol";
 

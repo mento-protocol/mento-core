@@ -20,7 +20,7 @@ import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
 import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
-import { ITradingLimitsHarness } from "test/harnesses/ITradingLimitsHarness.sol";
+import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";
 
 library Utils {
   using FixidityLib for FixidityLib.Fraction;

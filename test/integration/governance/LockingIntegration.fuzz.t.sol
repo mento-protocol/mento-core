@@ -6,7 +6,7 @@ import { Vm } from "forge-std/Vm.sol";
 import { addresses, uints } from "mento-std/Array.sol";
 
 import { VmExtension } from "test/utils/VmExtension.sol";
-import { GovernanceTest } from "test/governance/GovernanceTest.sol";
+import { GovernanceTest } from "test/unit/governance/GovernanceTest.sol";
 
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";

@@ -4,7 +4,7 @@
 pragma solidity ^0.8;
 
 import { ProtocolTest } from "./ProtocolTest.sol";
-import { MockAggregatorV3 } from "../../mocks/MockAggregatorV3.sol";
+import { MockAggregatorV3 } from "test/utils/mocks/MockAggregatorV3.sol";
 
 import { IOwnable } from "contracts/interfaces/IOwnable.sol";
 

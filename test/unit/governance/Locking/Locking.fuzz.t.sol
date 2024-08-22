@@ -5,8 +5,8 @@ pragma solidity 0.8.18;
 import { Test } from "mento-std/Test.sol";
 import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
-import { TestERC20 } from "../../mocks/TestERC20.sol";
-import { LockingHarness } from "../../harnesses/LockingHarness.sol";
+import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
+import { LockingHarness } from "test/utils/harnesses/LockingHarness.sol";
 
 /**
  * @notice https://github.com/rarible/locking-contracts/tree/4f189a96b3e85602dedfbaf69d9a1f5056d835eb

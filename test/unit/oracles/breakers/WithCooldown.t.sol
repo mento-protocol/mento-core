@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { console } from "forge-std/Test.sol";
-import { IWithCooldownHarness } from "../../harnesses/IWithCooldownHarness.sol";
+import { IWithCooldownHarness } from "test/utils/harnesses/IWithCooldownHarness.sol";
 
 contract WithCooldownTest is Test {
   event DefaultCooldownTimeUpdated(uint256 newCooldownTime);

@@ -6,9 +6,9 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
-import { WithRegistry } from "../utils/WithRegistry.sol";
-import { MockSortedOracles } from "../mocks/MockSortedOracles.sol";
-import { TestERC20 } from "../mocks/TestERC20.sol";
+import { WithRegistry } from "test/utils/WithRegistry.sol";
+import { MockSortedOracles } from "test/utils/mocks/MockSortedOracles.sol";
+import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";

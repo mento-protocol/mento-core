@@ -10,10 +10,10 @@ import { console } from "forge-std/console.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { IFreezer } from "celo/contracts/common/interfaces/IFreezer.sol";
 
-import { MockSortedOracles } from "../../mocks/MockSortedOracles.sol";
-import { TestERC20 } from "../../mocks/TestERC20.sol";
-import { USDC } from "../../mocks/USDC.sol";
-import { WithRegistry } from "../../utils/WithRegistry.sol";
+import { MockSortedOracles } from "test/utils/mocks/MockSortedOracles.sol";
+import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
+import { USDC } from "test/utils/mocks/USDC.sol";
+import { WithRegistry } from "test/utils/WithRegistry.sol";
 
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
