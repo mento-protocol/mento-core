@@ -221,7 +221,7 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
 
     vm.warp(block.timestamp + 1 minutes + 1);
 
-    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp + 1 minutes);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
@@ -238,7 +238,7 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
 
     vm.warp(block.timestamp + 1 minutes - 1);
 
-    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp - 1);
+    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp + 1 minutes);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
