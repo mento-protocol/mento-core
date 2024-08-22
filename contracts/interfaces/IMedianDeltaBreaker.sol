@@ -27,7 +27,7 @@ interface IMedianDeltaBreaker is IBreaker, IOwnable {
 
   function setDefaultCooldownTime(uint256 cooldownTime) external;
 
-  function setDefaultRateChangeThreshold(uint256 rateChangeThreshold) external;
+  function setDefaultRateChangeThreshold(uint256) external;
 
   function setRateChangeThresholds(address[] calldata rateFeedIDs, uint256[] calldata rateChangeThresholds) external;
 

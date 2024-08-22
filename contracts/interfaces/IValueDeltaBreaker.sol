@@ -14,7 +14,7 @@ interface IValueDeltaBreaker is IBreaker, IOwnable {
 
   function setSortedOracles(ISortedOracles _sortedOracles) external;
 
-  function setReferenceValues(address[] calldata rateFeedIDs, uint256[] calldata referenceValues) external;
+  function setReferenceValues(address[] calldata rateFeedIDs, uint256[] calldata _referenceValues) external;
 
   function setBreakerBox(address _breakerBox) external;
 
@@ -24,7 +24,7 @@ interface IValueDeltaBreaker is IBreaker, IOwnable {
 
   function setDefaultCooldownTime(uint256 cooldownTime) external;
 
-  function setDefaultRateChangeThreshold(uint256 rateChangeThreshold) external;
+  function setDefaultRateChangeThreshold(uint256 _rateChangeTreshold) external;
 
   function setRateChangeThresholds(address[] calldata rateFeedIDs, uint256[] calldata rateChangeThresholds) external;
 

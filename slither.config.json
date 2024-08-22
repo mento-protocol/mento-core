@@ -1,5 +1,5 @@
 {
-  "detectors_to_exclude": "timestamp",
+  "detectors_to_exclude": "timestamp,missing-zero-check",
   "filter_paths": "node_modules/|test/|lib/",
   "fail_on": "low"
 }

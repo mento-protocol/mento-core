@@ -122,9 +122,9 @@ interface IBiPoolManager {
 
   /**
    * @notice Get all exchange IDs.
-   * @return exchangeIds List of the exchangeIds.
+   * @return _exchangeIds List of the exchangeIds.
    */
-  function getExchangeIds() external view returns (bytes32[] memory exchangeIds);
+  function getExchangeIds() external view returns (bytes32[] memory _exchangeIds);
 
   /**
    * @notice Create a PoolExchange with the provided data.

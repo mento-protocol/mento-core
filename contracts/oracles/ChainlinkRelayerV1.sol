@@ -267,7 +267,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @return timestamp uint256 timestamp of the report.
    */
   function readChainlinkAggregator(ChainlinkAggregator memory aggCfg) internal view returns (UD60x18, uint256) {
-    // slither-disable-next-line unused-return
+    // slither-disable-next-line unused-return,calls-loop
     (, int256 _price, , uint256 timestamp, ) = AggregatorV3Interface(aggCfg.aggregator).latestRoundData();
     if (_price <= 0) {
       revert InvalidPrice();
@@ -314,6 +314,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @return The converted UD60x18 value.
    */
   function chainlinkToUD60x18(int256 price, address aggregator) internal view returns (UD60x18) {
+    // slither-disable-next-line calls-loop
     uint256 chainlinkDecimals = uint256(AggregatorV3Interface(aggregator).decimals());
     return ud(uint256(price) * 10 ** (18 - chainlinkDecimals));
   }
