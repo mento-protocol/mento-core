@@ -214,14 +214,16 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
   }
 
   function test_whenPriceBeyondThresholdIsRelayedThenRecovers_breakerShouldTriggerThenRecover() public {
-    chainlinkAggregator.setRoundData(12 * 10 ** 7, block.timestamp - 1);
+    vm.warp(100000);
+    uint256 t0 = block.timestamp;
+    chainlinkAggregator.setRoundData(12 * 10 ** 7, t0 - 1);
     chainlinkRelayer.relay();
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
     assertEq(uint256(tradingMode), 3);
 
-    vm.warp(block.timestamp + 1 minutes + 1);
+    vm.warp(t0 + 1 minutes + 1);
 
-    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp + 1 minutes);
+    chainlinkAggregator.setRoundData(105 * 10 ** 6, t0 + 1 minutes + 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
@@ -231,14 +233,16 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
   }
 
   function test_whenPriceBeyondThresholdIsRelayedAndCooldownIsntReached_breakerShouldTriggerAndNotRecover() public {
-    chainlinkAggregator.setRoundData(12 * 10 ** 7, block.timestamp - 1);
+    vm.warp(100000);
+    uint256 t0 = block.timestamp;
+    chainlinkAggregator.setRoundData(12 * 10 ** 7, t0 - 1);
     chainlinkRelayer.relay();
     uint8 tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
     assertEq(uint256(tradingMode), 3);
 
-    vm.warp(block.timestamp + 1 minutes - 1);
+    vm.warp(t0 + 1 minutes - 1);
 
-    chainlinkAggregator.setRoundData(105 * 10 ** 6, block.timestamp + 1 minutes);
+    chainlinkAggregator.setRoundData(105 * 10 ** 6, t0 + 1 minutes + 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
