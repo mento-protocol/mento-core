@@ -45,13 +45,10 @@ jobs:
         run: "yarn install --immutable"
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-      - name: "Build for echidna"
-        run: forge build --build-info --skip */test/**/*.t.sol */script/**
       - name: "Run Echidna"
         uses: crytic/echidna-action@v2
         with:
           files: .
-          solc-version: 0.5.17
           contract: ${{ matrix.contract }}
           config: echidna.yaml
           test-mode: assertion
