@@ -13,3 +13,4 @@ interface ICeloProxy {
 
   function _transferOwnership(address newOwner) external;
 }
+// slither-disable-end naming-convention

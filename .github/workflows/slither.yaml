@@ -29,10 +29,11 @@ jobs:
       - name: "Install the Node.js dependencies"
         run: "yarn install --immutable"
       - name: Run Slither
-        uses: crytic/slither-action@v0.3.1
+        uses: crytic/slither-action@v0.4.0
         id: slither
         with:
           sarif: results.sarif
+          fail-on: "low"
         # continue-on-error: true
         # -----------------------
         # Ideally, we'd like to continue on error to allow uploading the SARIF file here.
