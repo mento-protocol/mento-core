@@ -31,11 +31,6 @@ compilation_restrictions = [
   { paths = "contracts/tokens/StableTokenV2.sol", via_ir = true, optimizer = true },
 ]
 
-[profile.default.optimizer_details.yul_details]
-stack_allocation = true
-optimizer_steps = ""
-
-
 [profile.ci]
 via_ir=true
 optimizer=true

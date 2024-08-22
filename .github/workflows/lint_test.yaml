@@ -50,7 +50,7 @@ jobs:
       - name: "Build the contracts"
         run: |
           forge --version
-          forge build --sizes
+          forge build --sizes --skip test/**/*
 
       - name: "Add test summary"
         run: |
