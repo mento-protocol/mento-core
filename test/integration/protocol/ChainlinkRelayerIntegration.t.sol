@@ -242,7 +242,7 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
 
     vm.warp(t0 + 1 minutes - 1);
 
-    chainlinkAggregator.setRoundData(105 * 10 ** 6, t0 + 1 minutes + 1);
+    chainlinkAggregator.setRoundData(105 * 10 ** 6, t0 + 1 minutes - 1);
     chainlinkRelayer.relay();
     (uint256 price, uint256 denominator) = sortedOracles.medianRate(rateFeedId);
     tradingMode = breakerBox.getRateFeedTradingMode(rateFeedId);
