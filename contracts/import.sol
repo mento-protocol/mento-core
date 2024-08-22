@@ -10,7 +10,6 @@ pragma solidity ^0.5.17;
 import "celo/contracts/common/Registry.sol";
 import "celo/contracts/common/Freezer.sol";
 import "celo/contracts/stability/SortedOracles.sol";
-import "celo/contracts/common/linkedlists/AddressSortedLinkedListWithMedian.sol";
 import "test/harnesses/WithThresholdHarness.sol";
 import "test/harnesses/WithCooldownHarness.sol";
 import "test/harnesses/TradingLimitsHarness.sol";
