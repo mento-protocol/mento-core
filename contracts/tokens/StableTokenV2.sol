@@ -75,13 +75,8 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
     string calldata _name,
     string calldata _symbol,
     // slither-disable-end shadowing-local
-    uint8, // deprecated: decimals
-    address, // deprecated: registryAddress,
-    uint256, // deprecated: inflationRate,
-    uint256, // deprecated:  inflationFactorUpdatePeriod,
     address[] calldata initialBalanceAddresses,
-    uint256[] calldata initialBalanceValues,
-    string calldata // deprecated: exchangeIdentifier
+    uint256[] calldata initialBalanceValues
   ) external initializer {
     __ERC20_init_unchained(_name, _symbol);
     __ERC20Permit_init(_symbol);

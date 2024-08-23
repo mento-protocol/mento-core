@@ -35,17 +35,25 @@ library Proposals {
     proposalId = mentoGovernor.propose(targets, values, calldatas, description);
   }
 
+  struct changeSettingsVars {
+    uint256 votingDelay;
+    uint256 votingPeriod;
+    uint256 threshold;
+    uint256 quorum;
+    uint256 minDelay;
+    uint32 minCliff;
+    uint32 minSlope;
+  }
+
+  struct changeSettingsContracts {
+    MentoGovernor mentoGovernor;
+    TimelockController timelockController;
+    Locking locking;
+  }
+
   function _proposeChangeSettings(
-    MentoGovernor mentoGovernor,
-    TimelockController timelockController,
-    Locking locking,
-    uint256 votingDelay,
-    uint256 votingPeriod,
-    uint256 threshold,
-    uint256 quorum,
-    uint256 minDelay,
-    uint32 minCliff,
-    uint32 minSlope
+    changeSettingsContracts memory _targets,
+    changeSettingsVars memory vars
   )
     internal
     returns (
@@ -57,43 +65,44 @@ library Proposals {
     )
   {
     targets = addresses(
-      address(mentoGovernor),
-      address(mentoGovernor),
-      address(mentoGovernor),
-      address(mentoGovernor),
-      address(timelockController),
-      address(locking),
-      address(locking)
+      address(_targets.mentoGovernor),
+      address(_targets.mentoGovernor),
+      address(_targets.mentoGovernor),
+      address(_targets.mentoGovernor),
+      address(_targets.timelockController),
+      address(_targets.locking),
+      address(_targets.locking)
     );
     values = uints(0, 0, 0, 0, 0, 0, 0);
     calldatas = bytesList(
-      abi.encodeWithSelector(mentoGovernor.setVotingDelay.selector, votingDelay),
-      abi.encodeWithSelector(mentoGovernor.setVotingPeriod.selector, votingPeriod),
-      abi.encodeWithSelector(mentoGovernor.setProposalThreshold.selector, threshold),
-      abi.encodeWithSelector(mentoGovernor.updateQuorumNumerator.selector, quorum),
-      abi.encodeWithSelector(timelockController.updateDelay.selector, minDelay),
-      abi.encodeWithSelector(locking.setMinCliffPeriod.selector, minCliff),
-      abi.encodeWithSelector(locking.setMinSlopePeriod.selector, minSlope)
+      abi.encodeWithSelector(_targets.mentoGovernor.setVotingDelay.selector, vars.votingDelay),
+      abi.encodeWithSelector(_targets.mentoGovernor.setVotingPeriod.selector, vars.votingPeriod),
+      abi.encodeWithSelector(_targets.mentoGovernor.setProposalThreshold.selector, vars.threshold),
+      abi.encodeWithSelector(_targets.mentoGovernor.updateQuorumNumerator.selector, vars.quorum),
+      abi.encodeWithSelector(_targets.timelockController.updateDelay.selector, vars.minDelay),
+      abi.encodeWithSelector(_targets.locking.setMinCliffPeriod.selector, vars.minCliff),
+      abi.encodeWithSelector(_targets.locking.setMinSlopePeriod.selector, vars.minSlope)
     );
     description = "Change governance config";
 
-    proposalId = mentoGovernor.propose(targets, values, calldatas, description);
+    proposalId = _targets.mentoGovernor.propose(targets, values, calldatas, description);
   }
 
   function _proposeUpgradeContracts(
     MentoGovernor mentoGovernor,
     ProxyAdmin proxyAdmin,
-    ITransparentUpgradeableProxy proxy0,
-    ITransparentUpgradeableProxy proxy1,
-    ITransparentUpgradeableProxy proxy2,
-    ITransparentUpgradeableProxy proxy3,
-    address newImpl0,
-    address newImpl1,
-    address newImpl2,
-    address newImpl3
+    address[] memory proxies,
+    address[] memory newImplementations
   )
     internal
     returns (
+      // ITransparentUpgradeableProxy proxy1,
+      // ITransparentUpgradeableProxy proxy2,
+      // ITransparentUpgradeableProxy proxy3,
+      // address newImpl0,
+      // address newImpl1,
+      // address newImpl2,
+      // address newImpl3
       uint256 proposalId,
       address[] memory targets,
       uint256[] memory values,
@@ -101,14 +110,13 @@ library Proposals {
       string memory description
     )
   {
-    targets = addresses(address(proxyAdmin), address(proxyAdmin), address(proxyAdmin), address(proxyAdmin));
-    values = uints(0, 0, 0, 0);
-    calldatas = bytesList(
-      abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy0, newImpl0),
-      abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy1, newImpl1),
-      abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy2, newImpl2),
-      abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxy3, newImpl3)
-    );
+    targets = new address[](proxies.length);
+    calldatas = new bytes[](proxies.length);
+    values = new uint256[](proxies.length);
+    for (uint256 i = 0; i < proxies.length; i++) {
+      targets[i] = address(proxyAdmin);
+      calldatas[i] = abi.encodeWithSelector(proxyAdmin.upgrade.selector, proxies[i], newImplementations[i]);
+    }
     description = "Upgrade upgradeable contracts";
 
     proposalId = mentoGovernor.propose(targets, values, calldatas, description);

@@ -65,18 +65,18 @@ contract ChainForkTest is BaseForkTest {
     IStableTokenV2 stableTokenKES = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenKES"));
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+    stableToken.initialize("", "", new address[](0), new uint256[](0));
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableTokenEUR.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+    stableTokenEUR.initialize("", "", new address[](0), new uint256[](0));
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableTokenBRL.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+    stableTokenBRL.initialize("", "", new address[](0), new uint256[](0));
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableTokenXOF.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+    stableTokenXOF.initialize("", "", new address[](0), new uint256[](0));
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableTokenKES.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+    stableTokenKES.initialize("", "", new address[](0), new uint256[](0));
   }
 }

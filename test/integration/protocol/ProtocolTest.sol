@@ -97,45 +97,15 @@ contract ProtocolTest is Test, WithRegistry {
     uint256[] memory initialBalances = new uint256[](0);
 
     cUSDToken = IStableTokenV2(deployCode("StableTokenV2", abi.encode(false)));
-    cUSDToken.initialize(
-      "cUSD",
-      "cUSD",
-      18,
-      CELO_REGISTRY_ADDRESS,
-      FixidityLib.unwrap(FixidityLib.fixed1()),
-      60 * 60 * 24 * 7,
-      initialAddresses,
-      initialBalances,
-      "Exchange"
-    );
+    cUSDToken.initialize("cUSD", "cUSD", initialAddresses, initialBalances);
     cUSDToken.initializeV2(address(broker), address(0x0), address(0x0));
 
     cEURToken = IStableTokenV2(deployCode("StableTokenV2", abi.encode(false)));
-    cEURToken.initialize(
-      "cEUR",
-      "cEUR",
-      18,
-      CELO_REGISTRY_ADDRESS,
-      FixidityLib.unwrap(FixidityLib.fixed1()),
-      60 * 60 * 24 * 7,
-      initialAddresses,
-      initialBalances,
-      "Exchange"
-    );
+    cEURToken.initialize("cEUR", "cEUR", initialAddresses, initialBalances);
     cEURToken.initializeV2(address(broker), address(0x0), address(0x0));
 
     eXOFToken = IStableTokenV2(deployCode("StableTokenV2", abi.encode(false)));
-    eXOFToken.initialize(
-      "eXOF",
-      "eXOF",
-      18,
-      CELO_REGISTRY_ADDRESS,
-      FixidityLib.unwrap(FixidityLib.fixed1()),
-      60 * 60 * 24 * 7,
-      initialAddresses,
-      initialBalances,
-      "Exchange"
-    );
+    eXOFToken.initialize("eXOF", "eXOF", initialAddresses, initialBalances);
     eXOFToken.initializeV2(address(broker), address(0x0), address(0x0));
 
     vm.label(address(cUSDToken), "cUSD");

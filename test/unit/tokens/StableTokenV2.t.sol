@@ -44,13 +44,8 @@ contract StableTokenV2Test is Test {
     token.initialize(
       "cUSD",
       "cUSD",
-      0, // deprecated
-      address(0), // deprecated
-      0, // deprecated
-      0, // deprecated
       addresses(holder0, holder1, holder2, broker, exchange),
-      uints(1000, 1000, 1000, 1000, 1000),
-      "" // deprecated
+      uints(1000, 1000, 1000, 1000, 1000)
     );
     token.initializeV2(broker, validators, exchange);
   }
@@ -69,17 +64,7 @@ contract StableTokenV2Test is Test {
     uint256[] memory initialBalances = new uint256[](0);
 
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
-    disabledToken.initialize(
-      "cUSD",
-      "cUSD",
-      0, // deprecated
-      address(0), // deprecated
-      0, // deprecated
-      0, // deprecated
-      initialAddresses,
-      initialBalances,
-      "" // deprecated
-    );
+    disabledToken.initialize("cUSD", "cUSD", initialAddresses, initialBalances);
 
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
     token.initializeV2(broker, validators, exchange);
@@ -263,7 +248,7 @@ contract StableTokenV2Test is Test {
     assertEq(token.totalSupply(), tokenSupplyBefore + newlyMinted - baseTxFee);
   }
 
-  function test_creditGasFees_whenCalledByVm_withMultiple0xRecipients_shouldBurnTheirRespectiveFees() public {
+  function test_creditGasFees_whenCalledByVm_withMultiple0xRecipients_shouldBurnTheirRespectiveFees0() public {
     uint256 refund = 20;
     uint256 tipTxFee = 30;
     uint256 gatewayFee = 10;
@@ -281,7 +266,13 @@ contract StableTokenV2Test is Test {
     assertEq(token.balanceOf(gatewayFeeRecipient), 0);
     assertEq(token.balanceOf(communityFund), 0);
     assertEq(token.totalSupply(), tokenSupplyBefore0 + newlyMinted0 - gatewayFee - baseTxFee);
+  }
 
+  function test_creditGasFees_whenCalledByVm_withMultiple0xRecipients_shouldBurnTheirRespectiveFees1() public {
+    uint256 refund = 20;
+    uint256 tipTxFee = 30;
+    uint256 gatewayFee = 10;
+    uint256 baseTxFee = 40;
     // case with both feeRecipient and communityFund both 0x
     uint256 holder1InitialBalance = token.balanceOf(holder1);
     uint256 feeRecipientBalance = token.balanceOf(feeRecipient);

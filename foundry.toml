@@ -22,15 +22,6 @@ fs_permissions = [
     { access = "read-write", path = "test/fixtures" }
 ]
 
-additional_compiler_profiles = [ 
-    { name = "via-ir-opt", via_ir = true, optimizer = true } 
-]
-
-compilation_restrictions = [
-  { paths = "contracts/governance/Airgrab.sol", via_ir = true, optimizer = true },
-  { paths = "contracts/tokens/StableTokenV2.sol", via_ir = true, optimizer = true },
-]
-
 [profile.ci]
 via_ir=true
 optimizer=true

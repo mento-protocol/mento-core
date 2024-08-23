@@ -257,10 +257,12 @@ contract AirgrabTest is Test {
       cl_params.amount,
       cl_params.delegate,
       cl_params.merkleProof,
-      cl_params.fractalProof,
-      cl_params.fractalProofValidUntil,
-      cl_params.fractalProofApprovedAt,
-      cl_params.fractalId
+      Airgrab.FractalProof(
+        cl_params.fractalProof,
+        cl_params.fractalProofValidUntil,
+        cl_params.fractalProofApprovedAt,
+        cl_params.fractalId
+      )
     );
   }
 
