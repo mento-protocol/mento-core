@@ -277,6 +277,7 @@ contract GovernanceFactory is Ownable {
           GOVERNOR_QUORUM ///              @param quorum_ The minimum number of votes in percent of total supply required in order for a proposal to succeed.
         )
       );
+    // slither-disable-next-line reentrancy-benign
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
     assert(address(mentoGovernor) == addr.mentoGovernor);
   }
