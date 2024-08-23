@@ -25,6 +25,13 @@ contract Airgrab is ReentrancyGuard {
   uint32 public constant MAX_CLIFF_PERIOD = 103;
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
+  /**
+   * @notice FractalProof struct for KYC/KYB verification.
+   * @param sig The signature of the Fractal Credential.
+   * @param validUntil The timestamp when the Fractal Credential expires.
+   * @param approvedAt The timestamp when the Fractal Credential was approved.
+   * @param fractalId The Fractal Credential ID.
+   */
   struct FractalProof {
     bytes sig;
     uint256 validUntil;
@@ -112,7 +119,11 @@ contract Airgrab is ReentrancyGuard {
    * @param amount The amount of tokens to be claimed.
    * @param merkleProof The merkle proof for the account.
    */
-  modifier canClaim(address account, uint256 amount, bytes32[] calldata merkleProof) {
+  modifier canClaim(
+    address account,
+    uint256 amount,
+    bytes32[] calldata merkleProof
+  ) {
     require(block.timestamp <= endTimestamp, "Airgrab: finished");
     require(!claimed[account], "Airgrab: already claimed");
     bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(account, amount))));
@@ -187,6 +198,11 @@ contract Airgrab is ReentrancyGuard {
     _claim(amount, delegate);
   }
 
+  /**
+   * @dev Internal function to claim tokens and lock them.
+   * @param amount The amount of tokens to be claimed.
+   * @param delegate The address of the account that gets voting power delegated
+   */
   function _claim(uint96 amount, address delegate) internal {
     claimed[msg.sender] = true;
     uint256 lockId = locking.lock(msg.sender, delegate, amount, slopePeriod, cliffPeriod);

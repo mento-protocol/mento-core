@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 import "./BaseForkTest.sol";
 
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
-import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
+import { IStableTokenV2DeprecatedInit } from "contracts/interfaces/IStableTokenV2DEprecatedInit.sol";
 
 contract ChainForkTest is BaseForkTest {
   using FixidityLib for FixidityLib.Fraction;
@@ -58,25 +58,35 @@ contract ChainForkTest is BaseForkTest {
   }
 
   function test_stableTokensCanNotBeReinitialized() public {
-    IStableTokenV2 stableToken = IStableTokenV2(registry.getAddressForStringOrDie("StableToken"));
-    IStableTokenV2 stableTokenEUR = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenEUR"));
-    IStableTokenV2 stableTokenBRL = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenBRL"));
-    IStableTokenV2 stableTokenXOF = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenXOF"));
-    IStableTokenV2 stableTokenKES = IStableTokenV2(registry.getAddressForStringOrDie("StableTokenKES"));
+    IStableTokenV2DeprecatedInit stableToken = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableToken")
+    );
+    IStableTokenV2DeprecatedInit stableTokenEUR = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableTokenEUR")
+    );
+    IStableTokenV2DeprecatedInit stableTokenBRL = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableTokenBRL")
+    );
+    IStableTokenV2DeprecatedInit stableTokenXOF = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableTokenXOF")
+    );
+    IStableTokenV2DeprecatedInit stableTokenKES = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableTokenKES")
+    );
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableToken.initialize("", "", new address[](0), new uint256[](0));
+    stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableTokenEUR.initialize("", "", new address[](0), new uint256[](0));
+    stableTokenEUR.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableTokenBRL.initialize("", "", new address[](0), new uint256[](0));
+    stableTokenBRL.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableTokenXOF.initialize("", "", new address[](0), new uint256[](0));
+    stableTokenXOF.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
 
     vm.expectRevert("Initializable: contract is already initialized");
-    stableTokenKES.initialize("", "", new address[](0), new uint256[](0));
+    stableTokenKES.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
   }
 }
