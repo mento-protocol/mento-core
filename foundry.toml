@@ -23,8 +23,6 @@ fs_permissions = [
 ]
 
 [profile.ci]
-via_ir=true
-optimizer=true
 fuzz_runs = 1_000
 verbosity = 3
 
