@@ -95,13 +95,6 @@ library Proposals {
   )
     internal
     returns (
-      // ITransparentUpgradeableProxy proxy1,
-      // ITransparentUpgradeableProxy proxy2,
-      // ITransparentUpgradeableProxy proxy3,
-      // address newImpl0,
-      // address newImpl1,
-      // address newImpl2,
-      // address newImpl3
       uint256 proposalId,
       address[] memory targets,
       uint256[] memory values,
