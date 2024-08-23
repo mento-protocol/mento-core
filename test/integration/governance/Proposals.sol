@@ -5,7 +5,6 @@ pragma solidity 0.8.18;
 import { uints, addresses, bytesList } from "mento-std/Array.sol";
 
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
-import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { TimelockController } from "contracts/governance/TimelockController.sol";
