@@ -48,7 +48,7 @@ jobs:
         run: "forge test"
 
       - name: "Check contract sizes"
-        run: env FOUNDRY_PROFILE=optimized forge build --sizes --skip test/**/*
+        run: env FOUNDRY_PROFILE=optimized forge build --sizes --skip "test/**/*"
 
       - name: "Add test summary"
         run: |
