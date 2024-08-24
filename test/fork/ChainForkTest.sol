@@ -64,7 +64,7 @@ abstract contract ChainForkTest is BaseForkTest {
   function test_exchangeProvidersAndExchangesCount() public view {
     address[] memory exchangeProviders = broker.getExchangeProviders();
     assertEq(expectedExchangeProvidersCount, exchangeProviders.length);
-    for (uint i = 0; i < exchangeProviders.length; i++) {
+    for (uint256 i = 0; i < exchangeProviders.length; i++) {
       address exchangeProvider = exchangeProviders[i];
       IBiPoolManager biPoolManager = IBiPoolManager(exchangeProvider);
       IExchangeProvider.Exchange[] memory exchanges = biPoolManager.getExchanges();
@@ -74,7 +74,7 @@ abstract contract ChainForkTest is BaseForkTest {
 
   function test_numberCollateralAssetsCount() public {
     address collateral;
-    for (uint i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
+    for (uint256 i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
       collateral = reserve.collateralAssets(i);
     }
     /**
@@ -122,14 +122,14 @@ abstract contract ChainForkTest is BaseForkTest {
 
   function test_rateFeedDependenciesCountIsCorrect() public {
     address[] memory rateFeedIds = breakerBox.getRateFeeds();
-    for (uint i = 0; i < rateFeedIds.length; i++) {
+    for (uint256 i = 0; i < rateFeedIds.length; i++) {
       address rateFeedId = rateFeedIds[i];
       uint8 count = rateFeedDependenciesCount[rateFeedId];
 
       vm.expectRevert();
       breakerBox.rateFeedDependencies(rateFeedId, count); // end of array
 
-      for (uint j = 0; j < count; j++) {
+      for (uint256 j = 0; j < count; j++) {
         (bool ok, ) = address(breakerBox).staticcall(
           abi.encodeWithSelector(breakerBox.rateFeedDependencies.selector, rateFeedId, j)
         );

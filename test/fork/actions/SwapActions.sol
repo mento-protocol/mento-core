@@ -9,7 +9,6 @@ import { VM_ADDRESS } from "mento-std/Constants.sol";
 import { ExchangeForkTest } from "../ExchangeForkTest.sol";
 
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 

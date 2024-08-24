@@ -7,7 +7,6 @@ import { Vm } from "forge-std/Vm.sol";
 import { VM_ADDRESS } from "mento-std/Constants.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
-import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
 import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
 
@@ -18,7 +17,6 @@ import { OracleHelpers } from "../helpers/OracleHelpers.sol";
 import { SwapHelpers } from "../helpers/SwapHelpers.sol";
 import { TradingLimitHelpers } from "../helpers/TradingLimitHelpers.sol";
 import { LogHelpers } from "../helpers/LogHelpers.sol";
-import { L0, L1, LG } from "../helpers/misc.sol";
 
 contract CircuitBreakerAssertions is StdAssertions, Actions {
   using FixidityLib for FixidityLib.Fraction;

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8;
 
-import { console } from "forge-std/console.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";

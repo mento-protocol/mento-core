@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+// solhint-disable func-name-mixedcase, max-line-length
 pragma solidity ^0.8;
 /**
 @dev Fork tests for Mento!
@@ -34,7 +34,7 @@ exceed 10, if they do, then we need to update the naming convention.
 import { uints } from "mento-std/Array.sol";
 import { ChainForkTest } from "./ChainForkTest.sol";
 import { ExchangeForkTest } from "./ExchangeForkTest.sol";
-import { CELO_ID, BAKLAVA_ID, ALFAJORES_ID } from "mento-std/Constants.sol";
+import { CELO_ID, ALFAJORES_ID } from "mento-std/Constants.sol";
 
 contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(14)) {}
 
