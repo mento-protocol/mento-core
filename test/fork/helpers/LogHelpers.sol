@@ -25,10 +25,6 @@ library LogHelpers {
   }
 
   function logPool(ExchangeForkTest ctx) internal view {
-    // if (ctx.exchangeId == 0) {
-    //   console.log(unicode"🎱 RateFeed: %s", ctx.rateFeedId());
-    //   return;
-    // }
     IBiPoolManager.PoolExchange memory exchange = ctx.getPool();
 
     (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = ctx.shouldUpdateBuckets();

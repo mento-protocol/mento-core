@@ -31,9 +31,6 @@ library OracleHelpers {
 
   function shouldUpdateBuckets(ExchangeForkTest ctx) internal view returns (bool, bool, bool, bool, bool) {
     IBiPoolManager.PoolExchange memory exchange = ctx.getPool();
-    // address addr = ctx.poolExchange();
-    // console.log("addr: %s", addr);
-    // IBiPoolManager.PoolExchange memory exchange
 
     (bool isReportExpired, ) = ctx.sortedOracles().isOldestReportExpired(exchange.config.referenceRateFeedID);
     // solhint-disable-next-line not-rely-on-time

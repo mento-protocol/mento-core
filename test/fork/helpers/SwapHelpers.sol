@@ -11,10 +11,6 @@ import { OracleHelpers } from "./OracleHelpers.sol";
 library SwapHelpers {
   using OracleHelpers for ExchangeForkTest;
 
-  function getPoolExcahnge(ExchangeForkTest ctx) internal view returns (IBiPoolManager.PoolExchange memory) {
-    return ctx.biPoolManager().getPoolExchange(ctx.exchangeId());
-  }
-
   function ticker(ExchangeForkTest ctx) internal view returns (string memory) {
     return string(abi.encodePacked(IERC20(ctx.assets(0)).symbol(), "/", IERC20(ctx.assets(1)).symbol()));
   }
