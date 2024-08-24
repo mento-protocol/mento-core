@@ -48,10 +48,10 @@ contract SwapActions is StdCheats {
       sellAmount
     );
 
-    amountOut = _swapIn(from, to, sellAmount, minAmountOut);
+    amountOut = brokerSwapIn(from, to, sellAmount, minAmountOut);
   }
 
-  function _swapIn(
+  function brokerSwapIn(
     address from,
     address to,
     uint256 sellAmount,
@@ -75,10 +75,10 @@ contract SwapActions is StdCheats {
     ctx.mint(from, ctx.trader(), maxAmountIn, true);
     vm.startPrank(ctx.trader());
     IERC20(from).approve(address(ctx.broker()), maxAmountIn);
-    return _swapOut(from, to, buyAmount, maxAmountIn);
+    return brokerSwapOut(from, to, buyAmount, maxAmountIn);
   }
 
-  function _swapOut(
+  function brokerSwapOut(
     address from,
     address to,
     uint256 buyAmount,

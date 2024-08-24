@@ -65,6 +65,8 @@ abstract contract BaseForkTest is Test {
 
   function setUp() public virtual {
     fork(targetChainId);
+    // @dev Updaing the target fork block every 200 blocks, about ~8 min.
+    // This means that when running locally RPC calls will be cached.
     fork(targetChainId, (block.number / 100) * 100);
     // The precompile handler needs to be reinitialized after forking.
     __CeloPrecompiles_init();

@@ -54,7 +54,7 @@ library LogHelpers {
   function logLimits(ExchangeForkTest ctx, address target) internal view {
     ITradingLimits.State memory state = ctx.refreshedTradingLimitsState(target);
     ITradingLimits.Config memory config = ctx.tradingLimitsConfig(target);
-    console.log("\tTradingLimits[%s]", target.symbol());
+    console.log("TradingLimits[%s]:", target.symbol());
     if (config.flags & L0 > 0) {
       console.log(
         "\tL0: %s%d/%d",

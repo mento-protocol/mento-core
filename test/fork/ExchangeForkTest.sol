@@ -82,11 +82,18 @@ abstract contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, 
     return poolExchange;
   }
 
-  function test_swapsHappenInBothDirections() public {
+  function test_swapIn_worksInBothDirections() public {
     // asset0 -> asset1
     assert_swapIn(exchange.assets[0], exchange.assets[1]);
     // asset1 -> asset0
     assert_swapIn(exchange.assets[1], exchange.assets[0]);
+  }
+
+  function test_swapOut_worksInBothDirections() public {
+    // asset0 -> asset1
+    assert_swapOut(exchange.assets[0], exchange.assets[1]);
+    // asset1 -> asset0
+    assert_swapOut(exchange.assets[1], exchange.assets[0]);
   }
 
   function test_tradingLimitsAreConfigured() public view {
@@ -199,7 +206,15 @@ abstract contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, 
 
   function test_rateFeedDependencies_haltsDependantTrading() public {
     uint256 depsCount = rateFeedDependenciesCount[rateFeedId];
-    if (depsCount == 0) return;
+
+    /// @dev If this doesn't revert thare are more dependencies than expected.
+    /// In which case the mapping in BaseForkTest should be updated.
+    vm.expectRevert();
+    breakerBox.rateFeedDependencies(rateFeedId, depsCount);
+
+    if (depsCount == 0) {
+      return;
+    }
 
     address[] memory breakers = breakerBox.getBreakers();
     address[] memory dependencies = new address[](depsCount);

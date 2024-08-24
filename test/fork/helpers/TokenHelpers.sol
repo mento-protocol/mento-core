@@ -26,6 +26,11 @@ library TokenHelpers {
     return int256(units) * tokenBase;
   }
 
+  function toSubunits(FixidityLib.Fraction memory subunits, address token) internal view returns (uint256) {
+    uint256 tokenScaler = 10 ** uint256(24 - IERC20(token).decimals());
+    return subunits.unwrap() / tokenScaler;
+  }
+
   function toSubunits(uint256 units, address token) internal view returns (uint256) {
     uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
     return units * tokenBase;

@@ -3,14 +3,14 @@
 pragma solidity ^0.8;
 /**
 @dev Fork tests for Mento!
-This test suite tests invariantes on a fork of a live Mento environemnts.
+This test suite tests invariants on a fork of a live Mento environemnts.
 
 Thare are two types of tests contracts:
-- ChainForkTests: Tests that are specific to the chain, such as the number of exchanges, the number of collateral assets, etc. 
-- ExchangeForkTests: Tests that are specific to the exchange, such as trading limits, swaps, etc.
+- ChainForkTests: Tests that are specific to the chain, such as the number of exchanges, the number of collateral assets, contract initialization state, etc. 
+- ExchangeForkTests: Tests that are specific to the exchange, such as trading limits, swaps, circuit breakers, etc.
 
 To make it easier to debug and develop, we have one ChainForkTest for each chain (Alfajores, Celo) and 
-one ExchangeForkTest for each (exchange provider, exchange) pair.
+one ExchangeForkTest for each exchange provider and exchange pair.
 
 The ChainFork tests are instantiated with:
 - Chain ID.
@@ -29,6 +29,11 @@ ${ChainName}_P${ExchangeProviderIndex}E${ExchangeIndex}_ExchangeForkTest
 e.g. Alfajores_P0E00_ExchangeForkTest (Alfajores, Exchange Provider 0, Exchange 0)
 The Exchange Index is 0 padded to make them align nicely in the file, exchange provider counts shouldn't
 exceed 10, if they do, then we need to update the naming convention.
+
+This makes it easy to drill into which exchange is failing and debug it like:
+$ env FOUNDRY_PROFILE=fork-tests forge test --match-contract CELO_P0E12
+or run all tests for a chain:
+$ env FOUNDRY_PROFILE=fork-tests forge test --match-contract Alfajores
 */
 
 import { uints } from "mento-std/Array.sol";

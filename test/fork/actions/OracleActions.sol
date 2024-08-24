@@ -52,13 +52,10 @@ contract OracleActions is StdCheats {
   function addReportsIfNeeded() public {
     IBiPoolManager.PoolExchange memory pool = ctx.biPoolManager().getPoolExchange(ctx.exchangeId());
     (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = ctx.shouldUpdateBuckets();
-    // logPool(ctx);
     if (timePassed && (!medianReportRecent || isReportExpired || !enoughReports)) {
       (uint256 newMedian, ) = ctx.sortedOracles().medianRate(pool.config.referenceRateFeedID);
       (timePassed, enoughReports, medianReportRecent, isReportExpired, ) = ctx.shouldUpdateBuckets();
       updateOracleMedianRate((newMedian * 1_000_001) / 1_000_000);
-
-      // logPool(ctx);
       return;
     }
   }
@@ -68,8 +65,7 @@ contract OracleActions is StdCheats {
   }
 
   function ensureRateActive(address rateFeedId) public returns (uint256 newMedian) {
-    // Always do a small update in order to make sure
-    // the breakers are warm.
+    // Always do a small update in order to make sure the breakers are warm.
     (uint256 currentRate, ) = ctx.sortedOracles().medianRate(rateFeedId);
     newMedian = currentRate + (currentRate / 100_000_000); // a small increase
     updateOracleMedianRate(rateFeedId, newMedian);

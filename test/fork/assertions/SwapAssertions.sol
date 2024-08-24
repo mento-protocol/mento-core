@@ -34,23 +34,74 @@ contract SwapAssertions is StdAssertions, Actions {
   FixidityLib.Fraction pc10 = FixidityLib.newFixedFraction(10, 100);
 
   function assert_swapIn(address from, address to) internal {
+    console.log("==========assert_swapIn(%s->%s)=============", from.symbol(), to.symbol());
+    ctx.logLimits(from);
+    ctx.logLimits(to);
+    if (ctx.atInflowLimit(from, LG)) {
+      console.log(unicode"🚨 Cannot test swap beacause the global inflow limit is reached on %s", from);
+      return;
+    } else if (ctx.atOutflowLimit(to, LG)) {
+      console.log(unicode"🚨 Cannot test swap beacause the global outflow limit is reached on %s", to);
+      return;
+    }
+
     FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
+    emit log_named_decimal_uint("Rate", rate.unwrap(), 24);
+
+    // XXX: To avoid an edge case when dealing with subunit trades in the
+    // trading limits implementation, we want to make sure that we're always
+    // dealing with at least 1 units of tokens. Thus we have to
+    // figure out based on the rate how many units of [FROM] we need to sell
+    // in order to get at least 1 unit of [TO].
 
     uint256 sellAmount;
-    uint256 oneFromAsTo = FixidityLib.wrap(1e24).divide(rate).unwrap();
-    uint256 oneToAsFrom = FixidityLib.wrap(1e24).multiply(rate).unwrap();
-    if (oneFromAsTo < 1e24) {
-      uint256 sellAmountUnits = ((oneToAsFrom / 1e24) * 110) / 100;
-      sellAmount = sellAmountUnits.toSubunits(from);
-    } else {
+    if (rate.lt(FixidityLib.wrap(1e24))) {
       sellAmount = uint256(1).toSubunits(from);
+    } else {
+      sellAmount = (rate.toSubunits(from) * 110) / 100; // 10% buffer
     }
+    console.log("Sell amount: %d", sellAmount);
 
     FixidityLib.Fraction memory amountIn = sellAmount.toUnitsFixed(from);
     FixidityLib.Fraction memory amountOut = swapIn(from, to, sellAmount).toUnitsFixed(to);
     FixidityLib.Fraction memory expectedAmountOut = amountIn.divide(rate);
 
     assertApproxEqAbs(amountOut.unwrap(), expectedAmountOut.unwrap(), pc10.multiply(expectedAmountOut).unwrap());
+  }
+
+  function assert_swapOut(address from, address to) internal {
+    console.log("==========assert_swapOut(%s->%s)=============", from.symbol(), to.symbol());
+    ctx.logLimits(from);
+    ctx.logLimits(to);
+    if (ctx.atInflowLimit(from, LG)) {
+      console.log(unicode"🚨 Cannot test swap beacause the global inflow limit is reached on %s", from);
+      return;
+    } else if (ctx.atOutflowLimit(to, LG)) {
+      console.log(unicode"🚨 Cannot test swap beacause the global outflow limit is reached on %s", to);
+      return;
+    }
+
+    FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(to);
+    emit log_named_decimal_uint("Rate", rate.unwrap(), 24);
+
+    // XXX: To avoid an edge case when dealing with subunit trades in the
+    // trading limits implementation, we want to make sure that we're always
+    // dealing with at least 1 units of tokens. Thus we have to
+    // figure out based on the rate how many units of [TO] we need to buy
+    // in order to get at least 1 unit of [FROM].
+
+    uint256 buyAmount;
+    if (rate.lt(FixidityLib.wrap(1e24))) {
+      buyAmount = uint256(1).toSubunits(to);
+    } else {
+      buyAmount = (rate.toSubunits(to) * 110) / 100; // 10% buffer
+    }
+
+    FixidityLib.Fraction memory amountIn = swapOut(from, to, buyAmount).toUnitsFixed(from);
+    FixidityLib.Fraction memory amountOut = buyAmount.toUnitsFixed(to);
+    FixidityLib.Fraction memory expectedAmountIn = amountOut.divide(rate);
+
+    assertApproxEqAbs(amountIn.unwrap(), expectedAmountIn.unwrap(), pc10.multiply(expectedAmountIn).unwrap());
   }
 
   function assert_swapInFails(address from, address to, uint256 sellAmount, string memory revertReason) internal {
@@ -66,7 +117,7 @@ contract SwapAssertions is StdAssertions, Actions {
       sellAmount
     );
     vm.expectRevert(bytes(revertReason));
-    ctx._swapIn(from, to, sellAmount, minAmountOut);
+    ctx.brokerSwapIn(from, to, sellAmount, minAmountOut);
     vm.stopPrank();
   }
 
@@ -77,7 +128,7 @@ contract SwapAssertions is StdAssertions, Actions {
     vm.startPrank(ctx.trader());
     IERC20(from).approve(address(ctx.broker()), maxAmountIn);
     vm.expectRevert(bytes(revertReason));
-    ctx._swapOut(from, to, buyAmount, maxAmountIn);
+    ctx.brokerSwapOut(from, to, buyAmount, maxAmountIn);
     vm.stopPrank();
   }
 
