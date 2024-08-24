@@ -2,8 +2,11 @@
 pragma solidity ^0.8;
 
 import { console } from "forge-std/console.sol";
+import { StdCheats } from "forge-std/StdCheats.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { VM_ADDRESS } from "mento-std/Constants.sol";
+
 import { ExchangeForkTest } from "../ExchangeForkTest.sol";
-import { BaseActions } from "./BaseActions.sol";
 import { TokenHelpers } from "../helpers/TokenHelpers.sol";
 import { OracleHelpers } from "../helpers/OracleHelpers.sol";
 import { SwapHelpers } from "../helpers/SwapHelpers.sol";
@@ -12,10 +15,13 @@ import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
 
-contract OracleActions is BaseActions {
+contract OracleActions is StdCheats {
   using OracleHelpers for *;
   using SwapHelpers for *;
   using TokenHelpers for *;
+
+  Vm private vm = Vm(VM_ADDRESS);
+  ExchangeForkTest private ctx = ExchangeForkTest(address(this));
 
   function updateOracleMedianRate(uint256 newMedian) public {
     updateOracleMedianRate(ctx.rateFeedId(), newMedian);
@@ -37,9 +43,9 @@ contract OracleActions is BaseActions {
         if (values[j] >= newMedian) greaterKey = keys[j];
       }
 
-      _vm.startPrank(oracle);
+      vm.startPrank(oracle);
       ctx.sortedOracles().report(rateFeedId, newMedian, lesserKey, greaterKey);
-      _vm.stopPrank();
+      vm.stopPrank();
     }
   }
 
@@ -93,9 +99,9 @@ contract OracleActions is BaseActions {
       ctx.updateOracleMedianRate(rateFeedId, newMedian);
       if (cooldown == 0) {
         console.log("Manual recovery required for breaker %s", _breakers[breakerIndex]);
-        _vm.startPrank(ctx.breakerBox().owner());
+        vm.startPrank(ctx.breakerBox().owner());
         ctx.breakerBox().setRateFeedTradingMode(rateFeedId, 0);
-        _vm.stopPrank();
+        vm.stopPrank();
       }
       tradingMode = ctx.breakerBox().getRateFeedTradingMode(rateFeedId);
     }

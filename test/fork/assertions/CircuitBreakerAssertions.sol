@@ -3,6 +3,8 @@ pragma solidity ^0.8;
 
 import { console } from "forge-std/console.sol";
 import { StdAssertions } from "forge-std/StdAssertions.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { VM_ADDRESS } from "mento-std/Constants.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
@@ -25,6 +27,9 @@ contract CircuitBreakerAssertions is StdAssertions, Actions {
   using TokenHelpers for *;
   using TradingLimitHelpers for *;
   using LogHelpers for *;
+
+  Vm private vm = Vm(VM_ADDRESS);
+  ExchangeForkTest private ctx = ExchangeForkTest(address(this));
 
   uint256 private constant fixed1 = 1e24;
 

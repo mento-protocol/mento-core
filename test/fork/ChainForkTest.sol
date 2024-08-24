@@ -7,7 +7,7 @@ import "./BaseForkTest.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IStableTokenV2DeprecatedInit } from "contracts/interfaces/IStableTokenV2DeprecatedInit.sol";
 
-contract ChainForkTest is BaseForkTest {
+abstract contract ChainForkTest is BaseForkTest {
   using FixidityLib for FixidityLib.Fraction;
 
   uint256 expectedExchangeProvidersCount;

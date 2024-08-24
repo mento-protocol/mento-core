@@ -35,7 +35,7 @@ interface IMint {
  * However, it should be exausitve in testing invariants across all tradable pairs
  * in the system, therfore each test should.
  */
-contract BaseForkTest is Test {
+abstract contract BaseForkTest is Test {
   using FixidityLib for FixidityLib.Fraction;
 
   IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);

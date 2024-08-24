@@ -12,19 +12,19 @@ import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { BaseForkTest } from "./BaseForkTest.sol";
 import { SwapAssertions } from "./assertions/SwapAssertions.sol";
 import { CircuitBreakerAssertions } from "./assertions/CircuitBreakerAssertions.sol";
+import { TradingLimitHelpers } from "./helpers/TradingLimitHelpers.sol";
 import { TokenHelpers } from "./helpers/TokenHelpers.sol";
 import { OracleHelpers } from "./helpers/OracleHelpers.sol";
 import { SwapHelpers } from "./helpers/SwapHelpers.sol";
-import { TradingLimitHelpers } from "./helpers/TradingLimitHelpers.sol";
 import { LogHelpers } from "./helpers/LogHelpers.sol";
 import { L0, L1, LG } from "./helpers/misc.sol";
 
-contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, BaseForkTest {
+abstract contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, BaseForkTest {
   using FixidityLib for FixidityLib.Fraction;
+  using TradingLimitHelpers for *;
   using OracleHelpers for *;
   using SwapHelpers for *;
   using TokenHelpers for *;
-  using TradingLimitHelpers for *;
   using LogHelpers for *;
 
   uint256 public exchangeIndex;
@@ -38,6 +38,8 @@ contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, BaseForkT
   IExchangeProvider.Exchange public exchange;
   IBiPoolManager.PoolExchange public poolExchange;
   address public rateFeedId;
+
+  ExchangeForkTest private ctx = this;
 
   constructor(uint256 _chainId, uint256 _exchangeProviderIndex, uint256 _exchangeIndex) BaseForkTest(_chainId) {
     exchangeProviderIndex = _exchangeProviderIndex;
@@ -101,32 +103,32 @@ contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, BaseForkT
 
   function test_tradingLimitsAreEnforced_0to1_L0() public {
     ctx.logHeader();
-    assert_swapOverLimitFails(ctx, exchange.assets[0], exchange.assets[1], L0);
+    assert_swapOverLimitFails(exchange.assets[0], exchange.assets[1], L0);
   }
 
   function test_tradingLimitsAreEnforced_0to1_L1() public {
     ctx.logHeader();
-    assert_swapOverLimitFails(ctx, exchange.assets[0], exchange.assets[1], L1);
+    assert_swapOverLimitFails(exchange.assets[0], exchange.assets[1], L1);
   }
 
   function test_tradingLimitsAreEnforced_0to1_LG() public {
     ctx.logHeader();
-    assert_swapOverLimitFails(ctx, exchange.assets[0], exchange.assets[1], LG);
+    assert_swapOverLimitFails(exchange.assets[0], exchange.assets[1], LG);
   }
 
   function test_tradingLimitsAreEnforced_1to0_L0() public {
     ctx.logHeader();
-    assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], L0);
+    assert_swapOverLimitFails(exchange.assets[1], exchange.assets[0], L0);
   }
 
   function test_tradingLimitsAreEnforced_1to0_L1() public {
     ctx.logHeader();
-    assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], L1);
+    assert_swapOverLimitFails(exchange.assets[1], exchange.assets[0], L1);
   }
 
   function test_tradingLimitsAreEnforced_1to0_LG() public {
     ctx.logHeader();
-    assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], LG);
+    assert_swapOverLimitFails(exchange.assets[1], exchange.assets[0], LG);
   }
 
   function test_circuitBreaker_rateFeedIsProtected() public view {
@@ -167,14 +169,12 @@ contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, BaseForkT
         assert_breakerBreaks(rateFeedId, breakers[j], j);
 
         assert_swapInFails(
-          ctx,
           exchange.assets[0],
           exchange.assets[1],
           uint256(10000).toSubunits(exchange.assets[0]),
           "Trading is suspended for this reference rate"
         );
         assert_swapInFails(
-          ctx,
           exchange.assets[1],
           exchange.assets[0],
           uint256(10000).toSubunits(exchange.assets[1]),
@@ -182,14 +182,12 @@ contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, BaseForkT
         );
 
         assert_swapOutFails(
-          ctx,
           exchange.assets[0],
           exchange.assets[1],
           uint256(1000).toSubunits(exchange.assets[1]),
           "Trading is suspended for this reference rate"
         );
         assert_swapOutFails(
-          ctx,
           exchange.assets[1],
           exchange.assets[0],
           uint256(1000).toSubunits(exchange.assets[0]),
@@ -226,7 +224,6 @@ contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, BaseForkT
           assert_breakerBreaks(dependencies[i], breakers[j], j);
 
           assert_swapInFails(
-            ctx,
             exchange.assets[0],
             exchange.assets[1],
             uint256(1000).toSubunits(exchange.assets[0]),

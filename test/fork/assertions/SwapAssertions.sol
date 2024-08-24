@@ -3,6 +3,8 @@ pragma solidity ^0.8;
 
 import { console } from "forge-std/console.sol";
 import { StdAssertions } from "forge-std/StdAssertions.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { VM_ADDRESS } from "mento-std/Constants.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
@@ -24,6 +26,9 @@ contract SwapAssertions is StdAssertions, Actions {
   using TokenHelpers for *;
   using TradingLimitHelpers for *;
   using LogHelpers for *;
+
+  Vm private vm = Vm(VM_ADDRESS);
+  ExchangeForkTest private ctx = ExchangeForkTest(address(this));
 
   uint256 fixed1 = FixidityLib.fixed1().unwrap();
   FixidityLib.Fraction pc10 = FixidityLib.newFixedFraction(10, 100);
@@ -48,16 +53,10 @@ contract SwapAssertions is StdAssertions, Actions {
     assertApproxEqAbs(amountOut.unwrap(), expectedAmountOut.unwrap(), pc10.multiply(expectedAmountOut).unwrap());
   }
 
-  function assert_swapInFails(
-    ExchangeForkTest ctx,
-    address from,
-    address to,
-    uint256 sellAmount,
-    string memory revertReason
-  ) internal {
+  function assert_swapInFails(address from, address to, uint256 sellAmount, string memory revertReason) internal {
     ctx.addReportsIfNeeded();
     ctx.mint(from, ctx.trader(), sellAmount, true);
-    _vm.startPrank(ctx.trader());
+    vm.startPrank(ctx.trader());
     IERC20(from).approve(address(ctx.broker()), sellAmount);
     uint256 minAmountOut = ctx.broker().getAmountOut(
       ctx.exchangeProviderAddr(),
@@ -66,29 +65,23 @@ contract SwapAssertions is StdAssertions, Actions {
       to,
       sellAmount
     );
-    _vm.expectRevert(bytes(revertReason));
+    vm.expectRevert(bytes(revertReason));
     ctx._swapIn(from, to, sellAmount, minAmountOut);
-    _vm.stopPrank();
+    vm.stopPrank();
   }
 
-  function assert_swapOutFails(
-    ExchangeForkTest ctx,
-    address from,
-    address to,
-    uint256 buyAmount,
-    string memory revertReason
-  ) internal {
+  function assert_swapOutFails(address from, address to, uint256 buyAmount, string memory revertReason) internal {
     ctx.addReportsIfNeeded();
     uint256 maxAmountIn = ctx.broker().getAmountIn(ctx.exchangeProviderAddr(), ctx.exchangeId(), from, to, buyAmount);
     ctx.mint(from, ctx.trader(), maxAmountIn, true);
-    _vm.startPrank(ctx.trader());
+    vm.startPrank(ctx.trader());
     IERC20(from).approve(address(ctx.broker()), maxAmountIn);
-    _vm.expectRevert(bytes(revertReason));
+    vm.expectRevert(bytes(revertReason));
     ctx._swapOut(from, to, buyAmount, maxAmountIn);
-    _vm.stopPrank();
+    vm.stopPrank();
   }
 
-  function assert_swapOverLimitFails(ExchangeForkTest ctx, address from, address to, uint8 limit) internal {
+  function assert_swapOverLimitFails(address from, address to, uint8 limit) internal {
     ITradingLimits.Config memory fromLimitConfig = ctx.tradingLimitsConfig(from);
     ITradingLimits.Config memory toLimitConfig = ctx.tradingLimitsConfig(to);
     console.log(
@@ -103,13 +96,13 @@ contract SwapAssertions is StdAssertions, Actions {
       // when two limits are configured.
       console.log("Both Limits enabled skipping for now");
     } else if (fromLimitConfig.isLimitEnabled(limit)) {
-      assert_swapOverLimitFails_onInflow(ctx, from, to, limit);
+      assert_swapOverLimitFails_onInflow(from, to, limit);
     } else if (toLimitConfig.isLimitEnabled(limit)) {
-      assert_swapOverLimitFails_onOutflow(ctx, from, to, limit);
+      assert_swapOverLimitFails_onOutflow(from, to, limit);
     }
   }
 
-  function assert_swapOverLimitFails_onInflow(ExchangeForkTest ctx, address from, address to, uint8 limit) internal {
+  function assert_swapOverLimitFails_onInflow(address from, address to, uint8 limit) internal {
     /*
      * L*[from] -> to
      * Assert that inflow on `from` is limited by the limit
@@ -120,11 +113,11 @@ contract SwapAssertions is StdAssertions, Actions {
      */
 
     if (limit == L0) {
-      swapUntilL0_onInflow(ctx, from, to);
+      swapUntilL0_onInflow(from, to);
     } else if (limit == L1) {
-      swapUntilL1_onInflow(ctx, from, to);
+      swapUntilL1_onInflow(from, to);
     } else if (limit == LG) {
-      swapUntilLG_onInflow(ctx, from, to);
+      swapUntilLG_onInflow(from, to);
     } else {
       revert("Invalid limit");
     }
@@ -137,11 +130,11 @@ contract SwapAssertions is StdAssertions, Actions {
     if (limit != LG && ctx.atInflowLimit(from, LG)) {
       console.log(unicode"🚨 Cannot validate limit %s as LG is already reached.", limit.toString());
     } else {
-      assert_swapInFails(ctx, from, to, inflowRequiredUnits.toSubunits(from), limit.revertReason());
+      assert_swapInFails(from, to, inflowRequiredUnits.toSubunits(from), limit.revertReason());
     }
   }
 
-  function assert_swapOverLimitFails_onOutflow(ExchangeForkTest ctx, address from, address to, uint8 limit) internal {
+  function assert_swapOverLimitFails_onOutflow(address from, address to, uint8 limit) internal {
     /*
      * from -> L*[to]
      * Assert that outflow on `to` is limited by the limit
@@ -153,11 +146,11 @@ contract SwapAssertions is StdAssertions, Actions {
 
     // This should do valid swaps until just before the limit is reached
     if (limit == L0) {
-      swapUntilL0_onOutflow(ctx, from, to);
+      swapUntilL0_onOutflow(from, to);
     } else if (limit == L1) {
-      swapUntilL1_onOutflow(ctx, from, to);
+      swapUntilL1_onOutflow(from, to);
     } else if (limit == LG) {
-      swapUntilLG_onOutflow(ctx, from, to);
+      swapUntilLG_onOutflow(from, to);
     } else {
       revert("Invalid limit");
     }
@@ -170,7 +163,7 @@ contract SwapAssertions is StdAssertions, Actions {
     if (limit != LG && ctx.atOutflowLimit(from, LG)) {
       console.log(unicode"🚨 Cannot validate limit %s as LG is already reached.", limit.toString());
     } else {
-      assert_swapOutFails(ctx, from, to, outflowRequiredUnits.toSubunits(to), limit.revertReason());
+      assert_swapOutFails(from, to, outflowRequiredUnits.toSubunits(to), limit.revertReason());
     }
   }
 }

@@ -2,7 +2,10 @@
 pragma solidity ^0.8;
 
 import { console } from "forge-std/console.sol";
-import { BaseActions } from "./BaseActions.sol";
+import { StdCheats } from "forge-std/StdCheats.sol";
+import { ExchangeForkTest } from "../ExchangeForkTest.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { VM_ADDRESS } from "mento-std/Constants.sol";
 import { ExchangeForkTest } from "../ExchangeForkTest.sol";
 
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
@@ -16,7 +19,10 @@ import { SwapHelpers } from "../helpers/SwapHelpers.sol";
 import { TradingLimitHelpers } from "../helpers/TradingLimitHelpers.sol";
 import { LogHelpers } from "../helpers/LogHelpers.sol";
 
-contract SwapActions is BaseActions {
+contract SwapActions is StdCheats {
+  Vm private vm = Vm(VM_ADDRESS);
+  ExchangeForkTest private ctx = ExchangeForkTest(address(this));
+
   using FixidityLib for FixidityLib.Fraction;
   using OracleHelpers for *;
   using SwapHelpers for *;
@@ -30,9 +36,9 @@ contract SwapActions is BaseActions {
 
   function swapIn(address from, address to, uint256 sellAmount) public returns (uint256 amountOut) {
     ctx.mint(from, ctx.trader(), sellAmount, true);
-    _vm.startPrank(ctx.trader());
+    vm.startPrank(ctx.trader());
     IERC20(from).approve(address(ctx.broker()), sellAmount);
-    _vm.stopPrank();
+    vm.stopPrank();
 
     ctx.addReportsIfNeeded();
     uint256 minAmountOut = ctx.broker().getAmountOut(
@@ -58,9 +64,9 @@ contract SwapActions is BaseActions {
       sellAmount.toUnits(from),
       minAmountOut.toUnits(to)
     );
-    _vm.startPrank(ctx.trader());
+    vm.startPrank(ctx.trader());
     amountOut = ctx.broker().swapIn(ctx.exchangeProviderAddr(), ctx.exchangeId(), from, to, sellAmount, minAmountOut);
-    _vm.stopPrank();
+    vm.stopPrank();
   }
 
   function swapOut(address from, address to, uint256 buyAmount) public returns (uint256) {
@@ -68,7 +74,7 @@ contract SwapActions is BaseActions {
     uint256 maxAmountIn = ctx.getAmountIn(from, to, buyAmount);
 
     ctx.mint(from, ctx.trader(), maxAmountIn, true);
-    _vm.startPrank(ctx.trader());
+    vm.startPrank(ctx.trader());
     IERC20(from).approve(address(ctx.broker()), maxAmountIn);
     return _swapOut(from, to, buyAmount, maxAmountIn);
   }
@@ -86,12 +92,12 @@ contract SwapActions is BaseActions {
       buyAmount.toUnits(to),
       maxAmountIn.toUnits(from)
     );
-    _vm.startPrank(ctx.trader());
+    vm.startPrank(ctx.trader());
     amountIn = ctx.broker().swapOut(ctx.exchangeProviderAddr(), ctx.exchangeId(), from, to, buyAmount, maxAmountIn);
-    _vm.stopPrank();
+    vm.stopPrank();
   }
 
-  function swapUntilL0_onInflow(ExchangeForkTest ctx, address from, address to) internal {
+  function swapUntilL0_onInflow(address from, address to) internal {
     /*
      * L0[from] -> to
      * This function will do valid swaps until just before L0 is hit
@@ -120,7 +126,7 @@ contract SwapActions is BaseActions {
     ctx.logLimits(from);
   }
 
-  function swapUntilL1_onInflow(ExchangeForkTest ctx, address from, address to) internal {
+  function swapUntilL1_onInflow(address from, address to) internal {
     /*
      * L1[from] -> to
      * This function will do valid swaps until just before L1 is hit
@@ -135,7 +141,7 @@ contract SwapActions is BaseActions {
       skip(limitConfig.timestep0 + 1);
       ctx.ensureRateActive(); // needed because otherwise constantSum might revert if the median is stale due to the skip
 
-      swapUntilL0_onInflow(ctx, from, to);
+      swapUntilL0_onInflow(from, to);
       limitConfig = ctx.tradingLimitsConfig(from);
       limitState = ctx.refreshedTradingLimitsState(from);
       if (limitState.netflowGlobal == limitConfig.limitGlobal) {
@@ -147,7 +153,7 @@ contract SwapActions is BaseActions {
     ctx.ensureRateActive();
   }
 
-  function swapUntilLG_onInflow(ExchangeForkTest ctx, address from, address to) internal {
+  function swapUntilLG_onInflow(address from, address to) internal {
     /*
      * L1[from] -> to
      * This function will do valid swaps until just before LG is hit
@@ -163,7 +169,7 @@ contract SwapActions is BaseActions {
       uint256 it;
       while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
-        swapUntilL1_onInflow(ctx, from, to);
+        swapUntilL1_onInflow(from, to);
         limitConfig = ctx.tradingLimitsConfig(from);
         limitState = ctx.tradingLimitsState(from);
         it++;
@@ -175,7 +181,7 @@ contract SwapActions is BaseActions {
       uint256 it;
       while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
-        swapUntilL0_onInflow(ctx, from, to);
+        swapUntilL0_onInflow(from, to);
         limitConfig = ctx.tradingLimitsConfig(from);
         limitState = ctx.tradingLimitsState(from);
         it++;
@@ -185,7 +191,7 @@ contract SwapActions is BaseActions {
     }
   }
 
-  function swapUntilL0_onOutflow(ExchangeForkTest ctx, address from, address to) public {
+  function swapUntilL0_onOutflow(address from, address to) public {
     /*
      * from -> L0[to]
      * This function will do valid swaps until just before L0 is hit
@@ -214,7 +220,7 @@ contract SwapActions is BaseActions {
     ctx.logLimits(to);
   }
 
-  function swapUntilL1_onOutflow(ExchangeForkTest ctx, address from, address to) public {
+  function swapUntilL1_onOutflow(address from, address to) public {
     /*
      * from -> L1[to]
      * This function will do valid swaps until just before L1 is hit
@@ -234,7 +240,7 @@ contract SwapActions is BaseActions {
       if (ctx.maxOutflow(to) == 0) {
         break;
       }
-      swapUntilL0_onOutflow(ctx, from, to);
+      swapUntilL0_onOutflow(from, to);
       limitConfig = ctx.tradingLimitsConfig(to);
       limitState = ctx.tradingLimitsState(to);
       it++;
@@ -243,7 +249,7 @@ contract SwapActions is BaseActions {
     skip(limitConfig.timestep0 + 1);
   }
 
-  function swapUntilLG_onOutflow(ExchangeForkTest ctx, address from, address to) public {
+  function swapUntilLG_onOutflow(address from, address to) public {
     /*
      * from -> LG[to]
      * This function will do valid swaps until just before LG is hit
@@ -258,7 +264,7 @@ contract SwapActions is BaseActions {
       int48 maxPerSwap = limitConfig.limit0;
       while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
-        swapUntilL1_onOutflow(ctx, from, to);
+        swapUntilL1_onOutflow(from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
         // Triger an update to reset netflows
         limitState = ctx.tradingLimitsState(to);
@@ -268,7 +274,7 @@ contract SwapActions is BaseActions {
       int48 maxPerSwap = limitConfig.limit0;
       while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
-        swapUntilL0_onOutflow(ctx, from, to);
+        swapUntilL0_onOutflow(from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
         // Triger an update to reset netflows
         limitState = ctx.tradingLimitsState(to);
