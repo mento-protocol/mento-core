@@ -20,3 +20,7 @@ function min(int48 a, int48 b, int48 c) pure returns (int48) {
 uint8 constant L0 = 1; // 0b001 Limit0
 uint8 constant L1 = 2; // 0b010 Limit1
 uint8 constant LG = 4; // 0b100 LimitGlobal
+
+function toRateFeed(string memory rateFeed) pure returns (address) {
+  return address(uint160(uint256(keccak256(abi.encodePacked(rateFeed)))));
+}

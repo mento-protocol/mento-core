@@ -119,4 +119,28 @@ contract ChainForkTest is BaseForkTest {
     vm.expectRevert("Initializable: contract is already initialized");
     stableTokenKES.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
   }
+
+  function test_rateFeedDependenciesCountIsCorrect() public {
+    address[] memory rateFeedIds = breakerBox.getRateFeeds();
+    for (uint i = 0; i < rateFeedIds.length; i++) {
+      address rateFeedId = rateFeedIds[i];
+      uint8 count = rateFeedDependenciesCount[rateFeedId];
+
+      vm.expectRevert();
+      breakerBox.rateFeedDependencies(rateFeedId, count); // end of array
+
+      for (uint j = 0; j < count; j++) {
+        (bool ok, ) = address(breakerBox).staticcall(
+          abi.encodeWithSelector(breakerBox.rateFeedDependencies.selector, rateFeedId, j)
+        );
+        if (!ok) {
+          console.log("Dependency missing for rateFeedId=%s, expectedCount=%d, missingIndex=%d", rateFeedId, count, j);
+          console.log(
+            "If the configuration has changed, update the rateFeedDependenciesCount mapping in BaseForfTest.sol"
+          );
+        }
+        require(ok, "rateFeedDependenciesCount out of sync");
+      }
+    }
+  }
 }

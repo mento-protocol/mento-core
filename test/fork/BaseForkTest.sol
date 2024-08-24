@@ -19,6 +19,7 @@ import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";
+import { toRateFeed } from "./helpers/misc.sol";
 
 interface IMint {
   function mint(address, uint256) external;
@@ -66,6 +67,8 @@ contract BaseForkTest is Test {
     return addr;
   }
 
+  mapping(address rateFeed => uint8 count) rateFeedDependenciesCount;
+
   function setUp() public virtual {
     fork(targetChainId);
     fork(targetChainId, (block.number / 100) * 100);
@@ -80,6 +83,14 @@ contract BaseForkTest is Test {
     vm.label(address(breakerBox), "BreakerBox");
     trader = makeAddr("trader");
     reserve = IReserve(broker.reserve());
+
+    /// @dev Hardcoded number of dependencies for each ratefeed.
+    /// Should be updated when they change, there is a test that will
+    /// validate that.
+    rateFeedDependenciesCount[lookup("StableTokenXOF")] = 2;
+    rateFeedDependenciesCount[toRateFeed("EUROCXOF")] = 2;
+    rateFeedDependenciesCount[toRateFeed("USDCEUR")] = 1;
+    rateFeedDependenciesCount[toRateFeed("USDCBRL")] = 1;
   }
 
   function mint(address asset, address to, uint256 amount, bool updateSupply) public {

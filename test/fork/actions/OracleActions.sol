@@ -58,12 +58,15 @@ contract OracleActions is BaseActions {
   }
 
   function ensureRateActive() public returns (uint256 newMedian) {
-    address rateFeedId = ctx.rateFeedId();
+    return ensureRateActive(ctx.rateFeedId());
+  }
+
+  function ensureRateActive(address rateFeedId) public returns (uint256 newMedian) {
     // Always do a small update in order to make sure
     // the breakers are warm.
     (uint256 currentRate, ) = ctx.sortedOracles().medianRate(rateFeedId);
     newMedian = currentRate + (currentRate / 100_000_000); // a small increase
-    updateOracleMedianRate(newMedian);
+    updateOracleMedianRate(rateFeedId, newMedian);
     uint8 tradingMode = ctx.breakerBox().getRateFeedTradingMode(rateFeedId);
     uint256 attempts = 0;
     while (tradingMode != 0 && attempts < 10) {
@@ -86,12 +89,13 @@ contract OracleActions is BaseActions {
         }
       }
       skip(cooldown);
-      newMedian = ctx.newMedianToResetBreaker(breakerIndex);
-      ctx.updateOracleMedianRate(newMedian);
+      newMedian = ctx.newMedianToResetBreaker(rateFeedId, breakerIndex);
+      ctx.updateOracleMedianRate(rateFeedId, newMedian);
       if (cooldown == 0) {
         console.log("Manual recovery required for breaker %s", _breakers[breakerIndex]);
-        changePrank(ctx.breakerBox().owner());
+        _vm.startPrank(ctx.breakerBox().owner());
         ctx.breakerBox().setRateFeedTradingMode(rateFeedId, 0);
+        _vm.stopPrank();
       }
       tradingMode = ctx.breakerBox().getRateFeedTradingMode(rateFeedId);
     }

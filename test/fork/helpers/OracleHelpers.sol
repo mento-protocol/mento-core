@@ -59,24 +59,53 @@ library OracleHelpers {
     ExchangeForkTest ctx,
     uint256 breakerIndex
   ) internal view returns (uint256 newMedian) {
+    return newMedianToResetBreaker(ctx, ctx.rateFeedId(), breakerIndex);
+  }
+
+  function newMedianToResetBreaker(
+    ExchangeForkTest ctx,
+    address rateFeedId,
+    uint256 breakerIndex
+  ) internal view returns (uint256 newMedian) {
     address[] memory _breakers = ctx.breakerBox().getBreakers();
     bool isMedianDeltaBreaker = breakerIndex == 0;
     bool isValueDeltaBreaker = breakerIndex == 1;
     if (isMedianDeltaBreaker) {
-      uint256 currentEMA = IMedianDeltaBreaker(_breakers[breakerIndex]).medianRatesEMA(ctx.rateFeedId());
+      uint256 currentEMA = IMedianDeltaBreaker(_breakers[breakerIndex]).medianRatesEMA(rateFeedId);
       return currentEMA;
     } else if (isValueDeltaBreaker) {
-      return IValueDeltaBreaker(_breakers[breakerIndex]).referenceValues(ctx.rateFeedId());
+      return IValueDeltaBreaker(_breakers[breakerIndex]).referenceValues(rateFeedId);
     } else {
       revert("can't infer corresponding breaker");
     }
   }
 
+  function getValueDeltaBreakerReferenceValue(ExchangeForkTest ctx, address _breaker) internal view returns (uint256) {
+    return getValueDeltaBreakerReferenceValue(ctx, ctx.rateFeedId(), _breaker);
+  }
+
+  function getValueDeltaBreakerReferenceValue(
+    ExchangeForkTest, // ctx
+    address rateFeedId,
+    address _breaker
+  ) internal view returns (uint256) {
+    IValueDeltaBreaker breaker = IValueDeltaBreaker(_breaker);
+    return breaker.referenceValues(rateFeedId);
+  }
+
   function getBreakerRateChangeThreshold(ExchangeForkTest ctx, address _breaker) internal view returns (uint256) {
+    return getBreakerRateChangeThreshold(ctx, ctx.rateFeedId(), _breaker);
+  }
+
+  function getBreakerRateChangeThreshold(
+    ExchangeForkTest, //,
+    address rateFeedId,
+    address _breaker
+  ) internal view returns (uint256) {
     IMedianDeltaBreaker breaker = IMedianDeltaBreaker(_breaker);
 
     uint256 rateChangeThreshold = breaker.defaultRateChangeThreshold();
-    uint256 specificRateChangeThreshold = breaker.rateChangeThreshold(ctx.rateFeedId());
+    uint256 specificRateChangeThreshold = breaker.rateChangeThreshold(rateFeedId);
     if (specificRateChangeThreshold != 0) {
       rateChangeThreshold = specificRateChangeThreshold;
     }
