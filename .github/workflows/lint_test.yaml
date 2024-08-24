@@ -47,7 +47,7 @@ jobs:
       - name: "Run the tests"
         run: "forge test"
 
-      - name: "Build the contracts"
+      - name: "Check contract sizes"
         run: forge build --sizes --skip test/**/*
 
       - name: "Add test summary"
