@@ -1,0 +1,259 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+pragma solidity ^0.8;
+pragma experimental ABIEncoderV2;
+
+import { console } from "forge-std/console.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { VM_ADDRESS } from "mento-std/Constants.sol";
+
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
+import { ExchangeForkTest } from "./ExchangeForkTest.sol";
+
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
+import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
+import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
+import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";
+
+library ExchangeTestUtils {
+  using FixidityLib for FixidityLib.Fraction;
+  using ExchangeTestUtils for ExchangeForkTest;
+
+  uint8 private constant L0 = 1; // 0b001 Limit0
+  uint8 private constant L1 = 2; // 0b010 Limit1
+  uint8 private constant LG = 4; // 0b100 LimitGlobal
+
+  Vm public constant vm = Vm(VM_ADDRESS);
+
+  //function getContextForRateFeedID(address _t, address rateFeedID) public view returns (ExchangeForkTest) {
+  //  BaseForkTest t = BaseForkTest(_t);
+  //  (address biPoolManagerAddr, ) = t.exchanges(0);
+  //  uint256 nOfExchanges = IBiPoolManager(biPoolManagerAddr).getExchanges().length;
+  //  for (uint256 i = 0; i < nOfExchanges; i++) {
+  //    ExchangeForkTest ctx = newContext(_t, i);
+  //    if (getReferenceRateFeedID(ctx) == rateFeedID) {
+  //      return ctx;
+  //    }
+  //  }
+  //  return newRateFeedContext(_t, rateFeedID);
+  //}
+
+  // ========================= Swaps =========================
+
+
+  function swapOut(ExchangeForkTest ctx, address from, address to, uint256 buyAmount) public returns (uint256) {
+    addReportsIfNeeded(ctx);
+    uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
+
+    ctx.t._deal(from, ctx.trader, maxAmountIn, true);
+    changePrank(ctx.trader);
+    IERC20(from).approve(address(ctx.broker), maxAmountIn);
+
+    console.log(
+      string(
+        abi.encodePacked(unicode"🤝 swapOut(", toSymbol(from), "->", toSymbol(to), ",amountOut: %d, maxAmountIn: %d)")
+      ),
+      toUnits(buyAmount, to),
+      toUnits(maxAmountIn, from)
+    );
+    return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
+  }
+
+
+
+  // ========================= Sorted Oracles =========================
+
+  function getReferenceRate(ExchangeForkTest ctx) internal view returns (uint256, uint256) {
+    uint256 rateNumerator;
+    uint256 rateDenominator;
+    (rateNumerator, rateDenominator) = ctx.sortedOracles.medianRate(getReferenceRateFeedID(ctx));
+    require(rateDenominator > 0, "exchange rate denominator must be greater than 0");
+    return (rateNumerator, rateDenominator);
+  }
+
+  function getReferenceRateFeedID(ExchangeForkTest ctx) internal view returns (address) {
+    if (ctx.rateFeedID != address(0)) {
+      return ctx.rateFeedID;
+    }
+    // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
+    IBiPoolManager biPoolManager = IBiPoolManager(ctx.exchangeProvider);
+    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
+    return pool.config.referenceRateFeedID;
+  }
+
+  // ========================= Trading Limits =========================
+
+  function isLimitConfigured(ExchangeForkTest ctx, bytes32 limitId) public view returns (bool) {
+    ITradingLimits.Config memory limitConfig = ctx.broker.tradingLimitsConfig(limitId);
+    return limitConfig.flags > uint8(0);
+  }
+
+  function tradingLimitsConfig(
+    ExchangeForkTest ctx,
+    bytes32 limitId
+  ) public view returns (ITradingLimits.Config memory) {
+    return ctx.broker.tradingLimitsConfig(limitId);
+  }
+
+  function tradingLimitsState(ExchangeForkTest ctx, bytes32 limitId) public view returns (ITradingLimits.State memory) {
+    return ctx.broker.tradingLimitsState(limitId);
+  }
+
+  function tradingLimitsConfig(ExchangeForkTest ctx, address asset) public view returns (ITradingLimits.Config memory) {
+    bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
+    return ctx.broker.tradingLimitsConfig(ctx.exchangeId ^ assetBytes32);
+  }
+
+  function tradingLimitsState(ExchangeForkTest ctx, address asset) public view returns (ITradingLimits.State memory) {
+    bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
+    return ctx.broker.tradingLimitsState(ctx.exchangeId ^ assetBytes32);
+  }
+
+  function refreshedTradingLimitsState(
+    ExchangeForkTest ctx,
+    address asset
+  ) public view returns (ITradingLimits.State memory) {
+    ITradingLimits.Config memory config = tradingLimitsConfig(ctx, asset);
+    // Netflow might be outdated because of a skip(...) call and doing
+    // an update(0) would reset the netflow if enough time has passed.
+    return ctx.tradingLimits.update(tradingLimitsState(ctx, asset), config, 0, 0);
+  }
+
+  function isLimitEnabled(ITradingLimits.Config memory config, uint8 limit) internal pure returns (bool) {
+    return (config.flags & limit) > 0;
+  }
+
+  function getLimit(ITradingLimits.Config memory config, uint8 limit) internal pure returns (uint256) {
+    if (limit == L0) {
+      return uint256(int256(config.limit0));
+    } else if (limit == L1) {
+      return uint256(int256(config.limit1));
+    } else if (limit == LG) {
+      return uint256(int256(config.limitGlobal));
+    } else {
+      revert("invalid limit");
+    }
+  }
+
+  function getNetflow(ITradingLimits.State memory state, uint8 limit) internal pure returns (int256) {
+    if (limit == L0) {
+      return state.netflow0;
+    } else if (limit == L1) {
+      return state.netflow1;
+    } else if (limit == LG) {
+      return state.netflowGlobal;
+    } else {
+      revert("invalid limit");
+    }
+  }
+
+  function revertReason(uint8 limit) internal pure returns (string memory) {
+    if (limit == L0) {
+      return "L0 Exceeded";
+    } else if (limit == L1) {
+      return "L1 Exceeded";
+    } else if (limit == LG) {
+      return "LG Exceeded";
+    } else {
+      revert("invalid limit");
+    }
+  }
+
+  function limitString(uint8 limit) internal pure returns (string memory) {
+    if (limit == L0) {
+      return "L0";
+    } else if (limit == L1) {
+      return "L1";
+    } else if (limit == LG) {
+      return "LG";
+    } else {
+      revert("invalid limit");
+    }
+  }
+
+  function maxPossibleInflow(ExchangeForkTest ctx, address from) internal view returns (int48) {
+    ITradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, from);
+    ITradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, from);
+    int48 maxInflowL0 = limitConfig.limit0 - limitState.netflow0;
+    int48 maxInflowL1 = limitConfig.limit1 - limitState.netflow1;
+    int48 maxInflowLG = limitConfig.limitGlobal - limitState.netflowGlobal;
+
+    if (limitConfig.flags == L0 | L1 | LG) {
+      return min(maxInflowL0, maxInflowL1, maxInflowLG);
+    } else if (limitConfig.flags == L0 | LG) {
+      return min(maxInflowL0, maxInflowLG);
+    } else if (limitConfig.flags == L0 | L1) {
+      return min(maxInflowL0, maxInflowL1);
+    } else if (limitConfig.flags == L0) {
+      return maxInflowL0;
+    } else {
+      revert("Unexpected limit config");
+    }
+  }
+
+  function maxPossibleOutflow(ExchangeForkTest ctx, address to) internal view returns (int48) {
+    ITradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, to);
+    ITradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, to);
+    int48 maxOutflowL0 = limitConfig.limit0 + limitState.netflow0 - 1;
+    int48 maxOutflowL1 = limitConfig.limit1 + limitState.netflow1 - 1;
+    int48 maxOutflowLG = limitConfig.limitGlobal + limitState.netflowGlobal - 1;
+
+    if (limitConfig.flags == L0 | L1 | LG) {
+      return min(maxOutflowL0, maxOutflowL1, maxOutflowLG);
+    } else if (limitConfig.flags == L0 | LG) {
+      return min(maxOutflowL0, maxOutflowLG);
+    } else if (limitConfig.flags == L0 | L1) {
+      return min(maxOutflowL0, maxOutflowL1);
+    } else if (limitConfig.flags == L0) {
+      return maxOutflowL0;
+    } else {
+      revert("Unexpected limit config");
+    }
+  }
+
+  // ========================= Misc =========================
+
+  function toSubunits(uint256 units, address token) internal view returns (uint256) {
+    uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
+    return units * tokenBase;
+  }
+
+  function toUnits(uint256 subunits, address token) internal view returns (uint256) {
+    uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
+    return subunits / tokenBase;
+  }
+
+  function toUnitsFixed(uint256 subunits, address token) internal view returns (FixidityLib.Fraction memory) {
+    uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
+    return FixidityLib.newFixedFraction(subunits, tokenBase);
+  }
+
+  function toSymbol(address token) internal view returns (string memory) {
+    return IERC20(token).symbol();
+  }
+
+  function ticker(ExchangeForkTest ctx) internal view returns (string memory) {
+    return
+      string(abi.encodePacked(IERC20(ctx.exchange.assets[0]).symbol(), "/", IERC20(ctx.exchange.assets[1]).symbol()));
+  }
+
+  // ==================== Forge Cheats ======================
+  // Pulling in some test helpers to not have to expose them in
+  // the test contract
+
+  function skip(uint256 time) internal {
+    vm.warp(block.timestamp + time);
+  }
+
+  function changePrank(address who) internal {
+    vm.stopPrank();
+    vm.startPrank(who);
+  }
+}

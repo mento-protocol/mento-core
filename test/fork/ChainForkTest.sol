@@ -10,13 +10,16 @@ import { IStableTokenV2DeprecatedInit } from "contracts/interfaces/IStableTokenV
 contract ChainForkTest is BaseForkTest {
   using FixidityLib for FixidityLib.Fraction;
 
-  using Utils for Utils.Context;
-  using Utils for uint256;
+  uint256 expectedExchangeProvidersCount;
+  uint256[] expectedExchangesCount;
 
-  uint256 expectedExchangesCount;
-
-  constructor(uint256 _chainId, uint256 _expectedExchangesCount) BaseForkTest(_chainId) {
+  constructor(
+    uint256 _chainId,
+    uint256 _expectedExchangesProvidersCount,
+    uint256[] memory _expectedExchangesCount
+  ) BaseForkTest(_chainId) {
     expectedExchangesCount = _expectedExchangesCount;
+    expectedExchangeProvidersCount = _expectedExchangesProvidersCount;
   }
 
   function test_biPoolManagerCanNotBeReinitialized() public {
@@ -53,8 +56,35 @@ contract ChainForkTest is BaseForkTest {
     );
   }
 
-  function test_testsAreConfigured() public view {
-    assertEq(expectedExchangesCount, exchanges.length);
+  /**
+   * @dev If this fails it means we have added new exchanges
+   * and haven't updated the fork test configuration which
+   * can be found in ForkTests.t.sol.
+   */
+  function test_exchangeProvidersAndExchangesCount() public view {
+    address[] memory exchangeProviders = broker.getExchangeProviders();
+    assertEq(expectedExchangeProvidersCount, exchangeProviders.length);
+    for (uint i = 0; i < exchangeProviders.length; i++) {
+      address exchangeProvider = exchangeProviders[i];
+      IBiPoolManager biPoolManager = IBiPoolManager(exchangeProvider);
+      IExchangeProvider.Exchange[] memory exchanges = biPoolManager.getExchanges();
+      assertEq(expectedExchangesCount[i], exchanges.length);
+    }
+  }
+
+  function test_numberCollateralAssetsCount() public {
+    address collateral;
+    for (uint i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
+      collateral = reserve.collateralAssets(i);
+    }
+    /**
+     * @dev If this fails it means we have added a new collateral
+     * so we need to update the COLLATERAL_ASSETS constant.
+     * This is because we don't have an easy way to determine
+     * the number of collateral assets in the system.
+     */
+    vm.expectRevert();
+    reserve.collateralAssets(COLLATERAL_ASSETS_COUNT);
   }
 
   function test_stableTokensCanNotBeReinitialized() public {

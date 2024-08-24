@@ -1,0 +1,229 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+pragma solidity ^0.8;
+
+import { Test } from "mento-std/Test.sol";
+import { console } from "forge-std/console.sol";
+import { ExchangeTestUtils } from "./ExchangeTestUtils.sol";
+
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
+import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
+
+contract ExchangeTestAsserts is Test {
+  using ExchangeTestUtils for ITradingLimits.Config;
+  using ExchangeTestUtils for ITradingLimits.State;
+  using ExchangeTestUtils for uint8;
+  using ExchangeTestUtils for uint256;
+  using FixidityLib for FixidityLib.Fraction;
+
+  uint8 private constant L0 = 1; // 0b001 Limit0
+  uint8 private constant L1 = 2; // 0b010 Limit1
+  uint8 private constant LG = 4; // 0b100 LimitGlobal
+
+  uint256 fixed1 = FixidityLib.fixed1().unwrap();
+  FixidityLib.Fraction pc10 = FixidityLib.newFixedFraction(10, 100);
+
+  // ========================= Swap Asserts ========================= //
+
+  function assert_swapIn(ExchangeForkTest ctx, address from, address to, uint256 sellAmount) internal {
+    FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
+    FixidityLib.Fraction memory amountIn = sellAmount.toUnitsFixed(from);
+    FixidityLib.Fraction memory amountOut = ctx.swapIn(from, to, sellAmount).toUnitsFixed(to);
+    FixidityLib.Fraction memory expectedAmountOut = amountIn.divide(rate);
+
+    assertApproxEqAbs(amountOut.unwrap(), expectedAmountOut.unwrap(), pc10.multiply(expectedAmountOut).unwrap());
+  }
+
+  function assert_swapOut(ExchangeForkTest ctx, address from, address to, uint256 buyAmount) internal {
+    FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
+    FixidityLib.Fraction memory amountOut = buyAmount.toUnitsFixed(to);
+    FixidityLib.Fraction memory amountIn = ctx.swapOut(from, to, buyAmount).toUnitsFixed(from);
+    FixidityLib.Fraction memory expectedAmountIn = amountOut.multiply(rate);
+
+    assertApproxEqAbs(amountIn.unwrap(), expectedAmountIn.unwrap(), pc10.multiply(expectedAmountIn).unwrap());
+  }
+
+  // ========================= Trading Limit Asserts ========================= //
+
+  // ========================= Circuit Breaker Asserts ========================= //
+
+  function assert_breakerBreaks(ExchangeForkTest ctx, address breaker, uint256 breakerIndex) public {
+    // XXX: There is currently no straightforward way to determine what type of a breaker
+    // we are dealing with, so we will use the deployment setup that we currently chose,
+    // where the medianDeltaBreaker gets deployed first and the valueDeltaBreaker second.
+    bool isMedianDeltaBreaker = breakerIndex == 0;
+    bool isValueDeltaBreaker = breakerIndex == 1;
+    if (isMedianDeltaBreaker) {
+      assert_medianDeltaBreakerBreaks_onIncrease(ctx, breaker);
+      assert_medianDeltaBreakerBreaks_onDecrease(ctx, breaker);
+    } else if (isValueDeltaBreaker) {
+      assert_valueDeltaBreakerBreaks_onIncrease(ctx, breaker);
+      assert_valueDeltaBreakerBreaks_onDecrease(ctx, breaker);
+    } else {
+      revert("Unknown trading mode, can't infer breaker type");
+    }
+  }
+
+  function assert_medianDeltaBreakerBreaks_onIncrease(ExchangeForkTest ctx, address _breaker) public {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+
+    // trigger breaker by setting new median to ema - (threshold + 0.001% buffer)
+    uint256 currentEMA = IMedianDeltaBreaker(_breaker).medianRatesEMA(ctx.getReferenceRateFeedID());
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 thresholdBuffer = FixidityLib.newFixedFraction(1, 1000).unwrap(); // small buffer because of rounding errors
+    uint256 maxPercent = fixed1 + rateChangeThreshold + thresholdBuffer;
+    uint256 newMedian = (currentEMA * maxPercent) / fixed1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Current EMA: ", currentEMA);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+  }
+
+  function assert_medianDeltaBreakerBreaks_onDecrease(ExchangeForkTest ctx, address _breaker) public {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+
+    // trigger breaker by setting new median to ema + (threshold + 0.001% buffer)
+    uint256 currentEMA = IMedianDeltaBreaker(_breaker).medianRatesEMA(ctx.getReferenceRateFeedID());
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 thresholdBuffer = FixidityLib.newFixedFraction(1, 1000).unwrap(); // small buffer because of rounding errors
+    uint256 maxPercent = fixed1 - (rateChangeThreshold + thresholdBuffer);
+    uint256 newMedian = (currentEMA * maxPercent) / fixed1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Current EMA: ", currentEMA);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+  }
+
+  function assert_valueDeltaBreakerBreaks_onIncrease(ExchangeForkTest ctx, address _breaker) public {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+
+    // trigger breaker by setting new median to reference value + threshold + 1
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 referenceValue = ctx.getValueDeltaBreakerReferenceValue(_breaker);
+    uint256 maxPercent = fixed1 + rateChangeThreshold;
+    uint256 newMedian = (referenceValue * maxPercent) / fixed1;
+    newMedian = newMedian + 1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Reference Value: ", referenceValue);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+  }
+
+  function assert_valueDeltaBreakerBreaks_onDecrease(ExchangeForkTest ctx, address _breaker) public {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+
+    // trigger breaker by setting new median to reference value - threshold - 1
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 referenceValue = ctx.getValueDeltaBreakerReferenceValue(_breaker);
+    uint256 maxPercent = fixed1 - rateChangeThreshold;
+    uint256 newMedian = (referenceValue * maxPercent) / fixed1;
+    newMedian = newMedian - 1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Reference Value: ", referenceValue);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+  }
+
+  function assert_breakerRecovers(ExchangeForkTest ctx, address breaker, uint256 breakerIndex) public {
+    // XXX: There is currently no straightforward way to determine what type of a breaker
+    // we are dealing with, so we will use the deployment setup that we currently chose,
+    // where the medianDeltaBreaker gets deployed first and the valueDeltaBreaker second.
+    bool isMedianDeltaBreaker = breakerIndex == 0;
+    bool isValueDeltaBreaker = breakerIndex == 1;
+    if (isMedianDeltaBreaker) {
+      assert_medianDeltaBreakerRecovers(ctx, breaker);
+    } else if (isValueDeltaBreaker) {
+      assert_valueDeltaBreakerRecovers(ctx, breaker);
+    } else {
+      revert("Unknown trading mode, can't infer breaker type");
+    }
+  }
+
+  function assert_medianDeltaBreakerRecovers(ExchangeForkTest ctx, address _breaker) internal {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+    IMedianDeltaBreaker breaker = IMedianDeltaBreaker(_breaker);
+
+    // trigger breaker by setting new median to ema + threshold + 0.001%
+    uint256 currentEMA = breaker.medianRatesEMA(ctx.getReferenceRateFeedID());
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 thresholdBuffer = FixidityLib.newFixedFraction(1, 1000).unwrap();
+    uint256 maxPercent = fixed1 + rateChangeThreshold + thresholdBuffer;
+    uint256 newMedian = (currentEMA * maxPercent) / fixed1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+
+    // wait for cool down and reset by setting new median to ema
+    uint256 cooldown = breaker.getCooldown(ctx.getReferenceRateFeedID());
+    if (cooldown == 0) {
+      changePrank(ctx.breakerBox.owner());
+      ctx.breakerBox.setRateFeedTradingMode(ctx.getReferenceRateFeedID(), 0);
+    } else {
+      skip(cooldown);
+      currentEMA = breaker.medianRatesEMA(ctx.getReferenceRateFeedID());
+      assert_breakerRecovers_withNewMedian(ctx, currentEMA);
+    }
+  }
+
+  function assert_valueDeltaBreakerRecovers(ExchangeForkTest ctx, address _breaker) internal {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+    IValueDeltaBreaker breaker = IValueDeltaBreaker(_breaker);
+
+    // trigger breaker by setting new median to reference value + threshold + 1
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 referenceValue = ctx.getValueDeltaBreakerReferenceValue(_breaker);
+    uint256 maxPercent = fixed1 + rateChangeThreshold;
+    uint256 newMedian = (referenceValue * maxPercent) / fixed1;
+    newMedian = newMedian + 1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Reference Value: ", referenceValue);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+
+    // wait for cool down and reset by setting new median to refernece value
+    uint256 cooldown = breaker.getCooldown(ctx.getReferenceRateFeedID());
+    if (cooldown == 0) {
+      changePrank(ctx.breakerBox.owner());
+      ctx.breakerBox.setRateFeedTradingMode(ctx.getReferenceRateFeedID(), 0);
+    } else {
+      skip(cooldown);
+      assert_breakerRecovers_withNewMedian(ctx, referenceValue);
+    }
+  }
+
+  function assert_breakerBreaks_withNewMedian(
+    ExchangeForkTest ctx,
+    uint256 newMedian,
+    uint256 expectedTradingMode
+  ) public {
+    address rateFeedID = ctx.getReferenceRateFeedID();
+    uint256 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    require(tradingMode == 0, "breaker should be recovered");
+
+    ctx.updateOracleMedianRate(newMedian);
+    tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    require(tradingMode == expectedTradingMode, "trading more is different from expected");
+  }
+
+  function assert_breakerRecovers_withNewMedian(ExchangeForkTest ctx, uint256 newMedian) public {
+    address rateFeedID = ctx.getReferenceRateFeedID();
+    uint256 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    require(tradingMode != 0, "breaker should be triggered");
+
+    ctx.updateOracleMedianRate(newMedian);
+    tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    require(tradingMode == 0, "breaker should be recovered");
+  }
+
+}

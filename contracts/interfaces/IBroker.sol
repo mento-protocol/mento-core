@@ -149,4 +149,6 @@ interface IBroker {
   function tradingLimitsConfig(bytes32 id) external view returns (ITradingLimits.Config memory);
 
   function tradingLimitsState(bytes32 id) external view returns (ITradingLimits.State memory);
+
+  function exchangeProviders(uint256 i) external view returns (address);
 }

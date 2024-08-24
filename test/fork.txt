@@ -1,0 +1,1857 @@
+=== Directory: actions ===
+=== File: all.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { OracleActions } from "./OracleActions.sol";
+import { SwapActions } from "./SwapActions.sol";
+
+contract Actions is OracleActions, SwapActions {}
+
+=== File: BaseActions.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { ExchangeForkTest } from "../ExchangeForkTest.sol";
+import { StdCheats } from "forge-std/StdCheats.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { VM_ADDRESS } from "mento-std/Constants.sol";
+
+contract BaseActions is StdCheats {
+  Vm public constant vm = Vm(VM_ADDRESS);
+
+  function ctx() internal returns (ExchangeForkTest) {
+    return ExchangeForkTest(address(this));
+  }
+}
+
+=== File: OracleActions.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { console } from "forge-std/console.sol";
+import { ExchangeForkTest } from "../ExchangeForkTest.sol";
+import { BaseActions } from "./BaseActions.sol";
+
+contract OracleActions is BaseActions {
+  function updateOracleMedianRate(ExchangeForkTest ctx, uint256 newMedian) internal {
+    updateOracleMedianRate(ctx, ctx.rateFeedId, newMedian);
+  }
+
+  function updateOracleMedianRate(ExchangeForkTest ctx, address rateFeedId, uint256 newMedian) internal {
+    address[] memory oracles = ctx.sortedOracles.getOracles(rateFeedId);
+    require(oracles.length > 0, "No oracles for rateFeedId");
+    console.log(unicode"🔮 Updating oracles to new median: ", newMedian);
+    for (uint256 i = 0; i < oracles.length; i++) {
+      skip(5);
+      address oracle = oracles[i];
+      address lesserKey;
+      address greaterKey;
+      (address[] memory keys, uint256[] memory values, ) = ctx.sortedOracles.getRates(rateFeedId);
+      for (uint256 j = 0; j < keys.length; j++) {
+        if (keys[j] == oracle) continue;
+        if (values[j] < newMedian) lesserKey = keys[j];
+        if (values[j] >= newMedian) greaterKey = keys[j];
+      }
+
+      vm.prank(oracle);
+      ctx.sortedOracles.report(rateFeedId, newMedian, lesserKey, greaterKey);
+    }
+  }
+}
+
+=== File: SwapActions.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { console } from "forge-std/console.sol";
+import { BaseActions } from "./BaseActions.sol";
+import { ExchangeForkTest } from "../ExchangeForkTest.sol";
+
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
+import { TokenHelpers } from "../helpers/TokenHelpers.sol";
+import { OracleHelpers } from "../helpers/OracleHelpers.sol";
+import { SwapHelpers } from "../helpers/SwapHelpers.sol";
+
+contract SwapActions is BaseActions {
+  using FixidityLib for FixidityLib.Fraction;
+  using OracleHelpers for *;
+  using SwapHelpers for *;
+  using TokenHelpers for *;
+
+  function swapIn(ExchangeForkTest ctx, address from, address to, uint256 sellAmount) public returns (uint256) {
+    ctx.mint(from, ctx.trader, sellAmount, true);
+    vm.prak(ctx.trader);
+    IERC20(from).approve(address(ctx.broker), sellAmount);
+
+    ctx.addReportsIfNeeded();
+    uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
+    console.log(
+      unicode"🤝 swapIn(%s->%s, amountIn: %d, minAmountOut:%d)",
+      from.toSymbol(),
+      to.toSymbol(),
+      sellAmount.toUnits(sellAmount),
+      minAmountOut.toUnits(to)
+    );
+    return ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
+  }
+
+  function addReportsIfNeeded(ExchangeForkTest ctx) internal {
+    IBiPoolManager.PoolExchange memory pool = ctx.getPoolExchange();
+    (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = ctx.shouldUpdateBuckets();
+    // logPool(ctx);
+    if (timePassed && (!medianReportRecent || isReportExpired || !enoughReports)) {
+      (uint256 newMedian, ) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
+      (timePassed, enoughReports, medianReportRecent, isReportExpired, ) = ctx.shouldUpdateBuckets();
+      ctx.updateOracleMedianRate((newMedian * 1_000_001) / 1_000_000);
+
+      // logPool(ctx);
+      return;
+    }
+  }
+}
+
+
+=== Directory: assertions ===
+=== File: Base.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { Actions } from "../actions/all.sol";
+
+contract BaseAssertions {
+  Actions public actions;
+
+  constructor() {
+    actions = new Actions(address(this));
+  }
+}
+
+=== File: SwapAssertions.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { StdAssertions } from "forge-std/StdAssertions.sol";
+import { ExchangeForkTest } from "../ExchangeForkTest.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
+import { Actions } from "../actions/all.sol";
+import { TokenHelpers } from "../helpers/TokenHelpers.sol";
+
+contract SwapAssertions is Actions, StdAssertions {
+  using FixidityLib for FixidityLib.Fraction;
+  using TokenHelpers for *;
+
+  uint256 constant fixed1 = FixidityLib.fixed1().unwrap();
+  FixidityLib.Fraction constant pc10 = FixidityLib.newFixedFraction(10, 100);
+
+  function assert_swapIn(ExchangeForkTest ctx, address from, address to, uint256 sellAmount) internal {
+    FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
+    FixidityLib.Fraction memory amountIn = sellAmount.toUnitsFixed(from);
+    FixidityLib.Fraction memory amountOut = swapIn(ctx, from, to, sellAmount).toUnitsFixed(to);
+    FixidityLib.Fraction memory expectedAmountOut = amountIn.divide(rate);
+
+    assertApproxEqAbs(amountOut.unwrap(), expectedAmountOut.unwrap(), pc10.multiply(expectedAmountOut).unwrap());
+  }
+}
+
+
+=== File: BaseForkTest.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+pragma solidity ^0.8;
+
+import { Test } from "mento-std/Test.sol";
+import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
+import { console } from "forge-std/console.sol";
+
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+import { IRegistry } from "celo/contracts/common/interfaces/IRegistry.sol";
+
+// import { Utils } from "./Utils.sol";
+// import { TestAsserts } from "./TestAsserts.sol";
+
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
+import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";
+
+interface IMint {
+  function mint(address, uint256) external;
+}
+
+/**
+ * @title BaseForkTest
+ * @notice Fork tests for Mento!
+ * This test suite tests invariantes on a fork of a live Mento environemnts.
+ * The philosophy is to test in accordance with how the target fork is configured,
+ * therfore it doesn't make assumptions about the systems, nor tries to configure
+ * the system to test specific scenarios.
+ * However, it should be exausitve in testing invariants across all tradable pairs
+ * in the system, therfore each test should.
+ */
+contract BaseForkTest is Test {
+  using FixidityLib for FixidityLib.Fraction;
+
+  IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
+
+  address governance;
+  IBroker public broker;
+  IBreakerBox public breakerBox;
+  ISortedOracles public sortedOracles;
+  IReserve public reserve;
+  ITradingLimitsHarness public tradingLimits;
+
+  address public trader;
+
+  // uint8 public constant L0 = 1; // 0b001 Limit0
+  // uint8 public constant L1 = 2; // 0b010 Limit1
+  // uint8 public constant LG = 4; // 0b100 LimitGlobal
+
+  // @dev The number of collateral assets 5 is hardcoded here:
+  // [CELO, AxelarUSDC, EUROC, NativeUSDC, NativeUSDT]
+  uint8 public constant COLLATERAL_ASSETS_COUNT = 5;
+
+  uint256 targetChainId;
+
+  constructor(uint256 _targetChainId) Test() {
+    targetChainId = _targetChainId;
+  }
+
+  function lookup(string memory key) public returns (address) {
+    address addr = registry.getAddressForStringOrDie(key);
+    if (addr != address(0)) {
+      vm.label(addr, key);
+    }
+    return addr;
+  }
+
+  function setUp() public virtual {
+    fork(targetChainId);
+    // The precompile handler needs to be reinitialized after forking.
+    __CeloPrecompiles_init();
+
+    tradingLimits = ITradingLimitsHarness(deployCode("TradingLimitsHarness"));
+    broker = IBroker(lookup("Broker"));
+    sortedOracles = ISortedOracles(lookup("SortedOracles"));
+    governance = lookup("Governance");
+    breakerBox = IBreakerBox(address(sortedOracles.breakerBox()));
+    vm.label(address(breakerBox), "BreakerBox");
+    trader = makeAddr("trader");
+    reserve = IReserve(broker.reserve());
+  }
+
+  function mint(address asset, address to, uint256 amount, bool updateSupply) public {
+    if (asset == lookup("GoldToken")) {
+      if (!updateSupply) {
+        revert("BaseForkTest: can't mint GoldToken without updating supply");
+      }
+      vm.prank(address(0));
+      IMint(asset).mint(to, amount);
+      return;
+    }
+
+    deal(asset, to, amount, updateSupply);
+  }
+}
+
+=== File: ChainForkTest.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+pragma solidity ^0.8;
+
+import "./BaseForkTest.sol";
+
+import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+import { IStableTokenV2DeprecatedInit } from "contracts/interfaces/IStableTokenV2DeprecatedInit.sol";
+
+contract ChainForkTest is BaseForkTest {
+  using FixidityLib for FixidityLib.Fraction;
+
+  uint256 expectedExchangeProvidersCount;
+  uint256[] expectedExchangesCount;
+
+  constructor(
+    uint256 _chainId,
+    uint256 _expectedExchangesProvidersCount,
+    uint256[] memory _expectedExchangesCount
+  ) BaseForkTest(_chainId) {
+    expectedExchangesCount = _expectedExchangesCount;
+    expectedExchangeProvidersCount = _expectedExchangesProvidersCount;
+  }
+
+  function test_biPoolManagerCanNotBeReinitialized() public {
+    IBiPoolManager biPoolManager = IBiPoolManager(broker.getExchangeProviders()[0]);
+
+    vm.expectRevert("contract already initialized");
+    biPoolManager.initialize(address(broker), reserve, sortedOracles, breakerBox);
+  }
+
+  function test_brokerCanNotBeReinitialized() public {
+    vm.expectRevert("contract already initialized");
+    broker.initialize(new address[](0), address(reserve));
+  }
+
+  function test_sortedOraclesCanNotBeReinitialized() public {
+    vm.expectRevert("contract already initialized");
+    sortedOracles.initialize(1);
+  }
+
+  function test_reserveCanNotBeReinitialized() public {
+    vm.expectRevert("contract already initialized");
+    reserve.initialize(
+      address(10),
+      0,
+      0,
+      0,
+      0,
+      new bytes32[](0),
+      new uint256[](0),
+      0,
+      0,
+      new address[](0),
+      new uint256[](0)
+    );
+  }
+
+  /**
+   * @dev If this fails it means we have added new exchanges
+   * and haven't updated the fork test configuration which
+   * can be found in ForkTests.t.sol.
+   */
+  function test_exchangeProvidersAndExchangesCount() public view {
+    address[] memory exchangeProviders = broker.getExchangeProviders();
+    assertEq(expectedExchangeProvidersCount, exchangeProviders.length);
+    for (uint i = 0; i < exchangeProviders.length; i++) {
+      address exchangeProvider = exchangeProviders[i];
+      IBiPoolManager biPoolManager = IExchangeProvider(exchangeProvider);
+      address[] memory exchanges = biPoolManager.getExchanges();
+      assertEq(expectedExchangesCount[i], exchanges.length);
+    }
+  }
+
+  function test_numberCollateralAssetsCount() public {
+    address collateral;
+    for (uint i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
+      collateral = reserve.collateralAssets(i);
+    }
+    /**
+     * @dev If this fails it means we have added a new collateral
+     * so we need to update the COLLATERAL_ASSETS constant.
+     * This is because we don't have an easy way to determine
+     * the number of collateral assets in the system.
+     */
+    vm.expectRevert("Index out of bounds");
+    reserve.collateralAssets(COLLATERAL_ASSETS_COUNT);
+  }
+
+  function test_stableTokensCanNotBeReinitialized() public {
+    IStableTokenV2DeprecatedInit stableToken = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableToken")
+    );
+    IStableTokenV2DeprecatedInit stableTokenEUR = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableTokenEUR")
+    );
+    IStableTokenV2DeprecatedInit stableTokenBRL = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableTokenBRL")
+    );
+    IStableTokenV2DeprecatedInit stableTokenXOF = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableTokenXOF")
+    );
+    IStableTokenV2DeprecatedInit stableTokenKES = IStableTokenV2DeprecatedInit(
+      registry.getAddressForStringOrDie("StableTokenKES")
+    );
+
+    vm.expectRevert("Initializable: contract is already initialized");
+    stableToken.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+    vm.expectRevert("Initializable: contract is already initialized");
+    stableTokenEUR.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+    vm.expectRevert("Initializable: contract is already initialized");
+    stableTokenBRL.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+    vm.expectRevert("Initializable: contract is already initialized");
+    stableTokenXOF.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+
+    vm.expectRevert("Initializable: contract is already initialized");
+    stableTokenKES.initialize("", "", 8, address(10), 0, 0, new address[](0), new uint256[](0), "");
+  }
+}
+
+=== File: debug.log ===
+Debug: Processing directory /Users/bogdan/Workspace/mento/mento-core/test/fork
+Debug: Found item actions
+Debug: Processing directory /Users/bogdan/Workspace/mento/mento-core/test/fork/actions
+Debug: Found item all.sol
+Debug: Found item BaseActions.sol
+Debug: Found item OracleActions.sol
+Debug: Found item SwapActions.sol
+Debug: Found item assertions
+Debug: Processing directory /Users/bogdan/Workspace/mento/mento-core/test/fork/assertions
+Debug: Found item Base.sol
+Debug: Found item SwapAssertions.sol
+Debug: Found item BaseForkTest.sol
+Debug: Found item ChainForkTest.sol
+Debug: Found item combined_output.txt
+
+=== File: ExchangeForkTest.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+pragma solidity ^0.8;
+
+import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
+import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+
+import { BaseForkTest } from "./BaseForkTest.sol";
+
+import { TokenHelpers } from "./helpers/TokenHelpers.sol";
+import { SwapAssertions } from "./assertions/SwapAssertions.sol";
+
+contract ExchangeForkTest is BaseForkTest, SwapAssertions {
+  using FixidityLib for FixidityLib.Fraction;
+  using TokenHelpers for *;
+
+  uint256 public exchangeIndex;
+  uint256 public exchangeProviderIndex;
+  bytes32 public exchangeId;
+
+  IExchangeProvider exchangeProvider;
+  IBiPoolManager biPoolManager;
+
+  IExchangeProvider.Exchange exchange;
+  IBiPoolManager.PoolExchange poolExchange;
+  address rateFeedId;
+
+  constructor(uint256 _chainId, uint256 _exchangeProviderIndex, uint256 _exchangeIndex) BaseForkTest(_chainId) {
+    exchangeProviderIndex = _exchangeProviderIndex;
+    exchangeIndex = _exchangeIndex;
+  }
+
+  function setUp() public override {
+    super.setUp();
+    loadExchange();
+
+    console.log("%s | %s | %s", this.ticker(), exchangeProvider, exchangeId);
+    for (uint256 i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
+      address collateralAsset = reserve.collateralAssets(i);
+      vm.label(collateralAsset, IERC20(collateralAsset).symbol());
+      deal(collateralAsset, address(reserve), Helpers.toSubunits(25_000_000, collateralAsset), true);
+      console.log("Minting 25mil %s to reserve", IERC20(collateralAsset).symbol());
+    }
+  }
+
+  function loadExchange() internal {
+    exchangeProvider = IExchangeProvider(broker.exchangeProviders(exchangeProviderIndex));
+    biPoolManager = IBiPoolManager(exchangeProvider);
+    exchange = exchangeProvider.getExchanges()[exchangeIndex];
+    poolExchange = biPoolManager.getPoolExchange(exchange.exchangeId);
+    rateFeedId = poolExchange.config.referenceRateFeedID;
+  }
+
+  function test_swapsHappenInBothDirections() public {
+    // asset0 -> asset1
+    this.assert_swapIn(exchange.assets[0], exchange.assets[1], 1000.toSubunits(exchange.assets[0]));
+    // asset1 -> asset0
+    this.assert_swapIn(exchange.assets[1], exchange.assets[0], 10000.toSubunits(exchange.assets[1]));
+  }
+
+  // function test_tradingLimitsAreConfigured() public view {
+  //   bytes32 asset0Bytes32 = bytes32(uint256(uint160(exchange.assets[0])));
+  //   bytes32 limitIdForAsset0 = exchange.exchangeId ^ asset0Bytes32;
+  //   bytes32 asset1Bytes32 = bytes32(uint256(uint160(exchange.assets[1])));
+  //   bytes32 limitIdForAsset1 = exchange.exchangeId ^ asset1Bytes32;
+
+  //   bool asset0LimitConfigured = ctx.isLimitConfigured(limitIdForAsset0);
+  //   bool asset1LimitConfigured = ctx.isLimitConfigured(limitIdForAsset1);
+
+  //   require(asset0LimitConfigured || asset1LimitConfigured, "Limit not configured");
+  // }
+
+  // function test_tradingLimitsAreEnforced_0to1_L0() public {
+  //   ctx.logHeader();
+  //   assert_swapOverLimitFails(ctx, exchange.assets[0], exchange.assets[1], L0);
+  // }
+
+  // function test_tradingLimitsAreEnforced_0to1_L1() public {
+  //   ctx.logHeader();
+  //   assert_swapOverLimitFails(ctx, exchange.assets[0], exchange.assets[1], L1);
+  // }
+
+  // function test_tradingLimitsAreEnforced_0to1_LG() public {
+  //   ctx.logHeader();
+  //   assert_swapOverLimitFails(ctx, exchange.assets[0], exchange.assets[1], LG);
+  // }
+
+  // function test_tradingLimitsAreEnforced_1to0_L0() public {
+  //   ctx.logHeader();
+  //   assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], L0);
+  // }
+
+  // function test_tradingLimitsAreEnforced_1to0_L1() public {
+  //   ctx.logHeader();
+  //   assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], L1);
+  // }
+
+  // function test_tradingLimitsAreEnforced_1to0_LG() public {
+  //   ctx.logHeader();
+  //   assert_swapOverLimitFails(ctx, exchange.assets[1], exchange.assets[0], LG);
+  // }
+
+  // function test_circuitBreaker_rateFeedsAreProtected() public view {
+  //   address[] memory breakers = breakerBox.getBreakers();
+  //   ctx.logHeader();
+  //   address rateFeedID = ctx.getReferenceRateFeedID();
+  //   bool found = false;
+  //   for (uint256 j = 0; j < breakers.length && !found; j++) {
+  //     found = breakerBox.isBreakerEnabled(breakers[j], rateFeedID);
+  //   }
+  //   require(found, "No breaker found for rateFeedID");
+  // }
+
+  // function test_circuitBreaker_breaks() public {
+  //   address[] memory breakers = breakerBox.getBreakers();
+  //   ctx.logHeader();
+  //   address rateFeedID = ctx.getReferenceRateFeedID();
+  //   for (uint256 j = 0; j < breakers.length; j++) {
+  //     if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
+  //       assert_breakerBreaks(ctx, breakers[j], j);
+  //       // we recover this breaker so that it doesn't affect other exchanges in this test,
+  //       // since the rateFeed for this exchange could be a dependency for other rateFeeds
+  //       assert_breakerRecovers(ctx, breakers[j], j);
+  //     }
+  //   }
+  // }
+
+  // function test_circuitBreaker_recovers() public {
+  //   address[] memory breakers = breakerBox.getBreakers();
+  //   ctx.logHeader();
+  //   address rateFeedID = ctx.getReferenceRateFeedID();
+  //   for (uint256 j = 0; j < breakers.length; j++) {
+  //     if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
+  //       assert_breakerRecovers(ctx, breakers[j], j);
+  //     }
+  //   }
+  // }
+
+  // function test_circuitBreaker_haltsTrading() public {
+  //   address[] memory breakers = breakerBox.getBreakers();
+  //   ctx.logHeader();
+  //   address rateFeedID = ctx.getReferenceRateFeedID();
+  //   for (uint256 j = 0; j < breakers.length; j++) {
+  //     if (breakerBox.isBreakerEnabled(breakers[j], rateFeedID)) {
+  //       assert_breakerBreaks(ctx, breakers[j], j);
+
+  //       assert_swapInFails(
+  //         ctx,
+  //         exchange.assets[0],
+  //         exchange.assets[1],
+  //         Utils.toSubunits(1000, exchange.assets[0]),
+  //         "Trading is suspended for this reference rate"
+  //       );
+  //       assert_swapInFails(
+  //         ctx,
+  //         exchange.assets[1],
+  //         exchange.assets[0],
+  //         Utils.toSubunits(1000, exchange.assets[1]),
+  //         "Trading is suspended for this reference rate"
+  //       );
+
+  //       assert_swapOutFails(
+  //         ctx,
+  //         exchange.assets[0],
+  //         exchange.assets[1],
+  //         Utils.toSubunits(1000, exchange.assets[1]),
+  //         "Trading is suspended for this reference rate"
+  //       );
+  //       assert_swapOutFails(
+  //         ctx,
+  //         exchange.assets[1],
+  //         exchange.assets[0],
+  //         Utils.toSubunits(1000, exchange.assets[0]),
+  //         "Trading is suspended for this reference rate"
+  //       );
+
+  //       // we recover this breaker so that it doesn't affect other exchanges in this test,
+  //       // since the rateFeed for this exchange could be a dependency for other rateFeeds
+  //       assert_breakerRecovers(ctx, breakers[j], j);
+  //     }
+  //   }
+  // }
+
+  // mapping(address => uint256) depsCount;
+
+  // function test_rateFeedDependencies_haltsDependantTrading() public {
+  //   // Hardcoded number of dependencies for each ratefeed
+  //   depsCount[registry.getAddressForStringOrDie("StableToken")] = 0;
+  //   depsCount[registry.getAddressForStringOrDie("StableTokenEUR")] = 0;
+  //   depsCount[registry.getAddressForStringOrDie("StableTokenBRL")] = 0;
+  //   depsCount[registry.getAddressForStringOrDie("StableTokenXOF")] = 2;
+  //   depsCount[0xA1A8003936862E7a15092A91898D69fa8bCE290c] = 0; // USDC/USD
+  //   depsCount[0x206B25Ea01E188Ee243131aFdE526bA6E131a016] = 1; // USDC/EUR
+  //   depsCount[0x25F21A1f97607Edf6852339fad709728cffb9a9d] = 1; // USDC/BRL
+  //   depsCount[0x26076B9702885d475ac8c3dB3Bd9F250Dc5A318B] = 0; // EUROC/EUR
+
+  //   address[] memory breakers = breakerBox.getBreakers();
+
+  //   address[] memory dependencies = new address[](depsCount[ctx.getReferenceRateFeedID()]);
+  //   for (uint256 d = 0; d < dependencies.length; d++) {
+  //     dependencies[d] = ctx.breakerBox.rateFeedDependencies(ctx.getReferenceRateFeedID(), d);
+  //   }
+  //   if (dependencies.length == 0) {
+  //     return;
+  //   }
+
+  //   Utils.logPool(ctx);
+  //   address rateFeedID = ctx.getReferenceRateFeedID();
+  //   console.log(
+  //     "\t exchangeIndex: %d | rateFeedId: %s | %s dependencies",
+  //     exchangeIndex,
+  //     rateFeedID,
+  //     dependencies.length
+  //   );
+
+  //   for (uint256 k = 0; k < dependencies.length; k++) {
+  //     Utils.Context memory dependencyContext = Utils.getContextForRateFeedID(address(this), dependencies[k]);
+
+  //     for (uint256 j = 0; j < breakers.length; j++) {
+  //       if (breakerBox.isBreakerEnabled(breakers[j], dependencies[k])) {
+  //         assert_breakerBreaks(dependencyContext, breakers[j], j);
+
+  //         assert_swapInFails(
+  //           ctx,
+  //           ctx.exchange.assets[0],
+  //           ctx.exchange.assets[1],
+  //           Utils.toSubunits(1000, ctx.exchange.assets[0]),
+  //           "Trading is suspended for this reference rate"
+  //         );
+
+  //         assert_breakerRecovers(dependencyContext, breakers[j], j);
+  //       }
+  //     }
+  //   }
+  // }
+}
+
+=== File: ExchangeTestAssertssol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+pragma solidity ^0.8;
+
+import { Test } from "mento-std/Test.sol";
+import { console } from "forge-std/console.sol";
+import { ExchangeTestUtils } from "./ExchangeTestUtils.sol";
+
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
+import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
+
+contract ExchangeTestAsserts is Test {
+  using ExchangeTestUtils for ITradingLimits.Config;
+  using ExchangeTestUtils for ITradingLimits.State;
+  using ExchangeTestUtils for uint8;
+  using ExchangeTestUtils for uint256;
+  using FixidityLib for FixidityLib.Fraction;
+
+  uint8 private constant L0 = 1; // 0b001 Limit0
+  uint8 private constant L1 = 2; // 0b010 Limit1
+  uint8 private constant LG = 4; // 0b100 LimitGlobal
+
+  uint256 fixed1 = FixidityLib.fixed1().unwrap();
+  FixidityLib.Fraction pc10 = FixidityLib.newFixedFraction(10, 100);
+
+  // ========================= Swap Asserts ========================= //
+
+  function assert_swapIn(ExchangeForkTest ctx, address from, address to, uint256 sellAmount) internal {
+    FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
+    FixidityLib.Fraction memory amountIn = sellAmount.toUnitsFixed(from);
+    FixidityLib.Fraction memory amountOut = ctx.swapIn(from, to, sellAmount).toUnitsFixed(to);
+    FixidityLib.Fraction memory expectedAmountOut = amountIn.divide(rate);
+
+    assertApproxEqAbs(amountOut.unwrap(), expectedAmountOut.unwrap(), pc10.multiply(expectedAmountOut).unwrap());
+  }
+
+  function assert_swapOut(ExchangeForkTest ctx, address from, address to, uint256 buyAmount) internal {
+    FixidityLib.Fraction memory rate = ctx.getReferenceRateFraction(from);
+    FixidityLib.Fraction memory amountOut = buyAmount.toUnitsFixed(to);
+    FixidityLib.Fraction memory amountIn = ctx.swapOut(from, to, buyAmount).toUnitsFixed(from);
+    FixidityLib.Fraction memory expectedAmountIn = amountOut.multiply(rate);
+
+    assertApproxEqAbs(amountIn.unwrap(), expectedAmountIn.unwrap(), pc10.multiply(expectedAmountIn).unwrap());
+  }
+
+  function assert_swapInFails(
+    ExchangeForkTest ctx,
+    address from,
+    address to,
+    uint256 sellAmount,
+    string memory revertReason
+  ) internal {
+    ctx.addReportsIfNeeded();
+    ctx.t._deal(from, ctx.trader, sellAmount, true);
+    IERC20(from).approve(address(ctx.broker), sellAmount);
+    uint256 minAmountOut = ctx.broker.getAmountOut(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount);
+    vm.expectRevert(bytes(revertReason));
+    ctx.broker.swapIn(ctx.exchangeProvider, ctx.exchangeId, from, to, sellAmount, minAmountOut);
+  }
+
+  function assert_swapOutFails(
+    ExchangeForkTest ctx,
+    address from,
+    address to,
+    uint256 buyAmount,
+    string memory revertReason
+  ) internal {
+    ctx.addReportsIfNeeded();
+    uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
+    ctx.t._deal(from, ctx.trader, maxAmountIn, true);
+    IERC20(from).approve(address(ctx.broker), maxAmountIn);
+    vm.expectRevert(bytes(revertReason));
+    ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
+  }
+
+  // ========================= Trading Limit Asserts ========================= //
+
+  function assert_swapOverLimitFails(ExchangeForkTest ctx, address from, address to, uint8 limit) internal {
+    ITradingLimits.Config memory fromLimitConfig = ctx.tradingLimitsConfig(from);
+    ITradingLimits.Config memory toLimitConfig = ctx.tradingLimitsConfig(to);
+    console.log(
+      string(abi.encodePacked("Swapping ", IERC20(from).symbol(), " -> ", IERC20(to).symbol())),
+      "with limit",
+      limit.limitString()
+    );
+    console.log("========================================");
+
+    if (fromLimitConfig.isLimitEnabled(limit) && toLimitConfig.isLimitEnabled(limit)) {
+      // TODO: Figure out best way to implement fork tests
+      // when two limits are configured.
+      console.log("Both Limits enabled skipping for now");
+    } else if (fromLimitConfig.isLimitEnabled(limit)) {
+      assert_swapOverLimitFails_onInflow(ctx, from, to, limit);
+    } else if (toLimitConfig.isLimitEnabled(limit)) {
+      assert_swapOverLimitFails_onOutflow(ctx, from, to, limit);
+    }
+  }
+
+  function assert_swapOverLimitFails_onInflow(ExchangeForkTest ctx, address from, address to, uint8 limit) internal {
+    /*
+     * L*[from] -> to
+     * Assert that inflow on `from` is limited by the limit
+     * which can be any of L0, L1, LG.
+     * This is done by swapping from `from` to `to` until
+     * just before the limit is reached, within the constraints of
+     * the other limits, and then doing a final swap that fails.
+     */
+
+    if (limit == L0) {
+      swapUntilL0_onInflow(ctx, from, to);
+    } else if (limit == L1) {
+      swapUntilL1_onInflow(ctx, from, to);
+    } else if (limit == LG) {
+      swapUntilLG_onInflow(ctx, from, to);
+    } else {
+      revert("Invalid limit");
+    }
+
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    ITradingLimits.State memory limitState = ctx.tradingLimitsState(from);
+
+    uint256 inflowRequiredUnits = uint256(int256(limitConfig.getLimit(limit)) - limitState.getNetflow(limit)) + 1;
+    console.log("Inflow required to pass limit: ", inflowRequiredUnits);
+    assert_swapInFails(ctx, from, to, inflowRequiredUnits.toSubunits(from), limit.revertReason());
+  }
+
+  function assert_swapOverLimitFails_onOutflow(ExchangeForkTest ctx, address from, address to, uint8 limit) internal {
+    /*
+     * from -> L*[to]
+     * Assert that outflow on `to` is limited by the limit
+     * which can be any of L0, L1, LG.
+     * This is done by swapping from `from` to `to` until
+     * just before the limit is reached, within the constraints of
+     * the other limits, and then doing a final swap that fails.
+     */
+
+    // This should do valid swaps until just before the limit is reached
+    if (limit == L0) {
+      swapUntilL0_onOutflow(ctx, from, to);
+    } else if (limit == L1) {
+      swapUntilL1_onOutflow(ctx, from, to);
+    } else if (limit == LG) {
+      swapUntilLG_onOutflow(ctx, from, to);
+    } else {
+      revert("Invalid limit");
+    }
+
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    ITradingLimits.State memory limitState = ctx.tradingLimitsState(to);
+
+    uint256 outflowRequiredUnits = uint256(int256(limitConfig.getLimit(limit)) + limitState.getNetflow(limit)) + 1;
+    console.log("Outflow required: ", outflowRequiredUnits);
+    assert_swapOutFails(ctx, from, to, outflowRequiredUnits.toSubunits(to), limit.revertReason());
+  }
+
+  function swapUntilL0_onInflow(ExchangeForkTest ctx, address from, address to) internal {
+    /*
+     * L0[from] -> to
+     * This function will do valid swaps until just before L0 is hit
+     * during inflow on `from`, therfore we check the positive end
+     * of the limit because `from` flows into the reserve.
+     */
+
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    console.log(unicode"🏷️ [%d] Swap until L0=%d on inflow", block.timestamp, uint256(int256(limitConfig.limit0)));
+    uint256 maxPossible;
+    uint256 maxPossibleUntilLimit;
+    do {
+      int48 maxPossibleUntilLimitUnits = ctx.maxPossibleInflow(from);
+      require(maxPossibleUntilLimitUnits >= 0, "max possible trade amount is negative");
+      maxPossibleUntilLimit = uint256(int256(maxPossibleUntilLimitUnits)).toSubunits(from);
+      maxPossible = ctx.maxSwapIn(maxPossibleUntilLimit, from, to);
+
+      if (maxPossible > 0) {
+        ctx.swapIn(from, to, maxPossible);
+      }
+    } while (maxPossible > 0 && maxPossibleUntilLimit > maxPossible);
+    ctx.logNetflows(from);
+  }
+
+  function swapUntilL1_onInflow(ExchangeForkTest ctx, address from, address to) internal {
+    /*
+     * L1[from] -> to
+     * This function will do valid swaps until just before L1 is hit
+     * during inflow on `from`, therfore we check the positive end
+     * of the limit because `from` flows into the reserve.
+     */
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
+    console.log(unicode"🏷️ [%d] Swap until L1=%d on inflow", block.timestamp, uint256(int256(limitConfig.limit1)));
+    int48 maxPerSwap = limitConfig.limit0;
+    while (limitState.netflow1 + maxPerSwap <= limitConfig.limit1) {
+      skip(limitConfig.timestep0 + 1);
+      ensureRateActive(ctx); // needed because otherwise constantSum might revert if the median is stale due to the skip
+
+      swapUntilL0_onInflow(ctx, from, to);
+      limitConfig = ctx.tradingLimitsConfig(from);
+      limitState = ctx.tradingLimitsState(from);
+    }
+    skip(limitConfig.timestep0 + 1);
+    ensureRateActive(ctx);
+  }
+
+  function swapUntilLG_onInflow(ExchangeForkTest ctx, address from, address to) internal {
+    /*
+     * L1[from] -> to
+     * This function will do valid swaps until just before LG is hit
+     * during inflow on `from`, therfore we check the positive end
+     * of the limit because `from` flows into the reserve.
+     */
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
+    ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
+    console.log(unicode"🏷️ [%d] Swap until LG=%d on inflow", block.timestamp, uint256(int256(limitConfig.limitGlobal)));
+
+    if (limitConfig.isLimitEnabled(L1)) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
+        skip(limitConfig.timestep1 + 1);
+        swapUntilL1_onInflow(ctx, from, to);
+        limitConfig = ctx.tradingLimitsConfig(from);
+        limitState = ctx.tradingLimitsState(from);
+      }
+      skip(limitConfig.timestep1 + 1);
+    } else if (limitConfig.isLimitEnabled(L0)) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
+        skip(limitConfig.timestep0 + 1);
+        swapUntilL0_onInflow(ctx, from, to);
+        limitConfig = ctx.tradingLimitsConfig(from);
+        limitState = ctx.tradingLimitsState(from);
+      }
+      skip(limitConfig.timestep0 + 1);
+    }
+  }
+
+  function swapUntilL0_onOutflow(ExchangeForkTest ctx, address from, address to) public {
+    /*
+     * from -> L0[to]
+     * This function will do valid swaps until just before L0 is hit
+     * during outflow on `to`, therfore we check the negative end
+     * of the limit because `to` flows out of the reserve.
+     */
+
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    console.log(unicode"🏷️ [%d] Swap until L0=%d on outflow", block.timestamp, uint256(int256(limitConfig.limit0)));
+    uint256 maxPossible;
+    uint256 maxPossibleUntilLimit;
+    do {
+      int48 maxPossibleUntilLimitUnits = ctx.maxPossibleOutflow(to);
+      require(maxPossibleUntilLimitUnits >= 0, "max possible trade amount is negative");
+      maxPossibleUntilLimit = uint256(int256(maxPossibleUntilLimitUnits)).toSubunits(to);
+      maxPossible = ctx.maxSwapOut(maxPossibleUntilLimit, to);
+
+      if (maxPossible > 0) {
+        ctx.swapOut(from, to, maxPossible);
+      }
+    } while (maxPossible > 0 && maxPossibleUntilLimit > maxPossible);
+    ctx.logNetflows(to);
+  }
+
+  function swapUntilL1_onOutflow(ExchangeForkTest ctx, address from, address to) public {
+    /*
+     * from -> L1[to]
+     * This function will do valid swaps until just before L1 is hit
+     * during outflow on `to`, therfore we check the negative end
+     * of the limit because `to` flows out of the reserve.
+     */
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
+
+    console.log(unicode"🏷️ [%d] Swap until L1=%d on outflow", block.timestamp, uint48(limitConfig.limit1));
+    int48 maxPerSwap = limitConfig.limit0;
+
+    while (limitState.netflow1 - maxPerSwap >= -1 * limitConfig.limit1) {
+      skip(limitConfig.timestep0 + 1);
+      // Check that there's still outflow to trade as sometimes we hit LG while
+      // still having a bit of L1 left, which causes an infinite loop.
+      if (ctx.maxPossibleOutflow(to) == 0) {
+        break;
+      }
+      swapUntilL0_onOutflow(ctx, from, to);
+      limitConfig = ctx.tradingLimitsConfig(to);
+      limitState = ctx.tradingLimitsState(to);
+    }
+    skip(limitConfig.timestep0 + 1);
+  }
+
+  function swapUntilLG_onOutflow(ExchangeForkTest ctx, address from, address to) public {
+    /*
+     * from -> LG[to]
+     * This function will do valid swaps until just before LG is hit
+     * during outflow on `to`, therfore we check the negative end
+     * of the limit because `to` flows out of the reserve.
+     */
+    ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
+    ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
+    console.log(unicode"🏷️ [%d] Swap until LG=%d on outflow", block.timestamp, uint48(limitConfig.limitGlobal));
+
+    if (limitConfig.isLimitEnabled(L1)) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
+        skip(limitConfig.timestep1 + 1);
+        swapUntilL1_onOutflow(ctx, from, to);
+        limitConfig = ctx.tradingLimitsConfig(to);
+        // Triger an update to reset netflows
+        limitState = ctx.tradingLimitsState(to);
+      }
+      skip(limitConfig.timestep1 + 1);
+    } else if (limitConfig.isLimitEnabled(L0)) {
+      int48 maxPerSwap = limitConfig.limit0;
+      while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
+        skip(limitConfig.timestep0 + 1);
+        swapUntilL0_onOutflow(ctx, from, to);
+        limitConfig = ctx.tradingLimitsConfig(to);
+        // Triger an update to reset netflows
+        limitState = ctx.tradingLimitsState(to);
+      }
+      skip(limitConfig.timestep0 + 1);
+    }
+  }
+
+  // ========================= Circuit Breaker Asserts ========================= //
+
+  function assert_breakerBreaks(ExchangeForkTest ctx, address breaker, uint256 breakerIndex) public {
+    // XXX: There is currently no straightforward way to determine what type of a breaker
+    // we are dealing with, so we will use the deployment setup that we currently chose,
+    // where the medianDeltaBreaker gets deployed first and the valueDeltaBreaker second.
+    bool isMedianDeltaBreaker = breakerIndex == 0;
+    bool isValueDeltaBreaker = breakerIndex == 1;
+    if (isMedianDeltaBreaker) {
+      assert_medianDeltaBreakerBreaks_onIncrease(ctx, breaker);
+      assert_medianDeltaBreakerBreaks_onDecrease(ctx, breaker);
+    } else if (isValueDeltaBreaker) {
+      assert_valueDeltaBreakerBreaks_onIncrease(ctx, breaker);
+      assert_valueDeltaBreakerBreaks_onDecrease(ctx, breaker);
+    } else {
+      revert("Unknown trading mode, can't infer breaker type");
+    }
+  }
+
+  function assert_medianDeltaBreakerBreaks_onIncrease(ExchangeForkTest ctx, address _breaker) public {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+
+    // trigger breaker by setting new median to ema - (threshold + 0.001% buffer)
+    uint256 currentEMA = IMedianDeltaBreaker(_breaker).medianRatesEMA(ctx.getReferenceRateFeedID());
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 thresholdBuffer = FixidityLib.newFixedFraction(1, 1000).unwrap(); // small buffer because of rounding errors
+    uint256 maxPercent = fixed1 + rateChangeThreshold + thresholdBuffer;
+    uint256 newMedian = (currentEMA * maxPercent) / fixed1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Current EMA: ", currentEMA);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+  }
+
+  function assert_medianDeltaBreakerBreaks_onDecrease(ExchangeForkTest ctx, address _breaker) public {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+
+    // trigger breaker by setting new median to ema + (threshold + 0.001% buffer)
+    uint256 currentEMA = IMedianDeltaBreaker(_breaker).medianRatesEMA(ctx.getReferenceRateFeedID());
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 thresholdBuffer = FixidityLib.newFixedFraction(1, 1000).unwrap(); // small buffer because of rounding errors
+    uint256 maxPercent = fixed1 - (rateChangeThreshold + thresholdBuffer);
+    uint256 newMedian = (currentEMA * maxPercent) / fixed1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Current EMA: ", currentEMA);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+  }
+
+  function assert_valueDeltaBreakerBreaks_onIncrease(ExchangeForkTest ctx, address _breaker) public {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+
+    // trigger breaker by setting new median to reference value + threshold + 1
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 referenceValue = ctx.getValueDeltaBreakerReferenceValue(_breaker);
+    uint256 maxPercent = fixed1 + rateChangeThreshold;
+    uint256 newMedian = (referenceValue * maxPercent) / fixed1;
+    newMedian = newMedian + 1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Reference Value: ", referenceValue);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+  }
+
+  function assert_valueDeltaBreakerBreaks_onDecrease(ExchangeForkTest ctx, address _breaker) public {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+
+    // trigger breaker by setting new median to reference value - threshold - 1
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 referenceValue = ctx.getValueDeltaBreakerReferenceValue(_breaker);
+    uint256 maxPercent = fixed1 - rateChangeThreshold;
+    uint256 newMedian = (referenceValue * maxPercent) / fixed1;
+    newMedian = newMedian - 1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Reference Value: ", referenceValue);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+  }
+
+  function assert_breakerRecovers(ExchangeForkTest ctx, address breaker, uint256 breakerIndex) public {
+    // XXX: There is currently no straightforward way to determine what type of a breaker
+    // we are dealing with, so we will use the deployment setup that we currently chose,
+    // where the medianDeltaBreaker gets deployed first and the valueDeltaBreaker second.
+    bool isMedianDeltaBreaker = breakerIndex == 0;
+    bool isValueDeltaBreaker = breakerIndex == 1;
+    if (isMedianDeltaBreaker) {
+      assert_medianDeltaBreakerRecovers(ctx, breaker);
+    } else if (isValueDeltaBreaker) {
+      assert_valueDeltaBreakerRecovers(ctx, breaker);
+    } else {
+      revert("Unknown trading mode, can't infer breaker type");
+    }
+  }
+
+  function assert_medianDeltaBreakerRecovers(ExchangeForkTest ctx, address _breaker) internal {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+    IMedianDeltaBreaker breaker = IMedianDeltaBreaker(_breaker);
+
+    // trigger breaker by setting new median to ema + threshold + 0.001%
+    uint256 currentEMA = breaker.medianRatesEMA(ctx.getReferenceRateFeedID());
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 thresholdBuffer = FixidityLib.newFixedFraction(1, 1000).unwrap();
+    uint256 maxPercent = fixed1 + rateChangeThreshold + thresholdBuffer;
+    uint256 newMedian = (currentEMA * maxPercent) / fixed1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+
+    // wait for cool down and reset by setting new median to ema
+    uint256 cooldown = breaker.getCooldown(ctx.getReferenceRateFeedID());
+    if (cooldown == 0) {
+      changePrank(ctx.breakerBox.owner());
+      ctx.breakerBox.setRateFeedTradingMode(ctx.getReferenceRateFeedID(), 0);
+    } else {
+      skip(cooldown);
+      currentEMA = breaker.medianRatesEMA(ctx.getReferenceRateFeedID());
+      assert_breakerRecovers_withNewMedian(ctx, currentEMA);
+    }
+  }
+
+  function assert_valueDeltaBreakerRecovers(ExchangeForkTest ctx, address _breaker) internal {
+    uint256 currentMedian = ensureRateActive(ctx); // ensure trading mode is 0
+    IValueDeltaBreaker breaker = IValueDeltaBreaker(_breaker);
+
+    // trigger breaker by setting new median to reference value + threshold + 1
+    uint256 rateChangeThreshold = ctx.getBreakerRateChangeThreshold(_breaker);
+    uint256 referenceValue = ctx.getValueDeltaBreakerReferenceValue(_breaker);
+    uint256 maxPercent = fixed1 + rateChangeThreshold;
+    uint256 newMedian = (referenceValue * maxPercent) / fixed1;
+    newMedian = newMedian + 1;
+
+    console.log("Current Median: ", currentMedian);
+    console.log("Reference Value: ", referenceValue);
+    console.log("New Median: ", newMedian);
+    assert_breakerBreaks_withNewMedian(ctx, newMedian, 3);
+
+    // wait for cool down and reset by setting new median to refernece value
+    uint256 cooldown = breaker.getCooldown(ctx.getReferenceRateFeedID());
+    if (cooldown == 0) {
+      changePrank(ctx.breakerBox.owner());
+      ctx.breakerBox.setRateFeedTradingMode(ctx.getReferenceRateFeedID(), 0);
+    } else {
+      skip(cooldown);
+      assert_breakerRecovers_withNewMedian(ctx, referenceValue);
+    }
+  }
+
+  function assert_breakerBreaks_withNewMedian(
+    ExchangeForkTest ctx,
+    uint256 newMedian,
+    uint256 expectedTradingMode
+  ) public {
+    address rateFeedID = ctx.getReferenceRateFeedID();
+    uint256 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    require(tradingMode == 0, "breaker should be recovered");
+
+    ctx.updateOracleMedianRate(newMedian);
+    tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    require(tradingMode == expectedTradingMode, "trading more is different from expected");
+  }
+
+  function assert_breakerRecovers_withNewMedian(ExchangeForkTest ctx, uint256 newMedian) public {
+    address rateFeedID = ctx.getReferenceRateFeedID();
+    uint256 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    require(tradingMode != 0, "breaker should be triggered");
+
+    ctx.updateOracleMedianRate(newMedian);
+    tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    require(tradingMode == 0, "breaker should be recovered");
+  }
+
+  function ensureRateActive(ExchangeForkTest ctx) internal returns (uint256 newMedian) {
+    address rateFeedID = ctx.getReferenceRateFeedID();
+    // Always do a small update in order to make sure
+    // the breakers are warm.
+    (uint256 currentRate, ) = ctx.sortedOracles.medianRate(rateFeedID);
+    newMedian = currentRate + (currentRate / 100_000_000); // a small increase
+    ctx.updateOracleMedianRate(newMedian);
+    uint8 tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    uint256 attempts = 0;
+    while (tradingMode != 0 && attempts < 10) {
+      console.log("attempt #%d", attempts);
+      attempts++;
+      // while the breaker is active, we wait for the cooldown and try to update the median
+      console.log(block.timestamp, "Waiting for cooldown to pass");
+      console.log("RateFeedID:", rateFeedID);
+      address[] memory _breakers = ctx.breakerBox.getBreakers();
+      uint256 cooldown = 0;
+      uint256 breakerIndex;
+      for (uint256 i = 0; i < _breakers.length; i++) {
+        if (ctx.breakerBox.isBreakerEnabled(_breakers[i], rateFeedID)) {
+          IBreakerBox.BreakerStatus memory status = ctx.breakerBox.rateFeedBreakerStatus(rateFeedID, _breakers[i]);
+          if (status.tradingMode != 0) {
+            breakerIndex = i;
+            cooldown = IValueDeltaBreaker(_breakers[i]).getCooldown(rateFeedID);
+            break;
+          }
+        }
+      }
+      skip(cooldown);
+      newMedian = newMedianToResetBreaker(ctx, breakerIndex);
+      ctx.updateOracleMedianRate(newMedian);
+      if (cooldown == 0) {
+        console.log("Manual recovery required for breaker %s", _breakers[breakerIndex]);
+        changePrank(ctx.breakerBox.owner());
+        ctx.breakerBox.setRateFeedTradingMode(rateFeedID, 0);
+      }
+      tradingMode = ctx.breakerBox.getRateFeedTradingMode(rateFeedID);
+    }
+  }
+
+  function newMedianToResetBreaker(
+    ExchangeForkTest ctx,
+    uint256 breakerIndex
+  ) internal view returns (uint256 newMedian) {
+    address[] memory _breakers = ctx.breakerBox.getBreakers();
+    bool isMedianDeltaBreaker = breakerIndex == 0;
+    bool isValueDeltaBreaker = breakerIndex == 1;
+    if (isMedianDeltaBreaker) {
+      uint256 currentEMA = IMedianDeltaBreaker(_breakers[breakerIndex]).medianRatesEMA(ctx.getReferenceRateFeedID());
+      return currentEMA;
+    } else if (isValueDeltaBreaker) {
+      return ctx.getValueDeltaBreakerReferenceValue(_breakers[breakerIndex]);
+    } else {
+      revert("can't infer corresponding breaker");
+    }
+  }
+}
+
+=== File: ExchangeTestUtilssol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+pragma solidity ^0.8;
+pragma experimental ABIEncoderV2;
+
+import { console } from "forge-std/console.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { VM_ADDRESS } from "mento-std/Constants.sol";
+
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
+import { ExchangeForkTest } from "./ExchangeForkTest.sol";
+
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
+import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
+import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
+import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";
+
+library ExchangeTestUtils {
+  using FixidityLib for FixidityLib.Fraction;
+  using ExchangeTestUtils for ExchangeForkTest;
+
+  uint8 private constant L0 = 1; // 0b001 Limit0
+  uint8 private constant L1 = 2; // 0b010 Limit1
+  uint8 private constant LG = 4; // 0b100 LimitGlobal
+
+  Vm public constant vm = Vm(VM_ADDRESS);
+
+  //function getContextForRateFeedID(address _t, address rateFeedID) public view returns (ExchangeForkTest) {
+  //  BaseForkTest t = BaseForkTest(_t);
+  //  (address biPoolManagerAddr, ) = t.exchanges(0);
+  //  uint256 nOfExchanges = IBiPoolManager(biPoolManagerAddr).getExchanges().length;
+  //  for (uint256 i = 0; i < nOfExchanges; i++) {
+  //    ExchangeForkTest ctx = newContext(_t, i);
+  //    if (getReferenceRateFeedID(ctx) == rateFeedID) {
+  //      return ctx;
+  //    }
+  //  }
+  //  return newRateFeedContext(_t, rateFeedID);
+  //}
+
+  // ========================= Swaps =========================
+
+
+  function swapOut(ExchangeForkTest ctx, address from, address to, uint256 buyAmount) public returns (uint256) {
+    addReportsIfNeeded(ctx);
+    uint256 maxAmountIn = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount);
+
+    ctx.t._deal(from, ctx.trader, maxAmountIn, true);
+    changePrank(ctx.trader);
+    IERC20(from).approve(address(ctx.broker), maxAmountIn);
+
+    console.log(
+      string(
+        abi.encodePacked(unicode"🤝 swapOut(", toSymbol(from), "->", toSymbol(to), ",amountOut: %d, maxAmountIn: %d)")
+      ),
+      toUnits(buyAmount, to),
+      toUnits(maxAmountIn, from)
+    );
+    return ctx.broker.swapOut(ctx.exchangeProvider, ctx.exchangeId, from, to, buyAmount, maxAmountIn);
+  }
+
+  function shouldUpdateBuckets(ExchangeForkTest ctx) internal view returns (bool, bool, bool, bool, bool) {
+    IBiPoolManager biPoolManager = IBiPoolManager(ctx.exchangeProvider);
+    IBiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
+
+    (bool isReportExpired, ) = ctx.sortedOracles.isOldestReportExpired(exchange.config.referenceRateFeedID);
+    // solhint-disable-next-line not-rely-on-time
+    bool timePassed = block.timestamp >= exchange.lastBucketUpdate + exchange.config.referenceRateResetFrequency;
+    bool enoughReports = (ctx.sortedOracles.numRates(exchange.config.referenceRateFeedID) >=
+      exchange.config.minimumReports);
+    // solhint-disable-next-line not-rely-on-time
+    bool medianReportRecent = ctx.sortedOracles.medianTimestamp(exchange.config.referenceRateFeedID) >
+      block.timestamp - exchange.config.referenceRateResetFrequency;
+
+    return (
+      timePassed,
+      enoughReports,
+      medianReportRecent,
+      isReportExpired,
+      timePassed && enoughReports && medianReportRecent && !isReportExpired
+    );
+  }
+
+  function getUpdatedBuckets(ExchangeForkTest ctx) internal view returns (uint256 bucket0, uint256 bucket1) {
+    IBiPoolManager biPoolManager = IBiPoolManager(ctx.exchangeProvider);
+    IBiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
+
+    bucket0 = exchange.config.stablePoolResetSize;
+    uint256 exchangeRateNumerator;
+    uint256 exchangeRateDenominator;
+    (exchangeRateNumerator, exchangeRateDenominator) = getReferenceRate(ctx);
+
+    bucket1 = (exchangeRateDenominator * bucket0) / exchangeRateNumerator;
+  }
+
+  function addReportsIfNeeded(ExchangeForkTest ctx) internal {
+    // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
+    IBiPoolManager biPoolManager = IBiPoolManager(ctx.exchangeProvider);
+    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
+    (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = shouldUpdateBuckets(ctx);
+    // logPool(ctx);
+    if (timePassed && (!medianReportRecent || isReportExpired || !enoughReports)) {
+      (uint256 newMedian, ) = ctx.sortedOracles.medianRate(pool.config.referenceRateFeedID);
+      (timePassed, enoughReports, medianReportRecent, isReportExpired, ) = shouldUpdateBuckets(ctx);
+      updateOracleMedianRate(ctx, (newMedian * 1_000_001) / 1_000_000);
+
+      // logPool(ctx);
+      return;
+    }
+  }
+
+  function maxSwapIn(
+    ExchangeForkTest ctx,
+    uint256 desired,
+    address from,
+    address to
+  ) internal view returns (uint256 maxPossible) {
+    // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
+    IBiPoolManager biPoolManager = IBiPoolManager(ctx.exchangeProvider);
+    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
+    uint256 toBucket = (pool.asset0 == to ? pool.bucket0 : pool.bucket1) - 1;
+    (, , , , bool shouldUpdate) = shouldUpdateBuckets(ctx);
+    if (shouldUpdate) {
+      (uint256 bucket0, uint256 bucket1) = getUpdatedBuckets(ctx);
+      toBucket = (pool.asset0 == to ? bucket0 : bucket1) - 1;
+    }
+    toBucket = toBucket / biPoolManager.tokenPrecisionMultipliers(to);
+    maxPossible = ctx.broker.getAmountIn(ctx.exchangeProvider, ctx.exchangeId, from, to, toBucket);
+    if (maxPossible > desired) {
+      maxPossible = desired;
+    }
+  }
+
+  function maxSwapOut(ExchangeForkTest ctx, uint256 desired, address to) internal view returns (uint256 maxPossible) {
+    // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
+    IBiPoolManager biPoolManager = IBiPoolManager(ctx.exchangeProvider);
+    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
+    uint256 maxPossible_ = (pool.asset0 == to ? pool.bucket0 : pool.bucket1) - 1;
+    (, , , , bool shouldUpdate) = shouldUpdateBuckets(ctx);
+    if (shouldUpdate) {
+      (uint256 bucket0, uint256 bucket1) = getUpdatedBuckets(ctx);
+      maxPossible_ = (pool.asset0 == to ? bucket0 : bucket1) - 1;
+    }
+    maxPossible = maxPossible / biPoolManager.tokenPrecisionMultipliers(to);
+    if (maxPossible > desired) {
+      maxPossible = desired;
+    }
+  }
+
+  // ========================= Sorted Oracles =========================
+
+  function getReferenceRateFraction(
+    ExchangeForkTest ctx,
+    address baseAsset
+  ) internal view returns (FixidityLib.Fraction memory) {
+    (uint256 numerator, uint256 denominator) = getReferenceRate(ctx);
+    address asset0 = ctx.exchange.assets[0];
+    if (baseAsset == asset0) {
+      return FixidityLib.newFixedFraction(numerator, denominator);
+    }
+    return FixidityLib.newFixedFraction(denominator, numerator);
+  }
+
+  function getReferenceRate(ExchangeForkTest ctx) internal view returns (uint256, uint256) {
+    uint256 rateNumerator;
+    uint256 rateDenominator;
+    (rateNumerator, rateDenominator) = ctx.sortedOracles.medianRate(getReferenceRateFeedID(ctx));
+    require(rateDenominator > 0, "exchange rate denominator must be greater than 0");
+    return (rateNumerator, rateDenominator);
+  }
+
+  function getReferenceRateFeedID(ExchangeForkTest ctx) internal view returns (address) {
+    if (ctx.rateFeedID != address(0)) {
+      return ctx.rateFeedID;
+    }
+    // TODO: extend this when we have multiple exchange providers, for now assume it's a BiPoolManager
+    IBiPoolManager biPoolManager = IBiPoolManager(ctx.exchangeProvider);
+    IBiPoolManager.PoolExchange memory pool = biPoolManager.getPoolExchange(ctx.exchangeId);
+    return pool.config.referenceRateFeedID;
+  }
+
+  function getValueDeltaBreakerReferenceValue(ExchangeForkTest ctx, address _breaker) internal view returns (uint256) {
+    IValueDeltaBreaker breaker = IValueDeltaBreaker(_breaker);
+    address rateFeedID = getReferenceRateFeedID(ctx);
+    return breaker.referenceValues(rateFeedID);
+  }
+
+  function getBreakerRateChangeThreshold(ExchangeForkTest ctx, address _breaker) internal view returns (uint256) {
+    IMedianDeltaBreaker breaker = IMedianDeltaBreaker(_breaker);
+    address rateFeedID = getReferenceRateFeedID(ctx);
+
+    uint256 rateChangeThreshold = breaker.defaultRateChangeThreshold();
+    uint256 specificRateChangeThreshold = breaker.rateChangeThreshold(rateFeedID);
+    if (specificRateChangeThreshold != 0) {
+      rateChangeThreshold = specificRateChangeThreshold;
+    }
+    return rateChangeThreshold;
+  }
+
+  // ========================= Trading Limits =========================
+
+  function isLimitConfigured(ExchangeForkTest ctx, bytes32 limitId) public view returns (bool) {
+    ITradingLimits.Config memory limitConfig = ctx.broker.tradingLimitsConfig(limitId);
+    return limitConfig.flags > uint8(0);
+  }
+
+  function tradingLimitsConfig(
+    ExchangeForkTest ctx,
+    bytes32 limitId
+  ) public view returns (ITradingLimits.Config memory) {
+    return ctx.broker.tradingLimitsConfig(limitId);
+  }
+
+  function tradingLimitsState(ExchangeForkTest ctx, bytes32 limitId) public view returns (ITradingLimits.State memory) {
+    return ctx.broker.tradingLimitsState(limitId);
+  }
+
+  function tradingLimitsConfig(ExchangeForkTest ctx, address asset) public view returns (ITradingLimits.Config memory) {
+    bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
+    return ctx.broker.tradingLimitsConfig(ctx.exchangeId ^ assetBytes32);
+  }
+
+  function tradingLimitsState(ExchangeForkTest ctx, address asset) public view returns (ITradingLimits.State memory) {
+    bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
+    return ctx.broker.tradingLimitsState(ctx.exchangeId ^ assetBytes32);
+  }
+
+  function refreshedTradingLimitsState(
+    ExchangeForkTest ctx,
+    address asset
+  ) public view returns (ITradingLimits.State memory) {
+    ITradingLimits.Config memory config = tradingLimitsConfig(ctx, asset);
+    // Netflow might be outdated because of a skip(...) call and doing
+    // an update(0) would reset the netflow if enough time has passed.
+    return ctx.tradingLimits.update(tradingLimitsState(ctx, asset), config, 0, 0);
+  }
+
+  function isLimitEnabled(ITradingLimits.Config memory config, uint8 limit) internal pure returns (bool) {
+    return (config.flags & limit) > 0;
+  }
+
+  function getLimit(ITradingLimits.Config memory config, uint8 limit) internal pure returns (uint256) {
+    if (limit == L0) {
+      return uint256(int256(config.limit0));
+    } else if (limit == L1) {
+      return uint256(int256(config.limit1));
+    } else if (limit == LG) {
+      return uint256(int256(config.limitGlobal));
+    } else {
+      revert("invalid limit");
+    }
+  }
+
+  function getNetflow(ITradingLimits.State memory state, uint8 limit) internal pure returns (int256) {
+    if (limit == L0) {
+      return state.netflow0;
+    } else if (limit == L1) {
+      return state.netflow1;
+    } else if (limit == LG) {
+      return state.netflowGlobal;
+    } else {
+      revert("invalid limit");
+    }
+  }
+
+  function revertReason(uint8 limit) internal pure returns (string memory) {
+    if (limit == L0) {
+      return "L0 Exceeded";
+    } else if (limit == L1) {
+      return "L1 Exceeded";
+    } else if (limit == LG) {
+      return "LG Exceeded";
+    } else {
+      revert("invalid limit");
+    }
+  }
+
+  function limitString(uint8 limit) internal pure returns (string memory) {
+    if (limit == L0) {
+      return "L0";
+    } else if (limit == L1) {
+      return "L1";
+    } else if (limit == LG) {
+      return "LG";
+    } else {
+      revert("invalid limit");
+    }
+  }
+
+  function maxPossibleInflow(ExchangeForkTest ctx, address from) internal view returns (int48) {
+    ITradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, from);
+    ITradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, from);
+    int48 maxInflowL0 = limitConfig.limit0 - limitState.netflow0;
+    int48 maxInflowL1 = limitConfig.limit1 - limitState.netflow1;
+    int48 maxInflowLG = limitConfig.limitGlobal - limitState.netflowGlobal;
+
+    if (limitConfig.flags == L0 | L1 | LG) {
+      return min(maxInflowL0, maxInflowL1, maxInflowLG);
+    } else if (limitConfig.flags == L0 | LG) {
+      return min(maxInflowL0, maxInflowLG);
+    } else if (limitConfig.flags == L0 | L1) {
+      return min(maxInflowL0, maxInflowL1);
+    } else if (limitConfig.flags == L0) {
+      return maxInflowL0;
+    } else {
+      revert("Unexpected limit config");
+    }
+  }
+
+  function maxPossibleOutflow(ExchangeForkTest ctx, address to) internal view returns (int48) {
+    ITradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, to);
+    ITradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, to);
+    int48 maxOutflowL0 = limitConfig.limit0 + limitState.netflow0 - 1;
+    int48 maxOutflowL1 = limitConfig.limit1 + limitState.netflow1 - 1;
+    int48 maxOutflowLG = limitConfig.limitGlobal + limitState.netflowGlobal - 1;
+
+    if (limitConfig.flags == L0 | L1 | LG) {
+      return min(maxOutflowL0, maxOutflowL1, maxOutflowLG);
+    } else if (limitConfig.flags == L0 | LG) {
+      return min(maxOutflowL0, maxOutflowLG);
+    } else if (limitConfig.flags == L0 | L1) {
+      return min(maxOutflowL0, maxOutflowL1);
+    } else if (limitConfig.flags == L0) {
+      return maxOutflowL0;
+    } else {
+      revert("Unexpected limit config");
+    }
+  }
+
+  // ========================= Misc =========================
+
+  function toSubunits(uint256 units, address token) internal view returns (uint256) {
+    uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
+    return units * tokenBase;
+  }
+
+  function toUnits(uint256 subunits, address token) internal view returns (uint256) {
+    uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
+    return subunits / tokenBase;
+  }
+
+  function toUnitsFixed(uint256 subunits, address token) internal view returns (FixidityLib.Fraction memory) {
+    uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
+    return FixidityLib.newFixedFraction(subunits, tokenBase);
+  }
+
+  function toSymbol(address token) internal view returns (string memory) {
+    return IERC20(token).symbol();
+  }
+
+  function ticker(ExchangeForkTest ctx) internal view returns (string memory) {
+    return
+      string(abi.encodePacked(IERC20(ctx.exchange.assets[0]).symbol(), "/", IERC20(ctx.exchange.assets[1]).symbol()));
+  }
+
+  function logHeader(ExchangeForkTest ctx) internal view {
+    console.log("========================================");
+    console.log(unicode"🔦 Testing pair:", ticker(ctx));
+    console.log("========================================");
+  }
+
+  function min(int48 a, int48 b) internal pure returns (int48) {
+    return a > b ? b : a;
+  }
+
+  function min(int48 a, int48 b, int48 c) internal pure returns (int48) {
+    return min(a, min(b, c));
+  }
+
+  function logPool(ExchangeForkTest ctx) internal view {
+    if (ctx.exchangeId == 0) {
+      console.log(unicode"🎱 RateFeed: %s", ctx.rateFeedID);
+      return;
+    }
+    IBiPoolManager biPoolManager = IBiPoolManager(ctx.exchangeProvider);
+    IBiPoolManager.PoolExchange memory exchange = biPoolManager.getPoolExchange(ctx.exchangeId);
+
+    (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = shouldUpdateBuckets(ctx);
+    console.log(unicode"🎱 Pool: %s", ticker(ctx));
+    console.log(
+      "\t timePassed: %s | enoughReports: %s",
+      timePassed ? "true" : "false",
+      enoughReports ? "true" : "false"
+    );
+    console.log(
+      "\t medianReportRecent: %s | !isReportExpired: %s",
+      medianReportRecent ? "true" : "false",
+      !isReportExpired ? "true" : "false"
+    );
+    console.log(
+      "\t exchange.bucket0: %d | exchange.bucket1: %d",
+      toUnits(exchange.bucket0, exchange.asset0),
+      toUnits(exchange.bucket1, exchange.asset1)
+    );
+    console.log("\t exchange.lastBucketUpdate: %d", exchange.lastBucketUpdate);
+  }
+
+  function logNetflows(ExchangeForkTest ctx, address target) internal view {
+    ITradingLimits.State memory limitState = tradingLimitsState(ctx, target);
+    console.log(
+      "\t netflow0: %s%d",
+      limitState.netflow0 < 0 ? "-" : "",
+      uint256(int256(limitState.netflow0 < 0 ? limitState.netflow0 * -1 : limitState.netflow0))
+    );
+    console.log(
+      "\t netflow1: %s%d",
+      limitState.netflow1 < 0 ? "-" : "",
+      uint256(int256(limitState.netflow1 < 0 ? limitState.netflow1 * -1 : limitState.netflow1))
+    );
+    console.log(
+      "\t netflowGlobal: %s%d",
+      limitState.netflowGlobal < 0 ? "-" : "",
+      uint256(int256(limitState.netflowGlobal < 0 ? limitState.netflowGlobal * -1 : limitState.netflowGlobal))
+    );
+  }
+
+  // ==================== Forge Cheats ======================
+  // Pulling in some test helpers to not have to expose them in
+  // the test contract
+
+  function skip(uint256 time) internal {
+    vm.warp(block.timestamp + time);
+  }
+
+  function changePrank(address who) internal {
+    vm.stopPrank();
+    vm.startPrank(who);
+  }
+}
+
+=== File: ForkTests.t.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+pragma solidity ^0.8;
+/**
+@dev Fork tests for Mento!
+This test suite tests invariantes on a fork of a live Mento environemnts.
+
+Thare are two types of tests contracts:
+- ChainForkTests: Tests that are specific to the chain, such as the number of exchanges, the number of collateral assets, etc. 
+- ExchangeForkTests: Tests that are specific to the exchange, such as trading limits, swaps, etc.
+
+To make it easier to debug and develop, we have one ChainForkTest for each chain (Alfajores, Celo) and 
+one ExchangeForkTest for each (exchange provider, exchange) pair.
+
+The ChainFork tests are instantiated with:
+- Chain ID.
+- Expected number of exchange providers.
+- Expected number of exchanges per exchange provider.
+If any of this assertions fail then the ChainTest will fail and that's the queue to update this file
+and add additional ExchangeForkTests.
+
+The ExchangeForkTests are instantiated with:
+- Chain ID.
+- Exchange Provider Index.
+- Exchange Index.
+
+And the naming convetion for them is:
+${ChainName}_P${ExchangeProviderIndex}E${ExchangeIndex}_ExchangeForkTest
+e.g. Alfajores_P0E00_ExchangeForkTest (Alfajores, Exchange Provider 0, Exchange 0)
+The Exchange Index is 0 padded to make them align nicely in the file, exchange provider counts shouldn't
+exceed 10, if they do, then we need to update the naming convention.
+*/
+
+import { uints } from "mento-std/Array.sol";
+import { ChainForkTest } from "./ChainForkTest.sol";
+import { ExchangeForkTest } from "./ExchangeForkTest.sol";
+import { CELO_ID, BAKLAVA_ID, ALFAJORES_ID } from "mento-std/Constants.sol";
+
+contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(14)) {}
+
+contract Alfajores_P0E00_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 0) {}
+
+contract Alfajores_P0E01_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 1) {}
+
+contract Alfajores_P0E02_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 2) {}
+
+contract Alfajores_P0E03_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 3) {}
+
+contract Alfajores_P0E04_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 4) {}
+
+contract Alfajores_P0E05_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 5) {}
+
+contract Alfajores_P0E06_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 6) {}
+
+contract Alfajores_P0E07_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 7) {}
+
+contract Alfajores_P0E08_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 8) {}
+
+contract Alfajores_P0E09_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 9) {}
+
+contract Alfajores_P0E10_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 10) {}
+
+contract Alfajores_P0E11_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 11) {}
+
+contract Alfajores_P0E12_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 12) {}
+
+contract Alfajores_P0E13_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 13) {}
+
+contract Celo_ChainForkTest is ChainForkTest(CELO_ID, 1, uints(14)) {}
+
+contract Celo_P0E00_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 0) {}
+
+contract Celo_P0E01_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 1) {}
+
+contract Celo_P0E02_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 2) {}
+
+contract Celo_P0E03_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 3) {}
+
+contract Celo_P0E04_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 4) {}
+
+contract Celo_P0E05_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 5) {}
+
+contract Celo_P0E06_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 6) {}
+
+contract Celo_P0E07_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 7) {}
+
+contract Celo_P0E08_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 8) {}
+
+contract Celo_P0E09_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 9) {}
+
+contract Celo_P0E10_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 10) {}
+
+contract Celo_P0E11_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 11) {}
+
+contract Celo_P0E12_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 12) {}
+
+contract Celo_P0E13_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 13) {}
+
+=== Directory: helpers ===
+=== File: OracleHelpers.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { ExchangeForkTest } from "../ExchangeForkTest.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
+library OracleHelpers {
+  using OracleHelpers for ExchangeForkTest;
+
+  function getReferenceRateFraction(
+    ExchangeForkTest ctx,
+    address baseAsset
+  ) internal view returns (FixidityLib.Fraction memory) {
+    (uint256 numerator, uint256 denominator) = ctx.getReferenceRate();
+    address asset0 = ctx.exchange.assets[0];
+    if (baseAsset == asset0) {
+      return FixidityLib.newFixedFraction(numerator, denominator);
+    }
+    return FixidityLib.newFixedFraction(denominator, numerator);
+  }
+
+  function getReferenceRate(ExchangeForkTest ctx) internal view returns (uint256, uint256) {
+    uint256 rateNumerator;
+    uint256 rateDenominator;
+    (rateNumerator, rateDenominator) = ctx.sortedOracles.medianRate(ctx.rateFeedId);
+    require(rateDenominator > 0, "exchange rate denominator must be greater than 0");
+    return (rateNumerator, rateDenominator);
+  }
+}
+
+=== File: SwapHelpers.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { ExchangeForkTest } from "../ExchangeForkTest.sol";
+import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+
+library SwapHelpers {
+  function getPoolExcahnge(ExchangeForkTest ctx) internal view returns (IBiPoolManager.PoolExchange memory) {
+    return ctx.biPoolManager.getPoolExchange(ctx.exchangeId);
+  }
+}
+
+=== File: TokenHelpers.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+
+library TokenHelpers {
+  using FixidityLib for FixidityLib.Fraction;
+
+  function toSubunits(uint256 units, address token) internal view returns (uint256) {
+    uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
+    return units * tokenBase;
+  }
+
+  function toUnits(uint256 subunits, address token) internal view returns (uint256) {
+    uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
+    return subunits / tokenBase;
+  }
+
+  function toUnitsFixed(uint256 subunits, address token) internal view returns (FixidityLib.Fraction memory) {
+    uint256 tokenBase = 10 ** uint256(IERC20(token).decimals());
+    return FixidityLib.newFixedFraction(subunits, tokenBase);
+  }
+
+  function toSymbol(address token) internal view returns (string memory) {
+    return IERC20(token).symbol();
+  }
+}
+
+
+=== File: TokenUpgrade.t.sol ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8;
+
+import { console } from "forge-std/console.sol";
+import { Test } from "mento-std/Test.sol";
+import { CELO_ID } from "mento-std/Constants.sol";
+
+import { WithRegistry } from "../utils/WithRegistry.sol";
+
+import { ICeloProxy } from "contracts/interfaces/ICeloProxy.sol";
+import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
+
+contract TokenUpgradeForkTest is Test, WithRegistry {
+  // solhint-disable-next-line func-name-mixedcase
+  function test_upgrade() public {
+    fork(CELO_ID, 22856317);
+
+    address stableToken = registry.getAddressForString("StableToken");
+    ICeloProxy stableTokenProxy = ICeloProxy(stableToken);
+    console.log(ICeloProxy(stableToken)._getImplementation());
+    console.log(ICeloProxy(stableToken)._getOwner());
+    vm.startPrank(ICeloProxy(stableToken)._getOwner());
+    address mentoERC20Impl = deployCode("StableTokenV2", abi.encode(false));
+    stableTokenProxy._setImplementation(mentoERC20Impl);
+
+    IStableTokenV2 cusd = IStableTokenV2(stableToken);
+    cusd.initializeV2(
+      registry.getAddressForString("Broker"),
+      registry.getAddressForString("Validators"),
+      registry.getAddressForString("Exchange")
+    );
+
+    address governance = registry.getAddressForString("Governance");
+    cusd.balanceOf(governance);
+
+    changePrank(governance);
+    cusd.transfer(address(this), 1 ether);
+    cusd.balanceOf(address(this));
+  }
+}
+
