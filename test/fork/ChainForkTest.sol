@@ -2,8 +2,10 @@
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
 pragma solidity ^0.8;
 
+import { console } from "forge-std/console.sol";
 import "./BaseForkTest.sol";
 
+import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IStableTokenV2DeprecatedInit } from "contracts/interfaces/IStableTokenV2DeprecatedInit.sol";
 
@@ -72,17 +74,17 @@ abstract contract ChainForkTest is BaseForkTest {
     }
   }
 
+  /**
+   * @dev If this fails it means we have added a new collateral
+   * so we need to update the COLLATERAL_ASSETS constant.
+   * This is because we don't have an easy way to determine
+   * the number of collateral assets in the system.
+   */
   function test_numberCollateralAssetsCount() public {
     address collateral;
     for (uint256 i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
       collateral = reserve.collateralAssets(i);
     }
-    /**
-     * @dev If this fails it means we have added a new collateral
-     * so we need to update the COLLATERAL_ASSETS constant.
-     * This is because we don't have an easy way to determine
-     * the number of collateral assets in the system.
-     */
     vm.expectRevert();
     reserve.collateralAssets(COLLATERAL_ASSETS_COUNT);
   }
