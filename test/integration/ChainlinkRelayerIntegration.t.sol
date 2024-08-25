@@ -108,7 +108,7 @@ contract ChainlinkRelayerIntegration_ReportAfterRedeploy is ChainlinkRelayerInte
 
     vm.prank(owner);
     IChainlinkRelayer chainlinkRelayer0 = IChainlinkRelayer(
-      relayerFactory.deployRelayer(rateFeedId, "cUSD/FOO", aggregatorList0)
+      relayerFactory.deployRelayer(rateFeedId, "cUSD/FOO", 0, aggregatorList0)
     );
 
     vm.prank(deployer);
@@ -121,7 +121,7 @@ contract ChainlinkRelayerIntegration_ReportAfterRedeploy is ChainlinkRelayerInte
 
     vm.prank(owner);
     IChainlinkRelayer chainlinkRelayer1 = IChainlinkRelayer(
-      relayerFactory.redeployRelayer(rateFeedId, "cUSD/FOO", aggregatorList1)
+      relayerFactory.redeployRelayer(rateFeedId, "cUSD/FOO", 0, aggregatorList1)
     );
 
     vm.prank(deployer);
@@ -158,7 +158,7 @@ contract ChainlinkRelayerIntegration_CircuitBreakerInteraction is ChainlinkRelay
     IChainlinkRelayer.ChainlinkAggregator[] memory aggregators = new IChainlinkRelayer.ChainlinkAggregator[](1);
     aggregators[0] = IChainlinkRelayer.ChainlinkAggregator(address(chainlinkAggregator), false);
     vm.prank(owner);
-    chainlinkRelayer = IChainlinkRelayer(relayerFactory.deployRelayer(rateFeedId, "CELO/USD", aggregators));
+    chainlinkRelayer = IChainlinkRelayer(relayerFactory.deployRelayer(rateFeedId, "CELO/USD", 0, aggregators));
 
     vm.prank(deployer);
     sortedOracles.addOracle(rateFeedId, address(chainlinkRelayer));
