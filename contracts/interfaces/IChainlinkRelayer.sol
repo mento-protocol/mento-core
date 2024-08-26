@@ -21,5 +21,7 @@ interface IChainlinkRelayer {
 
   function getAggregators() external returns (ChainlinkAggregator[] memory);
 
+  function maxTimestampSpread() external returns (uint256);
+
   function relay() external;
 }
