@@ -12,5 +12,7 @@ interface ICeloProxy {
   function _setOwner(address owner) external;
 
   function _transferOwnership(address newOwner) external;
+
+  function _setAndInitializeImplementation(address implementation, bytes calldata data) external;
 }
 // slither-disable-end naming-convention

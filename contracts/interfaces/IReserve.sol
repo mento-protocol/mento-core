@@ -96,6 +96,10 @@ interface IReserve {
 
   function getUnfrozenBalance() external view returns (uint256);
 
+  function isOtherReserveAddress(address otherReserveAddress) external view returns (bool);
+
+  function isSpender(address spender) external view returns (bool);
+
   /// @notice Setters:
   function setRegistry(address) external;
 

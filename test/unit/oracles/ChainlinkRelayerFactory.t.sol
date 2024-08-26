@@ -63,6 +63,7 @@ contract ChainlinkRelayerFactoryTest is Test {
     address rateFeedId,
     string memory rateFeedDescription,
     address sortedOracles,
+    uint256 maxTimestampSpread,
     IChainlinkRelayer.ChainlinkAggregator[] memory aggregators,
     address relayerFactoryAddress
   ) internal view returns (address expectedAddress) {
@@ -79,7 +80,7 @@ contract ChainlinkRelayerFactoryTest is Test {
                 keccak256(
                   abi.encodePacked(
                     vm.getCode("ChainlinkRelayerV1"),
-                    abi.encode(rateFeedId, rateFeedDescription, sortedOracles, aggregators)
+                    abi.encode(rateFeedId, rateFeedDescription, sortedOracles, maxTimestampSpread, aggregators)
                   )
                 )
               )
@@ -171,21 +172,28 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
 
   function test_setsRateFeed() public {
     vm.prank(relayerDeployer);
-    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators()));
+    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators()));
     address rateFeed = relayer.rateFeedId();
     assertEq(rateFeed, aRateFeed);
   }
 
   function test_setsRateFeedDescription() public {
     vm.prank(relayerDeployer);
-    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators()));
+    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators()));
     string memory rateFeedDescription = relayer.rateFeedDescription();
     assertEq(rateFeedDescription, aRateFeedDescription);
   }
 
+  function test_setsMaxTimestampSpread() public {
+    vm.prank(owner);
+    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators()));
+    uint256 maxTimestampSpread = relayer.maxTimestampSpread();
+    assertEq(maxTimestampSpread, 300);
+  }
+
   function test_setsAggregators() public {
     vm.prank(relayerDeployer);
-    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators()));
+    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators()));
     IChainlinkRelayer.ChainlinkAggregator[] memory expectedAggregators = fourAggregators();
     IChainlinkRelayer.ChainlinkAggregator[] memory actualAggregators = relayer.getAggregators();
     assertEq(expectedAggregators.length, actualAggregators.length);
@@ -197,18 +205,19 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
 
   function test_setsSortedOracles() public {
     vm.prank(relayerDeployer);
-    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators()));
+    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators()));
     address sortedOracles = relayer.sortedOracles();
     assertEq(sortedOracles, mockSortedOracles);
   }
 
   function test_deploysToTheCorrectAddress() public {
     vm.prank(relayerDeployer);
-    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators()));
+    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators()));
     address expectedAddress = expectedRelayerAddress({
       rateFeedId: aRateFeed,
       rateFeedDescription: aRateFeedDescription,
       sortedOracles: mockSortedOracles,
+      maxTimestampSpread: 300,
       aggregators: fourAggregators(),
       relayerFactoryAddress: address(relayerFactory)
     });
@@ -221,6 +230,7 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
       rateFeedId: aRateFeed,
       rateFeedDescription: aRateFeedDescription,
       sortedOracles: mockSortedOracles,
+      maxTimestampSpread: 300,
       aggregators: fourAggregators(),
       relayerFactoryAddress: address(relayerFactory)
     });
@@ -233,12 +243,12 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
       aggregators: fourAggregators()
     });
     vm.prank(relayerDeployer);
-    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators());
+    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators());
   }
 
   function test_remembersTheRelayerAddress() public {
     vm.prank(relayerDeployer);
-    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators()));
+    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators()));
     address storedAddress = relayerFactory.getRelayer(aRateFeed);
     assertEq(storedAddress, address(relayer));
   }
@@ -248,40 +258,41 @@ contract ChainlinkRelayerFactoryTest_deployRelayer is ChainlinkRelayerFactoryTes
       aRateFeed,
       aRateFeedDescription,
       address(mockSortedOracles),
+      300,
       fourAggregators(),
       address(relayerFactory)
     );
     vm.etch(futureAddress, abi.encode("This is a great contract's bytecode"));
     vm.expectRevert(contractAlreadyExistsError(address(futureAddress), aRateFeed));
     vm.prank(relayerDeployer);
-    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators());
+    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators());
   }
 
   function test_revertsWhenDeployingTheSameRelayer() public {
     vm.prank(relayerDeployer);
-    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators()));
+    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators()));
     vm.expectRevert(relayerForFeedExistsError(aRateFeed));
     vm.prank(relayerDeployer);
-    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators());
+    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators());
   }
 
   function test_revertsWhenDeployingForTheSameRateFeed() public {
     vm.prank(relayerDeployer);
-    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators()));
+    relayer = IChainlinkRelayer(relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators()));
     vm.expectRevert(relayerForFeedExistsError(aRateFeed));
     vm.prank(relayerDeployer);
-    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, oneAggregator(0));
+    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, oneAggregator(0));
   }
 
   function test_revertsWhenCalledByNonDeployer() public {
     vm.expectRevert(NOT_ALLOWED_ERROR);
     vm.prank(nonDeployer);
-    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators());
+    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators());
   }
 
   function test_worksWhenCalledByOwner() public {
     vm.prank(owner);
-    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, fourAggregators());
+    relayerFactory.deployRelayer(aRateFeed, aRateFeedDescription, 300, fourAggregators());
   }
 }
 
@@ -293,7 +304,7 @@ contract ChainlinkRelayerFactoryTest_getRelayers is ChainlinkRelayerFactoryTest 
 
   function test_returnsRelayerWhenThereIsOne() public {
     vm.prank(relayerDeployer);
-    address relayerAddress = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(0));
+    address relayerAddress = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(0));
     address[] memory relayers = relayerFactory.getRelayers();
     assertEq(relayers.length, 1);
     assertEq(relayers[0], relayerAddress);
@@ -301,11 +312,11 @@ contract ChainlinkRelayerFactoryTest_getRelayers is ChainlinkRelayerFactoryTest 
 
   function test_returnsMultipleRelayersWhenThereAreMore() public {
     vm.prank(relayerDeployer);
-    address relayerAddress1 = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(0));
+    address relayerAddress1 = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(0));
     vm.prank(relayerDeployer);
-    address relayerAddress2 = relayerFactory.deployRelayer(rateFeeds[1], aRateFeedDescription, oneAggregator(1));
+    address relayerAddress2 = relayerFactory.deployRelayer(rateFeeds[1], aRateFeedDescription, 0, oneAggregator(1));
     vm.prank(relayerDeployer);
-    address relayerAddress3 = relayerFactory.deployRelayer(rateFeeds[2], aRateFeedDescription, oneAggregator(2));
+    address relayerAddress3 = relayerFactory.deployRelayer(rateFeeds[2], aRateFeedDescription, 0, oneAggregator(2));
     address[] memory relayers = relayerFactory.getRelayers();
     assertEq(relayers.length, 3);
     assertEq(relayers[0], relayerAddress1);
@@ -315,11 +326,11 @@ contract ChainlinkRelayerFactoryTest_getRelayers is ChainlinkRelayerFactoryTest 
 
   function test_returnsADifferentRelayerAfterRedeployment() public {
     vm.prank(relayerDeployer);
-    address relayerAddress1 = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(0));
+    address relayerAddress1 = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(0));
     vm.prank(relayerDeployer);
-    relayerFactory.deployRelayer(rateFeeds[1], aRateFeedDescription, oneAggregator(1));
+    relayerFactory.deployRelayer(rateFeeds[1], aRateFeedDescription, 0, oneAggregator(1));
     vm.prank(relayerDeployer);
-    address relayerAddress2 = relayerFactory.redeployRelayer(rateFeeds[1], aRateFeedDescription, oneAggregator(2));
+    address relayerAddress2 = relayerFactory.redeployRelayer(rateFeeds[1], aRateFeedDescription, 0, oneAggregator(2));
     address[] memory relayers = relayerFactory.getRelayers();
     assertEq(relayers.length, 2);
     assertEq(relayers[0], relayerAddress1);
@@ -328,11 +339,11 @@ contract ChainlinkRelayerFactoryTest_getRelayers is ChainlinkRelayerFactoryTest 
 
   function test_doesntReturnARemovedRelayer() public {
     vm.prank(relayerDeployer);
-    address relayerAddress1 = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(0));
+    address relayerAddress1 = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(0));
     vm.prank(relayerDeployer);
-    address relayerAddress2 = relayerFactory.deployRelayer(rateFeeds[1], aRateFeedDescription, oneAggregator(1));
+    address relayerAddress2 = relayerFactory.deployRelayer(rateFeeds[1], aRateFeedDescription, 0, oneAggregator(1));
     vm.prank(relayerDeployer);
-    relayerFactory.deployRelayer(rateFeeds[2], aRateFeedDescription, oneAggregator(2));
+    relayerFactory.deployRelayer(rateFeeds[2], aRateFeedDescription, 0, oneAggregator(2));
     vm.prank(relayerDeployer);
     relayerFactory.removeRelayer(rateFeeds[2]);
     address[] memory relayers = relayerFactory.getRelayers();
@@ -349,7 +360,7 @@ contract ChainlinkRelayerFactoryTest_removeRelayer is ChainlinkRelayerFactoryTes
     super.setUp();
 
     vm.prank(relayerDeployer);
-    relayerAddress = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(0));
+    relayerAddress = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(0));
   }
 
   function test_removesTheRelayer() public {
@@ -370,7 +381,7 @@ contract ChainlinkRelayerFactoryTest_removeRelayer is ChainlinkRelayerFactoryTes
 
   function test_doesntRemoveOtherRelayers() public {
     vm.prank(relayerDeployer);
-    address newRelayerAddress = relayerFactory.deployRelayer(rateFeeds[1], aRateFeedDescription, oneAggregator(1));
+    address newRelayerAddress = relayerFactory.deployRelayer(rateFeeds[1], aRateFeedDescription, 0, oneAggregator(1));
     vm.prank(relayerDeployer);
     relayerFactory.removeRelayer(aRateFeed);
     address[] memory relayers = relayerFactory.getRelayers();
@@ -403,13 +414,13 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
   function setUp() public override {
     super.setUp();
     vm.prank(relayerDeployer);
-    oldAddress = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(0));
+    oldAddress = relayerFactory.deployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(0));
   }
 
   function test_setsRateFeedOnNewRelayer() public {
     vm.prank(relayerDeployer);
     IChainlinkRelayer relayer = IChainlinkRelayer(
-      relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1))
+      relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(1))
     );
 
     address rateFeed = relayer.rateFeedId();
@@ -419,7 +430,7 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
   function test_setsAggregatorOnNewRelayer() public {
     vm.prank(relayerDeployer);
     IChainlinkRelayer relayer = IChainlinkRelayer(
-      relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1))
+      relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(1))
     );
 
     IChainlinkRelayer.ChainlinkAggregator[] memory expectedAggregators = oneAggregator(1);
@@ -434,7 +445,7 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
   function test_setsSortedOraclesOnNewRelayer() public {
     vm.prank(relayerDeployer);
     IChainlinkRelayer relayer = IChainlinkRelayer(
-      relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1))
+      relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(1))
     );
 
     address sortedOracles = relayer.sortedOracles();
@@ -444,13 +455,14 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
   function test_deploysToTheCorrectNewAddress() public {
     vm.prank(relayerDeployer);
     IChainlinkRelayer relayer = IChainlinkRelayer(
-      relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1))
+      relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(1))
     );
 
     address expectedAddress = expectedRelayerAddress(
       aRateFeed,
       aRateFeedDescription,
       mockSortedOracles,
+      0,
       oneAggregator(1),
       address(relayerFactory)
     );
@@ -463,6 +475,7 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
       rateFeedId: aRateFeed,
       rateFeedDescription: aRateFeedDescription,
       sortedOracles: mockSortedOracles,
+      maxTimestampSpread: 0,
       aggregators: oneAggregator(1),
       relayerFactoryAddress: address(relayerFactory)
     });
@@ -478,12 +491,12 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
       aggregators: oneAggregator(1)
     });
     vm.prank(relayerDeployer);
-    relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1));
+    relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(1));
   }
 
   function test_remembersTheNewRelayerAddress() public {
     vm.prank(relayerDeployer);
-    address relayer = relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1));
+    address relayer = relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(1));
     address storedAddress = relayerFactory.getRelayer(aRateFeed);
     assertEq(storedAddress, relayer);
   }
@@ -491,17 +504,17 @@ contract ChainlinkRelayerFactoryTest_redeployRelayer is ChainlinkRelayerFactoryT
   function test_revertsWhenDeployingTheSameExactRelayer() public {
     vm.expectRevert(contractAlreadyExistsError(oldAddress, aRateFeed));
     vm.prank(relayerDeployer);
-    relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(0));
+    relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(0));
   }
 
   function test_revertsWhenCalledByNonDeployer() public {
     vm.expectRevert(NOT_ALLOWED_ERROR);
     vm.prank(nonDeployer);
-    relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1));
+    relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(1));
   }
 
   function test_worksWhenCalledByOwner() public {
     vm.prank(owner);
-    relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, oneAggregator(1));
+    relayerFactory.redeployRelayer(rateFeeds[0], aRateFeedDescription, 0, oneAggregator(1));
   }
 }

@@ -80,6 +80,13 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   uint256 private immutable aggregatorCount;
 
   /**
+   * @notice Maximum timestamp deviation allowed between all report timestamps pulled
+   * from the Chainlink aggregators.
+   * @dev Only relevant when aggregatorCount > 1.
+   */
+  uint256 public immutable maxTimestampSpread;
+
+  /**
    * @notice Human-readable description of the rate feed.
    * @dev Should only be used off-chain for easier debugging / UI generation,
    * thus the only storage related gas spend occurs in the constructor.
@@ -92,6 +99,10 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /// @notice Used when more than four aggregators are passed into the constructor.
   error TooManyAggregators();
 
+  /// @notice Used when a) there is more than 1 aggregator and the maxTimestampSpread is 0,
+  /// OR b) when there is only 1 aggregator and the maxTimestampSpread is not 0.
+  error InvalidMaxTimestampSpread();
+
   /// @notice Used when a new price's timestamp is not newer than the most recent SortedOracles timestamp.
   error TimestampNotNew();
 
@@ -100,7 +111,11 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
   /// @notice Used when a negative or zero price is returned by the Chainlink aggregator.
   error InvalidPrice();
-
+  /**
+   * @notice Used when the spread between the earliest and latest timestamp
+   * of the aggregators is above the maximum allowed.
+   */
+  error TimestampSpreadTooHigh();
   /**
    * @notice Used when trying to recover from a lesser/greater revert and there are
    * too many existing reports in SortedOracles.
@@ -118,16 +133,20 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @param _rateFeedId ID of the rate feed this relayer instance relays for.
    * @param _rateFeedDescription The human-readable description of the reported rate feed.
    * @param _sortedOracles Address of the SortedOracles contract to relay to.
+   * @param _maxTimestampSpread Max difference in milliseconds between the earliest and
+   *        latest timestamp of all aggregators in the price path.
    * @param _aggregators Array of ChainlinkAggregator structs defining the price path.
    */
   constructor(
     address _rateFeedId,
     string memory _rateFeedDescription,
     address _sortedOracles,
+    uint256 _maxTimestampSpread,
     ChainlinkAggregator[] memory _aggregators
   ) {
     rateFeedId = _rateFeedId;
     sortedOracles = _sortedOracles;
+    maxTimestampSpread = _maxTimestampSpread;
     rateFeedDescription = _rateFeedDescription;
 
     aggregatorCount = _aggregators.length;
@@ -137,6 +156,10 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
     if (aggregatorCount > 4) {
       revert TooManyAggregators();
+    }
+
+    if ((aggregatorCount > 1 && _maxTimestampSpread == 0) || (aggregatorCount == 1 && _maxTimestampSpread != 0)) {
+      revert InvalidMaxTimestampSpread();
     }
 
     ChainlinkAggregator[] memory aggregators = new ChainlinkAggregator[](4);
@@ -173,7 +196,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @dev Performs checks on the timestamp, will revert if any fails:
    *      - The most recent Chainlink timestamp should be strictly newer than the most
    *        recent timestamp in SortedOracles.
-   *      - The oldest Chainlink timestamp should not be considered expired by SortedOracles.
+   *      - The most recent Chainlink timestamp should not be considered expired by SortedOracles.
+   *      - The spread between aggregator timestamps is less than the maxTimestampSpread.
    */
   function relay() external {
     ISortedOraclesMin _sortedOracles = ISortedOraclesMin(sortedOracles);
@@ -191,13 +215,17 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       newestChainlinkTs = timestamp > newestChainlinkTs ? timestamp : newestChainlinkTs;
     }
 
+    if (newestChainlinkTs - oldestChainlinkTs > maxTimestampSpread) {
+      revert TimestampSpreadTooHigh();
+    }
+
     uint256 lastReportTs = _sortedOracles.medianTimestamp(rateFeedId);
 
     if (lastReportTs > 0 && newestChainlinkTs <= lastReportTs) {
       revert TimestampNotNew();
     }
 
-    if (isTimestampExpired(oldestChainlinkTs)) {
+    if (isTimestampExpired(newestChainlinkTs)) {
       revert ExpiredTimestamp();
     }
 
