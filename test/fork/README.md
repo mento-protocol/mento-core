@@ -35,9 +35,9 @@ Base Contracts:
 
 - `BaseForkTest` implements fork-related shared setup logic.
 - `ChainForkTest` tests for a given chain.
-- `ExchangeForkTest` tests for a given exchange of an exchange provider on a give chain.
+- `ExchangeForkTest` tests for a given exchange of an exchange provider on a given chain.
 
-These contracts are abstract and need to be extended by instante specific contracts which specify the test target.
+These contracts are abstract and need to be extended by instance specific contracts which specify the target chain and exchange.
 This happens in `ForkTests.t.sol`. For example:
 
 ```solidity
@@ -52,7 +52,8 @@ contract Alfajores_P0E00_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 0
 ```
 
 This represents an ExchangeForkTest for the 0th exchange of the 0th exchange provider on Alfajores.
-These tests need to be added manually when the assertions in the ChainForkTest fail.
+These tests contracts need to be added manually when we add more pairs or exchange providers, but the 
+assertions at chain level gives us the heads up when this changes.
 
 ### assertions, actions, helpers
 
@@ -117,7 +118,7 @@ contract OracleActions {
 
 Most of them attach to `ExchangeForkTest` and are accessed using the `ctx` variable.
 For example `ctx.tradingLimitsState(asset)` will load the trading limits state for the asset.
-This works because we have one test per `Exchange` and we can figure out all we need to know.
+This works because the ctx contains all information about the current `Exchange`.
 
 ### `ctx`
 
@@ -129,4 +130,4 @@ ExchangeForkTest private ctx = ExchangeForkTest(address(this));
 
 This is because in the end this whole inheritance structure collapses to a single ExchangeForkTest contract and we already know this. 
 So we can introduce this magic `ctx` variable which gets you access to all assertions and actions (defined as public), 
-and all of the public variables of `ExchangeForkTest`, meaning all loaded contracts the current exchange, etc.
+and all of the public variables of `ExchangeForkTest`, meaning all loaded contracts, the current exchange, etc.
