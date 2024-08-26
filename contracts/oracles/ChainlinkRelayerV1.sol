@@ -273,14 +273,14 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       otherRate = rates[1];
     }
 
+    // slither-disable-start uninitialized-local
     address lesserKey;
     address greaterKey;
+    // slither-disable-end uninitialized-local
 
     if (otherRate < rate) {
       lesserKey = otherOracle;
-      greaterKey = address(0);
     } else {
-      lesserKey = address(0);
       greaterKey = otherOracle;
     }
 
