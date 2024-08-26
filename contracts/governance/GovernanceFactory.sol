@@ -309,6 +309,7 @@ contract GovernanceFactory is Ownable {
         )
       );
 
+    // slither-disable-next-line reentrancy-benign
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
     assert(address(mentoGovernor) == addr.mentoGovernor);
   }
