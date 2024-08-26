@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable gas-custom-errors
 // OpenZeppelin Contracts (last updated v4.8.0) (token/ERC20/extensions/draft-ERC20Permit.sol)
 /*
  * 🔥 MentoLabs: This is a copied file from v4.8.0 of OZ-Upgradable,
@@ -43,8 +44,11 @@ abstract contract ERC20PermitUpgradeable is ERC20Upgradeable, IERC20PermitUpgrad
    * to reserve a slot.
    * @custom:oz-renamed-from _PERMIT_TYPEHASH
    */
+  // slither-disable-start constable-states
   // solhint-disable-next-line var-name-mixedcase
   bytes32 private _PERMIT_TYPEHASH_DEPRECATED_SLOT;
+
+  // slither-disable-end constable-states
 
   /**
    * @dev Initializes the {EIP712} domain separator using the `name` parameter, and setting `version` to `"1"`.

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity >0.5.13 <0.9;
 pragma experimental ABIEncoderV2;
 
-import { TradingLimits } from "../libraries/TradingLimits.sol";
+import { ITradingLimits } from "./ITradingLimits.sol";
 
 /*
  * @title Broker Interface for trader functions
@@ -35,7 +35,7 @@ interface IBroker {
    * @param token the token to target.
    * @param config the new trading limits config.
    */
-  event TradingLimitConfigured(bytes32 exchangeId, address token, TradingLimits.Config config);
+  event TradingLimitConfigured(bytes32 exchangeId, address token, ITradingLimits.Config config);
 
   /**
    * @notice Execute a token swap with fixed amountIn.
@@ -115,4 +115,38 @@ interface IBroker {
    * @return exchangeProviders the addresses of all exchange providers.
    */
   function getExchangeProviders() external view returns (address[] memory exchangeProviders);
+
+  function burnStableTokens(address token, uint256 amount) external returns (bool);
+
+  /**
+   * @notice Allows the contract to be upgradable via the proxy.
+   * @param _exchangeProviders The addresses of the ExchangeProvider contracts.
+   * @param _reserve The address of the Reserve contract.
+   */
+  function initialize(address[] calldata _exchangeProviders, address _reserve) external;
+
+  /// @notice IOwnable:
+  function transferOwnership(address newOwner) external;
+
+  function renounceOwnership() external;
+
+  function owner() external view returns (address);
+
+  /// @notice Getters:
+  function reserve() external view returns (address);
+
+  function isExchangeProvider(address exchangeProvider) external view returns (bool);
+
+  /// @notice Setters:
+  function addExchangeProvider(address exchangeProvider) external returns (uint256 index);
+
+  function removeExchangeProvider(address exchangeProvider, uint256 index) external;
+
+  function setReserve(address _reserve) external;
+
+  function configureTradingLimit(bytes32 exchangeId, address token, ITradingLimits.Config calldata config) external;
+
+  function tradingLimitsConfig(bytes32 id) external view returns (ITradingLimits.Config memory);
+
+  function tradingLimitsState(bytes32 id) external view returns (ITradingLimits.State memory);
 }

@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+// solhint-disable func-name-mixedcase
+pragma solidity >0.5.13 <0.9;
 pragma experimental ABIEncoderV2;
 
 import { IPricingModule } from "./IPricingModule.sol";
-import { FixidityLib } from "../common/FixidityLib.sol";
+import { IReserve } from "./IReserve.sol";
+import { ISortedOracles } from "./ISortedOracles.sol";
+import { IBreakerBox } from "./IBreakerBox.sol";
+import { IExchangeProvider } from "./IExchangeProvider.sol";
+
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 /**
  * @title BiPool Manager interface
@@ -116,9 +122,9 @@ interface IBiPoolManager {
 
   /**
    * @notice Get all exchange IDs.
-   * @return exchangeIds List of the exchangeIds.
+   * @return _exchangeIds List of the exchangeIds.
    */
-  function getExchangeIds() external view returns (bytes32[] memory exchangeIds);
+  function getExchangeIds() external view returns (bytes32[] memory _exchangeIds);
 
   /**
    * @notice Create a PoolExchange with the provided data.
@@ -134,4 +140,94 @@ interface IBiPoolManager {
    * @return destroyed - true on successful delition.
    */
   function destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex) external returns (bool destroyed);
+
+  /**
+   * @notice Allows the contract to be upgradable via the proxy.
+   * @param _broker The address of the broker contract.
+   * @param _reserve The address of the reserve contract.
+   * @param _sortedOracles The address of the sorted oracles contract.
+   * @param _breakerBox The address of the breaker box contract.
+   */
+  function initialize(
+    address _broker,
+    IReserve _reserve,
+    ISortedOracles _sortedOracles,
+    IBreakerBox _breakerBox
+  ) external;
+
+  function swapIn(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) external returns (uint256 amountOut);
+
+  function swapOut(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountOut
+  ) external returns (uint256 amountIn);
+
+  /**
+   * @notice Updates the pricing modules for a list of identifiers
+   * @dev This function can only be called by the owner of the contract.
+   *      The number of identifiers and modules provided must be the same.
+   * @param identifiers An array of identifiers for which the pricing modules are to be set.
+   * @param addresses An array of module addresses corresponding to each identifier.
+   */
+  function setPricingModules(bytes32[] calldata identifiers, address[] calldata addresses) external;
+
+  // @notice Getters:
+  function broker() external view returns (address);
+
+  function exchanges(bytes32) external view returns (PoolExchange memory);
+
+  function exchangeIds(uint256) external view returns (bytes32);
+
+  function reserve() external view returns (IReserve);
+
+  function sortedOracles() external view returns (ISortedOracles);
+
+  function breakerBox() external view returns (IBreakerBox);
+
+  function tokenPrecisionMultipliers(address) external view returns (uint256);
+
+  function CONSTANT_SUM() external view returns (bytes32);
+
+  function CONSTANT_PRODUCT() external view returns (bytes32);
+
+  function pricingModules(bytes32) external view returns (address);
+
+  function getExchanges() external view returns (IExchangeProvider.Exchange[] memory);
+
+  function getAmountOut(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) external view returns (uint256 amountOut);
+
+  function getAmountIn(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountOut
+  ) external view returns (uint256 amountIn);
+
+  /// @notice Setters:
+  function setBroker(address newBroker) external;
+
+  function setReserve(IReserve newReserve) external;
+
+  function setSortedOracles(ISortedOracles newSortedOracles) external;
+
+  function setBreakerBox(IBreakerBox newBreakerBox) external;
+
+  /// @notice IOwnable:
+  function transferOwnership(address newOwner) external;
+
+  function renounceOwnership() external;
+
+  function owner() external view returns (address);
 }

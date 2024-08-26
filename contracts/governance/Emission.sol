@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable gas-custom-errors
 pragma solidity 0.8.18;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
@@ -54,11 +55,7 @@ contract Emission is OwnableUpgradeable {
    * @param emissionTarget_ The address of the emission target.
    * @param emissionSupply_ The total amount of tokens that can be emitted.
    */
-  function initialize(
-    address mentoToken_,
-    address emissionTarget_,
-    uint256 emissionSupply_
-  ) public initializer {
+  function initialize(address mentoToken_, address emissionTarget_, uint256 emissionSupply_) public initializer {
     emissionStartTime = block.timestamp;
     mentoToken = MentoToken(mentoToken_);
     // slither-disable-next-line missing-zero-check

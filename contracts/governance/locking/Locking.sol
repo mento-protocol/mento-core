@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
-// solhint-disable func-name-mixedcase
+// solhint-disable func-name-mixedcase, gas-custom-errors
 
 import "./LockingBase.sol";
 import "./LockingRelock.sol";

@@ -6,12 +6,12 @@ singleQuote: false
 tabWidth: 2
 trailingComma: all
 
+plugins: ["prettier-plugin-solidity"]
+
 overrides:
   - files: ["*.sol"]
     options:
       compiler: 0.5.17
-      tabWidth: 2
-      printWidth: 120
   - files: [contracts/tokens/patched/*.sol]
     options:
       compiler: 0.8.18

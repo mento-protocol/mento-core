@@ -5,16 +5,15 @@ pragma experimental ABIEncoderV2;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
+import { IERC20 } from "../interfaces/IERC20.sol";
 import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
 import { IBiPoolManager } from "../interfaces/IBiPoolManager.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
-import { IPricingModule } from "../interfaces/IPricingModule.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 
-import { Initializable } from "../common/Initializable.sol";
-import { FixidityLib } from "../common/FixidityLib.sol";
+import { Initializable } from "celo/contracts/common/Initializable.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 /**
  * @title BiPoolExchangeManager
@@ -91,11 +90,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     _;
   }
 
-  modifier verifyExchangeTokens(
-    address tokenIn,
-    address tokenOut,
-    PoolExchange memory exchange
-  ) {
+  modifier verifyExchangeTokens(address tokenIn, address tokenOut, PoolExchange memory exchange) {
     require(
       (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
         (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
@@ -257,8 +252,8 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     // slither-disable-next-line encode-packed-collision
     exchangeId = keccak256(
       abi.encodePacked(
-        IERC20Metadata(exchange.asset0).symbol(),
-        IERC20Metadata(exchange.asset1).symbol(),
+        IERC20(exchange.asset0).symbol(),
+        IERC20(exchange.asset1).symbol(),
         exchange.pricingModule.name()
       )
     );
@@ -270,14 +265,14 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     exchange.bucket0 = bucket0;
     exchange.bucket1 = bucket1;
 
-    uint256 asset0Decimals = IERC20Metadata(exchange.asset0).decimals();
-    uint256 asset1Decimals = IERC20Metadata(exchange.asset1).decimals();
+    uint256 asset0Decimals = IERC20(exchange.asset0).decimals();
+    uint256 asset1Decimals = IERC20(exchange.asset1).decimals();
 
     require(asset0Decimals <= 18, "asset0 decimals must be <= 18");
     require(asset1Decimals <= 18, "asset1 decimals must be <= 18");
 
-    tokenPrecisionMultipliers[exchange.asset0] = 10**(18 - uint256(asset0Decimals));
-    tokenPrecisionMultipliers[exchange.asset1] = 10**(18 - uint256(asset1Decimals));
+    tokenPrecisionMultipliers[exchange.asset0] = 10 ** (18 - uint256(asset0Decimals));
+    tokenPrecisionMultipliers[exchange.asset1] = 10 ** (18 - uint256(asset1Decimals));
 
     exchanges[exchangeId] = exchange;
     // slither-disable-next-line controlled-array-length
@@ -490,11 +485,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @param exchange The exchange being updated.
    * @return exchangeAfter The updated exchange.
    */
-  function updateBucketsIfNecessary(PoolExchange memory exchange)
-    internal
-    view
-    returns (PoolExchange memory, bool updated)
-  {
+  function updateBucketsIfNecessary(
+    PoolExchange memory exchange
+  ) internal view returns (PoolExchange memory, bool updated) {
     if (shouldUpdateBuckets(exchange)) {
       (exchange.bucket0, exchange.bucket1) = getUpdatedBuckets(exchange);
       updated = true;
@@ -557,11 +550,9 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
    * @return rateNumerator
    * @return rateDenominator
    */
-  function getOracleExchangeRate(address target)
-    internal
-    view
-    returns (uint256 rateNumerator, uint256 rateDenominator)
-  {
+  function getOracleExchangeRate(
+    address target
+  ) internal view returns (uint256 rateNumerator, uint256 rateDenominator) {
     (rateNumerator, rateDenominator) = sortedOracles.medianRate(target);
     require(rateDenominator > 0, "exchange rate denominator must be greater than 0");
   }

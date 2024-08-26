@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable immutable-vars-naming, gas-custom-errors
 pragma solidity 0.8.18;
 
 import { MerkleProof } from "openzeppelin-contracts-next/contracts/utils/cryptography/MerkleProof.sol";
@@ -113,11 +114,7 @@ contract Airgrab is ReentrancyGuard {
    * @param amount The amount of tokens to be claimed.
    * @param merkleProof The merkle proof for the account.
    */
-  modifier canClaim(
-    address account,
-    uint256 amount,
-    bytes32[] calldata merkleProof
-  ) {
+  modifier canClaim(address account, uint256 amount, bytes32[] calldata merkleProof) {
     require(block.timestamp <= endTimestamp, "Airgrab: finished");
     require(!claimed[account], "Airgrab: already claimed");
     bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(account, amount))));

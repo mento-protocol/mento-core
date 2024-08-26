@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
-// solhint-disable no-unused-vars
+// solhint-disable no-unused-vars, gas-custom-errors
 
 import "./LockingBase.sol";
 
@@ -44,18 +44,14 @@ contract LockingVotes is LockingBase {
   /**
    * @dev Returns the delegate that `account` has chosen.
    */
-  function delegates(
-    address /* account */
-  ) external pure override returns (address) {
+  function delegates(address /* account */) external pure override returns (address) {
     revert("not implemented");
   }
 
   /**
    * @dev Delegates votes from the sender to `delegatee`.
    */
-  function delegate(
-    address /* delegatee */
-  ) external pure override {
+  function delegate(address /* delegatee */) external pure override {
     revert("not implemented");
   }
 

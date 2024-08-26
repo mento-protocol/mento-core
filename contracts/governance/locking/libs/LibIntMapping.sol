@@ -12,11 +12,7 @@ library LibIntMapping {
    * @param key Key of the item
    * @param value Value to add
    */
-  function addToItem(
-    mapping(uint256 => int96) storage map,
-    uint256 key,
-    int96 value
-  ) internal {
+  function addToItem(mapping(uint256 => int96) storage map, uint256 key, int96 value) internal {
     map[key] = map[key] + (value);
   }
 
@@ -26,11 +22,7 @@ library LibIntMapping {
    * @param key Key of the item
    * @param value Value to subtract
    */
-  function subFromItem(
-    mapping(uint256 => int96) storage map,
-    uint256 key,
-    int96 value
-  ) internal {
+  function subFromItem(mapping(uint256 => int96) storage map, uint256 key, int96 value) internal {
     map[key] = map[key] - (value);
   }
 }

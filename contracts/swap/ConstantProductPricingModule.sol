@@ -3,9 +3,9 @@ pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 import { IPricingModule } from "../interfaces/IPricingModule.sol";
-import { FixidityLib } from "../common/FixidityLib.sol";
 
 /**
  * @title ConstantProductPricingModule

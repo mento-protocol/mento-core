@@ -4,27 +4,34 @@ pragma experimental ABIEncoderV2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeERC20 } from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
 import { IBroker } from "../interfaces/IBroker.sol";
 import { IBrokerAdmin } from "../interfaces/IBrokerAdmin.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
-import { IERC20Metadata } from "../common/interfaces/IERC20Metadata.sol";
 import { IStableTokenV2 } from "../interfaces/IStableTokenV2.sol";
+import { ITradingLimits } from "../interfaces/ITradingLimits.sol";
 
-import { Initializable } from "../common/Initializable.sol";
 import { TradingLimits } from "../libraries/TradingLimits.sol";
-import { ReentrancyGuard } from "../common/ReentrancyGuard.sol";
+import { Initializable } from "celo/contracts/common/Initializable.sol";
+import { ReentrancyGuard } from "celo/contracts/common/libraries/ReentrancyGuard.sol";
+
+interface IERC20Metadata {
+  /**
+   * @dev Returns the decimals places of the token.
+   */
+  function decimals() external view returns (uint8);
+}
 
 /**
  * @title Broker
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
 contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuard {
-  using TradingLimits for TradingLimits.State;
-  using TradingLimits for TradingLimits.Config;
+  using TradingLimits for ITradingLimits.State;
+  using TradingLimits for ITradingLimits.Config;
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
@@ -32,8 +39,8 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
 
   address[] public exchangeProviders;
   mapping(address => bool) public isExchangeProvider;
-  mapping(bytes32 => TradingLimits.State) public tradingLimitsState;
-  mapping(bytes32 => TradingLimits.Config) public tradingLimitsConfig;
+  mapping(bytes32 => ITradingLimits.State) public tradingLimitsState;
+  mapping(bytes32 => ITradingLimits.Config) public tradingLimitsConfig;
 
   // Address of the reserve.
   IReserve public reserve;
@@ -219,10 +226,12 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param token the token to target.
    * @param config the new trading limits config.
    */
+  // TODO: Make this external with next update.
+  // slither-disable-next-line external-function
   function configureTradingLimit(
     bytes32 exchangeId,
     address token,
-    TradingLimits.Config memory config
+    ITradingLimits.Config memory config
   ) public onlyOwner {
     config.validate();
 
@@ -242,11 +251,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param token The asset to transfer.
    * @param amount The amount of `token` to be transferred.
    */
-  function transferOut(
-    address payable to,
-    address token,
-    uint256 amount
-  ) internal {
+  function transferOut(address payable to, address token, uint256 amount) internal {
     if (reserve.isStableAsset(token)) {
       require(IStableTokenV2(token).mint(to, amount), "Minting of the stable asset failed");
     } else if (reserve.isCollateralAsset(token)) {
@@ -264,11 +269,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param token The asset to transfer.
    * @param amount The amount of `token` to be transferred.
    */
-  function transferIn(
-    address payable from,
-    address token,
-    uint256 amount
-  ) internal {
+  function transferIn(address payable from, address token, uint256 amount) internal {
     if (reserve.isStableAsset(token)) {
       IERC20(token).safeTransferFrom(from, address(this), amount);
       require(IStableTokenV2(token).burn(amount), "Burning of the stable asset failed");
@@ -311,14 +312,10 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    * @param deltaFlow the deltaflow of this token, negative for outflow, positive for inflow.
    * @param token the address of the token, used to lookup decimals.
    */
-  function guardTradingLimit(
-    bytes32 tradingLimitId,
-    int256 deltaFlow,
-    address token
-  ) internal {
-    TradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
+  function guardTradingLimit(bytes32 tradingLimitId, int256 deltaFlow, address token) internal {
+    ITradingLimits.Config memory tradingLimitConfig = tradingLimitsConfig[tradingLimitId];
     if (tradingLimitConfig.flags > 0) {
-      TradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
+      ITradingLimits.State memory tradingLimitState = tradingLimitsState[tradingLimitId];
       tradingLimitState = tradingLimitState.update(tradingLimitConfig, deltaFlow, IERC20Metadata(token).decimals());
       tradingLimitState.verify(tradingLimitConfig);
       tradingLimitsState[tradingLimitId] = tradingLimitState;

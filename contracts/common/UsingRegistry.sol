@@ -4,11 +4,11 @@ pragma solidity ^0.5.13;
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import "./interfaces/IFreezer.sol";
-import "./interfaces/IRegistry.sol";
+import "celo/contracts/common/interfaces/IFreezer.sol";
+import "celo/contracts/common/interfaces/IRegistry.sol";
 
-import "../legacy/interfaces/IExchange.sol";
-import "../legacy/interfaces/IStableToken.sol";
+import "../interfaces/IExchange.sol";
+import "../interfaces/IStableTokenV2.sol";
 import "../interfaces/IReserve.sol";
 import "../interfaces/ISortedOracles.sol";
 
@@ -77,7 +77,7 @@ contract UsingRegistry is Ownable {
     return ISortedOracles(registry.getAddressForOrDie(SORTED_ORACLES_REGISTRY_ID));
   }
 
-  function getStableToken() internal view returns (IStableToken) {
-    return IStableToken(registry.getAddressForOrDie(STABLE_TOKEN_REGISTRY_ID));
+  function getStableToken() internal view returns (IStableTokenV2) {
+    return IStableTokenV2(registry.getAddressForOrDie(STABLE_TOKEN_REGISTRY_ID));
   }
 }

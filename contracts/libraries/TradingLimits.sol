@@ -2,6 +2,8 @@
 pragma solidity ^0.5.13;
 pragma experimental ABIEncoderV2;
 
+import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
+
 /**
  * @title TradingLimits
  * @author Mento Team
@@ -45,45 +47,11 @@ library TradingLimits {
   int48 private constant MAX_INT48 = int48(uint48(-1) / 2);
 
   /**
-   * @dev The State struct contains the current state of a trading limit config.
-   * @param lastUpdated0 The timestamp of the last reset of netflow0.
-   * @param lastUpdated1 The timestamp of the last reset of netflow1.
-   * @param netflow0 The current netflow of the asset for limit0.
-   * @param netflow1 The current netflow of the asset for limit1.
-   * @param netflowGlobal The current netflow of the asset for limitGlobal.
-   */
-  struct State {
-    uint32 lastUpdated0;
-    uint32 lastUpdated1;
-    int48 netflow0;
-    int48 netflow1;
-    int48 netflowGlobal;
-  }
-
-  /**
-   * @dev The Config struct contains the configuration of trading limits.
-   * @param timestep0 The time window in seconds for limit0.
-   * @param timestep1 The time window in seconds for limit1.
-   * @param limit0 The limit0 for the asset.
-   * @param limit1 The limit1 for the asset.
-   * @param limitGlobal The global limit for the asset.
-   * @param flags A bitfield of flags to enable/disable the individual limits.
-   */
-  struct Config {
-    uint32 timestep0;
-    uint32 timestep1;
-    int48 limit0;
-    int48 limit1;
-    int48 limitGlobal;
-    uint8 flags;
-  }
-
-  /**
    * @notice Validate a trading limit configuration.
    * @dev Reverts if the configuration is malformed.
    * @param self the Config struct to check.
    */
-  function validate(Config memory self) internal pure {
+  function validate(ITradingLimits.Config memory self) internal pure {
     require(self.flags & L1 == 0 || self.flags & L0 != 0, "L1 without L0 not allowed");
     require(self.flags & L0 == 0 || self.timestep0 > 0, "timestep0 can't be zero if active");
     require(self.flags & L1 == 0 || self.timestep1 > 0, "timestep1 can't be zero if active");
@@ -101,7 +69,7 @@ library TradingLimits {
    * @param self the trading limit State to check.
    * @param config the trading limit Config to check against.
    */
-  function verify(State memory self, Config memory config) internal pure {
+  function verify(ITradingLimits.State memory self, ITradingLimits.Config memory config) internal pure {
     if ((config.flags & L0) > 0 && (-1 * config.limit0 > self.netflow0 || self.netflow0 > config.limit0)) {
       revert("L0 Exceeded");
     }
@@ -125,7 +93,10 @@ library TradingLimits {
    * @param config the updated config to reset against.
    * @return the reset state.
    */
-  function reset(State memory self, Config memory config) internal pure returns (State memory) {
+  function reset(
+    ITradingLimits.State memory self,
+    ITradingLimits.Config memory config
+  ) internal pure returns (ITradingLimits.State memory) {
     // Ensure the next swap will reset the trading limits windows.
     self.lastUpdated0 = 0;
     self.lastUpdated1 = 0;
@@ -151,12 +122,12 @@ library TradingLimits {
    * @return State the updated state.
    */
   function update(
-    State memory self,
-    Config memory config,
+    ITradingLimits.State memory self,
+    ITradingLimits.Config memory config,
     int256 _deltaFlow,
     uint8 decimals
-  ) internal view returns (State memory) {
-    int256 _deltaFlowUnits = _deltaFlow / int256((10**uint256(decimals)));
+  ) internal view returns (ITradingLimits.State memory) {
+    int256 _deltaFlowUnits = _deltaFlow / int256((10 ** uint256(decimals)));
     require(_deltaFlowUnits <= MAX_INT48, "dFlow too large");
     int48 deltaFlowUnits = _deltaFlowUnits == 0 ? 1 : int48(_deltaFlowUnits);
 

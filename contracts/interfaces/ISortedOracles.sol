@@ -1,23 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity >0.5.13 <0.9;
 
-import "../common/linkedlists/SortedLinkedListWithMedian.sol";
+import { IBreakerBox } from "./IBreakerBox.sol";
 
 interface ISortedOracles {
+  enum MedianRelation {
+    Undefined,
+    Lesser,
+    Greater,
+    Equal
+  }
+
   function addOracle(address, address) external;
 
-  function removeOracle(
-    address,
-    address,
-    uint256
-  ) external;
+  function removeOracle(address, address, uint256) external;
 
-  function report(
-    address,
-    uint256,
-    address,
-    address
-  ) external;
+  function report(address, uint256, address, address) external;
 
   function removeExpiredReports(address, uint256) external;
 
@@ -33,12 +31,19 @@ interface ISortedOracles {
 
   function getOracles(address) external view returns (address[] memory);
 
-  function getTimestamps(address token)
-    external
-    view
-    returns (
-      address[] memory,
-      uint256[] memory,
-      SortedLinkedListWithMedian.MedianRelation[] memory
-    );
+  function getRates(address token) external view returns (address[] memory, uint256[] memory, MedianRelation[] memory);
+
+  function getTimestamps(
+    address token
+  ) external view returns (address[] memory, uint256[] memory, MedianRelation[] memory);
+
+  function initialize(uint256) external;
+
+  function setBreakerBox(IBreakerBox) external;
+
+  function getTokenReportExpirySeconds(address token) external view returns (uint256);
+
+  function oracles(address, uint256) external view returns (address);
+
+  function breakerBox() external view returns (IBreakerBox);
 }
