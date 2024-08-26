@@ -43,13 +43,15 @@ interface ISortedOracles {
 }
 
 contract ChainlinkRelayerV1Test is BaseTest {
-  bytes constant TIMESTAMP_NOT_NEW_ERROR = abi.encodeWithSignature("TimestampNotNew()");
   bytes constant EXPIRED_TIMESTAMP_ERROR = abi.encodeWithSignature("ExpiredTimestamp()");
   bytes constant INVALID_PRICE_ERROR = abi.encodeWithSignature("InvalidPrice()");
-  bytes constant INVALID_AGGREGATOR = abi.encodeWithSignature("InvalidAggregator()");
-  bytes constant NO_AGGREGATORS = abi.encodeWithSignature("NoAggregators()");
-  bytes constant TOO_MANY_AGGREGATORS = abi.encodeWithSignature("TooManyAggregators()");
-  bytes constant TOO_MANY_EXISTING_REPORTS = abi.encodeWithSignature("TooManyExistingReports()");
+  bytes constant INVALID_AGGREGATOR_ERROR = abi.encodeWithSignature("InvalidAggregator()");
+  bytes constant INVALID_MAX_TIMESTAMP_SPREAD_ERROR = abi.encodeWithSignature("InvalidMaxTimestampSpread()");
+  bytes constant NO_AGGREGATORS_ERROR = abi.encodeWithSignature("NoAggregators()");
+  bytes constant TIMESTAMP_NOT_NEW_ERROR = abi.encodeWithSignature("TimestampNotNew()");
+  bytes constant TIMESTAMP_SPREAD_TOO_HIGH_ERROR = abi.encodeWithSignature("TimestampSpreadTooHigh()");
+  bytes constant TOO_MANY_AGGREGATORS_ERROR = abi.encodeWithSignature("TooManyAggregators()");
+  bytes constant TOO_MANY_EXISTING_REPORTS_ERROR = abi.encodeWithSignature("TooManyExistingReports()");
 
   ISortedOracles sortedOracles;
 
@@ -100,7 +102,10 @@ contract ChainlinkRelayerV1Test is BaseTest {
       }
     }
 
-    relayer = IChainlinkRelayer(new ChainlinkRelayerV1(rateFeedId, "CELO/USD", address(sortedOracles), aggregators));
+    uint256 maxTimestampSpread = aggregatorsCount > 1 ? 300 : 0;
+    relayer = IChainlinkRelayer(
+      new ChainlinkRelayerV1(rateFeedId, "CELO/USD", address(sortedOracles), maxTimestampSpread, aggregators)
+    );
     sortedOracles.addOracle(rateFeedId, address(relayer));
   }
 
@@ -126,31 +131,56 @@ contract ChainlinkRelayerV1Test is BaseTest {
 
 contract ChainlinkRelayerV1Test_constructor_invalid is ChainlinkRelayerV1Test {
   function test_constructorRevertsWhenAggregatorsIsEmpty() public {
-    vm.expectRevert(NO_AGGREGATORS);
+    vm.expectRevert(NO_AGGREGATORS_ERROR);
     new ChainlinkRelayerV1(
       rateFeedId,
       "CELO/USD",
       address(sortedOracles),
+      0,
       new IChainlinkRelayer.ChainlinkAggregator[](0)
     );
   }
 
   function test_constructorRevertsWhenTooManyAggregators() public {
-    vm.expectRevert(TOO_MANY_AGGREGATORS);
+    vm.expectRevert(TOO_MANY_AGGREGATORS_ERROR);
     new ChainlinkRelayerV1(
       rateFeedId,
       "CELO/USD",
       address(sortedOracles),
+      300,
       new IChainlinkRelayer.ChainlinkAggregator[](5)
     );
   }
 
   function test_constructorRevertsWhenAggregatorsIsInvalid() public {
-    vm.expectRevert(INVALID_AGGREGATOR);
+    vm.expectRevert(INVALID_AGGREGATOR_ERROR);
     new ChainlinkRelayerV1(
       rateFeedId,
       "CELO/USD",
       address(sortedOracles),
+      0,
+      new IChainlinkRelayer.ChainlinkAggregator[](1)
+    );
+  }
+
+  function test_constructorRevertsWhenNoTimestampSpreadButMultipleAggregators() public {
+    vm.expectRevert(INVALID_MAX_TIMESTAMP_SPREAD_ERROR);
+    new ChainlinkRelayerV1(
+      rateFeedId,
+      "CELO/USD",
+      address(sortedOracles),
+      0,
+      new IChainlinkRelayer.ChainlinkAggregator[](2)
+    );
+  }
+
+  function test_constructorRevertsWhenTimestampSpreadPositiveButSingleAggregator() public {
+    vm.expectRevert(INVALID_MAX_TIMESTAMP_SPREAD_ERROR);
+    new ChainlinkRelayerV1(
+      rateFeedId,
+      "CELO/USD",
+      address(sortedOracles),
+      300,
       new IChainlinkRelayer.ChainlinkAggregator[](1)
     );
   }
@@ -457,7 +487,7 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
 
     vm.warp(block.timestamp + 100); // Not enough to be able to expire the first report
     setAggregatorPrices(); // Update timestamps
-    vm.expectRevert(TOO_MANY_EXISTING_REPORTS);
+    vm.expectRevert(TOO_MANY_EXISTING_REPORTS_ERROR);
     relayer.relay();
   }
 
@@ -497,7 +527,7 @@ contract ChainlinkRelayerV1Test_relay_single is ChainlinkRelayerV1Test {
     relayer.relay();
   }
 
-  function test_revertsWhenOldestTimestampIsExpired() public virtual withReport(aReport) {
+  function test_revertsWhenMostRecentTimestampIsExpired() public virtual withReport(aReport) {
     mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
     vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
@@ -556,11 +586,19 @@ contract ChainlinkRelayerV1Test_relay_double is ChainlinkRelayerV1Test_relay_sin
     relayer.relay();
   }
 
-  function test_revertsWhenOldestTimestampIsExpired() public virtual override withReport(aReport) {
-    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+  function test_revertsWhenMostRecentTimestampIsExpired() public virtual override withReport(aReport) {
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
+    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
     vm.warp(block.timestamp + expirySeconds + 1);
-    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
+  function test_revertsWhenTimestampSpreadTooLarge() public virtual {
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    vm.warp(block.timestamp + 301);
+    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
+    vm.expectRevert(TIMESTAMP_SPREAD_TOO_HIGH_ERROR);
     relayer.relay();
   }
 }
@@ -618,12 +656,20 @@ contract ChainlinkRelayerV1Test_relay_triple is ChainlinkRelayerV1Test_relay_dou
     relayer.relay();
   }
 
-  function test_revertsWhenOldestTimestampIsExpired() public virtual override withReport(aReport) {
-    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
-    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
+  function test_revertsWhenMostRecentTimestampIsExpired() public virtual override withReport(aReport) {
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
+    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
+    mockAggregator2.setRoundData(aggregatorPrice2, block.timestamp + 1);
     vm.warp(block.timestamp + expirySeconds + 1);
-    mockAggregator2.setRoundData(aggregatorPrice2, block.timestamp);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
+  function test_revertsWhenTimestampSpreadTooLarge() public virtual override {
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    vm.warp(block.timestamp + 301);
+    mockAggregator2.setRoundData(aggregatorPrice2, block.timestamp);
+    vm.expectRevert(TIMESTAMP_SPREAD_TOO_HIGH_ERROR);
     relayer.relay();
   }
 }
@@ -684,14 +730,22 @@ contract ChainlinkRelayerV1Test_relay_full is ChainlinkRelayerV1Test_relay_tripl
     relayer.relay();
   }
 
-  function test_revertsWhenOldestTimestampIsExpired() public override withReport(aReport) {
-    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
-    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp);
-    mockAggregator2.setRoundData(aggregatorPrice2, block.timestamp);
-    vm.warp(block.timestamp + expirySeconds + 1);
-    mockAggregator2.setRoundData(aggregatorPrice3, block.timestamp);
+  function test_revertsWhenMostRecentTimestampIsExpired() public override withReport(aReport) {
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp + 1);
+    mockAggregator1.setRoundData(aggregatorPrice1, block.timestamp + 1);
+    mockAggregator2.setRoundData(aggregatorPrice2, block.timestamp + 1);
+    mockAggregator2.setRoundData(aggregatorPrice3, block.timestamp + 1);
 
+    vm.warp(block.timestamp + expirySeconds + 1);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
+  function test_revertsWhenTimestampSpreadTooLarge() public virtual override {
+    mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
+    vm.warp(block.timestamp + 301);
+    mockAggregator3.setRoundData(aggregatorPrice3, block.timestamp);
+    vm.expectRevert(TIMESTAMP_SPREAD_TOO_HIGH_ERROR);
     relayer.relay();
   }
 }
