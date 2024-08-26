@@ -29,7 +29,7 @@ interface IERC20Metadata {
  * @title Broker
  * @notice The broker executes swaps and keeps track of spending limits per pair.
  */
-contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuard {
+contract Broker is IBroker, Initializable, Ownable, ReentrancyGuard {
   using TradingLimits for ITradingLimits.State;
   using TradingLimits for ITradingLimits.Config;
   using SafeERC20 for IERC20;
