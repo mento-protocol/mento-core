@@ -109,8 +109,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
   /// @notice Used when more than four aggregators are passed into the constructor.
   error TooManyAggregators();
 
-  /// @notice Used when there are more then 1 aggregators and the maxTimestampSpread is 0,
-  /// amd when there is only 1 aggregator and the maxTimestampSpread is not 0.
+  /// @notice Used when a) there is more than 1 aggregator and the maxTimestampSpread is 0,
+  /// OR b) when there is only 1 aggregator and the maxTimestampSpread is not 0.
   error InvalidMaxTimestampSpread();
 
   /// @notice Used when a new price's timestamp is not newer than the most recent SortedOracles timestamp.
