@@ -163,7 +163,7 @@ contract ChainlinkRelayerV1Test_constructor_invalid is ChainlinkRelayerV1Test {
     );
   }
 
-  function test_constructorReversWhenNoTimestampSpreadButMultipleAggregators() public {
+  function test_constructorRevertsWhenNoTimestampSpreadButMultipleAggregators() public {
     vm.expectRevert(INVALID_MAX_TIMESTAMP_SPREAD_ERROR);
     new ChainlinkRelayerV1(
       rateFeedId,
