@@ -22,7 +22,6 @@ check_contract() {
         fi
     done
 
-    # echo "Running: forge build --skip ${skip_contracts[*]} test/**/*"
     forge clean
     if forge build --skip ${skip_contracts[*]}; then
         return 0
