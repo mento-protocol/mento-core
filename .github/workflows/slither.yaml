@@ -34,16 +34,7 @@ jobs:
         with:
           sarif: results.sarif
           fail-on: "low"
-        # continue-on-error: true
-        # -----------------------
-        # Ideally, we'd like to continue on error to allow uploading the SARIF file here.
-        # But we're often running into GitHub's API Rate Limit when uploading the SARIF file
-        # which would lead to lots of failed pipelines even if slither works fine:
-        # https://github.com/mento-protocol/mento-core/actions/runs/7167865576/job/19514794782
-        #
-        # So for now it's better to just let the slither task fail directly so we at least
-        # know it failed.
-        # -----------------------
+          continue-on-error: true
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
         with:
