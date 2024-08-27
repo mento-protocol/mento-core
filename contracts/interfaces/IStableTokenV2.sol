@@ -54,13 +54,8 @@ interface IStableTokenV2 {
   function initialize(
     string calldata _name,
     string calldata _symbol,
-    uint8, // deprecated: decimals
-    address, // deprecated: registryAddress,
-    uint256, // deprecated: inflationRate,
-    uint256, // deprecated:  inflationFactorUpdatePeriod,
     address[] calldata initialBalanceAddresses,
-    uint256[] calldata initialBalanceValues,
-    string calldata // deprecated: exchangeIdentifier
+    uint256[] calldata initialBalanceValues
   ) external;
 
   /**

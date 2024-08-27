@@ -51,6 +51,16 @@ contract GovernanceFactory is Ownable {
     uint256[] additionalAllocationAmounts;
   }
 
+  /// @dev Precalculated addresses by nonce for the contracts to be deployed
+  struct PrecalculatedAddresses {
+    address mentoToken;
+    address emission;
+    address airgrab;
+    address locking;
+    address governanceTimelock;
+    address mentoGovernor;
+  }
+
   ProxyAdmin public proxyAdmin;
   MentoToken public mentoToken;
   Emission public emission;
@@ -109,22 +119,47 @@ contract GovernanceFactory is Ownable {
     // slither-disable-next-line missing-zero-check
     watchdogMultiSig = watchdogMultiSig_;
 
-    // Precalculated contract addresses:
-    address tokenPrecalculated = addressForNonce(2);
-    address emissionPrecalculated = addressForNonce(4);
-    address airgrabPrecalculated = addressForNonce(5);
-    address lockingPrecalculated = addressForNonce(7);
-    address governanceTimelockPrecalculated = addressForNonce(9);
-    address governorPrecalculated = addressForNonce(11);
+    PrecalculatedAddresses memory addr = getPrecalculatedAddresses();
 
-    address[] memory owners = new address[](1);
-    owners[0] = governanceTimelockPrecalculated;
+    deployProxyAdmin();
+    deployMentoToken(allocationParams, addr);
+    deployEmission(addr);
+    deployAirgrab(airgrabRoot, fractalSigner, addr);
+    deployLocking(addr);
+    deployTimelock(addr);
+    deployMentoGovernor(addr);
+    transferOwnership();
 
+    emit GovernanceCreated(
+      address(proxyAdmin),
+      address(emission),
+      address(mentoToken),
+      address(airgrab),
+      address(locking),
+      address(governanceTimelock),
+      address(mentoGovernor)
+    );
+  }
+
+  /**
+   * @notice Deploys the ProxyAdmin contract.
+   */
+  function deployProxyAdmin() internal {
     // =========================================
     // ========== Deploy 1: ProxyAdmin =========
     // =========================================
     proxyAdmin = ProxyDeployerLib.deployAdmin(); // NONCE:1
+  }
 
+  /**
+   * @notice Deploys the MentoToken contract.
+   * @param allocationParams Parameters for the initial token allocation
+   * @param addr Precalculated addresses for the contracts to be deployed.
+   */
+  function deployMentoToken(
+    MentoTokenAllocationParams memory allocationParams,
+    PrecalculatedAddresses memory addr
+  ) internal {
     // ===========================================
     // ========== Deploy 2: MentoToken ===========
     // ===========================================
@@ -132,9 +167,9 @@ contract GovernanceFactory is Ownable {
     address[] memory allocationRecipients = new address[](numberOfRecipients);
     uint256[] memory allocationAmounts = new uint256[](numberOfRecipients);
 
-    allocationRecipients[0] = airgrabPrecalculated;
+    allocationRecipients[0] = addr.airgrab;
     allocationAmounts[0] = allocationParams.airgrabAllocation;
-    allocationRecipients[1] = governanceTimelockPrecalculated;
+    allocationRecipients[1] = addr.governanceTimelock;
     allocationAmounts[1] = allocationParams.mentoTreasuryAllocation;
 
     for (uint256 i = 0; i < allocationParams.additionalAllocationRecipients.length; i++) {
@@ -142,15 +177,16 @@ contract GovernanceFactory is Ownable {
       allocationAmounts[i + 2] = allocationParams.additionalAllocationAmounts[i];
     }
 
-    mentoToken = MentoTokenDeployerLib.deploy( // NONCE:2
-        allocationRecipients,
-        allocationAmounts,
-        emissionPrecalculated,
-        lockingPrecalculated
-      );
+    mentoToken = MentoTokenDeployerLib.deploy(allocationRecipients, allocationAmounts, addr.emission, addr.locking); // NONCE:2
 
-    assert(address(mentoToken) == tokenPrecalculated);
+    assert(address(mentoToken) == addr.mentoToken);
+  }
 
+  /**
+   * @notice Deploys the Emission contract.
+   * @param addr Precalculated addresses for the contracts to be deployed.
+   */
+  function deployEmission(PrecalculatedAddresses memory addr) internal {
     // =========================================
     // ========== Deploy 3: Emission ===========
     // =========================================
@@ -161,15 +197,23 @@ contract GovernanceFactory is Ownable {
         address(proxyAdmin),
         abi.encodeWithSelector(
           emissionImpl.initialize.selector,
-          tokenPrecalculated, ///               @param mentoToken_ The address of the MentoToken contract.
-          governanceTimelockPrecalculated, ///  @param governanceTimelock_ The address of the mento treasury contract.
+          addr.mentoToken, ///               @param mentoToken_ The address of the MentoToken contract.
+          addr.governanceTimelock, ///  @param governanceTimelock_ The address of the mento treasury contract.
           mentoToken.emissionSupply() ///       @param emissionSupply_ The total amount of tokens that can be emitted.
         )
       );
 
     emission = Emission(address(emissionProxy));
-    assert(address(emission) == emissionPrecalculated);
+    assert(address(emission) == addr.emission);
+  }
 
+  /**
+   * @notice Deploys the Airgrab contract.
+   * @param airgrabRoot Root hash for the airgrab Merkle tree.
+   * @param fractalSigner Signer of fractal kyc.
+   * @param addr Precalculated addresses for the contracts to be deployed.
+   */
+  function deployAirgrab(bytes32 airgrabRoot, address fractalSigner, PrecalculatedAddresses memory addr) internal {
     // ========================================
     // ========== Deploy 4: Airgrab ===========
     // ========================================
@@ -182,12 +226,18 @@ contract GovernanceFactory is Ownable {
         airgrabEnds,
         AIRGRAB_LOCK_CLIFF,
         AIRGRAB_LOCK_SLOPE,
-        tokenPrecalculated,
-        lockingPrecalculated,
-        payable(governanceTimelockPrecalculated)
+        addr.mentoToken,
+        addr.locking,
+        payable(addr.governanceTimelock)
       );
-    assert(address(airgrab) == airgrabPrecalculated);
+    assert(address(airgrab) == addr.airgrab);
+  }
 
+  /**
+   * @notice Deploys the Locking contract.
+   * @param addr Precalculated addresses for the contracts to be deployed.
+   */
+  function deployLocking(PrecalculatedAddresses memory addr) internal {
     // ==========================================
     // ========== Deploy 5-6: Locking ===========
     // ==========================================
@@ -206,8 +256,14 @@ contract GovernanceFactory is Ownable {
         )
       );
     locking = Locking(address(lockingProxy));
-    assert(address(locking) == lockingPrecalculated);
+    assert(address(locking) == addr.locking);
+  }
 
+  /**
+   * @notice Deploys the Timelock Controller and Governance Timelock contracts.
+   * @param addr Precalculated addresses for the contracts to be deployed.
+   */
+  function deployTimelock(PrecalculatedAddresses memory addr) internal {
     // ===================================================================
     // ========== Deploy 7: Timelock Controller Implementation ===========
     // ===================================================================
@@ -219,7 +275,7 @@ contract GovernanceFactory is Ownable {
     // ====================================================
     address[] memory governanceProposers = new address[](1);
     address[] memory governanceExecutors = new address[](1);
-    governanceProposers[0] = governorPrecalculated; // Only MentoGovernor can propose
+    governanceProposers[0] = addr.mentoGovernor; // Only MentoGovernor can propose
     governanceExecutors[0] = address(0); // Anyone can execute passed proposals
 
     // slither-disable-next-line reentrancy-benign
@@ -236,8 +292,14 @@ contract GovernanceFactory is Ownable {
         )
       );
     governanceTimelock = TimelockController(payable(governanceTimelockProxy));
-    assert(address(governanceTimelock) == governanceTimelockPrecalculated);
+    assert(address(governanceTimelock) == addr.governanceTimelock);
+  }
 
+  /**
+   * @notice Deploys the MentoGovernor contract.
+   * @param addr Precalculated addresses for the contracts to be deployed.
+   */
+  function deployMentoGovernor(PrecalculatedAddresses memory addr) internal {
     // ==================================================
     // ========== Deploy 9-10: Mento Governor ===========
     // ==================================================
@@ -248,17 +310,24 @@ contract GovernanceFactory is Ownable {
         address(proxyAdmin),
         abi.encodeWithSelector(
           mentoGovernorImpl.__MentoGovernor_init.selector,
-          address(lockingProxy), ///       @param veToken The escrowed Mento Token used for voting.
-          governanceTimelockProxy, ///     @param timelockController The timelock controller used by the governor.
+          address(locking), ///       @param veToken The escrowed Mento Token used for voting.
+          address(governanceTimelock), ///     @param timelockController The timelock controller used by the governor.
           GOVERNOR_VOTING_DELAY, ///       @param votingDelay_ The delay time in blocks between the proposal creation and the start of voting.
           GOVERNOR_VOTING_PERIOD, ///      @param votingPeriod_ The voting duration in blocks between the vote start and vote end.
           GOVERNOR_PROPOSAL_THRESHOLD, /// @param threshold_ The number of votes required in order for a voter to become a proposer.
           GOVERNOR_QUORUM ///              @param quorum_ The minimum number of votes in percent of total supply required in order for a proposal to succeed.
         )
       );
-    mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
-    assert(address(mentoGovernor) == governorPrecalculated);
 
+    // slither-disable-next-line reentrancy-benign
+    mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
+    assert(address(mentoGovernor) == addr.mentoGovernor);
+  }
+
+  /**
+   * @notice Transfers the ownership of the contracts to the governance timelock.
+   */
+  function transferOwnership() internal {
     // =============================================
     // =========== Configure Ownership =============
     // =============================================
@@ -266,16 +335,22 @@ contract GovernanceFactory is Ownable {
     locking.transferOwnership(address(governanceTimelock));
     proxyAdmin.transferOwnership(address(governanceTimelock));
     mentoToken.transferOwnership(address(governanceTimelock));
+  }
 
-    emit GovernanceCreated(
-      address(proxyAdmin),
-      address(emission),
-      address(mentoToken),
-      address(airgrab),
-      address(locking),
-      address(governanceTimelock),
-      address(mentoGovernor)
-    );
+  /**
+   * @notice Returns the precalculated addresses for the contracts to be deployed.
+   * @return The precalculated addresses.
+   */
+  function getPrecalculatedAddresses() internal view returns (PrecalculatedAddresses memory) {
+    return
+      PrecalculatedAddresses({
+        mentoToken: addressForNonce(2),
+        emission: addressForNonce(4),
+        airgrab: addressForNonce(5),
+        locking: addressForNonce(7),
+        governanceTimelock: addressForNonce(9),
+        mentoGovernor: addressForNonce(11)
+      });
   }
 
   /**

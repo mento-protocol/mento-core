@@ -9,7 +9,6 @@ bytecode_hash = "none"
 fuzz_runs = 256
 gas_reports = ["*"]
 optimizer = false
-optimizer_runs = 200
 legacy = true
 no_match_contract = "(ForkTest)|(GovernanceGasTest)"
 
@@ -18,24 +17,16 @@ allow_paths = [
 ]
 
 fs_permissions = [
-    { access = "read", path = "out" },
-    { access = "read-write", path = "test/fixtures" }
-]
-
-additional_compiler_profiles = [ 
-    { name = "via-ir-opt", via_ir = true, optimizer = true } 
-]
-
-compilation_restrictions = [
-  { paths = "contracts/governance/Airgrab.sol", via_ir = true, optimizer = true },
-  { paths = "contracts/tokens/StableTokenV2.sol", via_ir = true, optimizer = true },
+    { access = "read", path = "out" }
 ]
 
 [profile.ci]
-via_ir=true
-optimizer=true
 fuzz_runs = 1_000
 verbosity = 3
+
+[profile.optimized]
+optimizer = true
+optimizer_runs = 200
 
 [profile.fork-tests]
 no_match_contract = "_random" # in order to reset the no_match_contract

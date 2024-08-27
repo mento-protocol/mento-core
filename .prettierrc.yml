@@ -6,10 +6,19 @@ singleQuote: false
 tabWidth: 2
 trailingComma: all
 
-plugins: ["prettier-plugin-solidity"]
+plugins: [prettier-plugin-solidity]
 
 overrides:
   - files: ["*.sol"]
+    options:
+      compiler: 0.5.17
+  - files: [contracts/interfaces/*.sol]
+    options:
+      compiler: 0.8.18
+  - files:
+      - contracts/interfaces/IBrokerAdmin.sol
+      - contracts/interfaces/ICeloToken.sol
+      - contracts/interfaces/IExchange.sol
     options:
       compiler: 0.5.17
   - files: [contracts/tokens/patched/*.sol]

@@ -26,6 +26,20 @@ contract Airgrab is ReentrancyGuard {
   uint32 public constant MAX_SLOPE_PERIOD = 104;
 
   /**
+   * @notice FractalProof struct for KYC/KYB verification.
+   * @param sig The signature of the Fractal Credential.
+   * @param validUntil The timestamp when the Fractal Credential expires.
+   * @param approvedAt The timestamp when the Fractal Credential was approved.
+   * @param fractalId The Fractal Credential ID.
+   */
+  struct FractalProof {
+    bytes sig;
+    uint256 validUntil;
+    uint256 approvedAt;
+    string fractalId;
+  }
+
+  /**
    * @notice Emitted when tokens are claimed
    * @param claimer The account claiming the tokens
    * @param amount The amount of tokens being claimed
@@ -68,31 +82,22 @@ contract Airgrab is ReentrancyGuard {
    *      https://github.com/trustfractal/credentials-api-verifiers
    * @notice This function checks the kyc signature with the data provided.
    * @param account The address of the account to check.
-   * @param proof The kyc proof for the account.
-   * @param validUntil The kyc proof valid until timestamp.
-   * @param approvedAt The kyc proof approved at timestamp.
-   * @param fractalId The kyc proof fractal id.
+   * @param proof FractaLProof kyc proof data for the account.
    */
-  modifier hasValidKyc(
-    address account,
-    bytes memory proof,
-    uint256 validUntil,
-    uint256 approvedAt,
-    string memory fractalId
-  ) {
-    require(block.timestamp < validUntil, "Airgrab: KYC no longer valid");
-    require(fractalMaxAge == 0 || block.timestamp < approvedAt + fractalMaxAge, "Airgrab: KYC not recent enough");
+  modifier hasValidKyc(address account, FractalProof memory proof) {
+    require(block.timestamp < proof.validUntil, "Airgrab: KYC no longer valid");
+    require(fractalMaxAge == 0 || block.timestamp < proof.approvedAt + fractalMaxAge, "Airgrab: KYC not recent enough");
     string memory accountString = Strings.toHexString(uint256(uint160(account)), 20);
 
     bytes32 signedMessageHash = ECDSA.toEthSignedMessageHash(
       abi.encodePacked(
         accountString,
         ";",
-        fractalId,
+        proof.fractalId,
         ";",
-        Strings.toString(approvedAt),
+        Strings.toString(proof.approvedAt),
         ";",
-        Strings.toString(validUntil),
+        Strings.toString(proof.validUntil),
         ";",
         // ISO 3166-1 alpha-2 country codes
         // DRC, CUBA, GB, IRAN, DPKR, MALI, MYANMAR, SOUTH SUDAN, SYRIA, US, YEMEN
@@ -100,7 +105,7 @@ contract Airgrab is ReentrancyGuard {
       )
     );
 
-    require(SignatureChecker.isValidSignatureNow(fractalSigner, signedMessageHash, proof), "Airgrab: Invalid KYC");
+    require(SignatureChecker.isValidSignatureNow(fractalSigner, signedMessageHash, proof.sig), "Airgrab: Invalid KYC");
 
     _;
   }
@@ -178,26 +183,23 @@ contract Airgrab is ReentrancyGuard {
    * @param delegate The address of the account that gets voting power delegated
    * @param merkleProof The merkle proof for the account.
    * @param fractalProof The Fractal KYC proof for the account.
-   * @param fractalProofValidUntil The Fractal KYC proof valid until timestamp.
-   * @param fractalProofApprovedAt The Fractal KYC proof approved at timestamp.
-   * @param fractalId The Fractal KYC ID.
    */
   function claim(
     uint96 amount,
     address delegate,
     bytes32[] calldata merkleProof,
-    bytes calldata fractalProof,
-    uint256 fractalProofValidUntil,
-    uint256 fractalProofApprovedAt,
-    string memory fractalId
-  )
-    external
-    hasValidKyc(msg.sender, fractalProof, fractalProofValidUntil, fractalProofApprovedAt, fractalId)
-    canClaim(msg.sender, amount, merkleProof)
-    nonReentrant
-  {
+    FractalProof calldata fractalProof
+  ) external hasValidKyc(msg.sender, fractalProof) canClaim(msg.sender, amount, merkleProof) nonReentrant {
     require(token.balanceOf(address(this)) >= amount, "Airgrab: insufficient balance");
+    _claim(amount, delegate);
+  }
 
+  /**
+   * @dev Internal function to claim tokens and lock them.
+   * @param amount The amount of tokens to be claimed.
+   * @param delegate The address of the account that gets voting power delegated
+   */
+  function _claim(uint96 amount, address delegate) internal {
     claimed[msg.sender] = true;
     uint256 lockId = locking.lock(msg.sender, delegate, amount, slopePeriod, cliffPeriod);
     emit TokensClaimed(msg.sender, amount, lockId);

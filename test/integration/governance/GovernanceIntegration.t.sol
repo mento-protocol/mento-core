@@ -294,16 +294,16 @@ contract GovernanceIntegrationTest is GovernanceTest {
       bytes[] memory calldatas,
       string memory description
     ) = Proposals._proposeChangeSettings(
-        mentoGovernor,
-        governanceTimelock,
-        locking,
-        newVotingDelay,
-        newVotingPeriod,
-        newThreshold,
-        newQuorum,
-        newMinDelay,
-        newMinCliff,
-        newMinSlope
+        Proposals.changeSettingsContracts(mentoGovernor, governanceTimelock, locking),
+        Proposals.changeSettingsVars(
+          newVotingDelay,
+          newVotingPeriod,
+          newThreshold,
+          newQuorum,
+          newMinDelay,
+          newMinCliff,
+          newMinSlope
+        )
       );
 
     // ~10 mins
@@ -341,16 +341,16 @@ contract GovernanceIntegrationTest is GovernanceTest {
     vm.prank(alice);
     vm.expectRevert("Governor: proposer votes below proposal threshold");
     Proposals._proposeChangeSettings(
-      mentoGovernor,
-      governanceTimelock,
-      locking,
-      newVotingDelay,
-      newVotingPeriod,
-      newThreshold,
-      newQuorum,
-      newMinDelay,
-      newMinCliff,
-      newMinSlope
+      Proposals.changeSettingsContracts(mentoGovernor, governanceTimelock, locking),
+      Proposals.changeSettingsVars(
+        newVotingDelay,
+        newVotingPeriod,
+        newThreshold,
+        newQuorum,
+        newMinDelay,
+        newMinCliff,
+        newMinSlope
+      )
     );
     // Lock reverts because new min period is higher
     vm.prank(alice);
@@ -382,14 +382,24 @@ contract GovernanceIntegrationTest is GovernanceTest {
     // slope = 104
     // cliff = 0
     vm.prank(claimer0);
-    airgrab.claim(claimer0Amount, claimer0, claimer0Proof, fractalProof0, validUntil, approvedAt, "fractalId");
+    airgrab.claim(
+      claimer0Amount,
+      claimer0,
+      claimer0Proof,
+      Airgrab.FractalProof(fractalProof0, validUntil, approvedAt, "fractalId")
+    );
 
     // claimer1Amount = 20_000e18
     // slope = 104
     // cliff = 0
     // claim with a delegate
     vm.prank(claimer1);
-    airgrab.claim(claimer1Amount, alice, claimer1Proof, fractalProof1, validUntil, approvedAt, "fractalId");
+    airgrab.claim(
+      claimer1Amount,
+      alice,
+      claimer1Proof,
+      Airgrab.FractalProof(fractalProof1, validUntil, approvedAt, "fractalId")
+    );
 
     // claimed amounts are locked automatically
     // 100e18 * (103 / 103) = 100e18
@@ -541,16 +551,19 @@ contract GovernanceIntegrationTest is GovernanceTest {
 
   function test_governor_propose_whenExecutedForImplementationUpgrade_shouldUpgradeTheContracts() public s_governance {
     // create new implementations
-    LockingHarness newLockingContract = new LockingHarness();
-    TimelockController newGovernanceTimelockContract = new TimelockController();
-    MentoGovernor newGovernorContract = new MentoGovernor();
-    Emission newEmissionContract = new Emission(false);
+    address[] memory newImplementations = addresses(
+      address(new LockingHarness()),
+      address(new TimelockController()),
+      address(new MentoGovernor()),
+      address(new Emission(false))
+    );
 
-    // proxies of current implementations
-    ITransparentUpgradeableProxy lockingProxy = ITransparentUpgradeableProxy(address(locking));
-    ITransparentUpgradeableProxy governanceTimelockProxy = ITransparentUpgradeableProxy(governanceTimelockAddress);
-    ITransparentUpgradeableProxy mentoGovernorProxy = ITransparentUpgradeableProxy(address(mentoGovernor));
-    ITransparentUpgradeableProxy emissionProxy = ITransparentUpgradeableProxy(address(emission));
+    address[] memory proxies = addresses(
+      address(locking),
+      governanceTimelockAddress,
+      address(mentoGovernor),
+      address(emission)
+    );
 
     vm.prank(alice);
     (
@@ -559,18 +572,7 @@ contract GovernanceIntegrationTest is GovernanceTest {
       uint256[] memory values,
       bytes[] memory calldatas,
       string memory description
-    ) = Proposals._proposeUpgradeContracts(
-        mentoGovernor,
-        proxyAdmin,
-        lockingProxy,
-        governanceTimelockProxy,
-        mentoGovernorProxy,
-        emissionProxy,
-        address(newLockingContract),
-        address(newGovernanceTimelockContract),
-        address(newGovernorContract),
-        address(newEmissionContract)
-      );
+    ) = Proposals._proposeUpgradeContracts(mentoGovernor, proxyAdmin, proxies, newImplementations);
 
     // ~10 mins
     vm.timeTravel(120);
@@ -595,13 +597,10 @@ contract GovernanceIntegrationTest is GovernanceTest {
 
     mentoGovernor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
-    assertEq(address(proxyAdmin.getProxyImplementation(lockingProxy)), address(newLockingContract));
-    assertEq(
-      address(proxyAdmin.getProxyImplementation(governanceTimelockProxy)),
-      address(newGovernanceTimelockContract)
-    );
-    assertEq(address(proxyAdmin.getProxyImplementation(mentoGovernorProxy)), address(newGovernorContract));
-    assertEq(address(proxyAdmin.getProxyImplementation(emissionProxy)), address(newEmissionContract));
+    for (uint256 i = 0; i < proxies.length; i++) {
+      ITransparentUpgradeableProxy proxy = ITransparentUpgradeableProxy(proxies[i]);
+      assertEq(address(proxyAdmin.getProxyImplementation(proxy)), newImplementations[i]);
+    }
 
     // new implementation has the method and governance upgraded the contract
     LockingHarness(address(locking)).setEpochShift(1);
