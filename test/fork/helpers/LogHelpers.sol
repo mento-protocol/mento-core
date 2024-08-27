@@ -41,8 +41,8 @@ library LogHelpers {
     );
     console.log(
       "\t exchange.bucket0: %d | exchange.bucket1: %d",
-      exchange.bucket0.toUnits(ctx.assets(0)),
-      exchange.bucket1.toUnits(ctx.assets(1))
+      exchange.bucket0.toUnits(ctx.asset(0)),
+      exchange.bucket1.toUnits(ctx.asset(1))
     );
     console.log("\t exchange.lastBucketUpdate: %d", exchange.lastBucketUpdate);
   }

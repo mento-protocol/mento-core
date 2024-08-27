@@ -12,7 +12,7 @@ library SwapHelpers {
   using OracleHelpers for ExchangeForkTest;
 
   function ticker(ExchangeForkTest ctx) internal view returns (string memory) {
-    return string(abi.encodePacked(IERC20(ctx.assets(0)).symbol(), "/", IERC20(ctx.assets(1)).symbol()));
+    return string(abi.encodePacked(IERC20(ctx.asset(0)).symbol(), "/", IERC20(ctx.asset(1)).symbol()));
   }
 
   function maxSwapIn(ExchangeForkTest ctx, uint256 desired, address from, address to) internal view returns (uint256) {
@@ -23,7 +23,7 @@ library SwapHelpers {
       (uint256 bucket0, uint256 bucket1) = ctx.getUpdatedBuckets();
       leftInBucket = (pool.asset0 == to ? bucket0 : bucket1) - 1;
     }
-    leftInBucket = leftInBucket / ctx.biPoolManager().tokenPrecisionMultipliers(to);
+    leftInBucket = leftInBucket / ctx.exchangeProvider().tokenPrecisionMultipliers(to);
     uint256 maxPossible = getAmountIn(ctx, from, to, leftInBucket);
     return maxPossible > desired ? desired : maxPossible;
   }
@@ -37,7 +37,7 @@ library SwapHelpers {
       leftInBucket = (pool.asset0 == to ? bucket0 : bucket1) - 1;
     }
 
-    leftInBucket = leftInBucket / ctx.biPoolManager().tokenPrecisionMultipliers(to);
+    leftInBucket = leftInBucket / ctx.exchangeProvider().tokenPrecisionMultipliers(to);
     return leftInBucket > desired ? desired : leftInBucket;
   }
 

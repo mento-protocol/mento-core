@@ -32,8 +32,7 @@ abstract contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, 
   bytes32 public exchangeId;
 
   address public exchangeProviderAddr;
-  IExchangeProvider public exchangeProvider;
-  IBiPoolManager public biPoolManager;
+  IBiPoolManager public exchangeProvider;
 
   IExchangeProvider.Exchange public exchange;
   IBiPoolManager.PoolExchange public poolExchange;
@@ -60,17 +59,16 @@ abstract contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, 
 
   function loadExchange() internal {
     exchangeProviderAddr = broker.exchangeProviders(exchangeProviderIndex);
-    exchangeProvider = IExchangeProvider(exchangeProviderAddr);
-    biPoolManager = IBiPoolManager(exchangeProviderAddr);
+    exchangeProvider = IBiPoolManager(exchangeProviderAddr);
     exchange = exchangeProvider.getExchanges()[exchangeIndex];
     vm.label(exchange.assets[0], exchange.assets[0].symbol());
     vm.label(exchange.assets[1], exchange.assets[1].symbol());
     exchangeId = exchange.exchangeId;
-    poolExchange = biPoolManager.getPoolExchange(exchange.exchangeId);
+    poolExchange = exchangeProvider.getPoolExchange(exchange.exchangeId);
     rateFeedId = poolExchange.config.referenceRateFeedID;
   }
 
-  function assets(uint256 index) public view returns (address) {
+  function asset(uint256 index) public view returns (address) {
     return exchange.assets[index];
   }
 

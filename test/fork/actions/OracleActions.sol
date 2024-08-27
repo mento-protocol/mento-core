@@ -50,7 +50,7 @@ contract OracleActions is StdCheats {
   }
 
   function addReportsIfNeeded() public {
-    IBiPoolManager.PoolExchange memory pool = ctx.biPoolManager().getPoolExchange(ctx.exchangeId());
+    IBiPoolManager.PoolExchange memory pool = ctx.exchangeProvider().getPoolExchange(ctx.exchangeId());
     (bool timePassed, bool enoughReports, bool medianReportRecent, bool isReportExpired, ) = ctx.shouldUpdateBuckets();
     if (timePassed && (!medianReportRecent || isReportExpired || !enoughReports)) {
       (uint256 newMedian, ) = ctx.sortedOracles().medianRate(pool.config.referenceRateFeedID);

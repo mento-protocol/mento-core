@@ -22,7 +22,7 @@ library OracleHelpers {
     address baseAsset
   ) internal view returns (FixidityLib.Fraction memory) {
     (uint256 numerator, uint256 denominator) = getReferenceRate(ctx);
-    address asset0 = ctx.assets(0);
+    address asset0 = ctx.asset(0);
     if (baseAsset == asset0) {
       return FixidityLib.newFixedFraction(numerator, denominator);
     }
