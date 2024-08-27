@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 0 * * *"  # everyday at midnight
+  pull_request:
 
 jobs:
   test:
