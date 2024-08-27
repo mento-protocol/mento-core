@@ -27,7 +27,7 @@ interface IMint {
  * therfore it doesn't make assumptions about the systems, nor tries to configure
  * the system to test specific scenarios.
  * However, it should be exausitve in testing invariants across all tradable pairs
- * in the system, therfore each test should.
+ * in the system, therefore each test should.
  */
 abstract contract BaseForkTest is Test {
   using FixidityLib for FixidityLib.Fraction;
