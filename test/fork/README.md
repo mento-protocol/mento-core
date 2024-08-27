@@ -52,12 +52,12 @@ contract Alfajores_P0E00_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 0
 ```
 
 This represents an ExchangeForkTest for the 0th exchange of the 0th exchange provider on Alfajores.
-These tests contracts need to be added manually when we add more pairs or exchange providers, but the 
+These tests contracts need to be added manually when we add more pairs or exchange providers, but the
 assertions at chain level gives us the heads up when this changes.
 
 ### assertions, actions, helpers
 
-Fork tests can get quite complex because we need to understand the current chain state and manipualte it when needed to be able to test our assetions. 
+Fork tests can get quite complex because we need to understand the current chain state and manipualte it when needed to be able to test our assetions.
 That resulted in the past in a mess of unstructure utility functions. This new structrue tries to improve that:
 
 ```
@@ -92,7 +92,7 @@ For example `SwapAssertions` contains `assert_swapIn` which asserts a swap is po
 These reasuable building blocks are used inside of the actual tests defined in the `ExchangeForkTest` contract.
 All assertions extend and make us of `Actions`.
 
-If you're writing a test and you want to express an assertion about the protocol that either gets too complex, or should be reused, it can become an assertion. 
+If you're writing a test and you want to express an assertion about the protocol that either gets too complex, or should be reused, it can become an assertion.
 Otherwise you can also simply use `Actions` in the tests and assert their outcome.
 
 #### `Actions`
@@ -128,6 +128,6 @@ To make it easy to get access to the current test context everywhere in the util
 ExchangeForkTest private ctx = ExchangeForkTest(address(this));
 ```
 
-This is because in the end this whole inheritance structure collapses to a single ExchangeForkTest contract and we already know this. 
-So we can introduce this magic `ctx` variable which gets you access to all assertions and actions (defined as public), 
+This is because in the end this whole inheritance structure collapses to a single ExchangeForkTest contract and we already know this.
+So we can introduce this magic `ctx` variable which gets you access to all assertions and actions (defined as public),
 and all of the public variables of `ExchangeForkTest`, meaning all loaded contracts, the current exchange, etc.
