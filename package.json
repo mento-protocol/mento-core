@@ -40,7 +40,7 @@
     "fork-test:alfajores": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Alfajores",
     "fork-test:celo-mainnet": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract CeloMainnet",
     "check-no-ir": "./bin/check-contracts.sh",
-    "check-contract-sizes": "env FOUNDRY_PROFILE=optimized forge build --sizes --skip test/**/*"
+    "check-contract-sizes": "env FOUNDRY_PROFILE=optimized forge build --sizes --skip \"test/**/*\""
   },
   "dependencies": {
     "@celo/contracts": "^11.0.0"

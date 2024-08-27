@@ -1,0 +1,43 @@
+name: "ForkTests"
+
+env:
+  FOUNDRY_PROFILE: "fork-tests"
+  ALFAJORES_RPC_URL: ${{secrets.ALFAJORES_RPC_URL}}
+  CELO_MAINNET_RPC_URL: ${{secrets.CELO_MAINNET_RPC_URL}}
+
+on: 
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"  # everyday at midnight
+
+jobs:
+  test:
+    name: Run fork tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+          ref: develop
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: "Install Node.js"
+        uses: "actions/setup-node@v3"
+        with:
+          cache: "yarn"
+          node-version: "20"
+
+      - name: "Install the Node.js dependencies"
+        run: "yarn install --immutable"
+
+      - name: "Show the Foundry config"
+        run: "forge config"
+
+      - name: "Run the tests"
+        run: "forge test"
+
+      - name: "Add test summary"
+        run: |
+          echo "## Tests" >> $GITHUB_STEP_SUMMARY
