@@ -280,9 +280,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
 
     if (otherRate < rate) {
       lesserKey = otherOracle;
-      greaterKey = address(0);
     } else {
-      lesserKey = address(0);
       greaterKey = otherOracle;
     }
 

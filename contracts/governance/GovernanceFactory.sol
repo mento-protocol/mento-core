@@ -129,6 +129,16 @@ contract GovernanceFactory is Ownable {
     deployTimelock(addr);
     deployMentoGovernor(addr);
     transferOwnership();
+
+    emit GovernanceCreated(
+      address(proxyAdmin),
+      address(emission),
+      address(mentoToken),
+      address(airgrab),
+      address(locking),
+      address(governanceTimelock),
+      address(mentoGovernor)
+    );
   }
 
   /**
