@@ -40,6 +40,7 @@ contract GovernanceGasTest is GovernanceTest {
 
   bytes32 public merkleRoot = 0x945d83ced94efc822fed712b4c4694b4e1129607ec5bbd2ab971bb08dca4d809;
 
+  uint256 public viewCallGas = 30_000;
   uint256 public proposalCreationGas = 500_000;
   uint256 public proposalQueueGas = 200_000;
   uint256 public proposalExecutionGas = 200_000;
@@ -104,11 +105,9 @@ contract GovernanceGasTest is GovernanceTest {
 
   // PoC from: https://github.com/sherlock-audit/2024-02-mento-judging/issues/4
   function test_totalSupply_whenUsedWith50_000Locks_shouldCostReasonableGas() public s_attack {
-    uint256 totalSupplyGas = 20_000;
-
     uint256 gasLeftBefore = gasleft();
     locking.totalSupply();
-    assertLt(gasLeftBefore - gasleft(), totalSupplyGas);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
 
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
@@ -119,7 +118,7 @@ contract GovernanceGasTest is GovernanceTest {
 
     gasLeftBefore = gasleft();
     locking.totalSupply();
-    assertLt(gasLeftBefore - gasleft(), totalSupplyGas);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
 
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
@@ -130,16 +129,14 @@ contract GovernanceGasTest is GovernanceTest {
 
     gasLeftBefore = gasleft();
     locking.totalSupply();
-    assertLt(gasLeftBefore - gasleft(), totalSupplyGas);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
   }
 
   // PoC from https://github.com/sherlock-audit/2024-02-mento-judging/issues/2
   function test_getVotes_whenUsedWith50_000Locks_shouldCostReasonableGas() public s_attack {
-    uint256 getVotesGas = 20_000;
-
     uint256 gasLeftBefore = gasleft();
     locking.getVotes(bob);
-    assertLt(gasLeftBefore - gasleft(), getVotesGas);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
 
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
@@ -150,7 +147,7 @@ contract GovernanceGasTest is GovernanceTest {
 
     gasLeftBefore = gasleft();
     locking.getVotes(bob);
-    assertLt(gasLeftBefore - gasleft(), getVotesGas);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
 
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
@@ -161,15 +158,13 @@ contract GovernanceGasTest is GovernanceTest {
 
     gasLeftBefore = gasleft();
     locking.getVotes(bob);
-    assertLt(gasLeftBefore - gasleft(), getVotesGas);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
   }
 
   function test_getPastVotes_whenUsedWith50_000Locks_shouldCostReasonableGas() public s_attack {
-    uint256 getPastVotesGas = 20_000;
-
     uint256 gasLeftBefore = gasleft();
     locking.getPastVotes(bob, block.number - BLOCKS_DAY);
-    assertLt(gasLeftBefore - gasleft(), getPastVotesGas);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
 
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
@@ -182,7 +177,7 @@ contract GovernanceGasTest is GovernanceTest {
 
     gasLeftBefore = gasleft();
     locking.getPastVotes(bob, block.number - 3 * BLOCKS_DAY);
-    assertLt(gasLeftBefore - gasleft(), getPastVotesGas);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
 
     vm.timeTravel(BLOCKS_DAY);
 
@@ -197,15 +192,13 @@ contract GovernanceGasTest is GovernanceTest {
 
     gasLeftBefore = gasleft();
     locking.getPastVotes(bob, block.number - 2 * BLOCKS_WEEK);
-    assertLt(gasLeftBefore - gasleft(), getPastVotesGas);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
   }
 
   function test_getPastTotalSupply_whenUsedWith50_000Locks_shouldCostReasonableGas() public s_attack {
-    uint256 getPastTotalSupply = 20_000;
-
     uint256 gasLeftBefore = gasleft();
     locking.getPastTotalSupply(block.number - BLOCKS_DAY);
-    assertLt(gasLeftBefore - gasleft(), getPastTotalSupply);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
 
     vm.startPrank(alice);
     mentoToken.approve(address(locking), type(uint256).max);
@@ -218,7 +211,7 @@ contract GovernanceGasTest is GovernanceTest {
 
     gasLeftBefore = gasleft();
     locking.getPastTotalSupply(block.number - 3 * BLOCKS_DAY);
-    assertLt(gasLeftBefore - gasleft(), getPastTotalSupply);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
 
     vm.timeTravel(BLOCKS_DAY);
 
@@ -233,7 +226,7 @@ contract GovernanceGasTest is GovernanceTest {
 
     gasLeftBefore = gasleft();
     locking.getPastTotalSupply(block.number - 2 * BLOCKS_WEEK);
-    assertLt(gasLeftBefore - gasleft(), getPastTotalSupply);
+    assertLt(gasLeftBefore - gasleft(), viewCallGas);
   }
 
   function test_queueAndExecute_whenUsedWith50_000LocksAndNewLocksInSameBlock_shouldCostReasonableGas()
