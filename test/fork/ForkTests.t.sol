@@ -41,7 +41,7 @@ import { ChainForkTest } from "./ChainForkTest.sol";
 import { ExchangeForkTest } from "./ExchangeForkTest.sol";
 import { CELO_ID, ALFAJORES_ID } from "mento-std/Constants.sol";
 
-contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(14)) {}
+contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(15)) {}
 
 contract Alfajores_P0E00_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 0) {}
 
@@ -70,6 +70,8 @@ contract Alfajores_P0E11_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 1
 contract Alfajores_P0E12_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 12) {}
 
 contract Alfajores_P0E13_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 13) {}
+
+contract Alfajores_P0E14_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 14) {}
 
 contract Celo_ChainForkTest is ChainForkTest(CELO_ID, 1, uints(14)) {}
 
