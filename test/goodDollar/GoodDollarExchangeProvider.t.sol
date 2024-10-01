@@ -51,7 +51,7 @@ contract GoodDollarExchangeProviderTest is Test {
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 0.2 * 1e8,
-      exitConribution: 0.01 * 1e8
+      exitContribution: 0.01 * 1e8
     });
 
     vm.mockCall(

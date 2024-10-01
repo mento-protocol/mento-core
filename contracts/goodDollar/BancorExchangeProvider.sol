@@ -211,7 +211,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     require(exitContribution <= MAX_WEIGHT, "Invalid exit contribution");
 
     PoolExchange storage exchange = exchanges[exchangeId];
-    exchange.exitConribution = exitContribution;
+    exchange.exitContribution = exitContribution;
     emit ExitContributionSet(exchangeId, exitContribution);
   }
 
@@ -359,7 +359,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
         scaledAmountOut
       );
 
-      scaledAmountIn = (scaledAmountIn * MAX_WEIGHT) / (MAX_WEIGHT - exchange.exitConribution);
+      scaledAmountIn = (scaledAmountIn * MAX_WEIGHT) / (MAX_WEIGHT - exchange.exitContribution);
     }
   }
 
@@ -385,7 +385,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
         scaledAmountIn
       );
     } else {
-      scaledAmountIn = (scaledAmountIn * (MAX_WEIGHT - exchange.exitConribution)) / MAX_WEIGHT;
+      scaledAmountIn = (scaledAmountIn * (MAX_WEIGHT - exchange.exitContribution)) / MAX_WEIGHT;
       scaledAmountOut = saleTargetAmount(
         exchange.tokenSupply,
         exchange.reserveBalance,
@@ -410,6 +410,6 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     require(reserve.isStableAsset(exchange.tokenAddress), "token must be a stable registered with the reserve");
     require(exchange.reserveRatio > 1, "Invalid reserve ratio");
     require(exchange.reserveRatio <= MAX_WEIGHT, "Invalid reserve ratio");
-    require(exchange.exitConribution <= MAX_WEIGHT, "Invalid exit contribution");
+    require(exchange.exitContribution <= MAX_WEIGHT, "Invalid exit contribution");
   }
 }

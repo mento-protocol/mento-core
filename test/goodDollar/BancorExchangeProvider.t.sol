@@ -50,7 +50,7 @@ contract BancorExchangeProviderTest is Test {
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 1e8 * 0.2,
-      exitConribution: 1e8 * 0.01
+      exitContribution: 1e8 * 0.01
     });
 
     poolExchange2 = IBancorExchangeProvider.PoolExchange({
@@ -59,7 +59,7 @@ contract BancorExchangeProviderTest is Test {
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 1e8 * 0.2,
-      exitConribution: 1e8 * 0.01
+      exitContribution: 1e8 * 0.01
     });
 
     vm.mockCall(
@@ -182,7 +182,7 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     bancorExchangeProvider.setExitContribution(exchangeId, newExitContribution);
 
     IBancorExchangeProvider.PoolExchange memory poolExchange = bancorExchangeProvider.getPoolExchange(exchangeId);
-    assertEq(poolExchange.exitConribution, newExitContribution);
+    assertEq(poolExchange.exitContribution, newExitContribution);
   }
 
   /* ---------- Getters ---------- */
@@ -202,7 +202,7 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     assertEq(poolExchange.tokenSupply, poolExchange1.tokenSupply);
     assertEq(poolExchange.reserveBalance, poolExchange1.reserveBalance);
     assertEq(poolExchange.reserveRatio, poolExchange1.reserveRatio);
-    assertEq(poolExchange.exitConribution, poolExchange1.exitConribution);
+    assertEq(poolExchange.exitContribution, poolExchange1.exitContribution);
   }
 
   function test_getExchangeIds_whenNoExchanges_shouldReturnEmptyArray() public {
@@ -296,7 +296,7 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
   }
 
   function test_createExchange_whenExitContributionAbove100Percent_shouldRevert() public {
-    poolExchange1.exitConribution = bancorExchangeProvider.MAX_WEIGHT() + 1;
+    poolExchange1.exitContribution = bancorExchangeProvider.MAX_WEIGHT() + 1;
     vm.expectRevert("Invalid exit contribution");
     bancorExchangeProvider.createExchange(poolExchange1);
   }
@@ -332,7 +332,7 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
     assertEq(poolExchange.tokenSupply, poolExchange1.tokenSupply);
     assertEq(poolExchange.reserveBalance, poolExchange1.reserveBalance);
     assertEq(poolExchange.reserveRatio, poolExchange1.reserveRatio);
-    assertEq(poolExchange.exitConribution, poolExchange1.exitConribution);
+    assertEq(poolExchange.exitContribution, poolExchange1.exitContribution);
 
     IExchangeProvider.Exchange[] memory exchanges = bancorExchangeProvider.getExchanges();
     assertEq(exchanges.length, 1);

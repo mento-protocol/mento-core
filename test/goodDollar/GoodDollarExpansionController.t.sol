@@ -245,7 +245,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromInterest is GoodDollarExpa
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 200000,
-      exitConribution: 10000
+      exitContribution: 10000
     });
 
     vm.mockCall(
@@ -307,7 +307,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromReserveBalance is GoodDoll
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 200000,
-      exitConribution: 10000
+      exitContribution: 10000
     });
 
     vm.mockCall(
@@ -361,7 +361,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 200000,
-      exitConribution: 10000
+      exitContribution: 10000
     });
 
     vm.mockCall(
@@ -570,7 +570,7 @@ contract GoodDollarExpansionControllerTest_mintRewardFromRR is GoodDollarExpansi
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 200000,
-      exitConribution: 10000
+      exitContribution: 10000
     });
 
     vm.mockCall(

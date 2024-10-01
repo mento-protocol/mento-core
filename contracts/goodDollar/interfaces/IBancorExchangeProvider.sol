@@ -9,7 +9,7 @@ interface IBancorExchangeProvider {
     uint256 tokenSupply;
     uint256 reserveBalance;
     uint32 reserveRatio;
-    uint32 exitConribution;
+    uint32 exitContribution;
   }
 
   /* ------- Events ------- */
