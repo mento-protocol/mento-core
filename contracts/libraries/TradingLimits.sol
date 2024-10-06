@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity 0.8.18;
 pragma experimental ABIEncoderV2;
 
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
@@ -44,7 +44,7 @@ library TradingLimits {
   uint8 private constant L0 = 1; // 0b001 Limit0
   uint8 private constant L1 = 2; // 0b010 Limit1
   uint8 private constant LG = 4; // 0b100 LimitGlobal
-  int48 private constant MAX_INT48 = int48(uint48(-1) / 2);
+  int48 private constant MAX_INT48 = type(int48).max;
 
   /**
    * @notice Validate a trading limit configuration.
@@ -129,7 +129,11 @@ library TradingLimits {
   ) internal view returns (ITradingLimits.State memory) {
     int256 _deltaFlowUnits = _deltaFlow / int256((10 ** uint256(decimals)));
     require(_deltaFlowUnits <= MAX_INT48, "dFlow too large");
-    int48 deltaFlowUnits = _deltaFlowUnits == 0 ? 1 : int48(_deltaFlowUnits);
+
+    int48 deltaFlowUnits = int48(_deltaFlowUnits);
+    if (deltaFlowUnits == 0) {
+      deltaFlowUnits = _deltaFlow > 0 ? int48(1) : int48(-1);
+    }
 
     if (config.flags & L0 > 0) {
       if (block.timestamp > self.lastUpdated0 + config.timestep0) {

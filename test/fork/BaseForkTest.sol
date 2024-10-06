@@ -10,6 +10,7 @@ import { IRegistry } from "celo/contracts/common/interfaces/IRegistry.sol";
 
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IBroker } from "contracts/interfaces/IBroker.sol";
+import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";
@@ -35,7 +36,7 @@ abstract contract BaseForkTest is Test {
   IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
 
   address governance;
-  IBroker public broker;
+  Broker public broker;
   IBreakerBox public breakerBox;
   ISortedOracles public sortedOracles;
   IReserve public reserve;
@@ -72,13 +73,13 @@ abstract contract BaseForkTest is Test {
     __CeloPrecompiles_init();
 
     tradingLimits = ITradingLimitsHarness(deployCode("TradingLimitsHarness"));
-    broker = IBroker(lookup("Broker"));
+    broker = Broker(lookup("Broker"));
     sortedOracles = ISortedOracles(lookup("SortedOracles"));
     governance = lookup("Governance");
     breakerBox = IBreakerBox(address(sortedOracles.breakerBox()));
     vm.label(address(breakerBox), "BreakerBox");
     trader = makeAddr("trader");
-    reserve = IReserve(broker.reserve());
+    reserve = IReserve(lookup("Reserve"));
 
     /// @dev Hardcoded number of dependencies for each ratefeed.
     /// Should be updated when they change, there is a test that will

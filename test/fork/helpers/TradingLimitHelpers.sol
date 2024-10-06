@@ -14,7 +14,15 @@ library TradingLimitHelpers {
   using OracleHelpers for *;
 
   function isLimitConfigured(ExchangeForkTest ctx, bytes32 limitId) public view returns (bool) {
-    ITradingLimits.Config memory limitConfig = ctx.broker().tradingLimitsConfig(limitId);
+    ITradingLimits.Config memory limitConfig;
+    (
+      limitConfig.timestep0,
+      limitConfig.timestep1,
+      limitConfig.limit0,
+      limitConfig.limit1,
+      limitConfig.limitGlobal,
+      limitConfig.flags
+    ) = ctx.broker().tradingLimitsConfig(limitId);
     return limitConfig.flags > uint8(0);
   }
 
@@ -22,21 +30,59 @@ library TradingLimitHelpers {
     ExchangeForkTest ctx,
     bytes32 limitId
   ) public view returns (ITradingLimits.Config memory) {
-    return ctx.broker().tradingLimitsConfig(limitId);
+    ITradingLimits.Config memory limitConfig;
+    (
+      limitConfig.timestep0,
+      limitConfig.timestep1,
+      limitConfig.limit0,
+      limitConfig.limit1,
+      limitConfig.limitGlobal,
+      limitConfig.flags
+    ) = ctx.broker().tradingLimitsConfig(limitId);
+
+    return limitConfig;
   }
 
   function tradingLimitsState(ExchangeForkTest ctx, bytes32 limitId) public view returns (ITradingLimits.State memory) {
-    return ctx.broker().tradingLimitsState(limitId);
+    ITradingLimits.State memory limitState;
+    (
+      limitState.lastUpdated0,
+      limitState.lastUpdated1,
+      limitState.netflow0,
+      limitState.netflow1,
+      limitState.netflowGlobal
+    ) = ctx.broker().tradingLimitsState(limitId);
+    return limitState;
   }
 
   function tradingLimitsConfig(ExchangeForkTest ctx, address asset) public view returns (ITradingLimits.Config memory) {
+    ITradingLimits.Config memory limitConfig;
     bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
-    return ctx.broker().tradingLimitsConfig(ctx.exchangeId() ^ assetBytes32);
+    bytes32 limitId = ctx.exchangeId() ^ assetBytes32;
+
+    (
+      limitConfig.timestep0,
+      limitConfig.timestep1,
+      limitConfig.limit0,
+      limitConfig.limit1,
+      limitConfig.limitGlobal,
+      limitConfig.flags
+    ) = ctx.broker().tradingLimitsConfig(limitId);
+    return limitConfig;
   }
 
   function tradingLimitsState(ExchangeForkTest ctx, address asset) public view returns (ITradingLimits.State memory) {
+    ITradingLimits.State memory limitState;
     bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
-    return ctx.broker().tradingLimitsState(ctx.exchangeId() ^ assetBytes32);
+    bytes32 limitId = ctx.exchangeId() ^ assetBytes32;
+    (
+      limitState.lastUpdated0,
+      limitState.lastUpdated1,
+      limitState.netflow0,
+      limitState.netflow1,
+      limitState.netflowGlobal
+    ) = ctx.broker().tradingLimitsState(limitId);
+    return limitState;
   }
 
   function refreshedTradingLimitsState(

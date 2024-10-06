@@ -12,7 +12,7 @@ import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
-import { IBroker } from "contracts/interfaces/IBroker.sol";
+import { Broker } from "contracts/swap/Broker.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 
 // forge test --match-contract Broker -vvv
@@ -40,24 +40,27 @@ contract BrokerTest is Test {
   address randomAsset = makeAddr("randomAsset");
 
   MockReserve reserve;
+  MockReserve reserve1;
   TestERC20 stableAsset;
   TestERC20 collateralAsset;
 
-  IBroker broker;
+  Broker broker;
 
   MockExchangeProvider exchangeProvider;
   address exchangeProvider1 = makeAddr("exchangeProvider1");
   address exchangeProvider2 = makeAddr("exchangeProvider2");
 
   address[] public exchangeProviders;
+  address[] public reserves;
 
   function setUp() public virtual {
     /* Dependencies and makeAddrs */
     reserve = new MockReserve();
+    reserve1 = new MockReserve();
     collateralAsset = new TestERC20("Collateral", "CL");
     stableAsset = new TestERC20("StableAsset", "SA0");
     randomAsset = makeAddr("randomAsset");
-    broker = IBroker(deployCode("Broker", abi.encode(true)));
+    broker = new Broker(true);
     exchangeProvider = new MockExchangeProvider();
 
     reserve.addToken(address(stableAsset));
@@ -66,7 +69,12 @@ contract BrokerTest is Test {
     exchangeProviders.push(exchangeProvider1);
     exchangeProviders.push(exchangeProvider2);
     exchangeProviders.push((address(exchangeProvider)));
-    broker.initialize(exchangeProviders, address(reserve));
+    reserves.push(address(reserve));
+    reserves.push(address(reserve));
+    reserves.push(address(reserve));
+
+    vm.prank(deployer);
+    broker.initialize(exchangeProviders, reserves);
   }
 }
 
@@ -74,15 +82,16 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
   /* ---------- Initilizer ---------- */
 
   function test_initilize_shouldSetOwner() public view {
-    assertEq(broker.owner(), address(this));
+    assertEq(broker.owner(), deployer);
   }
 
   function test_initilize_shouldSetExchangeProviderAddresseses() public view {
     assertEq(broker.getExchangeProviders(), exchangeProviders);
   }
-
-  function test_initilize_shouldSetReserve() public view {
-    assertEq(address(broker.reserve()), address(reserve));
+  function test_initilize_shouldSetReserves() public {
+    assertEq(address(broker.exchangeReserve(exchangeProvider1)), address(reserve));
+    assertEq(address(broker.exchangeReserve(exchangeProvider2)), address(reserve));
+    assertEq(address(broker.exchangeReserve(address(exchangeProvider))), address(reserve));
   }
 
   /* ---------- Setters ---------- */
@@ -90,43 +99,62 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
   function test_addExchangeProvider_whenSenderIsNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(notDeployer);
-    broker.addExchangeProvider(address(0));
+    broker.addExchangeProvider(address(0), address(0));
   }
 
-  function test_addExchangeProvider_whenAddressIsZero_shouldRevert() public {
+  function test_addExchangeProvider_whenExchangeProviderAddressIsZero_shouldRevert() public {
     vm.expectRevert("ExchangeProvider address can't be 0");
-    broker.addExchangeProvider(address(0));
+    vm.prank(deployer);
+    broker.addExchangeProvider(address(0), address(reserve));
+  }
+
+  function test_addExchangeProvider_whenReserveAddressIsZero_shouldRevert() public {
+    changePrank(deployer);
+    vm.expectRevert("Reserve address can't be 0");
+    broker.addExchangeProvider(makeAddr("newExchangeProvider"), address(0));
   }
 
   function test_addExchangeProvider_whenSenderIsOwner_shouldUpdateAndEmit() public {
     address newExchangeProvider = makeAddr("newExchangeProvider");
-    vm.expectEmit(true, false, false, false);
+
+    vm.expectEmit(true, true, true, true);
     emit ExchangeProviderAdded(newExchangeProvider);
-    broker.addExchangeProvider(newExchangeProvider);
+    vm.expectEmit(true, true, true, true);
+    emit ReserveSet(newExchangeProvider, address(reserve1));
+
+    vm.prank(deployer);
+    broker.addExchangeProvider(newExchangeProvider, address(reserve1));
+
     address[] memory updatedExchangeProviders = broker.getExchangeProviders();
     assertEq(updatedExchangeProviders[updatedExchangeProviders.length - 1], newExchangeProvider);
     assertEq(broker.isExchangeProvider(newExchangeProvider), true);
+    assertEq(broker.exchangeReserve(newExchangeProvider), address(reserve1));
   }
 
   function test_addExchangeProvider_whenAlreadyAdded_shouldRevert() public {
     vm.expectRevert("ExchangeProvider already exists in the list");
-    broker.addExchangeProvider(address(exchangeProvider));
+    vm.prank(deployer);
+    broker.addExchangeProvider(address(exchangeProvider), address(reserve1));
   }
 
   function test_removeExchangeProvider_whenSenderIsOwner_shouldUpdateAndEmit() public {
     vm.expectEmit(true, true, true, true);
     emit ExchangeProviderRemoved(exchangeProvider1);
+    vm.prank(deployer);
     broker.removeExchangeProvider(exchangeProvider1, 0);
     assert(broker.getExchangeProviders()[0] != exchangeProvider1);
+    assertEq(broker.exchangeReserve(exchangeProvider1), address(0));
   }
 
   function test_removeExchangeProvider_whenAddressDoesNotExist_shouldRevert() public {
     vm.expectRevert("index doesn't match provider");
+    vm.prank(deployer);
     broker.removeExchangeProvider(notDeployer, 1);
   }
 
   function test_removeExchangeProvider_whenIndexOutOfRange_shouldRevert() public {
     vm.expectRevert("index doesn't match provider");
+    vm.prank(deployer);
     broker.removeExchangeProvider(exchangeProvider1, 1);
   }
 
@@ -136,24 +164,48 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
     broker.removeExchangeProvider(exchangeProvider1, 0);
   }
 
-  function test_setReserve_whenSenderIsNotOwner_shouldRevert() public {
+  function test_setReserves_whenSenderIsNotOwner_shouldRevert() public {
     vm.prank(notDeployer);
     vm.expectRevert("Ownable: caller is not the owner");
-    broker.setReserve(address(0));
+    broker.setReserves(new address[](0), new address[](0));
   }
 
-  function test_setReserve_whenAddressIsZero_shouldRevert() public {
-    vm.expectRevert("Reserve address must be set");
-    broker.setReserve(address(0));
+  function test_setReserves_whenExchangeProviderIsNotAdded_shouldRevert() public {
+    address[] memory exchangeProviders = new address[](1);
+    exchangeProviders[0] = makeAddr("newExchangeProvider");
+    address[] memory reserves = new address[](1);
+    reserves[0] = makeAddr("newReserve");
+    changePrank(deployer);
+    vm.expectRevert("ExchangeProvider does not exist");
+    broker.setReserves(exchangeProviders, reserves);
   }
 
-  function test_setReserve_whenSenderIsOwner_shouldUpdateAndEmit() public {
-    address newReserve = makeAddr("newReserve");
-    vm.expectEmit(true, false, false, false);
-    emit ReserveSet(newReserve, address(reserve));
+  function test_setReserves_whenReserveAddressIsZero_shouldRevert() public {
+    address[] memory exchangeProviders = new address[](1);
+    exchangeProviders[0] = exchangeProvider1;
+    address[] memory reserves = new address[](1);
+    reserves[0] = address(0);
+    changePrank(deployer);
+    vm.expectRevert("Reserve address can't be 0");
+    broker.setReserves(exchangeProviders, reserves);
+  }
 
-    broker.setReserve(newReserve);
-    assertEq(address(broker.reserve()), newReserve);
+  function test_setReserves_whenSenderIsOwner_shouldUpdateAndEmit() public {
+    address[] memory exchangeProviders = new address[](2);
+    exchangeProviders[0] = exchangeProvider1;
+    exchangeProviders[1] = exchangeProvider2;
+
+    address[] memory reserves = new address[](2);
+    reserves[0] = makeAddr("newReserve");
+    reserves[1] = makeAddr("newReserve2");
+    changePrank(deployer);
+    vm.expectEmit(true, true, true, true);
+    emit ReserveSet(exchangeProvider1, reserves[0]);
+    vm.expectEmit(true, true, true, true);
+    emit ReserveSet(exchangeProvider2, reserves[1]);
+    broker.setReserves(exchangeProviders, reserves);
+    assertEq(address(broker.exchangeReserve(address(exchangeProvider1))), reserves[0]);
+    assertEq(address(broker.exchangeReserve(address(exchangeProvider2))), reserves[1]);
   }
 }
 
@@ -218,12 +270,6 @@ contract BrokerTest_getAmounts is BrokerTest {
 
 contract BrokerTest_BurnStableTokens is BrokerTest {
   uint256 burnAmount = 1;
-
-  function test_burnStableTokens_whenTokenIsNotReserveStable_shouldRevert() public {
-    vm.prank(notDeployer);
-    vm.expectRevert("Token must be a reserve stable asset");
-    broker.burnStableTokens(randomAsset, 2);
-  }
 
   function test_burnStableTokens_whenTokenIsAReserveStable_shouldBurnAndEmit() public {
     stableAsset.mint(notDeployer, 2);
@@ -488,6 +534,7 @@ contract BrokerTest_swap is BrokerTest {
 
     vm.expectEmit(true, true, true, true);
     emit TradingLimitConfigured(exchangeId, address(stableAsset), config);
+    vm.prank(deployer);
     broker.configureTradingLimit(exchangeId, address(stableAsset), config);
 
     vm.prank(trader);
@@ -504,6 +551,7 @@ contract BrokerTest_swap is BrokerTest {
 
     vm.expectEmit(true, true, true, true);
     emit TradingLimitConfigured(exchangeId, address(stableAsset), config);
+    vm.prank(deployer);
     broker.configureTradingLimit(exchangeId, address(stableAsset), config);
 
     vm.expectRevert(bytes("L0 Exceeded"));
