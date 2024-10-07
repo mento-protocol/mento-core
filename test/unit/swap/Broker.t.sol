@@ -88,7 +88,7 @@ contract BrokerTest_initilizerAndSetters is BrokerTest {
   function test_initilize_shouldSetExchangeProviderAddresseses() public view {
     assertEq(broker.getExchangeProviders(), exchangeProviders);
   }
-  function test_initilize_shouldSetReserves() public {
+  function test_initilize_shouldSetReserves() public view {
     assertEq(address(broker.exchangeReserve(exchangeProvider1)), address(reserve));
     assertEq(address(broker.exchangeReserve(exchangeProvider2)), address(reserve));
     assertEq(address(broker.exchangeReserve(address(exchangeProvider))), address(reserve));

@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, max-line-length
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
-import { Test, console } from "forge-std-next/Test.sol";
+import { Test, console } from "forge-std/Test.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
 import { BancorExchangeProvider } from "contracts/goodDollar/BancorExchangeProvider.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
@@ -96,15 +96,15 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
   }
 
   /* ---------- Initilizer ---------- */
-  function test_initialize_shouldSetOwner() public {
+  function test_initialize_shouldSetOwner() public view {
     assertEq(bancorExchangeProvider.owner(), address(this));
   }
 
-  function test_initilize_shouldSetBroker() public {
+  function test_initilize_shouldSetBroker() public view {
     assertEq(bancorExchangeProvider.broker(), brokerAddress);
   }
 
-  function test_initilize_shouldSetReserve() public {
+  function test_initilize_shouldSetReserve() public view {
     assertEq(address(bancorExchangeProvider.reserve()), reserveAddress);
   }
 
@@ -205,7 +205,7 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     assertEq(poolExchange.exitContribution, poolExchange1.exitContribution);
   }
 
-  function test_getExchangeIds_whenNoExchanges_shouldReturnEmptyArray() public {
+  function test_getExchangeIds_whenNoExchanges_shouldReturnEmptyArray() public view {
     bytes32[] memory exchangeIds = bancorExchangeProvider.getExchangeIds();
     assertEq(exchangeIds.length, 0);
   }
@@ -218,7 +218,7 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     assertEq(exchangeIds[0], exchangeId1);
   }
 
-  function test_getExchanges_whenNoExchanges_shouldReturnEmptyArray() public {
+  function test_getExchanges_whenNoExchanges_shouldReturnEmptyArray() public view {
     IExchangeProvider.Exchange[] memory exchanges = bancorExchangeProvider.getExchanges();
     assertEq(exchanges.length, 0);
   }

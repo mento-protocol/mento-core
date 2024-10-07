@@ -9,7 +9,7 @@ import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
 import { BancorFormula } from "contracts/goodDollar/BancorFormula.sol";
-import { UD60x18, convert, unwrap, wrap } from "prb/math/UD60x18.sol";
+import { UD60x18, unwrap, wrap } from "prb/math/UD60x18.sol";
 
 /**
  * @title BancorExchangeProvider

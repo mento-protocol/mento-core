@@ -431,7 +431,7 @@ contract BancorFormula {
    * - This function finds the position of [the smallest value in "maxExpArray" larger than or equal to "x"]
    * - This function finds the highest position of [a value in "maxExpArray" larger than or equal to "x"]
    */
-  function findPositionInMaxExpArray(uint256 _x) internal view returns (uint8) {
+  function findPositionInMaxExpArray(uint256 _x) internal view returns (uint8 position) {
     uint8 lo = MIN_PRECISION;
     uint8 hi = MAX_PRECISION;
 

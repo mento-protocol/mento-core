@@ -10,7 +10,7 @@ import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtoc
 
 import { PausableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import { UD60x18, unwrap, wrap, powu } from "prb/math/UD60x18.sol";
+import { unwrap, wrap, powu } from "prb/math/UD60x18.sol";
 
 /**
  * @title GoodDollarExpansionController

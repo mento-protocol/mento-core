@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
-import { Test, console } from "forge-std-next/Test.sol";
+import { Test, console } from "forge-std/Test.sol";
 import { ERC20Mock } from "openzeppelin-contracts-next/contracts/mocks/ERC20Mock.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
 
@@ -75,7 +75,7 @@ contract GoodDollarExpansionControllerTest_initializerSettersGetters is GoodDoll
 
   /* ---------- Initilizer ---------- */
 
-  function test_initializer() public {
+  function test_initializer() public view {
     assertEq(address(expansionController.distributionHelper()), distributionHelper);
     assertEq(expansionController.reserve(), reserveAddress);
     assertEq(address(expansionController.goodDollarExchangeProvider()), exchangeProvider);

@@ -6,7 +6,6 @@ import { PausableUpgradeable } from "openzeppelin-contracts-upgradeable/contract
 import { IGoodDollarExchangeProvider } from "contracts/interfaces/IGoodDollarExchangeProvider.sol";
 import { IGoodDollarExpansionController } from "contracts/interfaces/IGoodDollarExpansionController.sol";
 
-import { Test, console } from "forge-std-next/Test.sol";
 import { BancorExchangeProvider } from "./BancorExchangeProvider.sol";
 import { UD60x18, unwrap, wrap } from "prb/math/UD60x18.sol";
 

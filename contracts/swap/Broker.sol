@@ -10,7 +10,6 @@ import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
 import { IBroker } from "../interfaces/IBroker.sol";
 import { IBrokerAdmin } from "../interfaces/IBrokerAdmin.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
-import { IStableTokenV2 } from "../interfaces/IStableTokenV2.sol";
 import { ITradingLimits } from "../interfaces/ITradingLimits.sol";
 
 import { TradingLimits } from "../libraries/TradingLimits.sol";
