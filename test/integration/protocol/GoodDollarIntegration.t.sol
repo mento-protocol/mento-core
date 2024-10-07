@@ -14,18 +14,12 @@ import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 import { IRegistry } from "celo/contracts/common/interfaces/IRegistry.sol";
-import { SafeERC20 } from "contracts/common/SafeERC20.sol";
-//import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
-// import { Factory } from "test/utils/Factory.sol";
-// import { GetCode } from "test/utils/GetCode.sol";
-
 contract GoodDollarIntegrationTest is Test {
-  //using SafeERC20 for IERC20;
   using FixidityLib for FixidityLib.Fraction;
   address public trader;
   address public interestCollector;

@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 pragma experimental ABIEncoderV2;
 
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
-import { SafeERC20 } from "contracts/common/SafeERC20.sol";
+import { SafeERC20MintableBurnable } from "contracts/common/SafeERC20MintableBurnable.sol";
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
 
 import { IExchangeProvider } from "../interfaces/IExchangeProvider.sol";
@@ -31,7 +31,7 @@ interface IERC20Metadata {
 contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuard {
   using TradingLimits for ITradingLimits.State;
   using TradingLimits for ITradingLimits.Config;
-  using SafeERC20 for IERC20;
+  using SafeERC20MintableBurnable for IERC20;
 
   /* ==================== State Variables ==================== */
 
