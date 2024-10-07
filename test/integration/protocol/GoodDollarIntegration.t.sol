@@ -48,6 +48,8 @@ contract GoodDollarIntegrationTest is Test {
   IRegistry public registry = IRegistry(REGISTRY_ADDRESS);
   address public constant deployer = address(0x31337);
 
+  address public constant GoodDollarAvatar = 0x495d133B938596C9984d462F007B676bDc57eCEC;
+
   //Factory public factory;
 
   function setUp() public {
@@ -58,15 +60,8 @@ contract GoodDollarIntegrationTest is Test {
     gdToken = IGoodDollar(0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A);
     reserveToken = IStableTokenV2(0x765DE816845861e75A25fCA122bb6898B8B1282a);
     broker = new Broker(true);
-    //broker = IBroker(factory.createContract("BrokerV2", abi.encode(true)));
     exchangeProvider = new GoodDollarExchangeProvider(false);
-    // exchangeProvider = IGoodDollarExchangeProvider(
-    //   factory.createContract("GoodDollarExchangeProvider", abi.encode(false))
-    // );
     expansionController = new GoodDollarExpansionController(false);
-    // expansionController = IGoodDollarExpansionController(
-    //   factory.createContract("GoodDollarExpansionController", abi.encode(false))
-    // );
 
     avatar = makeAddr("avatar");
     distributionHelper = makeAddr("distributionHelper");
@@ -164,6 +159,13 @@ contract GoodDollarIntegrationTest is Test {
     expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
   }
 
+  // @notice manual minting of GD through avatar because foundry deal crashes on GoodDollar contract
+  function mintGoodDollar(uint256 amount, address to) public {
+    console.log("mintGoodDollar");
+    vm.prank(GoodDollarAvatar);
+    gdToken.mint(to, amount);
+  }
+
   function test_SwapIn_reserveTokenToGDollar() public {
     uint256 amountIn = 1000 * 1e18;
 
@@ -211,7 +213,7 @@ contract GoodDollarIntegrationTest is Test {
       amountIn
     );
 
-    deal(address(gdToken), trader, amountIn);
+    mintGoodDollar(amountIn, trader);
 
     vm.startPrank(trader);
     gdToken.approve(address(broker), amountIn);
@@ -276,7 +278,7 @@ contract GoodDollarIntegrationTest is Test {
       amountOut
     );
 
-    deal(address(gdToken), trader, expectedAmountIn);
+    mintGoodDollar(expectedAmountIn, trader);
 
     vm.startPrank(trader);
     gdToken.approve(address(broker), expectedAmountIn);
