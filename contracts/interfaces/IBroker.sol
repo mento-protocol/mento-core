@@ -121,34 +121,39 @@ interface IBroker {
   /**
    * @notice Allows the contract to be upgradable via the proxy.
    * @param _exchangeProviders The addresses of the ExchangeProvider contracts.
-   * @param _reserve The address of the Reserve contract.
+   * @param _reserves The address of the Reserve contract.
    */
-  function initialize(address[] calldata _exchangeProviders, address _reserve) external;
+  function initialize(address[] calldata _exchangeProviders, address[] calldata _reserves) external;
+
+  //TODO: Bogdan added these to the interface but when upgrading to 0.8.18,
+  // This is causing a compilation error. because they are defined in Ownable.sol as well.
+  // only way of fixing this is to remove them from the interface. or have the explicit
+  // implementation in the contract and add a override(IBroker, Ownable) to the functions.
+
+  //function renounceOwnership() external;
+
+  //function owner() external view returns (address);
 
   /// @notice IOwnable:
-  function transferOwnership(address newOwner) external;
-
-  function renounceOwnership() external;
-
-  function owner() external view returns (address);
+  //function transferOwnership(address newOwner) external;
 
   /// @notice Getters:
-  function reserve() external view returns (address);
+  //function reserve() external view returns (address);
 
   function isExchangeProvider(address exchangeProvider) external view returns (bool);
 
   /// @notice Setters:
-  function addExchangeProvider(address exchangeProvider) external returns (uint256 index);
+  function addExchangeProvider(address exchangeProvider, address reserve) external returns (uint256 index);
 
   function removeExchangeProvider(address exchangeProvider, uint256 index) external;
 
-  function setReserve(address _reserve) external;
+  function setReserves(address[] calldata _exchangeProviders, address[] calldata _reserves) external;
 
   function configureTradingLimit(bytes32 exchangeId, address token, ITradingLimits.Config calldata config) external;
 
-  function tradingLimitsConfig(bytes32 id) external view returns (ITradingLimits.Config memory);
+  // function tradingLimitsConfig(bytes32 id) external view returns (ITradingLimits.Config memory);
 
-  function tradingLimitsState(bytes32 id) external view returns (ITradingLimits.State memory);
+  // function tradingLimitsState(bytes32 id) external view returns (ITradingLimits.State memory);
 
   function exchangeProviders(uint256 i) external view returns (address);
 }
