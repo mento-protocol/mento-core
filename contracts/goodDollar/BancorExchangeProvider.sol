@@ -391,7 +391,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
    * @dev Reverts if not valid
    * @param exchange The PoolExchange to validate
    */
-  function validate(PoolExchange memory exchange) private view {
+  function validate(PoolExchange memory exchange) internal view {
     require(exchange.reserveAsset != address(0), "Invalid reserve asset");
     require(
       reserve.isCollateralAsset(exchange.reserveAsset),
