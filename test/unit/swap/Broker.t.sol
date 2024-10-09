@@ -228,7 +228,53 @@ contract BrokerTest_getAmounts is BrokerTest {
     broker.getAmountIn(randomExchangeProvider, exchangeId, address(stableAsset), address(collateralAsset), 1e24);
   }
 
-  function test_getAmountIn_whenExchangeProviderIsSet_shouldReceiveCall() public view {
+  function test_getAmountIn_whenReserveBalanceIsLessThanAmountOut_shouldRevert() public {
+    vm.expectRevert("Insufficient balance in reserve");
+    broker.getAmountIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e24);
+  }
+
+  function test_getAmountIn_whenReserveBalanceIsEqualAmountOut_shouldReturnAmountIn() public {
+    uint256 amountOut = 1e18;
+    collateralAsset.mint(address(reserve), amountOut);
+
+    uint256 amountIn = broker.getAmountIn(
+      address(exchangeProvider),
+      exchangeId,
+      address(stableAsset),
+      address(collateralAsset),
+      amountOut
+    );
+
+    assertEq(amountIn, 25e17);
+  }
+
+  function test_getAmountIn_whenReserveBalanceIsLargerThanAmountOut_shouldReturnAmountIn() public {
+    uint256 amountOut = 1e18;
+    collateralAsset.mint(address(reserve), 1000e18);
+
+    uint256 amountIn = broker.getAmountIn(
+      address(exchangeProvider),
+      exchangeId,
+      address(stableAsset),
+      address(collateralAsset),
+      amountOut
+    );
+
+    assertEq(amountIn, 25e17);
+  }
+
+  function test_getAmountIn_whenExchangeProviderIsSet_shouldReceiveCall() public {
+    collateralAsset.mint(address(reserve), 1000e18);
+    vm.expectCall(
+      address(exchangeProvider),
+      abi.encodeWithSelector(
+        exchangeProvider.getAmountIn.selector,
+        exchangeId,
+        address(stableAsset),
+        address(collateralAsset),
+        1e18
+      )
+    );
     uint256 amountIn = broker.getAmountIn(
       address(exchangeProvider),
       exchangeId,
@@ -245,7 +291,43 @@ contract BrokerTest_getAmounts is BrokerTest {
     broker.getAmountOut(randomExchangeProvider, exchangeId, randomAsset, randomAsset, 1e24);
   }
 
+  function test_getAmountOut_whenReserveBalanceIsLessThanAmountOut_shouldRevert() public {
+    vm.expectRevert("Insufficient balance in reserve");
+    broker.getAmountOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e24);
+  }
+
+  function test_getAmountOut_whenReserveBalanceIsEqualAmountOut_shouldReturnAmountIn() public {
+    uint256 amountIn = 1e18;
+    collateralAsset.mint(address(reserve), amountIn);
+
+    uint256 amountOut = broker.getAmountOut(
+      address(exchangeProvider),
+      exchangeId,
+      address(stableAsset),
+      address(collateralAsset),
+      amountIn
+    );
+
+    assertEq(amountOut, 4e17);
+  }
+
+  function test_getAmountOut_whenReserveBalanceIsLargerThanAmountOut_shouldReturnAmountIn() public {
+    uint256 amountIn = 1e18;
+    collateralAsset.mint(address(reserve), 1000e18);
+
+    uint256 amountOut = broker.getAmountOut(
+      address(exchangeProvider),
+      exchangeId,
+      address(stableAsset),
+      address(collateralAsset),
+      1e18
+    );
+
+    assertEq(amountOut, 4e17);
+  }
+
   function test_getAmountOut_whenExchangeProviderIsSet_shouldReceiveCall() public {
+    collateralAsset.mint(address(reserve), 1000e18);
     vm.expectCall(
       address(exchangeProvider),
       abi.encodeWithSelector(
