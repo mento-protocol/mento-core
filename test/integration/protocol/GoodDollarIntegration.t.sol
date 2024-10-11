@@ -141,6 +141,7 @@ contract GoodDollarIntegrationTest is Test {
       exitContribution: 0.01 * 1e8
     });
 
+    vm.prank(avatar);
     exchangeId = IBancorExchangeProvider(address(exchangeProvider)).createExchange(poolExchange1);
   }
 
@@ -155,7 +156,6 @@ contract GoodDollarIntegrationTest is Test {
 
   // @notice manual minting of GD through avatar because foundry deal crashes on GoodDollar contract
   function mintGoodDollar(uint256 amount, address to) public {
-    console.log("mintGoodDollar");
     vm.prank(GoodDollarAvatar);
     gdToken.mint(to, amount);
   }
@@ -194,7 +194,6 @@ contract GoodDollarIntegrationTest is Test {
   }
 
   function test_SwapIn_gDollarToReserveToken() public {
-    console.log("test_SwapIn_gDollarToReserveToken");
     uint256 amountIn = 1000 * 1e18;
 
     uint256 reserveBalanceBefore = reserveToken.balanceOf(address(reserve));

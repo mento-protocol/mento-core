@@ -202,13 +202,8 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
    * @param exchangeId The id of the pool.
    * @param exitContribution The exit contribution.
    */
-  function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external onlyOwner {
-    require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
-    require(exitContribution <= MAX_WEIGHT, "Invalid exit contribution");
-
-    PoolExchange storage exchange = exchanges[exchangeId];
-    exchange.exitContribution = exitContribution;
-    emit ExitContributionSet(exchangeId, exitContribution);
+  function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external virtual onlyOwner {
+    return _setExitContribution(exchangeId, exitContribution);
   }
 
   /**
@@ -216,26 +211,9 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
    * @param _exchange the PoolExchange to create.
    * @return exchangeId The id of the newly created exchange.
    */
-  function createExchange(PoolExchange calldata _exchange) external onlyOwner returns (bytes32 exchangeId) {
-    PoolExchange memory exchange = _exchange;
-    validate(exchange);
 
-    exchangeId = keccak256(
-      abi.encodePacked(IERC20(exchange.reserveAsset).symbol(), IERC20(exchange.tokenAddress).symbol())
-    );
-    require(exchanges[exchangeId].reserveAsset == address(0), "Exchange already exists");
-
-    uint256 reserveAssetDecimals = IERC20(exchange.reserveAsset).decimals();
-    uint256 tokenDecimals = IERC20(exchange.tokenAddress).decimals();
-    require(reserveAssetDecimals <= 18, "reserve token decimals must be <= 18");
-    require(tokenDecimals <= 18, "token decimals must be <= 18");
-
-    tokenPrecisionMultipliers[exchange.reserveAsset] = 10 ** (18 - uint256(reserveAssetDecimals));
-    tokenPrecisionMultipliers[exchange.tokenAddress] = 10 ** (18 - uint256(tokenDecimals));
-
-    exchanges[exchangeId] = exchange;
-    exchangeIds.push(exchangeId);
-    emit ExchangeCreated(exchangeId, exchange.reserveAsset, exchange.tokenAddress);
+  function createExchange(PoolExchange calldata _exchange) external virtual onlyOwner returns (bytes32 exchangeId) {
+    return _createExchange(_exchange);
   }
 
   /**
@@ -244,17 +222,11 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
    * @param exchangeIdIndex The index of the exchangeId in the ids array
    * @return destroyed A boolean indicating whether or not the exchange was successfully destroyed.
    */
-  function destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex) external onlyOwner returns (bool destroyed) {
-    require(exchangeIdIndex < exchangeIds.length, "exchangeIdIndex not in range");
-    require(exchangeIds[exchangeIdIndex] == exchangeId, "exchangeId at index doesn't match");
-    PoolExchange memory exchange = exchanges[exchangeId];
-
-    delete exchanges[exchangeId];
-    exchangeIds[exchangeIdIndex] = exchangeIds[exchangeIds.length - 1];
-    exchangeIds.pop();
-    destroyed = true;
-
-    emit ExchangeDestroyed(exchangeId, exchange.reserveAsset, exchange.tokenAddress);
+  function destroyExchange(
+    bytes32 exchangeId,
+    uint256 exchangeIdIndex
+  ) external virtual onlyOwner returns (bool destroyed) {
+    return _destroyExchange(exchangeId, exchangeIdIndex);
   }
 
   /**
@@ -304,6 +276,50 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   }
 
   /* ==================== Private Functions ==================== */
+
+  function _createExchange(PoolExchange calldata _exchange) internal returns (bytes32 exchangeId) {
+    PoolExchange memory exchange = _exchange;
+    validate(exchange);
+
+    exchangeId = keccak256(
+      abi.encodePacked(IERC20(exchange.reserveAsset).symbol(), IERC20(exchange.tokenAddress).symbol())
+    );
+    require(exchanges[exchangeId].reserveAsset == address(0), "Exchange already exists");
+
+    uint256 reserveAssetDecimals = IERC20(exchange.reserveAsset).decimals();
+    uint256 tokenDecimals = IERC20(exchange.tokenAddress).decimals();
+    require(reserveAssetDecimals <= 18, "reserve token decimals must be <= 18");
+    require(tokenDecimals <= 18, "token decimals must be <= 18");
+
+    tokenPrecisionMultipliers[exchange.reserveAsset] = 10 ** (18 - uint256(reserveAssetDecimals));
+    tokenPrecisionMultipliers[exchange.tokenAddress] = 10 ** (18 - uint256(tokenDecimals));
+
+    exchanges[exchangeId] = exchange;
+    exchangeIds.push(exchangeId);
+    emit ExchangeCreated(exchangeId, exchange.reserveAsset, exchange.tokenAddress);
+  }
+
+  function _destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex) internal returns (bool destroyed) {
+    require(exchangeIdIndex < exchangeIds.length, "exchangeIdIndex not in range");
+    require(exchangeIds[exchangeIdIndex] == exchangeId, "exchangeId at index doesn't match");
+    PoolExchange memory exchange = exchanges[exchangeId];
+
+    delete exchanges[exchangeId];
+    exchangeIds[exchangeIdIndex] = exchangeIds[exchangeIds.length - 1];
+    exchangeIds.pop();
+    destroyed = true;
+
+    emit ExchangeDestroyed(exchangeId, exchange.reserveAsset, exchange.tokenAddress);
+  }
+
+  function _setExitContribution(bytes32 exchangeId, uint32 exitContribution) internal {
+    require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
+    require(exitContribution <= MAX_WEIGHT, "Invalid exit contribution");
+
+    PoolExchange storage exchange = exchanges[exchangeId];
+    exchange.exitContribution = exitContribution;
+    emit ExitContributionSet(exchangeId, exitContribution);
+  }
 
   /**
    * @notice Execute a swap against the in memory exchange and write

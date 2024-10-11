@@ -90,6 +90,33 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   }
 
   /**
+   * @notice Sets the exit contribution for a pool. Only callable by the Avatar.
+   * @inheritdoc BancorExchangeProvider
+   */
+  function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external override onlyAvatar {
+    return _setExitContribution(exchangeId, exitContribution);
+  }
+
+  /**
+   * @notice Creates a new exchange. Only callable by the Avatar.
+   * @inheritdoc BancorExchangeProvider
+   */
+  function createExchange(PoolExchange calldata _exchange) external override onlyAvatar returns (bytes32 exchangeId) {
+    return _createExchange(_exchange);
+  }
+
+  /**
+   * @notice Destroys an exchange. Only callable by the Avatar.
+   * @inheritdoc BancorExchangeProvider
+   */
+  function destroyExchange(
+    bytes32 exchangeId,
+    uint256 exchangeIdIndex
+  ) external override onlyAvatar returns (bool destroyed) {
+    return _destroyExchange(exchangeId, exchangeIdIndex);
+  }
+
+  /**
    * @notice Execute a token swap with fixed amountIn
    * @param exchangeId The id of exchange, i.e. PoolExchange to use
    * @param tokenIn The token to be sold
