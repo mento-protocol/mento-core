@@ -4,7 +4,6 @@ pragma solidity ^0.8.18;
 pragma experimental ABIEncoderV2;
 
 import { Test } from "mento-std/Test.sol";
-import { console } from "forge-std/console.sol";
 
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
