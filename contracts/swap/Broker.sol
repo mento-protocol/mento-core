@@ -40,7 +40,8 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
   mapping(bytes32 => ITradingLimits.State) public tradingLimitsState;
   mapping(bytes32 => ITradingLimits.Config) public tradingLimitsConfig;
 
-  // Address of the reserve.
+  // Deprecated address of the reserve. Kept to keep storage layout consistent with previous versions.
+  // slither-disable-next-line constable-states
   uint256 public __deprecated0; // prev: IReserve public reserve;
 
   uint256 private constant MAX_INT256 = uint256(type(int256).max);
