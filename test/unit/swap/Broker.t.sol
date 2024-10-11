@@ -230,10 +230,16 @@ contract BrokerTest_getAmounts is BrokerTest {
 
   function test_getAmountIn_whenReserveBalanceIsLessThanAmountOut_shouldRevert() public {
     vm.expectRevert("Insufficient balance in reserve");
-    broker.getAmountIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e24);
+    broker.getAmountIn({
+      exchangeProvider: address(exchangeProvider),
+      exchangeId: exchangeId,
+      tokenIn: address(stableAsset),
+      tokenOut: address(collateralAsset),
+      amountOut: 1e24
+    });
   }
 
-  function test_getAmountIn_whenReserveBalanceIsEqualAmountOut_shouldReturnAmountIn() public {
+  function test_getAmountIn_whenReserveBalanceIsEqualToAmountOut_shouldReturnAmountIn() public {
     uint256 amountOut = 1e18;
     collateralAsset.mint(address(reserve), amountOut);
 
