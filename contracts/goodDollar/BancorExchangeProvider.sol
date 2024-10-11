@@ -73,7 +73,11 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     _;
   }
 
-  modifier verifyExchangeTokens(address tokenIn, address tokenOut, PoolExchange memory exchange) {
+  modifier verifyExchangeTokens(
+    address tokenIn,
+    address tokenOut,
+    PoolExchange memory exchange
+  ) {
     require(
       (tokenIn == exchange.reserveAsset && tokenOut == exchange.tokenAddress) ||
         (tokenIn == exchange.tokenAddress && tokenOut == exchange.reserveAsset),
