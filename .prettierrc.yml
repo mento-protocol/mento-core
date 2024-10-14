@@ -20,6 +20,8 @@ overrides:
   # File-specific Config
   - files:
       [
+        contracts/common/IERC20MintableBurnable.sol,
+        contracts/common/SafeERC20MintableBurnable.sol,
         contracts/goodDollar/**/*.sol,
         contracts/governance/**/*.sol,
         contracts/interfaces/*.sol,
@@ -37,8 +39,3 @@ overrides:
       - contracts/interfaces/IExchange.sol
     options:
       compiler: 0.5.17
-  - files:
-      - contracts/common/IERC20MintableBurnable.sol
-      - contracts/common/SafeERC20MintableBurnable.sol
-    options:
-      compiler: 0.8.0
