@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
-import { Test, console } from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 import { ERC20Mock } from "openzeppelin-contracts-next/contracts/mocks/ERC20Mock.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
 
@@ -124,24 +124,33 @@ contract GoodDollarExpansionControllerTest_initializerSettersGetters is GoodDoll
     assertEq(address(expansionController.goodDollarExchangeProvider()), newExchangeProvider);
   }
 
-  function test_setDistributionHelper_whenSenderIsNotOwner_shouldRevert() public {
-    vm.prank(makeAddr("NotOwner"));
-    vm.expectRevert("Ownable: caller is not the owner");
+  function test_setDistributionHelper_whenCallerIsNotAvatar_shouldRevert() public {
+    vm.prank(makeAddr("NotAvatar"));
+    vm.expectRevert("Only Avatar can call this function");
     expansionController.setDistributionHelper(makeAddr("NewDistributionHelper"));
   }
 
-  function test_setDistributiomHelper_whenAddressIsZero_shouldRevert() public {
-    vm.expectRevert("DistributionHelper address must be set");
-    expansionController.setDistributionHelper(address(0));
+  function test_setDistributionHelper_whenCallerIsOwner_shouldRevert() public {
+    vm.expectRevert("Only Avatar can call this function");
+    expansionController.setDistributionHelper(makeAddr("NewDistributionHelper"));
   }
 
-  function test_setDistributionHelper_whenCallerIsOwner_shouldUpdateAndEmit() public {
+  function test_setDistributionHelper_whenAddressIsZero_shouldRevert() public {
+    vm.startPrank(avatarAddress);
+    vm.expectRevert("DistributionHelper address must be set");
+    expansionController.setDistributionHelper(address(0));
+    vm.stopPrank();
+  }
+
+  function test_setDistributionHelper_whenCallerIsAvatar_shouldUpdateAndEmit() public {
+    vm.startPrank(avatarAddress);
     address newDistributionHelper = makeAddr("NewDistributionHelper");
     vm.expectEmit(true, true, true, true);
     emit DistributionHelperUpdated(newDistributionHelper);
     expansionController.setDistributionHelper(newDistributionHelper);
 
     assertEq(address(expansionController.distributionHelper()), newDistributionHelper);
+    vm.stopPrank();
   }
 
   function test_setReserve_whenSenderIsNotOwner_shouldRevert() public {

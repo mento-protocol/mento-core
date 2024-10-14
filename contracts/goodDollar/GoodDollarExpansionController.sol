@@ -71,7 +71,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     __Ownable_init();
 
     setGoodDollarExchangeProvider(_goodDollarExchangeProvider);
-    setDistributionHelper(_distributionHelper);
+    _setDistributionHelper(_distributionHelper);
     setReserve(_reserve);
     setAvatar(_avatar);
   }
@@ -111,10 +111,8 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
    * @notice Sets the distribution helper address.
    * @param _distributionHelper The address of the distribution helper contract.
    */
-  function setDistributionHelper(address _distributionHelper) public onlyOwner {
-    require(_distributionHelper != address(0), "DistributionHelper address must be set");
-    distributionHelper = IDistributionHelper(_distributionHelper);
-    emit DistributionHelperUpdated(_distributionHelper);
+  function setDistributionHelper(address _distributionHelper) public onlyAvatar {
+    return _setDistributionHelper(_distributionHelper);
   }
 
   /**
@@ -238,5 +236,13 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     goodDollarExchangeProvider.updateRatioForReward(exchangeId, amount);
     IGoodDollar(exchange.tokenAddress).mint(to, amount);
     emit RewardMinted(exchangeId, to, amount);
+  }
+
+  /* ==================== Private Functions ==================== */
+
+  function _setDistributionHelper(address _distributionHelper) internal {
+    require(_distributionHelper != address(0), "DistributionHelper address must be set");
+    distributionHelper = IDistributionHelper(_distributionHelper);
+    emit DistributionHelperUpdated(_distributionHelper);
   }
 }
