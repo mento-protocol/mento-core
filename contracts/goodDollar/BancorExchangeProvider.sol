@@ -126,7 +126,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) external view virtual returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
-    uint256 scaledAmountOut = _getAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
+    uint256 scaledAmountOut = _getScaledAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
     amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
     return amountOut;
   }
@@ -140,7 +140,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) external view virtual returns (uint256 amountIn) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
-    uint256 scaledAmountIn = _getAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+    uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
     amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
     return amountIn;
   }
@@ -201,7 +201,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) public virtual onlyBroker returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
-    uint256 scaledAmountOut = _getAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
+    uint256 scaledAmountOut = _getScaledAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
     executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
 
     amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
@@ -217,7 +217,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) public virtual onlyBroker returns (uint256 amountIn) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
-    uint256 scaledAmountIn = _getAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+    uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
     executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
 
     amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
@@ -230,7 +230,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
   function _createExchange(PoolExchange calldata _exchange) internal returns (bytes32 exchangeId) {
     PoolExchange memory exchange = _exchange;
-    validate(exchange);
+    validateExchange(exchange);
 
     // slither-disable-next-line encode-packed-collision
     exchangeId = keccak256(
@@ -274,12 +274,11 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   }
 
   /**
-   * @notice Execute a swap against the in memory exchange and write
-   *         the new exchange state to storage.
-   * @param exchangeId The id of the exchange
+   * @notice Execute a swap against the in-memory exchange and write the new exchange state to storage.
+   * @param exchangeId The ID of the pool
    * @param tokenIn The token to be sold
-   * @param scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
-   * @param scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
+   * @param scaledAmountIn The amount of tokenIn to be sold, scaled to 18 decimals
+   * @param scaledAmountOut The amount of tokenOut to be bought, scaled to 18 decimals
    */
   function executeSwap(bytes32 exchangeId, address tokenIn, uint256 scaledAmountIn, uint256 scaledAmountOut) internal {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
@@ -295,14 +294,14 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   }
 
   /**
-   * @notice Calculate amountIn of tokenIn for a given amountOut of tokenOut
-   * @param exchange The exchange to operate on
+   * @notice Calculate the scaledAmountIn of tokenIn for a given scaledAmountOut of tokenOut
+   * @param exchange The pool exchange to operate on
    * @param tokenIn The token to be sold
    * @param tokenOut The token to be bought
-   * @param scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
-   * @return scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
+   * @param scaledAmountOut The amount of tokenOut to be bought, scaled to 18 decimals
+   * @return scaledAmountIn The amount of tokenIn to be sold, scaled to 18 decimals
    */
-  function _getAmountIn(
+  function _getScaledAmountIn(
     PoolExchange memory exchange,
     address tokenIn,
     address tokenOut,
@@ -323,14 +322,14 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   }
 
   /**
-   * @notice Calculate amountOut of tokenOut received for a given amountIn of tokenIn
-   * @param exchange The exchange to operate on
+   * @notice Calculate the scaledAmountOut of tokenOut received for a given scaledAmountIn of tokenIn
+   * @param exchange The pool exchange to operate on
    * @param tokenIn The token to be sold
    * @param tokenOut The token to be bought
-   * @param scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
-   * @return scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
+   * @param scaledAmountIn The amount of tokenIn to be sold, scaled to 18 decimals
+   * @return scaledAmountOut The amount of tokenOut to be bought, scaled to 18 decimals
    */
-  function _getAmountOut(
+  function _getScaledAmountOut(
     PoolExchange memory exchange,
     address tokenIn,
     address tokenOut,
@@ -355,11 +354,11 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   }
 
   /**
-   * @notice Valitates a PoolExchange's parameters and configuration
+   * @notice Validates a PoolExchange's parameters and configuration
    * @dev Reverts if not valid
    * @param exchange The PoolExchange to validate
    */
-  function validate(PoolExchange memory exchange) internal view {
+  function validateExchange(PoolExchange memory exchange) internal view {
     require(exchange.reserveAsset != address(0), "Invalid reserve asset");
     require(
       reserve.isCollateralAsset(exchange.reserveAsset),
