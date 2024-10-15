@@ -16,7 +16,9 @@ import { UD60x18, unwrap, wrap } from "prb/math/UD60x18.sol";
  * @notice Provides exchange functionality for Bancor pools.
  */
 contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, BancorFormula, OwnableUpgradeable {
+  /* ========================================================= */
   /* ==================== State Variables ==================== */
+  /* ========================================================= */
 
   // Address of the broker contract.
   address public broker;
@@ -29,17 +31,16 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   mapping(bytes32 => PoolExchange) public exchanges;
   bytes32[] public exchangeIds;
 
-  // Token precision multiplier used to normalize values to the
-  // same precision when calculating amounts.
+  // Token precision multiplier used to normalize values to the same precision when calculating amounts.
   mapping(address => uint256) public tokenPrecisionMultipliers;
 
+  /* ===================================================== */
   /* ==================== Constructor ==================== */
+  /* ===================================================== */
 
   /**
-   * @dev Should be called with disable=true in deployments when
-   * it's accessed through a Proxy.
-   * Call this with disable=false during testing, when used
-   * without a proxy.
+   * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
+   * Call this with disable=false during testing, when used without a proxy.
    * @param disable Set to true to run `_disableInitializers()` inherited from
    * openzeppelin-contracts-upgradeable/Initializable.sol
    */
@@ -49,11 +50,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     }
   }
 
-  /**
-   * @notice Allows the contract to be upgradable via the proxy.
-   * @param _broker The address of the broker contract.
-   * @param _reserve The address of the reserve contract.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function initialize(address _broker, address _reserve) public initializer {
     _initialize(_broker, _reserve);
   }
@@ -66,7 +63,9 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     setReserve(_reserve);
   }
 
+  /* =================================================== */
   /* ==================== Modifiers ==================== */
+  /* =================================================== */
 
   modifier onlyBroker() {
     require(msg.sender == broker, "Caller is not the Broker");
@@ -86,28 +85,24 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     _;
   }
 
+  /* ======================================================== */
   /* ==================== View Functions ==================== */
+  /* ======================================================== */
 
-  /**
-   * @notice Get a PoolExchange from storage.
-   * @param exchangeId the exchange id
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function getPoolExchange(bytes32 exchangeId) public view returns (PoolExchange memory exchange) {
     exchange = exchanges[exchangeId];
     require(exchange.tokenAddress != address(0), "An exchange with the specified id does not exist");
     return exchange;
   }
 
-  /**
-   * @notice Get all exchange IDs.
-   * @return exchangeIds List of the exchangeIds.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function getExchangeIds() external view returns (bytes32[] memory) {
     return exchangeIds;
   }
 
   /**
-   * @notice Get all exchanges (used by interfaces)
+   * @inheritdoc IExchangeProvider
    * @dev We don't expect the number of exchanges to grow to
    * astronomical values so this is safe gas-wise as is.
    */
@@ -122,14 +117,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     }
   }
 
-  /**
-   * @notice Calculate amountOut of tokenOut received for a given amountIn of tokenIn
-   * @param exchangeId The id of the exchange i.e PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountIn The amount of tokenIn to be sold
-   * @return amountOut The amount of tokenOut to be bought
-   */
+  /// @inheritdoc IExchangeProvider
   function getAmountOut(
     bytes32 exchangeId,
     address tokenIn,
@@ -143,14 +131,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     return amountOut;
   }
 
-  /**
-   * @notice Calculate amountIn of tokenIn for a given amountOut of tokenOut
-   * @param exchangeId The id of the exchange i.e PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountOut The amount of tokenOut to be bought
-   * @return amountIn The amount of tokenIn to be sold
-   */
+  /// @inheritdoc IExchangeProvider
   function getAmountIn(
     bytes32 exchangeId,
     address tokenIn,
@@ -164,11 +145,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     return amountIn;
   }
 
-  /**
-   * @notice Get the current price of the pool.
-   * @param exchangeId The id of the pool to get the price for.
-   * @return price The current continous price of the pool.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function currentPrice(bytes32 exchangeId) public view returns (uint256 price) {
     // calculates: reserveBalance / (tokenSupply * reserveRatio)
     require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
@@ -179,53 +156,35 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     return price;
   }
 
+  /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
+  /* ============================================================ */
 
-  /**
-   * @notice Sets the address of the broker contract.
-   * @param _broker The new address of the broker contract.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function setBroker(address _broker) public onlyOwner {
     require(_broker != address(0), "Broker address must be set");
     broker = _broker;
     emit BrokerUpdated(_broker);
   }
 
-  /**
-   * @notice Sets the address of the reserve contract.
-   * @param _reserve The new address of the reserve contract.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function setReserve(address _reserve) public onlyOwner {
     require(address(_reserve) != address(0), "Reserve address must be set");
     reserve = IReserve(_reserve);
     emit ReserveUpdated(address(_reserve));
   }
 
-  /**
-   * @notice Sets the exit contribution for a pool.
-   * @param exchangeId The id of the pool.
-   * @param exitContribution The exit contribution.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external virtual onlyOwner {
     return _setExitContribution(exchangeId, exitContribution);
   }
 
-  /**
-   * @notice Creates a new exchange using the given parameters.
-   * @param _exchange the PoolExchange to create.
-   * @return exchangeId The id of the newly created exchange.
-   */
-
+  /// @inheritdoc IBancorExchangeProvider
   function createExchange(PoolExchange calldata _exchange) external virtual onlyOwner returns (bytes32 exchangeId) {
     return _createExchange(_exchange);
   }
 
-  /**
-   * @notice Destroys a exchange with the given parameters if it exists.
-   * @param exchangeId the id of the exchange to destroy
-   * @param exchangeIdIndex The index of the exchangeId in the ids array
-   * @return destroyed A boolean indicating whether or not the exchange was successfully destroyed.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function destroyExchange(
     bytes32 exchangeId,
     uint256 exchangeIdIndex
@@ -233,14 +192,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     return _destroyExchange(exchangeId, exchangeIdIndex);
   }
 
-  /**
-   * @notice Execute a token swap with fixed amountIn
-   * @param exchangeId The id of exchange, i.e. PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountIn The amount of tokenIn to be sold
-   * @return amountOut The amount of tokenOut to be bought
-   */
+  /// @inheritdoc IExchangeProvider
   function swapIn(
     bytes32 exchangeId,
     address tokenIn,
@@ -256,14 +208,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     return amountOut;
   }
 
-  /**
-   * @notice Execute a token swap with fixed amountOut
-   * @param exchangeId The id of exchange, i.e. PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountOut The amount of tokenOut to be bought
-   * @return amountIn The amount of tokenIn to be sold
-   */
+  /// @inheritdoc IExchangeProvider
   function swapOut(
     bytes32 exchangeId,
     address tokenIn,
@@ -279,7 +224,9 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     return amountIn;
   }
 
+  /* =========================================================== */
   /* ==================== Private Functions ==================== */
+  /* =========================================================== */
 
   function _createExchange(PoolExchange calldata _exchange) internal returns (bytes32 exchangeId) {
     PoolExchange memory exchange = _exchange;

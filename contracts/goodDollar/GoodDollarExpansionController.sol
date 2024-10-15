@@ -17,7 +17,9 @@ import { unwrap, wrap, powu } from "prb/math/UD60x18.sol";
  * @notice Provides functionality to expand the supply of GoodDollars.
  */
 contract GoodDollarExpansionController is IGoodDollarExpansionController, PausableUpgradeable, OwnableUpgradeable {
+  /* ========================================================= */
   /* ==================== State Variables ==================== */
+  /* ========================================================= */
 
   // MAX_WEIGHT is the max rate that can be assigned to an exchange
   uint256 public constant MAX_WEIGHT = 1e18;
@@ -38,7 +40,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   // solhint-disable-next-line var-name-mixedcase
   address public AVATAR;
 
+  /* ===================================================== */
   /* ==================== Constructor ==================== */
+  /* ===================================================== */
 
   /**
    * @dev Should be called with disable=true in deployments when
@@ -54,13 +58,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     }
   }
 
-  /**
-   * @notice Initializes the contract with the given parameters.
-   * @param _goodDollarExchangeProvider The address of the GoodDollarExchangeProvider contract.
-   * @param _distributionHelper The address of the distribution helper contract.
-   * @param _reserve The address of the Reserve contract.
-   * @param _avatar The address of the GoodDollar DAO contract.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function initialize(
     address _goodDollarExchangeProvider,
     address _distributionHelper,
@@ -76,71 +74,56 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     setAvatar(_avatar);
   }
 
+  /* =================================================== */
   /* ==================== Modifiers ==================== */
+  /* =================================================== */
 
   modifier onlyAvatar() {
     require(msg.sender == AVATAR, "Only Avatar can call this function");
     _;
   }
 
+  /* ======================================================== */
   /* ==================== View Functions ==================== */
+  /* ======================================================== */
 
-  /**
-   * @notice Returns the expansion config for the given exchange.
-   * @param exchangeId The id of the exchange to get the expansion config for.
-   * @return config The expansion config.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function getExpansionConfig(bytes32 exchangeId) public view returns (ExchangeExpansionConfig memory) {
     require(exchangeExpansionConfigs[exchangeId].expansionRate > 0, "Expansion config not set");
     return exchangeExpansionConfigs[exchangeId];
   }
 
+  /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
+  /* ============================================================ */
 
-  /**
-   * @notice Sets the GoodDollarExchangeProvider address.
-   * @param _goodDollarExchangeProvider The address of the GoodDollarExchangeProvider contract.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function setGoodDollarExchangeProvider(address _goodDollarExchangeProvider) public onlyOwner {
     require(_goodDollarExchangeProvider != address(0), "GoodDollarExchangeProvider address must be set");
     goodDollarExchangeProvider = IGoodDollarExchangeProvider(_goodDollarExchangeProvider);
     emit GoodDollarExchangeProviderUpdated(_goodDollarExchangeProvider);
   }
 
-  /**
-   * @notice Sets the distribution helper address.
-   * @param _distributionHelper The address of the distribution helper contract.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function setDistributionHelper(address _distributionHelper) public onlyAvatar {
     return _setDistributionHelper(_distributionHelper);
   }
 
-  /**
-   * @notice Sets the reserve address.
-   * @param _reserve The address of the reserve contract.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function setReserve(address _reserve) public onlyOwner {
     require(_reserve != address(0), "Reserve address must be set");
     reserve = _reserve;
     emit ReserveUpdated(_reserve);
   }
 
-  /**
-   * @notice Sets the AVATAR address.
-   * @param _avatar The address of the AVATAR contract.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function setAvatar(address _avatar) public onlyOwner {
     require(_avatar != address(0), "Avatar address must be set");
     AVATAR = _avatar;
     emit AvatarUpdated(_avatar);
   }
 
-  /**
-   * @notice Sets the expansion config for the given exchange.
-   * @param exchangeId The id of the exchange to set the expansion config for.
-   * @param expansionRate The rate of expansion.
-   * @param expansionFrequency The frequency of expansion.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function setExpansionConfig(bytes32 exchangeId, uint64 expansionRate, uint32 expansionFrequency) external onlyAvatar {
     require(expansionRate < MAX_WEIGHT, "Expansion rate must be less than 100%");
     require(expansionRate > 0, "Expansion rate must be greater than 0");
@@ -152,11 +135,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     emit ExpansionConfigSet(exchangeId, expansionRate, expansionFrequency);
   }
 
-  /**
-   * @notice Mints UBI for the given exchange from collecting reserve interest.
-   * @param exchangeId The id of the exchange to mint UBI for.
-   * @param reserveInterest The amount of reserve tokens collected from interest.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external {
     require(reserveInterest > 0, "reserveInterest must be greater than 0");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
@@ -172,11 +151,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     emit InterestUBIMinted(exchangeId, amountToMint);
   }
 
-  /**
-   * @notice Mints UBI for the given exchange by comparing the reserve Balance of the contract to the virtual balance.
-   * @param exchangeId The id of the exchange to mint UBI for.
-   * @return amountMinted The amount of UBI tokens minted.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function mintUBIFromReserveBalance(bytes32 exchangeId) external returns (uint256 amountMinted) {
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
@@ -193,11 +168,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     }
   }
 
-  /**
-   * @notice Mints UBI for the given exchange by calculating the expansion rate.
-   * @param exchangeId The id of the exchange to mint UBI for.
-   * @return amountMinted The amount of UBI tokens minted.
-   */
+  /// @inheritdoc IGoodDollarExpansionController
   function mintUBIFromExpansion(bytes32 exchangeId) external returns (uint256 amountMinted) {
     ExchangeExpansionConfig memory config = getExpansionConfig(exchangeId);
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
@@ -229,14 +200,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     }
   }
 
-  /**
-   * @notice Mints a reward of tokens for the given exchange.
-   * @param exchangeId The id of the exchange to mint reward.
-   * @param to The address of the recipient.
-   * @param amount The amount of tokens to mint.
-   */
   function mintRewardFromRR(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
     require(to != address(0), "Invalid to address");
+  /// @inheritdoc IGoodDollarExpansionController
     require(amount > 0, "Amount must be greater than 0");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
@@ -249,7 +215,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     emit RewardMinted(exchangeId, to, amount);
   }
 
+  /* =========================================================== */
   /* ==================== Private Functions ==================== */
+  /* =========================================================== */
 
   function _setDistributionHelper(address _distributionHelper) internal {
     require(_distributionHelper != address(0), "DistributionHelper address must be set");

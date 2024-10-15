@@ -6,8 +6,8 @@ interface IGoodDollarExpansionController {
   /**
    * @notice Struct holding the configuration for the expansion of an exchange.
    * @param expansionRate The rate of expansion in percentage with 1e18 being 100%.
-   * @param expansionfrequency The frequency of expansion in seconds.
-   * @param lastExpansion The last timestamp an expansion was done.
+   * @param expansionFrequency The frequency of expansion in seconds.
+   * @param lastExpansion The timestamp of the last prior expansion.
    */
   struct ExchangeExpansionConfig {
     uint64 expansionRate;
@@ -36,38 +36,38 @@ interface IGoodDollarExpansionController {
   event ReserveUpdated(address indexed reserve);
 
   /**
-   * @notice Emitted when the AVATAR address is updated.
-   * @param avatar The address of the new AVATAR.
+   * @notice Emitted when the GoodDollar DAO address is updated.
+   * @param avatar The new address of the GoodDollar DAO.
    */
   event AvatarUpdated(address indexed avatar);
 
   /**
-   * @notice Emitted when the expansion config is set for an exchange.
-   * @param exchangeId The id of the exchange.
+   * @notice Emitted when the expansion config is set for an pool.
+   * @param exchangeId The ID of the pool.
    * @param expansionRate The rate of expansion.
-   * @param expansionfrequency The frequency of expansion.
+   * @param expansionFrequency The frequency of expansion.
    */
-  event ExpansionConfigSet(bytes32 indexed exchangeId, uint64 expansionRate, uint32 expansionfrequency);
+  event ExpansionConfigSet(bytes32 indexed exchangeId, uint64 expansionRate, uint32 expansionFrequency);
 
   /**
-   * @notice Emitted when a reward is minted.
-   * @param exchangeId The id of the exchange.
+   * @notice Emitted when a G$ reward is minted.
+   * @param exchangeId The ID of the pool.
    * @param to The address of the recipient.
-   * @param amount The amount of tokens minted.
+   * @param amount The amount of G$ tokens minted.
    */
   event RewardMinted(bytes32 indexed exchangeId, address indexed to, uint256 amount);
 
   /**
    * @notice Emitted when UBI is minted through collecting reserve interest.
-   * @param exchangeId The id of the exchange.
-   * @param amount Amount of tokens minted.
+   * @param exchangeId The ID of the pool.
+   * @param amount The amount of G$ tokens minted.
    */
   event InterestUBIMinted(bytes32 indexed exchangeId, uint256 amount);
 
   /**
    * @notice Emitted when UBI is minted through expansion.
-   * @param exchangeId The id of the exchange.
-   * @param amount Amount of tokens minted.
+   * @param exchangeId The ID of the pool.
+   * @param amount The amount of G$ tokens minted.
    */
   event ExpansionUBIMinted(bytes32 indexed exchangeId, uint256 amount);
 
@@ -86,6 +86,13 @@ interface IGoodDollarExpansionController {
     address _reserve,
     address _avatar
   ) external;
+
+  /**
+   * @notice Returns the expansion config for the given exchange.
+   * @param exchangeId The id of the exchange to get the expansion config for.
+   * @return config The expansion config.
+   */
+  function getExpansionConfig(bytes32 exchangeId) external returns (ExchangeExpansionConfig memory);
 
   /**
    * @notice Sets the GoodDollarExchangeProvider address.
@@ -112,39 +119,39 @@ interface IGoodDollarExpansionController {
   function setAvatar(address _avatar) external;
 
   /**
-   * @notice Sets the expansion config for the given exchange.
-   * @param exchangeId The id of the exchange to set the expansion config for.
+   * @notice Sets the expansion config for the given pool.
+   * @param exchangeId The ID of the pool to set the expansion config for.
    * @param expansionRate The rate of expansion.
    * @param expansionFrequency The frequency of expansion.
    */
   function setExpansionConfig(bytes32 exchangeId, uint64 expansionRate, uint32 expansionFrequency) external;
 
   /**
-   * @notice Mints UBI for the given exchange from collecting reserve interest.
-   * @param exchangeId The id of the exchange to mint UBI for.
+   * @notice Mints UBI as G$ tokens for a given pool from collected reserve interest.
+   * @param exchangeId The ID of the pool to mint UBI for.
    * @param reserveInterest The amount of reserve tokens collected from interest.
    */
   function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external;
 
   /**
-   * @notice Mints UBI for the given exchange by comparing the reserve Balance of the contract to the virtual balance.
-   * @param exchangeId The id of the exchange to mint UBI for.
-   * @return amountMinted The amount of UBI tokens minted.
+   * @notice Mints UBI as G$ tokens for a given pool by comparing the contract's reserve balance to the virtual balance.
+   * @param exchangeId The ID of the pool to mint UBI for.
+   * @return amountMinted The amount of G$ tokens minted.
    */
   function mintUBIFromReserveBalance(bytes32 exchangeId) external returns (uint256 amountMinted);
 
   /**
-   * @notice Mints UBI for the given exchange by calculating the expansion rate.
-   * @param exchangeId The id of the exchange to mint UBI for.
-   * @return amountMinted The amount of UBI tokens minted.
+   * @notice Mints UBI as G$ tokens for a given pool by calculating the expansion rate.
+   * @param exchangeId The ID of the pool to mint UBI for.
+   * @return amountMinted The amount of G$ tokens minted.
    */
   function mintUBIFromExpansion(bytes32 exchangeId) external returns (uint256 amountMinted);
 
   /**
-   * @notice Mints a reward of tokens for the given exchange.
-   * @param exchangeId The id of the exchange to mint reward.
+   * @notice Mints a reward of G$ tokens for a given pool.
+   * @param exchangeId The ID of the pool to mint a G$ reward for.
    * @param to The address of the recipient.
-   * @param amount The amount of tokens to mint.
+   * @param amount The amount of G$ tokens to mint.
    */
-  function mintRewardFromRR(bytes32 exchangeId, address to, uint256 amount) external;
+  function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external;
 }
