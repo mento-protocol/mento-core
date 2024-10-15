@@ -137,7 +137,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
   /// @inheritdoc IGoodDollarExpansionController
   function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external {
-    require(reserveInterest > 0, "reserveInterest must be greater than 0");
+    require(reserveInterest > 0, "Reserve interest must be greater than 0");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
@@ -220,7 +220,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   /* =========================================================== */
 
   function _setDistributionHelper(address _distributionHelper) internal {
-    require(_distributionHelper != address(0), "DistributionHelper address must be set");
+    require(_distributionHelper != address(0), "Distribution helper address must be set");
     distributionHelper = IDistributionHelper(_distributionHelper);
     emit DistributionHelperUpdated(_distributionHelper);
   }

@@ -157,6 +157,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
 
     amountToMint = scaledAmountToMint / tokenPrecisionMultipliers[exchange.tokenAddress];
     emit ReserveRatioUpdated(exchangeId, newRatioUint);
+
     return amountToMint;
   }
 

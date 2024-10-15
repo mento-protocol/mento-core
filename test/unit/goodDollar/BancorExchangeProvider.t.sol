@@ -169,7 +169,7 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
 
     uint32 maxWeight = bancorExchangeProvider.MAX_WEIGHT();
-    vm.expectRevert("Invalid exit contribution");
+    vm.expectRevert("Exit contribution is too high");
     bancorExchangeProvider.setExitContribution(exchangeId, maxWeight + 1);
   }
 

@@ -137,7 +137,7 @@ contract GoodDollarExpansionControllerTest_initializerSettersGetters is GoodDoll
 
   function test_setDistributionHelper_whenAddressIsZero_shouldRevert() public {
     vm.startPrank(avatarAddress);
-    vm.expectRevert("DistributionHelper address must be set");
+    vm.expectRevert("Distribution helper address must be set");
     expansionController.setDistributionHelper(address(0));
     vm.stopPrank();
   }
@@ -271,7 +271,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromInterest is GoodDollarExpa
   }
 
   function test_mintUBIFromInterest_whenReserveInterestIs0_shouldRevert() public {
-    vm.expectRevert("reserveInterest must be greater than 0");
+    vm.expectRevert("Reserve interest must be greater than 0");
     expansionController.mintUBIFromInterest(exchangeId, 0);
   }
 
