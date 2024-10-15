@@ -8,7 +8,6 @@ import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20
 import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 
-import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
 import { PausableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { unwrap, wrap, powu } from "prb/math/UD60x18.sol";
@@ -17,12 +16,7 @@ import { unwrap, wrap, powu } from "prb/math/UD60x18.sol";
  * @title GoodDollarExpansionController
  * @notice Provides functionality to expand the supply of GoodDollars.
  */
-contract GoodDollarExpansionController is
-  IGoodDollarExpansionController,
-  PausableUpgradeable,
-  OwnableUpgradeable,
-  ReentrancyGuard
-{
+contract GoodDollarExpansionController is IGoodDollarExpansionController, PausableUpgradeable, OwnableUpgradeable {
   /* ==================== State Variables ==================== */
 
   // MAX_WEIGHT is the max rate that can be assigned to an exchange
@@ -163,7 +157,7 @@ contract GoodDollarExpansionController is
    * @param exchangeId The id of the exchange to mint UBI for.
    * @param reserveInterest The amount of reserve tokens collected from interest.
    */
-  function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external nonReentrant {
+  function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external {
     require(reserveInterest > 0, "reserveInterest must be greater than 0");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
@@ -183,7 +177,7 @@ contract GoodDollarExpansionController is
    * @param exchangeId The id of the exchange to mint UBI for.
    * @return amountMinted The amount of UBI tokens minted.
    */
-  function mintUBIFromReserveBalance(bytes32 exchangeId) external nonReentrant returns (uint256 amountMinted) {
+  function mintUBIFromReserveBalance(bytes32 exchangeId) external returns (uint256 amountMinted) {
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
@@ -204,7 +198,7 @@ contract GoodDollarExpansionController is
    * @param exchangeId The id of the exchange to mint UBI for.
    * @return amountMinted The amount of UBI tokens minted.
    */
-  function mintUBIFromExpansion(bytes32 exchangeId) external nonReentrant returns (uint256 amountMinted) {
+  function mintUBIFromExpansion(bytes32 exchangeId) external returns (uint256 amountMinted) {
     ExchangeExpansionConfig memory config = getExpansionConfig(exchangeId);
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
@@ -241,7 +235,7 @@ contract GoodDollarExpansionController is
    * @param to The address of the recipient.
    * @param amount The amount of tokens to mint.
    */
-  function mintRewardFromRR(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar nonReentrant {
+  function mintRewardFromRR(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
     require(to != address(0), "Invalid to address");
     require(amount > 0, "Amount must be greater than 0");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
