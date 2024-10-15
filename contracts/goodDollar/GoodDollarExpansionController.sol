@@ -200,9 +200,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     }
   }
 
-  function mintRewardFromRR(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
-    require(to != address(0), "Invalid to address");
   /// @inheritdoc IGoodDollarExpansionController
+  function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
+    require(to != address(0), "Recipient address must be set");
     require(amount > 0, "Amount must be greater than 0");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);

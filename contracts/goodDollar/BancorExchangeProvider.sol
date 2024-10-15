@@ -92,7 +92,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   /// @inheritdoc IBancorExchangeProvider
   function getPoolExchange(bytes32 exchangeId) public view returns (PoolExchange memory exchange) {
     exchange = exchanges[exchangeId];
-    require(exchange.tokenAddress != address(0), "An exchange with the specified id does not exist");
+    require(exchange.tokenAddress != address(0), "Exchange does not exist");
     return exchange;
   }
 
@@ -240,8 +240,8 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
     uint256 reserveAssetDecimals = IERC20(exchange.reserveAsset).decimals();
     uint256 tokenDecimals = IERC20(exchange.tokenAddress).decimals();
-    require(reserveAssetDecimals <= 18, "reserve token decimals must be <= 18");
-    require(tokenDecimals <= 18, "token decimals must be <= 18");
+    require(reserveAssetDecimals <= 18, "Reserve asset decimals must be <= 18");
+    require(tokenDecimals <= 18, "Token decimals must be <= 18");
 
     tokenPrecisionMultipliers[exchange.reserveAsset] = 10 ** (18 - uint256(reserveAssetDecimals));
     tokenPrecisionMultipliers[exchange.tokenAddress] = 10 ** (18 - uint256(tokenDecimals));
@@ -363,12 +363,12 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     require(exchange.reserveAsset != address(0), "Invalid reserve asset");
     require(
       reserve.isCollateralAsset(exchange.reserveAsset),
-      "reserve asset must be a collateral registered with the reserve"
+      "Reserve asset must be a collateral registered with the reserve"
     );
     require(exchange.tokenAddress != address(0), "Invalid token address");
-    require(reserve.isStableAsset(exchange.tokenAddress), "token must be a stable registered with the reserve");
-    require(exchange.reserveRatio > 1, "Invalid reserve ratio");
-    require(exchange.reserveRatio <= MAX_WEIGHT, "Invalid reserve ratio");
-    require(exchange.exitContribution <= MAX_WEIGHT, "Invalid exit contribution");
+    require(reserve.isStableAsset(exchange.tokenAddress), "Token must be a stable registered with the reserve");
+    require(exchange.reserveRatio > 1, "Reserve ratio is too low");
+    require(exchange.reserveRatio <= MAX_WEIGHT, "Reserve ratio is too high");
+    require(exchange.exitContribution <= MAX_WEIGHT, "Exit contribution is too high");
   }
 }
