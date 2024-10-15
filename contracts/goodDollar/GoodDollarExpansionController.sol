@@ -45,10 +45,8 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   /* ===================================================== */
 
   /**
-   * @dev Should be called with disable=true in deployments when
-   * it's accessed through a Proxy.
-   * Call this with disable=false during testing, when used
-   * without a proxy.
+   * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
+   * Call this with disable=false during testing, when used without a proxy.
    * @param disable Set to true to run `_disableInitializers()` inherited from
    * openzeppelin-contracts-upgradeable/Initializable.sol
    */
@@ -178,7 +176,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     if (shouldExpand || config.lastExpansion == 0) {
       uint256 numberOfExpansions;
 
-      //special case for first expansion
+      // Special case for first expansion
       if (config.lastExpansion == 0) {
         numberOfExpansions = 1;
       } else {

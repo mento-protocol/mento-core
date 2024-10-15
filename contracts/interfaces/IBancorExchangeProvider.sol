@@ -51,9 +51,9 @@ interface IBancorExchangeProvider {
    */
   event ExitContributionSet(bytes32 indexed exchangeId, uint256 exitContribution);
 
-  /* =========================================== */
-  /* ================ Functions ================ */
-  /* =========================================== */
+  /* ======================================================== */
+  /* ==================== View Functions ==================== */
+  /* ======================================================== */
 
   /**
    * @notice Allows the contract to be upgradable via the proxy.
@@ -82,21 +82,9 @@ interface IBancorExchangeProvider {
    */
   function currentPrice(bytes32 exchangeId) external view returns (uint256 price);
 
-  /**
-   * @notice Creates a new pool with the given parameters.
-   * @param exchange The pool to be created.
-   * @return exchangeId The ID of the new pool.
-   */
-  function createExchange(PoolExchange calldata exchange) external returns (bytes32 exchangeId);
-
-  /**
-   * @notice Destroys a pool with the given parameters if it exists.
-   * @param exchangeId The ID of the pool to be destroyed.
-   * @param exchangeIdIndex The index of the pool in the exchangeIds array.
-   * @return destroyed A boolean indicating whether or not the exchange was successfully destroyed.
-   */
-  function destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex) external returns (bool destroyed);
-
+  /* ============================================================ */
+  /* ==================== Mutative Functions ==================== */
+  /* ============================================================ */
   /**
    * @notice Sets the address of the broker contract.
    * @param _broker The new address of the broker contract.
@@ -115,4 +103,19 @@ interface IBancorExchangeProvider {
    * @param exitContribution The exit contribution to be set
    */
   function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external;
+
+  /**
+   * @notice Creates a new pool with the given parameters.
+   * @param exchange The pool to be created.
+   * @return exchangeId The ID of the new pool.
+   */
+  function createExchange(PoolExchange calldata exchange) external returns (bytes32 exchangeId);
+
+  /**
+   * @notice Destroys a pool with the given parameters if it exists.
+   * @param exchangeId The ID of the pool to be destroyed.
+   * @param exchangeIdIndex The index of the pool in the exchangeIds array.
+   * @return destroyed A boolean indicating whether or not the exchange was successfully destroyed.
+   */
+  function destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex) external returns (bool destroyed);
 }
