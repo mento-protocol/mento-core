@@ -34,7 +34,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   IGoodDollarExchangeProvider public goodDollarExchangeProvider;
 
   // Maps exchangeId to exchangeExpansionConfig
-  mapping(bytes32 => ExchangeExpansionConfig) public exchangeExpansionConfigs;
+  mapping(bytes32 exchangeId => ExchangeExpansionConfig) public exchangeExpansionConfigs;
 
   // Address of the GoodDollar DAO contract.
   // solhint-disable-next-line var-name-mixedcase
