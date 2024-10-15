@@ -187,7 +187,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     bytes32 exchangeId,
     address token,
     ITradingLimits.Config memory config
-  ) public onlyOwner {
+  ) external onlyOwner {
     config.validate();
 
     bytes32 limitId = exchangeId ^ bytes32(uint256(uint160(token)));
