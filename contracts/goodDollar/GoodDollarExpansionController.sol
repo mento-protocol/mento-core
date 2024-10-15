@@ -166,6 +166,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
     require(IERC20(exchange.reserveAsset).transferFrom(msg.sender, reserve, reserveInterest), "Transfer failed");
     IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountToMint);
+
+    // Ignored, because contracts only interacts with trusted contracts and tokens
+    // slither-disable-next-line reentrancy-events
     emit InterestUBIMinted(exchangeId, amountToMint);
   }
 
@@ -184,6 +187,8 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
       amountMinted = goodDollarExchangeProvider.mintFromInterest(exchangeId, additionalReserveBalance);
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
 
+      // Ignored, because contracts only interacts with trusted contracts and tokens
+      // slither-disable-next-line reentrancy-events
       emit InterestUBIMinted(exchangeId, amountMinted);
     }
   }
@@ -217,6 +222,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
       distributionHelper.onDistribution(amountMinted);
+
+      // Ignored, because contracts only interacts with trusted contracts and tokens
+      // slither-disable-next-line reentrancy-events
       emit ExpansionUBIMinted(exchangeId, amountMinted);
     }
   }
@@ -235,6 +243,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
     goodDollarExchangeProvider.updateRatioForReward(exchangeId, amount);
     IGoodDollar(exchange.tokenAddress).mint(to, amount);
+
+    // Ignored, because contracts only interacts with trusted contracts and tokens
+    // slither-disable-next-line reentrancy-events
     emit RewardMinted(exchangeId, to, amount);
   }
 

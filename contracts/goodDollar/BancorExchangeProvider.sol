@@ -281,6 +281,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     PoolExchange memory exchange = _exchange;
     validate(exchange);
 
+    // slither-disable-next-line encode-packed-collision
     exchangeId = keccak256(
       abi.encodePacked(IERC20(exchange.reserveAsset).symbol(), IERC20(exchange.tokenAddress).symbol())
     );
