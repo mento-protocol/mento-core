@@ -141,6 +141,10 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     uint256 amountOut
   ) external view returns (uint256 amountIn) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
+    address reserve = exchangeReserve[exchangeProvider];
+    if (IReserve(reserve).isCollateralAsset(tokenOut)) {
+      require(IERC20(tokenOut).balanceOf(reserve) >= amountOut, "Insufficient balance in reserve");
+    }
     amountIn = IExchangeProvider(exchangeProvider).getAmountIn(exchangeId, tokenIn, tokenOut, amountOut);
   }
 
@@ -162,6 +166,10 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
   ) external view returns (uint256 amountOut) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
     amountOut = IExchangeProvider(exchangeProvider).getAmountOut(exchangeId, tokenIn, tokenOut, amountIn);
+    address reserve = exchangeReserve[exchangeProvider];
+    if (IReserve(reserve).isCollateralAsset(tokenOut)) {
+      require(IERC20(tokenOut).balanceOf(reserve) >= amountOut, "Insufficient balance in reserve");
+    }
   }
 
   /**
