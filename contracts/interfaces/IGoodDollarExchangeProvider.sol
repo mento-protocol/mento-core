@@ -3,7 +3,9 @@ pragma solidity >=0.5.17 <0.8.19;
 pragma experimental ABIEncoderV2;
 
 interface IGoodDollarExchangeProvider {
-  /* ------- Events ------- */
+  /* ========================================== */
+  /* ================= Events ================= */
+  /* ========================================== */
 
   /**
    * @notice Emitted when the ExpansionController address is updated.
@@ -12,20 +14,22 @@ interface IGoodDollarExchangeProvider {
   event ExpansionControllerUpdated(address indexed expansionController);
 
   /**
-   * @notice Emitted when the AVATAR address is updated.
-   * @param AVATAR The address of the AVATAR contract.
+   * @notice Emitted when the GoodDollar DAO address is updated.
+   * @param AVATAR The address of the GoodDollar DAO contract.
    */
   // solhint-disable-next-line var-name-mixedcase
   event AvatarUpdated(address indexed AVATAR);
 
   /**
-   * @notice Emitted when reserve ratio for exchange is updated.
-   * @param exchangeId The id of the exchange.
+   * @notice Emitted when the reserve ratio for a pool is updated.
+   * @param exchangeId The id of the pool.
    * @param reserveRatio The new reserve ratio.
    */
   event ReserveRatioUpdated(bytes32 indexed exchangeId, uint32 reserveRatio);
 
-  /* ------- Functions ------- */
+  /* =========================================== */
+  /* ================ Functions ================ */
+  /* =========================================== */
 
   /**
    * @notice Initializes the contract with the given parameters.
@@ -37,35 +41,47 @@ interface IGoodDollarExchangeProvider {
   function initialize(address _broker, address _reserve, address _expansionController, address _avatar) external;
 
   /**
-   * @notice calculates the amount of tokens to be minted as a result of expansion.
-   * @param exchangeId The id of the pool to calculate expansion for.
+   * @notice Sets the address of the GoodDollar DAO contract.
+   * @param _avatar The address of the DAO contract.
+   */
+  function setAvatar(address _avatar) external;
+
+  /**
+   * @notice Sets the address of the Expansion Controller contract.
+   * @param _expansionController The address of the Expansion Controller contract.
+   */
+  function setExpansionController(address _expansionController) external;
+
+  /**
+   * @notice Calculates the amount of G$ tokens to be minted as a result of the expansion.
+   * @param exchangeId The ID of the pool to calculate the expansion for.
    * @param expansionScaler Scaler for calculating the new reserve ratio.
-   * @return amountToMint amount of tokens to be minted as a result of the expansion.
+   * @return amountToMint Amount of G$ tokens to be minted as a result of the expansion.
    */
   function mintFromExpansion(bytes32 exchangeId, uint256 expansionScaler) external returns (uint256 amountToMint);
 
   /**
-   * @notice calculates the amount of tokens to be minted as a result of the reserve interest.
-   * @param exchangeId The id of the pool the reserve interest is added to.
-   * @param reserveInterest The amount of reserve tokens collected from interest.
-   * @return amount of tokens to be minted as a result of the reserve interest.
+   * @notice Calculates the amount of G$ tokens to be minted as a result of the collected reserve interest.
+   * @param exchangeId The ID of the pool the collected reserve interest is added to.
+   * @param reserveInterest The amount of reserve asset tokens collected from interest.
+   * @return amountToMint The amount of G$ tokens to be minted as a result of the collected reserve interest.
    */
-  function mintFromInterest(bytes32 exchangeId, uint256 reserveInterest) external returns (uint256);
+  function mintFromInterest(bytes32 exchangeId, uint256 reserveInterest) external returns (uint256 amountToMint);
 
   /**
-   * @notice calculates the reserve ratio needed to mint the reward.
-   * @param exchangeId The id of the pool the reward is minted from.
-   * @param reward The amount of tokens to be minted as a reward.
+   * @notice Calculates the reserve ratio needed to mint the given G$ reward.
+   * @param exchangeId The ID of the pool the G$ reward is minted from.
+   * @param reward The amount of G$ tokens to be minted as a reward.
    */
   function updateRatioForReward(bytes32 exchangeId, uint256 reward) external;
 
   /**
-   * @notice pauses the Exchange disables minting.
+   * @notice Pauses the Exchange, disabling minting.
    */
   function pause() external;
 
   /**
-   * @notice unpauses the Exchange enables minting again.
+   * @notice Unpauses the Exchange, enabling minting again.
    */
   function unpause() external;
 }

@@ -314,7 +314,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
 
   function test_mintFromExpansion_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
-    vm.expectRevert("An exchange with the specified id does not exist");
+    vm.expectRevert("Exchange does not exist");
     exchangeProvider.mintFromExpansion(bytes32(0), expansionRate);
   }
 
@@ -374,7 +374,7 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
 
   function test_mintFromInterest_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
-    vm.expectRevert("An exchange with the specified id does not exist");
+    vm.expectRevert("Exchange does not exist");
     exchangeProvider.mintFromInterest(bytes32(0), reserveInterest);
   }
 
@@ -431,7 +431,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
   function test_updateRatioForReward_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
-    vm.expectRevert("An exchange with the specified id does not exist");
+    vm.expectRevert("Exchange does not exist");
     exchangeProvider.updateRatioForReward(bytes32(0), reward);
   }
 
