@@ -22,11 +22,11 @@ interface IMint {
 /**
  * @title BaseForkTest
  * @notice Fork tests for Mento!
- * This test suite tests invariantes on a fork of a live Mento environemnts.
+ * This test suite tests invariants on a fork of a live Mento environemnts.
  * The philosophy is to test in accordance with how the target fork is configured,
  * therfore it doesn't make assumptions about the systems, nor tries to configure
  * the system to test specific scenarios.
- * However, it should be exausitve in testing invariants across all tradable pairs
+ * However, it should be exhaustive in testing invariants across all tradable pairs
  * in the system, therefore each test should.
  */
 abstract contract BaseForkTest is Test {
