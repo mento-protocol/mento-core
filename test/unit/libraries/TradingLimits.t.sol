@@ -6,7 +6,7 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 
-import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarness.sol";
+import { TradingLimitsHarness } from "test/utils/harnesses/TradingLimitsHarness.sol";
 
 // forge test --match-contract TradingLimits -vvv
 contract TradingLimitsTest is Test {
@@ -15,7 +15,7 @@ contract TradingLimitsTest is Test {
   uint8 private constant LG = 4; // 0b100
 
   ITradingLimits.State private state;
-  ITradingLimitsHarness private harness;
+  TradingLimitsHarness private harness;
 
   function configEmpty() internal pure returns (ITradingLimits.Config memory config) {}
 
@@ -87,7 +87,7 @@ contract TradingLimitsTest is Test {
   }
 
   function setUp() public {
-    harness = ITradingLimitsHarness(deployCode("TradingLimitsHarness"));
+    harness = new TradingLimitsHarness();
   }
 
   /* ==================== Config#validate ==================== */
@@ -286,9 +286,14 @@ contract TradingLimitsTest is Test {
     assertEq(state.netflowGlobal, 100);
   }
 
-  function test_update_withSubUnitAmounts_updatesAs1() public {
+  function test_update_withPositiveSubUnitAmounts_updatesAs1() public {
     state = harness.update(state, configLG(500000), 1e6, 18);
     assertEq(state.netflowGlobal, 1);
+  }
+
+  function test_update_withNegativeSubUnitAmounts_updatesAsMinus1() public {
+    state = harness.update(state, configLG(500000), -1e6, 18);
+    assertEq(state.netflowGlobal, -1);
   }
 
   function test_update_withTooLargeAmount_reverts() public {
