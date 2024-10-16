@@ -11,7 +11,6 @@ import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IOwnable } from "contracts/interfaces/IOwnable.sol";
-import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { IRegistry } from "celo/contracts/common/interfaces/IRegistry.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
@@ -98,7 +97,7 @@ abstract contract BaseForkTest is Test {
     // TODO: Replace with `lookup("Broker")` after we've updated the broker on mainnet
     broker = new Broker(true);
 
-    // TODO: Probably can't do it like this to be compatible between both Alfajores & Mainnet, but couldn't find BiPoolManager in registry?
+    // TODO: How to look this up dynamically? Couldn't find it in registry or was using wrong search term 🤔
     biPoolManager = IBiPoolManager(0x22d9db95E6Ae61c104A7B6F6C78D7993B94ec901);
     sortedOracles = ISortedOracles(lookup("SortedOracles"));
     governance = lookup("Governance");
@@ -123,20 +122,20 @@ abstract contract BaseForkTest is Test {
     usdcToken = new USDC("bridgedUSDC", "bridgedUSDC");
     eurocToken = new USDC("bridgedEUROC", "bridgedEUROC");
 
-    // TODO: Probably can't do it like this to be compatible between both Alfajores & Mainnet, but couldn't find it in the registry?
+    // TODO: How to look this up dynamically? Couldn't find it in registry or was using wrong search term 🤔
     cUSDToken = IStableTokenV2(0x765DE816845861e75A25fCA122bb6898B8B1282a);
     vm.startPrank(IOwnable(address(cUSDToken)).owner());
     cUSDToken.setBroker(address(broker));
 
-    // TODO: Probably can't do it like this to be compatible between both Alfajores & Mainnet, but couldn't find it in the registry?
+    // TODO: How to look this up dynamically? Couldn't find it in registry or was using wrong search term 🤔
     cEURToken = IStableTokenV2(0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73);
     cEURToken.setBroker(address(broker));
 
-    // TODO: Probably can't do it like this to be compatible between both Alfajores & Mainnet, but couldn't find it in the registry?
+    // TODO: How to look this up dynamically? Couldn't find it in registry or was using wrong search term 🤔
     eXOFToken = IStableTokenV2(0x73F93dcc49cB8A239e2032663e9475dd5ef29A08);
     eXOFToken.setBroker(address(broker));
 
-    // TODO: Probably can't do it like this to be compatible between both Alfajores & Mainnet, but couldn't find it in the registry?
+    // TODO: How to look this up dynamically? Couldn't find it in registry or was using wrong search term 🤔
     // TODO: Do we use cCOP or PUSO?
     cCOPToken = IStableTokenV2(0x8A567e2aE79CA692Bd748aB832081C45de4041eA);
     vm.stopPrank();
