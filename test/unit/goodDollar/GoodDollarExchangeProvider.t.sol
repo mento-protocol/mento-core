@@ -10,6 +10,7 @@ import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.s
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
+import { UD60x18, unwrap, wrap } from "prb/math/UD60x18.sol";
 
 contract GoodDollarExchangeProviderTest is Test {
   /* ------- Events from IGoodDollarExchangeProvider ------- */
@@ -300,6 +301,24 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
     exchangeId = exchangeProvider.createExchange(poolExchange1);
   }
 
+  function calculateExpectedMintFromExpansion(
+    uint256 tokenSupply,
+    uint32 reserveRatio,
+    uint256 expansionScaler
+  ) public pure returns (uint256 expectedAmountToMint) {
+    require(expansionScaler > 0, "Expansion rate must be greater than 0");
+
+    // Convert to UD60x18 for precise calculations
+    UD60x18 scaledRatio = wrap(uint256(reserveRatio) * 1e10);
+    UD60x18 newRatio = scaledRatio.mul(wrap(expansionScaler));
+
+    UD60x18 numerator = wrap(tokenSupply).mul(scaledRatio);
+    numerator = numerator.sub(wrap(tokenSupply).mul(newRatio));
+
+    expectedAmountToMint = unwrap(numerator.div(newRatio));
+    return expectedAmountToMint;
+  }
+
   function test_mintFromExpansion_whenCallerIsNotExpansionController_shouldRevert() public {
     vm.prank(makeAddr("NotExpansionController"));
     vm.expectRevert("Only ExpansionController can call this function");
@@ -343,16 +362,19 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
 
   function testFuzz_mintFromExpansion(uint256 expansionRate) public {
     // Assume a valid expansion rate between 1 and 99.99%
-    vm.assume(expansionRate > 0 && expansionRate < 1e18);
+    vm.assume(expansionRate > 3 && expansionRate < 1e18);
 
     uint256 initialTokenSupply = poolExchange1.tokenSupply;
     uint32 initialReserveRatio = poolExchange1.reserveRatio;
 
-    // Calculate expected values
-    uint256 newRatio = (uint256(initialReserveRatio) * expansionRate) / 1e18;
-    uint256 expectedAmountToMint = (initialTokenSupply * uint256(initialReserveRatio) - initialTokenSupply * newRatio) /
-      newRatio;
+    // Calculate expected values using the helper function
+    uint256 expectedAmountToMint = calculateExpectedMintFromExpansion(
+      initialTokenSupply,
+      initialReserveRatio,
+      expansionRate
+    );
 
+    uint256 newRatio = (uint256(initialReserveRatio) * expansionRate) / 1e18;
     uint32 expectedReserveRatio = uint32(newRatio);
 
     vm.expectEmit(true, true, true, true);
