@@ -341,6 +341,38 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio);
   }
 
+  function testFuzz_mintFromExpansion(uint256 expansionRate) public {
+    // Assume a valid expansion rate between 1 and 99.99%
+    vm.assume(expansionRate > 0 && expansionRate < 1e18);
+
+    uint256 initialTokenSupply = poolExchange1.tokenSupply;
+    uint32 initialReserveRatio = poolExchange1.reserveRatio;
+
+    // Calculate expected values
+    uint256 newRatio = (uint256(initialReserveRatio) * expansionRate) / 1e18;
+    uint256 expectedAmountToMint = (initialTokenSupply * uint256(initialReserveRatio) - initialTokenSupply * newRatio) /
+      newRatio;
+
+    uint32 expectedReserveRatio = uint32(newRatio);
+
+    vm.expectEmit(true, true, true, true);
+    emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
+
+    vm.prank(expansionControllerAddress);
+    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, expansionRate);
+
+    assertEq(amountToMint, expectedAmountToMint, "Minted amount should match expected amount");
+
+    IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
+    assertEq(
+      poolExchangeAfter.tokenSupply,
+      initialTokenSupply + amountToMint,
+      "Token supply should increase by minted amount"
+    );
+
+    assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio, "Reserve ratio should be updated correctly");
+  }
+
   function test_mintFromExpansion_whenValidExpansionRate_shouldNotChangePrice() public {
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
@@ -350,6 +382,45 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
 
     assertEq(priceBefore, priceAfter);
+  }
+
+  function test_mintFromExpansion_whenExpansionScalerIs100Percent_shouldReturn0() public {
+    vm.prank(expansionControllerAddress);
+    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, 1e18);
+    assertEq(amountToMint, 0);
+  }
+
+  function test_mintFromExpansion_withMultipleConsecutiveExpansions_shouldMintCorrectly() public {
+    vm.startPrank(expansionControllerAddress);
+    uint256 totalMinted = 0;
+    for (uint256 i = 0; i < 5; i++) {
+      uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, 0.99e18);
+      totalMinted += amountToMint;
+    }
+    vm.stopPrank();
+
+    IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
+    assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + totalMinted);
+    // Add more assertions to check the final state
+  }
+
+  function test_mintFromExpansion_effectOnReserveRatio() public {
+    uint32 initialReserveRatio = poolExchange1.reserveRatio;
+
+    vm.prank(expansionControllerAddress);
+    exchangeProvider.mintFromExpansion(exchangeId, 0.99e18);
+    IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
+    assertLt(poolExchangeAfter.reserveRatio, initialReserveRatio);
+  }
+
+  function test_mintFromExpansion_withMaximumExpansion() public {
+    uint256 maxExpansionScaler = 1e18 - 1; // Just below 100%
+
+    vm.prank(expansionControllerAddress);
+    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, maxExpansionScaler);
+
+    assertGt(amountToMint, 0);
+    // Add more assertions to check the resulting state
   }
 }
 
