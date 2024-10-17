@@ -47,5 +47,5 @@ jobs:
         with:
           contract: ${{ matrix.contract }}
           rpcUrl: ${{ secrets.CELO_MAINNET_RPC_URL }}
-          address: 0x1B78f6acD05e7BcB00f74863bfd8a7C264143e37
+          address: "0x1B78f6acD05e7BcB00f74863bfd8a7C264143e37"
           failOnRemoval: true
