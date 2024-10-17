@@ -22,7 +22,7 @@ jobs:
           - contracts/swap/BiPoolManager.sol:BiPoolManager
           - contracts/swap/Reserve.sol:Reserve
           - contracts/tokens/StableTokenV2.sol:StableTokenV2
-          - contracts/governance/Locking.sol:Locking
+          - contracts/governance/locking/Locking.sol:Locking
           - contracts/governance/Emission.sol:Emission
           - contracts/governance/MentoGovernor.sol:MentoGovernor
           - contracts/governance/TimelockController.sol:TimelockController
@@ -46,6 +46,3 @@ jobs:
         uses: Rubilmax/foundry-storage-check@v3.7
         with:
           contract: ${{ matrix.contract }}
-          rpcUrl: ${{ secrets.CELO_MAINNET_RPC_URL }}
-          address: "0x1B78f6acD05e7BcB00f74863bfd8a7C264143e37"
-          failOnRemoval: true

@@ -37,8 +37,6 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
 
   /* ==================== State Variables ==================== */
 
-  uint256 public temp;
-
   address[] public exchangeProviders;
   mapping(address => bool) public isExchangeProvider;
   mapping(bytes32 => ITradingLimits.State) public tradingLimitsState;
