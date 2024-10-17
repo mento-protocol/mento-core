@@ -396,6 +396,14 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
 
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio, "Reserve ratio should be updated correctly");
   }
+  function testMintFromExpansion_RevertWhenNewRatioIsZero() public {
+    uint256 verySmallExpansionScaler = 1;
+
+    vm.expectRevert("New ratio must be greater than 0");
+
+    vm.prank(expansionControllerAddress);
+    exchangeProvider.mintFromExpansion(exchangeId, verySmallExpansionScaler);
+  }
 
   function test_mintFromExpansion_whenValidExpansionRate_shouldNotChangePrice() public {
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
