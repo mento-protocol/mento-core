@@ -49,7 +49,12 @@ abstract contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, 
     super.setUp();
     loadExchange();
 
-    console.log("%s | %s | %s", this.ticker(), exchangeProviderAddr, vm.toString(exchangeId));
+    console.log(
+      "%s | ExchangeProvider: %s | ExchangeID: %s",
+      this.ticker(),
+      exchangeProviderAddr,
+      vm.toString(exchangeId)
+    );
     for (uint256 i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
       address collateralAsset = reserve.collateralAssets(i);
       vm.label(collateralAsset, IERC20(collateralAsset).symbol());

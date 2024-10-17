@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
+import { Broker } from "contracts/swap/Broker.sol";
 
 import { ExchangeForkTest } from "../ExchangeForkTest.sol";
 import { OracleHelpers } from "./OracleHelpers.sol";
@@ -22,7 +23,7 @@ library TradingLimitHelpers {
       limitConfig.limit1,
       limitConfig.limitGlobal,
       limitConfig.flags
-    ) = ctx.broker().tradingLimitsConfig(limitId);
+    ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);
     return limitConfig.flags > uint8(0);
   }
 
@@ -38,7 +39,7 @@ library TradingLimitHelpers {
       limitConfig.limit1,
       limitConfig.limitGlobal,
       limitConfig.flags
-    ) = ctx.broker().tradingLimitsConfig(limitId);
+    ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);
 
     return limitConfig;
   }
@@ -51,7 +52,7 @@ library TradingLimitHelpers {
       limitState.netflow0,
       limitState.netflow1,
       limitState.netflowGlobal
-    ) = ctx.broker().tradingLimitsState(limitId);
+    ) = Broker(address(ctx.broker())).tradingLimitsState(limitId);
     return limitState;
   }
 
@@ -67,7 +68,7 @@ library TradingLimitHelpers {
       limitConfig.limit1,
       limitConfig.limitGlobal,
       limitConfig.flags
-    ) = ctx.broker().tradingLimitsConfig(limitId);
+    ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);
     return limitConfig;
   }
 
@@ -81,7 +82,7 @@ library TradingLimitHelpers {
       limitState.netflow0,
       limitState.netflow1,
       limitState.netflowGlobal
-    ) = ctx.broker().tradingLimitsState(limitId);
+    ) = Broker(address(ctx.broker())).tradingLimitsState(limitId);
     return limitState;
   }
 
@@ -90,13 +91,11 @@ library TradingLimitHelpers {
     address asset
   ) public view returns (ITradingLimits.State memory state) {
     ITradingLimits.Config memory config = tradingLimitsConfig(ctx, asset);
-    // Netflow might be outdated because of a skip(...) call and doing
-    // an update(0) would reset the netflow if enough time has passed.
-    state = ctx.tradingLimits().update(tradingLimitsState(ctx, asset), config, 0, 0);
-    // XXX: There's a bug in our current TradingLimits library implementation where
-    // an update with 0 netflow will round to 1. So we do another update with -1 netflow
-    // to get it back to the actual value.
-    state = ctx.tradingLimits().update(state, config, -1, 0);
+    // Netflow might be outdated because of a skip(...) call.
+    // By doing an update(-1) and then update(1 ) we refresh the state without changing the state.
+    // The reason we can't just update(0) is that 0 would be cast to -1 in the update function.
+    state = ctx.tradingLimits().update(tradingLimitsState(ctx, asset), config, -1, 1);
+    state = ctx.tradingLimits().update(state, config, 1, 0);
   }
 
   function isLimitEnabled(ITradingLimits.Config memory config, uint8 limit) internal pure returns (bool) {
