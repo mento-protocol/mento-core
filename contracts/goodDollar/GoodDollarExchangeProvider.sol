@@ -168,6 +168,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
 
     UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e10);
     UD60x18 newRatio = scaledRatio.mul(wrap(expansionScaler));
+    require(unwrap(newRatio) > 0, "New ratio must be greater than 0");
 
     UD60x18 numerator = wrap(exchange.tokenSupply).mul(scaledRatio);
     numerator = numerator.sub(wrap(exchange.tokenSupply).mul(newRatio));

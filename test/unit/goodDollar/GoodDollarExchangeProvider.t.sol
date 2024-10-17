@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
+
 import { Test } from "forge-std/Test.sol";
 
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
@@ -360,28 +361,29 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio);
   }
 
-  function testFuzz_mintFromExpansion(uint256 expansionRate) public {
-    // Assume a valid expansion rate between 1 and 99.99%
-    vm.assume(expansionRate > 3 && expansionRate < 1e18);
+  function testFuzz_mintFromExpansion(uint256 expansionScaler) public {
+    // Assume a valid expansion scalar >0% and <2%
+    expansionScaler = bound(uint256(expansionScaler), 100, 1e18);
+    // vm.assume(expansionScaler > 3 && expansionScaler < 1e18);
 
     uint256 initialTokenSupply = poolExchange1.tokenSupply;
     uint32 initialReserveRatio = poolExchange1.reserveRatio;
+
+    uint256 newRatio = (uint256(initialReserveRatio) * expansionScaler) / 1e18;
+    uint32 expectedReserveRatio = uint32(newRatio);
 
     // Calculate expected values using the helper function
     uint256 expectedAmountToMint = calculateExpectedMintFromExpansion(
       initialTokenSupply,
       initialReserveRatio,
-      expansionRate
+      expansionScaler
     );
-
-    uint256 newRatio = (uint256(initialReserveRatio) * expansionRate) / 1e18;
-    uint32 expectedReserveRatio = uint32(newRatio);
 
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
 
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, expansionRate);
+    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, expansionScaler);
 
     assertEq(amountToMint, expectedAmountToMint, "Minted amount should match expected amount");
 
