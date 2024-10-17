@@ -33,7 +33,7 @@ abstract contract ChainForkTest is BaseForkTest {
 
   function test_brokerCanNotBeReinitialized() public {
     vm.expectRevert("contract already initialized");
-    broker.initialize(new address[](0), address(reserve));
+    broker.initialize(new address[](0), new address[](0));
   }
 
   function test_sortedOraclesCanNotBeReinitialized() public {
