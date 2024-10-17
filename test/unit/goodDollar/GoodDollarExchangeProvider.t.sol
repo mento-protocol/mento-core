@@ -511,6 +511,70 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
 
     assertEq(priceBefore, priceAfter);
   }
+
+  function test_mintFromInterest_withMultipleConsecutiveInterests_shouldMintCorrectly() public {
+    vm.startPrank(expansionControllerAddress);
+    uint256 totalMinted = 0;
+    for (uint256 i = 0; i < 5; i++) {
+      uint256 amountToMint = exchangeProvider.mintFromInterest(exchangeId, reserveInterest);
+      totalMinted += amountToMint;
+    }
+    vm.stopPrank();
+
+    IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
+    assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + totalMinted);
+    assertEq(poolExchangeAfter.reserveBalance, poolExchange1.reserveBalance + reserveInterest * 5);
+  }
+
+  function test_mintFromInterest_effectOnReserveBalance() public {
+    uint256 initialReserveBalance = poolExchange1.reserveBalance;
+
+    vm.prank(expansionControllerAddress);
+    exchangeProvider.mintFromInterest(exchangeId, reserveInterest);
+    IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
+    assertEq(poolExchangeAfter.reserveBalance, initialReserveBalance + reserveInterest);
+  }
+
+  function test_mintFromInterest_withMaximumInterest() public {
+    uint256 maxInterest = type(uint256).max / poolExchange1.tokenSupply;
+
+    vm.prank(expansionControllerAddress);
+    uint256 amountToMint = exchangeProvider.mintFromInterest(exchangeId, maxInterest);
+
+    assertGt(amountToMint, 0);
+    IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
+    assertEq(poolExchangeAfter.reserveBalance, poolExchange1.reserveBalance + maxInterest);
+  }
+
+  function testFuzz_mintFromInterest(uint256 fuzzedInterest) public {
+    vm.assume(fuzzedInterest > 0 && fuzzedInterest <= type(uint256).max / poolExchange1.tokenSupply);
+
+    uint256 initialTokenSupply = poolExchange1.tokenSupply;
+    uint256 initialReserveBalance = poolExchange1.reserveBalance;
+
+    uint256 expectedAmountToMint = (fuzzedInterest * initialTokenSupply) / initialReserveBalance;
+    uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
+
+    vm.prank(expansionControllerAddress);
+    uint256 amountToMint = exchangeProvider.mintFromInterest(exchangeId, fuzzedInterest);
+
+    assertEq(amountToMint, expectedAmountToMint, "Minted amount should match expected amount");
+
+    IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
+    assertEq(
+      poolExchangeAfter.tokenSupply,
+      initialTokenSupply + amountToMint,
+      "Token supply should increase by minted amount"
+    );
+    assertEq(
+      poolExchangeAfter.reserveBalance,
+      initialReserveBalance + fuzzedInterest,
+      "Reserve balance should increase by interest amount"
+    );
+
+    uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
+    assertEq(priceBefore, priceAfter, "Price should remain unchanged");
+  }
 }
 
 contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchangeProviderTest {
