@@ -33,7 +33,7 @@
     "prettier:check": "prettier --config \"./.prettierrc.yml\" --check \"**/*.{json,md,sol,yml}\"",
     "solhint": "yarn solhint:contracts && yarn solhint:tests",
     "solhint:contracts": "solhint --config \"./.solhint.json\" \"contracts/**/*.sol\" -w 0",
-    "solhint:tests": "solhint --config \"./.solhint.test.json\" \"test/**/*.sol\" -w 0",
+    "solhint:tests": "solhint --config \"./test/.solhint.json\" \"test/**/*.sol\" -w 0",
     "test": "forge test",
     "fork-test": "env FOUNDRY_PROFILE=fork-tests forge test",
     "fork-test:baklava": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Baklava",
