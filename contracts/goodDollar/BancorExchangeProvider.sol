@@ -343,14 +343,9 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     if (tokenIn == exchange.reserveAsset) {
       scaledAmountIn = fundCost(exchange.tokenSupply, exchange.reserveBalance, exchange.reserveRatio, scaledAmountOut);
     } else {
-      scaledAmountIn = fundSupplyAmount(
-        exchange.tokenSupply,
-        exchange.reserveBalance,
-        exchange.reserveRatio,
-        scaledAmountOut
-      );
-
-      scaledAmountIn = (scaledAmountIn * MAX_WEIGHT) / (MAX_WEIGHT - exchange.exitContribution);
+      // apply exit contribution
+      scaledAmountOut = (scaledAmountOut * MAX_WEIGHT) / (MAX_WEIGHT - exchange.exitContribution);
+      scaledAmountIn = saleCost(exchange.tokenSupply, exchange.reserveBalance, exchange.reserveRatio, scaledAmountOut);
     }
   }
 
@@ -376,13 +371,14 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
         scaledAmountIn
       );
     } else {
-      scaledAmountIn = (scaledAmountIn * (MAX_WEIGHT - exchange.exitContribution)) / MAX_WEIGHT;
       scaledAmountOut = saleTargetAmount(
         exchange.tokenSupply,
         exchange.reserveBalance,
         exchange.reserveRatio,
         scaledAmountIn
       );
+      // apply exit contribution
+      scaledAmountOut = (scaledAmountOut * (MAX_WEIGHT - exchange.exitContribution)) / MAX_WEIGHT;
     }
   }
 

@@ -10,6 +10,7 @@ pragma solidity 0.8.18;
  * - bumped solidity version to 0.8.18 and removed SafeMath
  * - removed unused functions and variables
  * - scaled max weight from 1e6 to 1e8 reran all const python scripts for increased precision
+ * - added the saleCost() function that returns the amounIn of tokens required to receive a given amountOut of reserve tokens
  *
  */
 
@@ -218,7 +219,15 @@ contract BancorFormula {
    * calculates the target amount for a given conversion (in the reserve token)
    *
    * Formula:
-   * return = _reserveBalance * (1 - (1 - _amount / _supply) ^ (1000000 / _reserveWeight))
+   * return = _reserveBalance * (1 - (1 - _amount / _supply) ^ (MAX_WEIGHT / _reserveWeight))
+   *
+   * @dev by MentoLabs: This function actually calculates a different formula that is equivalent to the one above.
+   * But ensures the base of the power function is larger than 1, which is required by the power function.
+   * The formula is:
+   *                    = reserveBalance * ( -1 + (tokenSupply/(tokenSupply - amountIn ))^(MAX_WEIGHT/reserveRatio))
+   * formula: amountOut = ----------------------------------------------------------------------------------
+   *                    =          (tokenSupply/(tokenSupply - amountIn ))^(MAX_WEIGHT/reserveRatio)
+   *
    *
    * @param _supply          liquid token supply
    * @param _reserveBalance  reserve balance
@@ -297,42 +306,55 @@ contract BancorFormula {
   }
 
   /**
-   * @dev given a pool token supply, reserve balance, reserve ratio and an amount of reserve tokens to fund with,
-   * calculates the amount of pool tokens received for purchasing with the given amount of reserve tokens
+   * Added by MentoLabs:
+   * @notice This function calculates the amount of tokens required to purchase a given amount of reserve tokens.
+   * @dev this formula was derived from the actual saleTargetAmount() function, and also ensures that the base of the power function is larger than 1.
    *
-   * Formula:
-   * return = _supply * ((_amount / _reserveBalance + 1) ^ (_reserveRatio / MAX_WEIGHT) - 1)
+   *
+   *                     =   tokenSupply * (-1 + (reserveBalance / (reserveBalance - amountOut)  )^(reserveRatio/MAX_WEIGHT) )
+   * Formula: amountIn = ------------------------------------------------------------------------------------------------
+   *                     =       (reserveBalance / (reserveBalance - amountOut)  )^(reserveRatio/MAX_WEIGHT)
+   *
    *
    * @param _supply          pool token supply
    * @param _reserveBalance  reserve balance
-   * @param _reserveRatio    reserve ratio, represented in ppm (2-2000000)
-   * @param _amount          amount of reserve tokens to fund with
+   * @param _reserveWeight   reserve weight, represented in ppm
+   * @param _amount          amount of reserve tokens to get the target amount for
    *
-   * @return pool token amount
+   * @return reserve token amount
    */
-  function fundSupplyAmount(
+  function saleCost(
     uint256 _supply,
     uint256 _reserveBalance,
-    uint32 _reserveRatio,
+    uint32 _reserveWeight,
     uint256 _amount
   ) internal view returns (uint256) {
     // validate input
     require(_supply > 0, "ERR_INVALID_SUPPLY");
     require(_reserveBalance > 0, "ERR_INVALID_RESERVE_BALANCE");
-    require(_reserveRatio > 1 && _reserveRatio <= MAX_WEIGHT * 2, "ERR_INVALID_RESERVE_RATIO");
+    require(_reserveWeight > 0 && _reserveWeight <= MAX_WEIGHT, "ERR_INVALID_RESERVE_WEIGHT");
 
-    // special case for 0 amount
+    require(_amount <= _reserveBalance, "ERR_INVALID_AMOUNT");
+
+    // special case for 0 sell amount
     if (_amount == 0) return 0;
 
-    // special case if the reserve ratio = 100%
-    if (_reserveRatio == MAX_WEIGHT) return (_amount * _supply) / _reserveBalance;
+    // special case for selling the entire supply
+    if (_amount == _reserveBalance) return _supply;
+
+    // special case if the weight = 100%
+    // base formula can be simplified to:
+    // Formula: amountIn = amountOut * supply / reserveBalance
+    // the +1 and -1 are to ensure that this function rounds up which is required to prevent protocol loss.
+    if (_reserveWeight == MAX_WEIGHT) return (_supply * _amount - 1) / _reserveBalance + 1;
 
     uint256 result;
     uint8 precision;
-    uint256 baseN = _reserveBalance + _amount;
-    (result, precision) = power(baseN, _reserveBalance, _reserveRatio, MAX_WEIGHT);
-    uint256 temp = (_supply * result) >> precision;
-    return temp - _supply;
+    uint256 baseD = _reserveBalance - _amount;
+    (result, precision) = power(_reserveBalance, baseD, _reserveWeight, MAX_WEIGHT);
+    uint256 temp1 = _supply * result;
+    uint256 temp2 = _supply << precision;
+    return (temp1 - temp2 - 1) / result + 1;
   }
 
   /**
