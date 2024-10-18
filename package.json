@@ -36,7 +36,6 @@
     "solhint:tests": "solhint --config \"./test/.solhint.json\" \"test/**/*.sol\" -w 0",
     "test": "forge test",
     "fork-test": "env FOUNDRY_PROFILE=fork-tests forge test",
-    "fork-test:baklava": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Baklava",
     "fork-test:alfajores": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Alfajores",
     "fork-test:celo-mainnet": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Celo",
     "check-no-ir": "./bin/check-contracts.sh",
