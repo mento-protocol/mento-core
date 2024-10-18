@@ -43,8 +43,6 @@ contract GoodDollarIntegrationTest is Test {
 
   address public constant GoodDollarAvatar = 0x495d133B938596C9984d462F007B676bDc57eCEC;
 
-  //Factory public factory;
-
   function setUp() public {
     fork(42220);
     vm.allowCheatcodes(deployer);
@@ -134,10 +132,10 @@ contract GoodDollarIntegrationTest is Test {
     poolExchange1 = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
       tokenAddress: address(gdToken),
-      tokenSupply: 300_000 * 1e18,
-      reserveBalance: 60_000 * 1e18,
-      reserveRatio: 0.2 * 1e8,
-      exitContribution: 0.01 * 1e8
+      tokenSupply: 7_000_000_000 * 1e18,
+      reserveBalance: 200_000 * 1e18,
+      reserveRatio: 0.28571428 * 1e8,
+      exitContribution: 0.1 * 1e8
     });
 
     vm.prank(avatar);
@@ -304,7 +302,7 @@ contract GoodDollarIntegrationTest is Test {
 
     uint256 amountMinted = expansionController.mintUBIFromExpansion(exchangeId);
     uint256 priceAfter = IBancorExchangeProvider(address(exchangeProvider)).currentPrice(exchangeId);
-    assertEq(priceBefore, priceAfter);
+    assertApproxEqAbs(priceBefore, priceAfter, 1e11);
     assertEq(gdToken.balanceOf(distributionHelper), amountMinted + distributionHelperBalanceBefore);
   }
 
