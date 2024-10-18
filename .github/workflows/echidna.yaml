@@ -49,10 +49,19 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
+      - name: "Build for echidna"
+        run: |
+          forge build --build-info --skip \
+                "test/fork/**/*" \
+                "test/integration/**/*" \
+                "test/unit/**/*" \
+                "test/utils/**/*" \
+                "contracts/**/*"
+
       - name: "Run Echidna"
         uses: crytic/echidna-action@v2
         with:
-          files: test/echidna/${{ matrix.contract }}.sol
+          files: .
           contract: ${{ matrix.contract }}
           config: echidna.yaml
           test-mode: assertion

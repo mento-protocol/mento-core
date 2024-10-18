@@ -1,4 +1,5 @@
 cryticArgs:
+  - --foundry-ignore-compile
   - --solc-remaps
   - "openzeppelin-solidity/=lib/openzeppelin-contracts/ forge-std/=lib/forge-std/src/ mento-std/=lib/mento-std/src/ test/=test/ contracts/=contracts/"
 format: text
