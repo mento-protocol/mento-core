@@ -2,31 +2,17 @@
   "extends": "solhint:recommended",
   "plugins": ["prettier"],
   "rules": {
-    "no-global-import": "off",
-    "no-console": "off",
     "code-complexity": ["error", 8],
     "compiler-version": ["error", ">=0.5.13"],
-    "func-visibility": [
-      "error",
-      {
-        "ignoreConstructors": true
-      }
-    ],
-    "max-line-length": ["error", 121],
-    "not-rely-on-time": "off",
+    "func-visibility": ["error", { "ignoreConstructors": true }],
     "function-max-lines": ["error", 120],
+    "gas-custom-errors": "off",
+    "max-line-length": ["error", 121],
+    "no-console": "off",
     "no-empty-blocks": "off",
-    "prettier/prettier": [
-      "error",
-      {
-        "endOfLine": "auto"
-      }
-    ],
-    "reason-string": [
-      "warn",
-      {
-        "maxLength": 64
-      }
-    ]
+    "no-global-import": "off",
+    "not-rely-on-time": "off",
+    "prettier/prettier": ["error", { "endOfLine": "auto" }],
+    "reason-string": ["warn", { "maxLength": 64 }]
   }
 }

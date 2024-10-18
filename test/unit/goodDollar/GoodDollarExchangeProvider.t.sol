@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
-import { Test, console } from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
@@ -14,13 +14,17 @@ import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangePro
 contract GoodDollarExchangeProviderTest is Test {
   /* ------- Events from IGoodDollarExchangeProvider ------- */
 
-  event ExchangeCreated(bytes32 indexed exchangeId, address indexed reserveAsset, address indexed tokenAddress);
-
   event ExpansionControllerUpdated(address indexed expansionController);
 
   event AvatarUpdated(address indexed AVATAR);
 
   event ReserveRatioUpdated(bytes32 indexed exchangeId, uint32 reserveRatio);
+
+  event ExchangeCreated(bytes32 indexed exchangeId, address indexed reserveAsset, address indexed tokenAddress);
+
+  event ExchangeDestroyed(bytes32 indexed exchangeId, address indexed reserveAsset, address indexed tokenAddress);
+
+  event ExitContributionSet(bytes32 indexed exchangeId, uint256 exitContribution);
 
   /* ------------------------------------------- */
 
@@ -34,6 +38,7 @@ contract GoodDollarExchangeProviderTest is Test {
   address public expansionControllerAddress;
 
   IBancorExchangeProvider.PoolExchange public poolExchange1;
+  IBancorExchangeProvider.PoolExchange public poolExchange2;
 
   function setUp() public virtual {
     reserveToken = new ERC20("cUSD", "cUSD");
@@ -52,6 +57,15 @@ contract GoodDollarExchangeProviderTest is Test {
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 0.2 * 1e8,
       exitContribution: 0.01 * 1e8
+    });
+
+    poolExchange2 = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveToken),
+      tokenAddress: address(token2),
+      tokenSupply: 300_000 * 1e18,
+      reserveBalance: 60_000 * 1e18,
+      reserveRatio: 1e8 * 0.2,
+      exitContribution: 1e8 * 0.01
     });
 
     vm.mockCall(
@@ -138,6 +152,139 @@ contract GoodDollarExchangeProviderTest_initializerSettersGetters is GoodDollarE
 
     assertEq(address(exchangeProvider.expansionController()), newExpansionController);
   }
+
+  /* ---------- setExitContribution ---------- */
+  /* Focuses only on access control, implementation details are covered in BancorExchangeProvider tests */
+  function test_setExitContribution_whenSenderIsOwner_shouldRevert() public {
+    vm.expectRevert("Only Avatar can call this function");
+    bytes32 exchangeId = "0xexchangeId";
+    exchangeProvider.setExitContribution(exchangeId, 1e5);
+  }
+
+  function test_setExitContribution_whenSenderIsNotAvatar_shouldRevert() public {
+    vm.startPrank(makeAddr("NotAvatarAndNotOwner"));
+    vm.expectRevert("Only Avatar can call this function");
+    bytes32 exchangeId = "0xexchangeId";
+    exchangeProvider.setExitContribution(exchangeId, 1e5);
+    vm.stopPrank();
+  }
+
+  function test_setExitContribution_whenSenderIsAvatar_shouldUpdateAndEmit() public {
+    vm.startPrank(avatarAddress);
+    bytes32 exchangeId = exchangeProvider.createExchange(poolExchange1);
+    uint32 newExitContribution = 1e3;
+    vm.expectEmit(true, true, true, true);
+    emit ExitContributionSet(exchangeId, newExitContribution);
+    exchangeProvider.setExitContribution(exchangeId, newExitContribution);
+
+    IBancorExchangeProvider.PoolExchange memory poolExchange = exchangeProvider.getPoolExchange(exchangeId);
+    assertEq(poolExchange.exitContribution, newExitContribution);
+    vm.stopPrank();
+  }
+  /* ---------- setExitContribution end ---------- */
+}
+
+/**
+ * @notice createExchange tests
+ * @dev These tests focus only on access control. The implementation details
+ *      are covered in the BancorExchangeProvider tests.
+ */
+contract GoodDollarExchangeProviderTest_createExchange is GoodDollarExchangeProviderTest {
+  GoodDollarExchangeProvider exchangeProvider;
+
+  function setUp() public override {
+    super.setUp();
+    exchangeProvider = initializeGoodDollarExchangeProvider();
+  }
+
+  function test_createExchange_whenSenderIsNotAvatar_shouldRevert() public {
+    vm.prank(makeAddr("NotAvatar"));
+    vm.expectRevert("Only Avatar can call this function");
+    exchangeProvider.createExchange(poolExchange1);
+  }
+
+  function test_createExchange_whenSenderIsOwner_shouldRevert() public {
+    vm.expectRevert("Only Avatar can call this function");
+    exchangeProvider.createExchange(poolExchange1);
+  }
+
+  function test_createExchange_whenSenderIsAvatar_shouldCreateExchangeAndEmit() public {
+    vm.startPrank(avatarAddress);
+    vm.expectEmit(true, true, true, true);
+    bytes32 expectedExchangeId = keccak256(abi.encodePacked(reserveToken.symbol(), token.symbol()));
+    emit ExchangeCreated(expectedExchangeId, address(reserveToken), address(token));
+    bytes32 exchangeId = exchangeProvider.createExchange(poolExchange1);
+    assertEq(exchangeId, expectedExchangeId);
+
+    IBancorExchangeProvider.PoolExchange memory poolExchange = exchangeProvider.getPoolExchange(exchangeId);
+    assertEq(poolExchange.reserveAsset, poolExchange1.reserveAsset);
+    assertEq(poolExchange.tokenAddress, poolExchange1.tokenAddress);
+    assertEq(poolExchange.tokenSupply, poolExchange1.tokenSupply);
+    assertEq(poolExchange.reserveBalance, poolExchange1.reserveBalance);
+    assertEq(poolExchange.reserveRatio, poolExchange1.reserveRatio);
+    assertEq(poolExchange.exitContribution, poolExchange1.exitContribution);
+
+    IExchangeProvider.Exchange[] memory exchanges = exchangeProvider.getExchanges();
+    assertEq(exchanges.length, 1);
+    assertEq(exchanges[0].exchangeId, exchangeId);
+
+    assertEq(exchangeProvider.tokenPrecisionMultipliers(address(reserveToken)), 1);
+    assertEq(exchangeProvider.tokenPrecisionMultipliers(address(token)), 1);
+    vm.stopPrank();
+  }
+}
+
+/**
+ * @notice destroyExchange tests
+ * @dev These tests focus only on access control. The implementation details
+ *      are covered in the BancorExchangeProvider tests.
+ */
+contract GoodDollarExchangeProviderTest_destroyExchange is GoodDollarExchangeProviderTest {
+  GoodDollarExchangeProvider exchangeProvider;
+
+  function setUp() public override {
+    super.setUp();
+    exchangeProvider = initializeGoodDollarExchangeProvider();
+  }
+
+  function test_destroyExchange_whenSenderIsOwner_shouldRevert() public {
+    vm.startPrank(avatarAddress);
+    bytes32 exchangeId = exchangeProvider.createExchange(poolExchange1);
+    vm.stopPrank();
+    vm.expectRevert("Only Avatar can call this function");
+    exchangeProvider.destroyExchange(exchangeId, 0);
+  }
+
+  function test_destroyExchange_whenSenderIsNotAvatar_shouldRevert() public {
+    vm.startPrank(avatarAddress);
+    bytes32 exchangeId = exchangeProvider.createExchange(poolExchange1);
+    vm.stopPrank();
+
+    vm.startPrank(makeAddr("NotAvatar"));
+    vm.expectRevert("Only Avatar can call this function");
+    exchangeProvider.destroyExchange(exchangeId, 0);
+    vm.stopPrank();
+  }
+
+  function test_destroyExchange_whenExchangeExists_shouldDestroyExchangeAndEmit() public {
+    vm.startPrank(avatarAddress);
+    bytes32 exchangeId = exchangeProvider.createExchange(poolExchange1);
+    bytes32 exchangeId2 = exchangeProvider.createExchange(poolExchange2);
+    vm.stopPrank();
+
+    vm.startPrank(avatarAddress);
+    vm.expectEmit(true, true, true, true);
+    emit ExchangeDestroyed(exchangeId, poolExchange1.reserveAsset, poolExchange1.tokenAddress);
+    exchangeProvider.destroyExchange(exchangeId, 0);
+
+    bytes32[] memory exchangeIds = exchangeProvider.getExchangeIds();
+    assertEq(exchangeIds.length, 1);
+
+    IExchangeProvider.Exchange[] memory exchanges = exchangeProvider.getExchanges();
+    assertEq(exchanges.length, 1);
+    assertEq(exchanges[0].exchangeId, exchangeId2);
+    vm.stopPrank();
+  }
 }
 
 contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeProviderTest {
@@ -149,6 +296,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
     super.setUp();
     expansionRate = 1e18 * 0.99;
     exchangeProvider = initializeGoodDollarExchangeProvider();
+    vm.prank(avatarAddress);
     exchangeId = exchangeProvider.createExchange(poolExchange1);
   }
 
@@ -166,7 +314,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
 
   function test_mintFromExpansion_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
-    vm.expectRevert("An exchange with the specified id does not exist");
+    vm.expectRevert("Exchange does not exist");
     exchangeProvider.mintFromExpansion(bytes32(0), expansionRate);
   }
 
@@ -214,6 +362,7 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
     super.setUp();
     reserveInterest = 1000 * 1e18;
     exchangeProvider = initializeGoodDollarExchangeProvider();
+    vm.prank(avatarAddress);
     exchangeId = exchangeProvider.createExchange(poolExchange1);
   }
 
@@ -225,7 +374,7 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
 
   function test_mintFromInterest_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
-    vm.expectRevert("An exchange with the specified id does not exist");
+    vm.expectRevert("Exchange does not exist");
     exchangeProvider.mintFromInterest(bytes32(0), reserveInterest);
   }
 
@@ -270,6 +419,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     super.setUp();
     reward = 1000 * 1e18;
     exchangeProvider = initializeGoodDollarExchangeProvider();
+    vm.prank(avatarAddress);
     exchangeId = exchangeProvider.createExchange(poolExchange1);
   }
 
@@ -281,7 +431,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
   function test_updateRatioForReward_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
-    vm.expectRevert("An exchange with the specified id does not exist");
+    vm.expectRevert("Exchange does not exist");
     exchangeProvider.updateRatioForReward(bytes32(0), reward);
   }
 
@@ -308,6 +458,7 @@ contract GoodDollarExchangeProviderTest_pausable is GoodDollarExchangeProviderTe
   function setUp() public override {
     super.setUp();
     exchangeProvider = initializeGoodDollarExchangeProvider();
+    vm.prank(avatarAddress);
     exchangeId = exchangeProvider.createExchange(poolExchange1);
   }
 

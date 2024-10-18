@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, max-line-length
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
-import { Test, console } from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
 import { BancorExchangeProvider } from "contracts/goodDollar/BancorExchangeProvider.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
@@ -169,7 +169,7 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
 
     uint32 maxWeight = bancorExchangeProvider.MAX_WEIGHT();
-    vm.expectRevert("Invalid exit contribution");
+    vm.expectRevert("Exit contribution is too high");
     bancorExchangeProvider.setExitContribution(exchangeId, maxWeight + 1);
   }
 
@@ -189,7 +189,7 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
 
   function test_getPoolExchange_whenExchangeDoesNotExist_shouldRevert() public {
     bytes32 exchangeId = "0xexchangeId";
-    vm.expectRevert("An exchange with the specified id does not exist");
+    vm.expectRevert("Exchange does not exist");
     bancorExchangeProvider.getPoolExchange(exchangeId);
   }
 
@@ -260,7 +260,7 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
       abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveToken)),
       abi.encode(false)
     );
-    vm.expectRevert("reserve asset must be a collateral registered with the reserve");
+    vm.expectRevert("Reserve asset must be a collateral registered with the reserve");
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
@@ -276,28 +276,28 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
       abi.encodeWithSelector(IReserve(reserveAddress).isStableAsset.selector, address(token)),
       abi.encode(false)
     );
-    vm.expectRevert("token must be a stable registered with the reserve");
+    vm.expectRevert("Token must be a stable registered with the reserve");
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
   function test_createExchange_whenReserveRatioIsSmaller2_shouldRevert() public {
     poolExchange1.reserveRatio = 0;
-    vm.expectRevert("Invalid reserve ratio");
+    vm.expectRevert("Reserve ratio is too low");
     bancorExchangeProvider.createExchange(poolExchange1);
     poolExchange1.reserveRatio = 1;
-    vm.expectRevert("Invalid reserve ratio");
+    vm.expectRevert("Reserve ratio is too low");
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
   function test_createExchange_whenReserveRatioAbove100Percent_shouldRevert() public {
     poolExchange1.reserveRatio = bancorExchangeProvider.MAX_WEIGHT() + 1;
-    vm.expectRevert("Invalid reserve ratio");
+    vm.expectRevert("Reserve ratio is too high");
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
   function test_createExchange_whenExitContributionAbove100Percent_shouldRevert() public {
     poolExchange1.exitContribution = bancorExchangeProvider.MAX_WEIGHT() + 1;
-    vm.expectRevert("Invalid exit contribution");
+    vm.expectRevert("Exit contribution is too high");
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
@@ -309,13 +309,13 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
 
   function test_createExchanges_whenReserveTokenHasMoreDecimalsThan18_shouldRevert() public {
     vm.mockCall(address(reserveToken), abi.encodeWithSelector(reserveToken.decimals.selector), abi.encode(19));
-    vm.expectRevert("reserve token decimals must be <= 18");
+    vm.expectRevert("Reserve asset decimals must be <= 18");
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
   function test_createExchange_whenTokenHasMoreDecimalsThan18_shouldRevert() public {
     vm.mockCall(address(token), abi.encodeWithSelector(token.decimals.selector), abi.encode(19));
-    vm.expectRevert("token decimals must be <= 18");
+    vm.expectRevert("Token decimals must be <= 18");
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
@@ -398,13 +398,8 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
 
   function test_getAmountIn_whenExchangeDoesNotExist_shouldRevert() public {
     bytes32 exchangeId = "0xexchangeId";
-    vm.expectRevert("An exchange with the specified id does not exist");
-    bancorExchangeProvider.getAmountIn({
-      exchangeId: exchangeId,
-      tokenIn: address(reserveToken),
-      tokenOut: address(token),
-      amountOut: 1e18
-    });
+    vm.expectRevert("Exchange does not exist");
+    bancorExchangeProvider.getAmountIn(exchangeId, address(reserveToken), address(token), 1e18);
   }
 
   function test_getAmountIn_whenTokenInNotInExchange_shouldRevert() public {
@@ -945,13 +940,8 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
 
   function test_getAmountOut_whenExchangeDoesNotExist_shouldRevert() public {
     bytes32 exchangeId = "0xexchangeId";
-    vm.expectRevert("An exchange with the specified id does not exist");
-    bancorExchangeProvider.getAmountOut({
-      exchangeId: exchangeId,
-      tokenIn: address(reserveToken),
-      tokenOut: address(token),
-      amountIn: 1e18
-    });
+    vm.expectRevert("Exchange does not exist");
+    bancorExchangeProvider.getAmountOut(exchangeId, address(reserveToken), address(token), 1e18);
   }
 
   function test_getAmountOut_whenTokenInNotInExchange_shouldRevert() public {
@@ -1527,7 +1517,7 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
   function test_swapIn_whenExchangeDoesNotExist_shouldRevert() public {
     BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
     vm.prank(brokerAddress);
-    vm.expectRevert("An exchange with the specified id does not exist");
+    vm.expectRevert("Exchange does not exist");
     bancorExchangeProvider.swapIn("0xexchangeId", address(reserveToken), address(token), 1e18);
   }
 
@@ -1616,7 +1606,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
   function test_swapOut_whenExchangeDoesNotExist_shouldRevert() public {
     BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
     vm.prank(brokerAddress);
-    vm.expectRevert("An exchange with the specified id does not exist");
+    vm.expectRevert("Exchange does not exist");
     bancorExchangeProvider.swapOut("0xexchangeId", address(reserveToken), address(token), 1e18);
   }
 
