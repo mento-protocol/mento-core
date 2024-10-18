@@ -46,22 +46,10 @@ jobs:
       - name: "Install the Node.js dependencies"
         run: "yarn install --immutable"
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-
-      - name: "Build for echidna"
-        run: |
-          forge build --build-info --skip \
-                "test/fork/**/*" \
-                "test/integration/**/*" \
-                "test/unit/**/*" \
-                "test/utils/**/*" \
-                "script/**/"
-
       - name: "Run Echidna"
         uses: crytic/echidna-action@v2
         with:
-          files: .
+          files: test/echidna/${{ matrix.contract }}.sol
           contract: ${{ matrix.contract }}
           config: echidna.yaml
           test-mode: assertion
