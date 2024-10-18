@@ -2,39 +2,24 @@
   "extends": "solhint:recommended",
   "plugins": ["prettier"],
   "rules": {
-    "one-contract-per-file": "off",
-    "no-global-import": "off",
-    "no-console": "off",
     "code-complexity": ["error", 8],
     "compiler-version": ["error", ">=0.5.13"],
-    "func-visibility": [
-      "error",
-      {
-        "ignoreConstructors": true
-      }
-    ],
-    "max-line-length": ["error", 121],
-    "not-rely-on-time": "off",
-    "function-max-lines": ["error", 121],
-    "gas-custom-errors": "off",
-    "max-states-count": "off",
-    "var-name-mixedcase": "off",
-    "func-name-mixedcase": "off",
-    "state-visibility": "off",
     "const-name-snakecase": "off",
     "contract-name-camelcase": "off",
+    "func-name-mixedcase": "off",
+    "func-visibility": ["error", { "ignoreConstructors": true }],
+    "function-max-lines": ["error", 121],
+    "gas-custom-errors": "off",
+    "max-line-length": ["error", 121],
+    "max-states-count": "off",
+    "no-console": "off",
     "no-empty-blocks": "off",
-    "prettier/prettier": [
-      "error",
-      {
-        "endOfLine": "auto"
-      }
-    ],
-    "reason-string": [
-      "warn",
-      {
-        "maxLength": 64
-      }
-    ]
+    "no-global-import": "off",
+    "not-rely-on-time": "off",
+    "one-contract-per-file": "off",
+    "prettier/prettier": ["error", { "endOfLine": "auto" }],
+    "reason-string": ["warn", { "maxLength": 64 }],
+    "state-visibility": "off",
+    "var-name-mixedcase": "off"
   }
 }
