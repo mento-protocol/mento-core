@@ -23,7 +23,7 @@ contract GoodDollarExpansionControllerTest is Test {
 
   event AvatarUpdated(address indexed avatar);
 
-  event ExpansionConfigSet(bytes32 indexed exchangeId, uint64 expansionRate, uint32 expansionfrequency);
+  event ExpansionConfigSet(bytes32 indexed exchangeId, uint64 expansionRate, uint32 expansionFrequency);
 
   event RewardMinted(bytes32 indexed exchangeId, address indexed to, uint256 amount);
 
@@ -137,7 +137,7 @@ contract GoodDollarExpansionControllerTest_initializerSettersGetters is GoodDoll
 
   function test_setDistributionHelper_whenAddressIsZero_shouldRevert() public {
     vm.startPrank(avatarAddress);
-    vm.expectRevert("DistributionHelper address must be set");
+    vm.expectRevert("Distribution helper address must be set");
     expansionController.setDistributionHelper(address(0));
     vm.stopPrank();
   }
@@ -271,7 +271,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromInterest is GoodDollarExpa
   }
 
   function test_mintUBIFromInterest_whenReserveInterestIs0_shouldRevert() public {
-    vm.expectRevert("reserveInterest must be greater than 0");
+    vm.expectRevert("Reserve interest must be greater than 0");
     expansionController.mintUBIFromInterest(exchangeId, 0);
   }
 
@@ -564,7 +564,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
   }
 }
 
-contract GoodDollarExpansionControllerTest_mintRewardFromRR is GoodDollarExpansionControllerTest {
+contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDollarExpansionControllerTest {
   GoodDollarExpansionController expansionController;
 
   function setUp() public override {
@@ -595,25 +595,25 @@ contract GoodDollarExpansionControllerTest_mintRewardFromRR is GoodDollarExpansi
     );
   }
 
-  function test_mintRewardFromRR_whenCallerIsNotAvatar_shouldRevert() public {
+  function test_mintRewardFromReserveRatio_whenCallerIsNotAvatar_shouldRevert() public {
     vm.prank(makeAddr("NotAvatar"));
     vm.expectRevert("Only Avatar can call this function");
-    expansionController.mintRewardFromRR(exchangeId, makeAddr("To"), 1000e18);
+    expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 1000e18);
   }
 
-  function test_mintRewardFromRR_whenToIsZero_shouldRevert() public {
+  function test_mintRewardFromReserveRatio_whenToIsZero_shouldRevert() public {
     vm.prank(avatarAddress);
-    vm.expectRevert("Invalid to address");
-    expansionController.mintRewardFromRR(exchangeId, address(0), 1000e18);
+    vm.expectRevert("Recipient address must be set");
+    expansionController.mintRewardFromReserveRatio(exchangeId, address(0), 1000e18);
   }
 
-  function test_mintRewardFromRR_whenAmountIs0_shouldRevert() public {
+  function test_mintRewardFromReserveRatio_whenAmountIs0_shouldRevert() public {
     vm.prank(avatarAddress);
     vm.expectRevert("Amount must be greater than 0");
-    expansionController.mintRewardFromRR(exchangeId, makeAddr("To"), 0);
+    expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 0);
   }
 
-  function test_mintRewardFromRR_whenCallerIsAvatar_shouldMintAndEmit() public {
+  function test_mintRewardFromReserveRatio_whenCallerIsAvatar_shouldMintAndEmit() public {
     uint256 amountToMint = 1000e18;
     address to = makeAddr("To");
     uint256 toBalanceBefore = token.balanceOf(to);
@@ -622,7 +622,7 @@ contract GoodDollarExpansionControllerTest_mintRewardFromRR is GoodDollarExpansi
     emit RewardMinted(exchangeId, to, amountToMint);
 
     vm.prank(avatarAddress);
-    expansionController.mintRewardFromRR(exchangeId, to, amountToMint);
+    expansionController.mintRewardFromReserveRatio(exchangeId, to, amountToMint);
 
     assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
   }
