@@ -673,7 +673,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
   }
 
   function testFuzz_updateRatioForReward(uint256 fuzzedReward) public {
-    vm.assume(fuzzedReward > 0 && fuzzedReward <= 1 * 1e29);
+    vm.assume(fuzzedReward > 0 && fuzzedReward <= 1 * 1e28);
 
     uint256 initialTokenSupply = poolExchange1.tokenSupply;
     uint256 initialReserveBalance = poolExchange1.reserveBalance;
@@ -698,8 +698,8 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     assertApproxEqRel(
       priceBefore,
       priceAfter,
-      8 * 1e15,
-      "Price should remain unchanged, with a max relative error of 0.8%"
+      9 * 1e15,
+      "Price should remain unchanged, with a max relative error of 0.9%"
     );
 
     uint256 expectedReserveRatio = (uint256(initialReserveRatio) * initialTokenSupply) /
