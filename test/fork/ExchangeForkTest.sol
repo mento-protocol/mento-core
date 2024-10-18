@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
 pragma solidity ^0.8;
 
 import { console } from "forge-std/console.sol";
@@ -56,9 +55,9 @@ abstract contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, 
       vm.toString(exchangeId)
     );
     for (uint256 i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
-      address collateralAsset = reserve.collateralAssets(i);
+      address collateralAsset = mentoReserve.collateralAssets(i);
       vm.label(collateralAsset, IERC20(collateralAsset).symbol());
-      mint(collateralAsset, address(reserve), uint256(25_000_000).toSubunits(collateralAsset), true);
+      mint(collateralAsset, address(mentoReserve), uint256(25_000_000).toSubunits(collateralAsset), true);
     }
   }
 

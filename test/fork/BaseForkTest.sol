@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
 pragma solidity ^0.8;
 
 // Libraries
@@ -30,12 +29,11 @@ interface IMint {
 /**
  * @title BaseForkTest
  * @notice Fork tests for Mento!
- * This test suite tests invariants on a fork of a live Mento environemnts.
- * The philosophy is to test in accordance with how the target fork is configured,
- * therfore it doesn't make assumptions about the systems, nor tries to configure
- * the system to test specific scenarios.
- * However, it should be exhaustive in testing invariants across all tradable pairs
- * in the system, therefore each test should.
+ * This test suite tests invariants on a fork of a live Mento environments.
+ * The philosophy is to test in accordance with how the target fork is configured.
+ * Therefore, it doesn't make assumptions about the systems, nor tries to configure
+ * the system to test specific scenarios. However, it should be exhaustive in testing
+ * invariants across all tradable pairs in the system.
  */
 abstract contract BaseForkTest is Test {
   using FixidityLib for FixidityLib.Fraction;
@@ -47,7 +45,7 @@ abstract contract BaseForkTest is Test {
   IBiPoolManager biPoolManager;
   IBreakerBox public breakerBox;
   ISortedOracles public sortedOracles;
-  IReserve public reserve;
+  IReserve public mentoReserve;
   ITradingLimitsHarness public tradingLimits;
 
   address public trader;
@@ -74,8 +72,8 @@ abstract contract BaseForkTest is Test {
 
   function setUp() public virtual {
     fork(targetChainId);
-    // @dev Updaing the target fork block every 200 blocks, about ~8 min.
-    // This means that when running locally RPC calls will be cached.
+    /// @dev Updating the target fork block every 200 blocks, about ~8 min.
+    /// This means that, when running locally, RPC calls will be cached.
     fork(targetChainId, (block.number / 100) * 100);
     // The precompile handler needs to be reinitialized after forking.
     __CeloPrecompiles_init();
@@ -89,20 +87,20 @@ abstract contract BaseForkTest is Test {
     breakerBox = IBreakerBox(address(sortedOracles.breakerBox()));
     vm.label(address(breakerBox), "BreakerBox");
     trader = makeAddr("trader");
-    reserve = IReserve(lookup("Reserve"));
+    mentoReserve = IReserve(lookup("Reserve"));
 
     setUpBroker();
 
-    /// @dev Hardcoded number of dependencies for each ratefeed.
-    /// Should be updated when they change, there is a test that will
-    /// validate that.
+    /// @dev Hardcoded number of dependencies for each rate feed.
+    /// Should be updated when they change, there is a test that
+    /// will validate that.
     rateFeedDependenciesCount[lookup("StableTokenXOF")] = 2;
     rateFeedDependenciesCount[toRateFeed("EUROCXOF")] = 2;
     rateFeedDependenciesCount[toRateFeed("USDCEUR")] = 1;
     rateFeedDependenciesCount[toRateFeed("USDCBRL")] = 1;
   }
 
-  // TODO: Upgrade logic can be removed after the Broker changes have been deployed to Mainnet
+  // TODO: Broker setup can be removed after the Broker changes have been deployed to Mainnet
   function setUpBroker() internal {
     Broker newBrokerImplementation = new Broker(false);
     vm.prank(IOwnable(address(broker)).owner());
@@ -113,7 +111,7 @@ abstract contract BaseForkTest is Test {
     address[] memory exchangeProviders = new address[](1);
     exchangeProviders[0] = address(biPoolManager);
     address[] memory reserves = new address[](1);
-    reserves[0] = address(reserve);
+    reserves[0] = address(mentoReserve);
 
     vm.prank(IOwnable(address(broker)).owner());
     broker.setReserves(exchangeProviders, reserves);

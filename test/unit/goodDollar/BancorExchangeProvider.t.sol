@@ -95,21 +95,20 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     bancorExchangeProvider = initializeBancorExchangeProvider();
   }
 
-  /* ---------- Initilizer ---------- */
+  /* ---------- Initializer ---------- */
   function test_initialize_shouldSetOwner() public view {
     assertEq(bancorExchangeProvider.owner(), address(this));
   }
 
-  function test_initilize_shouldSetBroker() public view {
+  function test_initialize_shouldSetBroker() public view {
     assertEq(bancorExchangeProvider.broker(), brokerAddress);
   }
 
-  function test_initilize_shouldSetReserve() public view {
+  function test_initialize_shouldSetReserve() public view {
     assertEq(address(bancorExchangeProvider.reserve()), reserveAddress);
   }
 
   /* ---------- Setters ---------- */
-
   function test_setBroker_whenSenderIsNotOwner_shouldRevert() public {
     vm.prank(makeAddr("NotOwner"));
     vm.expectRevert("Ownable: caller is not the owner");
