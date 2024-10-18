@@ -56,7 +56,7 @@ jobs:
                 "test/integration/**/*" \
                 "test/unit/**/*" \
                 "test/utils/**/*" \
-                "contracts/**/*"
+                "script/**/"
 
       - name: "Run Echidna"
         uses: crytic/echidna-action@v2

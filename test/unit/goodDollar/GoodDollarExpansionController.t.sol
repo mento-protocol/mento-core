@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
-import { Test } from "forge-std/Test.sol";
+import { Test, console } from "forge-std/Test.sol";
 import { ERC20Mock } from "openzeppelin-contracts-next/contracts/mocks/ERC20Mock.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
 
@@ -23,7 +23,7 @@ contract GoodDollarExpansionControllerTest is Test {
 
   event AvatarUpdated(address indexed avatar);
 
-  event ExpansionConfigSet(bytes32 indexed exchangeId, uint64 expansionRate, uint32 expansionFrequency);
+  event ExpansionConfigSet(bytes32 indexed exchangeId, uint64 expansionRate, uint32 expansionfrequency);
 
   event RewardMinted(bytes32 indexed exchangeId, address indexed to, uint256 amount);
 
@@ -124,33 +124,24 @@ contract GoodDollarExpansionControllerTest_initializerSettersGetters is GoodDoll
     assertEq(address(expansionController.goodDollarExchangeProvider()), newExchangeProvider);
   }
 
-  function test_setDistributionHelper_whenCallerIsNotAvatar_shouldRevert() public {
-    vm.prank(makeAddr("NotAvatar"));
-    vm.expectRevert("Only Avatar can call this function");
+  function test_setDistributionHelper_whenSenderIsNotOwner_shouldRevert() public {
+    vm.prank(makeAddr("NotOwner"));
+    vm.expectRevert("Ownable: caller is not the owner");
     expansionController.setDistributionHelper(makeAddr("NewDistributionHelper"));
   }
 
-  function test_setDistributionHelper_whenCallerIsOwner_shouldRevert() public {
-    vm.expectRevert("Only Avatar can call this function");
-    expansionController.setDistributionHelper(makeAddr("NewDistributionHelper"));
-  }
-
-  function test_setDistributionHelper_whenAddressIsZero_shouldRevert() public {
-    vm.startPrank(avatarAddress);
-    vm.expectRevert("Distribution helper address must be set");
+  function test_setDistributiomHelper_whenAddressIsZero_shouldRevert() public {
+    vm.expectRevert("DistributionHelper address must be set");
     expansionController.setDistributionHelper(address(0));
-    vm.stopPrank();
   }
 
-  function test_setDistributionHelper_whenCallerIsAvatar_shouldUpdateAndEmit() public {
-    vm.startPrank(avatarAddress);
+  function test_setDistributionHelper_whenCallerIsOwner_shouldUpdateAndEmit() public {
     address newDistributionHelper = makeAddr("NewDistributionHelper");
     vm.expectEmit(true, true, true, true);
     emit DistributionHelperUpdated(newDistributionHelper);
     expansionController.setDistributionHelper(newDistributionHelper);
 
     assertEq(address(expansionController.distributionHelper()), newDistributionHelper);
-    vm.stopPrank();
   }
 
   function test_setReserve_whenSenderIsNotOwner_shouldRevert() public {
@@ -271,7 +262,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromInterest is GoodDollarExpa
   }
 
   function test_mintUBIFromInterest_whenReserveInterestIs0_shouldRevert() public {
-    vm.expectRevert("Reserve interest must be greater than 0");
+    vm.expectRevert("reserveInterest must be greater than 0");
     expansionController.mintUBIFromInterest(exchangeId, 0);
   }
 
@@ -564,7 +555,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
   }
 }
 
-contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDollarExpansionControllerTest {
+contract GoodDollarExpansionControllerTest_mintRewardFromRR is GoodDollarExpansionControllerTest {
   GoodDollarExpansionController expansionController;
 
   function setUp() public override {
@@ -595,25 +586,25 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
     );
   }
 
-  function test_mintRewardFromReserveRatio_whenCallerIsNotAvatar_shouldRevert() public {
+  function test_mintRewardFromRR_whenCallerIsNotAvatar_shouldRevert() public {
     vm.prank(makeAddr("NotAvatar"));
     vm.expectRevert("Only Avatar can call this function");
-    expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 1000e18);
+    expansionController.mintRewardFromRR(exchangeId, makeAddr("To"), 1000e18);
   }
 
-  function test_mintRewardFromReserveRatio_whenToIsZero_shouldRevert() public {
+  function test_mintRewardFromRR_whenToIsZero_shouldRevert() public {
     vm.prank(avatarAddress);
-    vm.expectRevert("Recipient address must be set");
-    expansionController.mintRewardFromReserveRatio(exchangeId, address(0), 1000e18);
+    vm.expectRevert("Invalid to address");
+    expansionController.mintRewardFromRR(exchangeId, address(0), 1000e18);
   }
 
-  function test_mintRewardFromReserveRatio_whenAmountIs0_shouldRevert() public {
+  function test_mintRewardFromRR_whenAmountIs0_shouldRevert() public {
     vm.prank(avatarAddress);
     vm.expectRevert("Amount must be greater than 0");
-    expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 0);
+    expansionController.mintRewardFromRR(exchangeId, makeAddr("To"), 0);
   }
 
-  function test_mintRewardFromReserveRatio_whenCallerIsAvatar_shouldMintAndEmit() public {
+  function test_mintRewardFromRR_whenCallerIsAvatar_shouldMintAndEmit() public {
     uint256 amountToMint = 1000e18;
     address to = makeAddr("To");
     uint256 toBalanceBefore = token.balanceOf(to);
@@ -622,7 +613,7 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
     emit RewardMinted(exchangeId, to, amountToMint);
 
     vm.prank(avatarAddress);
-    expansionController.mintRewardFromReserveRatio(exchangeId, to, amountToMint);
+    expansionController.mintRewardFromRR(exchangeId, to, amountToMint);
 
     assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
   }

@@ -12,9 +12,7 @@ interface IBancorExchangeProvider {
     uint32 exitContribution;
   }
 
-  /* ========================================== */
-  /* ================= Events ================= */
-  /* ========================================== */
+  /* ------- Events ------- */
 
   /**
    * @notice Emitted when the broker address is updated.
@@ -29,16 +27,16 @@ interface IBancorExchangeProvider {
   event ReserveUpdated(address indexed newReserve);
 
   /**
-   * @notice Emitted when a new pool has been created.
-   * @param exchangeId The id of the new pool
+   * @notice Emitted when a new PoolExchange has been created.
+   * @param exchangeId The id of the new PoolExchange
    * @param reserveAsset The address of the reserve asset
    * @param tokenAddress The address of the token
    */
   event ExchangeCreated(bytes32 indexed exchangeId, address indexed reserveAsset, address indexed tokenAddress);
 
   /**
-   * @notice Emitted when a pool has been destroyed.
-   * @param exchangeId The id of the pool to destroy
+   * @notice Emitted when a PoolExchange has been destroyed.
+   * @param exchangeId The id of the PoolExchange
    * @param reserveAsset The address of the reserve asset
    * @param tokenAddress The address of the token
    */
@@ -51,71 +49,47 @@ interface IBancorExchangeProvider {
    */
   event ExitContributionSet(bytes32 indexed exchangeId, uint256 exitContribution);
 
-  /* ======================================================== */
-  /* ==================== View Functions ==================== */
-  /* ======================================================== */
-
-  /**
-   * @notice Allows the contract to be upgradable via the proxy.
-   * @param _broker The address of the broker contract.
-   * @param _reserve The address of the reserve contract.
-   */
-  function initialize(address _broker, address _reserve) external;
+  /* ------- Functions ------- */
 
   /**
    * @notice Retrieves the pool with the specified exchangeId.
-   * @param exchangeId The ID of the pool to be retrieved.
-   * @return exchange The pool with that ID.
+   * @param exchangeId The id of the pool to be retrieved.
+   * @return exchange The PoolExchange with that ID.
    */
   function getPoolExchange(bytes32 exchangeId) external view returns (PoolExchange memory exchange);
 
   /**
-   * @notice Gets all pool IDs.
-   * @return exchangeIds List of the pool IDs.
+   * @notice Get all exchange IDs.
+   * @return exchangeIds List of the exchangeIds.
    */
   function getExchangeIds() external view returns (bytes32[] memory exchangeIds);
 
   /**
-   * @notice Gets the current price based of the Bancor formula
-   * @param exchangeId The ID of the pool to get the price for
-   * @return price The current continuous price of the pool
+   * @notice Create a PoolExchange with the provided data.
+   * @param exchange The PoolExchange to be created.
+   * @return exchangeId The id of the exchange.
    */
-  function currentPrice(bytes32 exchangeId) external view returns (uint256 price);
-
-  /* ============================================================ */
-  /* ==================== Mutative Functions ==================== */
-  /* ============================================================ */
-  /**
-   * @notice Sets the address of the broker contract.
-   * @param _broker The new address of the broker contract.
-   */
-  function setBroker(address _broker) external;
+  function createExchange(PoolExchange calldata exchange) external returns (bytes32 exchangeId);
 
   /**
-   * @notice Sets the address of the reserve contract.
-   * @param _reserve The new address of the reserve contract.
+   * @notice Delete a PoolExchange.
+   * @param exchangeId The PoolExchange to be created.
+   * @param exchangeIdIndex The index of the exchangeId in the exchangeIds array.
+   * @return destroyed - true on successful delition.
    */
-  function setReserve(address _reserve) external;
+  function destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex) external returns (bool destroyed);
 
   /**
-   * @notice Sets the exit contribution for a given pool
-   * @param exchangeId The ID of the pool
+   * @notice Set the exit contribution for a given exchange
+   * @param exchangeId The id of the exchange
    * @param exitContribution The exit contribution to be set
    */
   function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external;
 
   /**
-   * @notice Creates a new pool with the given parameters.
-   * @param exchange The pool to be created.
-   * @return exchangeId The ID of the new pool.
+   * @notice gets the current price based of the bancor formula
+   * @param exchangeId The id of the exchange to get the price for
+   * @return price the current continious price
    */
-  function createExchange(PoolExchange calldata exchange) external returns (bytes32 exchangeId);
-
-  /**
-   * @notice Destroys a pool with the given parameters if it exists.
-   * @param exchangeId The ID of the pool to be destroyed.
-   * @param exchangeIdIndex The index of the pool in the exchangeIds array.
-   * @return destroyed A boolean indicating whether or not the exchange was successfully destroyed.
-   */
-  function destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex) external returns (bool destroyed);
+  function currentPrice(bytes32 exchangeId) external returns (uint256 price);
 }

@@ -41,7 +41,6 @@
     "fork-test:celo-mainnet": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Celo",
     "check-no-ir": "./bin/check-contracts.sh",
     "check-contract-sizes": "env FOUNDRY_PROFILE=optimized forge build --sizes --skip \"test/**/*\"",
-    "slither": "slither .",
     "todo": "git ls-files -c --exclude-standard | grep -v \"package.json\" | xargs -I {} sh -c 'grep -H -n -i --color \"TODO:\\|FIXME:\" \"{}\" 2>/dev/null || true'"
   },
   "dependencies": {

@@ -13,7 +13,8 @@ import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 /**
  * @title BiPool Manager interface
- * @notice An exchange provider implementation managing the state of all two-asset virtual pools.
+ * @notice The two asset pool manager is responsible for
+ * managing the state of all two-asset virtual pools.
  */
 interface IBiPoolManager {
   /**

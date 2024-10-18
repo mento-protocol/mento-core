@@ -559,13 +559,9 @@ contract BancorFormula {
    * - The natural logarithm of the input is calculated by summing up the intermediate results above
    * - For example: log(250) = log(e^4 * e^1 * e^0.5 * 1.021692859) = 4 + 1 + 0.5 + log(1 + 0.021692859)
    */
-  // We're choosing to trust Bancor's audited Math
-  // slither-disable-start divide-before-multiply
   function optimalLog(uint256 x) internal pure returns (uint256) {
     uint256 res = 0;
 
-    // slither false positive, y is initialized as z = y = ...
-    // slither-disable-next-line uninitialized-local
     uint256 y;
     uint256 z;
     uint256 w;
@@ -638,8 +634,6 @@ contract BancorFormula {
   function optimalExp(uint256 x) internal pure returns (uint256) {
     uint256 res = 0;
 
-    // slither false positive, y is initialized as z = y = ...
-    // slither-disable-next-line uninitialized-local
     uint256 y;
     uint256 z;
 
@@ -702,4 +696,3 @@ contract BancorFormula {
     return res;
   }
 }
-// slither-disable-end divide-before-multiply

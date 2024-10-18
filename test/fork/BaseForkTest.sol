@@ -9,6 +9,7 @@ import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { IRegistry } from "celo/contracts/common/interfaces/IRegistry.sol";
 
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";

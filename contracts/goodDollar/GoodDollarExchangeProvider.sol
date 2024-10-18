@@ -14,9 +14,7 @@ import { UD60x18, unwrap, wrap } from "prb/math/UD60x18.sol";
  * @notice Provides exchange functionality for the GoodDollar system.
  */
 contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchangeProvider, PausableUpgradeable {
-  /* ========================================================= */
   /* ==================== State Variables ==================== */
-  /* ========================================================= */
 
   // Address of the Expansion Controller contract.
   IGoodDollarExpansionController public expansionController;
@@ -25,19 +23,25 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   // solhint-disable-next-line var-name-mixedcase
   address public AVATAR;
 
-  /* ===================================================== */
   /* ==================== Constructor ==================== */
-  /* ===================================================== */
 
   /**
-   * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
-   * Call this with disable=false during testing, when used without a proxy.
+   * @dev Should be called with disable=true in deployments when
+   * it's accessed through a Proxy.
+   * Call this with disable=false during testing, when used
+   * without a proxy.
    * @param disable Set to true to run `_disableInitializers()` inherited from
    * openzeppelin-contracts-upgradeable/Initializable.sol
    */
   constructor(bool disable) BancorExchangeProvider(disable) {}
 
-  /// @inheritdoc IGoodDollarExchangeProvider
+  /**
+   * @notice Initializes the contract with the given parameters.
+   * @param _broker The address of the Broker contract.
+   * @param _reserve The address of the Reserve contract.
+   * @param _expansionController The address of the ExpansionController contract.
+   * @param _avatar The address of the GoodDollar DAO contract.
+   */
   function initialize(
     address _broker,
     address _reserve,
@@ -51,9 +55,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     setAvatar(_avatar);
   }
 
-  /* =================================================== */
   /* ==================== Modifiers ==================== */
-  /* =================================================== */
 
   modifier onlyAvatar() {
     require(msg.sender == AVATAR, "Only Avatar can call this function");
@@ -65,18 +67,22 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     _;
   }
 
-  /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
-  /* ============================================================ */
 
-  /// @inheritdoc IGoodDollarExchangeProvider
+  /**
+   * @notice Sets the address of the GoodDollar DAO contract.
+   * @param _avatar The address of the DAO contract.
+   */
   function setAvatar(address _avatar) public onlyOwner {
     require(_avatar != address(0), "Avatar address must be set");
     AVATAR = _avatar;
     emit AvatarUpdated(_avatar);
   }
 
-  /// @inheritdoc IGoodDollarExchangeProvider
+  /**
+   * @notice Sets the address of the Expansion Controller contract.
+   * @param _expansionController The address of the Expansion Controller contract.
+   */
   function setExpansionController(address _expansionController) public onlyOwner {
     require(_expansionController != address(0), "ExpansionController address must be set");
     expansionController = IGoodDollarExpansionController(_expansionController);
@@ -84,33 +90,13 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   }
 
   /**
-   * @inheritdoc BancorExchangeProvider
-   * @dev Only callable by the GoodDollar DAO contract.
+   * @notice Execute a token swap with fixed amountIn
+   * @param exchangeId The id of exchange, i.e. PoolExchange to use
+   * @param tokenIn The token to be sold
+   * @param tokenOut The token to be bought
+   * @param amountIn The amount of tokenIn to be sold
+   * @return amountOut The amount of tokenOut to be bought
    */
-  function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external override onlyAvatar {
-    return _setExitContribution(exchangeId, exitContribution);
-  }
-
-  /**
-   * @inheritdoc BancorExchangeProvider
-   * @dev Only callable by the GoodDollar DAO contract.
-   */
-  function createExchange(PoolExchange calldata _exchange) external override onlyAvatar returns (bytes32 exchangeId) {
-    return _createExchange(_exchange);
-  }
-
-  /**
-   * @inheritdoc BancorExchangeProvider
-   * @dev Only callable by the GoodDollar DAO contract.
-   */
-  function destroyExchange(
-    bytes32 exchangeId,
-    uint256 exchangeIdIndex
-  ) external override onlyAvatar returns (bool destroyed) {
-    return _destroyExchange(exchangeId, exchangeIdIndex);
-  }
-
-  /// @inheritdoc BancorExchangeProvider
   function swapIn(
     bytes32 exchangeId,
     address tokenIn,
@@ -120,7 +106,14 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     amountOut = BancorExchangeProvider.swapIn(exchangeId, tokenIn, tokenOut, amountIn);
   }
 
-  /// @inheritdoc BancorExchangeProvider
+  /**
+   * @notice Execute a token swap with fixed amountOut
+   * @param exchangeId The id of exchange, i.e. PoolExchange to use
+   * @param tokenIn The token to be sold
+   * @param tokenOut The token to be bought
+   * @param amountOut The amount of tokenOut to be bought
+   * @return amountIn The amount of tokenIn to be sold
+   */
   function swapOut(
     bytes32 exchangeId,
     address tokenIn,
@@ -131,10 +124,13 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   }
 
   /**
-   * @inheritdoc IGoodDollarExchangeProvider
-   * @dev Calculates the amount of G$ tokens that need to be minted as a result of the expansion
+   * @notice Calculates the amount of tokens to be minted as a result of expansion.
+   * @dev Calculates the amount of tokens that need to be minted as a result of the expansion
    *      while keeping the current price the same.
    *      calculation: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
+   * @param exchangeId The id of the pool to calculate expansion for.
+   * @param expansionScaler Scaler for calculating the new reserve ratio.
+   * @return amountToMint amount of tokens to be minted as a result of the expansion.
    */
   function mintFromExpansion(
     bytes32 exchangeId,
@@ -157,15 +153,17 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
 
     amountToMint = scaledAmountToMint / tokenPrecisionMultipliers[exchange.tokenAddress];
     emit ReserveRatioUpdated(exchangeId, newRatioUint);
-
     return amountToMint;
   }
 
   /**
-   * @inheritdoc IGoodDollarExchangeProvider
-   * @dev Calculates the amount of G$ tokens that need to be minted as a result of the reserve interest
+   * @notice Calculates the amount of tokens to be minted as a result of collecting the reserve interest.
+   * @dev Calculates the amount of tokens that need to be minted as a result of the reserve interest
    *      flowing into the reserve while keeping the current price the same.
    *      calculation: amountToMint = reserveInterest * tokenSupply / reserveBalance
+   * @param exchangeId The id of the pool the reserve interest is added to.
+   * @param reserveInterest The amount of reserve tokens collected from interest.
+   * @return amountToMint amount of tokens to be minted as a result of the reserve interest.
    */
   function mintFromInterest(
     bytes32 exchangeId,
@@ -186,9 +184,11 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   }
 
   /**
-   * @inheritdoc IGoodDollarExchangeProvider
-   * @dev Calculates the new reserve ratio needed to mint the G$ reward while keeping the current price the same.
+   * @notice Calculates the reserve ratio needed to mint the reward.
+   * @dev Calculates the new reserve ratio needed to mint the reward while keeping the current price the same.
    *      calculation: newRatio = reserveBalance / (tokenSupply + reward) * currentPrice
+   * @param exchangeId The id of the pool the reward is minted from.
+   * @param reward The amount of tokens to be minted as a reward.
    */
   function updateRatioForReward(bytes32 exchangeId, uint256 reward) external onlyExpansionController whenNotPaused {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
@@ -212,16 +212,16 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   }
 
   /**
-   * @inheritdoc IGoodDollarExchangeProvider
-   * @dev Only callable by the GoodDollar DAO contract.
+   * @notice Pauses the contract.
+   * @dev Functions is only callable by the GoodDollar DAO contract.
    */
   function pause() external virtual onlyAvatar {
     _pause();
   }
 
   /**
-   * @inheritdoc IGoodDollarExchangeProvider
-   * @dev Only callable by the GoodDollar DAO contract.
+   * @notice Unpauses the contract.
+   * @dev Functions is only callable by the GoodDollar DAO contract.
    */
   function unpause() external virtual onlyAvatar {
     _unpause();

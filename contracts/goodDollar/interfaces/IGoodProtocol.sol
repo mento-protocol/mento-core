@@ -15,7 +15,6 @@ interface IGoodDollar {
 
   function balanceOf(address account) external view returns (uint256);
 
-  // slither-disable-next-line erc721-interface
   function approve(address spender, uint256 amount) external returns (bool);
 }
 
