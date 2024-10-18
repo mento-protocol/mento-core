@@ -17,18 +17,27 @@ import { Broker } from "contracts/swap/Broker.sol";
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
 
+// TODO: Configure trading limit to limit reserveAsset outflow
+// TODO: Write tests for trading limits (positive & negative)
 contract GoodDollarForkTest is BaseForkTest {
   using FixidityLib for FixidityLib.Fraction;
 
+  // Addresses
   address constant AVATAR_ADDRESS = 0x495d133B938596C9984d462F007B676bDc57eCEC;
   address constant CUSD_ADDRESS = 0x765DE816845861e75A25fCA122bb6898B8B1282a;
   address constant GOOD_DOLLAR_ADDRESS = 0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A;
   address constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
-
-  // Addresses
   address ownerAddress;
   address brokerAddress;
   address distributionHelperAddress = makeAddr("distributionHelper");
+
+  // GoodDollar Relaunch Config
+  uint256 constant INITIAL_RESERVE_BALANCE = 200_000 * 1e18;
+  uint256 constant INITIAL_GOOD_DOLLAR_TOKEN_SUPPLY = 7_000_000_000 * 1e18;
+  uint32 constant INITIAL_RESERVE_RATIO = 0.28571428 * 1e8;
+  uint32 constant INITIAL_EXIT_CONTRIBUTION = 0.1 * 1e8;
+  uint64 constant INITIAL_EXPANSION_RATE_PER_YEAR = uint64(1e18 * 0.1); // 10% per year
+  uint32 constant INITIAL_EXPANSION_FREQUENCY = uint32(1 days); // Daily expansion
 
   // Tokens
   IStableTokenV2 reserveToken;
@@ -126,7 +135,7 @@ contract GoodDollarForkTest is BaseForkTest {
 
     require(goodDollarToken.isMinter(address(broker)), "Broker is not a minter");
     require(goodDollarToken.isMinter(address(expansionController)), "ExpansionController is not a minter");
-    deal(address(reserveToken), address(goodDollarReserve), 60_000 * 1e18);
+    deal(address(reserveToken), address(goodDollarReserve), INITIAL_RESERVE_BALANCE);
   }
 
   function configureBroker() public {
@@ -155,10 +164,10 @@ contract GoodDollarForkTest is BaseForkTest {
     poolExchange = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
       tokenAddress: address(goodDollarToken),
-      tokenSupply: 7_000_000_000 * 1e18,
-      reserveBalance: 200_000 * 1e18,
-      reserveRatio: 0.28571428 * 1e8,
-      exitContribution: 0.1 * 1e8
+      tokenSupply: INITIAL_GOOD_DOLLAR_TOKEN_SUPPLY,
+      reserveBalance: INITIAL_RESERVE_BALANCE,
+      reserveRatio: INITIAL_RESERVE_RATIO,
+      exitContribution: INITIAL_EXIT_CONTRIBUTION
     });
 
     vm.prank(AVATAR_ADDRESS);
@@ -166,9 +175,6 @@ contract GoodDollarForkTest is BaseForkTest {
   }
 
   function configureExpansionController() public {
-    uint64 expansionRatePerYear = uint64(1e18 * 0.1); // 10% per year
-    uint32 expansionFrequency = uint32(1 days);
-
     vm.prank(ownerAddress);
     expansionController.initialize({
       _goodDollarExchangeProvider: address(goodDollarExchangeProvider),
@@ -180,8 +186,8 @@ contract GoodDollarForkTest is BaseForkTest {
     vm.prank(AVATAR_ADDRESS);
     expansionController.setExpansionConfig({
       exchangeId: exchangeId,
-      expansionRate: expansionRatePerYear,
-      expansionFrequency: expansionFrequency
+      expansionRate: INITIAL_EXPANSION_RATE_PER_YEAR,
+      expansionFrequency: INITIAL_EXPANSION_FREQUENCY
     });
   }
 
