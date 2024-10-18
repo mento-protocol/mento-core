@@ -145,6 +145,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
 
     UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e10);
     UD60x18 newRatio = scaledRatio.mul(wrap(expansionScaler));
+    require(unwrap(newRatio) > 0, "New ratio must be greater than 0");
 
     UD60x18 numerator = wrap(exchange.tokenSupply).mul(scaledRatio);
     numerator = numerator.sub(wrap(exchange.tokenSupply).mul(newRatio));
@@ -193,9 +194,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   function updateRatioForReward(bytes32 exchangeId, uint256 reward) external onlyExpansionController whenNotPaused {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
-    if (reward == 0) {
-      return;
-    }
+    require(reward > 0, "Reward must be greater than 0");
 
     uint256 currentPriceScaled = currentPrice(exchangeId) * tokenPrecisionMultipliers[exchange.reserveAsset];
     uint256 rewardScaled = reward * tokenPrecisionMultipliers[exchange.tokenAddress];
