@@ -16,7 +16,9 @@ import { UD60x18, unwrap, wrap } from "prb/math/UD60x18.sol";
  * @notice Provides exchange functionality for Bancor pools.
  */
 contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, BancorFormula, OwnableUpgradeable {
+  /* ========================================================= */
   /* ==================== State Variables ==================== */
+  /* ========================================================= */
 
   // Address of the broker contract.
   address public broker;
@@ -29,17 +31,16 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   mapping(bytes32 => PoolExchange) public exchanges;
   bytes32[] public exchangeIds;
 
-  // Token precision multiplier used to normalize values to the
-  // same precision when calculating amounts.
+  // Token precision multiplier used to normalize values to the same precision when calculating amounts.
   mapping(address => uint256) public tokenPrecisionMultipliers;
 
+  /* ===================================================== */
   /* ==================== Constructor ==================== */
+  /* ===================================================== */
 
   /**
-   * @dev Should be called with disable=true in deployments when
-   * it's accessed through a Proxy.
-   * Call this with disable=false during testing, when used
-   * without a proxy.
+   * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
+   * Call this with disable=false during testing, when used without a proxy.
    * @param disable Set to true to run `_disableInitializers()` inherited from
    * openzeppelin-contracts-upgradeable/Initializable.sol
    */
@@ -49,11 +50,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     }
   }
 
-  /**
-   * @notice Allows the contract to be upgradable via the proxy.
-   * @param _broker The address of the broker contract.
-   * @param _reserve The address of the reserve contract.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function initialize(address _broker, address _reserve) public initializer {
     _initialize(_broker, _reserve);
   }
@@ -66,7 +63,9 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     setReserve(_reserve);
   }
 
+  /* =================================================== */
   /* ==================== Modifiers ==================== */
+  /* =================================================== */
 
   modifier onlyBroker() {
     require(msg.sender == broker, "Caller is not the Broker");
@@ -82,28 +81,24 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     _;
   }
 
+  /* ======================================================== */
   /* ==================== View Functions ==================== */
+  /* ======================================================== */
 
-  /**
-   * @notice Get a PoolExchange from storage.
-   * @param exchangeId the exchange id
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function getPoolExchange(bytes32 exchangeId) public view returns (PoolExchange memory exchange) {
     exchange = exchanges[exchangeId];
-    require(exchange.tokenAddress != address(0), "An exchange with the specified id does not exist");
+    require(exchange.tokenAddress != address(0), "Exchange does not exist");
     return exchange;
   }
 
-  /**
-   * @notice Get all exchange IDs.
-   * @return exchangeIds List of the exchangeIds.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function getExchangeIds() external view returns (bytes32[] memory) {
     return exchangeIds;
   }
 
   /**
-   * @notice Get all exchanges (used by interfaces)
+   * @inheritdoc IExchangeProvider
    * @dev We don't expect the number of exchanges to grow to
    * astronomical values so this is safe gas-wise as is.
    */
@@ -118,14 +113,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     }
   }
 
-  /**
-   * @notice Calculate amountOut of tokenOut received for a given amountIn of tokenIn
-   * @param exchangeId The id of the exchange i.e PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountIn The amount of tokenIn to be sold
-   * @return amountOut The amount of tokenOut to be bought
-   */
+  /// @inheritdoc IExchangeProvider
   function getAmountOut(
     bytes32 exchangeId,
     address tokenIn,
@@ -134,19 +122,12 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) external view virtual returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
-    uint256 scaledAmountOut = _getAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
+    uint256 scaledAmountOut = _getScaledAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
     amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
     return amountOut;
   }
 
-  /**
-   * @notice Calculate amountIn of tokenIn for a given amountOut of tokenOut
-   * @param exchangeId The id of the exchange i.e PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountOut The amount of tokenOut to be bought
-   * @return amountIn The amount of tokenIn to be sold
-   */
+  /// @inheritdoc IExchangeProvider
   function getAmountIn(
     bytes32 exchangeId,
     address tokenIn,
@@ -155,16 +136,12 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) external view virtual returns (uint256 amountIn) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
-    uint256 scaledAmountIn = _getAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+    uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
     amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
     return amountIn;
   }
 
-  /**
-   * @notice Get the current price of the pool.
-   * @param exchangeId The id of the pool to get the price for.
-   * @return price The current continous price of the pool.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function currentPrice(bytes32 exchangeId) public view returns (uint256 price) {
     // calculates: reserveBalance / (tokenSupply * reserveRatio)
     require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
@@ -175,51 +152,83 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     return price;
   }
 
+  /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
+  /* ============================================================ */
 
-  /**
-   * @notice Sets the address of the broker contract.
-   * @param _broker The new address of the broker contract.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function setBroker(address _broker) public onlyOwner {
     require(_broker != address(0), "Broker address must be set");
     broker = _broker;
     emit BrokerUpdated(_broker);
   }
 
-  /**
-   * @notice Sets the address of the reserve contract.
-   * @param _reserve The new address of the reserve contract.
-   */
+  /// @inheritdoc IBancorExchangeProvider
   function setReserve(address _reserve) public onlyOwner {
     require(address(_reserve) != address(0), "Reserve address must be set");
     reserve = IReserve(_reserve);
     emit ReserveUpdated(address(_reserve));
   }
 
-  /**
-   * @notice Sets the exit contribution for a pool.
-   * @param exchangeId The id of the pool.
-   * @param exitContribution The exit contribution.
-   */
-  function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external onlyOwner {
-    require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
-    require(exitContribution <= MAX_WEIGHT, "Invalid exit contribution");
-
-    PoolExchange storage exchange = exchanges[exchangeId];
-    exchange.exitContribution = exitContribution;
-    emit ExitContributionSet(exchangeId, exitContribution);
+  /// @inheritdoc IBancorExchangeProvider
+  function setExitContribution(bytes32 exchangeId, uint32 exitContribution) external virtual onlyOwner {
+    return _setExitContribution(exchangeId, exitContribution);
   }
 
-  /**
-   * @notice Creates a new exchange using the given parameters.
-   * @param _exchange the PoolExchange to create.
-   * @return exchangeId The id of the newly created exchange.
-   */
-  function createExchange(PoolExchange calldata _exchange) external onlyOwner returns (bytes32 exchangeId) {
-    PoolExchange memory exchange = _exchange;
-    validate(exchange);
+  /// @inheritdoc IBancorExchangeProvider
+  function createExchange(PoolExchange calldata _exchange) external virtual onlyOwner returns (bytes32 exchangeId) {
+    return _createExchange(_exchange);
+  }
 
+  /// @inheritdoc IBancorExchangeProvider
+  function destroyExchange(
+    bytes32 exchangeId,
+    uint256 exchangeIdIndex
+  ) external virtual onlyOwner returns (bool destroyed) {
+    return _destroyExchange(exchangeId, exchangeIdIndex);
+  }
+
+  /// @inheritdoc IExchangeProvider
+  function swapIn(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) public virtual onlyBroker returns (uint256 amountOut) {
+    PoolExchange memory exchange = getPoolExchange(exchangeId);
+    uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
+    uint256 scaledAmountOut = _getScaledAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
+    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
+
+    amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
+    return amountOut;
+  }
+
+  /// @inheritdoc IExchangeProvider
+  function swapOut(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountOut
+  ) public virtual onlyBroker returns (uint256 amountIn) {
+    PoolExchange memory exchange = getPoolExchange(exchangeId);
+    uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
+    uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
+
+    amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
+    return amountIn;
+  }
+
+  /* =========================================================== */
+  /* ==================== Private Functions ==================== */
+  /* =========================================================== */
+
+  function _createExchange(PoolExchange calldata _exchange) internal returns (bytes32 exchangeId) {
+    PoolExchange memory exchange = _exchange;
+    validateExchange(exchange);
+
+    // slither-disable-next-line encode-packed-collision
     exchangeId = keccak256(
       abi.encodePacked(IERC20(exchange.reserveAsset).symbol(), IERC20(exchange.tokenAddress).symbol())
     );
@@ -227,8 +236,8 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
     uint256 reserveAssetDecimals = IERC20(exchange.reserveAsset).decimals();
     uint256 tokenDecimals = IERC20(exchange.tokenAddress).decimals();
-    require(reserveAssetDecimals <= 18, "reserve token decimals must be <= 18");
-    require(tokenDecimals <= 18, "token decimals must be <= 18");
+    require(reserveAssetDecimals <= 18, "Reserve asset decimals must be <= 18");
+    require(tokenDecimals <= 18, "Token decimals must be <= 18");
 
     tokenPrecisionMultipliers[exchange.reserveAsset] = 10 ** (18 - uint256(reserveAssetDecimals));
     tokenPrecisionMultipliers[exchange.tokenAddress] = 10 ** (18 - uint256(tokenDecimals));
@@ -238,13 +247,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     emit ExchangeCreated(exchangeId, exchange.reserveAsset, exchange.tokenAddress);
   }
 
-  /**
-   * @notice Destroys a exchange with the given parameters if it exists.
-   * @param exchangeId the id of the exchange to destroy
-   * @param exchangeIdIndex The index of the exchangeId in the ids array
-   * @return destroyed A boolean indicating whether or not the exchange was successfully destroyed.
-   */
-  function destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex) external onlyOwner returns (bool destroyed) {
+  function _destroyExchange(bytes32 exchangeId, uint256 exchangeIdIndex) internal returns (bool destroyed) {
     require(exchangeIdIndex < exchangeIds.length, "exchangeIdIndex not in range");
     require(exchangeIds[exchangeIdIndex] == exchangeId, "exchangeId at index doesn't match");
     PoolExchange memory exchange = exchanges[exchangeId];
@@ -257,61 +260,21 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     emit ExchangeDestroyed(exchangeId, exchange.reserveAsset, exchange.tokenAddress);
   }
 
-  /**
-   * @notice Execute a token swap with fixed amountIn
-   * @param exchangeId The id of exchange, i.e. PoolExchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountIn The amount of tokenIn to be sold
-   * @return amountOut The amount of tokenOut to be bought
-   */
-  function swapIn(
-    bytes32 exchangeId,
-    address tokenIn,
-    address tokenOut,
-    uint256 amountIn
-  ) public virtual onlyBroker returns (uint256 amountOut) {
-    PoolExchange memory exchange = getPoolExchange(exchangeId);
-    uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
-    uint256 scaledAmountOut = _getAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
-    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
+  function _setExitContribution(bytes32 exchangeId, uint32 exitContribution) internal {
+    require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
+    require(exitContribution <= MAX_WEIGHT, "Exit contribution is too high");
 
-    amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
-    return amountOut;
+    PoolExchange storage exchange = exchanges[exchangeId];
+    exchange.exitContribution = exitContribution;
+    emit ExitContributionSet(exchangeId, exitContribution);
   }
 
   /**
-   * @notice Execute a token swap with fixed amountOut
-   * @param exchangeId The id of exchange, i.e. PoolExchange to use
+   * @notice Execute a swap against the in-memory exchange and write the new exchange state to storage.
+   * @param exchangeId The ID of the pool
    * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountOut The amount of tokenOut to be bought
-   * @return amountIn The amount of tokenIn to be sold
-   */
-  function swapOut(
-    bytes32 exchangeId,
-    address tokenIn,
-    address tokenOut,
-    uint256 amountOut
-  ) public virtual onlyBroker returns (uint256 amountIn) {
-    PoolExchange memory exchange = getPoolExchange(exchangeId);
-    uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
-    uint256 scaledAmountIn = _getAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
-    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
-
-    amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
-    return amountIn;
-  }
-
-  /* ==================== Private Functions ==================== */
-
-  /**
-   * @notice Execute a swap against the in memory exchange and write
-   *         the new exchange state to storage.
-   * @param exchangeId The id of the exchange
-   * @param tokenIn The token to be sold
-   * @param scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
-   * @param scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
+   * @param scaledAmountIn The amount of tokenIn to be sold, scaled to 18 decimals
+   * @param scaledAmountOut The amount of tokenOut to be bought, scaled to 18 decimals
    */
   function executeSwap(bytes32 exchangeId, address tokenIn, uint256 scaledAmountIn, uint256 scaledAmountOut) internal {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
@@ -327,14 +290,14 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   }
 
   /**
-   * @notice Calculate amountIn of tokenIn for a given amountOut of tokenOut
-   * @param exchange The exchange to operate on
+   * @notice Calculate the scaledAmountIn of tokenIn for a given scaledAmountOut of tokenOut
+   * @param exchange The pool exchange to operate on
    * @param tokenIn The token to be sold
    * @param tokenOut The token to be bought
-   * @param scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
-   * @return scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
+   * @param scaledAmountOut The amount of tokenOut to be bought, scaled to 18 decimals
+   * @return scaledAmountIn The amount of tokenIn to be sold, scaled to 18 decimals
    */
-  function _getAmountIn(
+  function _getScaledAmountIn(
     PoolExchange memory exchange,
     address tokenIn,
     address tokenOut,
@@ -350,14 +313,14 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   }
 
   /**
-   * @notice Calculate amountOut of tokenOut received for a given amountIn of tokenIn
-   * @param exchange The exchange to operate on
+   * @notice Calculate the scaledAmountOut of tokenOut received for a given scaledAmountIn of tokenIn
+   * @param exchange The pool exchange to operate on
    * @param tokenIn The token to be sold
    * @param tokenOut The token to be bought
-   * @param scaledAmountIn The amount of tokenIn to be sold scaled to 18 decimals
-   * @return scaledAmountOut The amount of tokenOut to be bought scaled to 18 decimals
+   * @param scaledAmountIn The amount of tokenIn to be sold, scaled to 18 decimals
+   * @return scaledAmountOut The amount of tokenOut to be bought, scaled to 18 decimals
    */
-  function _getAmountOut(
+  function _getScaledAmountOut(
     PoolExchange memory exchange,
     address tokenIn,
     address tokenOut,
@@ -383,20 +346,20 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   }
 
   /**
-   * @notice Valitates a PoolExchange's parameters and configuration
+   * @notice Validates a PoolExchange's parameters and configuration
    * @dev Reverts if not valid
    * @param exchange The PoolExchange to validate
    */
-  function validate(PoolExchange memory exchange) internal view {
+  function validateExchange(PoolExchange memory exchange) internal view {
     require(exchange.reserveAsset != address(0), "Invalid reserve asset");
     require(
       reserve.isCollateralAsset(exchange.reserveAsset),
-      "reserve asset must be a collateral registered with the reserve"
+      "Reserve asset must be a collateral registered with the reserve"
     );
     require(exchange.tokenAddress != address(0), "Invalid token address");
-    require(reserve.isStableAsset(exchange.tokenAddress), "token must be a stable registered with the reserve");
-    require(exchange.reserveRatio > 1, "Invalid reserve ratio");
-    require(exchange.reserveRatio <= MAX_WEIGHT, "Invalid reserve ratio");
-    require(exchange.exitContribution <= MAX_WEIGHT, "Invalid exit contribution");
+    require(reserve.isStableAsset(exchange.tokenAddress), "Token must be a stable registered with the reserve");
+    require(exchange.reserveRatio > 1, "Reserve ratio is too low");
+    require(exchange.reserveRatio <= MAX_WEIGHT, "Reserve ratio is too high");
+    require(exchange.exitContribution <= MAX_WEIGHT, "Exit contribution is too high");
   }
 }

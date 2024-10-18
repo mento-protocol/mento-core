@@ -14,7 +14,6 @@ import { ITradingLimits } from "../interfaces/ITradingLimits.sol";
 
 import { TradingLimits } from "../libraries/TradingLimits.sol";
 import { Initializable } from "celo/contracts/common/Initializable.sol";
-// TODO: ensure we can use latest impl of openzeppelin
 import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
 
 interface IERC20Metadata {
@@ -35,12 +34,16 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
 
   /* ==================== State Variables ==================== */
 
+  /// @inheritdoc IBroker
   address[] public exchangeProviders;
+
+  /// @inheritdoc IBroker
   mapping(address => bool) public isExchangeProvider;
   mapping(bytes32 => ITradingLimits.State) public tradingLimitsState;
   mapping(bytes32 => ITradingLimits.Config) public tradingLimitsConfig;
 
-  // Address of the reserve.
+  // Deprecated address of the reserve. Kept to keep storage layout consistent with previous versions.
+  // slither-disable-next-line constable-states
   uint256 public __deprecated0; // prev: IReserve public reserve;
 
   uint256 private constant MAX_INT256 = uint256(type(int256).max);
@@ -54,11 +57,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
    */
   constructor(bool test) Initializable(test) {}
 
-  /**
-   * @notice Allows the contract to be upgradable via the proxy.
-   * @param _exchangeProviders The addresses of the ExchangeProvider contracts.
-   * @param _reserves The addresses of the Reserve contracts.
-   */
+  /// @inheritdoc IBroker
   function initialize(address[] calldata _exchangeProviders, address[] calldata _reserves) external initializer {
     _transferOwnership(msg.sender);
     for (uint256 i = 0; i < _exchangeProviders.length; i++) {
@@ -66,11 +65,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     }
   }
 
-  /**
-   * @notice Set the reserves for the exchange providers.
-   * @param _exchangeProviders The addresses of the ExchangeProvider contracts.
-   * @param _reserves The addresses of the Reserve contracts.
-   */
+  /// @inheritdoc IBroker
   function setReserves(
     address[] calldata _exchangeProviders,
     address[] calldata _reserves
@@ -85,12 +80,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
 
   /* ==================== Mutative Functions ==================== */
 
-  /**
-   * @notice Add an exchange provider to the list of providers.
-   * @param exchangeProvider The address of the exchange provider to add.
-   * @param reserve The address of the reserve used by the exchange provider.
-   * @return index The index of the newly added specified exchange provider.
-   */
+  /// @inheritdoc IBroker
   function addExchangeProvider(
     address exchangeProvider,
     address reserve
@@ -106,11 +96,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     index = exchangeProviders.length - 1;
   }
 
-  /**
-   * @notice Remove an exchange provider from the list of providers.
-   * @param exchangeProvider The address of the exchange provider to remove.
-   * @param index The index of the exchange provider being removed.
-   */
+  /// @inheritdoc IBroker
   function removeExchangeProvider(
     address exchangeProvider,
     uint256 index
@@ -123,15 +109,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     emit ExchangeProviderRemoved(exchangeProvider);
   }
 
-  /**
-   * @notice Calculate the amount of tokenIn to be sold for a given amountOut of tokenOut
-   * @param exchangeProvider the address of the exchange manager for the pair
-   * @param exchangeId The id of the exchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountOut The amount of tokenOut to be bought
-   * @return amountIn The amount of tokenIn to be sold
-   */
+  /// @inheritdoc IBroker
   function getAmountIn(
     address exchangeProvider,
     bytes32 exchangeId,
@@ -140,18 +118,14 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     uint256 amountOut
   ) external view returns (uint256 amountIn) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
+    address reserve = exchangeReserve[exchangeProvider];
+    if (IReserve(reserve).isCollateralAsset(tokenOut)) {
+      require(IERC20(tokenOut).balanceOf(reserve) >= amountOut, "Insufficient balance in reserve");
+    }
     amountIn = IExchangeProvider(exchangeProvider).getAmountIn(exchangeId, tokenIn, tokenOut, amountOut);
   }
 
-  /**
-   * @notice Calculate the amount of tokenOut to be bought for a given amount of tokenIn to be sold
-   * @param exchangeProvider the address of the exchange manager for the pair
-   * @param exchangeId The id of the exchange to use
-   * @param tokenIn The token to be sold
-   * @param tokenOut The token to be bought
-   * @param amountIn The amount of tokenIn to be sold
-   * @return amountOut The amount of tokenOut to be bought
-   */
+  /// @inheritdoc IBroker
   function getAmountOut(
     address exchangeProvider,
     bytes32 exchangeId,
@@ -161,18 +135,13 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
   ) external view returns (uint256 amountOut) {
     require(isExchangeProvider[exchangeProvider], "ExchangeProvider does not exist");
     amountOut = IExchangeProvider(exchangeProvider).getAmountOut(exchangeId, tokenIn, tokenOut, amountIn);
+    address reserve = exchangeReserve[exchangeProvider];
+    if (IReserve(reserve).isCollateralAsset(tokenOut)) {
+      require(IERC20(tokenOut).balanceOf(reserve) >= amountOut, "Insufficient balance in reserve");
+    }
   }
 
-  /**
-   * @notice Execute a token swap with fixed amountIn.
-   * @param exchangeProvider the address of the exchange provider for the pair.
-   * @param exchangeId The id of the exchange to use.
-   * @param tokenIn The token to be sold.
-   * @param tokenOut The token to be bought.
-   * @param amountIn The amount of tokenIn to be sold.
-   * @param amountOutMin Minimum amountOut to be received - controls slippage.
-   * @return amountOut The amount of tokenOut to be bought.
-   */
+  /// @inheritdoc IBroker
   function swapIn(
     address exchangeProvider,
     bytes32 exchangeId,
@@ -193,16 +162,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
   }
 
-  /**
-   * @notice Execute a token swap with fixed amountOut.
-   * @param exchangeProvider the address of the exchange provider for the pair.
-   * @param exchangeId The id of the exchange to use.
-   * @param tokenIn The token to be sold.
-   * @param tokenOut The token to be bought.
-   * @param amountOut The amount of tokenOut to be bought.
-   * @param amountInMax Maximum amount of tokenIn that can be traded.
-   * @return amountIn The amount of tokenIn to be sold.
-   */
+  /// @inheritdoc IBroker
   function swapOut(
     address exchangeProvider,
     bytes32 exchangeId,
@@ -223,35 +183,19 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
     emit Swap(exchangeProvider, exchangeId, msg.sender, tokenIn, tokenOut, amountIn, amountOut);
   }
 
-  /**
-   * @notice Permissionless way to burn stables from msg.sender directly.
-   * @param token The token getting burned.
-   * @param amount The amount of the token getting burned.
-   * @return True if transaction succeeds.
-   */
+  /// @inheritdoc IBroker
   function burnStableTokens(address token, uint256 amount) public returns (bool) {
     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
     IERC20(token).safeBurn(amount);
     return true;
   }
 
-  /**
-   * @notice Configure trading limits for an (exchangeId, token) touple.
-   * @dev Will revert if the configuration is not valid according to the
-   * TradingLimits library.
-   * Resets existing state according to the TradingLimits library logic.
-   * Can only be called by owner.
-   * @param exchangeId the exchangeId to target.
-   * @param token the token to target.
-   * @param config the new trading limits config.
-   */
-  // TODO: Make this external with next update.
-  // slither-disable-next-line external-function
+  /// @inheritdoc IBroker
   function configureTradingLimit(
     bytes32 exchangeId,
     address token,
     ITradingLimits.Config memory config
-  ) public onlyOwner {
+  ) external onlyOwner {
     config.validate();
 
     bytes32 limitId = exchangeId ^ bytes32(uint256(uint160(token)));
