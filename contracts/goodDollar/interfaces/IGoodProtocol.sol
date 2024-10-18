@@ -9,7 +9,6 @@ interface IGoodDollar {
 
   function safeTransferFrom(address from, address to, uint256 value) external;
 
-  // Only used in Fork Tests to give the Broker minting rights during testing
   function addMinter(address _minter) external;
 
   function isMinter(address account) external view returns (bool);
