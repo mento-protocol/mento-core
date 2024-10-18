@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
 pragma solidity ^0.8;
 
 import { console } from "forge-std/console.sol";
@@ -28,7 +27,7 @@ abstract contract ChainForkTest is BaseForkTest {
     IBiPoolManager biPoolManager = IBiPoolManager(broker.getExchangeProviders()[0]);
 
     vm.expectRevert("contract already initialized");
-    biPoolManager.initialize(address(broker), reserve, sortedOracles, breakerBox);
+    biPoolManager.initialize(address(broker), mentoReserve, sortedOracles, breakerBox);
   }
 
   function test_brokerCanNotBeReinitialized() public {
@@ -43,7 +42,7 @@ abstract contract ChainForkTest is BaseForkTest {
 
   function test_reserveCanNotBeReinitialized() public {
     vm.expectRevert("contract already initialized");
-    reserve.initialize(
+    mentoReserve.initialize(
       address(10),
       0,
       0,
@@ -83,10 +82,10 @@ abstract contract ChainForkTest is BaseForkTest {
   function test_numberCollateralAssetsCount() public {
     address collateral;
     for (uint256 i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
-      collateral = reserve.collateralAssets(i);
+      collateral = mentoReserve.collateralAssets(i);
     }
     vm.expectRevert();
-    reserve.collateralAssets(COLLATERAL_ASSETS_COUNT);
+    mentoReserve.collateralAssets(COLLATERAL_ASSETS_COUNT);
   }
 
   function test_stableTokensCanNotBeReinitialized() public {
