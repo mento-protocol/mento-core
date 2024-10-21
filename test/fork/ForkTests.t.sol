@@ -41,7 +41,9 @@ import { uints } from "mento-std/Array.sol";
 import { ChainForkTest } from "./ChainForkTest.sol";
 import { ExchangeForkTest } from "./ExchangeForkTest.sol";
 import { BancorExchangeProviderForkTest } from "./BancorExchangeProviderForkTest.sol";
-import { GoodDollarForkTest } from "./GoodDollarForkTest.sol";
+import { GoodDollarTradingLimitsForkTest } from "./GoodDollar/TradingLimitsForkTest.sol";
+import { GoodDollarSwapForkTest } from "./GoodDollar/SwapForkTest.sol";
+import { GoodDollarExpansionForkTest } from "./GoodDollar/ExpansionForkTest.sol";
 
 contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(15)) {}
 
@@ -109,4 +111,8 @@ contract Celo_P0E14_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 14) {}
 
 contract Celo_BancorExchangeProviderForkTest is BancorExchangeProviderForkTest(CELO_ID) {}
 
-contract Celo_GoodDollarForkTest is GoodDollarForkTest(CELO_ID) {}
+contract Celo_GoodDollarTradingLimitsForkTest is GoodDollarTradingLimitsForkTest(CELO_ID) {}
+
+contract Celo_GoodDollarSwapForkTest is GoodDollarSwapForkTest(CELO_ID) {}
+
+contract Celo_GoodDollarExpansionForkTest is GoodDollarExpansionForkTest(CELO_ID) {}
