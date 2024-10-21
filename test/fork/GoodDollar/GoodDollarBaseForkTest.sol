@@ -9,7 +9,6 @@ import { L0, L1, LG, min } from "../helpers/misc.sol";
 
 // Interfaces
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
-import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
