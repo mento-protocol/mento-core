@@ -193,9 +193,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   function updateRatioForReward(bytes32 exchangeId, uint256 reward) external onlyExpansionController whenNotPaused {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
-    if (reward == 0) {
-      return;
-    }
+    require(reward > 0, "Reward must be greater than 0");
 
     uint256 currentPriceScaled = currentPrice(exchangeId) * tokenPrecisionMultipliers[exchange.reserveAsset];
     uint256 rewardScaled = reward * tokenPrecisionMultipliers[exchange.tokenAddress];
