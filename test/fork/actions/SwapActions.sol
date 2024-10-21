@@ -252,7 +252,7 @@ contract SwapActions is StdCheats {
     /*
      * from -> LG[to]
      * This function will do valid swaps until just before LG is hit
-     * during outflow on `to`, therfore we check the negative end
+     * during outflow on `to`, therefore we check the negative end
      * of the limit because `to` flows out of the reserve.
      */
     ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
@@ -265,7 +265,7 @@ contract SwapActions is StdCheats {
         skip(limitConfig.timestep1 + 1);
         swapUntilL1_onOutflow(from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
-        // Triger an update to reset netflows
+        // Trigger an update to reset netflows
         limitState = ctx.tradingLimitsState(to);
       }
       skip(limitConfig.timestep1 + 1);
@@ -275,7 +275,7 @@ contract SwapActions is StdCheats {
         skip(limitConfig.timestep0 + 1);
         swapUntilL0_onOutflow(from, to);
         limitConfig = ctx.tradingLimitsConfig(to);
-        // Triger an update to reset netflows
+        // Trigger an update to reset netflows
         limitState = ctx.tradingLimitsState(to);
       }
       skip(limitConfig.timestep0 + 1);

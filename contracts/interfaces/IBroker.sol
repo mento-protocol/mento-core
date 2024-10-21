@@ -147,9 +147,8 @@ interface IBroker {
   function burnStableTokens(address token, uint256 amount) external returns (bool);
 
   /**
-   * @notice Configure trading limits for an (exchangeId, token) touple.
-   * @dev Will revert if the configuration is not valid according to the
-   * TradingLimits library.
+   * @notice Configure trading limits for an (exchangeId, token) tuple.
+   * @dev Will revert if the configuration is not valid according to the TradingLimits library.
    * Resets existing state according to the TradingLimits library logic.
    * Can only be called by owner.
    * @param exchangeId the exchangeId to target.
