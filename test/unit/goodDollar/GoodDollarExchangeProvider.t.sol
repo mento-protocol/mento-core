@@ -362,9 +362,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
   }
 
   function testFuzz_mintFromExpansion(uint256 expansionScaler) public {
-    // Assume a valid expansion scalar >0% and <2%
-    expansionScaler = bound(uint256(expansionScaler), 100, 1e18);
-    // vm.assume(expansionScaler > 3 && expansionScaler < 1e18);
+    expansionScaler = bound(expansionScaler, 100, 1e18);
 
     uint256 initialTokenSupply = poolExchange1.tokenSupply;
     uint32 initialReserveRatio = poolExchange1.reserveRatio;
@@ -396,6 +394,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
 
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio, "Reserve ratio should be updated correctly");
   }
+
   function testMintFromExpansion_RevertWhenNewRatioIsZero() public {
     uint256 verySmallExpansionScaler = 1;
 
@@ -425,15 +424,58 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
   function test_mintFromExpansion_withMultipleConsecutiveExpansions_shouldMintCorrectly() public {
     vm.startPrank(expansionControllerAddress);
     uint256 totalMinted = 0;
+    uint256 initialTokenSupply = poolExchange1.tokenSupply;
+    uint32 initialReserveRatio = poolExchange1.reserveRatio;
+    uint256 initialReserveBalance = poolExchange1.reserveBalance;
+    uint256 initialPrice = exchangeProvider.currentPrice(exchangeId);
+
     for (uint256 i = 0; i < 5; i++) {
       uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, 0.99e18);
       totalMinted += amountToMint;
+
+      // Check that amount minted is greater than 0
+      assertGt(amountToMint, 0, "Amount minted should be greater than 0");
     }
     vm.stopPrank();
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
-    assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + totalMinted);
-    // Add more assertions to check the final state
+
+    // Check token supply
+    assertEq(
+      poolExchangeAfter.tokenSupply,
+      initialTokenSupply + totalMinted,
+      "Token supply should increase by total minted amount"
+    );
+
+    // Check reserve ratio has decreased
+    assertLt(poolExchangeAfter.reserveRatio, initialReserveRatio, "Reserve ratio should decrease");
+
+    // Check reserve balance remains unchanged
+    assertEq(poolExchangeAfter.reserveBalance, initialReserveBalance, "Reserve balance should remain unchanged");
+
+    // Calculate expected reserve ratio
+    uint256 expectedReserveRatio = (uint256(initialReserveRatio) * (0.99e18)) / 1e18;
+    assertApproxEqRel(
+      poolExchangeAfter.reserveRatio,
+      uint32(expectedReserveRatio),
+      4 * 1e16, // 4% relative error tolerance
+      "Reserve ratio should be updated correctly within 4% tolerance"
+    );
+
+    // Check price remains approximately the same
+    uint256 finalPrice = exchangeProvider.currentPrice(exchangeId);
+    assertApproxEqRel(initialPrice, finalPrice, 1e16, "Price should remain within 1% of initial price");
+
+    // Check that the exchange is still active
+    IExchangeProvider.Exchange[] memory exchanges = exchangeProvider.getExchanges();
+    bool exchangeFound = false;
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      if (exchanges[i].exchangeId == exchangeId) {
+        exchangeFound = true;
+        break;
+      }
+    }
+    assertTrue(exchangeFound, "Exchange should still be active after multiple expansions");
   }
 
   function test_mintFromExpansion_effectOnReserveRatio() public {
@@ -641,6 +683,11 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
   function test_updateRatioForReward_withMultipleConsecutiveRewards() public {
     vm.startPrank(expansionControllerAddress);
     uint256 totalReward = 0;
+    uint256 initialTokenSupply = poolExchange1.tokenSupply;
+    uint256 initialReserveBalance = poolExchange1.reserveBalance;
+    uint32 initialReserveRatio = poolExchange1.reserveRatio;
+    uint256 initialPrice = exchangeProvider.currentPrice(exchangeId);
+
     for (uint256 i = 0; i < 5; i++) {
       exchangeProvider.updateRatioForReward(exchangeId, reward);
       totalReward += reward;
@@ -648,8 +695,44 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     vm.stopPrank();
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
-    assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + totalReward);
-    // Add more assertions to check the final state
+
+    // Check token supply
+    assertEq(
+      poolExchangeAfter.tokenSupply,
+      initialTokenSupply + totalReward,
+      "Token supply should increase by total reward"
+    );
+
+    // Check reserve balance remains unchanged
+    assertEq(poolExchangeAfter.reserveBalance, initialReserveBalance, "Reserve balance should remain unchanged");
+
+    // Check reserve ratio has decreased
+    assertLt(poolExchangeAfter.reserveRatio, initialReserveRatio, "Reserve ratio should decrease");
+
+    // Calculate expected reserve ratio
+    uint256 expectedReserveRatio = (uint256(initialReserveRatio) * initialTokenSupply) /
+      (initialTokenSupply + totalReward);
+    assertApproxEqRel(
+      poolExchangeAfter.reserveRatio,
+      uint32(expectedReserveRatio),
+      1e15, // 0.1% relative error tolerance
+      "Reserve ratio should be updated correctly within 0.1% tolerance"
+    );
+
+    // Check price remains approximately the same
+    uint256 finalPrice = exchangeProvider.currentPrice(exchangeId);
+    assertApproxEqRel(initialPrice, finalPrice, 1e16, "Price should remain within 1% of initial price");
+
+    // Check that the exchange is still active
+    IExchangeProvider.Exchange[] memory exchanges = exchangeProvider.getExchanges();
+    bool exchangeFound = false;
+    for (uint256 i = 0; i < exchanges.length; i++) {
+      if (exchanges[i].exchangeId == exchangeId) {
+        exchangeFound = true;
+        break;
+      }
+    }
+    assertTrue(exchangeFound, "Exchange should still be active after multiple rewards");
   }
 
   function test_updateRatioForReward_effectOnReserveRatio() public {
