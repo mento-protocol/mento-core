@@ -236,4 +236,3 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     return unwrap(powu(wrap(stepExpansionScaler), numberOfExpansions));
   }
 }
-
