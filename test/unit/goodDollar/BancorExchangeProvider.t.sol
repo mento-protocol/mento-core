@@ -399,7 +399,12 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
   function test_getAmountIn_whenExchangeDoesNotExist_shouldRevert() public {
     bytes32 exchangeId = "0xexchangeId";
     vm.expectRevert("Exchange does not exist");
-    bancorExchangeProvider.getAmountIn(exchangeId, address(reserveToken), address(token), 1e18);
+    bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveToken),
+      tokenOut: address(token),
+      amountOut: 1e18
+    });
   }
 
   function test_getAmountIn_whenTokenInNotInExchange_shouldRevert() public {
@@ -557,8 +562,8 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
     poolExchange1.reserveRatio = 1e8;
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     uint256 amountOut = 12e18;
-    // formula: amountIn = (amountOut * reserveBalance - 1/1e18 ) / supply + 1/1e18
-    // calculation: (12 * 60_000 - 1/1e18) / 300_000 + 1/1e18 = 2.4
+    // formula: amountIn = (amountOut * reserveBalance) / supply
+    // calculation: (12 * 60_000) / 300_000 = 2.4
     uint256 expectedAmountIn = 1e18 * 2.4;
 
     uint256 amountIn = bancorExchangeProvider.getAmountIn({
@@ -941,7 +946,12 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
   function test_getAmountOut_whenExchangeDoesNotExist_shouldRevert() public {
     bytes32 exchangeId = "0xexchangeId";
     vm.expectRevert("Exchange does not exist");
-    bancorExchangeProvider.getAmountOut(exchangeId, address(reserveToken), address(token), 1e18);
+    bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveToken),
+      tokenOut: address(token),
+      amountIn: 1e18
+    });
   }
 
   function test_getAmountOut_whenTokenInNotInExchange_shouldRevert() public {
@@ -1300,12 +1310,12 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
     // amountIn range between 1 and 10_000_000 tokens
     amountIn = bound(amountIn, 1e18, 10_000_000 * 1e18);
 
-    uint256 amountOut = bancorExchangeProvider.getAmountOut(
-      exchangeId,
-      address(reserveToken),
-      address(token),
-      amountIn
-    );
+    uint256 amountOut = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveToken),
+      tokenOut: address(token),
+      amountIn: amountIn
+    });
 
     // Basic sanity checks
     assertTrue(0 < amountOut, "Amount out should be positive");
@@ -1553,12 +1563,12 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
     uint256 reserveBalanceBefore = poolExchange1.reserveBalance;
     uint256 tokenSupplyBefore = poolExchange1.tokenSupply;
 
-    uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut(
-      exchangeId,
-      address(reserveToken),
-      address(token),
-      amountIn
-    );
+    uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveToken),
+      tokenOut: address(token),
+      amountIn: amountIn
+    });
     vm.prank(brokerAddress);
     uint256 amountOut = bancorExchangeProvider.swapIn(exchangeId, address(reserveToken), address(token), amountIn);
     assertEq(amountOut, expectedAmountOut);
@@ -1577,12 +1587,12 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
     uint256 reserveBalanceBefore = poolExchange1.reserveBalance;
     uint256 tokenSupplyBefore = poolExchange1.tokenSupply;
 
-    uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut(
-      exchangeId,
-      address(token),
-      address(reserveToken),
-      amountIn
-    );
+    uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId,
+      tokenIn: address(token),
+      tokenOut: address(reserveToken),
+      amountIn: amountIn
+    });
     vm.prank(brokerAddress);
     uint256 amountOut = bancorExchangeProvider.swapIn(exchangeId, address(token), address(reserveToken), amountIn);
     assertEq(amountOut, expectedAmountOut);
@@ -1642,12 +1652,12 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     uint256 reserveBalanceBefore = poolExchange1.reserveBalance;
     uint256 tokenSupplyBefore = poolExchange1.tokenSupply;
 
-    uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn(
-      exchangeId,
-      address(reserveToken),
-      address(token),
-      amountOut
-    );
+    uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveToken),
+      tokenOut: address(token),
+      amountOut: amountOut
+    });
     vm.prank(brokerAddress);
     uint256 amountIn = bancorExchangeProvider.swapOut(exchangeId, address(reserveToken), address(token), amountOut);
     assertEq(amountIn, expectedAmountIn);
@@ -1666,12 +1676,12 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     uint256 reserveBalanceBefore = poolExchange1.reserveBalance;
     uint256 tokenSupplyBefore = poolExchange1.tokenSupply;
 
-    uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn(
-      exchangeId,
-      address(token),
-      address(reserveToken),
-      amountOut
-    );
+    uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId,
+      tokenIn: address(token),
+      tokenOut: address(reserveToken),
+      amountOut: amountOut
+    });
     vm.prank(brokerAddress);
     uint256 amountIn = bancorExchangeProvider.swapOut(exchangeId, address(token), address(reserveToken), amountOut);
     assertEq(amountIn, expectedAmountIn);
