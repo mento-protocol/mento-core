@@ -283,7 +283,6 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
       exchange.tokenSupply += scaledAmountOut;
     } else {
       require(exchange.reserveBalance >= scaledAmountOut, "Insufficient reserve balance for swap");
-      require(exchange.tokenSupply >= 0, "Swap would result in negative token supply");
       exchange.reserveBalance -= scaledAmountOut;
       exchange.tokenSupply -= scaledAmountIn;
     }
