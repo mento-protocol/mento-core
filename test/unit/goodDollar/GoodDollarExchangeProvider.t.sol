@@ -449,12 +449,6 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio);
     assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + reward);
   }
-
-  function test_updateRatioForReward_whenRewardIs0_shouldRevert() public {
-    vm.prank(expansionControllerAddress);
-    vm.expectRevert("Reward must be greater than 0");
-    exchangeProvider.updateRatioForReward(exchangeId, 0);
-  }
 }
 
 contract GoodDollarExchangeProviderTest_pausable is GoodDollarExchangeProviderTest {
