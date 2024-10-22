@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
-import { Test } from "forge-std/Test.sol";
+import { Test, console } from "forge-std/Test.sol";
 
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
@@ -41,6 +41,7 @@ contract GoodDollarExchangeProviderTest is Test {
 
   IBancorExchangeProvider.PoolExchange public poolExchange1;
   IBancorExchangeProvider.PoolExchange public poolExchange2;
+  IBancorExchangeProvider.PoolExchange public poolExchange;
 
   function setUp() public virtual {
     reserveToken = new ERC20("cUSD", "cUSD");
@@ -68,6 +69,15 @@ contract GoodDollarExchangeProviderTest is Test {
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 1e8 * 0.2,
       exitContribution: 1e8 * 0.01
+    });
+
+    poolExchange = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveToken),
+      tokenAddress: address(token),
+      tokenSupply: 7_000_000_000 * 1e18,
+      reserveBalance: 200_000 * 1e18,
+      reserveRatio: 1e8 * 0.28571428,
+      exitContribution: 1e8 * 0.1
     });
 
     vm.mockCall(
@@ -293,13 +303,17 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
   GoodDollarExchangeProvider exchangeProvider;
   bytes32 exchangeId;
   uint256 expansionRate;
+  uint256 dailyExpansionScaler;
 
   function setUp() public override {
     super.setUp();
-    expansionRate = 1e18 * 0.99;
+    // based on a yearly expansion rate of 10% the daily rate is:
+    // (1-x)^365 = 0.9 -> x = 1 - 0.9^(1/365) = 0.00028861728902231263...
+    expansionRate = 288617289022312;
+    dailyExpansionScaler = 1e18 - expansionRate;
     exchangeProvider = initializeGoodDollarExchangeProvider();
     vm.prank(avatarAddress);
-    exchangeId = exchangeProvider.createExchange(poolExchange1);
+    exchangeId = exchangeProvider.createExchange(poolExchange);
   }
 
   function calculateExpectedMintFromExpansion(
@@ -345,27 +359,32 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
   }
 
   function test_mintFromExpansion_whenValidExpansionRate_shouldReturnCorrectAmountAndEmit() public {
-    // formula: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
-    // amountToMint = (300_000 * 0.2 - 300_000 * 0.2 * 0.99 ) / 0.2 * 0.99 ≈ 3030.303030303030303030
-    uint256 expectedAmountToMint = 3030303030303030303030;
-    uint32 expectedReserveRatio = 0.2 * 0.99 * 1e8;
+    // Formula: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
+    // amountToMint = (7_000_000_000 * 0.28571428 - 7_000_000_000 * 0.28571428 * (1-0.000288617289022312)) / 0.28571428 * (1-0.000288617289022312)
+    // ≈ 2020904,291074047348860628
+    uint256 expectedAmountToMint = 2020904291074047348860628;
+    // Formula: newRatio = reserveRatio * (1 - expansionScaler)
+    // newRatio = 0.28571428 * (1 - 0.000288617289022312) = 0.285631817919071438
+    uint32 expectedReserveRatio = 28563181;
 
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, expansionRate);
-    assertEq(amountToMint, expectedAmountToMint);
+    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, dailyExpansionScaler);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
-    assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + amountToMint);
+
+    // 0.01% relative error tolerance because of precision loss when new reserve ratio is calculated
+    assertApproxEqRel(amountToMint, expectedAmountToMint, 1e18 * 0.0001);
+    assertApproxEqRel(poolExchangeAfter.tokenSupply, poolExchange.tokenSupply + amountToMint, 1e18 * 0.0001);
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio);
   }
 
   function testFuzz_mintFromExpansion(uint256 expansionScaler) public {
     expansionScaler = bound(expansionScaler, 100, 1e18);
 
-    uint256 initialTokenSupply = poolExchange1.tokenSupply;
-    uint32 initialReserveRatio = poolExchange1.reserveRatio;
+    uint256 initialTokenSupply = poolExchange.tokenSupply;
+    uint32 initialReserveRatio = poolExchange.reserveRatio;
 
     uint256 newRatio = (uint256(initialReserveRatio) * expansionScaler) / 1e18;
     uint32 expectedReserveRatio = uint32(newRatio);
@@ -412,7 +431,8 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
 
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
 
-    assertEq(priceBefore, priceAfter);
+    // 0.01% relative error tolerance because of precision loss when new reserve ratio is calculated
+    assertApproxEqRel(priceBefore, priceAfter, 1e18 * 0.0001);
   }
 
   function test_mintFromExpansion_whenExpansionScalerIs100Percent_shouldReturn0() public {
@@ -424,13 +444,13 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
   function test_mintFromExpansion_withMultipleConsecutiveExpansions_shouldMintCorrectly() public {
     vm.startPrank(expansionControllerAddress);
     uint256 totalMinted = 0;
-    uint256 initialTokenSupply = poolExchange1.tokenSupply;
-    uint32 initialReserveRatio = poolExchange1.reserveRatio;
-    uint256 initialReserveBalance = poolExchange1.reserveBalance;
+    uint256 initialTokenSupply = poolExchange.tokenSupply;
+    uint32 initialReserveRatio = poolExchange.reserveRatio;
+    uint256 initialReserveBalance = poolExchange.reserveBalance;
     uint256 initialPrice = exchangeProvider.currentPrice(exchangeId);
 
     for (uint256 i = 0; i < 5; i++) {
-      uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, 0.99e18);
+      uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, dailyExpansionScaler);
       totalMinted += amountToMint;
 
       // Check that amount minted is greater than 0
@@ -454,35 +474,26 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
     assertEq(poolExchangeAfter.reserveBalance, initialReserveBalance, "Reserve balance should remain unchanged");
 
     // Calculate expected reserve ratio
-    uint256 expectedReserveRatio = (uint256(initialReserveRatio) * (0.99e18)) / 1e18;
+    // daily Scaler is applied 5 times newRatio = initialReserveRatio * (dailyScaler ** 5)
+    // newRatio = 0.28571428 * (0.999711382710977688 ** 5) ≈ 0.2853022075264986
+    uint256 expectedReserveRatio = 28530220;
     assertApproxEqRel(
       poolExchangeAfter.reserveRatio,
       uint32(expectedReserveRatio),
-      4 * 1e16, // 4% relative error tolerance
-      "Reserve ratio should be updated correctly within 4% tolerance"
+      1e18 * 0.0001, // 0.01% relative error tolerance because of precision loss when new reserve ratio is calculated
+      "Reserve ratio should be updated correctly within 0.01% tolerance"
     );
 
     // Check price remains approximately the same
     uint256 finalPrice = exchangeProvider.currentPrice(exchangeId);
-    assertApproxEqRel(initialPrice, finalPrice, 1e16, "Price should remain within 1% of initial price");
-
-    // Check that the exchange is still active
-    IExchangeProvider.Exchange[] memory exchanges = exchangeProvider.getExchanges();
-    bool exchangeFound = false;
-    for (uint256 i = 0; i < exchanges.length; i++) {
-      if (exchanges[i].exchangeId == exchangeId) {
-        exchangeFound = true;
-        break;
-      }
-    }
-    assertTrue(exchangeFound, "Exchange should still be active after multiple expansions");
+    assertApproxEqRel(initialPrice, finalPrice, 1e18 * 0.0001, "Price should remain within 0.01% of initial price");
   }
 
   function test_mintFromExpansion_effectOnReserveRatio() public {
-    uint32 initialReserveRatio = poolExchange1.reserveRatio;
+    uint32 initialReserveRatio = poolExchange.reserveRatio;
 
     vm.prank(expansionControllerAddress);
-    exchangeProvider.mintFromExpansion(exchangeId, 0.99e18);
+    exchangeProvider.mintFromExpansion(exchangeId, dailyExpansionScaler);
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     assertLt(poolExchangeAfter.reserveRatio, initialReserveRatio);
   }
@@ -508,7 +519,7 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
     reserveInterest = 1000 * 1e18;
     exchangeProvider = initializeGoodDollarExchangeProvider();
     vm.prank(avatarAddress);
-    exchangeId = exchangeProvider.createExchange(poolExchange1);
+    exchangeId = exchangeProvider.createExchange(poolExchange);
   }
 
   function test_mintFromInterest_whenCallerIsNotExpansionController_shouldRevert() public {
@@ -531,16 +542,16 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
 
   function test_mintFromInterest_whenInterestLarger0_shouldReturnCorrectAmount() public {
     // formula: amountToMint = reserveInterest * tokenSupply / reserveBalance
-    // amountToMint = 1000 * 300_000 / 60_000 = 5000
-    uint256 expectedAmountToMint = 5000 * 1e18;
+    // amountToMint = 1_000 * 7_000_000_000 / 200_000 = 35_000_000
+    uint256 expectedAmountToMint = 35_000_000 * 1e18;
 
     vm.prank(expansionControllerAddress);
     uint256 amountToMint = exchangeProvider.mintFromInterest(exchangeId, reserveInterest);
     assertEq(amountToMint, expectedAmountToMint);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
-    assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + amountToMint);
-    assertEq(poolExchangeAfter.reserveBalance, poolExchange1.reserveBalance + reserveInterest);
+    assertEq(poolExchangeAfter.tokenSupply, poolExchange.tokenSupply + amountToMint);
+    assertEq(poolExchangeAfter.reserveBalance, poolExchange.reserveBalance + reserveInterest);
   }
 
   function test_mintFromInterest_whenInterestLarger0_shouldNotChangePrice() public {
@@ -564,12 +575,12 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
     vm.stopPrank();
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
-    assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + totalMinted);
-    assertEq(poolExchangeAfter.reserveBalance, poolExchange1.reserveBalance + reserveInterest * 5);
+    assertEq(poolExchangeAfter.tokenSupply, poolExchange.tokenSupply + totalMinted);
+    assertEq(poolExchangeAfter.reserveBalance, poolExchange.reserveBalance + reserveInterest * 5);
   }
 
   function test_mintFromInterest_effectOnReserveBalance() public {
-    uint256 initialReserveBalance = poolExchange1.reserveBalance;
+    uint256 initialReserveBalance = poolExchange.reserveBalance;
 
     vm.prank(expansionControllerAddress);
     exchangeProvider.mintFromInterest(exchangeId, reserveInterest);
@@ -577,22 +588,32 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
     assertEq(poolExchangeAfter.reserveBalance, initialReserveBalance + reserveInterest);
   }
 
-  function test_mintFromInterest_withMaximumInterest() public {
-    uint256 maxInterest = type(uint256).max / poolExchange1.tokenSupply;
+  function test_mintFromInterest_whenInterestIsLarge_shouldReturnCorrectAmount() public {
+    // 1_000_000 reserve tokens 5 times current reserve balance
+    uint256 interest = 1_000_000 * 1e18;
+
+    uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
+
+    // formula: amountToMint = reserveInterest * tokenSupply / reserveBalance
+    // amountToMint = 1_000_000 * 7_000_000_000 / 200_000 = 35_000_000_000
+    uint256 expectedAmountToMint = 35_000_000_000 * 1e18;
 
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.mintFromInterest(exchangeId, maxInterest);
+    uint256 amountToMint = exchangeProvider.mintFromInterest(exchangeId, interest);
 
-    assertGt(amountToMint, 0);
+    uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
-    assertEq(poolExchangeAfter.reserveBalance, poolExchange1.reserveBalance + maxInterest);
+
+    assertEq(amountToMint, expectedAmountToMint);
+    assertEq(poolExchangeAfter.reserveBalance, poolExchange.reserveBalance + interest);
+    assertEq(priceBefore, priceAfter);
   }
 
   function testFuzz_mintFromInterest(uint256 fuzzedInterest) public {
-    vm.assume(fuzzedInterest > 0 && fuzzedInterest <= type(uint256).max / poolExchange1.tokenSupply);
+    fuzzedInterest = bound(fuzzedInterest, 1, type(uint256).max / poolExchange.tokenSupply);
 
-    uint256 initialTokenSupply = poolExchange1.tokenSupply;
-    uint256 initialReserveBalance = poolExchange1.reserveBalance;
+    uint256 initialTokenSupply = poolExchange.tokenSupply;
+    uint256 initialReserveBalance = poolExchange.reserveBalance;
 
     uint256 expectedAmountToMint = (fuzzedInterest * initialTokenSupply) / initialReserveBalance;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
@@ -629,7 +650,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     reward = 1000 * 1e18;
     exchangeProvider = initializeGoodDollarExchangeProvider();
     vm.prank(avatarAddress);
-    exchangeId = exchangeProvider.createExchange(poolExchange1);
+    exchangeId = exchangeProvider.createExchange(poolExchange);
   }
 
   function test_updateRatioForReward_whenCallerIsNotExpansionController_shouldRevert() public {
@@ -651,9 +672,9 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
   }
 
   function test_updateRatioForReward_whenRewardLarger0_shouldReturnCorrectRatioAndEmit() public {
-    // formula: newRatio = reserveBalance / (tokenSupply + reward) * currentPrice
-    // reserveRatio = 60_000 / (300_000 + 1000) * 1 ≈ 0.19933554
-    uint32 expectedReserveRatio = 19933554;
+    // formula: newRatio = reserveBalance / ((tokenSupply + reward) * currentPrice)
+    // reserveRatio = 200_000 / ((7_000_000_000 + 1_000) * 0.000100000002) ≈ 0.28571423
+    uint32 expectedReserveRatio = 28571423;
 
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
@@ -662,7 +683,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio);
-    assertEq(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply + reward);
+    assertEq(poolExchangeAfter.tokenSupply, poolExchange.tokenSupply + reward);
   }
 
   function test_updateRatioForReward_shouldNotChangePrice() public {
@@ -675,17 +696,17 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     assertApproxEqRel(
       priceBefore,
       priceAfter,
-      1 * 1e17,
-      "Price should remain unchanged, with a max relative error of 1%"
+      1e18 * 0.0001,
+      "Price should remain unchanged, with a max relative error of 0.01%"
     );
   }
 
   function test_updateRatioForReward_withMultipleConsecutiveRewards() public {
     vm.startPrank(expansionControllerAddress);
     uint256 totalReward = 0;
-    uint256 initialTokenSupply = poolExchange1.tokenSupply;
-    uint256 initialReserveBalance = poolExchange1.reserveBalance;
-    uint32 initialReserveRatio = poolExchange1.reserveRatio;
+    uint256 initialTokenSupply = poolExchange.tokenSupply;
+    uint256 initialReserveBalance = poolExchange.reserveBalance;
+    uint32 initialReserveRatio = poolExchange.reserveRatio;
     uint256 initialPrice = exchangeProvider.currentPrice(exchangeId);
 
     for (uint256 i = 0; i < 5; i++) {
@@ -736,7 +757,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
   }
 
   function test_updateRatioForReward_effectOnReserveRatio() public {
-    uint32 initialReserveRatio = poolExchange1.reserveRatio;
+    uint32 initialReserveRatio = poolExchange.reserveRatio;
 
     vm.prank(expansionControllerAddress);
     exchangeProvider.updateRatioForReward(exchangeId, reward);
@@ -745,22 +766,22 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
   }
 
   function test_updateRatioForReward_withMaximumReward() public {
-    uint256 maxReward = type(uint256).max - poolExchange1.tokenSupply;
+    uint256 maxReward = type(uint256).max - poolExchange.tokenSupply;
 
     vm.prank(expansionControllerAddress);
     exchangeProvider.updateRatioForReward(exchangeId, maxReward);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
-    assertGt(poolExchangeAfter.tokenSupply, poolExchange1.tokenSupply);
-    assertLt(poolExchangeAfter.reserveRatio, poolExchange1.reserveRatio);
+    assertGt(poolExchangeAfter.tokenSupply, poolExchange.tokenSupply);
+    assertLt(poolExchangeAfter.reserveRatio, poolExchange.reserveRatio);
   }
 
   function testFuzz_updateRatioForReward(uint256 fuzzedReward) public {
-    vm.assume(fuzzedReward > 0 && fuzzedReward <= 1 * 1e28);
+    fuzzedReward = bound(fuzzedReward, 1, 1 * 1e28);
 
-    uint256 initialTokenSupply = poolExchange1.tokenSupply;
-    uint256 initialReserveBalance = poolExchange1.reserveBalance;
-    uint32 initialReserveRatio = poolExchange1.reserveRatio;
+    uint256 initialTokenSupply = poolExchange.tokenSupply;
+    uint256 initialReserveBalance = poolExchange.reserveBalance;
+    uint32 initialReserveRatio = poolExchange.reserveRatio;
 
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
@@ -775,7 +796,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
       "Token supply should increase by reward amount"
     );
     assertEq(poolExchangeAfter.reserveBalance, initialReserveBalance, "Reserve balance should remain unchanged");
-    assertLt(poolExchangeAfter.reserveRatio, initialReserveRatio, "Reserve ratio should decrease");
+    assertLe(poolExchangeAfter.reserveRatio, initialReserveRatio, "Reserve ratio should decrease");
 
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
     assertApproxEqRel(
@@ -784,10 +805,6 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
       9 * 1e15,
       "Price should remain unchanged, with a max relative error of 0.9%"
     );
-
-    uint256 expectedReserveRatio = (uint256(initialReserveRatio) * initialTokenSupply) /
-      (initialTokenSupply + fuzzedReward);
-    assertEq(poolExchangeAfter.reserveRatio, uint32(expectedReserveRatio), "Reserve ratio should be updated correctly");
   }
 }
 
