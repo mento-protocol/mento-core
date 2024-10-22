@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
-import { Test, console } from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
@@ -56,9 +56,9 @@ contract GoodDollarExchangeProviderTest is Test {
     poolExchange1 = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
       tokenAddress: address(token),
-      tokenSupply: 300_000 * 1e18,
-      reserveBalance: 60_000 * 1e18,
-      reserveRatio: 0.2 * 1e8,
+      tokenSupply: 7_000_000_000 * 1e18,
+      reserveBalance: 200_000 * 1e18,
+      reserveRatio: 0.28571428 * 1e8, // This increases inaccuracy in the calculations
       exitContribution: 0.01 * 1e8
     });
 
@@ -360,7 +360,8 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
 
   function test_mintFromExpansion_whenValidExpansionRate_shouldReturnCorrectAmountAndEmit() public {
     // Formula: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
-    // amountToMint = (7_000_000_000 * 0.28571428 - 7_000_000_000 * 0.28571428 * (1-0.000288617289022312)) / 0.28571428 * (1-0.000288617289022312)
+    // amountToMint = (7_000_000_000 * 0.28571428 - 7_000_000_000 * 0.28571428 *
+    // (1-0.000288617289022312)) / 0.28571428 * (1-0.000288617289022312)
     // ≈ 2020904,291074047348860628
     uint256 expectedAmountToMint = 2020904291074047348860628;
     // Formula: newRatio = reserveRatio * (1 - expansionScaler)
