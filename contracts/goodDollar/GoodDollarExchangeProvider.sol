@@ -138,13 +138,13 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    */
   function mintFromExpansion(
     bytes32 exchangeId,
-    uint256 expansionScaler
+    uint256 reserveRatioScalar
   ) external onlyExpansionController whenNotPaused returns (uint256 amountToMint) {
-    require(expansionScaler > 0, "Expansion rate must be greater than 0");
+    require(reserveRatioScalar > 0, "Reserve ratio scalar must be greater than 0");
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
     UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e10);
-    UD60x18 newRatio = scaledRatio.mul(wrap(expansionScaler));
+    UD60x18 newRatio = scaledRatio.mul(wrap(reserveRatioScalar));
 
     uint32 newRatioUint = uint32(unwrap(newRatio) / 1e10);
     require(newRatioUint > 0, "New ratio must be greater than 0");
