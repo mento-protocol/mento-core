@@ -637,7 +637,7 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
 
   function test_getAmountIn_whenTokenInIsReserveAssetAndAmountOutIsLarge_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    uint256 amountOut = 1000000e18; // 1,000,000 tokens
+    uint256 amountOut = 1_000_000e18;
     // formula: amountIn = reserveBalance * ((amountOut/tokenSupply + 1)^(1/reserveRatio) - 1)
     // calculation: 60_000 * ((1_000_000/300_000 + 1)^(1/0.2) - 1) ≈ 91617283.9506172839506172839
     // 1 wei difference due to precision loss
@@ -789,7 +789,7 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
       amountIn: amountIn
     });
 
-    // we allow up to 1% difference due to precision loss
+    // we allow up to 0.01% difference due to precision loss
     assertApproxEqRel(reversedAmountOut, amountOut, 1e18 * 0.0001);
   }
 
@@ -1170,7 +1170,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
 
   function test_getAmountOut_whenTokenInIsReserveAssetAndAmountInIsLarge_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    uint256 amountIn = 1000000e18; // 1,000,000 reserve tokens
+    uint256 amountIn = 1_000_000e18;
     // formula: amountOut = tokenSupply * ((1 + amountIn / reserveBalance) ^ reserveRatio - 1)
     // calculation: 300_000 * ((1 + 1_000_000 / 60_000) ^ 0.2 - 1) ≈ 232785.231205449318288038
     uint256 expectedAmountOut = 232785231205449318288038;
