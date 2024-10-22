@@ -26,6 +26,8 @@ contract GoodDollarSwapForkTest is GoodDollarBaseForkTest {
 
     uint256 reserveBalanceBefore = reserveToken.balanceOf(address(goodDollarReserve));
     uint256 priceBefore = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+
+    // Calculate the expected amount of G$ to receive for `amountIn` cUSD
     uint256 expectedAmountOut = broker.getAmountOut(
       address(goodDollarExchangeProvider),
       exchangeId,
@@ -34,18 +36,24 @@ contract GoodDollarSwapForkTest is GoodDollarBaseForkTest {
       amountIn
     );
 
-    deal(address(reserveToken), trader, amountIn);
+    // Give trader required amount of cUSD to swap
+    deal({ token: address(reserveToken), to: trader, give: amountIn });
 
     vm.startPrank(trader);
-    reserveToken.approve(address(broker), amountIn);
-    broker.swapIn(
-      address(goodDollarExchangeProvider),
-      exchangeId,
-      address(reserveToken),
-      address(goodDollarToken),
-      amountIn,
-      expectedAmountOut
-    );
+    // Trader approves the broker to spend their cUSD
+    reserveToken.approve({ spender: address(broker), amount: amountIn });
+
+    // Broker swaps `amountIn` of trader's cUSD for G$
+    broker.swapIn({
+      exchangeProvider: address(goodDollarExchangeProvider),
+      exchangeId: exchangeId,
+      tokenIn: address(reserveToken),
+      tokenOut: address(goodDollarToken),
+      amountIn: amountIn,
+      amountOutMin: expectedAmountOut
+    });
+    vm.stopPrank();
+
     uint256 priceAfter = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
     uint256 reserveBalanceAfter = reserveToken.balanceOf(address(goodDollarReserve));
 

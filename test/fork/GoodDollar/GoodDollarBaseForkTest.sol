@@ -41,10 +41,6 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   uint64 constant INITIAL_EXPANSION_RATE = uint64(288617289022312); // == ~10% per year (assuming daily expansion)
   uint32 constant INITIAL_EXPANSION_FREQUENCY = uint32(1 days); // Daily expansion
 
-  // (1 - expansionRate)^365 = 0.9
-  // x^365 = 0.9
-  //
-
   // Tokens
   IStableTokenV2 reserveToken;
   IGoodDollar goodDollarToken;
@@ -80,9 +76,9 @@ contract GoodDollarBaseForkTest is BaseForkTest {
 
     // Initialize GoodDollarExchangeProvider
     configureReserve();
-    configureTokens();
     configureBroker();
     configureGoodDollarExchangeProvider();
+    configureTokens();
     configureExpansionController();
     configureTradingLimits();
   }
@@ -139,9 +135,11 @@ contract GoodDollarBaseForkTest is BaseForkTest {
     goodDollarToken.addMinter(address(expansionController));
     vm.stopPrank();
 
-    require(goodDollarToken.isMinter(address(broker)), "Broker is not a minter");
-    require(goodDollarToken.isMinter(address(expansionController)), "ExpansionController is not a minter");
-    deal(address(reserveToken), address(goodDollarReserve), INITIAL_RESERVE_BALANCE);
+    deal({ token: address(reserveToken), to: address(goodDollarReserve), give: INITIAL_RESERVE_BALANCE });
+
+    uint256 initialReserveGoodDollarBalanceInWei = (INITIAL_RESERVE_BALANCE /
+      goodDollarExchangeProvider.currentPrice(exchangeId)) * 1e18;
+    mintGoodDollar({ amount: initialReserveGoodDollarBalanceInWei, to: address(goodDollarReserve) });
   }
 
   function configureBroker() public {
