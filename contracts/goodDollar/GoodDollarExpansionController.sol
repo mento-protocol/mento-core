@@ -168,23 +168,13 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
   /// @inheritdoc IGoodDollarExpansionController
   function mintUBIFromExpansion(bytes32 exchangeId) external returns (uint256 amountMinted) {
-    ExchangeExpansionConfig memory config = getExpansionConfig(exchangeId);
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
+    ExchangeExpansionConfig memory config = getExpansionConfig(exchangeId);
 
     bool shouldExpand = block.timestamp > config.lastExpansion + config.expansionFrequency;
     if (shouldExpand || config.lastExpansion == 0) {
-      uint256 numberOfExpansions;
-
-      // Special case for first expansion
-      if (config.lastExpansion == 0) {
-        numberOfExpansions = 1;
-      } else {
-        numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionFrequency;
-      }
-
-      uint256 stepReserveRatioScalar = MAX_WEIGHT - config.expansionRate;
-      uint256 reserveRatioScalar = unwrap(powu(wrap(stepReserveRatioScalar), numberOfExpansions));
+      uint256 reserveRatioScalar = _getReserveRatioScalar(config);
 
       exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(block.timestamp);
       amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, reserveRatioScalar);
@@ -217,9 +207,32 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   /* ==================== Private Functions ==================== */
   /* =========================================================== */
 
+  /**
+   * @notice Sets the distribution helper address.
+   * @param _distributionHelper The address of the distribution helper contract.
+   */
   function _setDistributionHelper(address _distributionHelper) internal {
     require(_distributionHelper != address(0), "Distribution helper address must be set");
     distributionHelper = IDistributionHelper(_distributionHelper);
     emit DistributionHelperUpdated(_distributionHelper);
+  }
+
+  /**
+   * @notice Calculates the reserve ratio scalar for the given expansion config.
+   * @param config The expansion config.
+   * @return reserveRatioScalar The reserve ratio scalar.
+   */
+  function _getReserveRatioScalar(ExchangeExpansionConfig memory config) internal view returns (uint256) {
+    uint256 numberOfExpansions;
+
+    // If there was no previous expansion, we expand once.
+    if (config.lastExpansion == 0) {
+      numberOfExpansions = 1;
+    } else {
+      numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionFrequency;
+    }
+
+    uint256 stepReserveRatioScalar = MAX_WEIGHT - config.expansionRate;
+    return unwrap(powu(wrap(stepReserveRatioScalar), numberOfExpansions));
   }
 }
