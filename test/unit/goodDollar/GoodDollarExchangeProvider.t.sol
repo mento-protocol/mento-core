@@ -655,7 +655,7 @@ contract GoodDollarExchangeProviderTest_mintFromInterest is GoodDollarExchangePr
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
 
-    assertGt(amountToMint, 0, "Minted amount should be greater or equal than 0");
+    assertGt(amountToMint, 0, "Minted amount should be greater than 0");
     assertEq(
       poolExchangeAfter.tokenSupply,
       initialTokenSupply + amountToMint,
