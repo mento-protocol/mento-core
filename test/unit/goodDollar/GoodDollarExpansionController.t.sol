@@ -12,6 +12,8 @@ import { IGoodDollarExchangeProvider } from "contracts/interfaces/IGoodDollarExc
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 
+import { GoodDollarExpansionControllerHarness } from "test/utils/harnesses/GoodDollarExpansionControllerHarness.sol";
+
 contract GoodDollarExpansionControllerTest is Test {
   /* ------- Events from IGoodDollarExpansionController ------- */
 
@@ -46,6 +48,8 @@ contract GoodDollarExpansionControllerTest is Test {
   uint64 expansionRate = 1e18 * 0.01;
   uint32 expansionFrequency = uint32(1 days);
 
+  IBancorExchangeProvider.PoolExchange pool;
+
   function setUp() public virtual {
     reserveToken = new ERC20Mock("cUSD", "cUSD", address(this), 1);
     token = new ERC20Mock("Good$", "G$", address(this), 1);
@@ -54,6 +58,21 @@ contract GoodDollarExpansionControllerTest is Test {
     distributionHelper = makeAddr("DistributionHelper");
     reserveAddress = makeAddr("Reserve");
     avatarAddress = makeAddr("Avatar");
+
+    pool = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveToken),
+      tokenAddress: address(token),
+      tokenSupply: 7 * 1e9 * 1e18,
+      reserveBalance: 200_000 * 1e18,
+      reserveRatio: 0.2 * 1e8, // 20%
+      exitContribution: 0.1 * 1e8 // 10%
+    });
+
+    vm.mockCall(
+      exchangeProvider,
+      abi.encodeWithSelector(IBancorExchangeProvider(exchangeProvider).getPoolExchange.selector),
+      abi.encode(pool)
+    );
   }
 
   function initializeGoodDollarExpansionController() internal returns (GoodDollarExpansionController) {
@@ -248,25 +267,10 @@ contract GoodDollarExpansionControllerTest_mintUBIFromInterest is GoodDollarExpa
     vm.prank(avatarAddress);
     expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
 
-    IBancorExchangeProvider.PoolExchange memory pool = IBancorExchangeProvider.PoolExchange({
-      reserveAsset: address(reserveToken),
-      tokenAddress: address(token),
-      tokenSupply: 300_000 * 1e18,
-      reserveBalance: 60_000 * 1e18,
-      reserveRatio: 200000,
-      exitContribution: 10000
-    });
-
     vm.mockCall(
       exchangeProvider,
       abi.encodeWithSelector(IGoodDollarExchangeProvider(exchangeProvider).mintFromInterest.selector),
       abi.encode(1000e18)
-    );
-
-    vm.mockCall(
-      exchangeProvider,
-      abi.encodeWithSelector(IBancorExchangeProvider(exchangeProvider).getPoolExchange.selector),
-      abi.encode(pool)
     );
   }
 
@@ -302,7 +306,6 @@ contract GoodDollarExpansionControllerTest_mintUBIFromInterest is GoodDollarExpa
 
 contract GoodDollarExpansionControllerTest_mintUBIFromReserveBalance is GoodDollarExpansionControllerTest {
   GoodDollarExpansionController expansionController;
-  IBancorExchangeProvider.PoolExchange pool;
 
   function setUp() public override {
     super.setUp();
@@ -310,25 +313,10 @@ contract GoodDollarExpansionControllerTest_mintUBIFromReserveBalance is GoodDoll
     vm.prank(avatarAddress);
     expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
 
-    pool = IBancorExchangeProvider.PoolExchange({
-      reserveAsset: address(reserveToken),
-      tokenAddress: address(token),
-      tokenSupply: 300_000 * 1e18,
-      reserveBalance: 60_000 * 1e18,
-      reserveRatio: 200000,
-      exitContribution: 10000
-    });
-
     vm.mockCall(
       exchangeProvider,
       abi.encodeWithSelector(IGoodDollarExchangeProvider(exchangeProvider).mintFromInterest.selector),
       abi.encode(1000e18)
-    );
-
-    vm.mockCall(
-      exchangeProvider,
-      abi.encodeWithSelector(IBancorExchangeProvider(exchangeProvider).getPoolExchange.selector),
-      abi.encode(pool)
     );
   }
 
@@ -364,25 +352,10 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     vm.prank(avatarAddress);
     expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
 
-    IBancorExchangeProvider.PoolExchange memory pool = IBancorExchangeProvider.PoolExchange({
-      reserveAsset: address(reserveToken),
-      tokenAddress: address(token),
-      tokenSupply: 300_000 * 1e18,
-      reserveBalance: 60_000 * 1e18,
-      reserveRatio: 200000,
-      exitContribution: 10000
-    });
-
     vm.mockCall(
       exchangeProvider,
       abi.encodeWithSelector(IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector),
       abi.encode(1000e18)
-    );
-
-    vm.mockCall(
-      exchangeProvider,
-      abi.encodeWithSelector(IBancorExchangeProvider(exchangeProvider).getPoolExchange.selector),
-      abi.encode(pool)
     );
 
     vm.mockCall(
@@ -564,6 +537,46 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
   }
 }
 
+contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpansionControllerTest {
+  GoodDollarExpansionControllerHarness expansionController;
+
+  function setUp() public override {
+    super.setUp();
+    expansionController = new GoodDollarExpansionControllerHarness(false);
+  }
+
+  function test_getExpansionScaler_whenExpansionRateIs0_shouldReturn1e18() public {
+    IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
+      .ExchangeExpansionConfig(0, 1, 0);
+    assertEq(expansionController.exposed_getExpansionScaler(config), 1e18);
+  }
+
+  function test_getExpansionScaler_whenExpansionRateIs1_shouldReturn1() public {
+    IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
+      .ExchangeExpansionConfig(1e18 - 1, 1, 0);
+    assertEq(expansionController.exposed_getExpansionScaler(config), 1);
+  }
+
+  function testFuzz_getExpansionScaler(
+    uint256 _expansionRate,
+    uint256 _expansionFrequency,
+    uint256 _lastExpansion,
+    uint256 _timeDelta
+  ) public {
+    uint64 expansionRate = uint64(bound(_expansionRate, 1, 1e18 - 1));
+    uint32 expansionFrequency = uint32(bound(_expansionFrequency, 1, 1e6));
+    uint32 lastExpansion = uint32(bound(_lastExpansion, 0, 1e6));
+    uint32 timeDelta = uint32(bound(_timeDelta, 0, 1e6));
+
+    skip(lastExpansion + timeDelta);
+
+    IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
+      .ExchangeExpansionConfig(expansionRate, expansionFrequency, lastExpansion);
+    uint256 scaler = expansionController.exposed_getExpansionScaler(config);
+    assert(scaler >= 0 && scaler <= 1e18);
+  }
+}
+
 contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDollarExpansionControllerTest {
   GoodDollarExpansionController expansionController;
 
@@ -573,25 +586,10 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
     vm.prank(avatarAddress);
     expansionController.setExpansionConfig(exchangeId, expansionRate, expansionFrequency);
 
-    IBancorExchangeProvider.PoolExchange memory pool = IBancorExchangeProvider.PoolExchange({
-      reserveAsset: address(reserveToken),
-      tokenAddress: address(token),
-      tokenSupply: 300_000 * 1e18,
-      reserveBalance: 60_000 * 1e18,
-      reserveRatio: 200000,
-      exitContribution: 10000
-    });
-
     vm.mockCall(
       exchangeProvider,
       abi.encodeWithSelector(IGoodDollarExchangeProvider(exchangeProvider).updateRatioForReward.selector),
       abi.encode(true)
-    );
-
-    vm.mockCall(
-      exchangeProvider,
-      abi.encodeWithSelector(IBancorExchangeProvider(exchangeProvider).getPoolExchange.selector),
-      abi.encode(pool)
     );
   }
 
