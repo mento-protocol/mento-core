@@ -816,7 +816,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
       "Token supply should increase by reward amount"
     );
     assertEq(poolExchangeAfter.reserveBalance, initialReserveBalance, "Reserve balance should remain unchanged");
-    assertLe(poolExchangeAfter.reserveRatio, initialReserveRatio, "Reserve ratio should decrease");
+    assertLe(poolExchangeAfter.reserveRatio, initialReserveRatio, "Reserve ratio should stay the same or decrease");
     assertApproxEqRel(
       priceBefore,
       priceAfter,
