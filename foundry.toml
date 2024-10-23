@@ -14,13 +14,9 @@ no_match_contract = "ForkTest"
 gas_limit = 9223372036854775807
 
 
-allow_paths = [
-  "node_modules/@celo"
-]
+allow_paths = ["node_modules/@celo"]
 
-fs_permissions = [
-    { access = "read", path = "out" }
-]
+fs_permissions = [{ access = "read", path = "out" }]
 
 [profile.ci]
 fuzz_runs = 1_000
@@ -35,6 +31,5 @@ no_match_contract = "_random" # in order to reset the no_match_contract
 match_contract = "ForkTest"
 
 [rpc_endpoints]
-celo="${CELO_MAINNET_RPC_URL}"
-baklava="${BAKLAVA_RPC_URL}"
-alfajores="${ALFAJORES_RPC_URL}"
+celo = "${CELO_MAINNET_RPC_URL}"
+alfajores = "${ALFAJORES_RPC_URL}"

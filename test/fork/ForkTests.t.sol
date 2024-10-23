@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, max-line-length
 pragma solidity ^0.8;
 /**
 @dev Fork tests for Mento!
-This test suite tests invariants on a fork of a live Mento environemnts.
+This test suite tests invariants on a fork of a live Mento environment.
 
-Thare are two types of tests contracts:
-- ChainForkTests: Tests that are specific to the chain, such as the number of exchanges, the number of collateral assets, contract initialization state, etc. 
+Thare are two types of test contracts:
+- ChainForkTests: Tests that are specific to the chain, such as the number of exchanges, the number of collateral
+  assets, contract initialization state, etc.
 - ExchangeForkTests: Tests that are specific to the exchange, such as trading limits, swaps, circuit breakers, etc.
 
 To make it easier to debug and develop, we have one ChainForkTest for each chain (Alfajores, Celo) and 
 one ExchangeForkTest for each exchange provider and exchange pair.
 
-The ChainFork tests are instantiated with:
+The ChainForkTests are instantiated with:
 - Chain ID.
 - Expected number of exchange providers.
 - Expected number of exchanges per exchange provider.
-If any of this assertions fail then the ChainTest will fail and that's the queue to update this file
+If any of these assertions fail, then the ChainForkTest will fail and that's the cue to update this file
 and add additional ExchangeForkTests.
 
 The ExchangeForkTests are instantiated with:
@@ -24,22 +24,26 @@ The ExchangeForkTests are instantiated with:
 - Exchange Provider Index.
 - Exchange Index.
 
-And the naming convetion for them is:
-${ChainName}_P${ExchangeProviderIndex}E${ExchangeIndex}_ExchangeForkTest
-e.g. Alfajores_P0E00_ExchangeForkTest (Alfajores, Exchange Provider 0, Exchange 0)
-The Exchange Index is 0 padded to make them align nicely in the file, exchange provider counts shouldn't
-exceed 10, if they do, then we need to update the naming convention.
+And the naming convention for them is:
+- ${ChainName}_P${ExchangeProviderIndex}E${ExchangeIndex}_ExchangeForkTest
+- e.g. "Alfajores_P0E00_ExchangeForkTest (Alfajores, Exchange Provider 0, Exchange 0)"
+The Exchange Index is 0 padded to make them align nicely in the file.
+Exchange provider counts shouldn't exceed 10. If they do, then we need to update the naming convention.
 
 This makes it easy to drill into which exchange is failing and debug it like:
-$ env FOUNDRY_PROFILE=fork-tests forge test --match-contract CELO_P0E12
+- `$ env FOUNDRY_PROFILE=fork-tests forge test --match-contract CELO_P0E12`
 or run all tests for a chain:
-$ env FOUNDRY_PROFILE=fork-tests forge test --match-contract Alfajores
+- `$ env FOUNDRY_PROFILE=fork-tests forge test --match-contract Alfajores`
 */
 
+import { CELO_ID, ALFAJORES_ID } from "mento-std/Constants.sol";
 import { uints } from "mento-std/Array.sol";
 import { ChainForkTest } from "./ChainForkTest.sol";
 import { ExchangeForkTest } from "./ExchangeForkTest.sol";
-import { CELO_ID, ALFAJORES_ID } from "mento-std/Constants.sol";
+import { BancorExchangeProviderForkTest } from "./BancorExchangeProviderForkTest.sol";
+import { GoodDollarTradingLimitsForkTest } from "./GoodDollar/TradingLimitsForkTest.sol";
+import { GoodDollarSwapForkTest } from "./GoodDollar/SwapForkTest.sol";
+import { GoodDollarExpansionForkTest } from "./GoodDollar/ExpansionForkTest.sol";
 
 contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(15)) {}
 
@@ -104,3 +108,11 @@ contract Celo_P0E12_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 12) {}
 contract Celo_P0E13_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 13) {}
 
 contract Celo_P0E14_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 14) {}
+
+contract Celo_BancorExchangeProviderForkTest is BancorExchangeProviderForkTest(CELO_ID) {}
+
+contract Celo_GoodDollarTradingLimitsForkTest is GoodDollarTradingLimitsForkTest(CELO_ID) {}
+
+contract Celo_GoodDollarSwapForkTest is GoodDollarSwapForkTest(CELO_ID) {}
+
+contract Celo_GoodDollarExpansionForkTest is GoodDollarExpansionForkTest(CELO_ID) {}
