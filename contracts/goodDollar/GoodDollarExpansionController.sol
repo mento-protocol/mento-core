@@ -183,11 +183,11 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
         numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionFrequency;
       }
 
-      uint256 stepExpansionScaler = MAX_WEIGHT - config.expansionRate;
-      uint256 expansionScaler = unwrap(powu(wrap(stepExpansionScaler), numberOfExpansions));
+      uint256 stepReserveRatioScalar = MAX_WEIGHT - config.expansionRate;
+      uint256 reserveRatioScalar = unwrap(powu(wrap(stepReserveRatioScalar), numberOfExpansions));
 
       exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(block.timestamp);
-      amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, expansionScaler);
+      amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, reserveRatioScalar);
 
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
       distributionHelper.onDistribution(amountMinted);

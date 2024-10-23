@@ -418,7 +418,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       exchangeId
     );
     assert(block.timestamp < config.lastExpansion + config.expansionFrequency);
-    uint256 expansionScaler = 1e18 * 0.99;
+    uint256 reserveRatioScalar = 1e18 * 0.99;
     uint256 amountToMint = 1000e18;
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
@@ -430,7 +430,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionScaler
+        reserveRatioScalar
       )
     );
     vm.expectCall(
@@ -456,7 +456,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     );
     skip(config.expansionFrequency * 3 + 1);
     assert(block.timestamp > config.lastExpansion + config.expansionFrequency * 3);
-    uint256 expansionScaler = 1e18 * 0.99;
+    uint256 reserveRatioScalar = 1e18 * 0.99;
     uint256 amountToMint = 1000e18;
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
@@ -468,7 +468,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionScaler
+        reserveRatioScalar
       )
     );
     vm.expectCall(
@@ -491,7 +491,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
 
     // 1 day has passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
     // should be 0.99^1 = 0.99
-    uint256 expansionScaler = 1e18 * 0.99;
+    uint256 reserveRatioScalar = 1e18 * 0.99;
     skip(expansionFrequency + 1);
 
     uint256 amountToMint = 1000e18;
@@ -505,7 +505,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionScaler
+        reserveRatioScalar
       )
     );
     vm.expectCall(
@@ -530,7 +530,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
 
     // 3 days have passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
     // should be 0.99^3 = 0.970299
-    uint256 expansionScaler = 1e18 * 0.970299;
+    uint256 reserveRatioScalar = 1e18 * 0.970299;
 
     skip(3 * expansionFrequency + 1);
 
@@ -545,7 +545,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionScaler
+        reserveRatioScalar
       )
     );
     vm.expectCall(
