@@ -174,10 +174,10 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
     bool shouldExpand = block.timestamp > config.lastExpansion + config.expansionFrequency;
     if (shouldExpand || config.lastExpansion == 0) {
-      uint256 expansionScaler = _getExpansionScaler(config);
+      uint256 reserveRatioScalar = _getReserveRatioScalar(config);
 
       exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(block.timestamp);
-      amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, expansionScaler);
+      amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, reserveRatioScalar);
 
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
       distributionHelper.onDistribution(amountMinted);
@@ -218,11 +218,11 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   }
 
   /**
-   * @notice Calculates the expansion scaler for the given expansion config.
+   * @notice Calculates the reserve ratio scalar for the given expansion config.
    * @param config The expansion config.
-   * @return expansionScaler The expansion scaler.
+   * @return reserveRatioScalar The reserve ratio scalar.
    */
-  function _getExpansionScaler(ExchangeExpansionConfig memory config) internal view returns (uint256) {
+  function _getReserveRatioScalar(ExchangeExpansionConfig memory config) internal view returns (uint256) {
     uint256 numberOfExpansions;
 
     // If there was no previous expansion, we expand once.
@@ -232,7 +232,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
       numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionFrequency;
     }
 
-    uint256 stepExpansionScaler = MAX_WEIGHT - config.expansionRate;
-    return unwrap(powu(wrap(stepExpansionScaler), numberOfExpansions));
+    uint256 stepReserveRatioScalar = MAX_WEIGHT - config.expansionRate;
+    return unwrap(powu(wrap(stepReserveRatioScalar), numberOfExpansions));
   }
 }

@@ -55,10 +55,10 @@ interface IGoodDollarExchangeProvider {
   /**
    * @notice Calculates the amount of G$ tokens to be minted as a result of the expansion.
    * @param exchangeId The ID of the pool to calculate the expansion for.
-   * @param expansionScaler Scaler for calculating the new reserve ratio.
+   * @param reserveRatioScalar Scaler for calculating the new reserve ratio.
    * @return amountToMint Amount of G$ tokens to be minted as a result of the expansion.
    */
-  function mintFromExpansion(bytes32 exchangeId, uint256 expansionScaler) external returns (uint256 amountToMint);
+  function mintFromExpansion(bytes32 exchangeId, uint256 reserveRatioScalar) external returns (uint256 amountToMint);
 
   /**
    * @notice Calculates the amount of G$ tokens to be minted as a result of the collected reserve interest.

@@ -138,19 +138,21 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    */
   function mintFromExpansion(
     bytes32 exchangeId,
-    uint256 expansionScaler
+    uint256 reserveRatioScalar
   ) external onlyExpansionController whenNotPaused returns (uint256 amountToMint) {
-    require(expansionScaler > 0, "Expansion rate must be greater than 0");
+    require(reserveRatioScalar > 0, "Reserve ratio scalar must be greater than 0");
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
     UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e10);
-    UD60x18 newRatio = scaledRatio.mul(wrap(expansionScaler));
+    UD60x18 newRatio = scaledRatio.mul(wrap(reserveRatioScalar));
+
+    uint32 newRatioUint = uint32(unwrap(newRatio) / 1e10);
+    require(newRatioUint > 0, "New ratio must be greater than 0");
 
     UD60x18 numerator = wrap(exchange.tokenSupply).mul(scaledRatio);
     numerator = numerator.sub(wrap(exchange.tokenSupply).mul(newRatio));
 
     uint256 scaledAmountToMint = unwrap(numerator.div(newRatio));
-    uint32 newRatioUint = uint32(unwrap(newRatio) / 1e10);
 
     exchanges[exchangeId].reserveRatio = newRatioUint;
     exchanges[exchangeId].tokenSupply += scaledAmountToMint;
@@ -192,10 +194,6 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    */
   function updateRatioForReward(bytes32 exchangeId, uint256 reward) external onlyExpansionController whenNotPaused {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-
-    if (reward == 0) {
-      return;
-    }
 
     uint256 currentPriceScaled = currentPrice(exchangeId) * tokenPrecisionMultipliers[exchange.reserveAsset];
     uint256 rewardScaled = reward * tokenPrecisionMultipliers[exchange.tokenAddress];

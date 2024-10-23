@@ -391,7 +391,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       exchangeId
     );
     assert(block.timestamp < config.lastExpansion + config.expansionFrequency);
-    uint256 expansionScaler = 1e18 * 0.99;
+    uint256 reserveRatioScalar = 1e18 * 0.99;
     uint256 amountToMint = 1000e18;
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
@@ -403,7 +403,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionScaler
+        reserveRatioScalar
       )
     );
     vm.expectCall(
@@ -429,7 +429,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
     );
     skip(config.expansionFrequency * 3 + 1);
     assert(block.timestamp > config.lastExpansion + config.expansionFrequency * 3);
-    uint256 expansionScaler = 1e18 * 0.99;
+    uint256 reserveRatioScalar = 1e18 * 0.99;
     uint256 amountToMint = 1000e18;
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
 
@@ -441,7 +441,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionScaler
+        reserveRatioScalar
       )
     );
     vm.expectCall(
@@ -464,7 +464,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
 
     // 1 day has passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
     // should be 0.99^1 = 0.99
-    uint256 expansionScaler = 1e18 * 0.99;
+    uint256 reserveRatioScalar = 1e18 * 0.99;
     skip(expansionFrequency + 1);
 
     uint256 amountToMint = 1000e18;
@@ -478,7 +478,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionScaler
+        reserveRatioScalar
       )
     );
     vm.expectCall(
@@ -503,7 +503,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
 
     // 3 days have passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
     // should be 0.99^3 = 0.970299
-    uint256 expansionScaler = 1e18 * 0.970299;
+    uint256 reserveRatioScalar = 1e18 * 0.970299;
 
     skip(3 * expansionFrequency + 1);
 
@@ -518,7 +518,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(
         IGoodDollarExchangeProvider(exchangeProvider).mintFromExpansion.selector,
         exchangeId,
-        expansionScaler
+        reserveRatioScalar
       )
     );
     vm.expectCall(
@@ -548,13 +548,13 @@ contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpan
   function test_getExpansionScaler_whenExpansionRateIs0_shouldReturn1e18() public {
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
       .ExchangeExpansionConfig(0, 1, 0);
-    assertEq(expansionController.exposed_getExpansionScaler(config), 1e18);
+    assertEq(expansionController.exposed_getReserveRatioScalar(config), 1e18);
   }
 
   function test_getExpansionScaler_whenExpansionRateIs1_shouldReturn1() public {
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
       .ExchangeExpansionConfig(1e18 - 1, 1, 0);
-    assertEq(expansionController.exposed_getExpansionScaler(config), 1);
+    assertEq(expansionController.exposed_getReserveRatioScalar(config), 1);
   }
 
   function testFuzz_getExpansionScaler(
@@ -572,7 +572,7 @@ contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpan
 
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
       .ExchangeExpansionConfig(expansionRate, expansionFrequency, lastExpansion);
-    uint256 scaler = expansionController.exposed_getExpansionScaler(config);
+    uint256 scaler = expansionController.exposed_getReserveRatioScalar(config);
     assert(scaler >= 0 && scaler <= 1e18);
   }
 }
