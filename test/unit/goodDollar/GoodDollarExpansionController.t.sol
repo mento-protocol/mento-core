@@ -548,13 +548,13 @@ contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpan
   function test_getExpansionScaler_whenExpansionRateIs0_shouldReturn1e18() public {
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
       .ExchangeExpansionConfig(0, 1, 0);
-    assertEq(expansionController.exposed_getExpansionScaler(config), 1e18);
+    assertEq(expansionController.exposed_getReserveRatioScalar(config), 1e18);
   }
 
   function test_getExpansionScaler_whenExpansionRateIs1_shouldReturn1() public {
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
       .ExchangeExpansionConfig(1e18 - 1, 1, 0);
-    assertEq(expansionController.exposed_getExpansionScaler(config), 1);
+    assertEq(expansionController.exposed_getReserveRatioScalar(config), 1);
   }
 
   function testFuzz_getExpansionScaler(
@@ -572,7 +572,7 @@ contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpan
 
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
       .ExchangeExpansionConfig(expansionRate, expansionFrequency, lastExpansion);
-    uint256 scaler = expansionController.exposed_getExpansionScaler(config);
+    uint256 scaler = expansionController.exposed_getReserveRatioScalar(config);
     assert(scaler >= 0 && scaler <= 1e18);
   }
 }
