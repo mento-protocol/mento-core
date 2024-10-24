@@ -360,7 +360,10 @@ contract ProtocolTest is Test, WithRegistry {
     address[] memory exchangeProviders = new address[](1);
     exchangeProviders[0] = address(biPoolManager);
 
-    broker.initialize(exchangeProviders, address(reserve));
+    address[] memory reserves = new address[](1);
+    reserves[0] = address(reserve);
+
+    broker.initialize(exchangeProviders, reserves);
     registry.setAddressFor("Broker", address(broker));
     reserve.addExchangeSpender(address(broker));
     biPoolManager.setPricingModules(pricingModuleIdentifiers, pricingModules);

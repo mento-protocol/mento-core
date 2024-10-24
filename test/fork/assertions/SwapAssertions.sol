@@ -38,10 +38,10 @@ contract SwapAssertions is StdAssertions, Actions {
     ctx.logLimits(from);
     ctx.logLimits(to);
     if (ctx.atInflowLimit(from, LG)) {
-      console.log(unicode"🚨 Cannot test swap beacause the global inflow limit is reached on %s", from);
+      console.log(unicode"🚨 Cannot test swap because the global inflow limit is reached on %s", from);
       return;
     } else if (ctx.atOutflowLimit(to, LG)) {
-      console.log(unicode"🚨 Cannot test swap beacause the global outflow limit is reached on %s", to);
+      console.log(unicode"🚨 Cannot test swap because the global outflow limit is reached on %s", to);
       return;
     }
 
@@ -74,10 +74,10 @@ contract SwapAssertions is StdAssertions, Actions {
     ctx.logLimits(from);
     ctx.logLimits(to);
     if (ctx.atInflowLimit(from, LG)) {
-      console.log(unicode"🚨 Cannot test swap beacause the global inflow limit is reached on %s", from);
+      console.log(unicode"🚨 Cannot test swap because the global inflow limit is reached on %s", from);
       return;
     } else if (ctx.atOutflowLimit(to, LG)) {
-      console.log(unicode"🚨 Cannot test swap beacause the global outflow limit is reached on %s", to);
+      console.log(unicode"🚨 Cannot test swap because the global outflow limit is reached on %s", to);
       return;
     }
 

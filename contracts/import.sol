@@ -12,4 +12,3 @@ import "celo/contracts/common/Freezer.sol";
 import "celo/contracts/stability/SortedOracles.sol";
 import "test/utils/harnesses/WithThresholdHarness.sol";
 import "test/utils/harnesses/WithCooldownHarness.sol";
-import "test/utils/harnesses/TradingLimitsHarness.sol";

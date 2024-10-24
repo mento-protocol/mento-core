@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity >=0.5.13 <0.8.19;
 
 /*
  * @title Broker Admin Interface
@@ -38,11 +38,12 @@ interface IBrokerAdmin {
    * @param exchangeProvider The address of the ExchangeProvider to add.
    * @return index The index where the ExchangeProvider was inserted.
    */
-  function addExchangeProvider(address exchangeProvider) external returns (uint256 index);
+  function addExchangeProvider(address exchangeProvider, address reserve) external returns (uint256 index);
 
   /**
-   * @notice Set the Mento reserve address.
-   * @param reserve The Mento reserve address.
+   * @notice Set the reserves for the exchange providers.
+   * @param _exchangeProviders The addresses of the ExchangeProvider contracts.
+   * @param _reserves The addresses of the Reserve contracts.
    */
-  function setReserve(address reserve) external;
+  function setReserves(address[] calldata _exchangeProviders, address[] calldata _reserves) external;
 }

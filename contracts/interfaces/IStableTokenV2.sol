@@ -70,9 +70,7 @@ interface IStableTokenV2 {
    */
   function initializeV2(address _broker, address _validators, address _exchange) external;
 
-  /**
-   * @notice Gets the address of the Broker contract.
-   */
+  /// @notice Gets the address of the Broker contract.
   function broker() external returns (address);
 
   /**
