@@ -45,7 +45,7 @@ import { GoodDollarTradingLimitsForkTest } from "./GoodDollar/TradingLimitsForkT
 import { GoodDollarSwapForkTest } from "./GoodDollar/SwapForkTest.sol";
 import { GoodDollarExpansionForkTest } from "./GoodDollar/ExpansionForkTest.sol";
 
-contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(15)) {}
+contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(16)) {}
 
 contract Alfajores_P0E00_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 0) {}
 
@@ -77,7 +77,9 @@ contract Alfajores_P0E13_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 1
 
 contract Alfajores_P0E14_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 14) {}
 
-contract Celo_ChainForkTest is ChainForkTest(CELO_ID, 1, uints(15)) {}
+contract Alfajores_P0E15_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 15) {}
+
+contract Celo_ChainForkTest is ChainForkTest(CELO_ID, 1, uints(16)) {}
 
 contract Celo_P0E00_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 0) {}
 
@@ -108,6 +110,8 @@ contract Celo_P0E12_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 12) {}
 contract Celo_P0E13_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 13) {}
 
 contract Celo_P0E14_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 14) {}
+
+contract Celo_P0E15_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 15) {}
 
 contract Celo_BancorExchangeProviderForkTest is BancorExchangeProviderForkTest(CELO_ID) {}
 

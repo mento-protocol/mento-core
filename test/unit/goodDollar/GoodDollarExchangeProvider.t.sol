@@ -472,20 +472,20 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
     assertApproxEqRel(initialPrice, priceAfter, 1e18 * 0.0001, "Price should remain within 0.01% of initial price");
   }
 
-  function testFuzz_mintFromExpansion(uint256 reserveRatioScalar) public {
+  function testFuzz_mintFromExpansion(uint256 _reserveRatioScalar) public {
     // 0.001% to 100%
-    reserveRatioScalar = bound(reserveRatioScalar, 1e18 * 0.00001, 1e18);
+    _reserveRatioScalar = bound(_reserveRatioScalar, 1e18 * 0.00001, 1e18);
 
     uint256 initialTokenSupply = poolExchange.tokenSupply;
     uint32 initialReserveRatio = poolExchange.reserveRatio;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
-    uint256 expectedReserveRatio = (uint256(initialReserveRatio) * reserveRatioScalar) / 1e18;
+    uint256 expectedReserveRatio = (uint256(initialReserveRatio) * _reserveRatioScalar) / 1e18;
 
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, uint32(expectedReserveRatio));
     vm.prank(expansionControllerAddress);
-    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, reserveRatioScalar);
+    uint256 amountToMint = exchangeProvider.mintFromExpansion(exchangeId, _reserveRatioScalar);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -720,7 +720,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
   }
 
   function test_updateRatioForReward_whenRewardIsSmall_shouldReturnCorrectRatioAndEmit() public {
-    uint256 reward = 1e18; // 1 token
+    uint256 _reward = 1e18; // 1 token
     // formula: newRatio = reserveBalance / ((tokenSupply + reward) * currentPrice)
     // reserveRatio = 200_000 / ((7_000_000_000 + 1) * 0.000100000002) ≈ 0.2857142799
     uint32 expectedReserveRatio = 28571427;
@@ -729,7 +729,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, reward);
+    exchangeProvider.updateRatioForReward(exchangeId, _reward);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -737,14 +737,14 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio, "Reserve ratio should be updated correctly");
     assertEq(
       poolExchangeAfter.tokenSupply,
-      poolExchange.tokenSupply + reward,
+      poolExchange.tokenSupply + _reward,
       "Token supply should increase by reward amount"
     );
     assertApproxEqRel(priceBefore, priceAfter, 1e18 * 0.0001, "Price should remain within 0.01% of initial price");
   }
 
   function test_updateRatioForReward_whenRewardIsLarge_shouldReturnCorrectRatioAndEmit() public {
-    uint256 reward = 1_000_000_000 * 1e18; // 1 billion tokens
+    uint256 _reward = 1_000_000_000 * 1e18; // 1 billion tokens
     // formula: newRatio = reserveBalance / ((tokenSupply + reward) * currentPrice)
     // reserveRatio = 200_000 / ((7_000_000_000 + 1_000_000_000) * 0.000100000002) ≈ 0.2499999950000...
 
@@ -754,7 +754,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, reward);
+    exchangeProvider.updateRatioForReward(exchangeId, _reward);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -762,7 +762,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio, "Reserve ratio should be updated correctly");
     assertEq(
       poolExchangeAfter.tokenSupply,
-      poolExchange.tokenSupply + reward,
+      poolExchange.tokenSupply + _reward,
       "Token supply should increase by reward amount"
     );
     assertApproxEqRel(priceBefore, priceAfter, 1e18 * 0.0001, "Price should remain within 0.01% of initial price");
