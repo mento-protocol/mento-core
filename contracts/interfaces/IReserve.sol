@@ -125,4 +125,6 @@ interface IReserve {
   function removeOtherReserveAddress(address otherReserveAddress, uint256 index) external returns (bool);
 
   function collateralAssets(uint256 index) external view returns (address);
+
+  function collateralAssetLastSpendingDay(address collateralAsset) external view returns (uint256);
 }
