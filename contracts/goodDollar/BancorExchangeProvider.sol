@@ -122,6 +122,9 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) external view virtual returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
+    if (tokenIn == exchange.tokenAddress) {
+      scaledAmountIn = (scaledAmountIn * (MAX_WEIGHT - exchange.exitContribution)) / MAX_WEIGHT;
+    }
     uint256 scaledAmountOut = _getScaledAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
     amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
     return amountOut;
@@ -196,12 +199,35 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     uint256 amountIn
   ) public virtual onlyBroker returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
+    uint256 exitContribution;
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
+
+    if (tokenIn == exchange.tokenAddress) {
+      uint256 exitContribution = (scaledAmountIn * exchange.exitContribution) / MAX_WEIGHT;
+      scaledAmountIn -= exitContribution;
+    }
+
     uint256 scaledAmountOut = _getScaledAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
     executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
 
+    if (exitContribution > 0) {
+      accountExitContribution(exchangeId, exitContribution);
+    }
     amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
     return amountOut;
+  }
+
+  function accountExitContribution(bytes32 exchangeId, uint256 exitContribution) internal {
+    PoolExchange memory exchange = getPoolExchange(exchangeId);
+    // newRatio = (Supply * oldRatio) / (Supply - exitContribution)
+    UD60x18 nominator = wrap(exchange.tokenSupply).mul(wrap(exchange.reserveRatio * 1e10));
+    UD60x18 denominator = wrap(exchange.tokenSupply - exitContribution);
+    UD60x18 newRatio = nominator.div(denominator);
+
+    uint256 newRatioScaled = unwrap(newRatio) / 1e10;
+
+    exchanges[exchangeId].reserveRatio = uint32(newRatioScaled);
+    exchanges[exchangeId].tokenSupply -= exitContribution;
   }
 
   /// @inheritdoc IExchangeProvider
@@ -341,8 +367,6 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
         exchange.reserveRatio,
         scaledAmountIn
       );
-      // apply exit contribution
-      scaledAmountOut = (scaledAmountOut * (MAX_WEIGHT - exchange.exitContribution)) / MAX_WEIGHT;
     }
   }
 

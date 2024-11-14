@@ -1109,6 +1109,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
       tokenOut: address(reserveToken),
       amountIn: amountIn
     });
+    
     assertEq(amountOut, expectedAmountOut);
   }
 
