@@ -7,6 +7,8 @@ import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.s
 import "openzeppelin-contracts-upgradeable/contracts/governance/utils/IVotesUpgradeable.sol";
 import "./libs/LibBrokenLine.sol";
 
+import "forge-std/console.sol";
+
 /**
  * @title LockingBase
  * @dev This abstract contract provides the foundational functionality
@@ -17,9 +19,15 @@ import "./libs/LibBrokenLine.sol";
 abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
   /**
-   * @dev Duration of a week in blocks on the CELO blockchain assuming 5 seconds per block
+   * @dev Duration of a week in blocks on the CELO blockchain before the L2 transition (5 seconds per block)
    */
   uint32 public constant WEEK = 120_960;
+
+  /**
+   * @dev Duration of a week in blocks on the CELO blockchain after the L2 transition (1 seconds per block)
+   */
+  uint32 public constant L2_WEEK = 604_800;
+
   /**
    * @dev Maximum allowable cliff period for token locks in weeks
    */
@@ -84,6 +92,31 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @dev Total supply line of veMento
    */
   LibBrokenLine.BrokenLine public totalSupplyLine;
+
+  // *************** 
+  // New variables for L2 transition upgrade (4 slots)
+  // ***************
+  /**
+   * @dev L2 transtion block number
+   */
+  uint256 public l2Block;
+  /**
+   * @dev Address of the Mento Labs multisig
+   */
+  address public mentoLabsMultisig;
+  /**
+   * @dev L2 starting point week number used to move the first week after the L2 transition to the last week before the L2 transition
+   */
+  int256 public l2StartingPointWeek;
+  /**
+   * @dev Shift amount used after L2 transition to move the start of the epoch to 00-00 UTC Wednesday (approx)
+   */
+  uint32 public l2Shift;
+  /**
+   * @dev Flag to pause locking and governance
+   */
+  bool public paused;
+
   /**
    * @dev Emitted when create Lock with parameters (account, delegate, amount, slopePeriod, cliff)
    */
@@ -147,6 +180,11 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     require(_minSlopePeriod <= MAX_SLOPE_PERIOD, "period too big");
     minCliffPeriod = _minCliffPeriod;
     minSlopePeriod = _minSlopePeriod;
+  }
+
+  modifier onlyMentoLabs() {
+    require(msg.sender == mentoLabsMultisig, "caller is not MentoLabs multisig");
+    _;
   }
 
   /**
@@ -256,20 +294,29 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
 
   /**
    * @notice Calculates the week number for a given blocknumber
+   * @dev It takes L2 transition into account to calculate the week number consistently
    * @param ts block number
    * @return week number the block number belongs to
    */
   function roundTimestamp(uint32 ts) public view returns (uint32) {
+    require(!paused, "locking is paused");
+    
     if (ts < getEpochShift()) {
       return 0;
     }
-    uint32 shifted = ts - (getEpochShift());
-    return shifted / WEEK - uint32(startingPointWeek);
+
+    if (l2Block == 0 || ts < l2Block) {
+      uint32 shifted = ts - getEpochShift();
+      return shifted / WEEK - uint32(startingPointWeek);
+    } else {
+      uint32 shifted = ts - l2Shift;
+      return uint32(uint256(int256(uint256(shifted / L2_WEEK)) - l2StartingPointWeek));
+    }
   }
 
   /**
-   * @notice method returns the amount of blocks to shift locking epoch to.
-   * we move it to 00-00 UTC Wednesday (approx) by shifting 89964 blocks (CELO)
+   * @notice method returns the amount of blocks to shift locking epoch to on L1 CELO.
+   * we move it to 00-00 UTC Wednesday (approx) by shifting 89964 blocks 
    */
   function getEpochShift() internal view virtual returns (uint32) {
     return 89964;
@@ -351,6 +398,50 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     uint32 time = roundTimestamp(blockNumber);
     updateTotalSupplyLine(time);
   }
+  /**
+    * @notice Sets the Mento Labs multisig address
+    * @param mentoLabsMultisig_ address of the Mento Labs multisig
+    */
+   */
+  function setMentoLabsMultisig(address mentoLabsMultisig_) external onlyOwner {
+    mentoLabsMultisig = mentoLabsMultisig_;
+  }
+  /**
+    * @notice Sets the L2 transition block number and pauses locking and governance
+    * @param blockNo block number of the L2 transition
+    */
+   */
+  function setL2TransitionBlock(uint256 blockNo) external onlyMentoLabs{
 
-  uint256[50] private __gap;
+    l2Block = blockNo;
+    paused = true;
+  }
+
+  /**
+    * @notice Sets the L2 shift amount
+    * @param _l2Shift shift amount that will be used after L2 transition
+   */
+  function setL2Shift(uint32 l2Shift_) external onlyMentoLabs{
+
+    l2Shift = l2Shift_;
+  }
+
+  /**
+    * @notice Sets the L2 starting point week number
+    * @param l2StartingPointWeek_ starting point week number that will be used after L2 transition
+   */
+  function setL2StartingPointWeek(int256 l2StartingPointWeek_) external onlyMentoLabs {
+
+    l2StartingPointWeek = l2StartingPointWeek_;
+  }
+
+  /**
+    * @notice Sets the paused flag
+    * @param paused_ flag to pause locking and governance
+   */
+  function setPaused(bool paused_) external onlyMentoLabs {
+    paused = paused_;
+  }
+
+  uint256[46] private __gap;
 }
