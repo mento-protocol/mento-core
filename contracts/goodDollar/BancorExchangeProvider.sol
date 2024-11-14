@@ -203,7 +203,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
 
     if (tokenIn == exchange.tokenAddress) {
-      uint256 exitContribution = (scaledAmountIn * exchange.exitContribution) / MAX_WEIGHT;
+      exitContribution = (scaledAmountIn * exchange.exitContribution) / MAX_WEIGHT;
       scaledAmountIn -= exitContribution;
     }
 
@@ -220,7 +220,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   function accountExitContribution(bytes32 exchangeId, uint256 exitContribution) internal {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     // newRatio = (Supply * oldRatio) / (Supply - exitContribution)
-    UD60x18 nominator = wrap(exchange.tokenSupply).mul(wrap(exchange.reserveRatio * 1e10));
+    UD60x18 nominator = wrap(exchange.tokenSupply).mul(wrap(exchange.reserveRatio));
     UD60x18 denominator = wrap(exchange.tokenSupply - exitContribution);
     UD60x18 newRatio = nominator.div(denominator);
 

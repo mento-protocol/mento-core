@@ -1063,12 +1063,14 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
 
   function test_getAmountOut_whenTokenInIsTokenAndAmountLargerSupply_shouldRevert() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
+    uint256 amountIn = (poolExchange1.tokenSupply * 1e8 ) / (1e8 - poolExchange1.exitContribution);
+    
     vm.expectRevert("ERR_INVALID_AMOUNT");
     bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
       tokenIn: address(token),
       tokenOut: address(reserveToken),
-      amountIn: poolExchange1.tokenSupply + 1
+      amountIn: amountIn + 2
     });
   }
 
