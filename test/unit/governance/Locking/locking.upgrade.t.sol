@@ -7,7 +7,6 @@ import { LockingTest } from "./LockingTest.sol";
 import "forge-std/console.sol";
 
 contract Upgrade_LockingTest is LockingTest {
-
   address public mentoLabs = makeAddr("MentoLabsMultisig");
 
   uint32 public l1Day;
@@ -15,7 +14,7 @@ contract Upgrade_LockingTest is LockingTest {
   uint32 public l1Week;
   uint32 public l2Week;
 
-   function setUp() public override{
+  function setUp() public override {
     super.setUp();
     l1Week = 7 days / 5;
     l2Week = 7 days;
@@ -40,7 +39,7 @@ contract Upgrade_LockingTest is LockingTest {
 
   function test_setMentoLabsMultisig_whenCalledByOwner_shouldSetMultisigAddress() public {
     assertEq(locking.mentoLabsMultisig(), address(0));
-    
+
     vm.prank(owner);
     locking.setMentoLabsMultisig(mentoLabs);
 
@@ -62,9 +61,9 @@ contract Upgrade_LockingTest is LockingTest {
   function test_setL2TransitionBlock_whenCalledByMentoMultisig_shouldSetL2BlockAndPause() public setMultisig {
     assertEq(locking.l2Block(), 0);
     assert(!locking.paused());
-    
+
     uint32 blockNumber = uint32(block.number + 100);
-    
+
     vm.prank(mentoLabs);
     locking.setL2TransitionBlock(blockNumber);
 
@@ -80,7 +79,7 @@ contract Upgrade_LockingTest is LockingTest {
 
   function test_setL2Shift_whenCalledByMentoMultisig_shouldSetL2BlockAndPause() public setMultisig {
     assertEq(locking.l2Shift(), 0);
-    
+
     vm.prank(mentoLabs);
     locking.setL2Shift(100);
 
@@ -95,8 +94,7 @@ contract Upgrade_LockingTest is LockingTest {
 
   function test_setL2StartingPointWeek_whenCalledByMentoMultisig_shouldSetL2BlockAndPause() public setMultisig {
     assertEq(locking.l2StartingPointWeek(), 0);
-    
-    
+
     vm.prank(mentoLabs);
     locking.setL2StartingPointWeek(100);
 
@@ -112,10 +110,9 @@ contract Upgrade_LockingTest is LockingTest {
     assert(!locking.paused());
 
     mentoToken.mint(alice, 1000000e18);
-    
+
     vm.prank(mentoLabs);
     locking.setPaused(true);
-
 
     assert(locking.paused());
 
@@ -126,7 +123,6 @@ contract Upgrade_LockingTest is LockingTest {
     vm.expectRevert("locking is paused");
     vm.prank(alice);
     locking.withdraw();
-
 
     vm.prank(mentoLabs);
     locking.setPaused(false);
@@ -153,7 +149,6 @@ contract Upgrade_LockingTest is LockingTest {
   }
 
   function test_getWeek_whenShiftAndStartingPointIs0_shouldReturnCorrectWeekNo() public l2LockingSetup(8, 0, 0) {
-
     // 2 + 8 weeks = 10 weeks on l1 = 2 weeks on l2
     assertEq(locking.getWeek(), 2);
     assertEq(locking.l2BlockTillNextPeriod(), l2Week);
@@ -189,7 +184,7 @@ contract Upgrade_LockingTest is LockingTest {
     assertEq(locking.getWeek(), l1WeekNo);
   }
 
-  function test_getWeek_whenL2StartingPointIsNegative_shouldReturnCorrectWeekNo() public l2LockingSetup(18,0,0) {
+  function test_getWeek_whenL2StartingPointIsNegative_shouldReturnCorrectWeekNo() public l2LockingSetup(18, 0, 0) {
     // l1 week no = 18 + 2 - 0 = 20
     uint32 l1WeekNo = 20;
     // l2 week no = (18 + 2) / 5 = 4
@@ -233,7 +228,6 @@ contract Upgrade_LockingTest is LockingTest {
     assertEq(locking.getWeek(), l1WeekNo);
     assertEq(locking.l2BlockTillNextPeriod(), l2Day);
 
-
     _incrementBlock(l2Day);
 
     assertEq(locking.getWeek(), l1WeekNo + 1);
@@ -252,23 +246,20 @@ contract Upgrade_LockingTest is LockingTest {
     // week no: 40
     _incrementBlock(l1Week * 20);
 
-
     uint256 totalSupplyL1W40 = locking.totalSupply();
-    uint256 pastTotalSupplyL1W30= locking.getPastTotalSupply(locking.blockNumberMocked() - l1Week * 10);
+    uint256 pastTotalSupplyL1W30 = locking.getPastTotalSupply(locking.blockNumberMocked() - l1Week * 10);
 
     // week no: 60
     _incrementBlock(l1Week * 20);
 
     uint256 totalSupplyL1W60 = locking.totalSupply();
-    uint256 pastTotalSupplyL1W50= locking.getPastTotalSupply(locking.blockNumberMocked() - l1Week * 10);
+    uint256 pastTotalSupplyL1W50 = locking.getPastTotalSupply(locking.blockNumberMocked() - l1Week * 10);
 
     // roll back to week 40
     _reduceBlock(l1Week * 20);
-    
 
     vm.prank(mentoLabs);
     locking.setL2TransitionBlock(l1Week * 40);
-
 
     vm.prank(mentoLabs);
     locking.setPaused(false);
@@ -298,7 +289,6 @@ contract Upgrade_LockingTest is LockingTest {
     // week no: 40
     _incrementBlock(l1Week * 20);
 
-
     uint256 balanceOfL1W40 = locking.balanceOf(alice);
     uint256 votesL1W40 = locking.getVotes(alice);
     uint256 pastVotesL1W30 = locking.getPastVotes(alice, locking.blockNumberMocked() - l1Week * 10);
@@ -312,11 +302,9 @@ contract Upgrade_LockingTest is LockingTest {
 
     // roll back to week 40
     _reduceBlock(l1Week * 20);
-    
 
     vm.prank(mentoLabs);
     locking.setL2TransitionBlock(l1Week * 40);
-
 
     vm.prank(mentoLabs);
     locking.setPaused(false);
@@ -348,7 +336,6 @@ contract Upgrade_LockingTest is LockingTest {
     // week no: 40
     _incrementBlock(l1Week * 20);
 
-
     uint256 lockedL1W40 = locking.locked(alice);
     uint256 withdrawableL1W40 = locking.getAvailableForWithdraw(alice);
 
@@ -356,11 +343,10 @@ contract Upgrade_LockingTest is LockingTest {
     _incrementBlock(l1Week * 20);
 
     uint256 lockedL1W60 = locking.locked(alice);
-    uint256 withdrawableL1W60 = locking.getAvailableForWithdraw(alice); 
+    uint256 withdrawableL1W60 = locking.getAvailableForWithdraw(alice);
 
     // roll back to week 40
     _reduceBlock(l1Week * 20);
-    
 
     vm.prank(mentoLabs);
     locking.setL2TransitionBlock(l1Week * 40);
@@ -380,5 +366,4 @@ contract Upgrade_LockingTest is LockingTest {
     assertEq(locking.locked(alice), lockedL1W60);
     assertEq(locking.getAvailableForWithdraw(alice), withdrawableL1W60);
   }
- 
 }

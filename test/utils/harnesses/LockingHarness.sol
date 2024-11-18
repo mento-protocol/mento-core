@@ -57,8 +57,7 @@ contract LockingHarness is Locking {
     return (L2_WEEK * uint256(int(currentWeek) + l2StartingPointWeek + 1)) + l2Shift - getBlockNumber();
   }
 
-
   function setStatingPointWeek(uint32 _week) external {
     startingPointWeek = _week;
-  } 
+  }
 }

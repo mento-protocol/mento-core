@@ -93,7 +93,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   LibBrokenLine.BrokenLine public totalSupplyLine;
 
-  // *************** 
+  // ***************
   // New variables for L2 transition upgrade (4 slots)
   // ***************
   /**
@@ -105,7 +105,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   address public mentoLabsMultisig;
   /**
-   * @dev L2 starting point week number used to move the first week after the L2 transition to the last week before the L2 transition
+   * @dev L2 starting point week number
    */
   int256 public l2StartingPointWeek;
   /**
@@ -300,7 +300,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   function roundTimestamp(uint32 ts) public view returns (uint32) {
     require(!paused, "locking is paused");
-    
+
     if (ts < getEpochShift()) {
       return 0;
     }
@@ -316,7 +316,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
 
   /**
    * @notice method returns the amount of blocks to shift locking epoch to on L1 CELO.
-   * we move it to 00-00 UTC Wednesday (approx) by shifting 89964 blocks 
+   * we move it to 00-00 UTC Wednesday (approx) by shifting 89964 blocks
    */
   function getEpochShift() internal view virtual returns (uint32) {
     return 89964;
@@ -399,45 +399,42 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     updateTotalSupplyLine(time);
   }
   /**
-    * @notice Sets the Mento Labs multisig address
-    * @param mentoLabsMultisig_ address of the Mento Labs multisig
-    *
-    */
+   * @notice Sets the Mento Labs multisig address
+   * @param mentoLabsMultisig_ address of the Mento Labs multisig
+   *
+   */
   function setMentoLabsMultisig(address mentoLabsMultisig_) external onlyOwner {
     mentoLabsMultisig = mentoLabsMultisig_;
   }
   /**
-    * @notice Sets the L2 transition block number and pauses locking and governance
-    * @param blockNo block number of the L2 transition
-    *
-    */
-  function setL2TransitionBlock(uint256 blockNo) external onlyMentoLabs{
-
+   * @notice Sets the L2 transition block number and pauses locking and governance
+   * @param blockNo block number of the L2 transition
+   *
+   */
+  function setL2TransitionBlock(uint256 blockNo) external onlyMentoLabs {
     l2Block = blockNo;
     paused = true;
   }
 
   /**
-    * @notice Sets the L2 shift amount
-    * @param l2Shift_ shift amount that will be used after L2 transition
+   * @notice Sets the L2 shift amount
+   * @param l2Shift_ shift amount that will be used after L2 transition
    */
-  function setL2Shift(uint32 l2Shift_) external onlyMentoLabs{
-
+  function setL2Shift(uint32 l2Shift_) external onlyMentoLabs {
     l2Shift = l2Shift_;
   }
 
   /**
-    * @notice Sets the L2 starting point week number
-    * @param l2StartingPointWeek_ starting point week number that will be used after L2 transition
+   * @notice Sets the L2 starting point week number
+   * @param l2StartingPointWeek_ starting point week number that will be used after L2 transition
    */
   function setL2StartingPointWeek(int256 l2StartingPointWeek_) external onlyMentoLabs {
-
     l2StartingPointWeek = l2StartingPointWeek_;
   }
 
   /**
-    * @notice Sets the paused flag
-    * @param paused_ flag to pause locking and governance
+   * @notice Sets the paused flag
+   * @param paused_ flag to pause locking and governance
    */
   function setPaused(bool paused_) external onlyMentoLabs {
     paused = paused_;
