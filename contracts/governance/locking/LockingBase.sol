@@ -401,16 +401,16 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
     * @notice Sets the Mento Labs multisig address
     * @param mentoLabsMultisig_ address of the Mento Labs multisig
+    *
     */
-   */
   function setMentoLabsMultisig(address mentoLabsMultisig_) external onlyOwner {
     mentoLabsMultisig = mentoLabsMultisig_;
   }
   /**
     * @notice Sets the L2 transition block number and pauses locking and governance
     * @param blockNo block number of the L2 transition
+    *
     */
-   */
   function setL2TransitionBlock(uint256 blockNo) external onlyMentoLabs{
 
     l2Block = blockNo;
@@ -419,7 +419,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
 
   /**
     * @notice Sets the L2 shift amount
-    * @param _l2Shift shift amount that will be used after L2 transition
+    * @param l2Shift_ shift amount that will be used after L2 transition
    */
   function setL2Shift(uint32 l2Shift_) external onlyMentoLabs{
 

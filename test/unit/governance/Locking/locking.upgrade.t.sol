@@ -17,8 +17,8 @@ contract Upgrade_LockingTest is LockingTest {
 
    function setUp() public override{
     super.setUp();
-    l1Week = locking.WEEK();
-    l2Week = locking.L2_WEEK();
+    l1Week = 7 days / 5;
+    l2Week = 7 days;
     l1Day = l1Week / 7;
     l2Day = l2Week / 7;
   }
