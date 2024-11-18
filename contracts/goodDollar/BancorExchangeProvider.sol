@@ -123,6 +123,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
     if (tokenIn == exchange.tokenAddress) {
+      // apply exit contribution
       scaledAmountIn = (scaledAmountIn * (MAX_WEIGHT - exchange.exitContribution)) / MAX_WEIGHT;
     }
     uint256 scaledAmountOut = _getScaledAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
@@ -140,6 +141,10 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
     uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+    if (tokenIn == exchange.tokenAddress) {
+      // apply exit contribution
+      scaledAmountIn = (scaledAmountIn * MAX_WEIGHT) / (MAX_WEIGHT - exchange.exitContribution);
+    }
     amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
     return amountIn;
   }
@@ -203,6 +208,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
 
     if (tokenIn == exchange.tokenAddress) {
+      // apply exit contribution
       exitContribution = (scaledAmountIn * exchange.exitContribution) / MAX_WEIGHT;
       scaledAmountIn -= exitContribution;
     }
@@ -217,6 +223,35 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     return amountOut;
   }
 
+  /// @inheritdoc IExchangeProvider
+  function swapOut(
+    bytes32 exchangeId,
+    address tokenIn,
+    address tokenOut,
+    uint256 amountOut
+  ) public virtual onlyBroker returns (uint256 amountIn) {
+    PoolExchange memory exchange = getPoolExchange(exchangeId);
+    uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
+    uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+    uint256 exitContribution;
+    if (tokenIn == exchange.tokenAddress) {
+      // apply exit contribution
+      uint256 scaledAmountInWithExitContribution = (scaledAmountIn * MAX_WEIGHT) /
+        (MAX_WEIGHT - exchange.exitContribution);
+      exitContribution = scaledAmountInWithExitContribution - scaledAmountIn;
+    }
+
+    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
+
+    if (exitContribution > 0) {
+      accountExitContribution(exchangeId, exitContribution);
+      scaledAmountIn = scaledAmountIn + exitContribution;
+    }
+
+    amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
+    return amountIn;
+  }
+
   function accountExitContribution(bytes32 exchangeId, uint256 exitContribution) internal {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     // newRatio = (Supply * oldRatio) / (Supply - exitContribution)
@@ -228,22 +263,6 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
     exchanges[exchangeId].reserveRatio = uint32(newRatioScaled);
     exchanges[exchangeId].tokenSupply -= exitContribution;
-  }
-
-  /// @inheritdoc IExchangeProvider
-  function swapOut(
-    bytes32 exchangeId,
-    address tokenIn,
-    address tokenOut,
-    uint256 amountOut
-  ) public virtual onlyBroker returns (uint256 amountIn) {
-    PoolExchange memory exchange = getPoolExchange(exchangeId);
-    uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
-    uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
-    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
-
-    amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
-    return amountIn;
   }
 
   /* =========================================================== */
@@ -333,8 +352,6 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     if (tokenIn == exchange.reserveAsset) {
       scaledAmountIn = fundCost(exchange.tokenSupply, exchange.reserveBalance, exchange.reserveRatio, scaledAmountOut);
     } else {
-      // apply exit contribution
-      scaledAmountOut = (scaledAmountOut * MAX_WEIGHT) / (MAX_WEIGHT - exchange.exitContribution);
       scaledAmountIn = saleCost(exchange.tokenSupply, exchange.reserveBalance, exchange.reserveRatio, scaledAmountOut);
     }
   }

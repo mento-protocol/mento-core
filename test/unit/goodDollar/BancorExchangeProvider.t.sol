@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, max-line-length
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
-import { Test } from "forge-std/Test.sol";
+import { Test, console } from "forge-std/Test.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
 import { BancorExchangeProvider } from "contracts/goodDollar/BancorExchangeProvider.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
@@ -596,7 +596,8 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
     // formula:          =       (reserveBalance / (reserveBalance - (amountOut/(1-e)))  )^reserveRatio
 
     // calculation: (300000 * ( -1 + (60000 / (60000-(1/0.99)))^0.2))/(60000 / (60000-(1/0.99)))^0.2 = 1.010107812196722301
-    uint256 expectedAmountIn = 1010107812196722302;
+    // uint256 expectedAmountIn = 1010107812196722302;
+    uint256 expectedAmountIn = 1010107744175084961;
     uint256 amountIn = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
       tokenIn: address(token),
@@ -663,7 +664,9 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
     // formula:          =       (reserveBalance / (reserveBalance - (amountOut/(1-e)))  )^reserveRatio
 
     // calculation: (300000 * ( -1 + (60000 / (60000-(59000/0.99)))^0.2))/(60000 / (60000-(59000/0.99)))^0.2 = 189649.078540006525698460
-    uint256 expectedAmountIn = 189649078540006525698460;
+    // TODO : update
+    //uint256 expectedAmountIn = 189649078540006525698460;
+    uint256 expectedAmountIn = 169415120269436288420151;
     uint256 amountIn = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
       tokenIn: address(token),
@@ -681,9 +684,8 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
     bancorExchangeProvider.setExitContribution(exchangeId, 1e6);
     bytes32 exchangeId2 = bancorExchangeProvider.createExchange(poolExchange2);
     bancorExchangeProvider.setExitContribution(exchangeId2, 0);
-
     uint256 amountOut = 116e18;
-    // formula: amountIn = (tokenSupply * (( (amountOut + reserveBalance)  / reserveBalance) ^ (reserveRatio) - 1)) / exitContribution
+
     uint256 amountIn = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
       tokenIn: address(token),
@@ -691,17 +693,13 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
       amountOut: amountOut
     });
 
-    // exit contribution is 1%
-    uint256 amountOut2 = (amountOut * 100) / 99;
-    assertTrue(amountOut < amountOut2);
-
     uint256 amountIn2 = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId2,
       tokenIn: address(token2),
       tokenOut: address(reserveToken),
-      amountOut: amountOut2
+      amountOut: amountOut
     });
-    assertEq(amountIn, amountIn2);
+    assertEq(amountIn, (amountIn2 * 100) / 99);
   }
 
   function test_getAmountIn_whenDifferentTokenDecimals_shouldReturnCorrectAmount() public {
@@ -1063,8 +1061,8 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
 
   function test_getAmountOut_whenTokenInIsTokenAndAmountLargerSupply_shouldRevert() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    uint256 amountIn = (poolExchange1.tokenSupply * 1e8 ) / (1e8 - poolExchange1.exitContribution);
-    
+    uint256 amountIn = (poolExchange1.tokenSupply * 1e8) / (1e8 - poolExchange1.exitContribution);
+
     vm.expectRevert("ERR_INVALID_AMOUNT");
     bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
@@ -1085,7 +1083,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
     assertEq(amountOut, 0);
   }
 
-  function test_getAmountOut_whenTokenInIsTokenAndAmountIsSupply_shouldReturnReserveBalanceMinusExitContribution()
+  function test_getAmountOut_whenTokenInIsTokenAndAmountIsSupplyPlusExitContribution_shouldReturnReserveBalance()
     public
   {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
@@ -1093,9 +1091,9 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
       exchangeId: exchangeId,
       tokenIn: address(token),
       tokenOut: address(reserveToken),
-      amountIn: poolExchange1.tokenSupply
+      amountIn: (poolExchange1.tokenSupply * 1e8) / (1e8 - poolExchange1.exitContribution) + 1 // +1 to account for rounding
     });
-    assertEq(amountOut, (poolExchange1.reserveBalance * (1e8 - poolExchange1.exitContribution)) / 1e8);
+    assertEq(amountOut, poolExchange1.reserveBalance);
   }
 
   function test_getAmountOut_whenTokenInIsTokenAndReserveRatioIs100Percent_shouldReturnCorrectAmount() public {
@@ -1111,7 +1109,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
       tokenOut: address(reserveToken),
       amountIn: amountIn
     });
-    
+
     assertEq(amountOut, expectedAmountOut);
   }
 
@@ -1137,7 +1135,9 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
 
     // calculation: ((60_000 *(-1+(300_000/(300_000-1))^5) ) / (300_000/(300_000-1))^5)*0.99 = 0.989993400021999963
     // 1 wei difference due to precision loss
-    uint256 expectedAmountOut = 989993400021999962;
+    // TODO update comments
+    //uint256 expectedAmountOut = 989993400021999962;
+    uint256 expectedAmountOut = 989993466021562164;
     uint256 amountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
       tokenIn: address(token),
@@ -1203,16 +1203,19 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
     // formula:           =          (tokenSupply/(tokenSupply - amountIn ))^(1/reserveRatio)
 
     // calculation: ((60_000 *(-1+(300_000/(300_000-299_000))^5) ) / (300_000/(300_000-299_000))^5)*0.99 ≈ 59399.999999975555555555
-    uint256 expectedAmountOut = 59399999999975555555555;
+    //uint256 expectedAmountOut = 59399999999975555555555;
+    //TODO update comments
+    uint256 expectedAmountOut = 59999999975030522464200;
     uint256 amountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
       tokenIn: address(token),
       tokenOut: address(reserveToken),
       amountIn: amountIn
     });
+    console.log("amountOut", amountOut);
 
-    // we allow up to 1% difference due to precision loss
-    assertApproxEqRel(amountOut, expectedAmountOut, 1e18 * 0.01);
+    // we allow up to 0.1% difference due to precision loss
+    assertApproxEqRel(amountOut, expectedAmountOut, 1e18 * 0.001);
   }
 
   function test_getAmountOut_whenTokenInIsTokenAndExitContributionIsNonZero_shouldReturnCorrectAmount(
@@ -1226,6 +1229,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
     bancorExchangeProvider.setExitContribution(exchangeId2, 0);
 
     amountIn = bound(amountIn, 100, 299_000 * 1e18);
+
     uint256 amountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
       tokenIn: address(token),
@@ -1236,9 +1240,9 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
       exchangeId: exchangeId2,
       tokenIn: address(token2),
       tokenOut: address(reserveToken),
-      amountIn: amountIn
+      amountIn: (amountIn * 99) / 100
     });
-    assertEq(amountOut, (amountOut2 * 99) / 100);
+    assertEq(amountOut, amountOut2);
   }
 
   function test_getAmountOut_whenDifferentTokenDecimals_shouldReturnCorrectAmount() public {
@@ -1686,11 +1690,12 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     });
     vm.prank(brokerAddress);
     uint256 amountIn = bancorExchangeProvider.swapOut(exchangeId, address(token), address(reserveToken), amountOut);
-    assertEq(amountIn, expectedAmountIn);
+    assertEq(amountIn, expectedAmountIn, "Amount in should be equal to expected amount in");
 
     (, , uint256 tokenSupplyAfter, uint256 reserveBalanceAfter, , ) = bancorExchangeProvider.exchanges(exchangeId);
 
     assertEq(reserveBalanceAfter, reserveBalanceBefore - amountOut);
+
     assertEq(tokenSupplyAfter, tokenSupplyBefore - amountIn);
   }
 }
