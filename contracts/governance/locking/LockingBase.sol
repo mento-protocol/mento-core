@@ -156,6 +156,26 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @dev set newMinSlopePeriod
    */
   event SetMinSlopePeriod(uint256 indexed newMinSlopePeriod);
+  /**
+   * @dev set new Mento Labs multisig address
+   */
+  event SetMentoLabsMultisig(address indexed mentoLabsMultisig);
+  /**
+   * @dev set new L2 transition block number
+   */
+  event SetL2TransitionBlock(uint256 indexed l2Block);
+  /**
+   * @dev set new L2 shift amount
+   */
+  event SetL2Shift(uint32 indexed l2Shift);
+  /**
+   * @dev set new L2 starting point week number
+   */
+  event SetL2StartingPointWeek(int256 indexed l2StartingPointWeek);
+  /**
+   * @dev set new paused flag
+   */
+  event SetPaused(bool indexed paused);
 
   /**
    * @dev Initializes the contract with token, starting point week, and minimum cliff and slope periods.
@@ -403,6 +423,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   function setMentoLabsMultisig(address mentoLabsMultisig_) external onlyOwner {
     mentoLabsMultisig = mentoLabsMultisig_;
+    emit SetMentoLabsMultisig(mentoLabsMultisig_);
   }
   /**
    * @notice Sets the L2 transition block number and pauses locking and governance
@@ -412,6 +433,8 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   function setL2TransitionBlock(uint256 l2Block_) external onlyMentoLabs {
     l2Block = l2Block_;
     paused = true;
+
+    emit SetL2TransitionBlock(l2Block_);
   }
 
   /**
@@ -420,6 +443,8 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   function setL2Shift(uint32 l2Shift_) external onlyMentoLabs {
     l2Shift = l2Shift_;
+
+    emit SetL2Shift(l2Shift_);
   }
 
   /**
@@ -428,6 +453,8 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   function setL2StartingPointWeek(int256 l2StartingPointWeek_) external onlyMentoLabs {
     l2StartingPointWeek = l2StartingPointWeek_;
+
+    emit SetL2StartingPointWeek(l2StartingPointWeek_);
   }
 
   /**
@@ -436,6 +463,8 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    */
   function setPaused(bool paused_) external onlyMentoLabs {
     paused = paused_;
+
+    emit SetPaused(paused_);
   }
 
   uint256[47] private __gap;
