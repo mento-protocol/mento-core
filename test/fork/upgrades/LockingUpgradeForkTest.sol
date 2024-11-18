@@ -10,6 +10,7 @@ import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contra
 
 // used to avoid stack too deep error
 struct LockingSnapshot {
+  uint256 weekNo;
   uint256 totalSupply;
   uint256 pastTotalSupply;
   uint256 balance1;
@@ -67,8 +68,6 @@ contract LockingUpgradeForkTest is BaseForkTest {
     // move 3 weeks forward on L1
     _moveDays({ day: 3 * 7, forward: true, isL2: false });
 
-    uint256 weekNoBefore = locking.getWeek();
-
     // Take snapshot 3 weeks after Nov 07
     beforeSnapshot = _takeSnapshot(AIRDROP_CLAIMER_1, AIRDROP_CLAIMER_2);
 
@@ -90,7 +89,7 @@ contract LockingUpgradeForkTest is BaseForkTest {
     // if the shift number is correct, the number of blocks till the next week should be 5 times the previous number
     assertEq(blocksTillNextWeekL2, 5 * blocksTillNextWeekL1);
 
-    assertEq(locking.getWeek(), weekNoBefore);
+    assertEq(locking.getWeek(), beforeSnapshot.weekNo);
     assertEq(locking.totalSupply(), beforeSnapshot.totalSupply);
     // the past values should be calculated using the L1 week value
     assertEq(locking.getPastTotalSupply(block.number - 3 * L1_WEEK), beforeSnapshot.pastTotalSupply);
@@ -108,11 +107,10 @@ contract LockingUpgradeForkTest is BaseForkTest {
     // move 5 weeks forward on L2
     _moveDays({ day: 5 * 7, forward: true, isL2: true });
 
-    assertEq(locking.getWeek(), weekNoBefore + 5);
-
     blocksTillNextWeekL2 = _calculateBlocksTillNextWeek({ isL2: true });
 
     assertEq(blocksTillNextWeekL2, 5 * blocksTillNextWeekL1);
+    assertEq(locking.getWeek(), afterSnapshot.weekNo);
     assertEq(locking.totalSupply(), afterSnapshot.totalSupply);
     assertEq(locking.getPastTotalSupply(block.number - 3 * L2_WEEK), afterSnapshot.pastTotalSupply);
     assertEq(locking.balanceOf(AIRDROP_CLAIMER_1), afterSnapshot.balance1);
@@ -129,16 +127,17 @@ contract LockingUpgradeForkTest is BaseForkTest {
     // move 5 days forward on L2
     _moveDays({ day: 5, forward: true, isL2: true });
     // we should be at the same week (TUE around 00:00)
-    assertEq(locking.getWeek(), weekNoBefore + 5);
+    assertEq(locking.getWeek(), afterSnapshot.weekNo);
     // move 1 day forward on L2 + 90 mins as buffer
     _moveDays({ day: 1, forward: true, isL2: true });
     vm.roll(block.number + 90 minutes);
     // we should be at the next week (WED around 01:00)
-    assertEq(locking.getWeek(), weekNoBefore + 6);
+    assertEq(locking.getWeek(), afterSnapshot.weekNo + 1);
   }
 
   // takes a snapshot of the locking contract at current block
   function _takeSnapshot(address claimer1, address claimer2) internal view returns (LockingSnapshot memory snapshot) {
+    snapshot.weekNo = locking.getWeek();
     snapshot.totalSupply = locking.totalSupply();
     snapshot.pastTotalSupply = locking.getPastTotalSupply(block.number - 3 * L1_WEEK);
     snapshot.balance1 = locking.balanceOf(claimer1);

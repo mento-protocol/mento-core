@@ -7,8 +7,6 @@ import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.s
 import "openzeppelin-contracts-upgradeable/contracts/governance/utils/IVotesUpgradeable.sol";
 import "./libs/LibBrokenLine.sol";
 
-import "forge-std/console.sol";
-
 /**
  * @title LockingBase
  * @dev This abstract contract provides the foundational functionality
@@ -94,16 +92,12 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   LibBrokenLine.BrokenLine public totalSupplyLine;
 
   // ***************
-  // New variables for L2 transition upgrade (4 slots)
+  // New variables for L2 transition upgrade (3 slots)
   // ***************
   /**
    * @dev L2 transtion block number
    */
   uint256 public l2Block;
-  /**
-   * @dev Address of the Mento Labs multisig
-   */
-  address public mentoLabsMultisig;
   /**
    * @dev L2 starting point week number
    */
@@ -112,6 +106,10 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @dev Shift amount used after L2 transition to move the start of the epoch to 00-00 UTC Wednesday (approx)
    */
   uint32 public l2Shift;
+  /**
+   * @dev Address of the Mento Labs multisig
+   */
+  address public mentoLabsMultisig;
   /**
    * @dev Flag to pause locking and governance
    */
@@ -315,7 +313,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice method returns the amount of blocks to shift locking epoch to on L1 CELO.
+   * @notice method returns the amount of blocks to shift locking epoch on L1 CELO.
    * we move it to 00-00 UTC Wednesday (approx) by shifting 89964 blocks
    */
   function getEpochShift() internal view virtual returns (uint32) {
@@ -408,11 +406,11 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
   /**
    * @notice Sets the L2 transition block number and pauses locking and governance
-   * @param blockNo block number of the L2 transition
+   * @param l2Block_ block number of the L2 transition
    *
    */
-  function setL2TransitionBlock(uint256 blockNo) external onlyMentoLabs {
-    l2Block = blockNo;
+  function setL2TransitionBlock(uint256 l2Block_) external onlyMentoLabs {
+    l2Block = l2Block_;
     paused = true;
   }
 
@@ -440,5 +438,5 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     paused = paused_;
   }
 
-  uint256[46] private __gap;
+  uint256[47] private __gap;
 }
