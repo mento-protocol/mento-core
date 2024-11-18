@@ -131,7 +131,7 @@ contract LockingUpgradeForkTest is BaseForkTest {
     // move 1 day forward on L2 + 90 mins as buffer
     _moveDays({ day: 1, forward: true, isL2: true });
     vm.roll(block.number + 90 minutes);
-    // we should be at the next week (WED around 01:00)
+    // we should be at the next week (WED around 01:30)
     assertEq(locking.getWeek(), afterSnapshot.weekNo + 1);
   }
 

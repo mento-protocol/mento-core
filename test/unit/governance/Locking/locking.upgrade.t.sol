@@ -4,8 +4,6 @@ pragma solidity 0.8.18;
 
 import { LockingTest } from "./LockingTest.sol";
 
-import "forge-std/console.sol";
-
 contract Upgrade_LockingTest is LockingTest {
   address public mentoLabs = makeAddr("MentoLabsMultisig");
 
@@ -23,7 +21,7 @@ contract Upgrade_LockingTest is LockingTest {
   }
 
   function test_initialSetup_shouldHaveCorrectValues() public view {
-    assertEq(locking.L2_WEEK(), 7 days);
+    assertEq(locking.L2_WEEK(), l2Week);
     assertEq(locking.mentoLabsMultisig(), address(0));
     assertEq(locking.l2Block(), 0);
     assertEq(locking.l2StartingPointWeek(), 0);
@@ -38,8 +36,6 @@ contract Upgrade_LockingTest is LockingTest {
   }
 
   function test_setMentoLabsMultisig_whenCalledByOwner_shouldSetMultisigAddress() public {
-    assertEq(locking.mentoLabsMultisig(), address(0));
-
     vm.prank(owner);
     locking.setMentoLabsMultisig(mentoLabs);
 
@@ -59,9 +55,6 @@ contract Upgrade_LockingTest is LockingTest {
   }
 
   function test_setL2TransitionBlock_whenCalledByMentoMultisig_shouldSetL2BlockAndPause() public setMultisig {
-    assertEq(locking.l2Block(), 0);
-    assert(!locking.paused());
-
     uint32 blockNumber = uint32(block.number + 100);
 
     vm.prank(mentoLabs);
@@ -78,8 +71,6 @@ contract Upgrade_LockingTest is LockingTest {
   }
 
   function test_setL2Shift_whenCalledByMentoMultisig_shouldSetL2BlockAndPause() public setMultisig {
-    assertEq(locking.l2Shift(), 0);
-
     vm.prank(mentoLabs);
     locking.setL2Shift(100);
 
@@ -93,8 +84,6 @@ contract Upgrade_LockingTest is LockingTest {
   }
 
   function test_setL2StartingPointWeek_whenCalledByMentoMultisig_shouldSetL2BlockAndPause() public setMultisig {
-    assertEq(locking.l2StartingPointWeek(), 0);
-
     vm.prank(mentoLabs);
     locking.setL2StartingPointWeek(100);
 
@@ -107,8 +96,6 @@ contract Upgrade_LockingTest is LockingTest {
   }
 
   function test_setPaused_whenCalledByMentoMultisig_shouldPauseContracts() public setMultisig {
-    assert(!locking.paused());
-
     mentoToken.mint(alice, 1000000e18);
 
     vm.prank(mentoLabs);
@@ -128,16 +115,22 @@ contract Upgrade_LockingTest is LockingTest {
     locking.setPaused(false);
 
     assert(!locking.paused());
+
+    vm.prank(alice);
+    locking.lock(alice, bob, 1000e18, 5, 5);
+
+    vm.prank(alice);
+    locking.withdraw();
   }
 
-  modifier l2LockingSetup(uint32 advanceWeeks_, uint32 startingPointWeek_, uint32 l1Shift_) {
+  modifier l2LockingSetup(uint32 advanceWeeks, uint32 startingPointWeek, uint32 l1Shift) {
     vm.prank(owner);
     locking.setMentoLabsMultisig(mentoLabs);
 
-    _incrementBlock(l1Week * advanceWeeks_);
+    _incrementBlock(l1Week * advanceWeeks);
 
-    locking.setStatingPointWeek(startingPointWeek_);
-    locking.setEpochShift(l1Shift_);
+    locking.setStatingPointWeek(startingPointWeek);
+    locking.setEpochShift(l1Shift);
 
     vm.prank(mentoLabs);
     locking.setL2TransitionBlock(block.number);
