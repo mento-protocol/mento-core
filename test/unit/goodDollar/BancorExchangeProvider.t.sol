@@ -1626,7 +1626,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     bancorExchangeProvider.swapOut("0xexchangeId", address(reserveToken), address(token), 1e18);
   }
 
-  function test_swapOut_whenTokenInNotInexchange_shouldRevert() public {
+  function test_swapOut_whenTokenInNotInExchange_shouldRevert() public {
     BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     vm.prank(brokerAddress);
@@ -1634,7 +1634,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     bancorExchangeProvider.swapOut(exchangeId, address(token2), address(token), 1e18);
   }
 
-  function test_swapOut_whenTokenOutNotInexchange_shouldRevert() public {
+  function test_swapOut_whenTokenOutNotInExchange_shouldRevert() public {
     BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     vm.prank(brokerAddress);
@@ -1690,7 +1690,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     });
     vm.prank(brokerAddress);
     uint256 amountIn = bancorExchangeProvider.swapOut(exchangeId, address(token), address(reserveToken), amountOut);
-    assertEq(amountIn, expectedAmountIn, "Amount in should be equal to expected amount in");
+    assertEq(amountIn, expectedAmountIn);
 
     (, , uint256 tokenSupplyAfter, uint256 reserveBalanceAfter, , ) = bancorExchangeProvider.exchanges(exchangeId);
 

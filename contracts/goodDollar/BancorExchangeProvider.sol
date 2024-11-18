@@ -255,7 +255,8 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   function accountExitContribution(bytes32 exchangeId, uint256 exitContribution) internal {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     // newRatio = (Supply * oldRatio) / (Supply - exitContribution)
-    UD60x18 nominator = wrap(exchange.tokenSupply).mul(wrap(exchange.reserveRatio));
+    uint256 scaledReserveRatio = uint256(exchange.reserveRatio) * 1e10;
+    UD60x18 nominator = wrap(exchange.tokenSupply).mul(wrap(scaledReserveRatio));
     UD60x18 denominator = wrap(exchange.tokenSupply - exitContribution);
     UD60x18 newRatio = nominator.div(denominator);
 
