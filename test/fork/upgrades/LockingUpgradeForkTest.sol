@@ -156,9 +156,9 @@ contract LockingUpgradeForkTest is BaseForkTest {
   // by calculating the first block of the next week and substracting the current block
   function _calculateBlocksTillNextWeek(bool isL2) internal view returns (uint256) {
     if (isL2) {
-      return ((L2_WEEK * (locking.getWeek() + uint256(locking.l2StartingPointWeek()) + 1)) + 507776) - block.number;
+      return L2_WEEK * uint256(int256(locking.getWeek()) + locking.l2StartingPointWeek() + 1) + 507776 - block.number;
     } else {
-      return ((L1_WEEK * (locking.getWeek() + locking.startingPointWeek() + 1)) + 89964) - block.number;
+      return L1_WEEK * (locking.getWeek() + locking.startingPointWeek() + 1) + 89964 - block.number;
     }
   }
 
