@@ -5,6 +5,8 @@ pragma solidity ^0.8;
 import { BaseForkTest } from "../BaseForkTest.sol";
 import { Locking } from "contracts/governance/locking/Locking.sol";
 import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
+import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
+import { MentoToken } from "contracts/governance/MentoToken.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
@@ -36,6 +38,9 @@ contract LockingUpgradeForkTest is BaseForkTest {
   GovernanceFactory public governanceFactory = GovernanceFactory(0xee6CE2dbe788dFC38b8F583Da86cB9caf2C8cF5A);
   ProxyAdmin public proxyAdmin;
   Locking public locking;
+  MentoGovernor public mentoGovernor;
+  MentoToken public mentoToken;
+
   address public timelockController;
   address public newLockingImplementation;
 
@@ -48,6 +53,8 @@ contract LockingUpgradeForkTest is BaseForkTest {
     proxyAdmin = governanceFactory.proxyAdmin();
     locking = governanceFactory.locking();
     timelockController = address(governanceFactory.governanceTimelock());
+    mentoGovernor = governanceFactory.mentoGovernor();
+    mentoToken = governanceFactory.mentoToken();
 
     newLockingImplementation = address(new Locking());
     vm.prank(timelockController);
@@ -55,15 +62,15 @@ contract LockingUpgradeForkTest is BaseForkTest {
 
     vm.prank(timelockController);
     locking.setMentoLabsMultisig(mentoLabsMultisig);
-
-    // THU Nov-07-2024 00:00:23 +UTC
-    vm.roll(28653031);
-    vm.warp(1730937623);
   }
 
   function test_blockNoDependentCalculations_afterL2Transition_shouldWorkAsBefore() public {
     LockingSnapshot memory beforeSnapshot;
     LockingSnapshot memory afterSnapshot;
+
+    // THU Nov-07-2024 00:00:23 +UTC
+    vm.roll(28653031);
+    vm.warp(1730937623);
 
     // move 3 weeks forward on L1
     _moveDays({ day: 3 * 7, forward: true, isL2: false });
@@ -133,6 +140,89 @@ contract LockingUpgradeForkTest is BaseForkTest {
     vm.roll(block.number + 90 minutes);
     // we should be at the next week (WED around 01:30)
     assertEq(locking.getWeek(), afterSnapshot.weekNo + 1);
+  }
+
+  function test_setPaused_shouldPauseGovernance() public {
+    _lockTokensForGovernance(AIRDROP_CLAIMER_1, 10_000_000e18);
+
+    vm.prank(mentoLabsMultisig);
+    locking.setPaused(true);
+
+    vm.prank(AIRDROP_CLAIMER_1);
+    vm.expectRevert("locking is paused");
+    mentoGovernor.propose(new address[](1), new uint256[](1), new bytes[](1), "Test proposal");
+
+    vm.prank(mentoLabsMultisig);
+    locking.setPaused(false);
+
+    vm.prank(AIRDROP_CLAIMER_1);
+    uint256 proposalId = mentoGovernor.propose(new address[](1), new uint256[](1), new bytes[](1), "Test proposal");
+
+    _moveDays(1, true, false);
+
+    vm.prank(mentoLabsMultisig);
+    locking.setPaused(true);
+
+    vm.prank(AIRDROP_CLAIMER_1);
+    vm.expectRevert("locking is paused");
+    mentoGovernor.castVote(proposalId, 1);
+  }
+
+  function test_governance_afterL2Transition_shouldWorkAsBefore() public {
+    _simulateL2Upgrade();
+
+    _moveDays(7, true, true);
+
+    uint256 votingPower1 = locking.getVotes(AIRDROP_CLAIMER_1);
+    uint256 votingPower2 = locking.getVotes(AIRDROP_CLAIMER_2);
+
+    uint256 lockId = _lockTokensForGovernance(AIRDROP_CLAIMER_1, 1_000_000e18);
+
+    assertEq(locking.getVotes(AIRDROP_CLAIMER_1), votingPower1 + 1_000_000e18);
+
+    vm.prank(AIRDROP_CLAIMER_1);
+    locking.delegateTo(lockId, AIRDROP_CLAIMER_2);
+
+    assertEq(locking.getVotes(AIRDROP_CLAIMER_1), votingPower1);
+    assertEq(locking.getVotes(AIRDROP_CLAIMER_2), votingPower2 + 1_000_000e18);
+
+    vm.prank(AIRDROP_CLAIMER_1);
+    locking.relock(lockId, AIRDROP_CLAIMER_1, 1_000_000e18, 1, 103);
+
+    assertEq(locking.getVotes(AIRDROP_CLAIMER_1), votingPower1 + 1_000_000e18);
+    assertEq(locking.getVotes(AIRDROP_CLAIMER_2), votingPower2);
+
+    vm.prank(AIRDROP_CLAIMER_1);
+    uint256 proposalId = mentoGovernor.propose(new address[](1), new uint256[](1), new bytes[](1), "Test proposal");
+
+    _moveDays(1, true, true);
+
+    vm.prank(AIRDROP_CLAIMER_1);
+    mentoGovernor.castVote(proposalId, 1);
+
+    vm.prank(AIRDROP_CLAIMER_2);
+    mentoGovernor.castVote(proposalId, 2);
+
+    _moveDays(5, true, true);
+
+    mentoGovernor.queue(proposalId);
+
+    _moveDays(2, true, true);
+
+    mentoGovernor.execute(proposalId);
+  }
+
+  // used to give locker enough power to be able to propose
+  function _lockTokensForGovernance(address locker, uint96 amount) internal returns (uint256 lockId) {
+    deal(address(mentoToken), locker, amount);
+
+    vm.prank(locker);
+    mentoToken.approve(address(locking), amount);
+
+    vm.prank(locker);
+    lockId = locking.lock(locker, locker, amount, 104, 0);
+
+    vm.roll(block.number + 1);
   }
 
   // takes a snapshot of the locking contract at current block
