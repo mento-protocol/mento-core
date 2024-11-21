@@ -9,6 +9,7 @@ import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 // Interfaces
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { ICeloProxy } from "contracts/interfaces/ICeloProxy.sol";
 import { IOwnable } from "contracts/interfaces/IOwnable.sol";
@@ -119,14 +120,16 @@ abstract contract BaseForkTest is Test {
 
   function mint(address asset, address to, uint256 amount, bool updateSupply) public {
     if (asset == lookup("GoldToken")) {
-      if (!updateSupply) {
-        revert("BaseForkTest: can't mint GoldToken without updating supply");
-      }
-      vm.prank(address(0));
-      IMint(asset).mint(to, amount);
+      // with L2 Celo, we need to transfer GoldToken to the user manually from the reserve
+      transferCeloFromReserve(to, amount);
       return;
     }
 
     deal(asset, to, amount, updateSupply);
+  }
+
+  function transferCeloFromReserve(address to, uint256 amount) internal {
+    vm.prank(address(mentoReserve));
+    IERC20(lookup("GoldToken")).transfer(to, amount);
   }
 }
