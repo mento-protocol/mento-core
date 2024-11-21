@@ -203,6 +203,8 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     uint256 newRatioScaled = unwrap(numerator.div(denominator));
 
     uint32 newRatioUint = uint32(newRatioScaled / 1e10);
+    require(newRatioUint > 0, "New ratio must be greater than 0");
+
     exchanges[exchangeId].reserveRatio = newRatioUint;
     exchanges[exchangeId].tokenSupply += rewardScaled;
 
