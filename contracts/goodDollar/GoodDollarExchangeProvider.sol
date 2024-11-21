@@ -146,7 +146,9 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e10);
 
     // The division and multiplication by 1e10 here ensures that the new ratio used for calculating the amount to mint
-    // is the same as the one set in the exchange only scaled to 18 decimals.
+    // is the same as the one set in the exchange but only scaled to 18 decimals.
+    // Ignored, because the division and multiplication by 1e10 is needed see comment above.
+    // slither-disable-next-line divide-before-multiply
     UD60x18 newRatio = wrap((unwrap(scaledRatio.mul(wrap(reserveRatioScalar))) / 1e10) * 1e10);
 
     uint32 newRatioUint = uint32(unwrap(newRatio) / 1e10);
