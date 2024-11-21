@@ -301,6 +301,12 @@ contract TradingLimitsTest is Test {
     state = harness.update(state, configLG(500000), 3 * 10e32, 18);
   }
 
+  function test_update_withTooSmallAmount_reverts() public {
+    vm.expectRevert(bytes("dFlow too small"));
+    int256 tooSmall = (type(int48).min - int256(1)) * 1e18;
+    state = harness.update(state, configLG(500000), tooSmall, 18);
+  }
+
   function test_update_withOverflowOnAdd_reverts() public {
     ITradingLimits.Config memory config = configLG(int48(uint48(2 ** 47)));
     int256 maxFlow = int256(uint256(type(uint48).max / 2));
