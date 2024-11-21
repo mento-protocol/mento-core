@@ -302,8 +302,8 @@ contract TradingLimitsTest is Test {
   }
 
   function test_update_withTooSmallAmount_reverts() public {
-    vm.expectRevert(bytes("dFlow too small"));
     int256 tooSmall = (type(int48).min - int256(1)) * 1e18;
+    vm.expectRevert(bytes("dFlow too small"));
     state = harness.update(state, configLG(500000), tooSmall, 18);
   }
 
