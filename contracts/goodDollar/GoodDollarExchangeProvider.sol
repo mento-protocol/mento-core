@@ -144,7 +144,10 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
     UD60x18 scaledRatio = wrap(uint256(exchange.reserveRatio) * 1e10);
-    UD60x18 newRatio = scaledRatio.mul(wrap(reserveRatioScalar));
+
+    // The division and multiplication by 1e10 here ensures that the new ratio used for calculating the amount to mint
+    // is the same as the one set in the exchange only scaled to 18 decimals.
+    UD60x18 newRatio = wrap((unwrap(scaledRatio.mul(wrap(reserveRatioScalar))) / 1e10) * 1e10);
 
     uint32 newRatioUint = uint32(unwrap(newRatio) / 1e10);
     require(newRatioUint > 0, "New ratio must be greater than 0");
