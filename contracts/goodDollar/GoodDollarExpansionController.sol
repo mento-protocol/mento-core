@@ -190,7 +190,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
   /// @inheritdoc IGoodDollarExpansionController
   function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
-    // Default to 100% slippage
+    // Defaults to no slippage protection
     mintRewardFromReserveRatio(exchangeId, to, amount, 100);
   }
 
