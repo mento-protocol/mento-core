@@ -231,6 +231,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
       exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(block.timestamp);
     } else {
       numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionFrequency;
+      // slither-disable-next-line divide-before-multiply
       exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(
         config.lastExpansion + numberOfExpansions * config.expansionFrequency
       );
