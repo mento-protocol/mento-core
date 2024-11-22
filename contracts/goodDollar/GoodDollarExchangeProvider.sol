@@ -241,9 +241,4 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
    */
   uint256[50] private __gap;
-
-  // Helper function to calculate absolute value
-  function abs(int256 x) internal pure returns (uint256) {
-    return x < 0 ? uint256(-x) : uint256(x);
-  }
 }
