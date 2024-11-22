@@ -7,7 +7,11 @@ import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarEx
 contract GoodDollarExpansionControllerHarness is GoodDollarExpansionController {
   constructor(bool disabled) GoodDollarExpansionController(disabled) {}
 
-  function exposed_getReserveRatioScalar(ExchangeExpansionConfig calldata config) external returns (uint256) {
-    return _getReserveRatioScalar(config);
+  function exposed_getReserveRatioScalar(bytes32 exchangeId) external returns (uint256) {
+    return _getReserveRatioScalar(exchangeId);
+  }
+
+  function setLastExpansion(bytes32 exchangeId, uint32 lastExpansion) external {
+    exchangeExpansionConfigs[exchangeId].lastExpansion = lastExpansion;
   }
 }
