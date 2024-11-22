@@ -259,6 +259,13 @@ contract TradingLimitsTest is Test {
     assertEq(state.netflowGlobal, 0);
   }
 
+  function test_update_withZeroDeltaFlow_doesNotUpdate() public {
+    state = harness.update(state, configL0L1LG(300, 1000, 1 days, 10000, 1000000), 0, 18);
+    assertEq(state.netflow0, state.netflow0);
+    assertEq(state.netflow1, state.netflow1);
+    assertEq(state.netflowGlobal, state.netflowGlobal);
+  }
+
   function test_update_withL0_updatesActive() public {
     state = harness.update(state, configL0(500, 1000), 100 * 1e18, 18);
     assertEq(state.netflow0, 100);
