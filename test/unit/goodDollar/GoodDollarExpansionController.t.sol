@@ -5,6 +5,7 @@ pragma solidity 0.8.18;
 
 import { Test } from "forge-std/Test.sol";
 import { ERC20Mock } from "openzeppelin-contracts-next/contracts/mocks/ERC20Mock.sol";
+import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
 
 import { IGoodDollarExpansionController } from "contracts/interfaces/IGoodDollarExpansionController.sol";
@@ -324,6 +325,37 @@ contract GoodDollarExpansionControllerTest_mintUBIFromReserveBalance is GoodDoll
     deal(address(reserveToken), reserveAddress, pool.reserveBalance);
     uint256 amountMinted = expansionController.mintUBIFromReserveBalance(exchangeId);
     assertEq(amountMinted, 0);
+  }
+
+  function test_mintUBIFromReserveBalance_whenReserveAssetDecimalsIsLessThan18_shouldScaleCorrectly() public {
+    ERC20DecimalsMock reserveToken6DecimalsMock = new ERC20DecimalsMock("Reserve Token", "RES", 6);
+    IBancorExchangeProvider.PoolExchange memory pool2 = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveToken6DecimalsMock),
+      tokenAddress: address(token),
+      tokenSupply: 7 * 1e9 * 1e18,
+      reserveBalance: 200_000 * 1e18, // internally scaled to 18 decimals
+      reserveRatio: 0.2 * 1e8, // 20%
+      exitContribution: 0.1 * 1e8 // 10%
+    });
+
+    uint256 reserveInterest = 1000e6;
+    deal(address(reserveToken6DecimalsMock), reserveAddress, 200_000 * 1e6 + reserveInterest);
+
+    vm.mockCall(
+      address(exchangeProvider),
+      abi.encodeWithSelector(IBancorExchangeProvider(exchangeProvider).getPoolExchange.selector, exchangeId),
+      abi.encode(pool2)
+    );
+
+    vm.expectCall(
+      address(exchangeProvider),
+      abi.encodeWithSelector(
+        IGoodDollarExchangeProvider(exchangeProvider).mintFromInterest.selector,
+        exchangeId,
+        reserveInterest * 1e12
+      )
+    );
+    expansionController.mintUBIFromReserveBalance(exchangeId);
   }
 
   function test_mintUBIFromReserveBalance_whenAdditionalReserveBalanceIsLargerThan0_shouldMintAndEmit() public {

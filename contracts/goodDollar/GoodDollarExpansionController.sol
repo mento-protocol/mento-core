@@ -5,6 +5,7 @@ import { IGoodDollarExpansionController } from "contracts/interfaces/IGoodDollar
 import { IGoodDollarExchangeProvider } from "contracts/interfaces/IGoodDollarExchangeProvider.sol";
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+import { IERC20Metadata } from "openzeppelin-contracts-next/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 
@@ -154,7 +155,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
-    uint256 contractReserveBalance = IERC20(exchange.reserveAsset).balanceOf(reserve);
+    uint256 contractReserveBalance = IERC20(exchange.reserveAsset).balanceOf(reserve) *
+      (10 ** (18 - IERC20Metadata(exchange.reserveAsset).decimals()));
+
     uint256 additionalReserveBalance = contractReserveBalance - exchange.reserveBalance;
     if (additionalReserveBalance > 0) {
       amountMinted = goodDollarExchangeProvider.mintFromInterest(exchangeId, additionalReserveBalance);
