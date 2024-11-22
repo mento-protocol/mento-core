@@ -8,7 +8,6 @@ import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20
 import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 
-import { PausableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { unwrap, wrap, powu } from "prb/math/UD60x18.sol";
 
@@ -16,7 +15,7 @@ import { unwrap, wrap, powu } from "prb/math/UD60x18.sol";
  * @title GoodDollarExpansionController
  * @notice Provides functionality to expand the supply of GoodDollars.
  */
-contract GoodDollarExpansionController is IGoodDollarExpansionController, PausableUpgradeable, OwnableUpgradeable {
+contract GoodDollarExpansionController is IGoodDollarExpansionController, OwnableUpgradeable {
   /* ========================================================= */
   /* ==================== State Variables ==================== */
   /* ========================================================= */
@@ -63,7 +62,6 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     address _reserve,
     address _avatar
   ) public initializer {
-    __Pausable_init();
     __Ownable_init();
 
     setGoodDollarExchangeProvider(_goodDollarExchangeProvider);
