@@ -262,7 +262,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
   function _setExitContribution(bytes32 exchangeId, uint32 exitContribution) internal {
     require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
-    require(exitContribution <= MAX_WEIGHT, "Exit contribution is too high");
+    require(exitContribution < MAX_WEIGHT, "Exit contribution is too high");
 
     PoolExchange storage exchange = exchanges[exchangeId];
     exchange.exitContribution = exitContribution;
