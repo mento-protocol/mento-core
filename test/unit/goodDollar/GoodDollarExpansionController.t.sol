@@ -545,13 +545,13 @@ contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpan
     expansionController = new GoodDollarExpansionControllerHarness(false);
   }
 
-  function test_getExpansionScaler_whenExpansionRateIs0_shouldReturn1e18() public {
+  function test_getExpansionScaler_whenExpansionRateIs0_shouldReturn1e18() public view {
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
       .ExchangeExpansionConfig(0, 1, 0);
     assertEq(expansionController.exposed_getReserveRatioScalar(config), 1e18);
   }
 
-  function test_getExpansionScaler_whenExpansionRateIs1_shouldReturn1() public {
+  function test_getExpansionScaler_whenExpansionRateIs1_shouldReturn1() public view {
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = IGoodDollarExpansionController
       .ExchangeExpansionConfig(1e18 - 1, 1, 0);
     assertEq(expansionController.exposed_getReserveRatioScalar(config), 1);
@@ -611,6 +611,12 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
     expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 0);
   }
 
+  function test_mintRewardFromReserveRatio_whenSlippageIsGreaterThan100_shouldRevert() public {
+    vm.prank(avatarAddress);
+    vm.expectRevert("Max slippage percentage cannot be greater than 100%");
+    expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 1000e18, 101);
+  }
+
   function test_mintRewardFromReserveRatio_whenCallerIsAvatar_shouldMintAndEmit() public {
     uint256 amountToMint = 1000e18;
     address to = makeAddr("To");
@@ -621,6 +627,20 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
 
     vm.prank(avatarAddress);
     expansionController.mintRewardFromReserveRatio(exchangeId, to, amountToMint);
+
+    assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
+  }
+
+  function test_mintRewardFromReserveRatio_whenCustomSlippage_shouldMintAndEmit() public {
+    uint256 amountToMint = 1000e18;
+    address to = makeAddr("To");
+    uint256 toBalanceBefore = token.balanceOf(to);
+
+    vm.expectEmit(true, true, true, true);
+    emit RewardMinted(exchangeId, to, amountToMint);
+
+    vm.prank(avatarAddress);
+    expansionController.mintRewardFromReserveRatio(exchangeId, to, amountToMint, 1);
 
     assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
   }

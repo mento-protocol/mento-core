@@ -696,8 +696,8 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
   }
 
   function test_updateRatioForReward_whenRewardLarger0_shouldReturnCorrectRatioAndEmit() public {
-    // formula: newRatio = reserveBalance / ((tokenSupply + reward) * currentPrice)
-    // reserveRatio = 200_000 / ((7_000_000_000 + 1_000) * 0.000100000002) ≈ 0.28571423...
+    // formula newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
+    // formula: newRatio = (7_000_000_000 * 0.28571428) / (7_000_000_000 + 1_000) =  0.28571423
     uint32 expectedReserveRatio = 28571423;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
@@ -721,8 +721,9 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
   function test_updateRatioForReward_whenRewardIsSmall_shouldReturnCorrectRatioAndEmit() public {
     uint256 _reward = 1e18; // 1 token
-    // formula: newRatio = reserveBalance / ((tokenSupply + reward) * currentPrice)
-    // reserveRatio = 200_000 / ((7_000_000_000 + 1) * 0.000100000002) ≈ 0.2857142799
+    // formula newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
+    // formula: newRatio = (7_000_000_000 * 0.28571428) / (7_000_000_000 + 1) =  0.28571427
+
     uint32 expectedReserveRatio = 28571427;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
@@ -745,8 +746,8 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
   function test_updateRatioForReward_whenRewardIsLarge_shouldReturnCorrectRatioAndEmit() public {
     uint256 _reward = 1_000_000_000 * 1e18; // 1 billion tokens
-    // formula: newRatio = reserveBalance / ((tokenSupply + reward) * currentPrice)
-    // reserveRatio = 200_000 / ((7_000_000_000 + 1_000_000_000) * 0.000100000002) ≈ 0.2499999950000...
+    // formula newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
+    // formula: newRatio = (7_000_000_000 * 0.28571428) / (7_000_000_000 + 1_000_000_000) =  0.249999995
 
     uint32 expectedReserveRatio = 24999999;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
@@ -766,6 +767,24 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
       "Token supply should increase by reward amount"
     );
     assertApproxEqRel(priceBefore, priceAfter, 1e18 * 0.0001, "Price should remain within 0.01% of initial price");
+  }
+
+  function test_updateRatioForReward_whenSlippageIsHigherThanAccepted_shouldRevert() public {
+    uint256 _reward = 1_000_000_000 * 1e18; // 1 billion tokens
+    // formula newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
+    // formula: newRatio = (7_000_000_000 * 0.28571428) / (7_000_000_000 + 1_000_000_000) =  0.249999995
+    // slippage = (newRatio - reserveRatio) / reserveRatio = (0.249999995 - 0.28571428) / 0.28571428 ~= -0.125
+
+    uint32 expectedReserveRatio = 24999999;
+
+    vm.prank(expansionControllerAddress);
+    vm.expectRevert("Slippage exceeded");
+    exchangeProvider.updateRatioForReward(exchangeId, _reward, 12);
+
+    vm.expectEmit(true, true, true, true);
+    emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
+    vm.prank(expansionControllerAddress);
+    exchangeProvider.updateRatioForReward(exchangeId, _reward, 13);
   }
 
   function test_updateRatioForReward_withMultipleConsecutiveRewards() public {
