@@ -148,10 +148,24 @@ interface IGoodDollarExpansionController {
   function mintUBIFromExpansion(bytes32 exchangeId) external returns (uint256 amountMinted);
 
   /**
-   * @notice Mints a reward of G$ tokens for a given pool.
+   * @notice Mints a reward of G$ tokens for a given pool. Defaults to 100% slippage.
    * @param exchangeId The ID of the pool to mint a G$ reward for.
    * @param to The address of the recipient.
    * @param amount The amount of G$ tokens to mint.
    */
   function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external;
+
+  /**
+   * @notice Mints a reward of G$ tokens for a given pool.
+   * @param exchangeId The ID of the pool to mint a G$ reward for.
+   * @param to The address of the recipient.
+   * @param amount The amount of G$ tokens to mint.
+   * @param maxSlippagePercentage Maximum allowed percentage difference between new and old reserve ratio (0-100).
+   */
+  function mintRewardFromReserveRatio(
+    bytes32 exchangeId,
+    address to,
+    uint256 amount,
+    uint256 maxSlippagePercentage
+  ) external;
 }

@@ -192,7 +192,11 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    * @dev Calculates the new reserve ratio needed to mint the G$ reward while keeping the current price the same.
    *      calculation: newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
    */
-  function updateRatioForReward(bytes32 exchangeId, uint256 reward) external onlyExpansionController whenNotPaused {
+  function updateRatioForReward(
+    bytes32 exchangeId,
+    uint256 reward,
+    uint256 maxSlippagePercentage
+  ) external onlyExpansionController whenNotPaused {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
     uint256 scaledRatio = uint256(exchange.reserveRatio) * 1e10;
@@ -200,11 +204,14 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
 
     UD60x18 numerator = wrap(exchange.tokenSupply).mul(wrap(scaledRatio));
     UD60x18 denominator = wrap(exchange.tokenSupply).add(wrap(scaledReward));
-    uint256 newRatioScaled = unwrap(numerator.div(denominator));
+    uint256 newScaledRatio = unwrap(numerator.div(denominator));
 
-    uint32 newRatioUint = uint32(newRatioScaled / 1e10);
+    uint32 newRatioUint = uint32(newScaledRatio / 1e10);
 
     require(newRatioUint > 0, "New ratio must be greater than 0");
+
+    uint256 allowedSlippage = (exchange.reserveRatio * maxSlippagePercentage) / 100;
+    require(exchange.reserveRatio - newRatioUint <= allowedSlippage, "Slippage exceeded");
 
     exchanges[exchangeId].reserveRatio = newRatioUint;
     exchanges[exchangeId].tokenSupply += scaledReward;
@@ -234,4 +241,9 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
    */
   uint256[50] private __gap;
+
+  // Helper function to calculate absolute value
+  function abs(int256 x) internal pure returns (uint256) {
+    return x < 0 ? uint256(-x) : uint256(x);
+  }
 }

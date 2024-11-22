@@ -190,12 +190,24 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
   /// @inheritdoc IGoodDollarExpansionController
   function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
+    // Default to 100% slippage
+    mintRewardFromReserveRatio(exchangeId, to, amount, 100);
+  }
+
+  /// @inheritdoc IGoodDollarExpansionController
+  function mintRewardFromReserveRatio(
+    bytes32 exchangeId,
+    address to,
+    uint256 amount,
+    uint256 maxSlippagePercentage
+  ) public onlyAvatar {
     require(to != address(0), "Recipient address must be set");
     require(amount > 0, "Amount must be greater than 0");
+    require(maxSlippagePercentage <= 100, "Max slippage percentage cannot be greater than 100%");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
-    goodDollarExchangeProvider.updateRatioForReward(exchangeId, amount);
+    goodDollarExchangeProvider.updateRatioForReward(exchangeId, amount, maxSlippagePercentage);
     IGoodDollar(exchange.tokenAddress).mint(to, amount);
 
     // Ignored, because contracts only interacts with trusted contracts and tokens

@@ -686,13 +686,13 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
   function test_updateRatioForReward_whenCallerIsNotExpansionController_shouldRevert() public {
     vm.prank(makeAddr("NotExpansionController"));
     vm.expectRevert("Only ExpansionController can call this function");
-    exchangeProvider.updateRatioForReward(exchangeId, reward);
+    exchangeProvider.updateRatioForReward(exchangeId, reward, 100);
   }
 
   function test_updateRatioForReward_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
     vm.expectRevert("Exchange does not exist");
-    exchangeProvider.updateRatioForReward(bytes32(0), reward);
+    exchangeProvider.updateRatioForReward(bytes32(0), reward, 100);
   }
 
   function test_updateRatioForReward_whenRewardLarger0_shouldReturnCorrectRatioAndEmit() public {
@@ -704,7 +704,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, reward);
+    exchangeProvider.updateRatioForReward(exchangeId, reward, 100);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -729,7 +729,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, _reward);
+    exchangeProvider.updateRatioForReward(exchangeId, _reward, 100);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -754,7 +754,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, _reward);
+    exchangeProvider.updateRatioForReward(exchangeId, _reward, 100);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -777,7 +777,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
     vm.startPrank(expansionControllerAddress);
     for (uint256 i = 0; i < 5; i++) {
-      exchangeProvider.updateRatioForReward(exchangeId, reward);
+      exchangeProvider.updateRatioForReward(exchangeId, reward, 100);
       totalReward += reward;
     }
     vm.stopPrank();
@@ -805,7 +805,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, fuzzedReward);
+    exchangeProvider.updateRatioForReward(exchangeId, fuzzedReward, 100);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -870,7 +870,7 @@ contract GoodDollarExchangeProviderTest_pausable is GoodDollarExchangeProviderTe
     exchangeProvider.mintFromInterest(exchangeId, 1e18);
 
     vm.expectRevert("Pausable: paused");
-    exchangeProvider.updateRatioForReward(exchangeId, 1e18);
+    exchangeProvider.updateRatioForReward(exchangeId, 1e18, 100);
   }
 
   function test_unpause_whenCallerIsAvatar_shouldUnpauseAndEnableExchange() public {
@@ -891,6 +891,6 @@ contract GoodDollarExchangeProviderTest_pausable is GoodDollarExchangeProviderTe
 
     exchangeProvider.mintFromExpansion(exchangeId, 1e18);
     exchangeProvider.mintFromInterest(exchangeId, 1e18);
-    exchangeProvider.updateRatioForReward(exchangeId, 1e18);
+    exchangeProvider.updateRatioForReward(exchangeId, 1e18, 100);
   }
 }
