@@ -144,7 +144,6 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   /// @inheritdoc IBancorExchangeProvider
   function currentPrice(bytes32 exchangeId) public view returns (uint256 price) {
     // calculates: reserveBalance / (tokenSupply * reserveRatio)
-    require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledReserveRatio = uint256(exchange.reserveRatio) * 1e10;
     UD60x18 denominator = wrap(exchange.tokenSupply).mul(wrap(scaledReserveRatio));
