@@ -211,6 +211,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) public virtual onlyBroker returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
+    // slither-disable-next-line uninitialized-local
     uint256 exitContribution;
 
     if (tokenIn == exchange.tokenAddress) {
@@ -241,8 +242,9 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
     uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
-
+    // slither-disable-next-line uninitialized-local
     uint256 exitContribution;
+
     if (tokenIn == exchange.tokenAddress) {
       // apply exit contribution
       uint256 scaledAmountInWithExitContribution = (scaledAmountIn * MAX_WEIGHT) /
