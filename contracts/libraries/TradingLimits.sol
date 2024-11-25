@@ -128,6 +128,10 @@ library TradingLimits {
     int256 _deltaFlow,
     uint8 decimals
   ) internal view returns (ITradingLimits.State memory) {
+    if (_deltaFlow == 0) {
+      return self;
+    }
+
     int256 _deltaFlowUnits = _deltaFlow / int256((10 ** uint256(decimals)));
     require(_deltaFlowUnits <= MAX_INT48, "dFlow too large");
     require(_deltaFlowUnits >= MIN_INT48, "dFlow too small");
