@@ -587,12 +587,11 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
 
   function test_getAmountIn_whenTokenInIsToken_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    // formula:          =   tokenSupply * (-1 + (reserveBalance / (reserveBalance - (amountOut/(1-e)))  )^reserveRatio )
-    // formula: amountIn = ------------------------------------------------------------------------------------------------ this is a fractional line
-    // formula:          =       (reserveBalance / (reserveBalance - (amountOut/(1-e)))  )^reserveRatio
+    // formula:          = tokenSupply * (-1 + (reserveBalance/(reserveBalance - amountOut))^reserveRatio )
+    // formula: amountIn = -------------------------------------------------------------------------------- ÷ (1-e)
+    // formula:          =    (reserveBalance / (reserveBalance - amountOut)  )^reserveRatio
 
-    // calculation: (300000 * ( -1 + (60000 / (60000-(1/0.99)))^0.2))/(60000 / (60000-(1/0.99)))^0.2 = 1.010107812196722301
-    // uint256 expectedAmountIn = 1010107812196722302;
+    // calculation: (300000 * ( -1 + (60000 / (60000-1))^0.2))/(60000 / (60000-1))^0.2 ÷ 0.99 = 1.010107744175084961
     uint256 expectedAmountIn = 1010107744175084961;
     uint256 amountIn = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
@@ -621,11 +620,12 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
   function test_getAmountIn_whenTokenInIsTokenAndAmountOutIsSmall_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     uint256 amountOut = 1e12; // 0.000001 token
-    // formula:          =   tokenSupply * (-1 + (reserveBalance / (reserveBalance - (amountOut/(1-e)))  )^reserveRatio )
-    // formula: amountIn = ------------------------------------------------------------------------------------------------ this is a fractional line
-    // formula:          =       (reserveBalance / (reserveBalance - (amountOut/(1-e)))  )^reserveRatio
+    // formula:          = tokenSupply * (-1 + (reserveBalance/(reserveBalance - amountOut))^reserveRatio )
+    // formula: amountIn = -------------------------------------------------------------------------------- ÷ (1-e)
+    // formula:          =    (reserveBalance / (reserveBalance - amountOut)  )^reserveRatio
 
-    // calculation: (300000 * ( -1 + (60000 / (60000-(0.000001/0.99)))^0.2))/(60000 / (60000-(0.000001/0.99)))^0.2 ≈ 0.000001010101010107
+    // calculation: (300000 * ( -1 + (60000 / (60000-0.000001))^0.2))/(60000 / (60000-0.000001))^0.2 ÷ 0.99 ≈ 0.000001010101010107
+    // 1 wei difference due to precision loss
     uint256 expectedAmountIn = 1010101010108;
     uint256 amountIn = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
@@ -655,13 +655,11 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
   function test_getAmountIn_whenTokenInIsTokenAndAmountOutIsLarge_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     uint256 amountOut = 59000e18; // 59_000 since total reserve is 60k
-    // formula:          =   tokenSupply * (-1 + (reserveBalance / (reserveBalance - (amountOut/(1-e)))  )^reserveRatio )
-    // formula: amountIn = ------------------------------------------------------------------------------------------------ this is a fractional line
-    // formula:          =       (reserveBalance / (reserveBalance - (amountOut/(1-e)))  )^reserveRatio
+    // formula:          = tokenSupply * (-1 + (reserveBalance/(reserveBalance - amountOut))^reserveRatio )
+    // formula: amountIn = -------------------------------------------------------------------------------- ÷ (1-e)
+    // formula:          =    (reserveBalance / (reserveBalance - amountOut)  )^reserveRatio
 
-    // calculation: (300000 * ( -1 + (60000 / (60000-(59000/0.99)))^0.2))/(60000 / (60000-(59000/0.99)))^0.2 = 189649.078540006525698460
-    // TODO : update
-    //uint256 expectedAmountIn = 189649078540006525698460;
+    // calculation: (300000 * ( -1 + (60000 / (60000-59000))^0.2))/(60000 / (60000-59000))^0.2 ÷ 0.99 ≈ 169415.120269436288420151
     uint256 expectedAmountIn = 169415120269436288420151;
     uint256 amountIn = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
@@ -1069,8 +1067,8 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
     poolExchange1.reserveRatio = 1e8;
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     uint256 amountIn = 1e18;
-    // formula: amountOut = (reserveBalance * amountIn / tokenSupply) * (1-e)
-    // calculation: (60_000 * 1 / 300_000) * 0.99 = 0.198
+    // formula: amountOut = (reserveBalance * amountIn * (1-e)) / tokenSupply
+    // calculation: (60_000 * 1 * 0.99) / 300_000 = 0.198
     uint256 expectedAmountOut = 198000000000000000;
     uint256 amountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
@@ -1098,14 +1096,12 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
 
   function test_getAmountOut_whenTokenInIsToken_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    // formula:           = reserveBalance * ( -1 + (tokenSupply/(tokenSupply - amountIn ))^(1/reserveRatio))
-    // formula: amountOut = ---------------------------------------------------------------------------------- * (1 - e)
-    // formula:           =          (tokenSupply/(tokenSupply - amountIn ))^(1/reserveRatio)
+    // formula:           = reserveBalance * ( -1 + (tokenSupply/(tokenSupply - amountIn*(1-e)))^(1/reserveRatio))
+    // formula: amountOut = ----------------------------------------------------------------------------------
+    // formula:           =          (tokenSupply/(tokenSupply - amountIn*(1-e)))^(1/reserveRatio)
 
-    // calculation: ((60_000 *(-1+(300_000/(300_000-1))^5) ) / (300_000/(300_000-1))^5)*0.99 = 0.989993400021999963
+    // calculation: ((60_000 *(-1+(300_000/(300_000-1*0.99))^5) ) / (300_000/(300_000-1*0.99))^5) = 0.989993466021562164
     // 1 wei difference due to precision loss
-    // TODO update comments
-    //uint256 expectedAmountOut = 989993400021999962;
     uint256 expectedAmountOut = 989993466021562164;
     uint256 amountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
@@ -1134,11 +1130,11 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
   function test_getAmountOut_whenTokenInIsTokenAndAmountOutIsSmall_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     uint256 amountIn = 1e12; // 0.000001 token
-    // formula:           = reserveBalance * ( -1 + (tokenSupply/(tokenSupply - amountIn ))^(1/reserveRatio))
-    // formula: amountOut = ---------------------------------------------------------------------------------- * (1 - e)
-    // formula:           =          (tokenSupply/(tokenSupply - amountIn ))^(1/reserveRatio)
+    // formula:           = reserveBalance * ( -1 + (tokenSupply/(tokenSupply - amountIn * (1-e)))^(1/reserveRatio))
+    // formula: amountOut = ----------------------------------------------------------------------------------
+    // formula:           =          (tokenSupply/(tokenSupply - amountIn * (1-e)))^(1/reserveRatio)
 
-    // calculation: ((60_000 *(-1+(300_000/(300_000-0.000001))^5) )/(300_000/(300_000-0.000001))^5)*0.99 ≈ 0.0000009899999999934
+    // calculation: ((60_000 *(-1+(300_000/(300_000-0.000001*0.99))^5) )/(300_000/(300_000-0.000001*0.99))^5) = 0.0000009899999999934
     uint256 expectedAmountOut = 989999999993;
     uint256 amountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
@@ -1167,13 +1163,12 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
   function test_getAmountOut_whenTokenInIsTokenAndAmountInIsLarge_shouldReturnCorrectAmount() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     uint256 amountIn = 299_000 * 1e18; // 299,000 tokens only 300k supply
-    // formula:           = reserveBalance * ( -1 + (tokenSupply/(tokenSupply - amountIn ))^(1/reserveRatio))
-    // formula: amountOut = ---------------------------------------------------------------------------------- * (1 - e)
-    // formula:           =          (tokenSupply/(tokenSupply - amountIn ))^(1/reserveRatio)
+    // formula:           = reserveBalance * ( -1 + (tokenSupply/(tokenSupply - amountIn * (1-e)))^(1/reserveRatio))
+    // formula: amountOut = ----------------------------------------------------------------------------------
+    // formula:           =          (tokenSupply/(tokenSupply - amountIn * (1-e)))^(1/reserveRatio)
 
-    // calculation: ((60_000 *(-1+(300_000/(300_000-299_000))^5) ) / (300_000/(300_000-299_000))^5)*0.99 ≈ 59399.999999975555555555
-    //uint256 expectedAmountOut = 59399999999975555555555;
-    //TODO update comments
+    // calculation: ((60_000 *(-1+(300_000/(300_000-299_000*0.99))^5) ) / (300_000/(300_000-299_000 *0.99))^5) = 59999999975030522464200
+    // 1 wei difference due to precision loss
     uint256 expectedAmountOut = 59999999975030522464200;
     uint256 amountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
@@ -1713,7 +1708,6 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     (, , uint256 tokenSupplyAfter, uint256 reserveBalanceAfter, , ) = bancorExchangeProvider.exchanges(exchangeId);
 
     assertEq(reserveBalanceAfter, reserveBalanceBefore - amountOut);
-
     assertEq(tokenSupplyAfter, tokenSupplyBefore - amountIn);
   }
 
