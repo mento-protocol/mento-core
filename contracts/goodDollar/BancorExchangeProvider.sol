@@ -167,7 +167,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   function setReserve(address _reserve) public onlyOwner {
     require(_reserve != address(0), "Reserve address must be set");
     reserve = IReserve(_reserve);
-    emit ReserveUpdated(address(_reserve));
+    emit ReserveUpdated(_reserve);
   }
 
   /// @inheritdoc IBancorExchangeProvider
