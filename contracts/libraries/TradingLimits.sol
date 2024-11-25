@@ -168,7 +168,7 @@ library TradingLimits {
    */
   function safeINT48Add(int48 a, int48 b) internal pure returns (int48) {
     int256 c = int256(a) + int256(b);
-    require(c >= -1 * MAX_INT48 && c <= MAX_INT48, "int48 addition overflow");
+    require(c >= MIN_INT48 && c <= MAX_INT48, "int48 addition overflow");
     return int48(c);
   }
 }
