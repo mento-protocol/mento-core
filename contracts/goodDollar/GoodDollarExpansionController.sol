@@ -21,9 +21,10 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   /* ==================== State Variables ==================== */
   /* ========================================================= */
 
-  // MAX_WEIGHT is the max rate that can be assigned to an exchange
-  uint256 public constant MAX_WEIGHT = 1e18;
+  // EXPANSION_MAX_WEIGHT is the max rate that can be assigned to an exchange
+  uint256 public constant EXPANSION_MAX_WEIGHT = 1e18;
 
+  // BANCOR_MAX_WEIGHT is used for BPS calculations in GoodDollarExchangeProvider
   uint32 public constant BANCOR_MAX_WEIGHT = 1e8;
 
   // Address of the distribution helper contract
@@ -125,7 +126,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
   /// @inheritdoc IGoodDollarExpansionController
   function setExpansionConfig(bytes32 exchangeId, uint64 expansionRate, uint32 expansionFrequency) external onlyAvatar {
-    require(expansionRate < MAX_WEIGHT, "Expansion rate must be less than 100%");
+    require(expansionRate < EXPANSION_MAX_WEIGHT, "Expansion rate must be less than 100%");
     require(expansionRate > 0, "Expansion rate must be greater than 0");
     require(expansionFrequency > 0, "Expansion frequency must be greater than 0");
 
@@ -246,7 +247,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
       numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionFrequency;
     }
 
-    uint256 stepReserveRatioScalar = MAX_WEIGHT - config.expansionRate;
+    uint256 stepReserveRatioScalar = EXPANSION_MAX_WEIGHT - config.expansionRate;
     return unwrap(powu(wrap(stepReserveRatioScalar), numberOfExpansions));
   }
 
