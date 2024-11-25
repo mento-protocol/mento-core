@@ -683,6 +683,15 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     exchangeId = exchangeProvider.createExchange(poolExchange);
   }
 
+  function test_updateRatioForReward_whenNewRatioIsZero_shouldRevert() public {
+    // Use a very large reward that will make the denominator massive compared to numerator
+    uint256 veryLargeReward = type(uint256).max / 1e20; // Large but not large enough to overflow
+
+    vm.expectRevert("New ratio must be greater than 0");
+    vm.prank(expansionControllerAddress);
+    exchangeProvider.updateRatioForReward(exchangeId, veryLargeReward);
+  }
+
   function test_updateRatioForReward_whenCallerIsNotExpansionController_shouldRevert() public {
     vm.prank(makeAddr("NotExpansionController"));
     vm.expectRevert("Only ExpansionController can call this function");
