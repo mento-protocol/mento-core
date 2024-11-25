@@ -210,7 +210,7 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
 
     require(newRatioUint > 0, "New ratio must be greater than 0");
 
-    uint256 allowedSlippage = (exchange.reserveRatio * maxSlippagePercentage) / 100;
+    uint256 allowedSlippage = (exchange.reserveRatio * maxSlippagePercentage) / MAX_WEIGHT;
     require(exchange.reserveRatio - newRatioUint <= allowedSlippage, "Slippage exceeded");
 
     exchanges[exchangeId].reserveRatio = newRatioUint;

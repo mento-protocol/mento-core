@@ -24,6 +24,8 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   // MAX_WEIGHT is the max rate that can be assigned to an exchange
   uint256 public constant MAX_WEIGHT = 1e18;
 
+  uint32 public constant BANCOR_MAX_WEIGHT = 1e8;
+
   // Address of the distribution helper contract
   IDistributionHelper public distributionHelper;
 
@@ -191,7 +193,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   /// @inheritdoc IGoodDollarExpansionController
   function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
     // Defaults to no slippage protection
-    mintRewardFromReserveRatio(exchangeId, to, amount, 100);
+    mintRewardFromReserveRatio(exchangeId, to, amount, BANCOR_MAX_WEIGHT);
   }
 
   /// @inheritdoc IGoodDollarExpansionController
@@ -203,7 +205,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
   ) public onlyAvatar {
     require(to != address(0), "Recipient address must be set");
     require(amount > 0, "Amount must be greater than 0");
-    require(maxSlippagePercentage <= 100, "Max slippage percentage cannot be greater than 100%");
+    require(maxSlippagePercentage <= BANCOR_MAX_WEIGHT, "Max slippage percentage cannot be greater than 100%");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 

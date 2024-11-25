@@ -72,7 +72,7 @@ interface IGoodDollarExchangeProvider {
    * @notice Calculates the reserve ratio needed to mint the given G$ reward.
    * @param exchangeId The ID of the pool the G$ reward is minted from.
    * @param reward The amount of G$ tokens to be minted as a reward.
-   * @param maxSlippagePercentage Maximum allowed percentage difference between new and old reserve ratio (0-100).
+   * @param maxSlippagePercentage Maximum allowed percentage difference between new and old reserve ratio (0-1e8).
    */
   function updateRatioForReward(bytes32 exchangeId, uint256 reward, uint256 maxSlippagePercentage) external;
 

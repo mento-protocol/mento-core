@@ -614,7 +614,7 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
   function test_mintRewardFromReserveRatio_whenSlippageIsGreaterThan100_shouldRevert() public {
     vm.prank(avatarAddress);
     vm.expectRevert("Max slippage percentage cannot be greater than 100%");
-    expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 1000e18, 101);
+    expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 1000e18, 1e8 + 1);
   }
 
   function test_mintRewardFromReserveRatio_whenCallerIsAvatar_shouldMintAndEmit() public {
