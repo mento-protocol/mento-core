@@ -122,10 +122,13 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) external view virtual returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
+
     if (tokenIn == exchange.tokenAddress) {
+      require(scaledAmountIn < exchange.tokenSupply, "amountIn is greater than tokenSupply");
       // apply exit contribution
       scaledAmountIn = (scaledAmountIn * (MAX_WEIGHT - exchange.exitContribution)) / MAX_WEIGHT;
     }
+
     uint256 scaledAmountOut = _getScaledAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
     amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
     return amountOut;
@@ -141,10 +144,13 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
     uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+
     if (tokenIn == exchange.tokenAddress) {
       // apply exit contribution
       scaledAmountIn = (scaledAmountIn * MAX_WEIGHT) / (MAX_WEIGHT - exchange.exitContribution);
+      require(scaledAmountIn < exchange.tokenSupply, "amountIn is greater than tokenSupply");
     }
+
     amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
     return amountIn;
   }
@@ -204,21 +210,23 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     uint256 amountIn
   ) public virtual onlyBroker returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
-    uint256 exitContribution;
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
+    uint256 exitContribution;
 
     if (tokenIn == exchange.tokenAddress) {
+      require(scaledAmountIn < exchange.tokenSupply, "amountIn is greater than tokenSupply");
       // apply exit contribution
       exitContribution = (scaledAmountIn * exchange.exitContribution) / MAX_WEIGHT;
       scaledAmountIn -= exitContribution;
     }
 
     uint256 scaledAmountOut = _getScaledAmountOut(exchange, tokenIn, tokenOut, scaledAmountIn);
-    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
 
+    executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
     if (exitContribution > 0) {
       accountExitContribution(exchangeId, exitContribution);
     }
+
     amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
     return amountOut;
   }
@@ -233,16 +241,17 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
     uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
+
     uint256 exitContribution;
     if (tokenIn == exchange.tokenAddress) {
       // apply exit contribution
       uint256 scaledAmountInWithExitContribution = (scaledAmountIn * MAX_WEIGHT) /
         (MAX_WEIGHT - exchange.exitContribution);
+      require(scaledAmountInWithExitContribution < exchange.tokenSupply, "amountIn is greater than tokenSupply");
       exitContribution = scaledAmountInWithExitContribution - scaledAmountIn;
     }
 
     executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
-
     if (exitContribution > 0) {
       accountExitContribution(exchangeId, exitContribution);
       scaledAmountIn = scaledAmountIn + exitContribution;
@@ -250,20 +259,6 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
     amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
     return amountIn;
-  }
-
-  function accountExitContribution(bytes32 exchangeId, uint256 exitContribution) internal {
-    PoolExchange memory exchange = getPoolExchange(exchangeId);
-    // newRatio = (Supply * oldRatio) / (Supply - exitContribution)
-    uint256 scaledReserveRatio = uint256(exchange.reserveRatio) * 1e10;
-    UD60x18 nominator = wrap(exchange.tokenSupply).mul(wrap(scaledReserveRatio));
-    UD60x18 denominator = wrap(exchange.tokenSupply - exitContribution);
-    UD60x18 newRatio = nominator.div(denominator);
-
-    uint256 newRatioScaled = unwrap(newRatio) / 1e10;
-
-    exchanges[exchangeId].reserveRatio = uint32(newRatioScaled);
-    exchanges[exchangeId].tokenSupply -= exitContribution;
   }
 
   /* =========================================================== */
@@ -334,6 +329,27 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     }
     exchanges[exchangeId].reserveBalance = exchange.reserveBalance;
     exchanges[exchangeId].tokenSupply = exchange.tokenSupply;
+  }
+
+  /**
+   * @dev Accounting of exit contribution without changing the current price of an exchange.
+   * this is done by updating the reserve ratio and subtracting the exit contribution from the token supply.
+   * Formula: newRatio = (Supply * oldRatio) / (Supply - exitContribution)
+   * @notice Accounting of exit contribution on a swap.
+   * @param exchangeId The ID of the pool
+   * @param exitContribution The amount of the token to be removed from the pool, scaled to 18 decimals
+   */
+  function accountExitContribution(bytes32 exchangeId, uint256 exitContribution) internal {
+    PoolExchange memory exchange = getPoolExchange(exchangeId);
+    uint256 scaledReserveRatio = uint256(exchange.reserveRatio) * 1e10;
+    UD60x18 nominator = wrap(exchange.tokenSupply).mul(wrap(scaledReserveRatio));
+    UD60x18 denominator = wrap(exchange.tokenSupply - exitContribution);
+    UD60x18 newRatio = nominator.div(denominator);
+
+    uint256 newRatioScaled = unwrap(newRatio) / 1e10;
+
+    exchanges[exchangeId].reserveRatio = uint32(newRatioScaled);
+    exchanges[exchangeId].tokenSupply -= exitContribution;
   }
 
   /**
