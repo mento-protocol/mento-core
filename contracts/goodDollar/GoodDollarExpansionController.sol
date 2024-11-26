@@ -173,11 +173,10 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Ownabl
       .getPoolExchange(exchangeId);
     ExchangeExpansionConfig memory config = getExpansionConfig(exchangeId);
 
-    bool shouldExpand = block.timestamp > config.lastExpansion + config.expansionFrequency;
+    bool shouldExpand = block.timestamp >= config.lastExpansion + config.expansionFrequency;
     if (shouldExpand || config.lastExpansion == 0) {
-      uint256 reserveRatioScalar = _getReserveRatioScalar(config);
+      uint256 reserveRatioScalar = _getReserveRatioScalar(exchangeId);
 
-      exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(block.timestamp);
       amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, reserveRatioScalar);
 
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
@@ -220,17 +219,23 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Ownabl
 
   /**
    * @notice Calculates the reserve ratio scalar for the given expansion config.
-   * @param config The expansion config.
+   * @param exchangeId The ID of the exchange.
    * @return reserveRatioScalar The reserve ratio scalar.
    */
-  function _getReserveRatioScalar(ExchangeExpansionConfig memory config) internal view returns (uint256) {
+  function _getReserveRatioScalar(bytes32 exchangeId) internal returns (uint256) {
+    ExchangeExpansionConfig memory config = getExpansionConfig(exchangeId);
     uint256 numberOfExpansions;
 
     // If there was no previous expansion, we expand once.
     if (config.lastExpansion == 0) {
       numberOfExpansions = 1;
+      exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(block.timestamp);
     } else {
       numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionFrequency;
+      // slither-disable-next-line divide-before-multiply
+      exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(
+        config.lastExpansion + numberOfExpansions * config.expansionFrequency
+      );
     }
 
     uint256 stepReserveRatioScalar = MAX_WEIGHT - config.expansionRate;
