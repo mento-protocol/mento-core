@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, max-line-length
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
-import { Test, console } from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
 import { BancorExchangeProvider } from "contracts/goodDollar/BancorExchangeProvider.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
@@ -1176,7 +1176,6 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
       tokenOut: address(reserveToken),
       amountIn: amountIn
     });
-    console.log("amountOut", amountOut);
 
     // we allow up to 0.1% difference due to precision loss
     assertApproxEqRel(amountOut, expectedAmountOut, 1e18 * 0.001);
