@@ -686,7 +686,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
     vm.expectRevert("New ratio must be greater than 0");
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, veryLargeReward);
+    exchangeProvider.updateRatioForReward(exchangeId, veryLargeReward, 1e8);
   }
 
   function test_updateRatioForReward_whenCallerIsNotExpansionController_shouldRevert() public {
