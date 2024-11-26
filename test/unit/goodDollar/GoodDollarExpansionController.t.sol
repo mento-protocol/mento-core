@@ -645,6 +645,12 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
     expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 0);
   }
 
+  function test_mintRewardFromReserveRatio_whenSlippageIsGreaterThan100_shouldRevert() public {
+    vm.prank(avatarAddress);
+    vm.expectRevert("Max slippage percentage cannot be greater than 100%");
+    expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 1000e18, 1e8 + 1);
+  }
+
   function test_mintRewardFromReserveRatio_whenCallerIsAvatar_shouldMintAndEmit() public {
     uint256 amountToMint = 1000e18;
     address to = makeAddr("To");
@@ -655,6 +661,20 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
 
     vm.prank(avatarAddress);
     expansionController.mintRewardFromReserveRatio(exchangeId, to, amountToMint);
+
+    assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
+  }
+
+  function test_mintRewardFromReserveRatio_whenCustomSlippage_shouldMintAndEmit() public {
+    uint256 amountToMint = 1000e18;
+    address to = makeAddr("To");
+    uint256 toBalanceBefore = token.balanceOf(to);
+
+    vm.expectEmit(true, true, true, true);
+    emit RewardMinted(exchangeId, to, amountToMint);
+
+    vm.prank(avatarAddress);
+    expansionController.mintRewardFromReserveRatio(exchangeId, to, amountToMint, 1);
 
     assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
   }

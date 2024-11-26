@@ -195,23 +195,31 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   /**
    * @inheritdoc IGoodDollarExchangeProvider
    * @dev Calculates the new reserve ratio needed to mint the G$ reward while keeping the current price the same.
-   *      calculation: newRatio = reserveBalance / (tokenSupply + reward) * currentPrice
+   *      calculation: newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
    */
-  function updateRatioForReward(bytes32 exchangeId, uint256 reward) external onlyExpansionController whenNotPaused {
+  function updateRatioForReward(
+    bytes32 exchangeId,
+    uint256 reward,
+    uint256 maxSlippagePercentage
+  ) external onlyExpansionController whenNotPaused {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
-    uint256 currentPriceScaled = currentPrice(exchangeId) * tokenPrecisionMultipliers[exchange.reserveAsset];
-    uint256 rewardScaled = reward * tokenPrecisionMultipliers[exchange.tokenAddress];
+    uint256 scaledRatio = uint256(exchange.reserveRatio) * 1e10;
+    uint256 scaledReward = reward * tokenPrecisionMultipliers[exchange.tokenAddress];
 
-    UD60x18 numerator = wrap(exchange.reserveBalance);
-    UD60x18 denominator = wrap(exchange.tokenSupply + rewardScaled).mul(wrap(currentPriceScaled));
-    uint256 newRatioScaled = unwrap(numerator.div(denominator));
+    UD60x18 numerator = wrap(exchange.tokenSupply).mul(wrap(scaledRatio));
+    UD60x18 denominator = wrap(exchange.tokenSupply).add(wrap(scaledReward));
+    uint256 newScaledRatio = unwrap(numerator.div(denominator));
 
-    uint32 newRatioUint = uint32(newRatioScaled / 1e10);
+    uint32 newRatioUint = uint32(newScaledRatio / 1e10);
+
     require(newRatioUint > 0, "New ratio must be greater than 0");
 
+    uint256 allowedSlippage = (exchange.reserveRatio * maxSlippagePercentage) / MAX_WEIGHT;
+    require(exchange.reserveRatio - newRatioUint <= allowedSlippage, "Slippage exceeded");
+
     exchanges[exchangeId].reserveRatio = newRatioUint;
-    exchanges[exchangeId].tokenSupply += rewardScaled;
+    exchanges[exchangeId].tokenSupply += scaledReward;
 
     emit ReserveRatioUpdated(exchangeId, newRatioUint);
   }

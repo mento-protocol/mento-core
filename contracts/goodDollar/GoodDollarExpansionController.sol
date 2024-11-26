@@ -21,8 +21,11 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Ownabl
   /* ==================== State Variables ==================== */
   /* ========================================================= */
 
-  // MAX_WEIGHT is the max rate that can be assigned to an exchange
-  uint256 public constant MAX_WEIGHT = 1e18;
+  // EXPANSION_MAX_WEIGHT is the max rate that can be assigned to an exchange
+  uint256 public constant EXPANSION_MAX_WEIGHT = 1e18;
+
+  // BANCOR_MAX_WEIGHT is used for BPS calculations in GoodDollarExchangeProvider
+  uint32 public constant BANCOR_MAX_WEIGHT = 1e8;
 
   // Address of the distribution helper contract
   IDistributionHelper public distributionHelper;
@@ -122,7 +125,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Ownabl
 
   /// @inheritdoc IGoodDollarExpansionController
   function setExpansionConfig(bytes32 exchangeId, uint64 expansionRate, uint32 expansionFrequency) external onlyAvatar {
-    require(expansionRate < MAX_WEIGHT, "Expansion rate must be less than 100%");
+    require(expansionRate < EXPANSION_MAX_WEIGHT, "Expansion rate must be less than 100%");
     require(expansionRate > 0, "Expansion rate must be greater than 0");
     require(expansionFrequency > 0, "Expansion frequency must be greater than 0");
 
@@ -190,12 +193,24 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Ownabl
 
   /// @inheritdoc IGoodDollarExpansionController
   function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
+    // Defaults to no slippage protection
+    mintRewardFromReserveRatio(exchangeId, to, amount, BANCOR_MAX_WEIGHT);
+  }
+
+  /// @inheritdoc IGoodDollarExpansionController
+  function mintRewardFromReserveRatio(
+    bytes32 exchangeId,
+    address to,
+    uint256 amount,
+    uint256 maxSlippagePercentage
+  ) public onlyAvatar {
     require(to != address(0), "Recipient address must be set");
     require(amount > 0, "Amount must be greater than 0");
+    require(maxSlippagePercentage <= BANCOR_MAX_WEIGHT, "Max slippage percentage cannot be greater than 100%");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
-    goodDollarExchangeProvider.updateRatioForReward(exchangeId, amount);
+    goodDollarExchangeProvider.updateRatioForReward(exchangeId, amount, maxSlippagePercentage);
     IGoodDollar(exchange.tokenAddress).mint(to, amount);
 
     // Ignored, because contracts only interacts with trusted contracts and tokens
@@ -238,7 +253,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Ownabl
       );
     }
 
-    uint256 stepReserveRatioScalar = MAX_WEIGHT - config.expansionRate;
+    uint256 stepReserveRatioScalar = EXPANSION_MAX_WEIGHT - config.expansionRate;
     return unwrap(powu(wrap(stepReserveRatioScalar), numberOfExpansions));
   }
 
