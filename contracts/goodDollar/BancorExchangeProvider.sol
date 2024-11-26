@@ -211,8 +211,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   ) public virtual onlyBroker returns (uint256 amountOut) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountIn = amountIn * tokenPrecisionMultipliers[tokenIn];
-    // slither-disable-next-line uninitialized-local
-    uint256 exitContribution;
+    uint256 exitContribution = 0;
 
     if (tokenIn == exchange.tokenAddress) {
       require(scaledAmountIn < exchange.tokenSupply, "amountIn is greater than tokenSupply");
@@ -225,7 +224,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
     executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
     if (exitContribution > 0) {
-      accountExitContribution(exchangeId, exitContribution);
+      _accountExitContribution(exchangeId, exitContribution);
     }
 
     amountOut = scaledAmountOut / tokenPrecisionMultipliers[tokenOut];
@@ -242,24 +241,26 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledAmountOut = amountOut * tokenPrecisionMultipliers[tokenOut];
     uint256 scaledAmountIn = _getScaledAmountIn(exchange, tokenIn, tokenOut, scaledAmountOut);
-    // slither-disable-next-line uninitialized-local
-    uint256 exitContribution;
+
+    uint256 exitContribution = 0;
+    uint256 scaledAmountInWithExitContribution = scaledAmountIn;
 
     if (tokenIn == exchange.tokenAddress) {
       // apply exit contribution
-      uint256 scaledAmountInWithExitContribution = (scaledAmountIn * MAX_WEIGHT) /
-        (MAX_WEIGHT - exchange.exitContribution);
-      require(scaledAmountInWithExitContribution < exchange.tokenSupply, "amountIn is greater than tokenSupply");
+      scaledAmountInWithExitContribution = (scaledAmountIn * MAX_WEIGHT) / (MAX_WEIGHT - exchange.exitContribution);
+      require(
+        scaledAmountInWithExitContribution < exchange.tokenSupply,
+        "amountIn required is greater than tokenSupply"
+      );
       exitContribution = scaledAmountInWithExitContribution - scaledAmountIn;
     }
 
     executeSwap(exchangeId, tokenIn, scaledAmountIn, scaledAmountOut);
     if (exitContribution > 0) {
-      accountExitContribution(exchangeId, exitContribution);
-      scaledAmountIn = scaledAmountIn + exitContribution;
+      _accountExitContribution(exchangeId, exitContribution);
     }
 
-    amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
+    amountIn = scaledAmountInWithExitContribution / tokenPrecisionMultipliers[tokenIn];
     return amountIn;
   }
 
@@ -334,23 +335,23 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   }
 
   /**
+   * @notice Accounting of exit contribution on a swap.
    * @dev Accounting of exit contribution without changing the current price of an exchange.
    * this is done by updating the reserve ratio and subtracting the exit contribution from the token supply.
    * Formula: newRatio = (Supply * oldRatio) / (Supply - exitContribution)
-   * @notice Accounting of exit contribution on a swap.
    * @param exchangeId The ID of the pool
    * @param exitContribution The amount of the token to be removed from the pool, scaled to 18 decimals
    */
-  function accountExitContribution(bytes32 exchangeId, uint256 exitContribution) internal {
+  function _accountExitContribution(bytes32 exchangeId, uint256 exitContribution) internal {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledReserveRatio = uint256(exchange.reserveRatio) * 1e10;
     UD60x18 nominator = wrap(exchange.tokenSupply).mul(wrap(scaledReserveRatio));
     UD60x18 denominator = wrap(exchange.tokenSupply - exitContribution);
-    UD60x18 newRatio = nominator.div(denominator);
+    UD60x18 newRatioScaled = nominator.div(denominator);
 
-    uint256 newRatioScaled = unwrap(newRatio) / 1e10;
+    uint256 newRatio = unwrap(newRatioScaled) / 1e10;
 
-    exchanges[exchangeId].reserveRatio = uint32(newRatioScaled);
+    exchanges[exchangeId].reserveRatio = uint32(newRatio);
     exchanges[exchangeId].tokenSupply -= exitContribution;
   }
 

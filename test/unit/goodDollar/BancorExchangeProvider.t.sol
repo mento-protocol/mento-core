@@ -1658,7 +1658,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     vm.prank(brokerAddress);
-    vm.expectRevert("amountIn is greater than tokenSupply");
+    vm.expectRevert("amountIn required is greater than tokenSupply");
     bancorExchangeProvider.swapOut(exchangeId, address(token), address(reserveToken), poolExchange1.reserveBalance);
   }
 
