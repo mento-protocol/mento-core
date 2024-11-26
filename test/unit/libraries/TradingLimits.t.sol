@@ -259,6 +259,13 @@ contract TradingLimitsTest is Test {
     assertEq(state.netflowGlobal, 0);
   }
 
+  function test_update_withZeroDeltaFlow_doesNotUpdate() public {
+    state = harness.update(state, configL0L1LG(300, 1000, 1 days, 10000, 1000000), 0, 18);
+    assertEq(state.netflow0, 0);
+    assertEq(state.netflow1, 0);
+    assertEq(state.netflowGlobal, 0);
+  }
+
   function test_update_withL0_updatesActive() public {
     state = harness.update(state, configL0(500, 1000), 100 * 1e18, 18);
     assertEq(state.netflow0, 100);
@@ -299,6 +306,12 @@ contract TradingLimitsTest is Test {
   function test_update_withTooLargeAmount_reverts() public {
     vm.expectRevert(bytes("dFlow too large"));
     state = harness.update(state, configLG(500000), 3 * 10e32, 18);
+  }
+
+  function test_update_withTooSmallAmount_reverts() public {
+    int256 tooSmall = (type(int48).min - int256(1)) * 1e18;
+    vm.expectRevert(bytes("dFlow too small"));
+    state = harness.update(state, configLG(500000), tooSmall, 18);
   }
 
   function test_update_withOverflowOnAdd_reverts() public {

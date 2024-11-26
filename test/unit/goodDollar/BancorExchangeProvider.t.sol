@@ -164,12 +164,12 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     bancorExchangeProvider.setExitContribution(exchangeId, 1e5);
   }
 
-  function test_setExitContribution_whenExitContributionAbove100Percent_shouldRevert() public {
+  function test_setExitContribution_whenExitContributionIsNotLessThan100Percent_shouldRevert() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
 
     uint32 maxWeight = bancorExchangeProvider.MAX_WEIGHT();
     vm.expectRevert("Exit contribution is too high");
-    bancorExchangeProvider.setExitContribution(exchangeId, maxWeight + 1);
+    bancorExchangeProvider.setExitContribution(exchangeId, maxWeight);
   }
 
   function test_setExitContribution_whenSenderIsOwner_shouldUpdateAndEmit() public {
