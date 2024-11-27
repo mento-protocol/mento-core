@@ -313,21 +313,21 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
    * @notice Calculates the week number for a given blocknumber
    * @dev It takes L2 transition into account to calculate the week number consistently
-   * @param ts block number
+   * @param blockNumber block number
    * @return week number the block number belongs to
    */
-  function roundTimestamp(uint32 ts) public view returns (uint32) {
+  function getWeekNumber(uint32 blockNumber) public view returns (uint32) {
     require(!paused, "locking is paused");
 
-    if (ts < getEpochShift()) {
+    if (blockNumber < getEpochShift()) {
       return 0;
     }
 
-    if (l2TransitionBlock == 0 || ts < l2TransitionBlock) {
-      uint32 shifted = ts - getEpochShift();
+    if (l2TransitionBlock == 0 || blockNumber < l2TransitionBlock) {
+      uint32 shifted = blockNumber - getEpochShift();
       return shifted / WEEK - uint32(startingPointWeek);
     } else {
-      uint32 shifted = ts - l2Shift;
+      uint32 shifted = blockNumber - l2Shift;
       return uint32(uint256(int256(uint256(shifted / L2_WEEK)) - l2StartingPointWeek));
     }
   }
@@ -404,7 +404,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @param blockNumber block number until which to update lines
    */
   function updateAccountLinesBlockNumber(address account, uint32 blockNumber) external onlyOwner {
-    uint32 time = roundTimestamp(blockNumber);
+    uint32 time = getWeekNumber(blockNumber);
     updateAccountLines(account, time);
   }
 
@@ -413,7 +413,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @param blockNumber block number until which to update line
    */
   function updateTotalSupplyLineBlockNumber(uint32 blockNumber) external onlyOwner {
-    uint32 time = roundTimestamp(blockNumber);
+    uint32 time = getWeekNumber(blockNumber);
     updateTotalSupplyLine(time);
   }
   /**
