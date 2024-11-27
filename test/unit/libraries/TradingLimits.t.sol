@@ -316,10 +316,23 @@ contract TradingLimitsTest is Test {
 
   function test_update_withOverflowOnAdd_reverts() public {
     ITradingLimits.Config memory config = configLG(int48(uint48(2 ** 47)));
-    int256 maxFlow = int256(uint256(type(uint48).max / 2));
+    int256 maxFlow = int256(type(int48).max);
 
     state = harness.update(state, config, (maxFlow - 1000) * 1e18, 18);
+    state = harness.update(state, config, 1000 * 1e18, 18);
+
     vm.expectRevert(bytes("int48 addition overflow"));
-    state = harness.update(state, config, 1002 * 10e18, 18);
+    state = harness.update(state, config, 1 * 1e18, 18);
+  }
+
+  function test_update_withUnderflowOnAdd_reverts() public {
+    ITradingLimits.Config memory config = configLG(int48(uint48(2 ** 47)));
+    int256 minFlow = int256(type(int48).min);
+
+    state = harness.update(state, config, (minFlow + 1000) * 1e18, 18);
+    state = harness.update(state, config, -1000 * 1e18, 18);
+
+    vm.expectRevert(bytes("int48 addition overflow"));
+    state = harness.update(state, config, -1 * 1e18, 18);
   }
 }
