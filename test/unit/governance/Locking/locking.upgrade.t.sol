@@ -25,7 +25,7 @@ contract Upgrade_LockingTest is LockingTest {
     assertEq(locking.mentoLabsMultisig(), address(0));
     assertEq(locking.l2TransitionBlock(), 0);
     assertEq(locking.l2StartingPointWeek(), 0);
-    assertEq(locking.l2Shift(), 0);
+    assertEq(locking.l2EpochShift(), 0);
     assert(!locking.paused());
   }
 
@@ -64,17 +64,17 @@ contract Upgrade_LockingTest is LockingTest {
     assert(locking.paused());
   }
 
-  function test_setL2Shift_whenCalledByNonMentoMultisig_shouldRevert() public setMultisig {
+  function test_setL2EpochShift_whenCalledByNonMentoMultisig_shouldRevert() public setMultisig {
     vm.prank(alice);
     vm.expectRevert("caller is not MentoLabs multisig");
-    locking.setL2Shift(100);
+    locking.setL2EpochShift(100);
   }
 
-  function test_setL2Shift_whenCalledByMentoMultisig_shouldSetL2BlockAndPause() public setMultisig {
+  function test_setL2EpochShift_whenCalledByMentoMultisig_shouldSetL2BlockAndPause() public setMultisig {
     vm.prank(mentoLabs);
-    locking.setL2Shift(100);
+    locking.setL2EpochShift(100);
 
-    assertEq(locking.l2Shift(), 100);
+    assertEq(locking.l2EpochShift(), 100);
   }
 
   function test_setL2StartingPointWeek_whenCalledByNonMentoMultisig_shouldRevert() public setMultisig {
@@ -209,9 +209,9 @@ contract Upgrade_LockingTest is LockingTest {
     locking.setL2StartingPointWeek(-11);
 
     vm.prank(mentoLabs);
-    locking.setL2Shift(l2Day * 3);
+    locking.setL2EpochShift(l2Day * 3);
 
-    // after the L2 starting point week and l2Shift are set, the timing should be equal to the l1 timing
+    // after the L2 starting point week and l2EpochShift are set, the timing should be equal to the l1 timing
     assertEq(locking.getWeek(), l1WeekNo);
     assertEq(locking.l2BlockTillNextPeriod(), l2Day * 3);
 

@@ -54,7 +54,7 @@ contract LockingHarness is Locking {
 
   function l2BlockTillNextPeriod() external view returns (uint256) {
     uint256 currentWeek = this.getWeek();
-    return (L2_WEEK * uint256(int256(currentWeek) + l2StartingPointWeek + 1)) + l2Shift - getBlockNumber();
+    return (L2_WEEK * uint256(int256(currentWeek) + l2StartingPointWeek + 1)) + l2EpochShift - getBlockNumber();
   }
 
   function setStatingPointWeek(uint32 _week) external {

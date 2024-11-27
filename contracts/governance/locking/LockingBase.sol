@@ -105,7 +105,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
    * @dev Shift amount used after L2 transition to move the start of the epoch to 00-00 UTC Wednesday (approx)
    */
-  uint32 public l2Shift;
+  uint32 public l2EpochShift;
   /**
    * @dev Address of the Mento Labs multisig
    */
@@ -167,7 +167,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
    * @dev set new L2 shift amount
    */
-  event SetL2Shift(uint32 indexed l2Shift);
+  event SetL2EpochShift(uint32 indexed l2EpochShift);
   /**
    * @dev set new L2 starting point week number
    */
@@ -327,7 +327,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
       uint32 shifted = blockNumber - getEpochShift();
       return shifted / WEEK - uint32(startingPointWeek);
     } else {
-      uint32 shifted = blockNumber - l2Shift;
+      uint32 shifted = blockNumber - l2EpochShift;
       return uint32(uint256(int256(uint256(shifted / L2_WEEK)) - l2StartingPointWeek));
     }
   }
@@ -438,13 +438,13 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
 
   /**
-   * @notice Sets the L2 shift amount
-   * @param l2Shift_ shift amount that will be used after L2 transition
+   * @notice Sets the L2 epoch shift amount
+   * @param l2EpochShift_ shift amount that will be used after L2 transition
    */
-  function setL2Shift(uint32 l2Shift_) external onlyMentoLabs {
-    l2Shift = l2Shift_;
+  function setL2EpochShift(uint32 l2EpochShift_) external onlyMentoLabs {
+    l2EpochShift = l2EpochShift_;
 
-    emit SetL2Shift(l2Shift_);
+    emit SetL2EpochShift(l2EpochShift_);
   }
 
   /**

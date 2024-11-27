@@ -259,7 +259,7 @@ contract LockingUpgradeForkTest is BaseForkTest {
     vm.prank(mentoLabsMultisig);
     locking.setL2StartingPointWeek(20);
     vm.prank(mentoLabsMultisig);
-    locking.setL2Shift(507776);
+    locking.setL2EpochShift(507776);
     vm.prank(mentoLabsMultisig);
     locking.setPaused(false);
   }
