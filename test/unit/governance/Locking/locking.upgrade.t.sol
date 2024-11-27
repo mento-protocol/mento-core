@@ -123,11 +123,7 @@ contract Upgrade_LockingTest is LockingTest {
     locking.withdraw();
   }
 
-  modifier l2LockingSetup(
-    uint32 advanceWeeks,
-    uint32 startingPointWeek,
-    uint32 l1Shift
-  ) {
+  modifier l2LockingSetup(uint32 advanceWeeks, uint32 startingPointWeek, uint32 l1Shift) {
     vm.prank(owner);
     locking.setMentoLabsMultisig(mentoLabs);
 
