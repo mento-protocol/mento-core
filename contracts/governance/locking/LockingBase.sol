@@ -97,7 +97,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
    * @dev L2 transtion block number
    */
-  uint256 public l2Block;
+  uint256 public l2TransitionBlock;
   /**
    * @dev L2 starting point week number
    */
@@ -163,7 +163,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
    * @dev set new L2 transition block number
    */
-  event SetL2TransitionBlock(uint256 indexed l2Block);
+  event SetL2TransitionBlock(uint256 indexed l2TransitionBlock);
   /**
    * @dev set new L2 shift amount
    */
@@ -323,7 +323,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
       return 0;
     }
 
-    if (l2Block == 0 || ts < l2Block) {
+    if (l2TransitionBlock == 0 || ts < l2TransitionBlock) {
       uint32 shifted = ts - getEpochShift();
       return shifted / WEEK - uint32(startingPointWeek);
     } else {
@@ -427,14 +427,14 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   }
   /**
    * @notice Sets the L2 transition block number and pauses locking and governance
-   * @param l2Block_ block number of the L2 transition
+   * @param l2TransitionBlock_ block number of the L2 transition
    *
    */
-  function setL2TransitionBlock(uint256 l2Block_) external onlyMentoLabs {
-    l2Block = l2Block_;
+  function setL2TransitionBlock(uint256 l2TransitionBlock_) external onlyMentoLabs {
+    l2TransitionBlock = l2TransitionBlock_;
     paused = true;
 
-    emit SetL2TransitionBlock(l2Block_);
+    emit SetL2TransitionBlock(l2TransitionBlock_);
   }
 
   /**

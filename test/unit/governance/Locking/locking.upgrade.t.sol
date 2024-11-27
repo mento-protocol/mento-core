@@ -23,7 +23,7 @@ contract Upgrade_LockingTest is LockingTest {
   function test_initialSetup_shouldHaveCorrectValues() public view {
     assertEq(locking.L2_WEEK(), l2Week);
     assertEq(locking.mentoLabsMultisig(), address(0));
-    assertEq(locking.l2Block(), 0);
+    assertEq(locking.l2TransitionBlock(), 0);
     assertEq(locking.l2StartingPointWeek(), 0);
     assertEq(locking.l2Shift(), 0);
     assert(!locking.paused());
@@ -60,7 +60,7 @@ contract Upgrade_LockingTest is LockingTest {
     vm.prank(mentoLabs);
     locking.setL2TransitionBlock(blockNumber);
 
-    assertEq(locking.l2Block(), blockNumber);
+    assertEq(locking.l2TransitionBlock(), blockNumber);
     assert(locking.paused());
   }
 
@@ -123,7 +123,11 @@ contract Upgrade_LockingTest is LockingTest {
     locking.withdraw();
   }
 
-  modifier l2LockingSetup(uint32 advanceWeeks, uint32 startingPointWeek, uint32 l1Shift) {
+  modifier l2LockingSetup(
+    uint32 advanceWeeks,
+    uint32 startingPointWeek,
+    uint32 l1Shift
+  ) {
     vm.prank(owner);
     locking.setMentoLabsMultisig(mentoLabs);
 
