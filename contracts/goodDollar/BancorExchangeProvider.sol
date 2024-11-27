@@ -146,9 +146,11 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     // calculates: reserveBalance / (tokenSupply * reserveRatio)
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledReserveRatio = uint256(exchange.reserveRatio) * 1e10;
+
     UD60x18 denominator = wrap(exchange.tokenSupply).mul(wrap(scaledReserveRatio));
-    price = unwrap(wrap(exchange.reserveBalance).div(denominator));
-    return price;
+    uint256 priceScaled = unwrap(wrap(exchange.reserveBalance).div(denominator));
+
+    price = priceScaled / tokenPrecisionMultipliers[exchange.reserveAsset];
   }
 
   /* ============================================================ */

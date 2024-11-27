@@ -5,6 +5,8 @@ pragma solidity 0.8.18;
 
 import { Test } from "forge-std/Test.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
+import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
+
 import { BancorExchangeProvider } from "contracts/goodDollar/BancorExchangeProvider.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
@@ -30,16 +32,19 @@ contract BancorExchangeProviderTest is Test {
   ERC20 public reserveToken;
   ERC20 public token;
   ERC20 public token2;
+  ERC20DecimalsMock public reserveTokenWith6Decimals;
 
   address public reserveAddress;
   address public brokerAddress;
   IBancorExchangeProvider.PoolExchange public poolExchange1;
   IBancorExchangeProvider.PoolExchange public poolExchange2;
+  IBancorExchangeProvider.PoolExchange public poolExchange3;
 
   function setUp() public virtual {
     reserveToken = new ERC20("cUSD", "cUSD");
     token = new ERC20("Good$", "G$");
     token2 = new ERC20("Good2$", "G2$");
+    reserveTokenWith6Decimals = new ERC20DecimalsMock("Reserve Token", "RES", 6);
 
     brokerAddress = makeAddr("Broker");
     reserveAddress = makeAddr("Reserve");
@@ -62,6 +67,15 @@ contract BancorExchangeProviderTest is Test {
       exitContribution: 1e8 * 0.01
     });
 
+    poolExchange3 = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveTokenWith6Decimals),
+      tokenAddress: address(token),
+      tokenSupply: 300_000 * 1e18,
+      reserveBalance: 60_000 * 1e18,
+      reserveRatio: 1e8 * 0.2,
+      exitContribution: 1e8 * 0.01
+    });
+
     vm.mockCall(
       reserveAddress,
       abi.encodeWithSelector(IReserve(reserveAddress).isStableAsset.selector, address(token)),
@@ -75,6 +89,12 @@ contract BancorExchangeProviderTest is Test {
     vm.mockCall(
       reserveAddress,
       abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveToken)),
+      abi.encode(true)
+    );
+
+    vm.mockCall(
+      reserveAddress,
+      abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveTokenWith6Decimals)),
       abi.encode(true)
     );
   }
@@ -1486,6 +1506,15 @@ contract BancorExchangeProviderTest_currentPrice is BancorExchangeProviderTest {
     // formula: price = reserveBalance / tokenSupply * reserveRatio
     // calculation: 60_000 / 300_000 * 0.2 = 1
     uint256 expectedPrice = 1e18;
+    uint256 price = bancorExchangeProvider.currentPrice(exchangeId);
+    assertEq(price, expectedPrice);
+  }
+
+  function test_currentPrice_whenReserveTokenHasLessThan18Decimals_shouldReturnCorrectPrice() public {
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
+    // formula: price = reserveBalance / tokenSupply * reserveRatio
+    // calculation: 60_000 / 300_000 * 0.2 = 1
+    uint256 expectedPrice = 1e6;
     uint256 price = bancorExchangeProvider.currentPrice(exchangeId);
     assertEq(price, expectedPrice);
   }
