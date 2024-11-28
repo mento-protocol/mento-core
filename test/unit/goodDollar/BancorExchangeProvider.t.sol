@@ -164,6 +164,12 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     bancorExchangeProvider.setExitContribution(exchangeId, 1e5);
   }
 
+  function test_setExitContribution_whenReserveBalanceIsZero_shouldRevert() public {
+    poolExchange1.reserveBalance = 0;
+    vm.expectRevert("Reserve balance must be greater than 0");
+    bancorExchangeProvider.createExchange(poolExchange1);
+  }
+
   function test_setExitContribution_whenExitContributionIsNotLessThan100Percent_shouldRevert() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
 
