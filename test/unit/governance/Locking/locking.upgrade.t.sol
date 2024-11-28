@@ -144,22 +144,22 @@ contract Upgrade_LockingTest is LockingTest {
   function test_getWeek_whenShiftAndStartingPointIs0_shouldReturnCorrectWeekNo() public l2LockingSetup(8, 0, 0) {
     // 2 + 8 weeks = 10 weeks on l1 = 2 weeks on l2
     assertEq(locking.getWeek(), 2);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Week);
+    assertEq(locking.blockTillNextPeriod(), l2Week);
 
     _incrementBlock(l2Day * 3);
 
     assertEq(locking.getWeek(), 2);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Day * 4);
+    assertEq(locking.blockTillNextPeriod(), l2Day * 4);
 
     _incrementBlock(l2Day * 5);
 
     assertEq(locking.getWeek(), 3);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Day * 6);
+    assertEq(locking.blockTillNextPeriod(), l2Day * 6);
 
     _incrementBlock(l2Day * 8);
 
     assertEq(locking.getWeek(), 4);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Day * 5);
+    assertEq(locking.blockTillNextPeriod(), l2Day * 5);
   }
 
   function test_getWeek_whenL2StartingPointIsPositive_shouldReturnCorrectWeekNo() public l2LockingSetup(198, 190, 0) {
@@ -167,7 +167,7 @@ contract Upgrade_LockingTest is LockingTest {
     uint32 l1WeekNo = 10;
     // l2 week no = (198 + 2) / 5 = 40
     assertEq(locking.getWeek(), 40);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Week);
+    assertEq(locking.blockTillNextPeriod(), l2Week);
 
     // l2WeekNo - l1WeekNo = 40 - 10 = 30
     vm.prank(mentoLabs);
@@ -182,7 +182,7 @@ contract Upgrade_LockingTest is LockingTest {
     uint32 l1WeekNo = 20;
     // l2 week no = (18 + 2) / 5 = 4
     assertEq(locking.getWeek(), 4);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Week);
+    assertEq(locking.blockTillNextPeriod(), l2Week);
 
     // l2WeekNo - l1WeekNo = 4 - 20 = -16
     vm.prank(mentoLabs);
@@ -198,7 +198,7 @@ contract Upgrade_LockingTest is LockingTest {
 
     // l2 week no = (18 + 2) / 5 = 4
     assertEq(locking.getWeek(), 4);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Week);
+    assertEq(locking.blockTillNextPeriod(), l2Week);
 
     // l2WeekNo - l1WeekNo = 4 - 14 - 1 = -11
     vm.prank(mentoLabs);
@@ -209,22 +209,22 @@ contract Upgrade_LockingTest is LockingTest {
 
     // after the L2 starting point week and l2EpochShift are set, the timing should be equal to the l1 timing
     assertEq(locking.getWeek(), l1WeekNo);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Day * 3);
+    assertEq(locking.blockTillNextPeriod(), l2Day * 3);
 
     _incrementBlock(l2Day);
 
     assertEq(locking.getWeek(), l1WeekNo);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Day * 2);
+    assertEq(locking.blockTillNextPeriod(), l2Day * 2);
 
     _incrementBlock(l2Day);
 
     assertEq(locking.getWeek(), l1WeekNo);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Day);
+    assertEq(locking.blockTillNextPeriod(), l2Day);
 
     _incrementBlock(l2Day);
 
     assertEq(locking.getWeek(), l1WeekNo + 1);
-    assertEq(locking.l2BlockTillNextPeriod(), l2Week);
+    assertEq(locking.blockTillNextPeriod(), l2Week);
   }
 
   function test_totalSupply_whenCalledAfterL2Transition_shouldReturnCorrectValues() public setMultisig {

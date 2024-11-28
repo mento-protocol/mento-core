@@ -313,31 +313,45 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
    * @notice Calculates the week number for a given blocknumber
    * @dev It takes L2 transition into account to calculate the week number consistently
-   * @param blockNumber block number
+   * @param blockNumber block number to calculate the week number for
    * @return week number the block number belongs to
    */
   function getWeekNumber(uint32 blockNumber) public view returns (uint32) {
     require(!paused, "locking is paused");
 
-    if (blockNumber < getEpochShift()) {
+    if (blockNumber < _getEpochShift(blockNumber)) {
       return 0;
     }
+    uint32 shifted = blockNumber - _getEpochShift(blockNumber);
 
-    if (l2TransitionBlock == 0 || blockNumber < l2TransitionBlock) {
-      uint32 shifted = blockNumber - getEpochShift();
+    if (_isPreL2Transition(blockNumber)) {
       return shifted / WEEK - uint32(startingPointWeek);
     } else {
-      uint32 shifted = blockNumber - l2EpochShift;
       return uint32(uint256(int256(uint256(shifted / L2_WEEK)) - l2StartingPointWeek));
     }
   }
 
   /**
-   * @notice method returns the amount of blocks to shift locking epoch on L1 CELO.
-   * we move it to 00-00 UTC Wednesday (approx) by shifting 89964 blocks
+   * @notice Returns the epoch shift based on L2 transition status
+   * @dev Epoch shift is the amount of blocks to move the epoch start to 00-00 UTC Wednesday (approx).
+   * @dev l2EpochShift will be moved into a constant once L2 transition is complete.
+   * @param blockNumber block number to calculate the shift for
+   * @return shift amount in blocks (89964 for L1, l2EpochShift for L2)
    */
-  function getEpochShift() internal view virtual returns (uint32) {
-    return 89964;
+  function _getEpochShift(uint32 blockNumber) internal view virtual returns (uint32) {
+    if (_isPreL2Transition(blockNumber)) {
+      return 89964;
+    }
+    return l2EpochShift;
+  }
+
+  /**
+   * @notice Determines if a block is before the L2 transition point
+   * @param blockNumber block number to check
+   * @return true if before L2 transition, false if after
+   */
+  function _isPreL2Transition(uint32 blockNumber) internal view returns (bool) {
+    return l2TransitionBlock == 0 || blockNumber < l2TransitionBlock;
   }
 
   /**
