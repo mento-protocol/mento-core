@@ -361,6 +361,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     require(exchange.reserveRatio > 1, "Reserve ratio is too low");
     require(exchange.reserveRatio <= MAX_WEIGHT, "Reserve ratio is too high");
     require(exchange.exitContribution <= MAX_WEIGHT, "Exit contribution is too high");
+    require(exchange.reserveBalance > 0, "Reserve balance must be greater than 0");
   }
 
   /**
