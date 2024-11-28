@@ -20,12 +20,14 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @dev Duration of a week in blocks on the CELO blockchain before the L2 transition (5 seconds per block)
    */
   uint32 public constant WEEK = 120_960;
-
   /**
    * @dev Duration of a week in blocks on the CELO blockchain after the L2 transition (1 seconds per block)
    */
   uint32 public constant L2_WEEK = 604_800;
-
+  /**
+   * @dev Epoch shift for L1
+   */
+  uint32 public constant L1_EPOCH_SHIFT = 89964;
   /**
    * @dev Maximum allowable cliff period for token locks in weeks
    */
@@ -334,13 +336,13 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   /**
    * @notice Returns the epoch shift based on L2 transition status
    * @dev Epoch shift is the amount of blocks to move the epoch start to 00-00 UTC Wednesday (approx).
-   * @dev l2EpochShift will be moved into a constant once L2 transition is complete.
+   * @dev l2EpochShift will be moved into a constant once L2 transition is complete and stable.
    * @param blockNumber block number to calculate the shift for
-   * @return shift amount in blocks (89964 for L1, l2EpochShift for L2)
+   * @return shift amount in blocks (L1_EPOCH_SHIFT for L1, l2EpochShift for L2)
    */
   function _getEpochShift(uint32 blockNumber) internal view virtual returns (uint32) {
     if (_isPreL2Transition(blockNumber)) {
-      return 89964;
+      return L1_EPOCH_SHIFT;
     }
     return l2EpochShift;
   }
