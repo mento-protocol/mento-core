@@ -5,10 +5,10 @@ import { IGoodDollarExpansionController } from "contracts/interfaces/IGoodDollar
 import { IGoodDollarExchangeProvider } from "contracts/interfaces/IGoodDollarExchangeProvider.sol";
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+import { IERC20Metadata } from "openzeppelin-contracts-next/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IGoodDollar } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 
-import { PausableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { unwrap, wrap, powu } from "prb/math/UD60x18.sol";
 
@@ -16,13 +16,16 @@ import { unwrap, wrap, powu } from "prb/math/UD60x18.sol";
  * @title GoodDollarExpansionController
  * @notice Provides functionality to expand the supply of GoodDollars.
  */
-contract GoodDollarExpansionController is IGoodDollarExpansionController, PausableUpgradeable, OwnableUpgradeable {
+contract GoodDollarExpansionController is IGoodDollarExpansionController, OwnableUpgradeable {
   /* ========================================================= */
   /* ==================== State Variables ==================== */
   /* ========================================================= */
 
-  // MAX_WEIGHT is the max rate that can be assigned to an exchange
-  uint256 public constant MAX_WEIGHT = 1e18;
+  // EXPANSION_MAX_WEIGHT is the max rate that can be assigned to an exchange
+  uint256 public constant EXPANSION_MAX_WEIGHT = 1e18;
+
+  // BANCOR_MAX_WEIGHT is used for BPS calculations in GoodDollarExchangeProvider
+  uint32 public constant BANCOR_MAX_WEIGHT = 1e8;
 
   // Address of the distribution helper contract
   IDistributionHelper public distributionHelper;
@@ -63,7 +66,6 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     address _reserve,
     address _avatar
   ) public initializer {
-    __Pausable_init();
     __Ownable_init();
 
     setGoodDollarExchangeProvider(_goodDollarExchangeProvider);
@@ -123,7 +125,7 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
   /// @inheritdoc IGoodDollarExpansionController
   function setExpansionConfig(bytes32 exchangeId, uint64 expansionRate, uint32 expansionFrequency) external onlyAvatar {
-    require(expansionRate < MAX_WEIGHT, "Expansion rate must be less than 100%");
+    require(expansionRate < EXPANSION_MAX_WEIGHT, "Expansion rate must be less than 100%");
     require(expansionRate > 0, "Expansion rate must be greater than 0");
     require(expansionFrequency > 0, "Expansion frequency must be greater than 0");
 
@@ -154,7 +156,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
-    uint256 contractReserveBalance = IERC20(exchange.reserveAsset).balanceOf(reserve);
+    uint256 contractReserveBalance = IERC20(exchange.reserveAsset).balanceOf(reserve) *
+      (10 ** (18 - IERC20Metadata(exchange.reserveAsset).decimals()));
+
     uint256 additionalReserveBalance = contractReserveBalance - exchange.reserveBalance;
     if (additionalReserveBalance > 0) {
       amountMinted = goodDollarExchangeProvider.mintFromInterest(exchangeId, additionalReserveBalance);
@@ -172,11 +176,10 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
       .getPoolExchange(exchangeId);
     ExchangeExpansionConfig memory config = getExpansionConfig(exchangeId);
 
-    bool shouldExpand = block.timestamp > config.lastExpansion + config.expansionFrequency;
+    bool shouldExpand = block.timestamp >= config.lastExpansion + config.expansionFrequency;
     if (shouldExpand || config.lastExpansion == 0) {
-      uint256 reserveRatioScalar = _getReserveRatioScalar(config);
+      uint256 reserveRatioScalar = _getReserveRatioScalar(exchangeId);
 
-      exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(block.timestamp);
       amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, reserveRatioScalar);
 
       IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
@@ -190,12 +193,24 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
   /// @inheritdoc IGoodDollarExpansionController
   function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
+    // Defaults to no slippage protection
+    mintRewardFromReserveRatio(exchangeId, to, amount, BANCOR_MAX_WEIGHT);
+  }
+
+  /// @inheritdoc IGoodDollarExpansionController
+  function mintRewardFromReserveRatio(
+    bytes32 exchangeId,
+    address to,
+    uint256 amount,
+    uint256 maxSlippagePercentage
+  ) public onlyAvatar {
     require(to != address(0), "Recipient address must be set");
     require(amount > 0, "Amount must be greater than 0");
+    require(maxSlippagePercentage <= BANCOR_MAX_WEIGHT, "Max slippage percentage cannot be greater than 100%");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
-    goodDollarExchangeProvider.updateRatioForReward(exchangeId, amount);
+    goodDollarExchangeProvider.updateRatioForReward(exchangeId, amount, maxSlippagePercentage);
     IGoodDollar(exchange.tokenAddress).mint(to, amount);
 
     // Ignored, because contracts only interacts with trusted contracts and tokens
@@ -219,20 +234,26 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
 
   /**
    * @notice Calculates the reserve ratio scalar for the given expansion config.
-   * @param config The expansion config.
+   * @param exchangeId The ID of the exchange.
    * @return reserveRatioScalar The reserve ratio scalar.
    */
-  function _getReserveRatioScalar(ExchangeExpansionConfig memory config) internal view returns (uint256) {
+  function _getReserveRatioScalar(bytes32 exchangeId) internal returns (uint256) {
+    ExchangeExpansionConfig memory config = getExpansionConfig(exchangeId);
     uint256 numberOfExpansions;
 
     // If there was no previous expansion, we expand once.
     if (config.lastExpansion == 0) {
       numberOfExpansions = 1;
+      exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(block.timestamp);
     } else {
       numberOfExpansions = (block.timestamp - config.lastExpansion) / config.expansionFrequency;
+      // slither-disable-next-line divide-before-multiply
+      exchangeExpansionConfigs[exchangeId].lastExpansion = uint32(
+        config.lastExpansion + numberOfExpansions * config.expansionFrequency
+      );
     }
 
-    uint256 stepReserveRatioScalar = MAX_WEIGHT - config.expansionRate;
+    uint256 stepReserveRatioScalar = EXPANSION_MAX_WEIGHT - config.expansionRate;
     return unwrap(powu(wrap(stepReserveRatioScalar), numberOfExpansions));
   }
 

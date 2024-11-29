@@ -164,12 +164,12 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
     bancorExchangeProvider.setExitContribution(exchangeId, 1e5);
   }
 
-  function test_setExitContribution_whenExitContributionAbove100Percent_shouldRevert() public {
+  function test_setExitContribution_whenExitContributionIsNotLessThan100Percent_shouldRevert() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
 
     uint32 maxWeight = bancorExchangeProvider.MAX_WEIGHT();
     vm.expectRevert("Exit contribution is too high");
-    bancorExchangeProvider.setExitContribution(exchangeId, maxWeight + 1);
+    bancorExchangeProvider.setExitContribution(exchangeId, maxWeight);
   }
 
   function test_setExitContribution_whenSenderIsOwner_shouldUpdateAndEmit() public {
@@ -250,6 +250,12 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
   function test_createExchange_whenReserveAssetIsZero_shouldRevert() public {
     poolExchange1.reserveAsset = address(0);
     vm.expectRevert("Invalid reserve asset");
+    bancorExchangeProvider.createExchange(poolExchange1);
+  }
+
+  function test_createExchange_whenReserveBalanceIsZero_shouldRevert() public {
+    poolExchange1.reserveBalance = 0;
+    vm.expectRevert("Reserve balance must be greater than 0");
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
@@ -452,19 +458,6 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
     });
   }
 
-  function test_getAmountIn_whenTokenInIsTokenAndReserveBalanceIsZero_shouldRevert() public {
-    poolExchange1.reserveBalance = 0;
-    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-
-    vm.expectRevert("ERR_INVALID_RESERVE_BALANCE");
-    bancorExchangeProvider.getAmountIn({
-      exchangeId: exchangeId,
-      tokenIn: address(token),
-      tokenOut: address(reserveToken),
-      amountOut: 1e18
-    });
-  }
-
   function test_getAmountIn_whenTokenInIsTokenAndAmountOutLargerThanReserveBalance_shouldRevert() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     vm.expectRevert("ERR_INVALID_AMOUNT");
@@ -521,19 +514,6 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
 
     vm.expectRevert("ERR_INVALID_SUPPLY");
-    bancorExchangeProvider.getAmountIn({
-      exchangeId: exchangeId,
-      tokenIn: address(reserveToken),
-      tokenOut: address(token),
-      amountOut: 1e18
-    });
-  }
-
-  function test_getAmountIn_whenTokenInIsReserveAssetAndReserveBalanceIsZero_shouldRevert() public {
-    poolExchange1.reserveBalance = 0;
-    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-
-    vm.expectRevert("ERR_INVALID_RESERVE_BALANCE");
     bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
       tokenIn: address(reserveToken),
@@ -990,18 +970,6 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
     });
   }
 
-  function test_getAmountOut_whenTokenInIsReserveAssetAndReserveBalanceIsZero_shouldRevert() public {
-    poolExchange1.reserveBalance = 0;
-    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    vm.expectRevert("ERR_INVALID_RESERVE_BALANCE");
-    bancorExchangeProvider.getAmountOut({
-      exchangeId: exchangeId,
-      tokenIn: address(reserveToken),
-      tokenOut: address(token),
-      amountIn: 1e18
-    });
-  }
-
   function test_getAmountOut_whenTokenInIsReserveAssetAndAmountInIsZero_shouldReturnZero() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
     uint256 amountOut = bancorExchangeProvider.getAmountOut({
@@ -1027,18 +995,6 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
       amountIn: amountIn
     });
     assertEq(amountOut, expectedAmountOut);
-  }
-
-  function test_getAmountOut_whenTokenInIsTokenAndReserveBalanceIsZero_shouldRevert() public {
-    poolExchange1.reserveBalance = 0;
-    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    vm.expectRevert("ERR_INVALID_RESERVE_BALANCE");
-    bancorExchangeProvider.getAmountOut({
-      exchangeId: exchangeId,
-      tokenIn: address(token),
-      tokenOut: address(reserveToken),
-      amountIn: 1e18
-    });
   }
 
   function test_getAmountOut_whenTokenInIsTokenAndAmountIsZero_shouldReturnZero() public {

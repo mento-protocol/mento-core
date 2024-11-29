@@ -158,7 +158,6 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   /// @inheritdoc IBancorExchangeProvider
   function currentPrice(bytes32 exchangeId) public view returns (uint256 price) {
     // calculates: reserveBalance / (tokenSupply * reserveRatio)
-    require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
     PoolExchange memory exchange = getPoolExchange(exchangeId);
     uint256 scaledReserveRatio = uint256(exchange.reserveRatio) * 1e10;
     UD60x18 denominator = wrap(exchange.tokenSupply).mul(wrap(scaledReserveRatio));
@@ -179,9 +178,9 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
   /// @inheritdoc IBancorExchangeProvider
   function setReserve(address _reserve) public onlyOwner {
-    require(address(_reserve) != address(0), "Reserve address must be set");
+    require(_reserve != address(0), "Reserve address must be set");
     reserve = IReserve(_reserve);
-    emit ReserveUpdated(address(_reserve));
+    emit ReserveUpdated(_reserve);
   }
 
   /// @inheritdoc IBancorExchangeProvider
@@ -306,7 +305,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
   function _setExitContribution(bytes32 exchangeId, uint32 exitContribution) internal {
     require(exchanges[exchangeId].reserveAsset != address(0), "Exchange does not exist");
-    require(exitContribution <= MAX_WEIGHT, "Exit contribution is too high");
+    require(exitContribution < MAX_WEIGHT, "Exit contribution is too high");
 
     PoolExchange storage exchange = exchanges[exchangeId];
     exchange.exitContribution = exitContribution;
@@ -423,6 +422,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     require(exchange.reserveRatio > 1, "Reserve ratio is too low");
     require(exchange.reserveRatio <= MAX_WEIGHT, "Reserve ratio is too high");
     require(exchange.exitContribution <= MAX_WEIGHT, "Exit contribution is too high");
+    require(exchange.reserveBalance > 0, "Reserve balance must be greater than 0");
   }
 
   /**

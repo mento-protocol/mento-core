@@ -45,6 +45,7 @@ library TradingLimits {
   uint8 private constant L1 = 2; // 0b010 Limit1
   uint8 private constant LG = 4; // 0b100 LimitGlobal
   int48 private constant MAX_INT48 = type(int48).max;
+  int48 private constant MIN_INT48 = type(int48).min;
 
   /**
    * @notice Validate a trading limit configuration.
@@ -127,8 +128,13 @@ library TradingLimits {
     int256 _deltaFlow,
     uint8 decimals
   ) internal view returns (ITradingLimits.State memory) {
+    if (_deltaFlow == 0) {
+      return self;
+    }
+
     int256 _deltaFlowUnits = _deltaFlow / int256((10 ** uint256(decimals)));
     require(_deltaFlowUnits <= MAX_INT48, "dFlow too large");
+    require(_deltaFlowUnits >= MIN_INT48, "dFlow too small");
 
     int48 deltaFlowUnits = int48(_deltaFlowUnits);
     if (deltaFlowUnits == 0) {
@@ -166,7 +172,7 @@ library TradingLimits {
    */
   function safeINT48Add(int48 a, int48 b) internal pure returns (int48) {
     int256 c = int256(a) + int256(b);
-    require(c >= -1 * MAX_INT48 && c <= MAX_INT48, "int48 addition overflow");
+    require(c >= MIN_INT48 && c <= MAX_INT48, "int48 addition overflow");
     return int48(c);
   }
 }

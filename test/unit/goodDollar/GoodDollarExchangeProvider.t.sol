@@ -349,11 +349,12 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
   function test_mintFromExpansion_whenValidReserveRatioScalar_shouldReturnCorrectAmountAndEmit() public {
     // reserveRatioScalar is (1-0.000288617289022312) based of 10% yearly expansion rate
     // Formula: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
-    // newRatio = reserveRatio * reserveRatioScalar = 0.28571428 * (1-0.000288617289022312) = 0.285631817919071438
-    // amountToMint = (7_000_000_000 * 0.28571428 - 7_000_000_000 * 0.285631817919071438) / 0.285631817919071438
-    // ≈ 2_020_904,291074052815139287
+    // newRatio = reserveRatio * reserveRatioScalar = 0.28571428 * (1-0.000288617289022312)
+    // newRatio = 0.28563181 (only 8 decimals)
+    // amountToMint = (7_000_000_000 * 0.28571428 - 7_000_000_000 * 0.28563181) / 0.28563181
+    // ≈ 2_021_098,420375517698816528
     uint32 expectedReserveRatio = 28563181;
-    uint256 expectedAmountToMint = 2020904291074052815139287;
+    uint256 expectedAmountToMint = 2021098420375517698816528;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
     vm.expectEmit(true, true, true, true);
@@ -371,18 +372,17 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
       "Token supply should increase by minted amount"
     );
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio, "Reserve ratio should be updated correctly");
-    // 0.01% relative error tolerance because of precision loss when new reserve ratio is calculated
-    assertApproxEqRel(priceBefore, priceAfter, 1e18 * 0.0001, "Price should remain within 0.01% of initial price");
+    assertEq(priceBefore, priceAfter, "Price should remain unchanged");
   }
 
   function test_mintFromExpansion_withSmallReserveRatioScalar_shouldReturnCorrectAmount() public {
     uint256 smallReserveRatioScalar = 1e18 * 0.00001; // 0.001%
     // Formula: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
-    // newRatio = reserveRatio * reserveRatioScalar = 0.28571428 * 1e13/1e18 = 0.0000028571428
-    // amountToMint = (7_000_000_000 * 0.28571428 - 7_000_000_000 * 0.0000028571428) /0.0000028571428
-    // amountToMint ≈ 699993000000000
+    // newRatio = reserveRatio * reserveRatioScalar = 0.28571428 * 1e13/1e18 = 0.00000285 (only 8 decimals)
+    // amountToMint = (7_000_000_000 * 0.28571428 - 7_000_000_000 * 0.00000285) /0.00000285
+    // amountToMint ≈ 701.747.371.929.824,561403508771929824
     uint32 expectedReserveRatio = 285;
-    uint256 expectedAmountToMint = 699993000000000 * 1e18;
+    uint256 expectedAmountToMint = 701747371929824561403508771929824;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
     vm.expectEmit(true, true, true, true);
@@ -400,18 +400,17 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
       "Token supply should increase by minted amount"
     );
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio, "Reserve ratio should be updated correctly");
-    // 1% relative error tolerance because of precision loss when new reserve ratio is calculated
-    assertApproxEqRel(priceBefore, priceAfter, 1e18 * 0.01, "Price should remain within 1% of initial price");
+    assertEq(priceBefore, priceAfter, "Price should remain unchanged");
   }
 
   function test_mintFromExpansion_withLargeReserveRatioScalar_shouldReturnCorrectAmount() public {
     uint256 largeReserveRatioScalar = 1e18 - 1; // Just below 100%
     // Formula: amountToMint = (tokenSupply * reserveRatio - tokenSupply * newRatio) / newRatio
-    // newRatio = reserveRatio * reserveRatioScalar = 0.28571428 * (1e18 -1)/1e18 ≈ 0.285714279999999999
-    // amountToMint = (7_000_000_000 * 0.28571428 - 7_000_000_000 * 0.285714279999999999) /0.285714279999999999
-    // amountToMint ≈ 0.00000002450000049000
+    // newRatio = reserveRatio * reserveRatioScalar = 0.28571428 * (1e18 -1)/1e18 ≈ 0.28571427 (only 8 decimals)
+    // amountToMint = (7_000_000_000 * 0.28571428 - 7_000_000_000 * 0.28571427) /0.28571427
+    // amountToMint ≈ 245.00001347500074112504
     uint32 expectedReserveRatio = 28571427;
-    uint256 expectedAmountToMint = 24500000490;
+    uint256 expectedAmountToMint = 245000013475000741125;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
     vm.expectEmit(true, true, true, true);
@@ -429,8 +428,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
       "Token supply should increase by minted amount"
     );
     assertEq(poolExchangeAfter.reserveRatio, expectedReserveRatio, "Reserve ratio should be updated correctly");
-    // 0.01% relative error tolerance because of precision loss when new reserve ratio is calculated
-    assertApproxEqRel(priceBefore, priceAfter, 1e18 * 0.0001, "Price should remain within 0.01% of initial price");
+    assertEq(priceBefore, priceAfter, "Price should remain unchanged");
   }
 
   function test_mintFromExpansion_withMultipleConsecutiveExpansions_shouldMintCorrectly() public {
@@ -469,7 +467,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
       1e18 * 0.0001, // 0.01% relative error tolerance because of precision loss when new reserve ratio is calculated
       "Reserve ratio should be updated correctly within 0.01% tolerance"
     );
-    assertApproxEqRel(initialPrice, priceAfter, 1e18 * 0.0001, "Price should remain within 0.01% of initial price");
+    assertEq(initialPrice, priceAfter, "Price should remain unchanged");
   }
 
   function testFuzz_mintFromExpansion(uint256 _reserveRatioScalar) public {
@@ -497,8 +495,7 @@ contract GoodDollarExchangeProviderTest_mintFromExpansion is GoodDollarExchangeP
       initialTokenSupply + amountToMint,
       "Token supply should increase by minted amount"
     );
-    // 1% relative error tolerance because of precision loss when new reserve ratio is calculated
-    assertApproxEqRel(priceBefore, priceAfter, 1e18 * 0.01, "Price should remain within 1% of initial price");
+    assertEq(priceBefore, priceAfter, "Price should remain unchanged");
   }
 }
 
@@ -683,28 +680,37 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     exchangeId = exchangeProvider.createExchange(poolExchange);
   }
 
+  function test_updateRatioForReward_whenNewRatioIsZero_shouldRevert() public {
+    // Use a very large reward that will make the denominator massive compared to numerator
+    uint256 veryLargeReward = type(uint256).max / 1e20; // Large but not large enough to overflow
+
+    vm.expectRevert("New ratio must be greater than 0");
+    vm.prank(expansionControllerAddress);
+    exchangeProvider.updateRatioForReward(exchangeId, veryLargeReward, 1e8);
+  }
+
   function test_updateRatioForReward_whenCallerIsNotExpansionController_shouldRevert() public {
     vm.prank(makeAddr("NotExpansionController"));
     vm.expectRevert("Only ExpansionController can call this function");
-    exchangeProvider.updateRatioForReward(exchangeId, reward);
+    exchangeProvider.updateRatioForReward(exchangeId, reward, 1e8);
   }
 
   function test_updateRatioForReward_whenExchangeIdIsInvalid_shouldRevert() public {
     vm.prank(expansionControllerAddress);
     vm.expectRevert("Exchange does not exist");
-    exchangeProvider.updateRatioForReward(bytes32(0), reward);
+    exchangeProvider.updateRatioForReward(bytes32(0), reward, 1e8);
   }
 
   function test_updateRatioForReward_whenRewardLarger0_shouldReturnCorrectRatioAndEmit() public {
-    // formula: newRatio = reserveBalance / ((tokenSupply + reward) * currentPrice)
-    // reserveRatio = 200_000 / ((7_000_000_000 + 1_000) * 0.000100000002) ≈ 0.28571423...
+    // formula newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
+    // formula: newRatio = (7_000_000_000 * 0.28571428) / (7_000_000_000 + 1_000) =  0.28571423
     uint32 expectedReserveRatio = 28571423;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, reward);
+    exchangeProvider.updateRatioForReward(exchangeId, reward, 1e8);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -721,15 +727,16 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
   function test_updateRatioForReward_whenRewardIsSmall_shouldReturnCorrectRatioAndEmit() public {
     uint256 _reward = 1e18; // 1 token
-    // formula: newRatio = reserveBalance / ((tokenSupply + reward) * currentPrice)
-    // reserveRatio = 200_000 / ((7_000_000_000 + 1) * 0.000100000002) ≈ 0.2857142799
+    // formula newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
+    // formula: newRatio = (7_000_000_000 * 0.28571428) / (7_000_000_000 + 1) =  0.28571427
+
     uint32 expectedReserveRatio = 28571427;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, _reward);
+    exchangeProvider.updateRatioForReward(exchangeId, _reward, 1e8);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -745,8 +752,8 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
   function test_updateRatioForReward_whenRewardIsLarge_shouldReturnCorrectRatioAndEmit() public {
     uint256 _reward = 1_000_000_000 * 1e18; // 1 billion tokens
-    // formula: newRatio = reserveBalance / ((tokenSupply + reward) * currentPrice)
-    // reserveRatio = 200_000 / ((7_000_000_000 + 1_000_000_000) * 0.000100000002) ≈ 0.2499999950000...
+    // formula newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
+    // formula: newRatio = (7_000_000_000 * 0.28571428) / (7_000_000_000 + 1_000_000_000) =  0.249999995
 
     uint32 expectedReserveRatio = 24999999;
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
@@ -754,7 +761,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     vm.expectEmit(true, true, true, true);
     emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, _reward);
+    exchangeProvider.updateRatioForReward(exchangeId, _reward, 1e8);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -768,6 +775,24 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     assertApproxEqRel(priceBefore, priceAfter, 1e18 * 0.0001, "Price should remain within 0.01% of initial price");
   }
 
+  function test_updateRatioForReward_whenSlippageIsHigherThanAccepted_shouldRevert() public {
+    uint256 _reward = 1_000_000_000 * 1e18; // 1 billion tokens
+    // formula newRatio = (tokenSupply * reserveRatio) / (tokenSupply + reward)
+    // formula: newRatio = (7_000_000_000 * 0.28571428) / (7_000_000_000 + 1_000_000_000) =  0.249999995
+    // slippage = (newRatio - reserveRatio) / reserveRatio = (0.249999995 - 0.28571428) / 0.28571428 ~= -0.125
+
+    uint32 expectedReserveRatio = 24999999;
+
+    vm.prank(expansionControllerAddress);
+    vm.expectRevert("Slippage exceeded");
+    exchangeProvider.updateRatioForReward(exchangeId, _reward, 12 * 1e6);
+
+    vm.expectEmit(true, true, true, true);
+    emit ReserveRatioUpdated(exchangeId, expectedReserveRatio);
+    vm.prank(expansionControllerAddress);
+    exchangeProvider.updateRatioForReward(exchangeId, _reward, 13 * 1e6);
+  }
+
   function test_updateRatioForReward_withMultipleConsecutiveRewards() public {
     uint256 totalReward = 0;
     uint256 initialTokenSupply = poolExchange.tokenSupply;
@@ -777,7 +802,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
 
     vm.startPrank(expansionControllerAddress);
     for (uint256 i = 0; i < 5; i++) {
-      exchangeProvider.updateRatioForReward(exchangeId, reward);
+      exchangeProvider.updateRatioForReward(exchangeId, reward, 1e8);
       totalReward += reward;
     }
     vm.stopPrank();
@@ -805,7 +830,7 @@ contract GoodDollarExchangeProviderTest_updateRatioForReward is GoodDollarExchan
     uint256 priceBefore = exchangeProvider.currentPrice(exchangeId);
 
     vm.prank(expansionControllerAddress);
-    exchangeProvider.updateRatioForReward(exchangeId, fuzzedReward);
+    exchangeProvider.updateRatioForReward(exchangeId, fuzzedReward, 1e8);
 
     IBancorExchangeProvider.PoolExchange memory poolExchangeAfter = exchangeProvider.getPoolExchange(exchangeId);
     uint256 priceAfter = exchangeProvider.currentPrice(exchangeId);
@@ -870,7 +895,7 @@ contract GoodDollarExchangeProviderTest_pausable is GoodDollarExchangeProviderTe
     exchangeProvider.mintFromInterest(exchangeId, 1e18);
 
     vm.expectRevert("Pausable: paused");
-    exchangeProvider.updateRatioForReward(exchangeId, 1e18);
+    exchangeProvider.updateRatioForReward(exchangeId, 1e18, 100);
   }
 
   function test_unpause_whenCallerIsAvatar_shouldUnpauseAndEnableExchange() public {
@@ -891,6 +916,6 @@ contract GoodDollarExchangeProviderTest_pausable is GoodDollarExchangeProviderTe
 
     exchangeProvider.mintFromExpansion(exchangeId, 1e18);
     exchangeProvider.mintFromInterest(exchangeId, 1e18);
-    exchangeProvider.updateRatioForReward(exchangeId, 1e18);
+    exchangeProvider.updateRatioForReward(exchangeId, 1e18, 1e8);
   }
 }

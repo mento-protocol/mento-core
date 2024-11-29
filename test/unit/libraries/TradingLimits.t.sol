@@ -259,6 +259,13 @@ contract TradingLimitsTest is Test {
     assertEq(state.netflowGlobal, 0);
   }
 
+  function test_update_withZeroDeltaFlow_doesNotUpdate() public {
+    state = harness.update(state, configL0L1LG(300, 1000, 1 days, 10000, 1000000), 0, 18);
+    assertEq(state.netflow0, 0);
+    assertEq(state.netflow1, 0);
+    assertEq(state.netflowGlobal, 0);
+  }
+
   function test_update_withL0_updatesActive() public {
     state = harness.update(state, configL0(500, 1000), 100 * 1e18, 18);
     assertEq(state.netflow0, 100);
@@ -301,12 +308,31 @@ contract TradingLimitsTest is Test {
     state = harness.update(state, configLG(500000), 3 * 10e32, 18);
   }
 
+  function test_update_withTooSmallAmount_reverts() public {
+    int256 tooSmall = (type(int48).min - int256(1)) * 1e18;
+    vm.expectRevert(bytes("dFlow too small"));
+    state = harness.update(state, configLG(500000), tooSmall, 18);
+  }
+
   function test_update_withOverflowOnAdd_reverts() public {
     ITradingLimits.Config memory config = configLG(int48(uint48(2 ** 47)));
-    int256 maxFlow = int256(uint256(type(uint48).max / 2));
+    int256 maxFlow = int256(type(int48).max);
 
     state = harness.update(state, config, (maxFlow - 1000) * 1e18, 18);
+    state = harness.update(state, config, 1000 * 1e18, 18);
+
     vm.expectRevert(bytes("int48 addition overflow"));
-    state = harness.update(state, config, 1002 * 10e18, 18);
+    state = harness.update(state, config, 1 * 1e18, 18);
+  }
+
+  function test_update_withUnderflowOnAdd_reverts() public {
+    ITradingLimits.Config memory config = configLG(int48(uint48(2 ** 47)));
+    int256 minFlow = int256(type(int48).min);
+
+    state = harness.update(state, config, (minFlow + 1000) * 1e18, 18);
+    state = harness.update(state, config, -1000 * 1e18, 18);
+
+    vm.expectRevert(bytes("int48 addition overflow"));
+    state = harness.update(state, config, -1 * 1e18, 18);
   }
 }
