@@ -5,6 +5,8 @@ pragma solidity 0.8.18;
 
 import { Test } from "forge-std/Test.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
+import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
+
 import { BancorExchangeProvider } from "contracts/goodDollar/BancorExchangeProvider.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
@@ -30,16 +32,22 @@ contract BancorExchangeProviderTest is Test {
   ERC20 public reserveToken;
   ERC20 public token;
   ERC20 public token2;
+  ERC20DecimalsMock public reserveTokenWith6Decimals;
+  ERC20DecimalsMock public tokenWith6Decimals;
 
   address public reserveAddress;
   address public brokerAddress;
   IBancorExchangeProvider.PoolExchange public poolExchange1;
   IBancorExchangeProvider.PoolExchange public poolExchange2;
+  IBancorExchangeProvider.PoolExchange public poolExchange3;
+  IBancorExchangeProvider.PoolExchange public poolExchange4;
 
   function setUp() public virtual {
     reserveToken = new ERC20("cUSD", "cUSD");
     token = new ERC20("Good$", "G$");
     token2 = new ERC20("Good2$", "G2$");
+    reserveTokenWith6Decimals = new ERC20DecimalsMock("Reserve Token", "RES", 6);
+    tokenWith6Decimals = new ERC20DecimalsMock("Token", "TKN", 6);
 
     brokerAddress = makeAddr("Broker");
     reserveAddress = makeAddr("Reserve");
@@ -62,6 +70,24 @@ contract BancorExchangeProviderTest is Test {
       exitContribution: 1e8 * 0.01
     });
 
+    poolExchange3 = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveTokenWith6Decimals),
+      tokenAddress: address(token),
+      tokenSupply: 300_000 * 1e18,
+      reserveBalance: 60_000 * 1e18,
+      reserveRatio: 1e8 * 0.2,
+      exitContribution: 1e8 * 0.01
+    });
+
+    poolExchange4 = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveToken),
+      tokenAddress: address(tokenWith6Decimals),
+      tokenSupply: 300_000 * 1e18,
+      reserveBalance: 60_000 * 1e18,
+      reserveRatio: 1e8 * 0.2,
+      exitContribution: 1e8 * 0.01
+    });
+
     vm.mockCall(
       reserveAddress,
       abi.encodeWithSelector(IReserve(reserveAddress).isStableAsset.selector, address(token)),
@@ -74,7 +100,18 @@ contract BancorExchangeProviderTest is Test {
     );
     vm.mockCall(
       reserveAddress,
+      abi.encodeWithSelector(IReserve(reserveAddress).isStableAsset.selector, address(tokenWith6Decimals)),
+      abi.encode(true)
+    );
+    vm.mockCall(
+      reserveAddress,
       abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveToken)),
+      abi.encode(true)
+    );
+
+    vm.mockCall(
+      reserveAddress,
+      abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveTokenWith6Decimals)),
       abi.encode(true)
     );
   }
@@ -1416,6 +1453,15 @@ contract BancorExchangeProviderTest_currentPrice is BancorExchangeProviderTest {
     assertEq(price, expectedPrice);
   }
 
+  function test_currentPrice_whenReserveTokenHasLessThan18Decimals_shouldReturnCorrectPrice() public {
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
+    // formula: price = reserveBalance / tokenSupply * reserveRatio
+    // calculation: 60_000 / 300_000 * 0.2 = 1
+    uint256 expectedPrice = 1e6;
+    uint256 price = bancorExchangeProvider.currentPrice(exchangeId);
+    assertEq(price, expectedPrice);
+  }
+
   function test_currentPrice_fuzz(uint256 reserveBalance, uint256 tokenSupply, uint256 reserveRatio) public {
     // reserveBalance range between 1 token and 10_000_000 tokens
     reserveBalance = bound(reserveBalance, 1e18, 10_000_000 * 1e18);
@@ -1512,6 +1558,35 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
     assertEq(tokenSupplyAfter, tokenSupplyBefore + amountOut);
   }
 
+  function test_swapIn_whenTokenInIsReserveAssetWith6Decimals_shouldSwapIn() public {
+    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
+    uint256 amountIn = 1e6;
+
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
+    uint256 reserveBalanceBefore = poolExchange3.reserveBalance;
+    uint256 tokenSupplyBefore = poolExchange3.tokenSupply;
+
+    uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveTokenWith6Decimals),
+      tokenOut: address(token),
+      amountIn: amountIn
+    });
+    vm.prank(brokerAddress);
+    uint256 amountOut = bancorExchangeProvider.swapIn(
+      exchangeId,
+      address(reserveTokenWith6Decimals),
+      address(token),
+      amountIn
+    );
+    assertEq(amountOut, expectedAmountOut);
+
+    (, , uint256 tokenSupplyAfter, uint256 reserveBalanceAfter, , ) = bancorExchangeProvider.exchanges(exchangeId);
+
+    assertEq(reserveBalanceAfter, reserveBalanceBefore + amountIn * 1e12);
+    assertEq(tokenSupplyAfter, tokenSupplyBefore + amountOut);
+  }
+
   function test_swapIn_whenTokenInIsToken_shouldSwapIn() public {
     BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
     uint256 amountIn = 1e18;
@@ -1534,6 +1609,35 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
 
     assertEq(reserveBalanceAfter, reserveBalanceBefore - amountOut);
     assertEq(tokenSupplyAfter, tokenSupplyBefore - amountIn);
+  }
+
+  function test_swapIn_whenTokenIsTokenWith6Decimals_shouldSwapIn() public {
+    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
+    uint256 amountIn = 1e18;
+
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange4);
+    uint256 reserveBalanceBefore = poolExchange4.reserveBalance;
+    uint256 tokenSupplyBefore = poolExchange4.tokenSupply;
+
+    uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveToken),
+      tokenOut: address(tokenWith6Decimals),
+      amountIn: amountIn
+    });
+    vm.prank(brokerAddress);
+    uint256 amountOut = bancorExchangeProvider.swapIn(
+      exchangeId,
+      address(reserveToken),
+      address(tokenWith6Decimals),
+      amountIn
+    );
+    assertEq(amountOut, expectedAmountOut);
+
+    (, , uint256 tokenSupplyAfter, uint256 reserveBalanceAfter, , ) = bancorExchangeProvider.exchanges(exchangeId);
+
+    assertEq(reserveBalanceAfter, reserveBalanceBefore + amountIn);
+    assertApproxEqRel(tokenSupplyAfter, tokenSupplyBefore + amountOut * 1e12, 1e18 * 0.0001);
   }
 
   function test_swapIn_whenTokenInIsTokenAndExitContributionIsNonZero_shouldReturnSameAmountWhenSellIsDoneInMultipleSteps()
@@ -1642,6 +1746,35 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     assertEq(tokenSupplyAfter, tokenSupplyBefore + amountOut);
   }
 
+  function test_swapOut_whenTokenInIsReserveAssetWith6Decimals_shouldSwapIn() public {
+    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
+    uint256 amountOut = 1e18;
+
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
+    uint256 reserveBalanceBefore = poolExchange3.reserveBalance;
+    uint256 tokenSupplyBefore = poolExchange3.tokenSupply;
+
+    uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveTokenWith6Decimals),
+      tokenOut: address(token),
+      amountOut: amountOut
+    });
+    vm.prank(brokerAddress);
+    uint256 amountIn = bancorExchangeProvider.swapOut(
+      exchangeId,
+      address(reserveTokenWith6Decimals),
+      address(token),
+      amountOut
+    );
+    assertEq(amountIn, expectedAmountIn);
+
+    (, , uint256 tokenSupplyAfter, uint256 reserveBalanceAfter, , ) = bancorExchangeProvider.exchanges(exchangeId);
+
+    assertApproxEqRel(reserveBalanceAfter, reserveBalanceBefore + amountIn * 1e12, 1e18 * 0.0001);
+    assertEq(tokenSupplyAfter, tokenSupplyBefore + amountOut);
+  }
+
   function test_swapOut_whenTokenInIsToken_shouldSwapOut() public {
     BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
     uint256 amountOut = 1e18;
@@ -1666,6 +1799,34 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     assertEq(tokenSupplyAfter, tokenSupplyBefore - amountIn);
   }
 
+  function test_swapOut_whenTokenInIsTokenWith6Decimals_shouldSwapIn() public {
+    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
+    uint256 amountOut = 1e18;
+
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange4);
+    uint256 reserveBalanceBefore = poolExchange4.reserveBalance;
+    uint256 tokenSupplyBefore = poolExchange4.tokenSupply;
+
+    uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId,
+      tokenIn: address(tokenWith6Decimals),
+      tokenOut: address(reserveToken),
+      amountOut: amountOut
+    });
+    vm.prank(brokerAddress);
+    uint256 amountIn = bancorExchangeProvider.swapOut(
+      exchangeId,
+      address(tokenWith6Decimals),
+      address(reserveToken),
+      amountOut
+    );
+    assertEq(amountIn, expectedAmountIn);
+
+    (, , uint256 tokenSupplyAfter, uint256 reserveBalanceAfter, , ) = bancorExchangeProvider.exchanges(exchangeId);
+
+    assertEq(reserveBalanceAfter, reserveBalanceBefore - amountOut);
+    assertApproxEqRel(tokenSupplyAfter, tokenSupplyBefore - amountIn * 1e12, 1e18 * 0.0001);
+  }
   function test_swapOut_whenTokenInIsTokenAndExitContributionIsNonZero_shouldReturnSameAmountWhenSellIsDoneInMultipleSteps()
     public
   {
