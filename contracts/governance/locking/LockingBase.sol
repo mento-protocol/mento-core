@@ -97,7 +97,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   // New variables for L2 transition upgrade (3 slots)
   // ***************
   /**
-   * @dev L2 transtion block number
+   * @dev L2 transition block number
    */
   uint256 public l2TransitionBlock;
   /**
@@ -279,7 +279,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @param amount of tokens to lock
    * @param slopePeriod period over which the tokens will unlock
    * @param cliff initial period during which tokens remain locked and do not start unlocking
-   **/
+   */
   function getLock(
     uint96 amount,
     uint32 slopePeriod,
@@ -432,19 +432,19 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     uint32 time = getWeekNumber(blockNumber);
     updateTotalSupplyLine(time);
   }
+
   /**
    * @notice Sets the Mento Labs multisig address
    * @param mentoLabsMultisig_ address of the Mento Labs multisig
-   *
    */
   function setMentoLabsMultisig(address mentoLabsMultisig_) external onlyOwner {
     mentoLabsMultisig = mentoLabsMultisig_;
     emit SetMentoLabsMultisig(mentoLabsMultisig_);
   }
+
   /**
    * @notice Sets the L2 transition block number and pauses locking and governance
    * @param l2TransitionBlock_ block number of the L2 transition
-   *
    */
   function setL2TransitionBlock(uint256 l2TransitionBlock_) external onlyMentoLabs {
     l2TransitionBlock = l2TransitionBlock_;
