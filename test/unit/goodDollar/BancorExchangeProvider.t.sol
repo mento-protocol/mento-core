@@ -74,7 +74,7 @@ contract BancorExchangeProviderTest is Test {
       reserveAsset: address(reserveTokenWith6Decimals),
       tokenAddress: address(token),
       tokenSupply: 300_000 * 1e18,
-      reserveBalance: 60_000 * 1e18,
+      reserveBalance: 60_000 * 1e6,
       reserveRatio: 1e8 * 0.2,
       exitContribution: 1e8 * 0.01
     });
@@ -82,7 +82,7 @@ contract BancorExchangeProviderTest is Test {
     poolExchange4 = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
       tokenAddress: address(tokenWith6Decimals),
-      tokenSupply: 300_000 * 1e18,
+      tokenSupply: 300_000 * 1e6,
       reserveBalance: 60_000 * 1e18,
       reserveRatio: 1e8 * 0.2,
       exitContribution: 1e8 * 0.01
@@ -737,7 +737,7 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
       reserveAsset: address(reserveToken6),
       tokenAddress: address(stableToken18),
       tokenSupply: 100_000 * 1e18, // 100,000
-      reserveBalance: 50_000 * 1e18, // 50,000
+      reserveBalance: 50_000 * 1e6, // 50,000
       reserveRatio: 1e8 * 0.5, // 50%
       exitContribution: 0
     });
@@ -1225,7 +1225,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
       reserveAsset: address(reserveToken6),
       tokenAddress: address(stableToken18),
       tokenSupply: 100_000 * 1e18, // 100,000
-      reserveBalance: 50_000 * 1e18, // 50,000
+      reserveBalance: 50_000 * 1e6, // 50,000
       reserveRatio: 1e8 * 0.5, // 50%
       exitContribution: 0
     });
@@ -1563,8 +1563,7 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
     uint256 amountIn = 1e6;
 
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
-    uint256 reserveBalanceBefore = poolExchange3.reserveBalance;
-    uint256 tokenSupplyBefore = poolExchange3.tokenSupply;
+    (, , uint256 tokenSupplyBefore, uint256 reserveBalanceBefore, , ) = bancorExchangeProvider.exchanges(exchangeId);
 
     uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
@@ -1616,8 +1615,7 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
     uint256 amountIn = 1e18;
 
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange4);
-    uint256 reserveBalanceBefore = poolExchange4.reserveBalance;
-    uint256 tokenSupplyBefore = poolExchange4.tokenSupply;
+    (, , uint256 tokenSupplyBefore, uint256 reserveBalanceBefore, , ) = bancorExchangeProvider.exchanges(exchangeId);
 
     uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
@@ -1751,8 +1749,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     uint256 amountOut = 1e18;
 
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
-    uint256 reserveBalanceBefore = poolExchange3.reserveBalance;
-    uint256 tokenSupplyBefore = poolExchange3.tokenSupply;
+    (, , uint256 tokenSupplyBefore, uint256 reserveBalanceBefore, , ) = bancorExchangeProvider.exchanges(exchangeId);
 
     uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
@@ -1804,8 +1801,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     uint256 amountOut = 1e18;
 
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange4);
-    uint256 reserveBalanceBefore = poolExchange4.reserveBalance;
-    uint256 tokenSupplyBefore = poolExchange4.tokenSupply;
+    (, , uint256 tokenSupplyBefore, uint256 reserveBalanceBefore, , ) = bancorExchangeProvider.exchanges(exchangeId);
 
     uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
