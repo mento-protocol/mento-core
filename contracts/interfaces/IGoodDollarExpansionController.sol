@@ -131,7 +131,7 @@ interface IGoodDollarExpansionController {
    * @param exchangeId The ID of the pool to mint UBI for.
    * @param reserveInterest The amount of reserve tokens collected from interest.
    */
-  function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external;
+  function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external returns (uint256 amountMinted);
 
   /**
    * @notice Mints UBI as G$ tokens for a given pool by comparing the contract's reserve balance to the virtual balance.
