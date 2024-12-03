@@ -722,8 +722,8 @@ contract GoodDollarExpansionControllerIntegrationTest is GoodDollarExpansionCont
 
   function test_mintUBIFromReserveBalance_whenReserveTokenHas6Decimals_shouldMintAndEmit() public {
     uint256 reserveInterest = 1000e6;
-    // amountTo mint = reserveInterest * tokenSupply / reserveBalance
-    uint256 amountToMint = (reserveInterest * 1e12 * 7 * 1e9 * 1e18) / (200_000 * 1e18);
+    // amountToMint = reserveInterest * tokenSupply / reserveBalance
+    uint256 amountToMint = 35_000_000e18;
 
     deal(address(reserveToken6DecimalsMock), reserveAddress, 200_000 * 1e6 + reserveInterest);
     uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
@@ -738,9 +738,8 @@ contract GoodDollarExpansionControllerIntegrationTest is GoodDollarExpansionCont
 
   function test_mintUBIFromInterest_whenReserveTokenHas6Decimals_shouldMintAndEmit() public {
     uint256 reserveInterest = 1000e6;
-    // amountTo mint = reserveInterest * tokenSupply / reserveBalance
-    uint256 amountToMint = (reserveInterest * 1e12 * 7 * 1e9 * 1e18) / (200_000 * 1e18);
-
+    // amountToMint = reserveInterest * tokenSupply / reserveBalance
+    uint256 amountToMint = 35_000_000e18;
     address interestCollector = makeAddr("InterestCollector");
 
     deal(address(reserveToken6DecimalsMock), interestCollector, reserveInterest);
