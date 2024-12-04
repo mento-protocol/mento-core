@@ -151,7 +151,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
       require(scaledAmountIn < exchange.tokenSupply, "amountIn is greater than tokenSupply");
     }
 
-    amountIn = scaledAmountIn / tokenPrecisionMultipliers[tokenIn];
+    amountIn = divAndRoundUp(scaledAmountIn, tokenPrecisionMultipliers[tokenIn]);
     return amountIn;
   }
 
@@ -261,7 +261,7 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
       _accountExitContribution(exchangeId, exitContribution);
     }
 
-    amountIn = scaledAmountInWithExitContribution / tokenPrecisionMultipliers[tokenIn];
+    amountIn = divAndRoundUp(scaledAmountInWithExitContribution, tokenPrecisionMultipliers[tokenIn]);
     return amountIn;
   }
 
@@ -357,6 +357,16 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
 
     exchanges[exchangeId].reserveRatio = uint32(newRatio);
     exchanges[exchangeId].tokenSupply -= exitContribution;
+  }
+
+  /**
+   * @notice Division and rounding up if there is a remainder
+   * @param a The dividend
+   * @param b The divisor
+   * @return The result of the division rounded up
+   */
+  function divAndRoundUp(uint256 a, uint256 b) internal pure returns (uint256) {
+    return (a / b) + (a % b > 0 ? 1 : 0);
   }
 
   /**
