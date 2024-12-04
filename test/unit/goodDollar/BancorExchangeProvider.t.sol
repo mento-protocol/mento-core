@@ -41,6 +41,7 @@ contract BancorExchangeProviderTest is Test {
   IBancorExchangeProvider.PoolExchange public poolExchange2;
   IBancorExchangeProvider.PoolExchange public poolExchange3;
   IBancorExchangeProvider.PoolExchange public poolExchange4;
+  IBancorExchangeProvider.PoolExchange public poolExchange5;
 
   function setUp() public virtual {
     reserveToken = new ERC20("cUSD", "cUSD");
@@ -84,6 +85,15 @@ contract BancorExchangeProviderTest is Test {
       tokenAddress: address(tokenWith6Decimals),
       tokenSupply: 300_000 * 1e6,
       reserveBalance: 60_000 * 1e18,
+      reserveRatio: 1e8 * 0.2,
+      exitContribution: 1e8 * 0.01
+    });
+
+    poolExchange5 = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveTokenWith6Decimals),
+      tokenAddress: address(tokenWith6Decimals),
+      tokenSupply: 300_000 * 1e6,
+      reserveBalance: 60_000 * 1e6,
       reserveRatio: 1e8 * 0.2,
       exitContribution: 1e8 * 0.01
     });
@@ -382,6 +392,23 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
 
     assertEq(bancorExchangeProvider.tokenPrecisionMultipliers(address(reserveToken)), 1);
     assertEq(bancorExchangeProvider.tokenPrecisionMultipliers(address(token)), 1);
+  }
+
+  function test_createExchange_whenTokensHasLessThan18Decimals_shouldCreateExchangeWithCorrectSupplyAndBalance()
+    public
+  {
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange5);
+
+    IBancorExchangeProvider.PoolExchange memory poolExchange = bancorExchangeProvider.getPoolExchange(exchangeId);
+    assertEq(poolExchange.reserveAsset, poolExchange5.reserveAsset);
+    assertEq(poolExchange.tokenAddress, poolExchange5.tokenAddress);
+    assertEq(poolExchange.tokenSupply, poolExchange5.tokenSupply * 1e12);
+    assertEq(poolExchange.reserveBalance, poolExchange5.reserveBalance * 1e12);
+    assertEq(poolExchange.reserveRatio, poolExchange5.reserveRatio);
+    assertEq(poolExchange.exitContribution, poolExchange5.exitContribution);
+
+    assertEq(bancorExchangeProvider.tokenPrecisionMultipliers(address(reserveTokenWith6Decimals)), 1e12);
+    assertEq(bancorExchangeProvider.tokenPrecisionMultipliers(address(tokenWith6Decimals)), 1e12);
   }
 }
 
