@@ -180,14 +180,13 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
   ) external onlyExpansionController whenNotPaused returns (uint256 amountToMint) {
     PoolExchange memory exchange = getPoolExchange(exchangeId);
 
-    uint256 reserveinterestScaled = reserveInterest * tokenPrecisionMultipliers[exchange.reserveAsset];
     uint256 amountToMintScaled = unwrap(
-      wrap(reserveinterestScaled).mul(wrap(exchange.tokenSupply)).div(wrap(exchange.reserveBalance))
+      wrap(reserveInterest).mul(wrap(exchange.tokenSupply)).div(wrap(exchange.reserveBalance))
     );
     amountToMint = amountToMintScaled / tokenPrecisionMultipliers[exchange.tokenAddress];
 
     exchanges[exchangeId].tokenSupply += amountToMintScaled;
-    exchanges[exchangeId].reserveBalance += reserveinterestScaled;
+    exchanges[exchangeId].reserveBalance += reserveInterest;
 
     return amountToMint;
   }

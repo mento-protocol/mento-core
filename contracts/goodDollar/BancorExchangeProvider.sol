@@ -287,6 +287,9 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     tokenPrecisionMultipliers[exchange.reserveAsset] = 10 ** (18 - uint256(reserveAssetDecimals));
     tokenPrecisionMultipliers[exchange.tokenAddress] = 10 ** (18 - uint256(tokenDecimals));
 
+    exchange.reserveBalance = exchange.reserveBalance * tokenPrecisionMultipliers[exchange.reserveAsset];
+    exchange.tokenSupply = exchange.tokenSupply * tokenPrecisionMultipliers[exchange.tokenAddress];
+
     exchanges[exchangeId] = exchange;
     exchangeIds.push(exchangeId);
     emit ExchangeCreated(exchangeId, exchange.reserveAsset, exchange.tokenAddress);

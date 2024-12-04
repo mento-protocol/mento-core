@@ -136,19 +136,21 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Ownabl
   }
 
   /// @inheritdoc IGoodDollarExpansionController
-  function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external {
+  function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external returns (uint256 amountMinted) {
     require(reserveInterest > 0, "Reserve interest must be greater than 0");
     IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
       .getPoolExchange(exchangeId);
 
-    uint256 amountToMint = goodDollarExchangeProvider.mintFromInterest(exchangeId, reserveInterest);
-
     require(IERC20(exchange.reserveAsset).transferFrom(msg.sender, reserve, reserveInterest), "Transfer failed");
-    IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountToMint);
+
+    uint256 reserveInterestScaled = reserveInterest * (10 ** (18 - IERC20Metadata(exchange.reserveAsset).decimals()));
+    amountMinted = goodDollarExchangeProvider.mintFromInterest(exchangeId, reserveInterestScaled);
+
+    IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
 
     // Ignored, because contracts only interacts with trusted contracts and tokens
     // slither-disable-next-line reentrancy-events
-    emit InterestUBIMinted(exchangeId, amountToMint);
+    emit InterestUBIMinted(exchangeId, amountMinted);
   }
 
   /// @inheritdoc IGoodDollarExpansionController
