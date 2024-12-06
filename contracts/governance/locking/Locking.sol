@@ -60,7 +60,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     counter++;
 
     uint32 currentBlock = getBlockNumber();
-    uint32 time = roundTimestamp(currentBlock);
+    uint32 time = getWeekNumber(currentBlock);
     addLines(account, _delegate, amount, slopePeriod, cliff, time, currentBlock);
     accounts[account].amount = accounts[account].amount + (amount);
 
@@ -92,7 +92,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
   function getAvailableForWithdraw(address account) public view returns (uint96) {
     uint96 value = accounts[account].amount;
     uint32 currentBlock = getBlockNumber();
-    uint32 time = roundTimestamp(currentBlock);
+    uint32 time = getWeekNumber(currentBlock);
     uint96 bias = accounts[account].locked.actualValue(time, currentBlock);
     value = value - (bias);
     return value;
@@ -124,7 +124,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
    * since the starting point week. The starting point is set during the contract initialization.
    */
   function getWeek() external view returns (uint256) {
-    return roundTimestamp(getBlockNumber());
+    return getWeekNumber(getBlockNumber());
   }
 
   /**
@@ -139,7 +139,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     address account = verifyLockOwner(id);
     address _delegate = locks[id].delegate;
     uint32 currentBlock = getBlockNumber();
-    uint32 time = roundTimestamp(currentBlock);
+    uint32 time = getWeekNumber(currentBlock);
     accounts[_delegate].balance.update(time);
     (uint96 bias, uint96 slope, uint32 cliff) = accounts[_delegate].balance.remove(id, time, currentBlock);
     LibBrokenLine.Line memory line = LibBrokenLine.Line(time, bias, slope, cliff);
@@ -158,7 +158,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
       return 0;
     }
     uint32 currentBlock = getBlockNumber();
-    uint32 time = roundTimestamp(currentBlock);
+    uint32 time = getWeekNumber(currentBlock);
     return totalSupplyLine.actualValue(time, currentBlock);
   }
 
@@ -172,7 +172,7 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
       return 0;
     }
     uint32 currentBlock = getBlockNumber();
-    uint32 time = roundTimestamp(currentBlock);
+    uint32 time = getWeekNumber(currentBlock);
     return accounts[account].balance.actualValue(time, currentBlock);
   }
 

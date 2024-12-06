@@ -31,4 +31,8 @@ contract LockingTest is GovernanceTest {
   function _incrementBlock(uint32 _amount) internal {
     locking.incrementBlock(_amount);
   }
+
+  function _reduceBlock(uint32 _amount) internal {
+    locking.reduceBlock(_amount);
+  }
 }

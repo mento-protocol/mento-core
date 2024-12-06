@@ -11,6 +11,10 @@ contract LockingHarness is Locking {
     blockNumberMocked = blockNumberMocked + _amount;
   }
 
+  function reduceBlock(uint32 _amount) external {
+    blockNumberMocked = blockNumberMocked - _amount;
+  }
+
   function getBlockNumber() internal view override returns (uint32) {
     return blockNumberMocked;
   }
@@ -31,8 +35,11 @@ contract LockingHarness is Locking {
     (lockAmount, lockSlope) = getLock(amount, slope, cliff);
   }
 
-  function getEpochShift() internal view override returns (uint32) {
-    return epochShift;
+  function _getEpochShift(uint32) internal view override returns (uint32) {
+    if (_isPreL2Transition(getBlockNumber())) {
+      return epochShift;
+    }
+    return l2EpochShift;
   }
 
   function setEpochShift(uint32 _epochShift) external {
@@ -45,6 +52,16 @@ contract LockingHarness is Locking {
 
   function blockTillNextPeriod() external view returns (uint256) {
     uint256 currentWeek = this.getWeek();
-    return (WEEK * (currentWeek + 1)) + getEpochShift() - getBlockNumber();
+    if (_isPreL2Transition(getBlockNumber())) {
+      return (WEEK * (currentWeek + startingPointWeek + 1)) + _getEpochShift(getBlockNumber()) - getBlockNumber();
+    }
+    return
+      (L2_WEEK * uint256(int256(currentWeek) + l2StartingPointWeek + 1)) +
+      _getEpochShift(getBlockNumber()) -
+      getBlockNumber();
+  }
+
+  function setStatingPointWeek(uint32 _week) external {
+    startingPointWeek = _week;
   }
 }

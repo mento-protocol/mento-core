@@ -30,7 +30,7 @@ abstract contract LockingRelock is LockingBase {
 
     address account = verifyLockOwner(id);
     uint32 currentBlock = getBlockNumber();
-    uint32 time = roundTimestamp(currentBlock);
+    uint32 time = getWeekNumber(currentBlock);
     verification(account, id, newAmount, newSlopePeriod, newCliff, time);
 
     address _delegate = locks[id].delegate;
