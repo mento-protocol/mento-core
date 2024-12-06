@@ -40,6 +40,6 @@ jobs:
       - name: "Install the Node.js dependencies"
         run: "yarn install --immutable"
       - name: Check storage layout
-        uses: Rubilmax/foundry-storage-check@v3.8
+        uses: Rubilmax/foundry-storage-check@v3.9
         with:
           contract: ${{ matrix.contract }}
