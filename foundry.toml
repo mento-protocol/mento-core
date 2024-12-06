@@ -3,25 +3,33 @@ src = "contracts"
 out = "out"
 test = "test"
 libs = ["lib"]
+script = "script"
 auto_detect_solc = true
 bytecode_hash = "none"
 fuzz_runs = 256
 gas_reports = ["*"]
-optimizer = true
-optimizer_runs = 10_000
+optimizer = false
 legacy = true
-no_match_contract = "(ForkTest)|(GovernanceGasTest)"
-via_ir = true
+no_match_contract = "ForkTest"
+gas_limit = 9223372036854775807
+
+
+allow_paths = ["node_modules/@celo"]
+
+fs_permissions = [{ access = "read", path = "out" }]
 
 [profile.ci]
 fuzz_runs = 1_000
 verbosity = 3
+
+[profile.optimized]
+optimizer = true
+optimizer_runs = 200
 
 [profile.fork-tests]
 no_match_contract = "_random" # in order to reset the no_match_contract
 match_contract = "ForkTest"
 
 [rpc_endpoints]
-celo_mainnet="${CELO_MAINNET_RPC_URL}"
-baklava="${BAKLAVA_RPC_URL}"
-alfajores="${ALFAJORES_RPC_URL}"
+celo = "${CELO_MAINNET_RPC_URL}"
+alfajores = "${ALFAJORES_RPC_URL}"

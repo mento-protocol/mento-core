@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable immutable-vars-naming
 pragma solidity 0.8.18;
 
 import "../interfaces/IChainlinkRelayer.sol";
@@ -13,20 +14,9 @@ import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
  * See https://github.com/mento-protocol/mento-core/blob/develop/contracts/common/SortedOracles.sol
  */
 interface ISortedOraclesMin {
-  function report(
-    address rateFeedId,
-    uint256 value,
-    address lesserKey,
-    address greaterKey
-  ) external;
+  function report(address rateFeedId, uint256 value, address lesserKey, address greaterKey) external;
 
-  function getRates(address rateFeedId)
-    external
-    returns (
-      address[] memory,
-      uint256[] memory,
-      uint256[] memory
-    );
+  function getRates(address rateFeedId) external returns (address[] memory, uint256[] memory, uint256[] memory);
 
   function medianTimestamp(address rateFeedId) external view returns (uint256);
 
@@ -254,6 +244,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @param rate The rate to report.
    */
   function reportRate(uint256 rate) internal {
+    // slither-disable-next-line unused-return
     (address[] memory oracles, uint256[] memory rates, ) = ISortedOraclesMin(sortedOracles).getRates(rateFeedId);
     uint256 numRates = oracles.length;
 
@@ -282,8 +273,10 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       otherRate = rates[1];
     }
 
+    // slither-disable-start uninitialized-local
     address lesserKey;
     address greaterKey;
+    // slither-disable-end uninitialized-local
 
     if (otherRate < rate) {
       lesserKey = otherOracle;
@@ -302,6 +295,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @return timestamp uint256 timestamp of the report.
    */
   function readChainlinkAggregator(ChainlinkAggregator memory aggCfg) internal view returns (UD60x18, uint256) {
+    // slither-disable-next-line unused-return,calls-loop
     (, int256 _price, , uint256 timestamp, ) = AggregatorV3Interface(aggCfg.aggregator).latestRoundData();
     if (_price <= 0) {
       revert InvalidPrice();
@@ -348,7 +342,8 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
    * @return The converted UD60x18 value.
    */
   function chainlinkToUD60x18(int256 price, address aggregator) internal view returns (UD60x18) {
+    // slither-disable-next-line calls-loop
     uint256 chainlinkDecimals = uint256(AggregatorV3Interface(aggregator).decimals());
-    return ud(uint256(price) * 10**(18 - chainlinkDecimals));
+    return ud(uint256(price) * 10 ** (18 - chainlinkDecimals));
   }
 }

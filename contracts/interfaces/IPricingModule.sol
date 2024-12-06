@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.13;
+pragma solidity >0.5.13 <0.9;
 
 /**
  * @title Interface for a Mento Pricing Module.
@@ -38,7 +38,7 @@ interface IPricingModule {
 
   /**
    * @notice Retrieve the name of this pricing module.
-   * @return exchangeName The name of the pricing module.
+   * @return pricingModuleName The name of the pricing module.
    */
   function name() external view returns (string memory pricingModuleName);
 }

@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 // solhint-disable func-name-mixedcase, max-line-length, no-inline-assembly
 
-import { Vm } from "forge-std-next/Vm.sol";
+import { Vm } from "forge-std/Vm.sol";
 import { ECDSA } from "openzeppelin-contracts-next/contracts/utils/cryptography/ECDSA.sol";
 import { Strings } from "openzeppelin-contracts-next/contracts/utils/Strings.sol";
 
@@ -54,12 +54,7 @@ library VmExtension {
   /// @param r The first 32 bytes of the signature, representing the R value in ECDSA.
   /// @param s The next 32 bytes of the signature, representing the S value in ECDSA.
   /// @return signature A 65-byte long digital signature composed of r, s, and v.
-  function constructSignature(
-    Vm,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) internal pure returns (bytes memory signature) {
+  function constructSignature(Vm, uint8 v, bytes32 r, bytes32 s) internal pure returns (bytes memory signature) {
     signature = new bytes(65);
 
     assembly {

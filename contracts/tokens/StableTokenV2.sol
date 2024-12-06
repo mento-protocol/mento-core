@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable gas-custom-errors
 pragma solidity 0.8.18;
 
 import { ERC20PermitUpgradeable } from "./patched/ERC20PermitUpgradeable.sol";
 import { ERC20Upgradeable } from "./patched/ERC20Upgradeable.sol";
 
 import { IStableTokenV2 } from "../interfaces/IStableTokenV2.sol";
-import { CalledByVm } from "../common/CalledByVm.sol";
+import { CalledByVm } from "celo/contracts/common/CalledByVm.sol";
 
 /**
  * @title ERC20 token with minting and burning permissioned to a broker and validators.
@@ -74,13 +75,8 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
     string calldata _name,
     string calldata _symbol,
     // slither-disable-end shadowing-local
-    uint8, // deprecated: decimals
-    address, // deprecated: registryAddress,
-    uint256, // deprecated: inflationRate,
-    uint256, // deprecated:  inflationFactorUpdatePeriod,
     address[] calldata initialBalanceAddresses,
-    uint256[] calldata initialBalanceValues,
-    string calldata // deprecated: exchangeIdentifier
+    uint256[] calldata initialBalanceValues
   ) external initializer {
     __ERC20_init_unchained(_name, _symbol);
     __ERC20Permit_init(_symbol);
@@ -102,11 +98,7 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
    * @param _validators The address of the Validators contract.
    * @param _exchange The address of the Exchange contract.
    */
-  function initializeV2(
-    address _broker,
-    address _validators,
-    address _exchange
-  ) external reinitializer(2) onlyOwner {
+  function initializeV2(address _broker, address _validators, address _exchange) external reinitializer(2) onlyOwner {
     _setBroker(_broker);
     _setValidators(_validators);
     _setExchange(_exchange);
@@ -147,11 +139,7 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
    * @param comment The transfer comment.
    * @return True if the transaction succeeds.
    */
-  function transferWithComment(
-    address to,
-    uint256 value,
-    string calldata comment
-  ) external returns (bool) {
+  function transferWithComment(address to, uint256 value, string calldata comment) external returns (bool) {
     emit TransferComment(comment);
     return transfer(to, value);
   }
@@ -227,12 +215,10 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
   }
 
   /// @inheritdoc ERC20Upgradeable
-  function allowance(address owner, address spender)
-    public
-    view
-    override(ERC20Upgradeable, IStableTokenV2)
-    returns (uint256)
-  {
+  function allowance(
+    address owner,
+    address spender
+  ) public view override(ERC20Upgradeable, IStableTokenV2) returns (uint256) {
     return ERC20Upgradeable.allowance(owner, spender);
   }
 

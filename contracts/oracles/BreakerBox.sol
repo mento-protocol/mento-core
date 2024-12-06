@@ -8,9 +8,6 @@ import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 import { IBreaker } from "../interfaces/IBreaker.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 
-import { AddressLinkedList, LinkedList } from "../common/linkedlists/AddressLinkedList.sol";
-import { Initializable } from "../common/Initializable.sol";
-
 /**
  * @title   BreakerBox
  * @notice  The BreakerBox checks the criteria defined in separate breaker contracts
@@ -99,6 +96,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    */
   function removeBreaker(address breaker) external onlyOwner {
     uint256 breakerIndex = 0;
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < breakers.length; i++) {
       if (breakers[i] == breaker) {
         breakerIndex = i;
@@ -107,6 +105,7 @@ contract BreakerBox is IBreakerBox, Ownable {
     }
     require(breakers[breakerIndex] == breaker, "Breaker has not been added");
 
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < rateFeedIDs.length; i++) {
       if (rateFeedBreakerStatus[rateFeedIDs[i]][breaker].enabled) {
         // slither-disable-start reentrancy-no-eth
@@ -135,17 +134,13 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param enable Boolean indicating whether the breaker should be
    *               enabled or disabled for the given rateFeed.
    */
-  function toggleBreaker(
-    address breakerAddress,
-    address rateFeedID,
-    bool enable
-  ) public onlyOwner {
+  function toggleBreaker(address breakerAddress, address rateFeedID, bool enable) public onlyOwner {
     require(rateFeedStatus[rateFeedID], "Rate feed ID has not been added");
     require(isBreaker(breakerAddress), "This breaker has not been added to the BreakerBox");
     require(rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled != enable, "Breaker is already in this state");
     if (enable) {
       rateFeedBreakerStatus[rateFeedID][breakerAddress].enabled = enable;
-      // slither-isable-next-line reentrancy-events
+      // slither-disable-next-line reentrancy-events
       _checkAndSetBreakers(rateFeedID);
     } else {
       delete rateFeedBreakerStatus[rateFeedID][breakerAddress];
@@ -162,6 +157,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    */
   function calculateTradingMode(address rateFeedId) internal view returns (uint8) {
     uint8 tradingMode = 0;
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < breakers.length; i++) {
       if (rateFeedBreakerStatus[rateFeedId][breakers[i]].enabled) {
         tradingMode = tradingMode | rateFeedBreakerStatus[rateFeedId][breakers[i]].tradingMode;
@@ -214,6 +210,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    */
   function removeRateFeed(address rateFeedID) external onlyOwner {
     uint256 rateFeedIndex = 0;
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < rateFeedIDs.length; i++) {
       if (rateFeedIDs[i] == rateFeedID) {
         rateFeedIndex = i;
@@ -253,6 +250,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param rateFeedID The address of the rateFeed.
    */
   function deleteBreakerStatus(address rateFeedID) internal {
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < breakers.length; i++) {
       if (rateFeedBreakerStatus[rateFeedID][breakers[i]].enabled) {
         delete rateFeedBreakerStatus[rateFeedID][breakers[i]];
@@ -274,6 +272,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @notice Checks whether a breaker with the specifed address has been added.
    */
   function isBreaker(address breaker) public view returns (bool) {
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < breakers.length; i++) {
       if (breakers[i] == breaker) {
         return true;
@@ -333,6 +332,7 @@ contract BreakerBox is IBreakerBox, Ownable {
    */
   function _checkAndSetBreakers(address rateFeedID) internal {
     uint8 _tradingMode = 0;
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < breakers.length; i++) {
       if (rateFeedBreakerStatus[rateFeedID][breakers[i]].enabled) {
         // slither-disable-next-line reentrancy-benign

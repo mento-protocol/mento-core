@@ -12,11 +12,7 @@ interface IStableTokenV2 {
 
   function approve(address spender, uint256 amount) external returns (bool);
 
-  function transferFrom(
-    address sender,
-    address recipient,
-    uint256 amount
-  ) external returns (bool);
+  function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 
   function mint(address, uint256) external returns (bool);
 
@@ -39,11 +35,7 @@ interface IStableTokenV2 {
    * @param comment The transfer comment.
    * @return True if the transaction succeeds.
    */
-  function transferWithComment(
-    address to,
-    uint256 value,
-    string calldata comment
-  ) external returns (bool);
+  function transferWithComment(address to, uint256 value, string calldata comment) external returns (bool);
 
   /**
    * @notice Initializes a StableTokenV2.
@@ -62,13 +54,8 @@ interface IStableTokenV2 {
   function initialize(
     string calldata _name,
     string calldata _symbol,
-    uint8, // deprecated: decimals
-    address, // deprecated: registryAddress,
-    uint256, // deprecated: inflationRate,
-    uint256, // deprecated:  inflationFactorUpdatePeriod,
     address[] calldata initialBalanceAddresses,
-    uint256[] calldata initialBalanceValues,
-    string calldata // deprecated: exchangeIdentifier
+    uint256[] calldata initialBalanceValues
   ) external;
 
   /**
@@ -81,15 +68,9 @@ interface IStableTokenV2 {
    * @param _validators The address of the Validators contract.
    * @param _exchange The address of the Exchange contract.
    */
-  function initializeV2(
-    address _broker,
-    address _validators,
-    address _exchange
-  ) external;
+  function initializeV2(address _broker, address _validators, address _exchange) external;
 
-  /**
-   * @notice Gets the address of the Broker contract.
-   */
+  /// @notice Gets the address of the Broker contract.
   function broker() external returns (address);
 
   /**

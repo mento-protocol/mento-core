@@ -6,14 +6,14 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/utils/Address.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
-import "../interfaces/IReserve.sol";
-import "../interfaces/ISortedOracles.sol";
+import "celo/contracts/common/FixidityLib.sol";
+import "celo/contracts/common/Initializable.sol";
+import "celo/contracts/common/interfaces/ICeloVersionedContract.sol";
+import "celo/contracts/common/libraries/ReentrancyGuard.sol";
 
-import "../common/FixidityLib.sol";
-import "../common/Initializable.sol";
-import "../common/UsingRegistry.sol";
-import "../common/interfaces/ICeloVersionedContract.sol";
-import "../common/ReentrancyGuard.sol";
+import "contracts/common/UsingRegistry.sol";
+import "contracts/interfaces/IReserve.sol";
+import "contracts/interfaces/ISortedOracles.sol";
 
 /**
  * @title Ensures price stability of StableTokens with respect to their pegs
@@ -97,16 +97,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @return Minor version of the contract.
    * @return Patch version of the contract.
    */
-  function getVersionNumber()
-    external
-    pure
-    returns (
-      uint256,
-      uint256,
-      uint256,
-      uint256
-    )
-  {
+  function getVersionNumber() external pure returns (uint256, uint256, uint256, uint256) {
     return (2, 1, 0, 0);
   }
 
@@ -270,6 +261,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
       sum = sum.add(FixidityLib.wrap(weights[i]));
     }
     require(sum.equals(FixidityLib.fixed1()), "Sum of asset allocation must be 1");
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < assetAllocationSymbols.length; i = i.add(1)) {
       delete assetAllocationWeights[assetAllocationSymbols[i]];
     }
@@ -455,11 +447,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of collateral assets to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferCollateralAsset(
-    address collateralAsset,
-    address payable to,
-    uint256 value
-  ) external returns (bool) {
+  function transferCollateralAsset(address collateralAsset, address payable to, uint256 value) external returns (bool) {
     require(isSpender[msg.sender], "sender not allowed to transfer Reserve funds");
     require(isOtherReserveAddress[to], "can only transfer to other reserve address");
     require(
@@ -538,11 +526,10 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * @param value The amount of gold to transfer.
    * @return Returns true if the transaction succeeds.
    */
-  function transferExchangeGold(address payable to, uint256 value)
-    external
-    isAllowedToSpendExchange(msg.sender)
-    returns (bool)
-  {
+  function transferExchangeGold(
+    address payable to,
+    uint256 value
+  ) external isAllowedToSpendExchange(msg.sender) returns (bool) {
     return _transferGold(to, value);
   }
 
@@ -590,6 +577,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    */
   function getAssetAllocationWeights() external view returns (uint256[] memory) {
     uint256[] memory weights = new uint256[](assetAllocationSymbols.length);
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < assetAllocationSymbols.length; i = i.add(1)) {
       weights[i] = assetAllocationWeights[assetAllocationSymbols[i]];
     }
@@ -620,6 +608,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    */
   function getOtherReserveAddressesGoldBalance() public view returns (uint256) {
     uint256 reserveGoldBalance = 0;
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < otherReserveAddresses.length; i = i.add(1)) {
       reserveGoldBalance = reserveGoldBalance.add(otherReserveAddresses[i].balance);
     }
@@ -643,6 +632,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
   function getReserveAddressesCollateralAssetBalance(address collateralAsset) public view returns (uint256) {
     require(checkIsCollateralAsset(collateralAsset), "specified address is not a collateral asset");
     uint256 reserveCollateralAssetBalance = 0;
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < otherReserveAddresses.length; i++) {
       // slither-disable-next-line calls-loop
       reserveCollateralAssetBalance = reserveCollateralAssetBalance.add(
@@ -716,6 +706,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
     uint256 stableTokensValueInGold = 0;
     FixidityLib.Fraction memory cgldWeight = FixidityLib.wrap(assetAllocationWeights["cGLD"]);
 
+    // slither-disable-next-line cache-array-length
     for (uint256 i = 0; i < _tokens.length; i = i.add(1)) {
       uint256 stableAmount;
       uint256 goldAmount;

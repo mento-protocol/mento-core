@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable gas-custom-errors, immutable-vars-naming
 pragma solidity 0.8.18;
 
 import { ERC20Burnable, ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -51,8 +52,9 @@ contract MentoToken is Ownable, Pausable, ERC20Burnable {
     locking = locking_;
     emission = emission_;
 
-    uint256 supply = 1_000_000_000 * 10**decimals();
+    uint256 supply = 1_000_000_000 * 10 ** decimals();
 
+    // slither-disable-next-line uninitialized-local
     uint256 totalAllocated;
     for (uint256 i = 0; i < allocationRecipients_.length; i++) {
       require(allocationRecipients_[i] != address(0), "MentoToken: allocation recipient is zero address");
@@ -100,11 +102,7 @@ contract MentoToken is Ownable, Pausable, ERC20Burnable {
    * @param to The account that should receive the tokens
    * @param amount Amount of tokens that should be transferred
    */
-  function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint256 amount
-  ) internal virtual override {
+  function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
     super._beforeTokenTransfer(from, to, amount);
 
     require(to != address(this), "MentoToken: cannot transfer tokens to token contract");
