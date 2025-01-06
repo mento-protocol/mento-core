@@ -51,7 +51,8 @@ library TradingLimitHelpers {
       limitState.lastUpdated1,
       limitState.netflow0,
       limitState.netflow1,
-      limitState.netflowGlobal
+      limitState.netflowGlobal,
+      limitState.netflowDecimals
     ) = Broker(address(ctx.broker())).tradingLimitsState(limitId);
     return limitState;
   }
@@ -81,7 +82,8 @@ library TradingLimitHelpers {
       limitState.lastUpdated1,
       limitState.netflow0,
       limitState.netflow1,
-      limitState.netflowGlobal
+      limitState.netflowGlobal,
+      limitState.netflowDecimals
     ) = Broker(address(ctx.broker())).tradingLimitsState(limitId);
     return limitState;
   }

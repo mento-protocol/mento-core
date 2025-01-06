@@ -46,6 +46,8 @@ library TradingLimits {
   uint8 private constant LG = 4; // 0b100 LimitGlobal
   int48 private constant MAX_INT48 = type(int48).max;
   int48 private constant MIN_INT48 = type(int48).min;
+  uint8 private constant DECIMAL_PRECISION = 14;
+  int256 private constant DECIMAL_ONE = 1e14;
 
   /**
    * @notice Validate a trading limit configuration.
@@ -71,17 +73,28 @@ library TradingLimits {
    * @param config the trading limit Config to check against.
    */
   function verify(ITradingLimits.State memory self, ITradingLimits.Config memory config) internal pure {
-    if ((config.flags & L0) > 0 && (-1 * config.limit0 > self.netflow0 || self.netflow0 > config.limit0)) {
-      revert("L0 Exceeded");
+    if ((config.flags & L0) > 0) {
+      int256 netflow0WithDecimals = int256(self.netflow0) * DECIMAL_ONE + int256(self.netflowDecimals);
+      int256 limit0WithDecimals = int256(config.limit0) * DECIMAL_ONE;
+      if (-1 * limit0WithDecimals > netflow0WithDecimals || netflow0WithDecimals > limit0WithDecimals) {
+        revert("L0 Exceeded");
+      }
     }
-    if ((config.flags & L1) > 0 && (-1 * config.limit1 > self.netflow1 || self.netflow1 > config.limit1)) {
-      revert("L1 Exceeded");
+    if ((config.flags & L1) > 0) {
+      int256 netflow1WithDecimals = int256(self.netflow1) * DECIMAL_ONE + int256(self.netflowDecimals);
+      int256 limit1WithDecimals = int256(config.limit1) * DECIMAL_ONE;
+      if (-1 * limit1WithDecimals > netflow1WithDecimals || netflow1WithDecimals > limit1WithDecimals) {
+        revert("L1 Exceeded");
+      }
     }
-    if (
-      (config.flags & LG) > 0 &&
-      (-1 * config.limitGlobal > self.netflowGlobal || self.netflowGlobal > config.limitGlobal)
-    ) {
-      revert("LG Exceeded");
+    if (config.flags & LG > 0) {
+      int256 netflowGlobalWithDecimals = int256(self.netflowGlobal) * DECIMAL_ONE + int256(self.netflowDecimals);
+      int256 limitGlobalWithDecimals = int256(config.limitGlobal) * DECIMAL_ONE;
+      if (
+        -1 * limitGlobalWithDecimals > netflowGlobalWithDecimals || netflowGlobalWithDecimals > limitGlobalWithDecimals
+      ) {
+        revert("LG Exceeded");
+      }
     }
   }
 
@@ -132,14 +145,13 @@ library TradingLimits {
       return self;
     }
 
-    int256 _deltaFlowUnits = _deltaFlow / int256((10 ** uint256(decimals)));
+    (int256 _deltaFlowUnits, int48 newNetflowDecimals) = calculateUnitsAndDecimals(_deltaFlow, decimals, self, config);
+    self.netflowDecimals = newNetflowDecimals;
+
     require(_deltaFlowUnits <= MAX_INT48, "dFlow too large");
     require(_deltaFlowUnits >= MIN_INT48, "dFlow too small");
 
     int48 deltaFlowUnits = int48(_deltaFlowUnits);
-    if (deltaFlowUnits == 0) {
-      deltaFlowUnits = _deltaFlow > 0 ? int48(1) : int48(-1);
-    }
 
     if (config.flags & L0 > 0) {
       if (block.timestamp > self.lastUpdated0 + config.timestep0) {
@@ -161,6 +173,47 @@ library TradingLimits {
     }
 
     return self;
+  }
+
+  /**
+   * @notice Calculate the delta flow units and new decimals of the netflows.
+   * @dev The decimals are scaled to 14 decimals, so the decimals are truncated/scaled
+   * to fit in the int48 used to store the netflow decimals.
+   * @param _deltaFlow the delta flow to calculate.
+   * @param decimals the number of decimals the _deltaFlow is denominated in.
+   * @param self the trading limit State to update.
+   * @param config the trading limit Config for the provided State.
+   * @return deltaFlowUnits the units of the delta flow.
+   * @return newNetflowDecimals the new decimals of the netflows.
+   */
+  function calculateUnitsAndDecimals(
+    int256 _deltaFlow,
+    uint8 decimals,
+    ITradingLimits.State memory self,
+    ITradingLimits.Config memory config
+  ) internal view returns (int256 deltaFlowUnits, int48 newNetflowDecimals) {
+    if (config.flags & L0 > 0 && self.lastUpdated0 + config.timestep0 < block.timestamp) {
+      self.netflowDecimals = 0;
+    }
+
+    deltaFlowUnits = _deltaFlow / int256((10 ** uint256(decimals)));
+    int256 deltaFlowDecimals = _deltaFlow % int256((10 ** uint256(decimals)));
+
+    if (decimals > DECIMAL_PRECISION) {
+      deltaFlowDecimals = deltaFlowDecimals / int256((10 ** uint256(decimals - DECIMAL_PRECISION)));
+    } else {
+      deltaFlowDecimals = deltaFlowDecimals * int256((10 ** uint256(DECIMAL_PRECISION - decimals)));
+    }
+
+    int256 decimalSum = int256(self.netflowDecimals) + deltaFlowDecimals;
+
+    int256 carryOver = decimalSum / DECIMAL_ONE;
+    deltaFlowUnits = deltaFlowUnits + carryOver;
+
+    int256 normalizedDecimals = decimalSum % DECIMAL_ONE;
+    newNetflowDecimals = int48(normalizedDecimals);
+
+    return (deltaFlowUnits, newNetflowDecimals);
   }
 
   /**

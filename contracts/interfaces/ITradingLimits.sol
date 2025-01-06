@@ -9,6 +9,7 @@ interface ITradingLimits {
    * @param netflow0 The current netflow of the asset for limit0.
    * @param netflow1 The current netflow of the asset for limit1.
    * @param netflowGlobal The current netflow of the asset for limitGlobal.
+   * @param netflowDecimals The current decimal part of all netflows.
    */
   struct State {
     uint32 lastUpdated0;
@@ -16,6 +17,7 @@ interface ITradingLimits {
     int48 netflow0;
     int48 netflow1;
     int48 netflowGlobal;
+    int48 netflowDecimals;
   }
 
   /**
