@@ -123,6 +123,9 @@ library TradingLimits {
     if (config.flags & LG == 0) {
       self.netflowGlobal = 0;
     }
+    if (config.flags & (L0 | LG) == 0) {
+      self.netflowDecimals = 0;
+    }
     return self;
   }
 

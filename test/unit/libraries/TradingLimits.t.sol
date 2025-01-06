@@ -191,6 +191,12 @@ contract TradingLimitsTest is Test {
     assertEq(state.netflowGlobal, 12312);
   }
 
+  function test_reset_withL0LGDisabled_resetsNetflowDecimals() public {
+    state.netflowDecimals = 1e14 * 0.1;
+    state = harness.reset(state, configEmpty());
+    assertEq(state.netflowDecimals, 0);
+  }
+
   /* ==================== State#verify ==================== */
 
   function test_verify_withNothingOn() public view {
