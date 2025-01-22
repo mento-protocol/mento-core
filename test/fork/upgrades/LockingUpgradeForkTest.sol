@@ -174,7 +174,7 @@ contract LockingUpgradeForkTest is BaseForkTest {
   function test_governance_afterL2Transition_shouldWorkAsBefore() public {
     _simulateL2Upgrade();
 
-    _moveDays(30*7, true, true);
+    _moveDays(30 * 7, true, true);
 
     uint256 votingPower1 = locking.getVotes(AIRDROP_CLAIMER_1);
     uint256 votingPower2 = locking.getVotes(AIRDROP_CLAIMER_2);
@@ -249,7 +249,11 @@ contract LockingUpgradeForkTest is BaseForkTest {
   // by calculating the first block of the next week and substracting the current block
   function _calculateBlocksTillNextWeek(bool isL2) internal view returns (uint256) {
     if (isL2) {
-      return L2_WEEK * uint256(int256(locking.getWeek()) + locking.l2StartingPointWeek() + 1) + locking.l2EpochShift() - block.number;
+      return
+        L2_WEEK *
+        uint256(int256(locking.getWeek()) + locking.l2StartingPointWeek() + 1) +
+        locking.l2EpochShift() -
+        block.number;
     } else {
       return L1_WEEK * (locking.getWeek() + locking.startingPointWeek() + 1) + locking.L1_EPOCH_SHIFT() - block.number;
     }
