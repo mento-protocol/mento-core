@@ -117,6 +117,7 @@ abstract contract LockingRelock is LockingBase {
    */
   function rebalance(uint256 id, address account, uint96 bias, uint96 residue, uint96 newAmount) internal {
     require(residue <= newAmount, "Impossible to relock: less amount, then now is");
+    require(newAmount >= 1e18, "amount is less than minimum");
     uint96 addAmount = newAmount - (residue);
     uint96 amount = accounts[account].amount;
     uint96 balance = amount - (bias);
