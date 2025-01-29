@@ -646,4 +646,19 @@ contract Relock_LockingTest is LockingTest {
     assertEq(mentoToken.balanceOf(bob), 100e18);
     assertEq(mentoToken.balanceOf(charlie), 100e18);
   }
+
+  function test_relock_whenAmountLessThanMinimum_shouldRevert() public {
+    mentoToken.mint(alice, 100e18);
+
+    vm.prank(alice);
+    lockId = locking.lock(alice, alice, 30e18, 3, 3);
+
+    // Wait until lock expires so residue is 0
+    _incrementBlock(6 * weekInBlocks);
+
+    // Try to relock with amount less than minimum (1e18)
+    vm.expectRevert("amount is less than minimum");
+    vm.prank(alice);
+    locking.relock(lockId, alice, 0.5e18, 3, 3);
+  }
 }
