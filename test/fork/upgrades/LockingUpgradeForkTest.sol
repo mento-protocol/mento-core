@@ -50,14 +50,17 @@ contract LockingUpgradeForkTest is BaseForkTest {
 
   function setUp() public virtual override {
     super.setUp();
-    proxyAdmin = governanceFactory.proxyAdmin();
+    address newProxyAdmin = 0x7DeA70fC905f5C4E8f98971761C6641D16A428c1;
+    address multisig = 0x655133d8E90F8190ed5c1F0f3710F602800C0150;
+
+    proxyAdmin = ProxyAdmin(newProxyAdmin); //governanceFactory.proxyAdmin();
     locking = governanceFactory.locking();
     timelockController = address(governanceFactory.governanceTimelock());
     mentoGovernor = governanceFactory.mentoGovernor();
     mentoToken = governanceFactory.mentoToken();
 
     newLockingImplementation = address(new Locking());
-    vm.prank(timelockController);
+    vm.prank(multisig);
     proxyAdmin.upgrade(ITransparentUpgradeableProxy(address(locking)), newLockingImplementation);
 
     vm.prank(timelockController);
@@ -72,16 +75,16 @@ contract LockingUpgradeForkTest is BaseForkTest {
     vm.roll(28653031);
     vm.warp(1730937623);
 
-    // move 3 weeks forward on L1
-    _moveDays({ day: 3 * 7, forward: true, isL2: false });
+    // move 30 weeks forward on L1
+    _moveDays({ day: 30 * 7, forward: true, isL2: false });
 
-    // Take snapshot 3 weeks after Nov 07
+    // Take snapshot 30 weeks after Nov 07
     beforeSnapshot = _takeSnapshot(AIRDROP_CLAIMER_1, AIRDROP_CLAIMER_2);
 
     // move 5 weeks forward on L1
     _moveDays({ day: 5 * 7, forward: true, isL2: false });
 
-    // Take snapshot 8 weeks after Nov 07
+    // Take snapshot 35 weeks after Nov 07
     afterSnapshot = _takeSnapshot(AIRDROP_CLAIMER_1, AIRDROP_CLAIMER_2);
 
     // move 5 weeks backward on L1
@@ -171,7 +174,7 @@ contract LockingUpgradeForkTest is BaseForkTest {
   function test_governance_afterL2Transition_shouldWorkAsBefore() public {
     _simulateL2Upgrade();
 
-    _moveDays(7, true, true);
+    _moveDays(30 * 7, true, true);
 
     uint256 votingPower1 = locking.getVotes(AIRDROP_CLAIMER_1);
     uint256 votingPower2 = locking.getVotes(AIRDROP_CLAIMER_2);
@@ -246,9 +249,13 @@ contract LockingUpgradeForkTest is BaseForkTest {
   // by calculating the first block of the next week and substracting the current block
   function _calculateBlocksTillNextWeek(bool isL2) internal view returns (uint256) {
     if (isL2) {
-      return L2_WEEK * uint256(int256(locking.getWeek()) + locking.l2StartingPointWeek() + 1) + 507776 - block.number;
+      return
+        L2_WEEK *
+        uint256(int256(locking.getWeek()) + locking.l2StartingPointWeek() + 1) +
+        locking.l2EpochShift() -
+        block.number;
     } else {
-      return L1_WEEK * (locking.getWeek() + locking.startingPointWeek() + 1) + 89964 - block.number;
+      return L1_WEEK * (locking.getWeek() + locking.startingPointWeek() + 1) + locking.L1_EPOCH_SHIFT() - block.number;
     }
   }
 
@@ -257,9 +264,9 @@ contract LockingUpgradeForkTest is BaseForkTest {
     vm.prank(mentoLabsMultisig);
     locking.setL2TransitionBlock(block.number);
     vm.prank(mentoLabsMultisig);
-    locking.setL2StartingPointWeek(20);
+    locking.setL2StartingPointWeek(-1);
     vm.prank(mentoLabsMultisig);
-    locking.setL2EpochShift(507776);
+    locking.setL2EpochShift(144896);
     vm.prank(mentoLabsMultisig);
     locking.setPaused(false);
   }
