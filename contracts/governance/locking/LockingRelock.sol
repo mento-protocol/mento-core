@@ -68,6 +68,7 @@ abstract contract LockingRelock is LockingBase {
     uint32 toTime
   ) internal view {
     require(newAmount > 0, "zero amount");
+    require(newAmount >= 1e18, "amount is less than minimum");
     require(newCliff <= MAX_CLIFF_PERIOD, "cliff too big");
     require(newSlopePeriod <= MAX_SLOPE_PERIOD, "slope period too big");
     require(newSlopePeriod > 0, "slope period equal 0");
@@ -117,7 +118,6 @@ abstract contract LockingRelock is LockingBase {
    */
   function rebalance(uint256 id, address account, uint96 bias, uint96 residue, uint96 newAmount) internal {
     require(residue <= newAmount, "Impossible to relock: less amount, then now is");
-    require(newAmount >= 1e18, "amount is less than minimum");
     uint96 addAmount = newAmount - (residue);
     uint96 amount = accounts[account].amount;
     uint96 balance = amount - (bias);
