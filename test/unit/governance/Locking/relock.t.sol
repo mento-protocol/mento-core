@@ -230,7 +230,7 @@ contract Relock_LockingTest is LockingTest {
     lockId = locking.lock(alice, alice, 38e18, 4, 3);
     _incrementBlock(2 * weekInBlocks);
 
-    vm.expectRevert("zero amount");
+    vm.expectRevert("amount is less than minimum");
     vm.prank(alice);
     locking.relock(lockId, alice, 0, 5, 1);
   }

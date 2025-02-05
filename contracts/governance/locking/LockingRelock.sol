@@ -67,7 +67,6 @@ abstract contract LockingRelock is LockingBase {
     uint32 newCliff,
     uint32 toTime
   ) internal view {
-    require(newAmount > 0, "zero amount");
     require(newAmount >= 1e18, "amount is less than minimum");
     require(newCliff <= MAX_CLIFF_PERIOD, "cliff too big");
     require(newSlopePeriod <= MAX_SLOPE_PERIOD, "slope period too big");
