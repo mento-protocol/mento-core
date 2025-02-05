@@ -26,6 +26,7 @@ abstract contract LockingRelock is LockingBase {
     uint32 newSlopePeriod,
     uint32 newCliff
   ) external returns (uint256) {
+    require(newAmount >= 1e18, "amount is less than minimum");
     require(newDelegate != address(0), "delegate is zero");
 
     address account = verifyLockOwner(id);
@@ -67,7 +68,6 @@ abstract contract LockingRelock is LockingBase {
     uint32 newCliff,
     uint32 toTime
   ) internal view {
-    require(newAmount > 0, "zero amount");
     require(newCliff <= MAX_CLIFF_PERIOD, "cliff too big");
     require(newSlopePeriod <= MAX_SLOPE_PERIOD, "slope period too big");
     require(newSlopePeriod > 0, "slope period equal 0");
