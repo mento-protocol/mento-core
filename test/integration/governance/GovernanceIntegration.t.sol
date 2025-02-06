@@ -552,7 +552,7 @@ contract GovernanceIntegrationTest is GovernanceTest {
   function test_governor_propose_whenExecutedForImplementationUpgrade_shouldUpgradeTheContracts() public s_governance {
     // create new implementations
     address[] memory newImplementations = addresses(
-      address(new LockingHarness()),
+      address(new LockingHarness(false)),
       address(new TimelockController()),
       address(new MentoGovernor()),
       address(new Emission(false))
