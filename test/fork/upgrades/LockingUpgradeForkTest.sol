@@ -59,7 +59,7 @@ contract LockingUpgradeForkTest is BaseForkTest {
     mentoGovernor = governanceFactory.mentoGovernor();
     mentoToken = governanceFactory.mentoToken();
 
-    newLockingImplementation = address(new Locking(false));
+    newLockingImplementation = address(new Locking(true));
     vm.prank(multisig);
     proxyAdmin.upgrade(ITransparentUpgradeableProxy(address(locking)), newLockingImplementation);
 
