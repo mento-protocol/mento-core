@@ -166,7 +166,7 @@ contract GovernanceFactoryTest is GovernanceTest {
     assertEq(initialImpl, precalculatedAddress, "Factory: lockingProxy should have an implementation");
 
     // deploy and upgrade to new implementation
-    LockingHarness newImplContract = new LockingHarness(false);
+    LockingHarness newImplContract = new LockingHarness(true);
     vm.prank(address(factory.governanceTimelock()));
     proxyAdmin.upgrade(proxy, address(newImplContract));
 
