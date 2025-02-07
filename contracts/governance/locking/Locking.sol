@@ -15,6 +15,12 @@ import "./interfaces/ILocking.sol";
 contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
 
+  constructor(bool disableInitializers) {
+    if (disableInitializers) {
+      _disableInitializers();
+    }
+  }
+
   /**
    * @notice Initializes the locking contract.
    * @dev Sets up the base locking parameters and initializes ownership and context setup
