@@ -17,9 +17,17 @@ import "./libs/LibBrokenLine.sol";
 abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
   using LibBrokenLine for LibBrokenLine.BrokenLine;
   /**
-   * @dev Duration of a week in blocks on the CELO blockchain assuming 5 seconds per block
+   * @dev Duration of a week in blocks on the CELO blockchain before the L2 transition (5 seconds per block)
    */
   uint32 public constant WEEK = 120_960;
+  /**
+   * @dev Duration of a week in blocks on the CELO blockchain after the L2 transition (1 seconds per block)
+   */
+  uint32 public constant L2_WEEK = 604_800;
+  /**
+   * @dev Epoch shift for L1
+   */
+  uint32 public constant L1_EPOCH_SHIFT = 89964;
   /**
    * @dev Maximum allowable cliff period for token locks in weeks
    */
@@ -84,6 +92,31 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @dev Total supply line of veMento
    */
   LibBrokenLine.BrokenLine public totalSupplyLine;
+
+  // ***************
+  // New variables for L2 transition upgrade (3 slots)
+  // ***************
+  /**
+   * @dev L2 transition block number
+   */
+  uint256 public l2TransitionBlock;
+  /**
+   * @dev L2 starting point week number
+   */
+  int256 public l2StartingPointWeek;
+  /**
+   * @dev Shift amount used after L2 transition to move the start of the epoch to 00-00 UTC Wednesday (approx)
+   */
+  uint32 public l2EpochShift;
+  /**
+   * @dev Address of the Mento Labs multisig
+   */
+  address public mentoLabsMultisig;
+  /**
+   * @dev Flag to pause locking and governance
+   */
+  bool public paused;
+
   /**
    * @dev Emitted when create Lock with parameters (account, delegate, amount, slopePeriod, cliff)
    */
@@ -125,6 +158,26 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @dev set newMinSlopePeriod
    */
   event SetMinSlopePeriod(uint256 indexed newMinSlopePeriod);
+  /**
+   * @dev set new Mento Labs multisig address
+   */
+  event SetMentoLabsMultisig(address indexed mentoLabsMultisig);
+  /**
+   * @dev set new L2 transition block number
+   */
+  event SetL2TransitionBlock(uint256 indexed l2TransitionBlock);
+  /**
+   * @dev set new L2 shift amount
+   */
+  event SetL2EpochShift(uint32 indexed l2EpochShift);
+  /**
+   * @dev set new L2 starting point week number
+   */
+  event SetL2StartingPointWeek(int256 indexed l2StartingPointWeek);
+  /**
+   * @dev set new paused flag
+   */
+  event SetPaused(bool indexed paused);
 
   /**
    * @dev Initializes the contract with token, starting point week, and minimum cliff and slope periods.
@@ -147,6 +200,11 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
     require(_minSlopePeriod <= MAX_SLOPE_PERIOD, "period too big");
     minCliffPeriod = _minCliffPeriod;
     minSlopePeriod = _minSlopePeriod;
+  }
+
+  modifier onlyMentoLabs() {
+    require(msg.sender == mentoLabsMultisig, "caller is not MentoLabs multisig");
+    _;
   }
 
   /**
@@ -221,7 +279,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @param amount of tokens to lock
    * @param slopePeriod period over which the tokens will unlock
    * @param cliff initial period during which tokens remain locked and do not start unlocking
-   **/
+   */
   function getLock(
     uint96 amount,
     uint32 slopePeriod,
@@ -256,23 +314,46 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
 
   /**
    * @notice Calculates the week number for a given blocknumber
-   * @param ts block number
+   * @dev It takes L2 transition into account to calculate the week number consistently
+   * @param blockNumber block number to calculate the week number for
    * @return week number the block number belongs to
    */
-  function roundTimestamp(uint32 ts) public view returns (uint32) {
-    if (ts < getEpochShift()) {
+  function getWeekNumber(uint32 blockNumber) public view returns (uint32) {
+    require(!paused, "locking is paused");
+
+    if (blockNumber < _getEpochShift(blockNumber)) {
       return 0;
     }
-    uint32 shifted = ts - (getEpochShift());
-    return shifted / WEEK - uint32(startingPointWeek);
+    uint32 shifted = blockNumber - _getEpochShift(blockNumber);
+
+    if (_isPreL2Transition(blockNumber)) {
+      return shifted / WEEK - uint32(startingPointWeek);
+    } else {
+      return uint32(uint256(int256(uint256(shifted / L2_WEEK)) - l2StartingPointWeek));
+    }
   }
 
   /**
-   * @notice method returns the amount of blocks to shift locking epoch to.
-   * we move it to 00-00 UTC Wednesday (approx) by shifting 89964 blocks (CELO)
+   * @notice Returns the epoch shift based on L2 transition status
+   * @dev Epoch shift is the amount of blocks to move the epoch start to 00-00 UTC Wednesday (approx).
+   * @dev l2EpochShift will be moved into a constant once L2 transition is complete and stable.
+   * @param blockNumber block number to calculate the shift for
+   * @return shift amount in blocks (L1_EPOCH_SHIFT for L1, l2EpochShift for L2)
    */
-  function getEpochShift() internal view virtual returns (uint32) {
-    return 89964;
+  function _getEpochShift(uint32 blockNumber) internal view virtual returns (uint32) {
+    if (_isPreL2Transition(blockNumber)) {
+      return L1_EPOCH_SHIFT;
+    }
+    return l2EpochShift;
+  }
+
+  /**
+   * @notice Determines if a block is before the L2 transition point
+   * @param blockNumber block number to check
+   * @return true if before L2 transition, false if after
+   */
+  function _isPreL2Transition(uint32 blockNumber) internal view returns (bool) {
+    return l2TransitionBlock == 0 || blockNumber < l2TransitionBlock;
   }
 
   /**
@@ -339,7 +420,7 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @param blockNumber block number until which to update lines
    */
   function updateAccountLinesBlockNumber(address account, uint32 blockNumber) external onlyOwner {
-    uint32 time = roundTimestamp(blockNumber);
+    uint32 time = getWeekNumber(blockNumber);
     updateAccountLines(account, time);
   }
 
@@ -348,9 +429,59 @@ abstract contract LockingBase is OwnableUpgradeable, IVotesUpgradeable {
    * @param blockNumber block number until which to update line
    */
   function updateTotalSupplyLineBlockNumber(uint32 blockNumber) external onlyOwner {
-    uint32 time = roundTimestamp(blockNumber);
+    uint32 time = getWeekNumber(blockNumber);
     updateTotalSupplyLine(time);
   }
 
-  uint256[50] private __gap;
+  /**
+   * @notice Sets the Mento Labs multisig address
+   * @param mentoLabsMultisig_ address of the Mento Labs multisig
+   */
+  function setMentoLabsMultisig(address mentoLabsMultisig_) external onlyOwner {
+    mentoLabsMultisig = mentoLabsMultisig_;
+    emit SetMentoLabsMultisig(mentoLabsMultisig_);
+  }
+
+  /**
+   * @notice Sets the L2 transition block number and pauses locking and governance
+   * @param l2TransitionBlock_ block number of the L2 transition
+   */
+  function setL2TransitionBlock(uint256 l2TransitionBlock_) external onlyMentoLabs {
+    l2TransitionBlock = l2TransitionBlock_;
+    paused = true;
+
+    emit SetL2TransitionBlock(l2TransitionBlock_);
+  }
+
+  /**
+   * @notice Sets the L2 epoch shift amount
+   * @param l2EpochShift_ shift amount that will be used after L2 transition
+   */
+  function setL2EpochShift(uint32 l2EpochShift_) external onlyMentoLabs {
+    l2EpochShift = l2EpochShift_;
+
+    emit SetL2EpochShift(l2EpochShift_);
+  }
+
+  /**
+   * @notice Sets the L2 starting point week number
+   * @param l2StartingPointWeek_ starting point week number that will be used after L2 transition
+   */
+  function setL2StartingPointWeek(int256 l2StartingPointWeek_) external onlyMentoLabs {
+    l2StartingPointWeek = l2StartingPointWeek_;
+
+    emit SetL2StartingPointWeek(l2StartingPointWeek_);
+  }
+
+  /**
+   * @notice Sets the paused flag
+   * @param paused_ flag to pause locking and governance
+   */
+  function setPaused(bool paused_) external onlyMentoLabs {
+    paused = paused_;
+
+    emit SetPaused(paused_);
+  }
+
+  uint256[47] private __gap;
 }

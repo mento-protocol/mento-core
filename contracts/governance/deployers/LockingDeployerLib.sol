@@ -10,6 +10,6 @@ library LockingDeployerLib {
    * @return The address of the new Locking contract
    */
   function deploy() external returns (Locking) {
-    return new Locking();
+    return new Locking(true);
   }
 }

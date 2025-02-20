@@ -15,7 +15,7 @@ contract LockingTest is GovernanceTest {
 
   function setUp() public virtual {
     mentoToken = new MockMentoToken();
-    locking = new LockingHarness();
+    locking = new LockingHarness(false);
 
     vm.prank(owner);
     locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), 0, 0, 0);
@@ -30,5 +30,9 @@ contract LockingTest is GovernanceTest {
 
   function _incrementBlock(uint32 _amount) internal {
     locking.incrementBlock(_amount);
+  }
+
+  function _reduceBlock(uint32 _amount) internal {
+    locking.reduceBlock(_amount);
   }
 }

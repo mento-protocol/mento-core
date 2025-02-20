@@ -230,7 +230,7 @@ contract Relock_LockingTest is LockingTest {
     lockId = locking.lock(alice, alice, 38e18, 4, 3);
     _incrementBlock(2 * weekInBlocks);
 
-    vm.expectRevert("zero amount");
+    vm.expectRevert("amount is less than minimum");
     vm.prank(alice);
     locking.relock(lockId, alice, 0, 5, 1);
   }
@@ -645,5 +645,30 @@ contract Relock_LockingTest is LockingTest {
     assertEq(mentoToken.balanceOf(alice), 100e18);
     assertEq(mentoToken.balanceOf(bob), 100e18);
     assertEq(mentoToken.balanceOf(charlie), 100e18);
+  }
+
+  function test_relock_whenAmountLessThanMinimum_shouldRevert() public {
+    mentoToken.mint(alice, 100e18);
+
+    vm.prank(alice);
+    lockId = locking.lock(alice, alice, 30e18, 3, 3);
+
+    _incrementBlock(6 * weekInBlocks);
+
+    vm.expectRevert("amount is less than minimum");
+    vm.prank(alice);
+    locking.relock(lockId, alice, 0.5e18, 3, 3);
+  }
+
+  function test_relock_whenAmountIsMinimum_shouldRelockSuccessfully() public {
+    mentoToken.mint(alice, 100e18);
+
+    vm.prank(alice);
+    lockId = locking.lock(alice, alice, 30e18, 3, 3);
+
+    _incrementBlock(6 * weekInBlocks);
+
+    vm.prank(alice);
+    locking.relock(lockId, alice, 1e18, 3, 3);
   }
 }

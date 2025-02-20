@@ -26,7 +26,7 @@ contract FuzzTestLocking is Test {
     vm.deal(user1, 100 ether);
     testERC20 = new TestERC20("Test", "TST");
 
-    locking = new LockingHarness();
+    locking = new LockingHarness(false);
     locking.__Locking_init(IERC20Upgradeable(address(testERC20)), 0, 1, 3);
     locking.incrementBlock(locking.WEEK() + 1);
   }
