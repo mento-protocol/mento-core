@@ -18,7 +18,8 @@ contract LibBrokenLine_Test is GovernanceTest {
   function blockNumber() internal view returns (uint32) {
     return uint32(block.number);
   }
-
+  
+  /// forge-config: default.allow_internal_expect_revert = true
   function test_addOneLine_whenSlopeZero_shouldRevert() public {
     //Line(start, bias, slope, cliff)
     LibBrokenLine.Line memory line = LibBrokenLine.Line(1, 100, 0, 3);
@@ -26,6 +27,7 @@ contract LibBrokenLine_Test is GovernanceTest {
     LibBrokenLine.addOneLine(brokenLine, 0, line, blockNumber());
   }
 
+  /// forge-config: default.allow_internal_expect_revert = true
   function test_addOneLine_whenSlopeLargerThanBias_shouldRevert() public {
     //Line(start, bias, slope, cliff)
     LibBrokenLine.Line memory line = LibBrokenLine.Line(1, 100, 101, 3);
@@ -33,6 +35,7 @@ contract LibBrokenLine_Test is GovernanceTest {
     LibBrokenLine.addOneLine(brokenLine, 0, line, blockNumber());
   }
 
+  /// forge-config: default.allow_internal_expect_revert = true
   function test_addOneLine_whenLineWithIdAlreadyAdded_shouldRevert() public {
     uint256 id = 0;
     //Line(start, bias, slope, cliff)
@@ -351,6 +354,7 @@ contract LibBrokenLine_Test is GovernanceTest {
     assertLineEq(initialBefore, initialAfter);
   }
 
+  /// forge-config: default.allow_internal_expect_revert = true
   function test_update_whenToTimeIsInPast_shouldRevert() public {
     //Line(start, bias, slope, cliff)
     LibBrokenLine.Line memory line = LibBrokenLine.Line(1, 100, 10, 3);
@@ -360,6 +364,7 @@ contract LibBrokenLine_Test is GovernanceTest {
     LibBrokenLine.update(brokenLine, 0);
   }
 
+  /// forge-config: default.allow_internal_expect_revert = true
   function test_update_whenNegativeSlope_shouldRevert() public {
     uint96 slope = 10;
     //Line(start, bias, slope, cliff)
@@ -451,6 +456,7 @@ contract LibBrokenLine_Test is GovernanceTest {
     assertEq(brokenLine.initial.bias, newBias);
   }
 
+  /// forge-config: default.allow_internal_expect_revert = true
   function test_remove_whenLineDoesNotExist_shouldRevert() public {
     vm.expectRevert("Removing Line, which not exists");
     LibBrokenLine.remove(brokenLine, 0, 1, blockNumber());
