@@ -8,7 +8,8 @@ import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
-import { console } from "forge-std/console.sol";
+import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
 // used to avoid stack too deep error
 struct LockingSnapshot {
   uint256 weekNo;
@@ -38,14 +39,15 @@ contract LockingUpgradeForkTest is BaseForkTest {
   uint256 public constant L2_TRANSITION_BLOCK = 31057000;
 
   GovernanceFactory public governanceFactory = GovernanceFactory(0xee6CE2dbe788dFC38b8F583Da86cB9caf2C8cF5A);
-  ProxyAdmin public proxyAdmin;
+
   Locking public locking;
   MentoGovernor public mentoGovernor;
   MentoToken public mentoToken;
-
   address public timelockController;
 
   address public mentoLabsMultisig = 0x655133d8E90F8190ed5c1F0f3710F602800C0150;
+  // proxy admin that will be used temporarily to upgrade the locking contracts during transition
+  ProxyAdmin public tempProxyAdmin = ProxyAdmin(0x7DeA70fC905f5C4E8f98971761C6641D16A428c1);
 
   constructor(uint256 _chainId) BaseForkTest(_chainId) {}
 
@@ -56,13 +58,6 @@ contract LockingUpgradeForkTest is BaseForkTest {
     timelockController = address(governanceFactory.governanceTimelock());
     mentoGovernor = governanceFactory.mentoGovernor();
     mentoToken = governanceFactory.mentoToken();
-
-    // newLockingImplementation = address(new Locking(true));
-    // vm.prank(multisig);
-    // proxyAdmin.upgrade(ITransparentUpgradeableProxy(address(locking)), newLockingImplementation);
-
-    vm.prank(timelockController);
-    locking.setMentoLabsMultisig(mentoLabsMultisig);
   }
 
   function test_blockNoDependentCalculations_afterL2Transition_shouldWorkAsBefore() public {
@@ -219,6 +214,21 @@ contract LockingUpgradeForkTest is BaseForkTest {
     _moveDays(2, true, true);
 
     mentoGovernor.execute(proposalId);
+  }
+
+  function test_mentoLabsMultisig_shouldUpgradeLocking() public {
+    // should not revert
+    tempProxyAdmin.getProxyImplementation(ITransparentUpgradeableProxy(address(locking)));
+
+    address newLockingImplementation = address(new Locking(true));
+
+    vm.prank(mentoLabsMultisig);
+    tempProxyAdmin.upgrade(ITransparentUpgradeableProxy(address(locking)), newLockingImplementation);
+
+    assertEq(
+      tempProxyAdmin.getProxyImplementation(ITransparentUpgradeableProxy(address(locking))),
+      newLockingImplementation
+    );
   }
 
   // used to give locker enough power to be able to propose
