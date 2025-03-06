@@ -8,7 +8,6 @@ import { GovernanceFactory } from "contracts/governance/GovernanceFactory.sol";
 import { MentoGovernor } from "contracts/governance/MentoGovernor.sol";
 import { MentoToken } from "contracts/governance/MentoToken.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
-// import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { console } from "forge-std/console.sol";
 // used to avoid stack too deep error
 struct LockingSnapshot {
@@ -137,9 +136,6 @@ contract LockingUpgradeForkTest is BaseForkTest {
     // move 5 days forward on L2
     _moveDays({ day: 5, forward: true, isL2: true });
     // we should be at the same week (MONDAY around 03:24)
-    console.log("block.number", block.number);
-    console.log("locking.getWeek()", locking.getWeek());
-
     assertEq(locking.getWeek(), afterSnapshot.weekNo);
 
     // move 1 day forward (TUESDAY around 03:24)
@@ -179,6 +175,9 @@ contract LockingUpgradeForkTest is BaseForkTest {
   }
 
   function test_governance_afterL2Transition_shouldWorkAsBefore() public {
+    vm.roll(L2_TRANSITION_BLOCK);
+    vm.warp(1742959502);
+
     _simulateL2Upgrade();
 
     _moveDays(30 * 7, true, true);
