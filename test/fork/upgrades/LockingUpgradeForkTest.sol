@@ -43,7 +43,6 @@ contract LockingUpgradeForkTest is BaseForkTest {
   Locking public locking;
   MentoGovernor public mentoGovernor;
   MentoToken public mentoToken;
-  address public timelockController;
 
   address public mentoLabsMultisig = 0x655133d8E90F8190ed5c1F0f3710F602800C0150;
   // proxy admin that will be used temporarily to upgrade the locking contracts during transition
@@ -55,7 +54,6 @@ contract LockingUpgradeForkTest is BaseForkTest {
     super.setUp();
 
     locking = governanceFactory.locking();
-    timelockController = address(governanceFactory.governanceTimelock());
     mentoGovernor = governanceFactory.mentoGovernor();
     mentoToken = governanceFactory.mentoToken();
   }
