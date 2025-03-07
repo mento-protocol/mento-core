@@ -9,7 +9,6 @@ import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { console } from "forge-std/console.sol";
 
 contract StableTokenGHSProxyForkTest is BaseForkTest {
-
   address public stableTokenGHSProxy;
   address public originalImplementation; // StableTokenV2
   address public proxyOwner;
@@ -57,7 +56,7 @@ contract StableTokenGHSProxyForkTest is BaseForkTest {
     // 3. Upgrade the proxy to use the new implementation
     vm.prank(proxyOwner);
     ICeloProxy(stableTokenGHSProxy)._setImplementation(address(tempImplementation));
- 
+
     address newImpl = ICeloProxy(stableTokenGHSProxy)._getImplementation();
     assertEq(newImpl, address(tempImplementation), "Implementation not updated correctly");
 
@@ -98,7 +97,11 @@ contract StableTokenGHSProxyForkTest is BaseForkTest {
     IERC20 restoredToken = IERC20(stableTokenGHSProxy);
 
     // Check if the name change persisted (storage was preserved)
-    assertEq(restoredToken.name(), "Celo Ghanaian Cedi", "Storage not preserved after reverting to original implementation");
+    assertEq(
+      restoredToken.name(),
+      "Celo Ghanaian Cedi",
+      "Storage not preserved after reverting to original implementation"
+    );
 
     // Test transfer with restored implementation
     address newRecipient = makeAddr("newRecipient");
