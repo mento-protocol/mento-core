@@ -3,7 +3,6 @@
 pragma solidity 0.8.18;
 
 import { ERC20PermitUpgradeable } from "./patched/ERC20PermitUpgradeable.sol";
-import { ERC20Upgradeable } from "./patched/ERC20Upgradeable.sol";
 import { CalledByVm } from "celo/contracts/common/CalledByVm.sol";
 
 /**
