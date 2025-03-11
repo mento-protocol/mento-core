@@ -18,7 +18,7 @@ contract LibBrokenLine_Test is GovernanceTest {
   function blockNumber() internal view returns (uint32) {
     return uint32(block.number);
   }
-  
+
   /// forge-config: default.allow_internal_expect_revert = true
   function test_addOneLine_whenSlopeZero_shouldRevert() public {
     //Line(start, bias, slope, cliff)
