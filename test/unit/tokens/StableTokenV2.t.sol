@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 
 import { addresses, uints } from "mento-std/Array.sol";
 import { Test } from "mento-std/Test.sol";
-
+import { console } from "forge-std/console.sol";
 import { StableTokenV2 } from "contracts/tokens/StableTokenV2.sol";
 
 contract StableTokenV2Test is Test {
@@ -288,6 +288,39 @@ contract StableTokenV2Test is Test {
     assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFeeRecipientBalance + gatewayFee);
     assertEq(token.balanceOf(communityFund), communityFundBalance);
     assertEq(token.totalSupply(), tokenSupplyBefore1 + newlyMinted1 - tipTxFee - baseTxFee);
+  }
+
+  function test_intrincisicGasOfStableGasPaymentsWithout0xRecipients() public {
+    uint256 refund = 20;
+    uint256 tipTxFee = 30;
+    uint256 gatewayFee = 10;
+    uint256 baseTxFee = 40;
+
+    uint256 holder0InitialBalance = token.balanceOf(holder0);
+    uint256 feeRecipientInitialBalance = token.balanceOf(feeRecipient);
+    uint256 gatewayFeeRecipientInitialBalance = token.balanceOf(gatewayFeeRecipient);
+    uint256 communityFundInitialBalance = token.balanceOf(communityFund);
+
+    vm.startPrank(address(0));
+    uint256 gasBefore = gasleft();
+    token.debitGasFees(holder0, refund + tipTxFee + gatewayFee + baseTxFee);
+    token.creditGasFees(
+      holder0,
+      feeRecipient,
+      gatewayFeeRecipient,
+      communityFund,
+      refund,
+      tipTxFee,
+      gatewayFee,
+      baseTxFee
+    );
+    uint256 gasAfter = gasleft();
+    vm.stopPrank();
+    assertEq(token.balanceOf(holder0), holder0InitialBalance - tipTxFee - gatewayFee - baseTxFee);
+    assertEq(token.balanceOf(feeRecipient), feeRecipientInitialBalance + tipTxFee);
+    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFeeRecipientInitialBalance + gatewayFee);
+    assertEq(token.balanceOf(communityFund), communityFundInitialBalance + baseTxFee);
+    console.log("max gas used for stable gas payments", gasBefore - gasAfter);
   }
 
   function buildTypedDataHash(
