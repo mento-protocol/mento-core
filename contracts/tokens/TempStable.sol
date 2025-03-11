@@ -14,12 +14,8 @@ contract TempStable is Ownable {
   address public slot1; // slot 1
   string private _name; // slot 2
 
-  event NameUpdated(string newName);
-
   function setName(string calldata newName) external onlyOwner {
     _name = newName;
-
-    emit NameUpdated(newName);
   }
 
   function name() public view returns (string memory) {
