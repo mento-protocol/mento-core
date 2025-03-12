@@ -35,56 +35,48 @@ contract LockingUpgradeForkTest is BaseForkTest {
   uint256 public constant L1_WEEK = 7 days / 5;
   uint256 public constant L2_WEEK = 7 days;
 
+  // Wed Mar 26 2025 03:24:47
+  uint256 public constant L2_TRANSITION_BLOCK = 31057000;
+
   GovernanceFactory public governanceFactory = GovernanceFactory(0xee6CE2dbe788dFC38b8F583Da86cB9caf2C8cF5A);
-  ProxyAdmin public proxyAdmin;
+
   Locking public locking;
   MentoGovernor public mentoGovernor;
   MentoToken public mentoToken;
 
-  address public timelockController;
-  address public newLockingImplementation;
-
-  address public mentoLabsMultisig = makeAddr("mentoLabsMultisig");
+  address public mentoLabsMultisig = 0x655133d8E90F8190ed5c1F0f3710F602800C0150;
+  // proxy admin that will be used temporarily to upgrade the locking contracts during transition
+  ProxyAdmin public tempProxyAdmin = ProxyAdmin(0x7DeA70fC905f5C4E8f98971761C6641D16A428c1);
 
   constructor(uint256 _chainId) BaseForkTest(_chainId) {}
 
   function setUp() public virtual override {
     super.setUp();
-    address newProxyAdmin = 0x7DeA70fC905f5C4E8f98971761C6641D16A428c1;
-    address multisig = 0x655133d8E90F8190ed5c1F0f3710F602800C0150;
 
-    proxyAdmin = ProxyAdmin(newProxyAdmin); //governanceFactory.proxyAdmin();
     locking = governanceFactory.locking();
-    timelockController = address(governanceFactory.governanceTimelock());
     mentoGovernor = governanceFactory.mentoGovernor();
     mentoToken = governanceFactory.mentoToken();
-
-    newLockingImplementation = address(new Locking(true));
-    vm.prank(multisig);
-    proxyAdmin.upgrade(ITransparentUpgradeableProxy(address(locking)), newLockingImplementation);
-
-    vm.prank(timelockController);
-    locking.setMentoLabsMultisig(mentoLabsMultisig);
   }
 
   function test_blockNoDependentCalculations_afterL2Transition_shouldWorkAsBefore() public {
     LockingSnapshot memory beforeSnapshot;
     LockingSnapshot memory afterSnapshot;
 
-    // THU Nov-07-2024 00:00:23 +UTC
-    vm.roll(28653031);
-    vm.warp(1730937623);
+    // Wed Aug 28 2024 02:45:33 GMT+0000
+    // (30 weeks + 1 block) before L2 transition
+    vm.roll((L2_TRANSITION_BLOCK - 30 * L1_WEEK) - 1);
+    vm.warp(1724813133);
 
     // move 30 weeks forward on L1
     _moveDays({ day: 30 * 7, forward: true, isL2: false });
 
-    // Take snapshot 30 weeks after Nov 07
+    // Take snapshot 1 block before L2 transition
     beforeSnapshot = _takeSnapshot(AIRDROP_CLAIMER_1, AIRDROP_CLAIMER_2);
 
     // move 5 weeks forward on L1
     _moveDays({ day: 5 * 7, forward: true, isL2: false });
 
-    // Take snapshot 35 weeks after Nov 07
+    // Take snapshot 35 weeks after Aug 28
     afterSnapshot = _takeSnapshot(AIRDROP_CLAIMER_1, AIRDROP_CLAIMER_2);
 
     // move 5 weeks backward on L1
@@ -96,10 +88,10 @@ contract LockingUpgradeForkTest is BaseForkTest {
 
     uint256 blocksTillNextWeekL2 = _calculateBlocksTillNextWeek({ isL2: true });
 
+    assertEq(locking.getWeek(), beforeSnapshot.weekNo);
     // if the shift number is correct, the number of blocks till the next week should be 5 times the previous number
     assertEq(blocksTillNextWeekL2, 5 * blocksTillNextWeekL1);
 
-    assertEq(locking.getWeek(), beforeSnapshot.weekNo);
     assertEq(locking.totalSupply(), beforeSnapshot.totalSupply);
     // the past values should be calculated using the L1 week value
     assertEq(locking.getPastTotalSupply(block.number - 3 * L1_WEEK), beforeSnapshot.pastTotalSupply);
@@ -136,12 +128,16 @@ contract LockingUpgradeForkTest is BaseForkTest {
 
     // move 5 days forward on L2
     _moveDays({ day: 5, forward: true, isL2: true });
-    // we should be at the same week (TUE around 00:00)
+    // we should be at the same week (MONDAY around 03:24)
     assertEq(locking.getWeek(), afterSnapshot.weekNo);
-    // move 1 day forward on L2 + 90 mins as buffer
+
+    // move 1 day forward (TUESDAY around 03:24)
     _moveDays({ day: 1, forward: true, isL2: true });
-    vm.roll(block.number + 90 minutes);
-    // we should be at the next week (WED around 01:30)
+    assertEq(locking.getWeek(), afterSnapshot.weekNo);
+
+    // move 1 day forward (WEDNESDAY around 03:24)
+    // so the week should be incremented by 1
+    _moveDays({ day: 1, forward: true, isL2: true });
     assertEq(locking.getWeek(), afterSnapshot.weekNo + 1);
   }
 
@@ -172,6 +168,9 @@ contract LockingUpgradeForkTest is BaseForkTest {
   }
 
   function test_governance_afterL2Transition_shouldWorkAsBefore() public {
+    vm.roll(L2_TRANSITION_BLOCK);
+    vm.warp(1742959502);
+
     _simulateL2Upgrade();
 
     _moveDays(30 * 7, true, true);
@@ -213,6 +212,21 @@ contract LockingUpgradeForkTest is BaseForkTest {
     _moveDays(2, true, true);
 
     mentoGovernor.execute(proposalId);
+  }
+
+  function test_mentoLabsMultisig_shouldUpgradeLocking() public {
+    // should not revert
+    tempProxyAdmin.getProxyImplementation(ITransparentUpgradeableProxy(address(locking)));
+
+    address newLockingImplementation = address(new Locking(true));
+
+    vm.prank(mentoLabsMultisig);
+    tempProxyAdmin.upgrade(ITransparentUpgradeableProxy(address(locking)), newLockingImplementation);
+
+    assertEq(
+      tempProxyAdmin.getProxyImplementation(ITransparentUpgradeableProxy(address(locking))),
+      newLockingImplementation
+    );
   }
 
   // used to give locker enough power to be able to propose
@@ -262,11 +276,15 @@ contract LockingUpgradeForkTest is BaseForkTest {
   // simulates the L2 upgrade by setting the necessary parameters
   function _simulateL2Upgrade() internal {
     vm.prank(mentoLabsMultisig);
-    locking.setL2TransitionBlock(block.number);
+    locking.setL2TransitionBlock(L2_TRANSITION_BLOCK);
+    // l1 week no will be 44
+    // (31_057_000/604_800) - x = 44
+    // x = 51.35 - 44 = 7.35
+    // so the new starting point week should be 7
     vm.prank(mentoLabsMultisig);
-    locking.setL2StartingPointWeek(-1);
+    locking.setL2StartingPointWeek(7);
     vm.prank(mentoLabsMultisig);
-    locking.setL2EpochShift(144896);
+    locking.setL2EpochShift(205824);
     vm.prank(mentoLabsMultisig);
     locking.setPaused(false);
   }
