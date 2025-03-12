@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8;
 
-import { Test } from "forge-std/Test.sol";
 import { ICeloProxy } from "contracts/interfaces/ICeloProxy.sol";
 import { IOwnable } from "contracts/interfaces/IOwnable.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
