@@ -290,7 +290,7 @@ contract StableTokenV2Test is Test {
     assertEq(token.totalSupply(), tokenSupplyBefore1 + newlyMinted1 - tipTxFee - baseTxFee);
   }
 
-  function test_intrincisicGasOfStableGasPaymentsWithout0xRecipients() public {
+  function test_intrinsicGasOfStableGasPaymentsWithout0xRecipients() public {
     uint256 refund = 20;
     uint256 tipTxFee = 30;
     uint256 gatewayFee = 10;
