@@ -249,9 +249,14 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   function getTradingLimitsState(address tokenAddress) public view returns (ITradingLimits.State memory state) {
     bytes32 limitId = getTradingLimitId(tokenAddress);
     ITradingLimits.State memory _state;
-    (_state.lastUpdated0, _state.lastUpdated1, _state.netflow0, _state.netflow1, _state.netflowGlobal) = Broker(
-      address(broker)
-    ).tradingLimitsState(limitId);
+    (
+      _state.lastUpdated0,
+      _state.lastUpdated1,
+      _state.netflow0,
+      _state.netflow1,
+      _state.netflowGlobal,
+      _state.netflowDecimals
+    ) = Broker(address(broker)).tradingLimitsState(limitId);
 
     return _state;
   }
