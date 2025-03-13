@@ -12,7 +12,8 @@ optimizer = false
 legacy = true
 no_match_contract = "ForkTest"
 gas_limit = 9223372036854775807
-
+evm_version = "cancun"
+cbor_metadata = false
 
 allow_paths = ["node_modules/@celo"]
 
