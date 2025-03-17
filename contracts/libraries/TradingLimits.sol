@@ -11,10 +11,10 @@ import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
  * defining and verifying trading limits on the netflow of an asset.
  * There are three limits that can be enabled:
  * - L0: A timewindow based limit, verifies that:
- *       -1 * limit0 <= netflow0 <= limit0,
+ *       netflow0 <= limit0 or netflow0 >= limit0 if limit0 is negative,
  *       for a netflow0 that resets every timespan0 seconds.
  * - L1: A timewindow based limit, verifies that:
- *       -1 * limit1 <= netflow1 <= limit1,
+ *       netflow1 <= limit1 or netflow1 >= limit1 if limit1 is negative,
  *       for a netflow1 that resets every timespan1 second.
  * - LG: A global (or lifetime) limit that ensures that:
  *       -1 * limitGlobal <= netflowGlobal <= limitGlobal,
@@ -56,8 +56,8 @@ library TradingLimits {
     require(self.flags & L1 == 0 || self.flags & L0 != 0, "L1 without L0 not allowed");
     require(self.flags & L0 == 0 || self.timestep0 > 0, "timestep0 can't be zero if active");
     require(self.flags & L1 == 0 || self.timestep1 > 0, "timestep1 can't be zero if active");
-    require(self.flags & L0 == 0 || self.limit0 > 0, "limit0 can't be zero if active");
-    require(self.flags & L1 == 0 || self.limit1 > 0, "limit1 can't be zero if active");
+    require(self.flags & L0 == 0 || self.limit0 != 0, "limit0 can't be zero if active");
+    require(self.flags & L1 == 0 || self.limit1 != 0, "limit1 can't be zero if active");
     require(self.flags & LG == 0 || self.limitGlobal > 0, "limitGlobal can't be zero if active");
     require(self.flags & (L0 | L1) != 3 || self.limit0 < self.limit1, "limit1 must be greater than limit0");
     require(self.flags & (L1 | LG) != 6 || self.limit1 < self.limitGlobal, "limitGlobal must be greater than limit1");
@@ -71,10 +71,16 @@ library TradingLimits {
    * @param config the trading limit Config to check against.
    */
   function verify(ITradingLimits.State memory self, ITradingLimits.Config memory config) internal pure {
-    if ((config.flags & L0) > 0 && (-1 * config.limit0 > self.netflow0 || self.netflow0 > config.limit0)) {
+    if (
+      ((config.flags & L0) > 0 &&
+        ((config.limit0 < 0 && config.limit0 > self.netflow0) || (config.limit0 > 0 && self.netflow0 > config.limit0)))
+    ) {
       revert("L0 Exceeded");
     }
-    if ((config.flags & L1) > 0 && (-1 * config.limit1 > self.netflow1 || self.netflow1 > config.limit1)) {
+    if (
+      (config.flags & L1) > 0 &&
+      ((config.limit1 < 0 && config.limit1 > self.netflow1) || (config.limit1 > 0 && self.netflow1 > config.limit1))
+    ) {
       revert("L1 Exceeded");
     }
     if (

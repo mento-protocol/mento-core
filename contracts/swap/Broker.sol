@@ -49,6 +49,7 @@ contract Broker is IBroker, IBrokerAdmin, Initializable, Ownable, ReentrancyGuar
   uint256 private constant MAX_INT256 = uint256(type(int256).max);
 
   mapping(address => address) public exchangeReserve;
+
   /* ==================== Constructor ==================== */
 
   /**
