@@ -12,9 +12,6 @@ import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import "celo/contracts/common/Proxy.sol";
-
-// import { BrokerProxy } from "contracts/swap/BrokerProxy.sol";
 
 contract DeployMento is Script {
   // Deployment addresses to be populated
@@ -28,8 +25,8 @@ contract DeployMento is Script {
   // Proxy addresses
   TransparentUpgradeableProxy public exchangeProviderProxy;
   TransparentUpgradeableProxy public expansionControllerProxy;
-  Proxy public reserveProxy;
-  Proxy public brokerProxy;
+  TransparentUpgradeableProxy public reserveProxy;
+  TransparentUpgradeableProxy public brokerProxy;
 
   uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
   address avatar = vm.envAddress("AVATAR");
@@ -46,30 +43,18 @@ contract DeployMento is Script {
     proxyAdmin = new ProxyAdmin();
     proxyAdmin.transferOwnership(avatar);
 
-    // reserveProxy = new TransparentUpgradeableProxy{ salt: keccak256(abi.encodePacked("MentoGDReserve", env)) }(
-    //   address(reserve),
-    //   address(proxyAdmin),
-    //   ""
-    // );
+    reserveProxy = new TransparentUpgradeableProxy{ salt: keccak256(abi.encodePacked("MentoGDReserve", env)) }(
+      address(reserve),
+      address(proxyAdmin),
+      ""
+    );
 
-    bytes memory reserveProxyCode = vm.getCode("ReserveProxy.sol");
-    bytes memory c2Code = abi.encodePacked(keccak256(abi.encodePacked("MentoGDReserveProxy", env)), reserveProxyCode);
-    (, bytes memory reserveresult) = c2Deployer.call{ value: 0 }(c2Code);
-    reserveProxy = address(bytes20(reserveresult));
-    reserveProxy._setImplementation(reserve);
-    reserveProxy._transferOwnership(proxyAdmin);
-
-    // Deploy BrokerProxy (using custom proxy pattern)
-    // brokerProxy = new TransparentUpgradeableProxy{ salt: keccak256(abi.encodePacked("MentoGDBroker", env)) }(
-    //   address(broker),
-    //   address(proxyAdmin),
-    //   "" // No initialization data yet
-    // );
-
-    bytes memory brokerProxyCode = vm.getCode("BrokerProxy.sol");
-    bytes memory c2Code = abi.encodePacked(keccak256(abi.encodePacked("MentoGDBrokerProxy", env)), brokerProxyCode);
-    (, bytes memory brokerresult) = c2Deployer.call{ value: 0 }(c2Code);
-    brokerProxy = address(bytes20(brokerresult));
+    //Deploy BrokerProxy (using custom proxy pattern)
+    brokerProxy = new TransparentUpgradeableProxy{ salt: keccak256(abi.encodePacked("MentoGDBroker", env)) }(
+      address(broker),
+      address(proxyAdmin),
+      "" // No initialization data yet
+    );
 
     // Deploy proxies
     exchangeProviderProxy = new TransparentUpgradeableProxy{
@@ -109,7 +94,8 @@ contract DeployMento is Script {
     uint256[] memory sRatio = new uint256[](1);
     sRatio[0] = 1e24;
 
-  reserveProxy._setAndInitializeImplementation(reserve,abi.encode(
+    console.log("initializing reserve...");
+    reserveProxied.initialize(
       0x000000000000000000000000000000000000ce10, // registry address
       3153600000, // tobinTaxStalenessThreshold
       1e24, // spendingRatioForCelo (0.1 in fixidity)
@@ -121,22 +107,7 @@ contract DeployMento is Script {
       0, // tobinTaxReserveRatio
       cAssets, // collateralAssets
       sRatio // collateralAssetDailySpendingRatios
-    ))
-    reserveProxy._transferOwnership(proxyAdmin)
-
-    // reserveProxied.initialize(
-    //   0x000000000000000000000000000000000000ce10, // registry address
-    //   3153600000, // tobinTaxStalenessThreshold
-    //   1e24, // spendingRatioForCelo (0.1 in fixidity)
-    //   0, // frozenGold
-    //   0, // frozenDays
-    //   assets, // assetAllocationSymbols
-    //   aWeights, // assetAllocationWeights
-    //   0, // tobinTax
-    //   0, // tobinTaxReserveRatio
-    //   cAssets, // collateralAssets
-    //   sRatio // collateralAssetDailySpendingRatios
-    // );
+    );
 
     exchangeProviderProxied.initialize(
       address(brokerProxy),
@@ -159,10 +130,8 @@ contract DeployMento is Script {
     address[] memory reserves = new address[](1);
     reserves[0] = address(reserveProxy);
 
-    brokerProxy._setAndInitializeImplementation(broker, abi.encode(exchangeProvider, reserves));
-    brokerProxy._transferOwnership(proxyAdmin);
-
-    // brokerProxied.initialize(exchangeProviders, reserves);
+    console.log("initializing broker...");
+    brokerProxied.initialize(exchangeProviders, reserves);
 
     // perform setup
     reserveProxied.addToken(goodDollar);
