@@ -32,22 +32,22 @@ contract DeployGoodDollarImplementations is Script {
 
     // Deploy implementation contracts
     exchangeProvider = new GoodDollarExchangeProvider{
-      salt: keccak256(abi.encodePacked("ExchangeProviderImplV1", ""))
-    }(true);
+      salt: keccak256(abi.encodePacked("ExchangeProviderImplV1.0", ""))
+    }(false);
     expansionController = new GoodDollarExpansionController{
-      salt: keccak256(abi.encodePacked("ExpansionControllerImplV1", ""))
-    }(true);
+      salt: keccak256(abi.encodePacked("ExpansionControllerImplV1.0", ""))
+    }(false);
 
     bytes memory reserveCode = vm.getCode("Reserve.sol");
     bytes memory c2Code = abi.encodePacked(
-      keccak256(abi.encodePacked("MentoReserveImplV1", "")),
-      abi.encodePacked(reserveCode, abi.encode(true))
+      keccak256(abi.encodePacked("MentoReserveImplV1.0", "")),
+      abi.encodePacked(reserveCode, abi.encode(false))
     );
 
     (, bytes memory result) = c2Deployer.call{ value: 0 }(c2Code);
     reserve = address(bytes20(result));
     // reserve = 0xf78C12e6d3971cfC325A3B150fA4BB5AB8660c3F; //deployCode("Reserve.sol", abi.encode(true)); //because of solidity version conflict
-    broker = new Broker{ salt: keccak256(abi.encodePacked("MentoBrokerImplV1", "")) }(true);
+    broker = new Broker{ salt: keccak256(abi.encodePacked("MentoBrokerImplV1.0", "")) }(false);
 
     vm.stopBroadcast();
 
