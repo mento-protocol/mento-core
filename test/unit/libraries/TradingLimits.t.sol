@@ -210,15 +210,10 @@ contract TradingLimitsTest is Test {
     harness.verify(state, configL0(500, 1230));
   }
 
-  function test_verify_withL0_andMetNegativelyPass() public {
-    state.netflow0 = -1231;
-    harness.verify(state, configL0(500, 1230));
-  }
-
-  function test_verify_withL0_andMetNegativelyFail() public {
+  function test_verify_withL0_andMetNegatively() public {
     state.netflow0 = -1231;
     vm.expectRevert(bytes("L0 Exceeded"));
-    harness.verify(state, configL0(500, -1230));
+    harness.verify(state, configL0(500, 1230));
   }
 
   function test_verify_withL0L1_butNoneMet() public {
@@ -232,15 +227,10 @@ contract TradingLimitsTest is Test {
     harness.verify(state, configL0L1(50, 100, 500, 1230));
   }
 
-  function test_verify_withL0L1_andL1MetNegativelyPass() public {
-    state.netflow1 = -1231;
-    harness.verify(state, configL0L1(50, 100, 500, 1230));
-  }
-
-  function test_verify_withL0L1_andL1MetNegativelyFail() public {
+  function test_verify_withL0L1_andL1MetNegatively() public {
     state.netflow1 = -1231;
     vm.expectRevert(bytes("L1 Exceeded"));
-    harness.verify(state, configL0L1(50, 100, 500, -1230));
+    harness.verify(state, configL0L1(50, 100, 500, 1230));
   }
 
   function test_verify_withLG_butNoneMet() public {
