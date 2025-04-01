@@ -1,0 +1,77 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="600" rx="20" fill="#4A90E2" />
+  
+  <!-- Card Header -->
+  <rect x="40" y="40" width="720" height="120" rx="10" fill="#ffffff" fill-opacity="0.15" />
+  
+  <!-- Campaign Logo - Rocket Icon -->
+  <g transform="translate(100,100)">
+    <circle cx="0" cy="0" r="40" fill="#ffffff" />
+    <!-- Simple Rocket Icon -->
+    <path d="M-15,-25 L0,-35 L15,-25 L15,15 L0,25 L-15,15 Z" fill="#4A90E2" />
+    <path d="M-10,15 L-20,25 M10,15 L20,25" stroke="#4A90E2" stroke-width="5" stroke-linecap="round" />
+    <circle cx="0" cy="-5" r="8" fill="#ffffff" stroke="#4A90E2" stroke-width="2" />
+  </g>
+  
+  <!-- Campaign Title -->
+  <text x="160" y="85" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff">MiniPay March 2025</text>
+  <text x="160" y="125" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff">MP BOOST</text>
+  
+  <!-- Main Content Area -->
+  <rect x="40" y="180" width="720" height="280" rx="10" fill="#ffffff" fill-opacity="0.9" />
+  
+  <!-- Campaign Description -->
+  <foreignObject x="60" y="200" width="680" height="140">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 18px; color: #333333; line-height: 1.5;">
+      MiniPay Boost is a special reward program designed to accelerate user engagement with the MiniPay ecosystem. By participating in the MP Boost program, users earn additional rewards for completing various financial activities such as peer-to-peer transfers, savings deposits, and merchant payments. These tokens can be redeemed for Mento, helping users maximize the value they get from everyday transactions.
+    </div>
+  </foreignObject>
+  
+  <!-- Campaign Attributes -->
+  <g>
+    <!-- Campaign Type -->
+    <rect x="60" y="350" width="200" height="90" rx="10" fill="#4A90E2" fill-opacity="0.3" />
+    <text x="75" y="375" font-family="Arial, sans-serif" font-size="16" fill="#333333">Campaign Type</text>
+    <text x="75" y="410" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333333">Boost</text>
+    
+    <!-- Season -->
+    <rect x="280" y="350" width="200" height="90" rx="10" fill="#4A90E2" fill-opacity="0.3" />
+    <text x="295" y="375" font-family="Arial, sans-serif" font-size="16" fill="#333333">Season</text>
+    <text x="295" y="410" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333333">March 2025</text>
+    
+    <!-- Category -->
+    <rect x="500" y="350" width="200" height="90" rx="10" fill="#4A90E2" fill-opacity="0.3" />
+    <text x="515" y="375" font-family="Arial, sans-serif" font-size="16" fill="#333333">Category</text>
+    <text x="515" y="410" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333333">Loyalty</text>
+  </g>
+  
+  <!-- Footer -->
+  <rect x="40" y="480" width="720" height="80" rx="10" fill="#ffffff" fill-opacity="0.15" />
+  
+  <!-- Sponsor -->
+  <text x="60" y="515" font-family="Arial, sans-serif" font-size="16" fill="#ffffff">Sponsor:</text>
+  <text x="140" y="515" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#ffffff">Mento Labs</text>
+  
+  <!-- Redemption -->
+  <text x="280" y="515" font-family="Arial, sans-serif" font-size="16" fill="#ffffff">Redeem Currency:</text>
+  <text x="440" y="515" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#ffffff">Mento</text>
+  
+  <!-- Campaign ID Hash (visual element) -->
+  <rect x="560" y="495" width="180" height="40" rx="5" fill="#ffffff" fill-opacity="0.2" />
+  <text x="570" y="520" font-family="monospace" font-size="14" fill="#ffffff" letter-spacing="-1">0x4d50426f6f73...</text>
+  
+  <!-- Decorative Elements - Small Rockets -->
+  <g transform="translate(760,40) rotate(45)">
+    <path d="M0,0 L10,-15 L5,-5 L15,-10 Z" fill="#ffffff" fill-opacity="0.5" />
+  </g>
+  <g transform="translate(720,560) rotate(-135)">
+    <path d="M0,0 L10,-15 L5,-5 L15,-10 Z" fill="#ffffff" fill-opacity="0.5" />
+  </g>
+  <g transform="translate(40,560) rotate(135)">
+    <path d="M0,0 L10,-15 L5,-5 L15,-10 Z" fill="#ffffff" fill-opacity="0.5" />
+  </g>
+  <g transform="translate(40,40) rotate(-45)">
+    <path d="M0,0 L10,-15 L5,-5 L15,-10 Z" fill="#ffffff" fill-opacity="0.5" />
+  </g>
+</svg> 

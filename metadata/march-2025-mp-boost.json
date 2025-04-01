@@ -1,0 +1,27 @@
+{
+  "description": "MiniPay Boost is a special reward program designed to accelerate user engagement with the MiniPay ecosystem. By participating in the MP Boost program, users earn additional rewards for completing various financial activities such as peer-to-peer transfers, savings deposits, and merchant payments. These tokens can be redeemed for Mento, helping users maximize the value they get from everyday transactions.",
+  "name": "MiniPay March 2025 MP Boost",
+  "attributes": [
+    {
+      "trait_type": "Campaign Type",
+      "value": "Boost"
+    },
+    {
+      "trait_type": "Season",
+      "value": "March 2025"
+    },
+    {
+      "trait_type": "Redeem Currency",
+      "value": "Mento"
+    },
+    {
+      "trait_type": "Sponsor",
+      "value": "Mento Labs"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Loyalty"
+    }
+  ],
+  "background_color": "4A90E2"
+} 

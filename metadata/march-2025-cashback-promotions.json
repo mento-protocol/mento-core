@@ -1,0 +1,27 @@
+{
+  "description": "Earn cashback rewards on all your MiniPay transactions during March 2025! This exclusive promotion offers users the opportunity to receive cashback on everyday purchases, bill payments, and peer-to-peer transfers. The more you use MiniPay, the more you earn.",
+  "image": "https://storage.googleapis.com/mento-dev-bucket/minipay-campaigns/march-2025-cashback-promotions.svg",
+  "attributes": [
+    {
+      "trait_type": "Campaign Type",
+      "value": "Cashback"
+    },
+    {
+      "trait_type": "Season",
+      "value": "March 2025"
+    },
+    {
+      "trait_type": "Redeem Currency",
+      "value": "Mento"
+    },
+    {
+      "trait_type": "Sponsor",
+      "value": "Mento Labs"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Rewards"
+    }
+  ],
+  "background_color": "3BDE7C"
+} 

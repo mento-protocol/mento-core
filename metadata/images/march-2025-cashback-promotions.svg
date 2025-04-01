@@ -1,0 +1,88 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="600" rx="20" fill="#3BDE7C" />
+  
+  <!-- Card Header -->
+  <rect x="40" y="40" width="720" height="120" rx="10" fill="#ffffff" fill-opacity="0.15" />
+  
+  <!-- Campaign Logo - Wallet with Coins -->
+  <g transform="translate(100,100)">
+    <circle cx="0" cy="0" r="40" fill="#ffffff" />
+    <!-- Simple Wallet Icon -->
+    <rect x="-25" y="-15" width="50" height="35" rx="5" fill="#3BDE7C" />
+    <rect x="-20" y="-25" width="40" height="15" rx="3" fill="#3BDE7C" />
+    <!-- Coins -->
+    <circle cx="-10" cy="5" r="8" fill="#FFD700" stroke="#3BDE7C" stroke-width="1" />
+    <circle cx="10" cy="5" r="8" fill="#FFD700" stroke="#3BDE7C" stroke-width="1" />
+    <circle cx="0" cy="-5" r="8" fill="#FFD700" stroke="#3BDE7C" stroke-width="1" />
+  </g>
+  
+  <!-- Campaign Title -->
+  <text x="160" y="85" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff">MiniPay March 2025</text>
+  <text x="160" y="125" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff">CASHBACK PROMOTIONS</text>
+  
+  <!-- Main Content Area -->
+  <rect x="40" y="180" width="720" height="280" rx="10" fill="#ffffff" fill-opacity="0.9" />
+  
+  <!-- Campaign Description -->
+  <foreignObject x="60" y="200" width="680" height="140">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 18px; color: #333333; line-height: 1.5;">
+      Earn cashback rewards on all your MiniPay transactions during March 2025! This exclusive promotion offers users the opportunity to receive cashback on everyday purchases, bill payments, and peer-to-peer transfers. The more you use MiniPay, the more you earn. Accumulate cashback rewards throughout the month and redeem them for Mento. Don't miss this limited-time opportunity to maximize the value of your transactions.
+    </div>
+  </foreignObject>
+  
+  <!-- Campaign Attributes -->
+  <g>
+    <!-- Campaign Type -->
+    <rect x="60" y="350" width="200" height="90" rx="10" fill="#3BDE7C" fill-opacity="0.3" />
+    <text x="75" y="375" font-family="Arial, sans-serif" font-size="16" fill="#333333">Campaign Type</text>
+    <text x="75" y="410" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333333">Cashback</text>
+    
+    <!-- Season -->
+    <rect x="280" y="350" width="200" height="90" rx="10" fill="#3BDE7C" fill-opacity="0.3" />
+    <text x="295" y="375" font-family="Arial, sans-serif" font-size="16" fill="#333333">Season</text>
+    <text x="295" y="410" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333333">March 2025</text>
+    
+    <!-- Category -->
+    <rect x="500" y="350" width="200" height="90" rx="10" fill="#3BDE7C" fill-opacity="0.3" />
+    <text x="515" y="375" font-family="Arial, sans-serif" font-size="16" fill="#333333">Category</text>
+    <text x="515" y="410" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333333">Rewards</text>
+  </g>
+  
+  <!-- Footer -->
+  <rect x="40" y="480" width="720" height="80" rx="10" fill="#ffffff" fill-opacity="0.15" />
+  
+  <!-- Sponsor -->
+  <text x="60" y="515" font-family="Arial, sans-serif" font-size="16" fill="#ffffff">Sponsor:</text>
+  <text x="140" y="515" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#ffffff">Mento Labs</text>
+  
+  <!-- Redemption -->
+  <text x="280" y="515" font-family="Arial, sans-serif" font-size="16" fill="#ffffff">Redeem Currency:</text>
+  <text x="440" y="515" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#ffffff">Mento</text>
+  
+  <!-- Campaign ID Hash (visual element) -->
+  <rect x="560" y="495" width="180" height="40" rx="5" fill="#ffffff" fill-opacity="0.2" />
+  <text x="570" y="520" font-family="monospace" font-size="14" fill="#ffffff" letter-spacing="-1">0x43617368626b...</text>
+  
+  <!-- Decorative Elements - Dollar/Money Symbols -->
+  <g transform="translate(760,40) rotate(15)">
+    <text font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" fill-opacity="0.5">$</text>
+  </g>
+  <g transform="translate(720,560) rotate(-15)">
+    <text font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" fill-opacity="0.5">$</text>
+  </g>
+  <g transform="translate(40,560) rotate(15)">
+    <text font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" fill-opacity="0.5">$</text>
+  </g>
+  <g transform="translate(40,40) rotate(-15)">
+    <text font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" fill-opacity="0.5">$</text>
+  </g>
+  
+  <!-- Small Coins Scattered -->
+  <circle cx="700" cy="140" r="10" fill="#FFD700" fill-opacity="0.5" />
+  <circle cx="680" cy="100" r="8" fill="#FFD700" fill-opacity="0.5" />
+  <circle cx="720" cy="80" r="6" fill="#FFD700" fill-opacity="0.5" />
+  <circle cx="100" cy="460" r="10" fill="#FFD700" fill-opacity="0.5" />
+  <circle cx="140" cy="480" r="8" fill="#FFD700" fill-opacity="0.5" />
+  <circle cx="80" cy="500" r="6" fill="#FFD700" fill-opacity="0.5" />
+</svg> 
