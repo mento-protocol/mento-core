@@ -44,8 +44,6 @@ import { BancorExchangeProviderForkTest } from "./BancorExchangeProviderForkTest
 import { GoodDollarTradingLimitsForkTest } from "./GoodDollar/TradingLimitsForkTest.sol";
 import { GoodDollarSwapForkTest } from "./GoodDollar/SwapForkTest.sol";
 import { GoodDollarExpansionForkTest } from "./GoodDollar/ExpansionForkTest.sol";
-import { LockingUpgradeForkTest } from "./upgrades/LockingUpgradeForkTest.sol";
-import { GHSRenameForkTest } from "./GHSRenameForkTest.sol";
 
 contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(21)) {}
 
@@ -91,7 +89,7 @@ contract Alfajores_P0E19_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 1
 
 contract Alfajores_P0E20_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 20) {}
 
-contract Celo_ChainForkTest is ChainForkTest(CELO_ID, 1, uints(17)) {}
+contract Celo_ChainForkTest is ChainForkTest(CELO_ID, 1, uints(21)) {}
 
 contract Celo_P0E00_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 0) {}
 
@@ -127,6 +125,14 @@ contract Celo_P0E15_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 15) {}
 
 contract Celo_P0E16_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 16) {}
 
+contract Celo_P0E17_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 17) {}
+
+contract Celo_P0E18_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 18) {}
+
+contract Celo_P0E19_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 19) {}
+
+contract Celo_P0E20_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 20) {}
+
 contract Celo_BancorExchangeProviderForkTest is BancorExchangeProviderForkTest(CELO_ID) {}
 
 contract Celo_GoodDollarTradingLimitsForkTest is GoodDollarTradingLimitsForkTest(CELO_ID) {}
@@ -134,7 +140,3 @@ contract Celo_GoodDollarTradingLimitsForkTest is GoodDollarTradingLimitsForkTest
 contract Celo_GoodDollarSwapForkTest is GoodDollarSwapForkTest(CELO_ID) {}
 
 contract Celo_GoodDollarExpansionForkTest is GoodDollarExpansionForkTest(CELO_ID) {}
-
-contract Celo_LockingUpgradeForkTest is LockingUpgradeForkTest(CELO_ID) {}
-contract Celo_GHSRenameForkTest is GHSRenameForkTest(CELO_ID) {}
-contract Alfajores_GHSRenameForkTest is GHSRenameForkTest(ALFAJORES_ID) {}
