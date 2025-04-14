@@ -44,8 +44,6 @@ import { BancorExchangeProviderForkTest } from "./BancorExchangeProviderForkTest
 import { GoodDollarTradingLimitsForkTest } from "./GoodDollar/TradingLimitsForkTest.sol";
 import { GoodDollarSwapForkTest } from "./GoodDollar/SwapForkTest.sol";
 import { GoodDollarExpansionForkTest } from "./GoodDollar/ExpansionForkTest.sol";
-import { LockingUpgradeForkTest } from "./upgrades/LockingUpgradeForkTest.sol";
-import { GHSRenameForkTest } from "./GHSRenameForkTest.sol";
 
 contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(21)) {}
 
@@ -142,7 +140,3 @@ contract Celo_GoodDollarTradingLimitsForkTest is GoodDollarTradingLimitsForkTest
 contract Celo_GoodDollarSwapForkTest is GoodDollarSwapForkTest(CELO_ID) {}
 
 contract Celo_GoodDollarExpansionForkTest is GoodDollarExpansionForkTest(CELO_ID) {}
-
-contract Celo_LockingUpgradeForkTest is LockingUpgradeForkTest(CELO_ID) {}
-contract Celo_GHSRenameForkTest is GHSRenameForkTest(CELO_ID) {}
-contract Alfajores_GHSRenameForkTest is GHSRenameForkTest(ALFAJORES_ID) {}
