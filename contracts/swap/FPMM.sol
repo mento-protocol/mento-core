@@ -87,6 +87,32 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     _update(balance0, balance1);
   }
 
+  function burn(address to) external nonReentrant returns (uint256 amount0, uint256 amount1) {
+    (address _token0, address _token1) = (token0, token1);
+
+    uint256 balance0 = IERC20(_token0).balanceOf(address(this));
+    uint256 balance1 = IERC20(_token1).balanceOf(address(this));
+
+    uint256 liquidity = balanceOf(address(this));
+
+    uint256 _totalSupply = totalSupply();
+
+    amount0 = (liquidity * balance0) / _totalSupply;
+    amount1 = (liquidity * balance1) / _totalSupply;
+
+    require(amount0 > 0 && amount1 > 0, "FPMM: INSUFFICIENT_LIQUIDITY_BURNED");
+
+    _burn(address(this), liquidity);
+
+    IERC20(_token0).safeTransfer(to, amount0);
+    IERC20(_token1).safeTransfer(to, amount1);
+
+    balance0 = IERC20(_token0).balanceOf(address(this));
+    balance1 = IERC20(_token1).balanceOf(address(this));
+
+    _update(balance0, balance1);
+  }
+
   function _update(uint256 balance0, uint256 balance1) private {
     reserve0 = balance0;
     reserve1 = balance1;

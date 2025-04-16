@@ -195,6 +195,153 @@ contract FPMMTest is Test {
     vm.stopPrank();
   }
 
+  // Additional mint function tests
+
+  function test_mint_shouldMintZeroLiquidity_whenNoNewFundsAdded()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    uint256 initialBalance = fpmm.balanceOf(BOB);
+
+    vm.startPrank(BOB);
+
+    // Mint with no new funds
+    uint256 liquidity = fpmm.mint(BOB);
+
+    assertEq(liquidity, 0);
+    assertEq(fpmm.balanceOf(BOB), initialBalance);
+
+    vm.stopPrank();
+  }
+
+  function test_mint_shouldUseToken0AsLimitingFactor()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    uint256 initialReserve0 = fpmm.reserve0();
+    uint256 initialReserve1 = fpmm.reserve1();
+    uint256 initialTotalSupply = fpmm.totalSupply();
+
+    // Add less token0 in proportion to token1
+    uint256 amount0 = 25e18; // 25% of initial reserve0
+    uint256 amount1 = 100e18; // 50% of initial reserve1
+
+    vm.startPrank(BOB);
+    IERC20(token0).transfer(address(fpmm), amount0);
+    IERC20(token1).transfer(address(fpmm), amount1);
+
+    uint256 liquidity = fpmm.mint(BOB);
+    uint256 expectedLiquidity = (amount0 * initialTotalSupply) / initialReserve0;
+
+    assertEq(liquidity, expectedLiquidity);
+    assertEq(fpmm.balanceOf(BOB), expectedLiquidity);
+
+    vm.stopPrank();
+  }
+
+  function test_mint_shouldUseToken1AsLimitingFactor()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    uint256 initialReserve0 = fpmm.reserve0();
+    uint256 initialReserve1 = fpmm.reserve1();
+    uint256 initialTotalSupply = fpmm.totalSupply();
+
+    // Add less token1 in proportion to token0
+    uint256 amount0 = 100e18; // 100% of initial reserve0
+    uint256 amount1 = 50e18; // 25% of initial reserve1
+
+    vm.startPrank(BOB);
+    IERC20(token0).transfer(address(fpmm), amount0);
+    IERC20(token1).transfer(address(fpmm), amount1);
+
+    uint256 liquidity = fpmm.mint(BOB);
+    uint256 expectedLiquidity = (amount1 * initialTotalSupply) / initialReserve1;
+
+    assertEq(liquidity, expectedLiquidity);
+    assertEq(fpmm.balanceOf(BOB), expectedLiquidity);
+
+    vm.stopPrank();
+  }
+
+  function test_mint_shouldUpdateTimestamp() public initializeFPMM_withDecimalTokens(18, 18) {
+    uint256 initialTimestamp = block.timestamp;
+
+    vm.warp(block.timestamp + 100);
+
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), 100e18);
+    IERC20(token1).transfer(address(fpmm), 200e18);
+    fpmm.mint(ALICE);
+    vm.stopPrank();
+
+    uint256 newTimestamp;
+    (, , newTimestamp) = fpmm.getReserves();
+
+    assertEq(newTimestamp, block.timestamp);
+    assertGt(newTimestamp, initialTimestamp);
+  }
+
+  function test_mint_shouldRevert_whenZeroAmountsProvided() public initializeFPMM_withDecimalTokens(18, 18) {
+    vm.startPrank(ALICE);
+
+    // No tokens sent to the contract
+    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY_MINTED");
+    fpmm.mint(ALICE);
+
+    vm.stopPrank();
+  }
+
+  function test_mint_shouldWorkerCorrectly_withMultipleMints()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    // First mint by BOB
+    vm.startPrank(BOB);
+    IERC20(token0).transfer(address(fpmm), 50e18);
+    IERC20(token1).transfer(address(fpmm), 100e18);
+    uint256 liquidityBob = fpmm.mint(BOB);
+    vm.stopPrank();
+
+    // Second mint by ALICE
+    uint256 totalSupplyAfterBobMint = fpmm.totalSupply();
+    uint256 reserveAfterBobMint0 = fpmm.reserve0();
+    uint256 reserveAfterBobMint1 = fpmm.reserve1();
+
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), 75e18);
+    IERC20(token1).transfer(address(fpmm), 150e18);
+    uint256 liquidityAlice2 = fpmm.mint(ALICE);
+    vm.stopPrank();
+
+    uint256 expectedAliceLiquidity = Math.min(
+      (75e18 * totalSupplyAfterBobMint) / reserveAfterBobMint0,
+      (150e18 * totalSupplyAfterBobMint) / reserveAfterBobMint1
+    );
+
+    assertEq(liquidityAlice2, expectedAliceLiquidity);
+    assertEq(fpmm.reserve0(), reserveAfterBobMint0 + 75e18);
+    assertEq(fpmm.reserve1(), reserveAfterBobMint1 + 150e18);
+  }
+
+  function test_mint_shouldSetCorrectRecipient() public initializeFPMM_withDecimalTokens(18, 18) {
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), 100e18);
+    IERC20(token1).transfer(address(fpmm), 200e18);
+
+    // Mint tokens to BOB instead of ALICE
+    uint256 liquidity = fpmm.mint(BOB);
+    vm.stopPrank();
+
+    // Verify BOB received the tokens, not ALICE
+    assertEq(fpmm.balanceOf(ALICE), 0);
+    assertEq(fpmm.balanceOf(BOB), liquidity);
+  }
+
   function test_getReserves_shouldReturnCorrectValues()
     public
     initializeFPMM_withDecimalTokens(18, 18)
@@ -260,5 +407,195 @@ contract FPMMTest is Test {
 
     assertEq(newTimestamp, block.timestamp);
     assertGt(newTimestamp, initialTimestamp);
+  }
+
+  function test_burn_shouldRevert_whenNoLiquidityInPool()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY_BURNED");
+    fpmm.burn(BOB);
+  }
+
+  function test_burn_shouldTransferTokens_withCorrectProportions()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    uint256 liquidity = fpmm.balanceOf(ALICE) / 2; // Burn half of Alice's liquidity
+    uint256 totalSupply = fpmm.totalSupply();
+    uint256 reserve0 = fpmm.reserve0();
+    uint256 reserve1 = fpmm.reserve1();
+
+    uint256 expectedAmount0 = (liquidity * reserve0) / totalSupply;
+    uint256 expectedAmount1 = (liquidity * reserve1) / totalSupply;
+
+    uint256 initialAliceBalance0 = IERC20(token0).balanceOf(ALICE);
+    uint256 initialAliceBalance1 = IERC20(token1).balanceOf(ALICE);
+
+    vm.startPrank(ALICE);
+    fpmm.transfer(address(fpmm), liquidity);
+
+    (uint256 amount0, uint256 amount1) = fpmm.burn(ALICE);
+    vm.stopPrank();
+
+    assertEq(amount0, expectedAmount0);
+    assertEq(amount1, expectedAmount1);
+
+    assertEq(IERC20(token0).balanceOf(ALICE), initialAliceBalance0 + expectedAmount0);
+    assertEq(IERC20(token1).balanceOf(ALICE), initialAliceBalance1 + expectedAmount1);
+
+    assertEq(fpmm.balanceOf(address(fpmm)), 0);
+    assertEq(fpmm.totalSupply(), totalSupply - liquidity);
+
+    assertEq(fpmm.reserve0(), reserve0 - expectedAmount0);
+    assertEq(fpmm.reserve1(), reserve1 - expectedAmount1);
+  }
+
+  function test_burn_shouldUpdateTimestamp()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    uint256 initialTimestamp;
+    (, , initialTimestamp) = fpmm.getReserves();
+
+    vm.warp(block.timestamp + 100);
+
+    vm.startPrank(ALICE);
+    uint256 liquidity = fpmm.balanceOf(ALICE) / 2;
+    fpmm.transfer(address(fpmm), liquidity);
+    fpmm.burn(ALICE);
+    vm.stopPrank();
+
+    uint256 newTimestamp;
+    (, , newTimestamp) = fpmm.getReserves();
+
+    assertEq(newTimestamp, block.timestamp);
+    assertGt(newTimestamp, initialTimestamp);
+  }
+
+  function test_burn_shouldWork_withDifferentDecimals()
+    public
+    initializeFPMM_withDecimalTokens(18, 6)
+    mintInitialLiquidity(18, 6)
+  {
+    uint256 liquidity = fpmm.balanceOf(ALICE) / 4; // Burn 25% of Alice's liquidity
+    uint256 totalSupply = fpmm.totalSupply();
+    uint256 reserve0 = fpmm.reserve0();
+    uint256 reserve1 = fpmm.reserve1();
+
+    uint256 expectedAmount0 = (liquidity * reserve0) / totalSupply;
+    uint256 expectedAmount1 = (liquidity * reserve1) / totalSupply;
+
+    vm.startPrank(ALICE);
+    fpmm.transfer(address(fpmm), liquidity);
+
+    (uint256 amount0, uint256 amount1) = fpmm.burn(ALICE);
+    vm.stopPrank();
+
+    assertEq(amount0, expectedAmount0);
+    assertEq(amount1, expectedAmount1);
+
+    assertEq(fpmm.reserve0(), reserve0 - expectedAmount0);
+    assertEq(fpmm.reserve1(), reserve1 - expectedAmount1);
+  }
+
+  function test_burn_shouldTransferTokens_toSpecifiedRecipient()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    uint256 initialBobBalance0 = IERC20(token0).balanceOf(BOB);
+    uint256 initialBobBalance1 = IERC20(token1).balanceOf(BOB);
+
+    uint256 liquidity = fpmm.balanceOf(ALICE) / 2;
+    uint256 totalSupply = fpmm.totalSupply();
+    uint256 reserve0 = fpmm.reserve0();
+    uint256 reserve1 = fpmm.reserve1();
+
+    uint256 expectedAmount0 = (liquidity * reserve0) / totalSupply;
+    uint256 expectedAmount1 = (liquidity * reserve1) / totalSupply;
+
+    vm.startPrank(ALICE);
+    fpmm.transfer(address(fpmm), liquidity);
+    (uint256 amount0, uint256 amount1) = fpmm.burn(BOB);
+    vm.stopPrank();
+
+    assertEq(IERC20(token0).balanceOf(BOB), initialBobBalance0 + expectedAmount0);
+    assertEq(IERC20(token1).balanceOf(BOB), initialBobBalance1 + expectedAmount1);
+
+    assertEq(amount0, expectedAmount0);
+    assertEq(amount1, expectedAmount1);
+  }
+
+  function test_burn_shouldRevert_withZeroTokens()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    uint256 tinyLiquidity = 1;
+
+    vm.startPrank(ALICE);
+    fpmm.transfer(address(fpmm), tinyLiquidity);
+
+    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY_BURNED");
+    fpmm.burn(ALICE);
+    vm.stopPrank();
+  }
+
+  function test_burn_shouldBurnCorrectAmount_forMultipleLPHolders()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    vm.startPrank(BOB);
+    IERC20(token0).transfer(address(fpmm), 50e18);
+    IERC20(token1).transfer(address(fpmm), 100e18);
+    uint256 bobLiquidity = fpmm.mint(BOB);
+    vm.stopPrank();
+
+    uint256 initialBobBalance0 = IERC20(token0).balanceOf(BOB);
+    uint256 initialBobBalance1 = IERC20(token1).balanceOf(BOB);
+
+    uint256 initialAliceBalance0 = IERC20(token0).balanceOf(ALICE);
+    uint256 initialAliceBalance1 = IERC20(token1).balanceOf(ALICE);
+
+    uint256 aliceLiquidity = fpmm.balanceOf(ALICE) / 2; // Burn half of Alice's liquidity
+    uint256 totalSupply = fpmm.totalSupply();
+    uint256 reserve0 = fpmm.reserve0();
+    uint256 reserve1 = fpmm.reserve1();
+
+    uint256 expectedAmount0 = (aliceLiquidity * reserve0) / totalSupply;
+    uint256 expectedAmount1 = (aliceLiquidity * reserve1) / totalSupply;
+
+    vm.startPrank(ALICE);
+    fpmm.transfer(address(fpmm), aliceLiquidity);
+    (uint256 amount0, uint256 amount1) = fpmm.burn(ALICE);
+    vm.stopPrank();
+
+    assertEq(IERC20(token0).balanceOf(ALICE), initialAliceBalance0 + expectedAmount0);
+    assertEq(IERC20(token1).balanceOf(ALICE), initialAliceBalance1 + expectedAmount1);
+
+    assertEq(amount0, expectedAmount0);
+    assertEq(amount1, expectedAmount1);
+
+    assertEq(fpmm.reserve0(), reserve0 - expectedAmount0);
+    assertEq(fpmm.reserve1(), reserve1 - expectedAmount1);
+
+    vm.startPrank(BOB);
+    fpmm.transfer(address(fpmm), bobLiquidity); // Bob's liquidity should be half of the Alice's initial liquidity
+    (amount0, amount1) = fpmm.burn(BOB);
+    vm.stopPrank();
+
+    assertApproxEqAbs(IERC20(token0).balanceOf(BOB), initialBobBalance0 + expectedAmount0, 1e3);
+    assertApproxEqAbs(IERC20(token1).balanceOf(BOB), initialBobBalance1 + expectedAmount1, 1e3);
+
+    assertApproxEqAbs(amount0, expectedAmount0, 1e3);
+    assertApproxEqAbs(amount1, expectedAmount1, 1e3);
+
+    assertApproxEqAbs(fpmm.reserve0(), reserve0 - 2 * expectedAmount0, 1e3);
+    assertApproxEqAbs(fpmm.reserve1(), reserve1 - 2 * expectedAmount1, 1e3);
   }
 }
