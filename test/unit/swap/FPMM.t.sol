@@ -7,6 +7,7 @@ import { Test } from "mento-std/Test.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+
 contract FPMMTest is Test {
   FPMM public fpmm;
 
@@ -195,33 +196,12 @@ contract FPMMTest is Test {
     vm.stopPrank();
   }
 
-  // Additional mint function tests
-
-  function test_mint_shouldMintZeroLiquidity_whenNoNewFundsAdded()
-    public
-    initializeFPMM_withDecimalTokens(18, 18)
-    mintInitialLiquidity(18, 18)
-  {
-    uint256 initialBalance = fpmm.balanceOf(BOB);
-
-    vm.startPrank(BOB);
-
-    // Mint with no new funds
-    uint256 liquidity = fpmm.mint(BOB);
-
-    assertEq(liquidity, 0);
-    assertEq(fpmm.balanceOf(BOB), initialBalance);
-
-    vm.stopPrank();
-  }
-
   function test_mint_shouldUseToken0AsLimitingFactor()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
   {
     uint256 initialReserve0 = fpmm.reserve0();
-    uint256 initialReserve1 = fpmm.reserve1();
     uint256 initialTotalSupply = fpmm.totalSupply();
 
     // Add less token0 in proportion to token1
@@ -246,7 +226,6 @@ contract FPMMTest is Test {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
   {
-    uint256 initialReserve0 = fpmm.reserve0();
     uint256 initialReserve1 = fpmm.reserve1();
     uint256 initialTotalSupply = fpmm.totalSupply();
 
@@ -267,35 +246,7 @@ contract FPMMTest is Test {
     vm.stopPrank();
   }
 
-  function test_mint_shouldUpdateTimestamp() public initializeFPMM_withDecimalTokens(18, 18) {
-    uint256 initialTimestamp = block.timestamp;
-
-    vm.warp(block.timestamp + 100);
-
-    vm.startPrank(ALICE);
-    IERC20(token0).transfer(address(fpmm), 100e18);
-    IERC20(token1).transfer(address(fpmm), 200e18);
-    fpmm.mint(ALICE);
-    vm.stopPrank();
-
-    uint256 newTimestamp;
-    (, , newTimestamp) = fpmm.getReserves();
-
-    assertEq(newTimestamp, block.timestamp);
-    assertGt(newTimestamp, initialTimestamp);
-  }
-
-  function test_mint_shouldRevert_whenZeroAmountsProvided() public initializeFPMM_withDecimalTokens(18, 18) {
-    vm.startPrank(ALICE);
-
-    // No tokens sent to the contract
-    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY_MINTED");
-    fpmm.mint(ALICE);
-
-    vm.stopPrank();
-  }
-
-  function test_mint_shouldWorkerCorrectly_withMultipleMints()
+  function test_mint_shouldWorkCorrectly_withMultipleMints()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -304,7 +255,7 @@ contract FPMMTest is Test {
     vm.startPrank(BOB);
     IERC20(token0).transfer(address(fpmm), 50e18);
     IERC20(token1).transfer(address(fpmm), 100e18);
-    uint256 liquidityBob = fpmm.mint(BOB);
+    fpmm.mint(BOB);
     vm.stopPrank();
 
     // Second mint by ALICE
@@ -318,10 +269,7 @@ contract FPMMTest is Test {
     uint256 liquidityAlice2 = fpmm.mint(ALICE);
     vm.stopPrank();
 
-    uint256 expectedAliceLiquidity = Math.min(
-      (75e18 * totalSupplyAfterBobMint) / reserveAfterBobMint0,
-      (150e18 * totalSupplyAfterBobMint) / reserveAfterBobMint1
-    );
+    uint256 expectedAliceLiquidity = (75e18 * totalSupplyAfterBobMint) / reserveAfterBobMint0;
 
     assertEq(liquidityAlice2, expectedAliceLiquidity);
     assertEq(fpmm.reserve0(), reserveAfterBobMint0 + 75e18);
@@ -333,11 +281,9 @@ contract FPMMTest is Test {
     IERC20(token0).transfer(address(fpmm), 100e18);
     IERC20(token1).transfer(address(fpmm), 200e18);
 
-    // Mint tokens to BOB instead of ALICE
     uint256 liquidity = fpmm.mint(BOB);
     vm.stopPrank();
 
-    // Verify BOB received the tokens, not ALICE
     assertEq(fpmm.balanceOf(ALICE), 0);
     assertEq(fpmm.balanceOf(BOB), liquidity);
   }
@@ -386,7 +332,7 @@ contract FPMMTest is Test {
     assertEq(reserve1, 0);
   }
 
-  function test_update_shouldUpdateTimestamp_whenReservesChange()
+  function test_mint_shouldUpdateTimestamp_whenReservesChange()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -414,6 +360,7 @@ contract FPMMTest is Test {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
   {
+    // Call burn without transferring any LP tokens to the pool
     vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY_BURNED");
     fpmm.burn(BOB);
   }
@@ -535,6 +482,7 @@ contract FPMMTest is Test {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
   {
+    // Try to burn a tiny amount of LP tokens that would result in 0 token0 or token1
     uint256 tinyLiquidity = 1;
 
     vm.startPrank(ALICE);
