@@ -64,7 +64,7 @@ abstract contract LiquidityStrategy is Ownable, ILiquidityStrategy {
     (uint256 reserve0, uint256 reserve1, uint256 oraclePrice, uint256 rebalanceFee) = fpm.getPrices();
     uint256 priceBefore = _calculatePoolPrice(reserve0, reserve1, fpm.token0(), fpm.token1());
 
-    _executeRebalance(pool, priceBefore, oraclePrice);
+    _executeRebalance(pool, priceBefore, oraclePrice, rebalanceFee);
 
     (uint256 reserve0After, uint256 reserve1After, , ) = fpm.getPrices();
     uint256 priceAfter = _calculatePoolPrice(reserve0After, reserve1After, fpm.token0(), fpm.token1());
@@ -107,7 +107,12 @@ abstract contract LiquidityStrategy is Ownable, ILiquidityStrategy {
    * @param priceBefore The on‑chain price before any action.
    * @param oraclePrice The off‑chain target price.
    */
-  function _executeRebalance(address pool, uint256 priceBefore, uint256 oraclePrice) internal virtual;
+  function _executeRebalance(
+    address pool,
+    uint256 priceBefore,
+    uint256 oraclePrice,
+    uint256 rebalanceFee
+  ) internal virtual;
 
   // TODO: Implement the callback logic
   // - This finishes the rebalance and should be implemented by the concrete strategy
