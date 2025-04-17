@@ -5,30 +5,19 @@ import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { UD60x18, unwrap, wrap } from "prb/math/UD60x18.sol";
 
-// Notes:
-// We need to have a reference to the pool, especially if a strategy is used by multiple pools.
-// Get price
-// The callback is called by the fpmm after it executes the transfer out
-// Once we have moved tokens out, we don't want to make anothe call, we need to be sure that no transfers are done so we can see that the
-// The callback function calls another function that calls the mint function
-// There won't
-
 interface IFPMM {
   function getPrices()
     external
     view
     returns (uint256 reserve0, uint256 reserve1, uint256 oraclePrice, uint256 rebalanceFee);
+
   function token0() external view returns (address);
   function token1() external view returns (address);
 }
 
 abstract contract LiquidityStrategy is Ownable, ILiquidityStrategy {
-  // Maps a pool address to its state.
-
-
-  // Create mapping for pooladdress to rebalancing config
-  // - Config can include rebalcing cooldown, rebalancing thresholds (upper and lower), etc.
-
+  // TODO: Instead of poolStates, store poolConfig
+  // - Config can include rebalancing cooldown, rebalancing thresholds (upper and lower), etc.
   mapping(address => PoolState) public poolStates;
   mapping(address => uint256) public tokenPrecisionMultipliers;
 
@@ -74,19 +63,14 @@ abstract contract LiquidityStrategy is Ownable, ILiquidityStrategy {
     (uint256 reserve0, uint256 reserve1, uint256 oraclePrice, uint256 rebalanceFee) = fpm.getPrices();
     uint256 priceBefore = _calculatePoolPrice(reserve0, reserve1, fpm.token0(), fpm.token1());
 
-    _executeRebalance(pool, priceBefore, oraclePrice, callback);
+    _executeRebalance(pool, priceBefore, oraclePrice);
 
-    // 4) read back the new on‑chain price
-    uint256 priceAfter = fpm.getPrice();
+    (uint256 reserve0After, uint256 reserve1After, , ) = fpm.getPrices();
+    uint256 priceAfter = _calculatePoolPrice(reserve0After, reserve1After, fpm.token0(), fpm.token1());
 
     poolStates[pool].lastRebalance = block.timestamp;
     emit Rebalance(pool, priceBefore, priceAfter);
   }
-
-  function callback(address pool, uint256 amount0, uint256 amount1) external virtual {
-    // TODO: Implement the callback logic
-  }
-
 
   // TODO: It would be better if the pool just returned the price
   function _calculatePoolPrice(
@@ -95,17 +79,19 @@ abstract contract LiquidityStrategy is Ownable, ILiquidityStrategy {
     address token0,
     address token1
   ) internal view returns (uint256) {
-
-    // TODO: Confirm that token0 is the stable token)
+    // TODO: Confirm that token0 is the stable token.
+    // If !reserve.isToken(token0) && !reserve.isToken(token1) revert.
 
     require(reserve0 > 0 && reserve1 > 0, "Invalid reserves when calculating pool price");
 
+    // TODO: Price calculation should be consistent with oracle price. 
+    // e.g. are we pricing stable in collateral or collateral in stable?
     uint256 scaledReserve0 = reserve0 * tokenPrecisionMultipliers[token0];
     uint256 scaledReserve1 = reserve1 * tokenPrecisionMultipliers[token1];
 
     UD60x18 numerator = wrap(scaledReserve1);
     UD60x18 denominator = wrap(scaledReserve0);
- 
+
     // Price = reserve1/reserve0
     uint256 priceScaled = unwrap(numerator.div(denominator));
 
@@ -120,5 +106,9 @@ abstract contract LiquidityStrategy is Ownable, ILiquidityStrategy {
    * @param priceBefore The on‑chain price before any action.
    * @param oraclePrice The off‑chain target price.
    */
-  function _executeRebalance(address pool, uint256 priceBefore, uint256 oraclePrice, function ) internal virtual;
+  function _executeRebalance(address pool, uint256 priceBefore, uint256 oraclePrice) internal virtual;
+
+  // TODO: Implement the callback logic
+  // - This finishes the rebalance and should be implemented by the concrete strategy
+  function onRebalanceCallback() external virtual;
 }
