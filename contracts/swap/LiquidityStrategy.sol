@@ -12,6 +12,7 @@ interface IFPMM {
     returns (uint256 reserve0, uint256 reserve1, uint256 oraclePrice, uint256 rebalanceFee);
 
   function token0() external view returns (address);
+
   function token1() external view returns (address);
 }
 
@@ -84,7 +85,7 @@ abstract contract LiquidityStrategy is Ownable, ILiquidityStrategy {
 
     require(reserve0 > 0 && reserve1 > 0, "Invalid reserves when calculating pool price");
 
-    // TODO: Price calculation should be consistent with oracle price. 
+    // TODO: Price calculation should be consistent with oracle price
     // e.g. are we pricing stable in collateral or collateral in stable?
     uint256 scaledReserve0 = reserve0 * tokenPrecisionMultipliers[token0];
     uint256 scaledReserve1 = reserve1 * tokenPrecisionMultipliers[token1];
