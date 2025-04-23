@@ -5,5 +5,6 @@ interface IFPMM {
   /// @notice Called on pool creation by PoolFactory
   /// @param _token0 Address of token0
   /// @param _token1 Address of token1
-  function initialize(address _token0, address _token1) external;
+  /// @param _sortedOracles Address of the sorted oracles contract
+  function initialize(address _token0, address _token1, address _sortedOracles) external;
 }
