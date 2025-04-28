@@ -10,6 +10,8 @@ import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/uti
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 
+// import { console } from "forge-std/console.sol";
+
 contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
@@ -27,7 +29,6 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   address public oracle;
   // Fee in basis points
   uint256 public protocolFee; // TODO: should be moved to the factory
-  address public feeCollector;
 
   ISortedOracles public sortedOracles;
   address public referenceRateFeedID;
@@ -54,7 +55,6 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     __Ownable_init();
 
     protocolFee = 30; // 0.3% fee (30 basis points)
-    feeCollector = msg.sender;
 
     setSortedOracles(_sortedOracles);
   }
@@ -63,11 +63,6 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     require(_protocolFee <= 1000, "FPMM: FEE_TOO_HIGH"); // Max 10%
     protocolFee = _protocolFee;
     emit ProtocolFeeUpdated(_protocolFee);
-  }
-
-  function setFeeCollector(address _feeCollector) external onlyOwner {
-    feeCollector = _feeCollector;
-    emit FeeCollectorUpdated(_feeCollector);
   }
 
   function setSortedOracles(address _sortedOracles) public onlyOwner {
@@ -174,29 +169,17 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     require(amount0In > 0 || amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
 
     if (amount0In > 0 && amount1Out > 0) {
-      uint256 amount1OutExpected = getAmountOut(amount0In, token0);
-      require(amount1Out <= amount1OutExpected, "FPMM: INSUFFICIENT_OUTPUT_BASED_ON_ORACLE");
-
-      uint256 fee = (amount0In * protocolFee) / 10000;
-      if (fee > 0 && feeCollector != address(0)) {
-        IERC20(token0).safeTransfer(feeCollector, fee);
-      }
+      uint256 amount1OutCalculated = getAmountOut(amount0In, token0);
+      require(amount1Out <= amount1OutCalculated, "FPMM: INSUFFICIENT_OUTPUT_BASED_ON_ORACLE");
     } else if (amount1In > 0 && amount0Out > 0) {
-      uint256 amount0OutExpected = getAmountOut(amount1In, token1);
-      require(amount0Out <= amount0OutExpected, "FPMM: INSUFFICIENT_OUTPUT_BASED_ON_ORACLE");
-
-      uint256 fee = (amount1In * protocolFee) / 10000;
-      if (fee > 0 && feeCollector != address(0)) {
-        IERC20(token1).safeTransfer(feeCollector, fee);
-      }
+      uint256 amount0OutCalculated = getAmountOut(amount1In, token1);
+      require(amount0Out <= amount0OutCalculated, "FPMM: INSUFFICIENT_OUTPUT_BASED_ON_ORACLE");
+    } else {
+      revert("FPMM: INVALID_SWAP_DIRECTION");
     }
 
-    if (amount0Out > 0) {
-      IERC20(token0).safeTransfer(to, amount0Out);
-    }
-    if (amount1Out > 0) {
-      IERC20(token1).safeTransfer(to, amount1Out);
-    }
+    if (amount0Out > 0) IERC20(token0).safeTransfer(to, amount0Out);
+    if (amount1Out > 0) IERC20(token1).safeTransfer(to, amount1Out);
 
     _update();
   }
@@ -228,7 +211,6 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   // Events
   event OracleUpdated(address indexed oracle);
   event ProtocolFeeUpdated(uint256 protocolFee);
-  event FeeCollectorUpdated(address indexed feeCollector);
   event Swap(
     address indexed sender,
     uint256 amount0In,

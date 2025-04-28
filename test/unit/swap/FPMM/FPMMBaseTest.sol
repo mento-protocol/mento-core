@@ -16,6 +16,7 @@ contract FPMMBaseTest is Test {
 
   address public ALICE = makeAddr("ALICE");
   address public BOB = makeAddr("BOB");
+  address public CHARLIE = makeAddr("CHARLIE");
 
   address public sortedOracles = makeAddr("SortedOracles");
 
