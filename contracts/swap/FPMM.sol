@@ -9,8 +9,8 @@ import { Math } from "openzeppelin-contracts-next/contracts/utils/math/Math.sol"
 import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
-
-// import { console } from "forge-std/console.sol";
+import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
+import { console } from "forge-std/console.sol";
 
 contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
@@ -42,9 +42,6 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   function initialize(address _token0, address _token1, address _sortedOracles) external initializer {
     (token0, token1) = (_token0, _token1);
 
-    decimals0 = 10 ** ERC20Upgradeable(_token0).decimals();
-    decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
-
     string memory symbol0 = ERC20Upgradeable(_token0).symbol();
     string memory symbol1 = ERC20Upgradeable(_token1).symbol();
 
@@ -53,6 +50,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
     __ERC20_init(name_, symbol_);
     __Ownable_init();
+
+    decimals0 = 10 ** ERC20Upgradeable(_token0).decimals();
+    decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
 
     protocolFee = 30; // 0.3% fee (30 basis points)
 
@@ -141,8 +141,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
-    require(amountIn > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
     require(tokenIn == token0 || tokenIn == token1, "FPMM: INVALID_TOKEN");
+
+    if (amountIn == 0) return 0;
 
     (uint256 rateNumerator, uint256 rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
 
@@ -155,31 +156,31 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     }
   }
 
-  function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata) external nonReentrant {
+  function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
-    (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
-    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
+    require(amount0Out < reserve0 && amount1Out < reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
+    require(to != token0 && to != token1, "FPMM: INVALID_TO_ADDRESS");
+
+    if (amount0Out > 0) IERC20(token0).safeTransfer(to, amount0Out);
+    if (amount1Out > 0) IERC20(token1).safeTransfer(to, amount1Out);
+
+    // Callback, used for flash loans
+    if (data.length > 0) IFPMMCallee(to).hook(msg.sender, amount0Out, amount1Out, data);
 
     uint256 balance0 = IERC20(token0).balanceOf(address(this));
     uint256 balance1 = IERC20(token1).balanceOf(address(this));
 
-    uint256 amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
-    uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
-
+    uint256 amount0In = balance0 > reserve0 - amount0Out ? balance0 - (reserve0 - amount0Out) : 0;
+    uint256 amount1In = balance1 > reserve1 - amount1Out ? balance1 - (reserve1 - amount1Out) : 0;
     require(amount0In > 0 || amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
 
-    if (amount0In > 0 && amount1Out > 0) {
-      uint256 amount1OutCalculated = getAmountOut(amount0In, token0);
-      require(amount1Out <= amount1OutCalculated, "FPMM: INSUFFICIENT_OUTPUT_BASED_ON_ORACLE");
-    } else if (amount1In > 0 && amount0Out > 0) {
-      uint256 amount0OutCalculated = getAmountOut(amount1In, token1);
-      require(amount0Out <= amount0OutCalculated, "FPMM: INSUFFICIENT_OUTPUT_BASED_ON_ORACLE");
-    } else {
-      revert("FPMM: INVALID_SWAP_DIRECTION");
-    }
+    uint256 amount1OutCalculated = getAmountOut(amount0In, token0);
+    uint256 amount0OutCalculated = getAmountOut(amount1In, token1);
 
-    if (amount0Out > 0) IERC20(token0).safeTransfer(to, amount0Out);
-    if (amount1Out > 0) IERC20(token1).safeTransfer(to, amount1Out);
+    require(
+      amount0Out <= amount0OutCalculated && amount1Out <= amount1OutCalculated,
+      "FPMM: INSUFFICIENT_OUTPUT_BASED_ON_ORACLE"
+    );
 
     _update();
   }
