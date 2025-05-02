@@ -5,9 +5,13 @@ import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts
 import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
-import { IReserve } from "../interfaces/IReserve.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
+import { UD60x18, ud } from "prb-math/UD60x18.sol";
 
+/**
+ * @title LiquidityStrategy
+ * @notice This abstract contract provides the base functions for a liquidity strategy.
+ */
 abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
   using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -16,7 +20,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
 
   EnumerableSet.AddressSet private fpmmPools;
 
-  IReserve public reserve;
+  /* ==================== Constructor & Initializer ==================== */
 
   constructor(bool disableInitializers) {
     if (disableInitializers) {
@@ -24,15 +28,20 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
     }
   }
 
-  function initialize(address _reserve) external initializer {
+  function initialize() external initializer {
     __Ownable_init();
-    setReserve(_reserve);
   }
 
-  function setReserve(address _reserve) public onlyOwner {
-    require(_reserve != address(0), "Reserve cannot be the zero address");
-    reserve = IReserve(_reserve);
-    emit ReserveSet(_reserve);
+  /* ==================== External Functions ==================== */
+
+  /**
+   * @notice Removes an FPMM pool.
+   * @param pool The address of the pool to remove.
+   */
+  function removePool(address pool) external onlyOwner {
+    require(fpmmPools.remove(pool), "Pool is not added");
+    delete fpmmPoolConfigs[pool];
+    emit FPMMPoolRemoved(pool);
   }
 
   /**
@@ -67,16 +76,6 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
   }
 
   /**
-   * @notice Removes an FPMM pool.
-   * @param pool The address of the pool to remove.
-   */
-  function removePool(address pool) external onlyOwner {
-    require(fpmmPools.remove(pool), "Pool is not added");
-    delete fpmmPoolConfigs[pool];
-    emit FPMMPoolRemoved(pool);
-  }
-
-  /**
    * @notice Triggers the rebalancing process for a pool.
    *         It obtains the pre-rebalance price, executes rebalancing logic,
    *         updates the pool's state, and emits an event with the pricing information.
@@ -95,16 +94,20 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
     require(oraclePrice > 0, "Oracle price must be greater than 0");
     require(poolPrice > 0, "Pool price must be greater than 0");
 
-    // TODO: Use PRBMath for precision
     uint256 threshold = fpmmPoolConfigs[pool].rebalanceThreshold;
-    uint256 upperThreshold = (oraclePrice * (1e18 + threshold)) / 1e18;
-    uint256 lowerThreshold = (oraclePrice * (1e18 - threshold)) / 1e18;
+    UD60x18 oraclePriceUD = ud(oraclePrice);
+    UD60x18 thresholdUD = ud(threshold);
+    UD60x18 poolPriceUD = ud(poolPrice);
+
+    UD60x18 thresholdAmount = oraclePriceUD.mul(thresholdUD);
+    UD60x18 upperThresholdUD = oraclePriceUD.add(thresholdAmount);
+    UD60x18 lowerThresholdUD = oraclePriceUD.sub(thresholdAmount);
 
     PriceDirection priceDirection;
 
-    if (poolPrice > upperThreshold) {
+    if (poolPriceUD.gt(upperThresholdUD)) {
       priceDirection = PriceDirection.ABOVE_ORACLE;
-    } else if (poolPrice < lowerThreshold) {
+    } else if (poolPriceUD.lt(lowerThresholdUD)) {
       priceDirection = PriceDirection.BELOW_ORACLE;
     } else {
       emit RebalanceSkippedPriceInRange(pool);
@@ -122,6 +125,21 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
   }
 
   /**
+   * @notice Handles the completion of a rebalancing operation.
+   * @dev This function should be called by the FPMM contract after token 
+   *      transfers are complete in the rebalance function.
+   * @param data Encoded data:
+   *             - Pool address
+   *             - Token out address
+   *             - Amount out
+   *             - Price direction
+   *             - Amount to send from liquidity source
+   */
+  function onRebalanceCallback(bytes calldata data) external virtual;
+
+  /* ==================== Internal Functions ==================== */
+
+  /**
    * @notice Contains the specific logic that executes the rebalancing.
    * @dev Implementations should perform any token movements, minting, or burning here.
    * @param pool The address of the pool to rebalance.
@@ -135,16 +153,4 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
     uint256 oraclePrice,
     PriceDirection priceDirection
   ) internal virtual;
-
-  /**
-   * @notice Handles the completion of a rebalancing operation.
-   * @dev This function should be called by the FPMM contract after token transfers are complete.
-   * @param data Encoded data containing all necessary information:
-   *             - Pool address
-   *             - Token out address
-   *             - Amount out
-   *             - Price direction
-   *             - Amount to send from reserve
-   */
-  function onRebalanceCallback(bytes calldata data) external virtual;
 }
