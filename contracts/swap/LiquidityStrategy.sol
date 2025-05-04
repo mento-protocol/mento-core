@@ -133,7 +133,6 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
    *             - Token out address
    *             - Amount out
    *             - Price direction
-   *             - Amount to send from liquidity source
    */
   function onRebalanceCallback(bytes calldata data) external virtual;
 
