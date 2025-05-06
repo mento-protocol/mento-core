@@ -7,6 +7,10 @@ interface IFPMM {
 
   function token1() external view returns (address);
 
+  function reserve0() external view returns (uint256);
+
+  function reserve1() external view returns (uint256);
+
   function decimals0() external view returns (uint256);
 
   function decimals1() external view returns (uint256);
@@ -18,16 +22,10 @@ interface IFPMM {
     view
     returns (uint256 dec0, uint256 dec1, uint256 r0, uint256 r1, address t0, address t1);
 
-  // TODO: Funtions below should be added to the interface.
-  function stableToken() external view returns (address);
+  // t0 is always the stable token and token 1 is the collateral token. 
 
-  function collateralToken() external view returns (address);
-
-  function stableReserve() external view returns (uint256);
-
-  function collateralReserve() external view returns (uint256);
-
+  // TODO: To be added to the FPMM contract.
   function getPrices() external view returns (uint256 oraclePrice, uint256 poolPrice);
 
-  function moveTokensOut(address token, uint256 amount, address to, bytes calldata callback) external;
+  function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
 }

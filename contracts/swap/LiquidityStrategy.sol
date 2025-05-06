@@ -10,7 +10,8 @@ import { UD60x18, ud } from "prb-math/UD60x18.sol";
 
 /**
  * @title LiquidityStrategy
- * @notice This abstract contract provides the base functions for a liquidity strategy.
+ * @notice Abstract base contract for implementing different liquidity sourcing strategies.
+ *         Manages pool registration, threshold checks, and rebalance triggering logic.
  */
 abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
   using EnumerableSet for EnumerableSet.AddressSet;
@@ -32,58 +33,60 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
     __Ownable_init();
   }
 
-  /* ==================== External Functions ==================== */
-
-  /**
-   * @notice Removes an FPMM pool.
-   * @param pool The address of the pool to remove.
-   */
-  function removePool(address pool) external onlyOwner {
-    require(fpmmPools.remove(pool), "Pool is not added");
-    delete fpmmPoolConfigs[pool];
-    emit FPMMPoolRemoved(pool);
-  }
+  /* ==================== Admin Functions ==================== */
 
   /**
    * @notice Adds an FPMM pool.
    * @param pool The address of the pool to add.
-   * @param rebalanceThreshold The threshold as a fixed-point number with 18 decimals
-   * @param rebalanceCooldown The cooldown period for the next rebalance.
+   * @param threshold The threshold as a fixed-point number with 18 decimals
+   * @param cooldown The cooldown period for the next rebalance.
    */
-  function addPool(address pool, uint256 rebalanceThreshold, uint256 rebalanceCooldown) external onlyOwner {
-    require(pool != address(0), "Pool cannot be the zero address");
-    require(fpmmPools.add(pool), "Pool already added");
-    require(rebalanceThreshold > 0, "Rebalance threshold must be greater than 0");
-    require(rebalanceThreshold <= 1e18, "Rebalance threshold cannot exceed 100%"); // TODO: Confirm
-    require(rebalanceCooldown > 0, "Rebalance cooldown must be greater than 0");
+  function addPool(address pool, uint256 threshold, uint256 cooldown) external onlyOwner {
+    require(pool != address(0), "Invalid pool");
+    require(fpmmPools.add(pool), "Already added");
+    require(threshold > 0 && threshold <= 1e18, "Invalid threshold"); // TODO: Confirm
+    require(cooldown > 0, "Rebalance cooldown must be greater than 0");
 
     uint256 decimals0 = IFPMM(pool).decimals0();
     uint256 decimals1 = IFPMM(pool).decimals1();
 
-    require(decimals0 <= 18, "Token 0 decimals must be <= 18");
-    require(decimals1 <= 18, "Token 1 decimals must be <= 18");
+    require(decimals0 <= 18 && decimals1 <= 18, "Token decimals too large");
 
     tokenPrecisionMultipliers[IFPMM(pool).token0()] = 10 ** (18 - decimals0);
     tokenPrecisionMultipliers[IFPMM(pool).token1()] = 10 ** (18 - decimals1);
 
     fpmmPoolConfigs[pool] = FPMMConfig({
       lastRebalance: 0,
-      rebalanceThreshold: rebalanceThreshold,
-      rebalanceCooldown: rebalanceCooldown
+      rebalanceThreshold: threshold,
+      rebalanceCooldown: cooldown
     });
 
-    emit FPMMPoolAdded(pool, rebalanceThreshold, rebalanceCooldown);
+    emit FPMMPoolAdded(pool, threshold, cooldown);
   }
 
   /**
+   * @notice Removes an FPMM pool.
+   * @param pool The address of the pool to remove.
+   */
+  function removePool(address pool) external onlyOwner {
+    require(fpmmPools.remove(pool), "Not added");
+    delete fpmmPoolConfigs[pool];
+    emit FPMMPoolRemoved(pool);
+  }
+
+  /* ==================== Rebalancing ==================== */
+
+  /**
    * @notice Triggers the rebalancing process for a pool.
-   *         It obtains the pre-rebalance price, executes rebalancing logic,
+   *         Obtains the pre-rebalance price, executes rebalancing logic,
    *         updates the pool's state, and emits an event with the pricing information.
    * @param pool The address of the pool to rebalance.
    */
   function rebalance(address pool) external {
-    require(fpmmPools.contains(pool), "Pool is not added");
-    if (block.timestamp <= fpmmPoolConfigs[pool].lastRebalance + fpmmPoolConfigs[pool].rebalanceCooldown) {
+    require(fpmmPools.contains(pool), "Not a valid pool");
+
+    FPMMConfig memory config = fpmmPoolConfigs[pool];
+    if (block.timestamp <= config.lastRebalance + config.rebalanceCooldown) {
       emit RebalanceSkippedNotCool(pool);
       revert("Rebalance cooldown not elapsed");
     }
@@ -91,23 +94,20 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
     IFPMM fpm = IFPMM(pool);
     (uint256 oraclePrice, uint256 poolPrice) = fpm.getPrices();
     // TODO: Are these checks valid? Can we have 0 oracle price?
-    require(oraclePrice > 0, "Oracle price must be greater than 0");
-    require(poolPrice > 0, "Pool price must be greater than 0");
+    require(oraclePrice > 0 && poolPrice > 0, "Invalid prices");
 
-    uint256 threshold = fpmmPoolConfigs[pool].rebalanceThreshold;
-    UD60x18 oraclePriceUD = ud(oraclePrice);
-    UD60x18 thresholdUD = ud(threshold);
-    UD60x18 poolPriceUD = ud(poolPrice);
+    UD60x18 oracleP = ud(oraclePrice);
+    UD60x18 poolP = ud(poolPrice);
+    UD60x18 threshold = ud(config.rebalanceThreshold);
 
-    UD60x18 thresholdAmount = oraclePriceUD.mul(thresholdUD);
-    UD60x18 upperThresholdUD = oraclePriceUD.add(thresholdAmount);
-    UD60x18 lowerThresholdUD = oraclePriceUD.sub(thresholdAmount);
+    UD60x18 upperBound = oracleP.mul(ud(1e18).add(threshold));
+    UD60x18 lowerBound = oracleP.mul(ud(1e18).sub(threshold));
 
     PriceDirection priceDirection;
 
-    if (poolPriceUD.gt(upperThresholdUD)) {
+    if (poolP.gt(upperBound)) {
       priceDirection = PriceDirection.ABOVE_ORACLE;
-    } else if (poolPriceUD.lt(lowerThresholdUD)) {
+    } else if (poolP.lt(lowerBound)) {
       priceDirection = PriceDirection.BELOW_ORACLE;
     } else {
       emit RebalanceSkippedPriceInRange(pool);
@@ -121,26 +121,13 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
 
     // Get final price for event emission
     (, uint256 priceAfterRebalance) = fpm.getPrices();
-    emit Rebalance(pool, poolPrice, priceAfterRebalance);
+    emit RebalanceExecuted(pool, poolPrice, priceAfterRebalance);
   }
-
-  /**
-   * @notice Handles the completion of a rebalancing operation.
-   * @dev This function should be called by the FPMM contract after token 
-   *      transfers are complete in the rebalance function.
-   * @param data Encoded data:
-   *             - Pool address
-   *             - Token out address
-   *             - Amount out
-   *             - Price direction
-   */
-  function onRebalanceCallback(bytes calldata data) external virtual;
 
   /* ==================== Internal Functions ==================== */
 
   /**
    * @notice Contains the specific logic that executes the rebalancing.
-   * @dev Implementations should perform any token movements, minting, or burning here.
    * @param pool The address of the pool to rebalance.
    * @param poolPrice The on‑chain price before any action.
    * @param oraclePrice The off‑chain target price.
@@ -152,4 +139,23 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
     uint256 oraclePrice,
     PriceDirection priceDirection
   ) internal virtual;
+
+  /* ==================== View Functions ==================== */
+
+  /**
+   * @notice Checks if a pool is registered.
+   * @param pool The address of the pool to check.
+   * @return True if the pool is registered, false otherwise.
+   */
+  function isPoolRegistered(address pool) public view returns (bool) {
+    return fpmmPools.contains(pool);
+  }
+
+  /**
+   * @notice Returns all registered pools.
+   * @return An array of pool addresses.
+   */
+  function getPools() external view returns (address[] memory) {
+    return fpmmPools.values();
+  }
 }

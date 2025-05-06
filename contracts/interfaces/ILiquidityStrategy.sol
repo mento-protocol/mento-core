@@ -18,8 +18,9 @@ interface ILiquidityStrategy {
    */
   struct FPMMConfig {
     uint256 lastRebalance;
-    uint256 rebalanceCooldown;
-    uint256 rebalanceThreshold; // TODO: Do we need more granularity here? (upper & lower).
+    uint256 rebalanceCooldown; // seconds
+    // TODO: Do we need more granularity here? (upper & lower).
+    uint256 rebalanceThreshold; // 18-decimal fixed point (e.g., 0.05e18 = 5%)
   }
 
   /**
@@ -42,7 +43,7 @@ interface ILiquidityStrategy {
    * @param priceBefore The pool price before the rebalance.
    * @param priceAfter The pool price after the rebalance.
    */
-  event Rebalance(address indexed pool, uint256 priceBefore, uint256 priceAfter);
+  event RebalanceExecuted(address indexed pool, uint256 priceBefore, uint256 priceAfter);
 
   /**
    * @notice Emitted when a rebalance is skipped because the cooldown period has not elapsed.
@@ -55,12 +56,6 @@ interface ILiquidityStrategy {
    * @param pool The address of the pool that was skipped.
    */
   event RebalanceSkippedPriceInRange(address indexed pool);
-
-  /**
-   * @notice Emitted when the reserve address is set.
-   * @param reserve The address of the reserve that was set.
-   */
-  event ReserveSet(address indexed reserve);
 
   /**
    * @notice Triggers the liquidity rebalancing mechanism.
