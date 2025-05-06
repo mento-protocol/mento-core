@@ -22,8 +22,6 @@ interface IFPMM {
     view
     returns (uint256 dec0, uint256 dec1, uint256 r0, uint256 r1, address t0, address t1);
 
-  // t0 is always the stable token and token 1 is the collateral token. 
-
   // TODO: To be added to the FPMM contract.
   function getPrices() external view returns (uint256 oraclePrice, uint256 poolPrice);
 
