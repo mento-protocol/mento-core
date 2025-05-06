@@ -7,7 +7,7 @@ import { Test } from "mento-std/Test.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
-
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 contract FPMMBaseTest is Test {
   FPMM public fpmm;
 
@@ -19,9 +19,12 @@ contract FPMMBaseTest is Test {
   address public CHARLIE = makeAddr("CHARLIE");
 
   address public sortedOracles = makeAddr("SortedOracles");
+  address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
 
   function setUp() public virtual {
     fpmm = new FPMM(false);
+    vm.prank(fpmm.owner());
+    fpmm.setReferenceRateFeedID(referenceRateFeedID);
   }
 
   modifier initializeFPMM_withDecimalTokens(uint8 decimals0, uint8 decimals1) {
@@ -44,6 +47,13 @@ contract FPMMBaseTest is Test {
     IERC20(token1).transfer(address(fpmm), 200 * 10 ** decimals1);
     fpmm.mint(ALICE);
     vm.stopPrank();
+
+    _;
+  }
+
+  modifier setupMockOracleRate(uint256 nominator, uint256 denominator) {
+    bytes memory medianRateCalldata = abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID);
+    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(nominator, denominator));
 
     _;
   }

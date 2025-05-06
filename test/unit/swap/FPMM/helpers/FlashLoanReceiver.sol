@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+pragma solidity ^0.8;
+
+import { IFPMMCallee } from "contracts/interfaces/IFPMMCallee.sol";
+import { FPMM } from "contracts/swap/FPMM.sol";
+import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+
+contract FlashLoanReceiver is IFPMMCallee {
+  FPMM public fpmm;
+  address public token0;
+  address public token1;
+  bool public shouldRepay;
+  uint256 public repayExtra;
+  address public sender;
+  uint256 public amount0Received;
+  uint256 public amount1Received;
+  bytes public receivedData;
+  bool public shouldRevert;
+
+  constructor(address _fpmm, address _token0, address _token1) {
+    fpmm = FPMM(_fpmm);
+    token0 = _token0;
+    token1 = _token1;
+    shouldRepay = true;
+    repayExtra = 0;
+  }
+
+  function setRepayBehavior(bool _shouldRepay, uint256 _repayExtra) external {
+    shouldRepay = _shouldRepay;
+    repayExtra = _repayExtra;
+  }
+
+  function setRevertInHook(bool _shouldRevert) external {
+    shouldRevert = _shouldRevert;
+  }
+
+  function hook(address _sender, uint256 _amount0, uint256 _amount1, bytes calldata _data) external override {
+    require(msg.sender == address(fpmm), "Not called by FPMM");
+
+    // Store received values
+    sender = _sender;
+    amount0Received = _amount0;
+    amount1Received = _amount1;
+    receivedData = _data;
+
+    if (shouldRevert) {
+      revert("FlashLoanReceiver: Reverting as requested");
+    }
+
+    // Repay the flash loan if configured to do so
+    if (shouldRepay) {
+      if (amount0Received > 0) {
+        // Get tokens to repay (either by having them already or through some other means)
+        // In a real scenario, this would be arbitrage or other operations
+        uint256 repayAmount = amount0Received + repayExtra;
+        IERC20(token0).transfer(address(fpmm), repayAmount);
+      }
+
+      if (amount1Received > 0) {
+        uint256 repayAmount = amount1Received + repayExtra;
+        IERC20(token1).transfer(address(fpmm), repayAmount);
+      }
+    }
+  }
+}

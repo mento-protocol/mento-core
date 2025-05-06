@@ -3,22 +3,14 @@
 pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 
 contract FPMMGetAmountOutTest is FPMMBaseTest {
-  address public referenceRateFeedID;
-
   function setUp() public override {
     super.setUp();
-    referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
-
-    vm.prank(fpmm.owner());
-    fpmm.setReferenceRateFeedID(referenceRateFeedID);
   }
 
-  function test_getAmountOut_shouldRevert_whenAmountIsZero() public initializeFPMM_withDecimalTokens(18, 18) {
-    vm.expectRevert("FPMM: INSUFFICIENT_INPUT_AMOUNT");
-    fpmm.getAmountOut(0, token0);
+  function test_getAmountOut_shouldReturnZero_whenAmountIsZero() public initializeFPMM_withDecimalTokens(18, 18) {
+    assertEq(fpmm.getAmountOut(0, token0), 0);
   }
 
   function test_getAmountOut_shouldRevert_whenTokenIsInvalid() public initializeFPMM_withDecimalTokens(18, 18) {
@@ -31,11 +23,8 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_shouldReturnCorrectAmount_whenRateIsOneToOne()
     public
     initializeFPMM_withDecimalTokens(18, 18)
+    setupMockOracleRate(10e18, 100e18)
   {
-    bytes memory medianRateCalldata = abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID);
-    // price of token 0 to token 1 is 0.1
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(10e18, 100e18));
-
     uint256 amountIn = 100e18;
     uint256 amountOut = fpmm.getAmountOut(amountIn, token0);
 
@@ -47,10 +36,11 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_shouldRespectProtocolFee() public initializeFPMM_withDecimalTokens(18, 18) {
-    bytes memory medianRateCalldata = abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID);
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(10e18, 100e18));
-
+  function test_getAmountOut_shouldRespectProtocolFee()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    setupMockOracleRate(10e18, 100e18)
+  {
     uint256 amountIn = 100e18;
 
     // Change fee to 1%
@@ -64,10 +54,11 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(fpmm.getAmountOut(amountIn, token0), expectedAmountOut);
   }
 
-  function test_getAmountOut_shouldConvertCorrectly_withExchangeRate() public initializeFPMM_withDecimalTokens(18, 18) {
-    bytes memory medianRateCalldata = abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID);
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(2e18, 1e18));
-
+  function test_getAmountOut_shouldConvertCorrectly_withExchangeRate()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    setupMockOracleRate(2e18, 1e18)
+  {
     uint256 amountIn = 100e18;
 
     // token0 to token1: should get approximately double (minus fee)
@@ -81,11 +72,11 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_shouldHandleDifferentDecimals() public initializeFPMM_withDecimalTokens(18, 6) {
-    // Mock the sortedOracles.medianRate call to return 1:1 rate
-    bytes memory medianRateCalldata = abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID);
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(1e18, 1e18));
-
+  function test_getAmountOut_shouldHandleDifferentDecimals()
+    public
+    initializeFPMM_withDecimalTokens(18, 6)
+    setupMockOracleRate(1e18, 1e18)
+  {
     // token0 (18 decimals) to token1 (6 decimals)
     uint256 amountIn = 100e18; // 100 tokens with 18 decimals
     uint256 expectedAmountOut = 99.7e6; // 100 tokens with 6 decimals, minus 0.3% fee
@@ -102,10 +93,8 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_shouldHandleDifferentDecimals_withExchangeRate()
     public
     initializeFPMM_withDecimalTokens(18, 6)
+    setupMockOracleRate(10e18, 100e18)
   {
-    bytes memory medianRateCalldata = abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID);
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(10e18, 100e18));
-
     // token0 (18 decimals) to token1 (6 decimals)
     uint256 amountIn = 100e18; // 100 tokens with 18 decimals
     uint256 expectedAmountOut = 9.97e6; // (100 tokens - 0.3% fee) * 2, with 6 decimals
@@ -119,14 +108,11 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_shouldHandleComplexRates() public initializeFPMM_withDecimalTokens(18, 18) {
-    // Set up the mock and reference rate feed ID
-    fpmm.setReferenceRateFeedID(referenceRateFeedID);
-
-    // Mock the sortedOracles.medianRate call to return 1234:5678 rate
-    bytes memory medianRateCalldata = abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID);
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(1234e18, 5678e18));
-
+  function test_getAmountOut_shouldHandleComplexRates()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    setupMockOracleRate(1234e18, 5678e18)
+  {
     uint256 amountIn = 1000e18;
 
     // token0 to token1

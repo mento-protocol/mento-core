@@ -4,17 +4,10 @@ pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 
 contract FPMMSwapTest is FPMMBaseTest {
-  bytes medianRateCalldata;
-
   function setUp() public override {
     super.setUp();
-    address referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
-    vm.prank(fpmm.owner());
-    fpmm.setReferenceRateFeedID(referenceRateFeedID);
-    medianRateCalldata = abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID);
   }
 
   function test_swap_shouldRevert_whenCalledWith0AmountOut() public initializeFPMM_withDecimalTokens(18, 18) {
@@ -45,21 +38,24 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
+    setupMockOracleRate(1e18, 1e18)
   {
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(1e18, 1e18));
-
+    deal(token0, address(this), 100e18);
     deal(token0, address(this), 100e18);
     IERC20(token0).transfer(address(fpmm), 100e18);
 
-    vm.expectRevert("FPMM: INSUFFICIENT_OUTPUT_BASED_ON_ORACLE");
+    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
     fpmm.swap(0, 100e18, address(this), "");
   }
 
-  function test_swap_token0ForToken1() public initializeFPMM_withDecimalTokens(18, 18) mintInitialLiquidity(18, 18) {
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(1e18, 1e18));
-
+  function test_swap_token0ForToken1()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupMockOracleRate(1e18, 1e18)
+  {
     uint256 amount0In = 100e18;
-    uint256 amount1Out = 99.7e18;
+    uint256 amount1Out = 99.70e18;
 
     uint256 initialReserve0 = fpmm.reserve0();
     uint256 initialReserve1 = fpmm.reserve1();
@@ -75,9 +71,12 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), initialReserve1 - amount1Out);
   }
 
-  function test_swap_token1ForToken0() public initializeFPMM_withDecimalTokens(18, 18) mintInitialLiquidity(18, 18) {
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(1e18, 1e18));
-
+  function test_swap_token1ForToken0()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupMockOracleRate(1e18, 1e18)
+  {
     uint256 amount1In = 100e18;
     uint256 amount0Out = 99.7e18;
 
@@ -99,9 +98,9 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
+    setupMockOracleRate(2e18, 1e18)
   {
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(2e18, 1e18));
-
+    // Swap 100 token0 for 199.4 token1 (after 0.3% fee)
     // Swap 100 token0 for 199.4 token1 (after 0.3% fee)
     uint256 amount0In = 100e18;
     uint256 amount1Out = 199.4e18;
@@ -117,9 +116,9 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
+    setupMockOracleRate(1e18, 1e18)
   {
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(1e18, 1e18));
-
+    // Swap 100 token0 (18 decimals) for 99.7 token1 (6 decimals)
     // Swap 100 token0 (18 decimals) for 99.7 token1 (6 decimals)
     uint256 amount0In = 100e18;
     uint256 amount1Out = 99.7e6;
@@ -142,9 +141,12 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(IERC20(token0).balanceOf(CHARLIE), amount0Out);
   }
 
-  function test_swap_withDifferentFees() public initializeFPMM_withDecimalTokens(18, 18) mintInitialLiquidity(18, 18) {
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(1e18, 1e18));
-
+  function test_swap_withDifferentFees()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupMockOracleRate(1e18, 1e18)
+  {
     // Change fee to 1%
     vm.prank(fpmm.owner());
     fpmm.setProtocolFee(100);
@@ -178,11 +180,10 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
+    setupMockOracleRate(1234e18, 5678e18)
   {
-    // Mock oracle for 1234:5678 rate
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(1234e18, 5678e18));
-
     uint256 amountIn = 100e18;
+
     uint256 expectedAmountOut = 21667805565339908418; // (100e18 * 1234e18 / 5678e18) * (997 / 1000)
 
     vm.startPrank(ALICE);
@@ -193,9 +194,12 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(IERC20(token1).balanceOf(CHARLIE), expectedAmountOut);
   }
 
-  function test_swap_updatesTimestamp() public initializeFPMM_withDecimalTokens(18, 18) mintInitialLiquidity(18, 18) {
-    vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(1e18, 1e18));
-
+  function test_swap_updatesTimestamp()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupMockOracleRate(1e18, 1e18)
+  {
     uint256 initialTimestamp;
     (, , initialTimestamp) = fpmm.getReserves();
 

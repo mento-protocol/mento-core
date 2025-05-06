@@ -10,7 +10,6 @@ import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/uti
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
-import { console } from "forge-std/console.sol";
 
 contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
@@ -158,8 +157,12 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
-    require(amount0Out < reserve0 && amount1Out < reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
+    (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
+    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
     require(to != token0 && to != token1, "FPMM: INVALID_TO_ADDRESS");
+
+    (uint256 rateNumerator, uint256 rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
+    uint256 initialReserveValue = totalValueInToken1(_reserve0, _reserve1, rateNumerator, rateDenominator);
 
     if (amount0Out > 0) IERC20(token0).safeTransfer(to, amount0Out);
     if (amount1Out > 0) IERC20(token1).safeTransfer(to, amount1Out);
@@ -170,19 +173,31 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     uint256 balance0 = IERC20(token0).balanceOf(address(this));
     uint256 balance1 = IERC20(token1).balanceOf(address(this));
 
-    uint256 amount0In = balance0 > reserve0 - amount0Out ? balance0 - (reserve0 - amount0Out) : 0;
-    uint256 amount1In = balance1 > reserve1 - amount1Out ? balance1 - (reserve1 - amount1Out) : 0;
+    uint256 amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+    uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
     require(amount0In > 0 || amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
 
-    uint256 amount1OutCalculated = getAmountOut(amount0In, token0);
-    uint256 amount0OutCalculated = getAmountOut(amount1In, token1);
-
-    require(
-      amount0Out <= amount0OutCalculated && amount1Out <= amount1OutCalculated,
-      "FPMM: INSUFFICIENT_OUTPUT_BASED_ON_ORACLE"
-    );
-
     _update();
+
+    uint256 newReserveValue = totalValueInToken1(reserve0, reserve1, rateNumerator, rateDenominator);
+
+    uint256 fee0 = (amount0In * protocolFee) / 10000;
+    uint256 fee1 = (amount1In * protocolFee) / 10000;
+
+    uint256 fee0InToken1 = _convertWithRate(fee0, decimals0, decimals1, rateNumerator, rateDenominator);
+    uint256 totalFeeInToken1 = fee0InToken1 + fee1;
+
+    require(newReserveValue >= initialReserveValue + totalFeeInToken1, "FPMM: RESERVE_VALUE_DECREASED");
+  }
+
+  function totalValueInToken1(
+    uint256 amount0,
+    uint256 amount1,
+    uint256 rateNumerator,
+    uint256 rateDenominator
+  ) public view returns (uint256) {
+    uint256 token0ValueInToken1 = _convertWithRate(amount0, decimals0, decimals1, rateNumerator, rateDenominator);
+    return token0ValueInToken1 + amount1;
   }
 
   function _update() private {
