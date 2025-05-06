@@ -38,12 +38,15 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
   }
 
   /**
-   * @notice Executes the rebalance logic using the reserve as a liquidity source. This function will initiate moving tokens out of the pool.
-   *         The actual token transfers will be completed in the onRebalanceCallback function, which will be called by the pool.
-   * @dev If the pool price is above the oracle price, meaning the stable token is undervalued(too much stable for the collateral),
-   *      we buy stables from the pool, using collateral from the reserve, to be burned.
-   *      If the pool price is below the oracle price, meaning the stable token is overvalued(too much collateral for the stable),
-   *      we buy collateral from the pool, using newly minted stables, to be transferred to the reserve.
+   * @notice Executes the rebalance logic using the reserve as a liquidity source. This function
+   *         will initiate moving tokens out of the pool. The actual token transfers will be completed
+   *         in the onRebalanceCallback function, which will be called by the pool.
+   * @dev If the pool price is above the oracle price, meaning the stable token
+   *      is undervalued(too much stable for the collateral), we buy stables from
+   *      the pool, using collateral from the reserve, to be burned.
+   *      If the pool price is below the oracle price, meaning the stable token
+   *      is overvalued(too much collateral for the stable), we buy collateral
+   *      from the pool, using newly minted stables, to be transferred to the reserve.
    * @param pool The address of the pool.
    * @param poolPrice The on‑chain price before any action.
    * @param oraclePrice The off‑chain target price.
