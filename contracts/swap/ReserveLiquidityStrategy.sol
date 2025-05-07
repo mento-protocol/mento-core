@@ -52,11 +52,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    * @param oraclePrice The off‑chain target price.
    * @param priceDirection The direction of the price movement.
    */
-  function _executeRebalance(
-    address pool,
-    uint256 oraclePrice,
-    PriceDirection priceDirection
-  ) internal override {
+  function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal override {
     IFPMM fpm = IFPMM(pool);
 
     address stableToken = fpm.token0();
