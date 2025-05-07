@@ -73,14 +73,17 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   function _deployFPMMImplementation() internal {
     console.log("msg.sender", msg.sender);
-    bytes memory implementationBytecode = type(FPMM).creationCode;
-    bytes32 salt = bytes32(abi.encodePacked(address(msg.sender), hex"00", bytes11(uint88(361))));
+    bytes memory implementationBytecode = abi.encodePacked(type(FPMM).creationCode, abi.encode(true));
+    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", bytes11(uint88(361))));
 
-    address expectedFPMMImplementation = ICreateX(CREATEX).computeCreate3Address(salt);
+    bytes32 guardedSalt = keccak256(abi.encodePacked(uint256(uint160(address(this))), salt));
+
+    address expectedFPMMImplementation = ICreateX(CREATEX).computeCreate3Address(guardedSalt, CREATEX);
     console.log("expectedFPMMImplementation", expectedFPMMImplementation);
 
     fpmmImplementation = ICreateX(CREATEX).deployCreate3(salt, implementationBytecode);
     console.log("fpmmImplementation", fpmmImplementation);
+    assert(fpmmImplementation == expectedFPMMImplementation);
     emit FPMMImplementationDeployed(fpmmImplementation);
   }
 
