@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { SafeERC20MintableBurnable } from "contracts/common/SafeERC20MintableBurnable.sol";
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
+import { UD60x18, ud } from "prb-math/UD60x18.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
@@ -60,30 +61,43 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
   ) internal override {
     IFPMM fpm = IFPMM(pool);
 
+    address stableToken = fpm.token0();
+    address collateralToken = fpm.token1();
+
     uint256 stableReserve = fpm.reserve0();
-    uint256 amountIn;
+    UD60x18 reserveUD = ud(stableReserve * tokenPrecisionMultipliers[stableToken]);
+    UD60x18 oracleP = ud(oraclePrice);
+    UD60x18 poolP = ud(poolPrice);
+
+    UD60x18 amountOut;
+    UD60x18 amountIn;
+
     uint256 stableOut;
     uint256 collateralOut;
+    uint256 inputAmount;
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
       // Contraction: Buy stables from the pool using collateral from the reserve
-      uint256 diff = poolPrice - oraclePrice;
+      UD60x18 diff = poolP.sub(oracleP);
 
-      stableOut = (diff * stableReserve) / oraclePrice;
-      amountIn = stableOut * oraclePrice; // Amount of collateral to be sent to the pool
+      amountOut = (diff.mul(reserveUD)).div(oracleP); // Stables out
+      amountIn = amountOut.mul(oracleP); // Collateral In
+
+      stableOut = amountOut.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
+      inputAmount = amountIn.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
     } else {
       // Expansion: Buy collateral from the pool using newly minted stables
-      uint256 diff = oraclePrice - poolPrice;
+      UD60x18 diff = oracleP.sub(poolP);
 
-      collateralOut = (diff * stableReserve) / oraclePrice;
-      amountIn = collateralOut * oraclePrice; // Amount of stables to be sent to the pool
+      amountOut = (diff.mul(reserveUD)).div(oracleP); // Collateral out
+      amountIn = amountOut.mul(oracleP); // Stables in
+
+      collateralOut = amountOut.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
+      inputAmount = amountIn.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
     }
 
-    bytes memory callbackData = abi.encode(pool, amountIn, priceDirection);
+    bytes memory callbackData = abi.encode(pool, inputAmount, priceDirection);
 
-    // TODO: Maybe an event, initiate rebalance
-
-    // Start the swap
     fpm.swap(stableOut, collateralOut, address(this), callbackData);
   }
 
