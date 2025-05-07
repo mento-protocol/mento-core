@@ -58,11 +58,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     address stableToken = fpm.token0();
     address collateralToken = fpm.token1();
 
-    uint256 stableReserveRaw = fpm.reserve0();
-    uint256 collateralReserveRaw = fpm.reserve1();
-
-    UD60x18 stableReserve = ud(stableReserveRaw * tokenPrecisionMultipliers[stableToken]);
-    UD60x18 collateralReserve = ud(collateralReserveRaw * tokenPrecisionMultipliers[collateralToken]);
+    UD60x18 stableReserve = ud(fpm.reserve0() * tokenPrecisionMultipliers[stableToken]);
+    UD60x18 collateralReserve = ud(fpm.reserve1() * tokenPrecisionMultipliers[collateralToken]);
 
     UD60x18 oraclePriceUD = ud(oraclePrice); 
 
