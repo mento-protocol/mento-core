@@ -61,7 +61,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     UD60x18 stableReserve = ud(fpm.reserve0() * tokenPrecisionMultipliers[stableToken]);
     UD60x18 collateralReserve = ud(fpm.reserve1() * tokenPrecisionMultipliers[collateralToken]);
 
-    UD60x18 oraclePriceUD = ud(oraclePrice); 
+    UD60x18 oraclePriceUD = ud(oraclePrice);
 
     uint256 stableOut = 0;
     uint256 collateralOut = 0;
