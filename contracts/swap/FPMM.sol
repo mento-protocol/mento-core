@@ -10,7 +10,7 @@ import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/uti
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
-
+import "forge-std/console.sol";
 contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
@@ -25,16 +25,16 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   uint256 public reserve1;
   uint256 public blockTimestampLast;
 
-  address public oracle;
-  // Fee in basis points
-  uint256 public protocolFee; // TODO: should be moved to the factory
-
   ISortedOracles public sortedOracles;
   address public referenceRateFeedID;
 
-  // Slippage allowed for rebalance (in basis points)
-  uint256 public allowedSlippage;
+  // Fee in basis points
+  uint256 public protocolFee;
 
+  // Slippage allowed for rebalance in basis points
+  uint256 public rebalanceIncentivePercentage;
+
+  // Threshold for rebalance in basis points
   uint256 public rebalanceThreshold;
 
   // Mapping to track trusted contracts that can use the rebalance function
@@ -62,39 +62,10 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
 
     protocolFee = 30; // 0.3% fee (30 basis points)
-    allowedSlippage = 10; // Default 0.1% slippage tolerance (10 basis points)
-    rebalanceThreshold = 100; // Default 1% rebalance threshold (100 basis points)
+    rebalanceIncentivePercentage = 10; // Default 0.1% slippage tolerance (10 basis points)
+    rebalanceThreshold = 500; // Default 1% rebalance threshold (100 basis points)
 
     setSortedOracles(_sortedOracles);
-  }
-
-  function setProtocolFee(uint256 _protocolFee) external onlyOwner {
-    require(_protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1%
-    protocolFee = _protocolFee;
-  }
-
-  function setAllowedSlippage(uint256 _allowedSlippage) external onlyOwner {
-    require(_allowedSlippage <= 100, "FPMM: SLIPPAGE_TOO_HIGH"); // Max 1%
-    allowedSlippage = _allowedSlippage;
-  }
-
-  function setRebalanceThreshold(uint256 _rebalanceThreshold) external onlyOwner {
-    require(_rebalanceThreshold <= 1000, "FPMM: SLIPPAGE_TOO_HIGH"); // Max 10%
-    rebalanceThreshold = _rebalanceThreshold;
-  }
-
-  function setLiquidityStrategy(address strategy, bool state) external onlyOwner {
-    liquidityStrategy[strategy] = state;
-  }
-
-  function setSortedOracles(address _sortedOracles) public onlyOwner {
-    require(_sortedOracles != address(0), "SortedOracles address must be set");
-    sortedOracles = ISortedOracles(_sortedOracles);
-  }
-
-  function setReferenceRateFeedID(address _referenceRateFeedID) public onlyOwner {
-    require(_referenceRateFeedID != address(0), "Reference rate feed ID must be set");
-    referenceRateFeedID = _referenceRateFeedID;
   }
 
   function metadata()
@@ -113,6 +84,82 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     _reserve0 = reserve0;
     _reserve1 = reserve1;
     _blockTimestampLast = blockTimestampLast;
+  }
+
+  function totalValueInToken1(
+    uint256 amount0,
+    uint256 amount1,
+    uint256 rateNumerator,
+    uint256 rateDenominator
+  ) public view returns (uint256) {
+    uint256 token0ValueInToken1 = convertWithRate(amount0, decimals0, decimals1, rateNumerator, rateDenominator);
+    return token0ValueInToken1 + amount1;
+  }
+
+  function getPrices()
+    public
+    view
+    returns (uint256 oraclePrice, uint256 reservePrice, uint256 _decimals0, uint256 _decimals1)
+  {
+    require(referenceRateFeedID != address(0), "FPMM: REFERENCE_RATE_NOT_SET");
+    require(reserve0 > 0 && reserve1 > 0, "FPMM: RESERVES_EMPTY");
+
+    _decimals0 = decimals0;
+    _decimals1 = decimals1;
+
+    (uint256 rateNumerator, uint256 rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
+
+    oraclePrice = (rateNumerator * 1e18) / (rateDenominator);
+    reservePrice = (reserve1 * _decimals0 * 1e18) / (reserve0 * _decimals1);
+  }
+
+  function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
+    require(tokenIn == token0 || tokenIn == token1, "FPMM: INVALID_TOKEN");
+
+    if (amountIn == 0) return 0;
+
+    (uint256 rateNumerator, uint256 rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
+
+    uint256 amountInAfterFee = amountIn - ((amountIn * protocolFee) / 10000);
+
+    if (tokenIn == token0) {
+      return convertWithRate(amountInAfterFee, decimals0, decimals1, rateNumerator, rateDenominator);
+    } else {
+      return convertWithRate(amountInAfterFee, decimals1, decimals0, rateDenominator, rateNumerator);
+    }
+  }
+
+  function setProtocolFee(uint256 _protocolFee) external onlyOwner {
+    // not taken for rebalances
+    require(_protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 2 3
+    protocolFee = _protocolFee;
+  }
+
+  function setRebalanceIncentivePercentage(uint256 _rebalanceIncentivePercentage) external onlyOwner {
+    // for cdp it is going to be positive but for reserve liq strategy it is going to be 0
+    require(_rebalanceIncentivePercentage <= 100, "FPMM: REBALANCE_INCENTIVE_TOO_HIGH"); // Max 1%
+    rebalanceIncentivePercentage = _rebalanceIncentivePercentage;
+  }
+
+  function setRebalanceThreshold(uint256 _rebalanceThreshold) external onlyOwner {
+    // 5-10 %
+    require(_rebalanceThreshold <= 1000, "FPMM: REBALANCE_THRESHOLD_TOO_HIGH"); // Max 10%
+    rebalanceThreshold = _rebalanceThreshold;
+  }
+
+  function setLiquidityStrategy(address strategy, bool state) external onlyOwner {
+    liquidityStrategy[strategy] = state;
+  }
+
+  // first version will use 1-1 pricing together with the circuit breaker
+  function setSortedOracles(address _sortedOracles) public onlyOwner {
+    require(_sortedOracles != address(0), "SortedOracles address must be set");
+    sortedOracles = ISortedOracles(_sortedOracles);
+  }
+
+  function setReferenceRateFeedID(address _referenceRateFeedID) public onlyOwner {
+    require(_referenceRateFeedID != address(0), "Reference rate feed ID must be set");
+    referenceRateFeedID = _referenceRateFeedID;
   }
 
   function mint(address to) external nonReentrant returns (uint256 liquidity) {
@@ -162,22 +209,6 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     _update();
   }
 
-  function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
-    require(tokenIn == token0 || tokenIn == token1, "FPMM: INVALID_TOKEN");
-
-    if (amountIn == 0) return 0;
-
-    (uint256 rateNumerator, uint256 rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
-
-    uint256 amountInAfterFee = amountIn - ((amountIn * protocolFee) / 10000);
-
-    if (tokenIn == token0) {
-      return _convertWithRate(amountInAfterFee, decimals0, decimals1, rateNumerator, rateDenominator);
-    } else {
-      return _convertWithRate(amountInAfterFee, decimals1, decimals0, rateDenominator, rateNumerator);
-    }
-  }
-
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
     (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
@@ -188,7 +219,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   function rebalance(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
-    require(liquidityStrategy[msg.sender], "FPMM: NOT_TRUSTED");
+    require(liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
     require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
     (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
     require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
@@ -199,12 +230,14 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   function _swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data, bool isRebalance) private {
     (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
+    console.log("reserve0", _reserve0);
+    console.log("reserve1", _reserve1);
     (uint256 rateNumerator, uint256 rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
     uint256 initialReserveValue = totalValueInToken1(_reserve0, _reserve1, rateNumerator, rateDenominator);
+    uint256 initialPriceDifference = _calculatePriceDifference(_reserve0, _reserve1, rateNumerator, rateDenominator);
 
     if (isRebalance) {
-      uint256 priceDifference = _calculatePriceDifference(_reserve0, _reserve1, rateNumerator, rateDenominator);
-      require(priceDifference >= rebalanceThreshold, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
+      require(initialPriceDifference >= rebalanceThreshold, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
     }
 
     if (amount0Out > 0) IERC20(token0).safeTransfer(to, amount0Out);
@@ -222,60 +255,32 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     _update();
 
     uint256 newReserveValue = totalValueInToken1(reserve0, reserve1, rateNumerator, rateDenominator);
-
-    uint256 fee0InToken1 = _convertWithRate(
-      (amount0In * protocolFee) / 10000, // fee on token0
-      decimals0,
-      decimals1,
-      rateNumerator,
-      rateDenominator
-    );
-    uint256 totalFeeInToken1 = fee0InToken1 + (amount1In * protocolFee) / 10000;
-
-    uint256 expectedReserveValue = initialReserveValue + totalFeeInToken1;
-
     if (isRebalance) {
       uint256 newPriceDifference = _calculatePriceDifference(reserve0, reserve1, rateNumerator, rateDenominator);
 
-      uint256 initialPriceDifference = _calculatePriceDifference(_reserve0, _reserve1, rateNumerator, rateDenominator);
-
       // Ensure price difference is smaller than before
       require(newPriceDifference < initialPriceDifference, "FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
+      console.log("newPriceDifference", newPriceDifference);
+      console.log("initialPriceDifference", initialPriceDifference);
+      console.log("rebalanceThreshold", rebalanceThreshold);
+      console.log("reserve0", reserve0);
+      console.log("reserve1", reserve1);
+      require(newPriceDifference < rebalanceThreshold, "FPMM: POOL_NOT_REBALANCED");
 
       // Check for excessive value loss
-      uint256 rebalanceIncentive = (expectedReserveValue * allowedSlippage) / 10000;
-      uint256 minAcceptableValue = expectedReserveValue - rebalanceIncentive;
+      uint256 rebalanceIncentive = (initialReserveValue * rebalanceIncentivePercentage) / 10000;
+      uint256 minAcceptableValue = initialReserveValue - rebalanceIncentive;
       require(newReserveValue >= minAcceptableValue, "FPMM: EXCESSIVE_VALUE_LOSS");
     } else {
+      uint256 fee0 = (amount0In * protocolFee) / 10000;
+      uint256 fee1 = (amount1In * protocolFee) / 10000;
+
+      uint256 fee0InToken1 = convertWithRate(fee0, decimals0, decimals1, rateNumerator, rateDenominator);
+      uint256 totalFeeInToken1 = fee0InToken1 + fee1;
+
+      uint256 expectedReserveValue = initialReserveValue + totalFeeInToken1;
       require(newReserveValue >= expectedReserveValue, "FPMM: RESERVE_VALUE_DECREASED");
     }
-  }
-
-  function totalValueInToken1(
-    uint256 amount0,
-    uint256 amount1,
-    uint256 rateNumerator,
-    uint256 rateDenominator
-  ) public view returns (uint256) {
-    uint256 token0ValueInToken1 = _convertWithRate(amount0, decimals0, decimals1, rateNumerator, rateDenominator);
-    return token0ValueInToken1 + amount1;
-  }
-
-  function getPrices()
-    external
-    view
-    returns (uint256 oraclePrice, uint256 reserveRatio, uint256 _decimals0, uint256 _decimals1)
-  {
-    require(referenceRateFeedID != address(0), "FPMM: REFERENCE_RATE_NOT_SET");
-    require(reserve0 > 0 && reserve1 > 0, "FPMM: RESERVES_EMPTY");
-
-    _decimals0 = decimals0;
-    _decimals1 = decimals1;
-
-    (uint256 rateNumerator, uint256 rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
-
-    oraclePrice = (rateNumerator) / (rateDenominator);
-    reserveRatio = (reserve0 * _decimals1) / (reserve1 * _decimals0);
   }
 
   function _update() private {
@@ -284,13 +289,13 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     blockTimestampLast = block.timestamp;
   }
 
-  function _convertWithRate(
+  function convertWithRate(
     uint256 amount,
     uint256 fromDecimals,
     uint256 toDecimals,
     uint256 numerator,
     uint256 denominator
-  ) private pure returns (uint256) {
+  ) public pure returns (uint256) {
     if (fromDecimals > toDecimals) {
       uint256 decimalAdjustment = fromDecimals / toDecimals;
       return (amount * numerator) / (denominator * decimalAdjustment);
@@ -308,13 +313,12 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     uint256 rateNumerator,
     uint256 rateDenominator
   ) internal view returns (uint256 priceDifference) {
-    uint256 oraclePrice = rateNumerator / rateDenominator;
-    uint256 reserveRatio = (_reserve0 * decimals1) / (_reserve1 * decimals0);
+    (uint256 oraclePrice, uint256 reservePrice, , ) = getPrices();
 
-    if (oraclePrice > reserveRatio) {
-      priceDifference = ((oraclePrice - reserveRatio) * 10000) / oraclePrice;
+    if (oraclePrice > reservePrice) {
+      priceDifference = ((oraclePrice - reservePrice) * 10000) / oraclePrice;
     } else {
-      priceDifference = ((reserveRatio - oraclePrice) * 10000) / oraclePrice;
+      priceDifference = ((reservePrice - oraclePrice) * 10000) / oraclePrice;
     }
   }
 }
