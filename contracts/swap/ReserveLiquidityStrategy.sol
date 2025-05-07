@@ -61,13 +61,10 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     uint256 stableReserveRaw = fpm.reserve0();
     uint256 collateralReserveRaw = fpm.reserve1();
 
-    UD60x18 S = ud(stableReserveRaw * tokenPrecisionMultipliers[stableToken]);
-    UD60x18 C = ud(collateralReserveRaw * tokenPrecisionMultipliers[collateralToken]);
+    UD60x18 stableReserve = ud(stableReserveRaw * tokenPrecisionMultipliers[stableToken]);
+    UD60x18 collateralReserve = ud(collateralReserveRaw * tokenPrecisionMultipliers[collateralToken]);
 
-    UD60x18 P = ud(oraclePrice);
-
-    UD60x18 amountIn; // what strategy sends to the pool
-    UD60x18 amountOut; // what strategy receives from the pool
+    UD60x18 oraclePriceUD = ud(oraclePrice); 
 
     uint256 stableOut = 0;
     uint256 collateralOut = 0;
@@ -77,27 +74,21 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       // Contraction: Buy stables from the pool using collateral from reserve
       // Y = (S - P * C) / (2 * P)
       // X = Y * P
-      UD60x18 numerator = S.sub(P.mul(C));
-      UD60x18 Y = numerator.div(P.mul(ud(2e18)));
-      UD60x18 X = Y.mul(P);
+      UD60x18 numerator = stableReserve.sub(oraclePriceUD.mul(collateralReserve));
+      UD60x18 collateralToSell = numerator.div(oraclePriceUD.mul(ud(2e18)));
+      UD60x18 stablesToBuy = collateralToSell.mul(oraclePriceUD);
 
-      amountIn = Y; // collateral in
-      amountOut = X; // stables out
-
-      stableOut = X.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
-      inputAmount = Y.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
+      stableOut = stablesToBuy.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
+      inputAmount = collateralToSell.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
     } else {
       // Expansion: Buy collateral from the pool using newly minted stables
       // X = (C * P - S) / 2
       // Y = X / P
-      UD60x18 X = (C.mul(P).sub(S)).div(ud(2e18));
-      UD60x18 Y = X.div(P);
+      UD60x18 stablesToSell = (collateralReserve.mul(oraclePriceUD).sub(stableReserve)).div(ud(2e18));
+      UD60x18 collateralToBuy = stablesToSell.div(oraclePriceUD);
 
-      amountIn = X; // stables in
-      amountOut = Y; // collateral out
-
-      collateralOut = Y.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
-      inputAmount = X.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
+      collateralOut = collateralToBuy.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
+      inputAmount = stablesToSell.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
     }
 
     bytes memory callbackData = abi.encode(pool, inputAmount, priceDirection);
