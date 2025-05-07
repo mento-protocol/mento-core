@@ -49,13 +49,11 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    *      is overvalued(too much collateral for the stable), we buy collateral
    *      from the pool, using newly minted stables, to be transferred to the reserve.
    * @param pool The address of the pool.
-   * @param poolPrice The on‑chain price before any action.
    * @param oraclePrice The off‑chain target price.
    * @param priceDirection The direction of the price movement.
    */
   function _executeRebalance(
     address pool,
-    uint256 poolPrice,
     uint256 oraclePrice,
     PriceDirection priceDirection
   ) internal override {
@@ -64,36 +62,46 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     address stableToken = fpm.token0();
     address collateralToken = fpm.token1();
 
-    uint256 stableReserve = fpm.reserve0();
-    UD60x18 reserveUD = ud(stableReserve * tokenPrecisionMultipliers[stableToken]);
-    UD60x18 oracleP = ud(oraclePrice);
-    UD60x18 poolP = ud(poolPrice);
+    uint256 stableReserveRaw = fpm.reserve0();
+    uint256 collateralReserveRaw = fpm.reserve1();
 
-    UD60x18 amountOut;
-    UD60x18 amountIn;
+    UD60x18 S = ud(stableReserveRaw * tokenPrecisionMultipliers[stableToken]);
+    UD60x18 C = ud(collateralReserveRaw * tokenPrecisionMultipliers[collateralToken]);
 
-    uint256 stableOut;
-    uint256 collateralOut;
+    UD60x18 P = ud(oraclePrice);
+
+    UD60x18 amountIn; // what strategy sends to the pool
+    UD60x18 amountOut; // what strategy receives from the pool
+
+    uint256 stableOut = 0;
+    uint256 collateralOut = 0;
     uint256 inputAmount;
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
-      // Contraction: Buy stables from the pool using collateral from the reserve
-      UD60x18 diff = poolP.sub(oracleP);
+      // Contraction: Buy stables from the pool using collateral from reserve
+      // Y = (S - P * C) / (2 * P)
+      // X = Y * P
+      UD60x18 numerator = S.sub(P.mul(C));
+      UD60x18 Y = numerator.div(P.mul(ud(2e18)));
+      UD60x18 X = Y.mul(P);
 
-      amountOut = (diff.mul(reserveUD)).div(oracleP); // Stables out
-      amountIn = amountOut.mul(oracleP); // Collateral In
+      amountIn = Y; // collateral in
+      amountOut = X; // stables out
 
-      stableOut = amountOut.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
-      inputAmount = amountIn.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
+      stableOut = X.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
+      inputAmount = Y.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
     } else {
       // Expansion: Buy collateral from the pool using newly minted stables
-      UD60x18 diff = oracleP.sub(poolP);
+      // X = (C * P - S) / 2
+      // Y = X / P
+      UD60x18 X = (C.mul(P).sub(S)).div(ud(2e18));
+      UD60x18 Y = X.div(P);
 
-      amountOut = (diff.mul(reserveUD)).div(oracleP); // Collateral out
-      amountIn = amountOut.mul(oracleP); // Stables in
+      amountIn = X; // stables in
+      amountOut = Y; // collateral out
 
-      collateralOut = amountOut.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
-      inputAmount = amountIn.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
+      collateralOut = Y.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
+      inputAmount = X.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
     }
 
     bytes memory callbackData = abi.encode(pool, inputAmount, priceDirection);

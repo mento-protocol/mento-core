@@ -117,7 +117,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
     fpmmPoolConfigs[pool].lastRebalance = block.timestamp;
 
     // Execute the rebalance
-    _executeRebalance(pool, poolPrice, oraclePrice, priceDirection);
+    _executeRebalance(pool, oraclePrice, priceDirection);
 
     // Get final price for event emission
     (, uint256 priceAfterRebalance) = fpm.getPrices();
@@ -129,16 +129,10 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
   /**
    * @notice Contains the specific logic that executes the rebalancing.
    * @param pool The address of the pool to rebalance.
-   * @param poolPrice The on‑chain price before any action.
    * @param oraclePrice The off‑chain target price.
    * @param priceDirection The direction of the price movement.
    */
-  function _executeRebalance(
-    address pool,
-    uint256 poolPrice,
-    uint256 oraclePrice,
-    PriceDirection priceDirection
-  ) internal virtual;
+  function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal virtual;
 
   /* ==================== View Functions ==================== */
 
