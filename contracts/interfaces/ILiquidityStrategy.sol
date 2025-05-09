@@ -14,22 +14,18 @@ interface ILiquidityStrategy {
    * @notice Struct holding the configuration of an FPMM pool.
    * @param lastRebalance The timestamp of the last rebalance for this pool.
    * @param rebalanceCooldown The cooldown period for the next rebalance.
-   * @param rebalanceThreshold The threshold of the price change that triggers a rebalance.
    */
   struct FPMMConfig {
     uint256 lastRebalance;
-    uint256 rebalanceCooldown; // seconds
-    // TODO: Do we need more granularity here? (upper & lower).
-    uint256 rebalanceThreshold; // 18-decimal fixed point (e.g., 0.05e18 = 5%)
+    uint256 rebalanceCooldown;
   }
 
   /**
    * @notice Emitted after an FPMM pool is added.
    * @param pool The address of the pool that was added.
-   * @param rebalanceThreshold The threshold of the price change that triggers a rebalance.
    * @param rebalanceCooldown The cooldown period for the next rebalance.
    */
-  event FPMMPoolAdded(address indexed pool, uint256 rebalanceThreshold, uint256 rebalanceCooldown);
+  event FPMMPoolAdded(address indexed pool, uint256 rebalanceCooldown);
 
   /**
    * @notice Emitted when an FPMM pool is removed.

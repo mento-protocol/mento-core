@@ -25,5 +25,7 @@ interface IFPMM {
   // TODO: To be added to the FPMM contract.
   function getPrices() external view returns (uint256 oraclePrice, uint256 poolPrice);
 
-  function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
+  function rebalance(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
+
+  function rebalanceThreshold() external view returns (uint256);
 }

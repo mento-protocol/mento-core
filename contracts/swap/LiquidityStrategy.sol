@@ -40,13 +40,11 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
   /**
    * @notice Adds an FPMM pool.
    * @param poolAddress The address of the FPMM pool to add.
-   * @param threshold The threshold as a fixed-point number with 18 decimals
    * @param cooldown The cooldown period for the next rebalance.
    */
-  function addPool(address poolAddress, uint256 threshold, uint256 cooldown) external onlyOwner {
+  function addPool(address poolAddress, uint256 cooldown) external onlyOwner {
     require(poolAddress != address(0), "Invalid pool");
     require(fpmmPools.add(poolAddress), "Already added");
-    require(threshold > 0 && threshold <= 1e18, "Invalid threshold"); // TODO: Confirm
     require(cooldown > 0, "Rebalance cooldown must be greater than 0");
 
     IFPMM pool = IFPMM(poolAddress);
@@ -59,13 +57,9 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     tokenPrecisionMultipliers[pool.token0()] = 10 ** (18 - decimals0);
     tokenPrecisionMultipliers[pool.token1()] = 10 ** (18 - decimals1);
 
-    fpmmPoolConfigs[poolAddress] = FPMMConfig({
-      lastRebalance: 0,
-      rebalanceThreshold: threshold,
-      rebalanceCooldown: cooldown
-    });
+    fpmmPoolConfigs[poolAddress] = FPMMConfig({ lastRebalance: 0, rebalanceCooldown: cooldown });
 
-    emit FPMMPoolAdded(poolAddress, threshold, cooldown);
+    emit FPMMPoolAdded(poolAddress, cooldown);
   }
 
   /**
@@ -100,9 +94,11 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     // TODO: Are these checks valid? Can we have 0 oracle price?
     require(oraclePrice > 0 && poolPrice > 0, "Invalid prices");
 
+    UD60x18 rawBps = ud(fpm.rebalanceThreshold());
+    UD60x18 threshold = rawBps.div(ud(10_000));
+
     UD60x18 oracleP = ud(oraclePrice);
     UD60x18 poolP = ud(poolPrice);
-    UD60x18 threshold = ud(config.rebalanceThreshold);
 
     UD60x18 upperBound = oracleP.mul(ud(1).add(threshold));
     UD60x18 lowerBound = oracleP.mul(ud(1).sub(threshold));
