@@ -219,4 +219,14 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(newTimestamp, block.timestamp);
     assertGt(newTimestamp, initialTimestamp);
   }
+
+  function test_swap_trading_suspended()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupMockBreakerBox(3)
+  {
+    vm.expectRevert("FPMM: TRADING_SUSPENDED");
+    fpmm.swap(0, 10e18, BOB, "");
+  }
 }

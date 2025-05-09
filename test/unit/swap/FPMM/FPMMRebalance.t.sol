@@ -225,4 +225,17 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY");
     liquidityStrategy.executeRebalance(0, tooLargeAmount1);
   }
+
+  function test_rebalance_trading_suspended()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupRebalancer(18, 18)
+    setupMockOracleRate(1.2e18, 1e18)
+    setupMockBreakerBox(3)
+  {
+    uint256 rebalanceAmount = 10e18;
+    vm.expectRevert("FPMM: TRADING_SUSPENDED");
+    liquidityStrategy.executeRebalance(0, rebalanceAmount);
+  }
 }

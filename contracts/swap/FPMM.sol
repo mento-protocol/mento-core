@@ -10,11 +10,13 @@ import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/uti
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
+
+import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
-
+  uint256 private constant TRADING_MODE_BIDIRECTIONAL = 0;
   address public token0;
   address public token1;
   uint256 public decimals0;
@@ -25,6 +27,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   uint256 public blockTimestampLast;
 
   ISortedOracles public sortedOracles;
+  IBreakerBox public breakerBox;
   address public referenceRateFeedID;
 
   // Fee in basis points
@@ -45,7 +48,12 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     }
   }
 
-  function initialize(address _token0, address _token1, address _sortedOracles) external initializer {
+  function initialize(
+    address _token0,
+    address _token1,
+    address _sortedOracles,
+    address _breakerBox
+  ) external initializer {
     (token0, token1) = (_token0, _token1);
 
     string memory symbol0 = ERC20Upgradeable(_token0).symbol();
@@ -65,6 +73,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     rebalanceThreshold = 500; // Default 5% rebalance threshold (500 basis points)
 
     setSortedOracles(_sortedOracles);
+    setBreakerBox(_breakerBox);
   }
 
   function metadata()
@@ -153,6 +162,11 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     sortedOracles = ISortedOracles(_sortedOracles);
   }
 
+  function setBreakerBox(address _breakerBox) public onlyOwner {
+    require(_breakerBox != address(0), "BreakerBox address must be set");
+    breakerBox = IBreakerBox(_breakerBox);
+  }
+
   function setReferenceRateFeedID(address _referenceRateFeedID) public onlyOwner {
     require(_referenceRateFeedID != address(0), "Reference rate feed ID must be set");
     referenceRateFeedID = _referenceRateFeedID;
@@ -206,26 +220,24 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
-    require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
-    (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
-    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
-    require(to != token0 && to != token1, "FPMM: INVALID_TO_ADDRESS");
-
     _swap(amount0Out, amount1Out, to, data, false);
   }
 
   function rebalance(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     require(liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
-    require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
-    (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
-    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
-    require(to != token0 && to != token1, "FPMM: INVALID_TO_ADDRESS");
 
     _swap(amount0Out, amount1Out, to, data, true);
   }
 
   function _swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data, bool isRebalance) private {
+    require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
     (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
+    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
+    require(to != token0 && to != token1, "FPMM: INVALID_TO_ADDRESS");
+    require(
+      breakerBox.getRateFeedTradingMode(referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
+      "FPMM: TRADING_SUSPENDED"
+    );
     (uint256 rateNumerator, uint256 rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
     uint256 initialReserveValue = totalValueInToken1(_reserve0, _reserve1, rateNumerator, rateDenominator);
     uint256 initialPriceDifference = _calculatePriceDifference();

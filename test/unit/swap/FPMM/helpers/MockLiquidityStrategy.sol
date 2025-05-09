@@ -47,7 +47,7 @@ contract MockLiquidityStrategy is IFPMMCallee {
   }
 
   // Execute a flash loan to rebalance the pool
-  function executeRebalance(uint256 amount0Out, uint256 amount1Out) external returns (bool) {
+  function executeRebalance(uint256 amount0Out, uint256 amount1Out) external {
     // Reset state
     lastRebalanceSuccessful = false;
     amountUsedForRebalance0 = 0;
