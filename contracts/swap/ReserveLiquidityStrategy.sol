@@ -97,7 +97,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    * @notice Handles the callback from the pool after a rebalance.
    * @param data The encoded data from the pool.
    */
-  function hook(address, uint256, uint256, bytes calldata data) external {
+  function hook(address, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
     (address pool, uint256 amountIn, PriceDirection priceDirection) = abi.decode(
       data,
       (address, uint256, PriceDirection)
@@ -111,16 +111,14 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     address stableToken = fpm.token0();
     address collateralToken = fpm.token1();
 
-    // TODO: What are the implications of transferring total balances of this contract vs exact amounts?
-
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
       // Contraction: burn stables, pull collateral from reserve and send to FPMM
-      IERC20(stableToken).safeBurn(IERC20(stableToken).balanceOf(address(this)));
+      IERC20(stableToken).safeBurn(amount0Out);
       reserve.transferExchangeCollateralAsset(collateralToken, payable(pool), amountIn);
     } else {
       // Expansion: mint stables to FPMM, transfer received collateral to reserve
       IERC20(stableToken).safeMint(pool, amountIn);
-      IERC20(collateralToken).transfer(address(reserve), IERC20(collateralToken).balanceOf(address(this)));
+      IERC20(collateralToken).transfer(address(reserve), amount1Out);
     }
   }
 }
