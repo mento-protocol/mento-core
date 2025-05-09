@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.24;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.18;
 
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { ERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
@@ -24,7 +24,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /* ========== CONSTANTS ========== */
 
-  /// @notice Minimum liquidity that will be locked forever when creating a pool
+  /// @inheritdoc IFPMM
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
 
   /// @notice Trading mode value for bidirectional trading from circuit breaker
@@ -32,161 +32,47 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /* ========== STATE VARIABLES ========== */
 
-  /// @notice Address of the first token in the pair
+  /// @inheritdoc IFPMM
   address public token0;
 
-  /// @notice Address of the second token in the pair
+  /// @inheritdoc IFPMM
   address public token1;
 
-  /// @notice Scaling factor for token0 based on its decimals
+  /// @inheritdoc IFPMM
   uint256 public decimals0;
 
-  /// @notice Scaling factor for token1 based on its decimals
+  /// @inheritdoc IFPMM
   uint256 public decimals1;
 
-  /// @notice Reserve amount of token0
+  /// @inheritdoc IFPMM
   uint256 public reserve0;
 
-  /// @notice Reserve amount of token1
+  /// @inheritdoc IFPMM
   uint256 public reserve1;
 
-  /// @notice Timestamp of the last reserve update
+  /// @inheritdoc IFPMM
   uint256 public blockTimestampLast;
 
-  /// @notice Contract for oracle price feeds
+  /// @inheritdoc IFPMM
   ISortedOracles public sortedOracles;
 
-  /// @notice Circuit breaker contract to enable/disable trading
+  /// @inheritdoc IFPMM
   IBreakerBox public breakerBox;
 
-  /// @notice Reference rate feed ID for oracle price
+  /// @inheritdoc IFPMM
   address public referenceRateFeedID;
 
-  /// @notice Protocol fee in basis points (1 basis point = .01%)
+  /// @inheritdoc IFPMM
   uint256 public protocolFee;
 
-  /// @notice Slippage allowed for rebalance operations in basis points
+  /// @inheritdoc IFPMM
   uint256 public rebalanceIncentive;
 
-  /// @notice Threshold for triggering rebalance in basis points
+  /// @inheritdoc IFPMM
   uint256 public rebalanceThreshold;
 
-  /// @notice Mapping to track trusted contracts that can use the rebalance function
+  /// @inheritdoc IFPMM
   mapping(address => bool) public liquidityStrategy;
-
-  /// @notice Struct to store swap data
-  struct SwapData {
-    uint256 rateNumerator;
-    uint256 rateDenominator;
-    uint256 initialReserveValue;
-    uint256 initialPriceDifference;
-    uint256 amount0In;
-    uint256 amount1In;
-  }
-
-  /* ========== EVENTS ========== */
-
-  /**
-   * @notice Emitted when tokens are swapped
-   * @param sender Address that initiated the swap
-   * @param amount0In Amount of token0 sent to the pool
-   * @param amount1In Amount of token1 sent to the pool
-   * @param amount0Out Amount of token0 sent to the receiver
-   * @param amount1Out Amount of token1 sent to the receiver
-   * @param to Address receiving the output tokens
-   */
-  event Swap(
-    address indexed sender,
-    uint256 amount0In,
-    uint256 amount1In,
-    uint256 amount0Out,
-    uint256 amount1Out,
-    address indexed to
-  );
-
-  /**
-   * @notice Emitted when liquidity is added to the pool
-   * @param sender Address that initiated the mint
-   * @param amount0 Amount of token0 added
-   * @param amount1 Amount of token1 added
-   * @param liquidity Amount of LP tokens minted
-   */
-  event Mint(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity);
-
-  /**
-   * @notice Emitted when liquidity is removed from the pool
-   * @param sender Address that initiated the burn
-   * @param amount0 Amount of token0 removed
-   * @param amount1 Amount of token1 removed
-   * @param liquidity Amount of LP tokens burned
-   * @param to Address receiving the tokens
-   */
-  event Burn(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity, address indexed to);
-
-  /**
-   * @notice Emitted when the protocol fee is updated
-   * @param oldFee Previous fee in basis points
-   * @param newFee New fee in basis points
-   */
-  event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
-
-  /**
-   * @notice Emitted when the rebalance incentive is updated
-   * @param oldIncentive Previous incentive in basis points
-   * @param newIncentive New incentive in basis points
-   */
-  event RebalanceIncentiveUpdated(uint256 oldIncentive, uint256 newIncentive);
-
-  /**
-   * @notice Emitted when the rebalance threshold is updated
-   * @param oldThreshold Previous threshold in basis points
-   * @param newThreshold New threshold in basis points
-   */
-  event RebalanceThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
-
-  /**
-   * @notice Emitted when a liquidity strategy status is updated
-   * @param strategy Address of the strategy
-   * @param status New status (true = enabled, false = disabled)
-   */
-  event LiquidityStrategyUpdated(address indexed strategy, bool status);
-
-  /**
-   * @notice Emitted when the reference rate feed ID is updated
-   * @param oldRateFeedID Previous rate feed ID
-   * @param newRateFeedID New rate feed ID
-   */
-  event ReferenceRateFeedIDUpdated(address oldRateFeedID, address newRateFeedID);
-
-  /**
-   * @notice Emitted when the SortedOracles contract is updated
-   * @param oldSortedOracles Previous SortedOracles address
-   * @param newSortedOracles New SortedOracles address
-   */
-  event SortedOraclesUpdated(address oldSortedOracles, address newSortedOracles);
-
-  /**
-   * @notice Emitted when the BreakerBox contract is updated
-   * @param oldBreakerBox Previous BreakerBox address
-   * @param newBreakerBox New BreakerBox address
-   */
-  event BreakerBoxUpdated(address oldBreakerBox, address newBreakerBox);
-
-  /**
-   * @notice Emitted when a successful rebalance operation occurs
-   * @param sender Address that initiated the rebalance
-   * @param priceDifferenceBefore Price difference before rebalance in basis points
-   * @param priceDifferenceAfter Price difference after rebalance in basis points
-   */
-  event Rebalanced(address indexed sender, uint256 priceDifferenceBefore, uint256 priceDifferenceAfter);
-
-  /**
-   * @notice Emitted when reserves are synchronized
-   * @param reserve0 Updated amount of token0 in reserve
-   * @param reserve1 Updated amount of token1 in reserve
-   * @param blockTimestamp Current block timestamp
-   */
-  event SyncReserves(uint256 reserve0, uint256 reserve1, uint256 blockTimestamp);
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -202,13 +88,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /* ========== INITIALIZATION ========== */
 
-  /**
-   * @notice Initializes the FPMM contract
-   * @param _token0 Address of the first token
-   * @param _token1 Address of the second token
-   * @param _sortedOracles Address of the SortedOracles contract
-   * @param _breakerBox Address of the BreakerBox contract
-   */
+  /// @inheritdoc IFPMM
   function initialize(
     address _token0,
     address _token1,
@@ -239,15 +119,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /* ========== VIEW FUNCTIONS ========== */
 
-  /**
-   * @notice Returns pool metadata
-   * @return dec0 Scaling factor for token0
-   * @return dec1 Scaling factor for token1
-   * @return r0 Reserve amount of token0
-   * @return r1 Reserve amount of token1
-   * @return t0 Address of token0
-   * @return t1 Address of token1
-   */
+  /// @inheritdoc IFPMM
   function metadata()
     external
     view
@@ -256,34 +128,19 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     return (decimals0, decimals1, reserve0, reserve1, token0, token1);
   }
 
-  /**
-   * @notice Returns addresses of both tokens in the pair
-   * @return Address of token0 and token1
-   */
+  /// @inheritdoc IFPMM
   function tokens() external view returns (address, address) {
     return (token0, token1);
   }
 
-  /**
-   * @notice Returns current reserves and timestamp
-   * @return _reserve0 Current reserve of token0
-   * @return _reserve1 Current reserve of token1
-   * @return _blockTimestampLast Timestamp of last reserve update
-   */
+  /// @inheritdoc IFPMM
   function getReserves() public view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast) {
     _reserve0 = reserve0;
     _reserve1 = reserve1;
     _blockTimestampLast = blockTimestampLast;
   }
 
-  /**
-   * @notice Calculates total value of a given amount of tokens in terms of token1
-   * @param amount0 Amount of token0
-   * @param amount1 Amount of token1
-   * @param rateNumerator Oracle rate numerator
-   * @param rateDenominator Oracle rate denominator
-   * @return Total value in token1
-   */
+  /// @inheritdoc IFPMM
   function totalValueInToken1(
     uint256 amount0,
     uint256 amount1,
@@ -294,13 +151,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     return token0ValueInToken1 + amount1;
   }
 
-  /**
-   * @notice Gets current oracle and reserve prices
-   * @return oraclePrice Oracle price in 18 decimals
-   * @return reservePrice Pool reserve price in 18 decimals
-   * @return _decimals0 Scaling factor for token0
-   * @return _decimals1 Scaling factor for token1
-   */
+  /// @inheritdoc IFPMM
   function getPrices()
     public
     view
@@ -318,12 +169,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     reservePrice = (reserve1 * _decimals0 * 1e18) / (reserve0 * _decimals1);
   }
 
-  /**
-   * @notice Calculates output amount for a given input
-   * @param amountIn Input amount
-   * @param tokenIn Address of input token
-   * @return amountOut Output amount after fees
-   */
+  /// @inheritdoc IFPMM
   function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
     require(tokenIn == token0 || tokenIn == token1, "FPMM: INVALID_TOKEN");
 
@@ -340,15 +186,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     }
   }
 
-  /**
-   * @notice Converts token amount using the provided exchange rate and adjusts for decimals
-   * @param amount Amount to convert
-   * @param fromDecimals Source token decimal scaling factor
-   * @param toDecimals Destination token decimal scaling factor
-   * @param numerator Rate numerator
-   * @param denominator Rate denominator
-   * @return Converted amount
-   */
+  /// @inheritdoc IFPMM
   function convertWithRate(
     uint256 amount,
     uint256 fromDecimals,
@@ -369,11 +207,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /* ========== EXTERNAL FUNCTIONS ========== */
 
-  /**
-   * @notice Mints LP tokens by providing liquidity to the pool
-   * @param to Address to receive LP tokens
-   * @return liquidity Amount of LP tokens minted
-   */
+  /// @inheritdoc IFPMM
   function mint(address to) external nonReentrant returns (uint256 liquidity) {
     (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
 
@@ -400,12 +234,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     emit Mint(msg.sender, amount0, amount1, liquidity);
   }
 
-  /**
-   * @notice Burns LP tokens to withdraw liquidity from the pool
-   * @param to Address to receive the withdrawn tokens
-   * @return amount0 Amount of token0 withdrawn
-   * @return amount1 Amount of token1 withdrawn
-   */
+  /// @inheritdoc IFPMM
   function burn(address to) external nonReentrant returns (uint256 amount0, uint256 amount1) {
     (address _token0, address _token1) = (token0, token1);
 
@@ -431,25 +260,12 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     emit Burn(msg.sender, amount0, amount1, liquidity, to);
   }
 
-  /**
-   * @notice Swaps tokens based on oracle price
-   * @param amount0Out Amount of token0 to output
-   * @param amount1Out Amount of token1 to output
-   * @param to Address receiving output tokens
-   * @param data Optional callback data
-   */
+  /// @inheritdoc IFPMM
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     _swap(amount0Out, amount1Out, to, data, false);
   }
 
-  /**
-   * @notice Rebalances the pool to align with oracle price
-   * @dev Only callable by approved strategies
-   * @param amount0Out Amount of token0 to output
-   * @param amount1Out Amount of token1 to output
-   * @param to Address receiving output tokens
-   * @param data Optional callback data
-   */
+  /// @inheritdoc IFPMM
   function rebalance(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     require(liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
     _swap(amount0Out, amount1Out, to, data, true);
@@ -457,10 +273,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /* ========== ADMIN FUNCTIONS ========== */
 
-  /**
-   * @notice Sets protocol fee
-   * @param _protocolFee New fee in basis points
-   */
+  /// @inheritdoc IFPMM
   function setProtocolFee(uint256 _protocolFee) external onlyOwner {
     require(_protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1%
     uint256 oldFee = protocolFee;
@@ -468,10 +281,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     emit ProtocolFeeUpdated(oldFee, _protocolFee);
   }
 
-  /**
-   * @notice Sets rebalance incentive
-   * @param _rebalanceIncentive New incentive in basis points
-   */
+  /// @inheritdoc IFPMM
   function setRebalanceIncentive(uint256 _rebalanceIncentive) external onlyOwner {
     require(_rebalanceIncentive <= 100, "FPMM: REBALANCE_INCENTIVE_TOO_HIGH"); // Max 1%
     uint256 oldIncentive = rebalanceIncentive;
@@ -479,10 +289,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     emit RebalanceIncentiveUpdated(oldIncentive, _rebalanceIncentive);
   }
 
-  /**
-   * @notice Sets rebalance threshold
-   * @param _rebalanceThreshold New threshold in basis points
-   */
+  /// @inheritdoc IFPMM
   function setRebalanceThreshold(uint256 _rebalanceThreshold) external onlyOwner {
     require(_rebalanceThreshold <= 1000, "FPMM: REBALANCE_THRESHOLD_TOO_HIGH"); // Max 10%
     uint256 oldThreshold = rebalanceThreshold;
@@ -490,20 +297,13 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     emit RebalanceThresholdUpdated(oldThreshold, _rebalanceThreshold);
   }
 
-  /**
-   * @notice Sets liquidity strategy status
-   * @param strategy Address of the strategy
-   * @param state New status (true = enabled, false = disabled)
-   */
+  /// @inheritdoc IFPMM
   function setLiquidityStrategy(address strategy, bool state) external onlyOwner {
     liquidityStrategy[strategy] = state;
     emit LiquidityStrategyUpdated(strategy, state);
   }
 
-  /**
-   * @notice Sets the SortedOracles contract
-   * @param _sortedOracles Address of the SortedOracles contract
-   */
+  /// @inheritdoc IFPMM
   function setSortedOracles(address _sortedOracles) public onlyOwner {
     require(_sortedOracles != address(0), "SortedOracles address must be set");
     address oldSortedOracles = address(sortedOracles);
@@ -511,10 +311,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     emit SortedOraclesUpdated(oldSortedOracles, _sortedOracles);
   }
 
-  /**
-   * @notice Sets the BreakerBox contract
-   * @param _breakerBox Address of the BreakerBox contract
-   */
+  /// @inheritdoc IFPMM
   function setBreakerBox(address _breakerBox) public onlyOwner {
     require(_breakerBox != address(0), "BreakerBox address must be set");
     address oldBreakerBox = address(breakerBox);
@@ -522,10 +319,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     emit BreakerBoxUpdated(oldBreakerBox, _breakerBox);
   }
 
-  /**
-   * @notice Sets the reference rate feed ID
-   * @param _referenceRateFeedID Address of the reference rate feed
-   */
+  /// @inheritdoc IFPMM
   function setReferenceRateFeedID(address _referenceRateFeedID) public onlyOwner {
     require(_referenceRateFeedID != address(0), "Reference rate feed ID must be set");
     address oldRateFeedID = referenceRateFeedID;
@@ -544,7 +338,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     reserve1 = IERC20(token1).balanceOf(address(this));
     blockTimestampLast = block.timestamp;
 
-    emit SyncReserves(reserve0, reserve1, blockTimestampLast);
+    emit UpdateReserves(reserve0, reserve1, blockTimestampLast);
   }
 
   /**
@@ -620,7 +414,8 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   /**
-   * @notice Rebalance checks
+   * @notice Rebalance checks to ensure the price difference is smaller than before and
+   * the reserve value is not decreased more than the rebalance incentive
    * @param swapData Swap data
    * @return newPriceDifference New price difference
    */
@@ -639,7 +434,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   /**
-   * @notice Swap checks
+   * @notice Swap checks to ensure the reserve value is not decreased
    * @param swapData Swap data
    */
   function _swapCheck(SwapData memory swapData) internal view {
