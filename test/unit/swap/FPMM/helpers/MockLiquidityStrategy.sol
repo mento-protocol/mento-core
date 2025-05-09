@@ -5,7 +5,6 @@ pragma solidity ^0.8;
 import { IFPMMCallee } from "contracts/interfaces/IFPMMCallee.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
-import "forge-std/console.sol";
 contract MockLiquidityStrategy is IFPMMCallee {
   FPMM public fpmm;
   address public token0;
@@ -20,6 +19,7 @@ contract MockLiquidityStrategy is IFPMMCallee {
   bool public shouldPartiallyRebalance;
   bool public shouldUseExactRequiredAmounts;
   bool public shouldImprovePrice;
+  uint256 public profitPercentage;
 
   constructor(address _fpmm, address _token0, address _token1) {
     fpmm = FPMM(_fpmm);
@@ -31,17 +31,18 @@ contract MockLiquidityStrategy is IFPMMCallee {
     shouldPartiallyRebalance = false;
     shouldUseExactRequiredAmounts = true;
     shouldImprovePrice = true;
+    profitPercentage = 0;
   }
 
-  function setRebalanceOptions(
-    bool _shouldFail,
-    bool _shouldPartiallyRebalance,
-    bool _shouldUseExactRequiredAmounts,
-    bool _shouldImprovePrice
-  ) external {
+  function setShouldFail(bool _shouldFail) external {
     shouldFail = _shouldFail;
-    shouldPartiallyRebalance = _shouldPartiallyRebalance;
-    shouldUseExactRequiredAmounts = _shouldUseExactRequiredAmounts;
+  }
+
+  function setProfitPercentage(uint256 _profitPercentage) external {
+    profitPercentage = _profitPercentage;
+  }
+
+  function setShouldImprovePrice(bool _shouldImprovePrice) external {
     shouldImprovePrice = _shouldImprovePrice;
   }
 
@@ -56,7 +57,7 @@ contract MockLiquidityStrategy is IFPMMCallee {
   }
 
   // The hook function that gets called during the flash loan
-  function hook(address sender, uint256 amount0, uint256 amount1, bytes calldata) external override {
+  function hook(address, uint256 amount0, uint256 amount1, bytes calldata) external override {
     require(msg.sender == address(fpmm), "Not called by FPMM");
 
     if (shouldFail) {
@@ -64,21 +65,28 @@ contract MockLiquidityStrategy is IFPMMCallee {
       revert("MockRebalancer: Forced failure");
     }
 
-    (uint256 reserve0, uint256 reserve1, ) = fpmm.getReserves();
     (uint256 oraclePrice, uint256 reservePrice, uint256 decimals0, uint256 decimals1) = fpmm.getPrices();
 
     // Calculate amounts needed for rebalancing
     uint256 token0ToAdd;
     uint256 token1ToAdd;
 
-    if (reservePrice > oraclePrice) {
-      token0ToAdd = (amount1 * 1e18) / oraclePrice;
-      console.log("token0ToAdd", token0ToAdd);
+    if (shouldImprovePrice) {
+      if (reservePrice > oraclePrice) {
+        token0ToAdd = fpmm.convertWithRate(amount1, decimals1, decimals0, 1e18, oraclePrice);
+        if (profitPercentage > 0) {
+          token0ToAdd = (token0ToAdd * (100 - profitPercentage)) / 100;
+        }
+      } else {
+        token1ToAdd = fpmm.convertWithRate(amount0, decimals0, decimals1, oraclePrice, 1e18);
+        if (profitPercentage > 0) {
+          token1ToAdd = (token1ToAdd * (100 - profitPercentage)) / 100;
+        }
+      }
     } else {
-      token1ToAdd = (amount0 * oraclePrice) / 1e18;
-      console.log("token1ToAdd", token1ToAdd);
+      token0ToAdd = amount0;
+      token1ToAdd = amount1;
     }
-
     // Transfer tokens back to FPMM
     if (token0ToAdd > 0) {
       IERC20(token0).transfer(address(fpmm), token0ToAdd);

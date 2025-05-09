@@ -10,7 +10,6 @@ import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/uti
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
-import "forge-std/console.sol";
 contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
@@ -32,7 +31,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   uint256 public protocolFee;
 
   // Slippage allowed for rebalance in basis points
-  uint256 public rebalanceIncentivePercentage;
+  uint256 public rebalanceIncentive;
 
   // Threshold for rebalance in basis points
   uint256 public rebalanceThreshold;
@@ -61,9 +60,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     decimals0 = 10 ** ERC20Upgradeable(_token0).decimals();
     decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
 
-    protocolFee = 30; // 0.3% fee (30 basis points)
-    rebalanceIncentivePercentage = 10; // Default 0.1% slippage tolerance (10 basis points)
-    rebalanceThreshold = 500; // Default 1% rebalance threshold (100 basis points)
+    protocolFee = 30; // .3% fee (30 basis points)
+    rebalanceIncentive = 50; // Default .5% incentive tolerance (50 basis points)
+    rebalanceThreshold = 500; // Default 5% rebalance threshold (500 basis points)
 
     setSortedOracles(_sortedOracles);
   }
@@ -130,19 +129,16 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   function setProtocolFee(uint256 _protocolFee) external onlyOwner {
-    // not taken for rebalances
     require(_protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 2 3
     protocolFee = _protocolFee;
   }
 
-  function setRebalanceIncentivePercentage(uint256 _rebalanceIncentivePercentage) external onlyOwner {
-    // for cdp it is going to be positive but for reserve liq strategy it is going to be 0
-    require(_rebalanceIncentivePercentage <= 100, "FPMM: REBALANCE_INCENTIVE_TOO_HIGH"); // Max 1%
-    rebalanceIncentivePercentage = _rebalanceIncentivePercentage;
+  function setRebalanceIncentive(uint256 _rebalanceIncentive) external onlyOwner {
+    require(_rebalanceIncentive <= 100, "FPMM: REBALANCE_INCENTIVE_TOO_HIGH"); // Max 1%
+    rebalanceIncentive = _rebalanceIncentive;
   }
 
   function setRebalanceThreshold(uint256 _rebalanceThreshold) external onlyOwner {
-    // 5-10 %
     require(_rebalanceThreshold <= 1000, "FPMM: REBALANCE_THRESHOLD_TOO_HIGH"); // Max 10%
     rebalanceThreshold = _rebalanceThreshold;
   }
@@ -230,11 +226,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   function _swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data, bool isRebalance) private {
     (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
-    console.log("reserve0", _reserve0);
-    console.log("reserve1", _reserve1);
     (uint256 rateNumerator, uint256 rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
     uint256 initialReserveValue = totalValueInToken1(_reserve0, _reserve1, rateNumerator, rateDenominator);
-    uint256 initialPriceDifference = _calculatePriceDifference(_reserve0, _reserve1, rateNumerator, rateDenominator);
+    uint256 initialPriceDifference = _calculatePriceDifference();
 
     if (isRebalance) {
       require(initialPriceDifference >= rebalanceThreshold, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
@@ -256,20 +250,15 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
     uint256 newReserveValue = totalValueInToken1(reserve0, reserve1, rateNumerator, rateDenominator);
     if (isRebalance) {
-      uint256 newPriceDifference = _calculatePriceDifference(reserve0, reserve1, rateNumerator, rateDenominator);
+      uint256 newPriceDifference = _calculatePriceDifference();
 
       // Ensure price difference is smaller than before
       require(newPriceDifference < initialPriceDifference, "FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
-      console.log("newPriceDifference", newPriceDifference);
-      console.log("initialPriceDifference", initialPriceDifference);
-      console.log("rebalanceThreshold", rebalanceThreshold);
-      console.log("reserve0", reserve0);
-      console.log("reserve1", reserve1);
       require(newPriceDifference < rebalanceThreshold, "FPMM: POOL_NOT_REBALANCED");
 
       // Check for excessive value loss
-      uint256 rebalanceIncentive = (initialReserveValue * rebalanceIncentivePercentage) / 10000;
-      uint256 minAcceptableValue = initialReserveValue - rebalanceIncentive;
+      uint256 rebalanceIncentiveAmount = (initialReserveValue * rebalanceIncentive) / 10000;
+      uint256 minAcceptableValue = initialReserveValue - rebalanceIncentiveAmount;
       require(newReserveValue >= minAcceptableValue, "FPMM: EXCESSIVE_VALUE_LOSS");
     } else {
       uint256 fee0 = (amount0In * protocolFee) / 10000;
@@ -307,12 +296,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     }
   }
 
-  function _calculatePriceDifference(
-    uint256 _reserve0,
-    uint256 _reserve1,
-    uint256 rateNumerator,
-    uint256 rateDenominator
-  ) internal view returns (uint256 priceDifference) {
+  function _calculatePriceDifference() internal view returns (uint256 priceDifference) {
     (uint256 oraclePrice, uint256 reservePrice, , ) = getPrices();
 
     if (oraclePrice > reservePrice) {
