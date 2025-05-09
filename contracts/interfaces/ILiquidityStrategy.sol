@@ -38,6 +38,22 @@ interface ILiquidityStrategy {
   event FPMMPoolRemoved(address indexed pool);
 
   /**
+   * @notice Emitted when a rebalance is initiated by the strategy.
+   * @param pool The pool being rebalanced.
+   * @param stableOut Amount of stable token being taken out of the pool.
+   * @param collateralOut Amount of collateral being taken out of the pool.
+   * @param inputAmount The amount the strategy is supplying in the callback.
+   * @param direction ABOVE_ORACLE for contraction, BELOW_ORACLE for expansion.
+   */
+  event RebalanceInitiated(
+    address indexed pool,
+    uint256 stableOut,
+    uint256 collateralOut,
+    uint256 inputAmount,
+    PriceDirection direction
+  );
+
+  /**
    * @notice Emitted when an FPMM pool is rebalanced.
    * @param pool The address of the pool that was rebalanced.
    * @param priceBefore The pool price before the rebalance.

@@ -90,6 +90,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     bytes memory callbackData = abi.encode(pool, inputAmount, priceDirection);
 
+    emit RebalanceInitiated(pool, stableOut, collateralOut, inputAmount, priceDirection);
     fpm.swap(stableOut, collateralOut, address(this), callbackData);
   }
 
@@ -97,7 +98,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    * @notice Handles the callback from the pool after a rebalance.
    * @param data The encoded data from the pool.
    */
-  function hook(address, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
+  function hook(address, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external nonReentrant {
     (address pool, uint256 amountIn, PriceDirection priceDirection) = abi.decode(
       data,
       (address, uint256, PriceDirection)

@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
+import { IERC20Metadata } from "openzeppelin-contracts-next/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
@@ -13,7 +15,7 @@ import { UD60x18, ud } from "prb-math/UD60x18.sol";
  * @notice Abstract base contract for implementing different liquidity sourcing strategies.
  *         Manages pool registration, threshold checks, and rebalance triggering logic.
  */
-abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
+abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, ReentrancyGuard {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   mapping(address => FPMMConfig) public fpmmPoolConfigs;
@@ -37,31 +39,33 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
 
   /**
    * @notice Adds an FPMM pool.
-   * @param pool The address of the pool to add.
+   * @param poolAddress The address of the FPMM pool to add.
    * @param threshold The threshold as a fixed-point number with 18 decimals
    * @param cooldown The cooldown period for the next rebalance.
    */
-  function addPool(address pool, uint256 threshold, uint256 cooldown) external onlyOwner {
-    require(pool != address(0), "Invalid pool");
-    require(fpmmPools.add(pool), "Already added");
+  function addPool(address poolAddress, uint256 threshold, uint256 cooldown) external onlyOwner {
+    require(poolAddress != address(0), "Invalid pool");
+    require(fpmmPools.add(poolAddress), "Already added");
     require(threshold > 0 && threshold <= 1e18, "Invalid threshold"); // TODO: Confirm
     require(cooldown > 0, "Rebalance cooldown must be greater than 0");
 
-    uint256 decimals0 = IFPMM(pool).decimals0();
-    uint256 decimals1 = IFPMM(pool).decimals1();
+    IFPMM pool = IFPMM(poolAddress);
+
+    uint8 decimals0 = IERC20Metadata(pool.token0()).decimals();
+    uint8 decimals1 = IERC20Metadata(pool.token1()).decimals();
 
     require(decimals0 <= 18 && decimals1 <= 18, "Token decimals too large");
 
-    tokenPrecisionMultipliers[IFPMM(pool).token0()] = 10 ** (18 - decimals0);
-    tokenPrecisionMultipliers[IFPMM(pool).token1()] = 10 ** (18 - decimals1);
+    tokenPrecisionMultipliers[pool.token0()] = 10 ** (18 - decimals0);
+    tokenPrecisionMultipliers[pool.token1()] = 10 ** (18 - decimals1);
 
-    fpmmPoolConfigs[pool] = FPMMConfig({
+    fpmmPoolConfigs[poolAddress] = FPMMConfig({
       lastRebalance: 0,
       rebalanceThreshold: threshold,
       rebalanceCooldown: cooldown
     });
 
-    emit FPMMPoolAdded(pool, threshold, cooldown);
+    emit FPMMPoolAdded(poolAddress, threshold, cooldown);
   }
 
   /**
@@ -82,7 +86,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
    *         updates the pool's state, and emits an event with the pricing information.
    * @param pool The address of the pool to rebalance.
    */
-  function rebalance(address pool) external {
+  function rebalance(address pool) external nonReentrant {
     require(fpmmPools.contains(pool), "Not a valid pool");
 
     FPMMConfig memory config = fpmmPoolConfigs[pool];
@@ -114,12 +118,9 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
       return;
     }
 
+    _executeRebalance(pool, oraclePrice, priceDirection);
     fpmmPoolConfigs[pool].lastRebalance = block.timestamp;
 
-    // Execute the rebalance
-    _executeRebalance(pool, oraclePrice, priceDirection);
-
-    // Get final price for event emission
     (, uint256 priceAfterRebalance) = fpm.getPrices();
     emit RebalanceExecuted(pool, poolPrice, priceAfterRebalance);
   }
