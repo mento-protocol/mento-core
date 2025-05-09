@@ -94,11 +94,12 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     // TODO: Are these checks valid? Can we have 0 oracle price?
     require(oraclePrice > 0 && poolPrice > 0, "Invalid prices");
 
-    UD60x18 rawBps = ud(fpm.rebalanceThreshold());
-    UD60x18 threshold = rawBps.div(ud(10_000));
+    uint256 rawBps = fpm.rebalanceThreshold();
+    require(rawBps > 0 && rawBps <= 10_000, "Invalid pool threshold");
 
     UD60x18 oracleP = ud(oraclePrice);
     UD60x18 poolP = ud(poolPrice);
+    UD60x18 threshold = ud(rawBps).div(ud(10_000));
 
     UD60x18 upperBound = oracleP.mul(ud(1).add(threshold));
     UD60x18 lowerBound = oracleP.mul(ud(1).sub(threshold));
