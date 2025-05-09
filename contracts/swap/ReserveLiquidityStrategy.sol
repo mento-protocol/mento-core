@@ -63,8 +63,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     UD60x18 oraclePriceUD = ud(oraclePrice);
 
-    uint256 stableOut = 0;
-    uint256 collateralOut = 0;
+    uint256 stableOut;
+    uint256 collateralOut;
     uint256 inputAmount;
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
@@ -72,7 +72,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       // Y = (S - P * C) / (2 * P)
       // X = Y * P
       UD60x18 numerator = stableReserve.sub(oraclePriceUD.mul(collateralReserve));
-      UD60x18 collateralToSell = numerator.div(oraclePriceUD.mul(ud(2e18)));
+      UD60x18 collateralToSell = numerator.div(oraclePriceUD.mul(ud(2)));
       UD60x18 stablesToBuy = collateralToSell.mul(oraclePriceUD);
 
       stableOut = stablesToBuy.div(ud(tokenPrecisionMultipliers[stableToken])).unwrap();
@@ -81,7 +81,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       // Expansion: Buy collateral from the pool using newly minted stables
       // X = (C * P - S) / 2
       // Y = X / P
-      UD60x18 stablesToSell = (collateralReserve.mul(oraclePriceUD).sub(stableReserve)).div(ud(2e18));
+      UD60x18 stablesToSell = (collateralReserve.mul(oraclePriceUD).sub(stableReserve)).div(ud(2));
       UD60x18 collateralToBuy = stablesToSell.div(oraclePriceUD);
 
       collateralOut = collateralToBuy.div(ud(tokenPrecisionMultipliers[collateralToken])).unwrap();
@@ -110,6 +110,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     address stableToken = fpm.token0();
     address collateralToken = fpm.token1();
+
+    // TODO: What are the implications of transferring total balances of this contract vs exact amounts?
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
       // Contraction: burn stables, pull collateral from reserve and send to FPMM

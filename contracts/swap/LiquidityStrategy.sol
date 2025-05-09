@@ -88,7 +88,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
     FPMMConfig memory config = fpmmPoolConfigs[pool];
     if (block.timestamp <= config.lastRebalance + config.rebalanceCooldown) {
       emit RebalanceSkippedNotCool(pool);
-      revert("Rebalance cooldown not elapsed");
+      return;
     }
 
     IFPMM fpm = IFPMM(pool);
@@ -100,8 +100,8 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy {
     UD60x18 poolP = ud(poolPrice);
     UD60x18 threshold = ud(config.rebalanceThreshold);
 
-    UD60x18 upperBound = oracleP.mul(ud(1e18).add(threshold));
-    UD60x18 lowerBound = oracleP.mul(ud(1e18).sub(threshold));
+    UD60x18 upperBound = oracleP.mul(ud(1).add(threshold));
+    UD60x18 lowerBound = oracleP.mul(ud(1).sub(threshold));
 
     PriceDirection priceDirection;
 
