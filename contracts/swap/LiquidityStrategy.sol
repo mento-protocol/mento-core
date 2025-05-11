@@ -23,6 +23,8 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
   EnumerableSet.AddressSet private fpmmPools;
 
+  UD60x18 ONE = ud(1e18);
+
   /* ==================== Constructor & Initializer ==================== */
 
   constructor(bool disableInitializers) {
@@ -81,10 +83,10 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
    * @param pool The address of the pool to rebalance.
    */
   function rebalance(address pool) external nonReentrant {
-    require(fpmmPools.contains(pool), "Not a valid pool");
+    require(isPoolRegistered(pool), "Not added");
 
     FPMMConfig memory config = fpmmPoolConfigs[pool];
-    if (block.timestamp <= config.lastRebalance + config.rebalanceCooldown) {
+    if (config.lastRebalance > 0 && block.timestamp <= config.lastRebalance + config.rebalanceCooldown) {
       emit RebalanceSkippedNotCool(pool);
       return;
     }
@@ -99,10 +101,10 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
     UD60x18 oracleP = ud(oraclePrice);
     UD60x18 poolP = ud(poolPrice);
-    UD60x18 threshold = ud(rawBps).div(ud(10_000));
 
-    UD60x18 upperBound = oracleP.mul(ud(1).add(threshold));
-    UD60x18 lowerBound = oracleP.mul(ud(1).sub(threshold));
+    UD60x18 threshold = ud(rawBps).div(ud(10_000));
+    UD60x18 upperBound = oracleP.mul(ONE.add(threshold));
+    UD60x18 lowerBound = oracleP.mul(ONE.sub(threshold));
 
     PriceDirection priceDirection;
 
