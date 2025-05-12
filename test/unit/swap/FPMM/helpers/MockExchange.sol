@@ -18,7 +18,6 @@ contract MockExchange {
     exchangeRate = _exchangeRate;
   }
 
-  // Swap token0 for token1
   function swapToken0ForToken1(uint256 amount0) external returns (uint256) {
     uint256 amount1 = (amount0 * exchangeRate) / 1e18;
 
@@ -28,7 +27,6 @@ contract MockExchange {
     return amount1;
   }
 
-  // Swap token1 for token0
   function swapToken1ForToken0(uint256 amount1) external returns (uint256) {
     uint256 amount0 = (amount1 * 1e18) / exchangeRate;
 

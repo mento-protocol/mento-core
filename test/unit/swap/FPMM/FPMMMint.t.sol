@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable var-name-mixedcase
 pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
 contract FPMMMintTest is FPMMBaseTest {
-  function test_mint_shouldRevert_whenCalledWithLessThanMinLiquidity() public initializeFPMM_withDecimalTokens(18, 18) {
+  function test_mint_whenCalledWithLessThanMinLiquidity_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     uint256 amount0 = 1_000;
     uint256 amount1 = 1_000;
 
@@ -21,7 +21,7 @@ contract FPMMMintTest is FPMMBaseTest {
     vm.stopPrank();
   }
 
-  function test_mint_shouldMintCorrectAmountOfTokens_whenTotalSupplyIsZero()
+  function test_mint_whenTotalSupplyIsZero_shouldMintCorrectAmountOfTokens()
     public
     initializeFPMM_withDecimalTokens(18, 18)
   {
@@ -46,7 +46,7 @@ contract FPMMMintTest is FPMMBaseTest {
     vm.stopPrank();
   }
 
-  function test_mint_shouldMintCorrectAmountOfTokens_whenTotalSupplyIsZeroAndDecimalsAreDifferent()
+  function test_mint_whenTotalSupplyIsZeroAndDecimalsAreDifferent_shouldMintCorrectAmountOfTokens()
     public
     initializeFPMM_withDecimalTokens(18, 6)
   {
@@ -71,7 +71,7 @@ contract FPMMMintTest is FPMMBaseTest {
     vm.stopPrank();
   }
 
-  function test_mint_shouldWork_whenTotalSupplyIsNotZero()
+  function test_mint_whenTotalSupplyIsNotZero_shouldCalculateLiquidityCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -98,7 +98,7 @@ contract FPMMMintTest is FPMMBaseTest {
     vm.stopPrank();
   }
 
-  function test_mint_shouldWork_whenDecimalsAreDifferent()
+  function test_mint_whenDecimalsAreDifferent_shouldCalculateLiquidityCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
@@ -125,7 +125,7 @@ contract FPMMMintTest is FPMMBaseTest {
     vm.stopPrank();
   }
 
-  function test_mint_shouldUseToken0AsLimitingFactor()
+  function test_mint_whenToken0IsLimitingFactor_shouldUseToken0ForCalculation()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -150,7 +150,7 @@ contract FPMMMintTest is FPMMBaseTest {
     vm.stopPrank();
   }
 
-  function test_mint_shouldUseToken1AsLimitingFactor()
+  function test_mint_whenToken1IsLimitingFactor_shouldUseToken1ForCalculation()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -175,7 +175,7 @@ contract FPMMMintTest is FPMMBaseTest {
     vm.stopPrank();
   }
 
-  function test_mint_shouldWorkCorrectly_withMultipleMints()
+  function test_mint_whenCalledMultipleTimes_shouldCalculateCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -205,7 +205,10 @@ contract FPMMMintTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), reserveAfterBobMint1 + 150e18);
   }
 
-  function test_mint_shouldSetCorrectRecipient() public initializeFPMM_withDecimalTokens(18, 18) {
+  function test_mint_whenRecipientSpecified_shouldSetCorrectRecipient()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+  {
     vm.startPrank(ALICE);
     IERC20(token0).transfer(address(fpmm), 100e18);
     IERC20(token1).transfer(address(fpmm), 200e18);
@@ -217,7 +220,7 @@ contract FPMMMintTest is FPMMBaseTest {
     assertEq(fpmm.balanceOf(BOB), liquidity);
   }
 
-  function test_mint_shouldUpdateTimestamp_whenReservesChange()
+  function test_mint_whenReservesChange_shouldUpdateTimestamp()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
