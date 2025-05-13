@@ -24,7 +24,10 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
   IReserve public reserve;
 
-  constructor(bool disableInitializers, address _reserve) LiquidityStrategy(disableInitializers) {
+  constructor(bool disableInitializers) LiquidityStrategy(disableInitializers) {}
+
+  function initialize(address _reserve) external initializer {
+    __Ownable_init();
     setReserve(_reserve);
   }
 
@@ -96,9 +99,11 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
   /**
    * @notice Handles the callback from the pool after a rebalance.
+   * @param amount0Out The amount of token0 to move out of the pool.
+   * @param amount1Out The amount of token1 to move out of the pool.
    * @param data The encoded data from the pool.
    */
-  function hook(address, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external nonReentrant {
+  function hook(address, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
     (address pool, uint256 amountIn, PriceDirection priceDirection) = abi.decode(
       data,
       (address, uint256, PriceDirection)
