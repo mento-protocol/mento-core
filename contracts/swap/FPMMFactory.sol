@@ -2,33 +2,52 @@
 pragma solidity 0.8.24;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import { TransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { ICreateX } from "../interfaces/ICreateX.sol";
 
 import { IFPMMFactory } from "../interfaces/IFPMMFactory.sol";
 import { FPMM } from "./FPMM.sol";
 import { FPMMProxy } from "./FPMMProxy.sol";
-import { console } from "forge-std/console.sol";
+
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
 
 contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
+  /* ========================================================= */
+  /* ==================== State Variables ==================== */
+  /* ========================================================= */
+
+  // Address of the sorted oracles contract.
   address public sortedOracles;
 
+  // Address of the implementation of the FPMM contract.
   address public fpmmImplementation;
 
+  // Address of the proxy admin contract.
   address public proxyAdmin;
 
+  // Address of the governance contract.
+  address public governance;
+
+  // Mapping of deployed FPMMs.
   mapping(address => mapping(address => FPMM)) public deployedFPMMs;
 
+  // Address of the CREATEX contract.
   address public constant CREATEX = 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed;
+
+  // Bytecode hash of the CREATEX contract retrieved from celo mainnet
+  // cast keccak $(cast code 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed --rpc-url https://forno.celo.org)
   bytes32 public constant CREATEX_BYTECODE_HASH = 0xbd8a7ea8cfca7b4e5f5041d7d4b17bc317c5ce42cfbc42066a00cf26b43eb53f;
 
-  // Events
-  event FPMMDeployed(address indexed token0, address indexed token1, address fpmm);
-  event FPMMImplementationDeployed(address indexed implementation);
-  event ProxyAdminSet(address indexed proxyAdmin);
-  event SortedOraclesSet(address indexed sortedOracles);
+  /* ===================================================== */
+  /* ==================== Constructor ==================== */
+  /* ===================================================== */
 
+  /**
+   * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
+   * Call this with disable=false during testing, when used without a proxy.
+   * @param disable Set to true to run `_disableInitializers()` inherited from
+   * openzeppelin-contracts-upgradeable/Initializable.sol
+   */
   constructor(bool disable) {
     if (disable) {
       _disableInitializers();
@@ -36,69 +55,159 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     require(keccak256(CREATEX.code) == CREATEX_BYTECODE_HASH, "FPMMFactory: CREATEX_BYTECODE_HASH_MISMATCH");
   }
 
-  function initialize(address _sortedOracles, address _proxyAdmin) external initializer {
-    require(_sortedOracles != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(_proxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
+  /// @inheritdoc IFPMMFactory
+  function initialize(address _sortedOracles, address _proxyAdmin, address _governance) external initializer {
     __Ownable_init();
-    sortedOracles = _sortedOracles;
-    emit SortedOraclesSet(_sortedOracles);
-    proxyAdmin = _proxyAdmin;
-    emit ProxyAdminSet(_proxyAdmin);
+    setProxyAdmin(_proxyAdmin);
+    setSortedOracles(_sortedOracles);
+    setGovernance(_governance);
   }
 
-  function setSortedOracles(address _sortedOracles) external onlyOwner {
+  /* ======================================================== */
+  /* ==================== View Functions ==================== */
+  /* ======================================================== */
+
+  /// @inheritdoc IFPMMFactory
+  function getOrPrecomputeImplementationAddress() public view returns (address) {
+    if (fpmmImplementation != address(0)) {
+      return fpmmImplementation;
+    }
+    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", bytes11("FPMM_IMPLEM")));
+    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
+
+    return ICreateX(CREATEX).computeCreate3Address(guardedSalt);
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function getOrPrecomputeProxyAddress(address token0, address token1) public view returns (address) {
+    if (address(deployedFPMMs[token0][token1]) != address(0)) {
+      return address(deployedFPMMs[token0][token1]);
+    }
+    bytes11 customSalt = bytes11(
+      uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), IERC20(token1).symbol()))))
+    );
+    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", customSalt));
+    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
+
+    return ICreateX(CREATEX).computeCreate3Address(guardedSalt);
+  }
+
+  /* ============================================================ */
+  /* ==================== Mutative Functions ==================== */
+  /* ============================================================ */
+
+  /// @inheritdoc IFPMMFactory
+  function setSortedOracles(address _sortedOracles) public onlyOwner {
     require(_sortedOracles != address(0), "FPMMFactory: ZERO_ADDRESS");
     sortedOracles = _sortedOracles;
     emit SortedOraclesSet(_sortedOracles);
   }
 
-  function setProxyAdmin(address _proxyAdmin) external onlyOwner {
+  /// @inheritdoc IFPMMFactory
+  function setProxyAdmin(address _proxyAdmin) public onlyOwner {
     require(_proxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
 
     proxyAdmin = _proxyAdmin;
     emit ProxyAdminSet(_proxyAdmin);
   }
 
-  function deployFPMM(address token0, address token1) external returns (address, address) {
+  /// @inheritdoc IFPMMFactory
+  function setGovernance(address _governance) public onlyOwner {
+    require(_governance != address(0), "FPMMFactory: ZERO_ADDRESS");
+    governance = _governance;
+    transferOwnership(_governance);
+    emit GovernanceSet(_governance);
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function deployFPMM(address token0, address token1) external onlyOwner returns (address, address) {
     require(token0 != address(0) && token1 != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(token0 != token1, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
 
     if (fpmmImplementation == address(0)) {
       _deployFPMMImplementation();
     }
-    address fpmmProxy = _deployFPMMProxy(token0, token1, sortedOracles);
+    address fpmmProxy = _deployFPMMProxy(token0, token1);
 
     return (fpmmImplementation, fpmmProxy);
   }
 
+  /* =========================================================== */
+  /* ==================== Private Functions ==================== */
+  /* =========================================================== */
+
+  /**
+   * @notice Deploys the FPMM implementation contract if it is not already deployed.
+   * @dev apply permissioned deploy protection with factory address and 0x00 flag
+   *      see https://github.com/pcaversaccio/createx?tab=readme-ov-file for more details
+   */
   function _deployFPMMImplementation() internal {
-    console.log("msg.sender", msg.sender);
     bytes memory implementationBytecode = abi.encodePacked(type(FPMM).creationCode, abi.encode(true));
-    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", bytes11(uint88(361))));
 
-    bytes32 guardedSalt = keccak256(abi.encodePacked(uint256(uint160(address(this))), salt));
+    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", bytes11("FPMM_IMPLEM")));
+    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
 
-    address expectedFPMMImplementation = ICreateX(CREATEX).computeCreate3Address(guardedSalt, CREATEX);
-    console.log("expectedFPMMImplementation", expectedFPMMImplementation);
+    address expectedFPMMImplementation = ICreateX(CREATEX).computeCreate3Address(guardedSalt);
 
     fpmmImplementation = ICreateX(CREATEX).deployCreate3(salt, implementationBytecode);
-    console.log("fpmmImplementation", fpmmImplementation);
     assert(fpmmImplementation == expectedFPMMImplementation);
     emit FPMMImplementationDeployed(fpmmImplementation);
   }
 
-  function _deployFPMMProxy(address token0, address token1, address sortedOracles) internal returns (address) {
-    bytes memory initData = abi.encodeWithSelector(FPMM.initialize.selector, token0, token1, sortedOracles);
+  /**
+   * @notice Deploys the FPMM proxy contract.
+   * @dev apply permissioned deploy protection with factory address and custom salt
+   *      see https://github.com/pcaversaccio/createx?tab=readme-ov-file for more details
+   *      custom salt is a keccak256 hash of the token0 and token1 symbols
+   * @param token0 The address of the first token
+   * @param token1 The address of the second token
+   * @return The address of the deployed FPMM proxy
+   */
+  function _deployFPMMProxy(address token0, address token1) internal returns (address) {
+    bytes11 customSalt = bytes11(
+      uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), IERC20(token1).symbol()))))
+    );
+
+    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", customSalt));
+    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
+
+    bytes memory initData = abi.encodeWithSelector(FPMM.initialize.selector, token0, token1, sortedOracles, governance);
     bytes memory proxyBytecode = abi.encodePacked(
       type(FPMMProxy).creationCode,
       abi.encode(fpmmImplementation, proxyAdmin, initData)
     );
-    address newProxyAddress = ICreateX(CREATEX).deployCreate3(
-      keccak256(abi.encodePacked(token0, token1)),
-      proxyBytecode
-    );
+
+    address expectedProxyAddress = ICreateX(CREATEX).computeCreate3Address(guardedSalt);
+
+    address newProxyAddress = ICreateX(CREATEX).deployCreate3(salt, proxyBytecode);
     deployedFPMMs[token0][token1] = FPMM(newProxyAddress);
     emit FPMMDeployed(token0, token1, newProxyAddress);
+    assert(newProxyAddress == expectedProxyAddress);
     return newProxyAddress;
   }
+
+  /**
+   * @notice Hashes two bytes32 values efficiently.
+   * @dev copied from CREATEX contract to precaluclated deployment addresses
+   *      see https://github.com/pcaversaccio/createx/blob/7ab1e452b8803cae1467efd455dee1530660373b/src/CreateX.sol#L952
+   * @param a The first bytes32 value
+   * @param b The second bytes32 value
+   * @return hash The keccak256 hash of the two values
+   */
+  function _efficientHash(bytes32 a, bytes32 b) internal pure returns (bytes32 hash) {
+    // Warniing ignored, because this is a helper function and copied from CREATEX contract
+    // solhint-disable-next-line no-inline-assembly
+    assembly ("memory-safe") {
+      mstore(0x00, a)
+      mstore(0x20, b)
+      hash := keccak256(0x00, 0x40)
+    }
+  }
+
+  /**
+   * @dev This empty reserved space is put in place to allow future versions to add new
+   * variables without shifting down storage in the inheritance chain.
+   * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+   */
+  uint256[50] private __gap;
 }

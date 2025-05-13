@@ -6,5 +6,6 @@ interface IFPMM {
   /// @param _token0 Address of token0
   /// @param _token1 Address of token1
   /// @param _sortedOracles Address of the sorted oracles contract
-  function initialize(address _token0, address _token1, address _sortedOracles) external;
+  /// @param _governance Address of the governance contract
+  function initialize(address _token0, address _token1, address _sortedOracles, address _governance) external;
 }

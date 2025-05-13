@@ -13,6 +13,7 @@ contract FPMMBaseTest is Test {
 
   address public token0;
   address public token1;
+  address public owner = makeAddr("Owner");
 
   address public ALICE = makeAddr("ALICE");
   address public BOB = makeAddr("BOB");
@@ -31,7 +32,7 @@ contract FPMMBaseTest is Test {
     token0 = address(new ERC20DecimalsMock("token0", "T0", decimals0));
     token1 = address(new ERC20DecimalsMock("token1", "T1", decimals1));
 
-    fpmm.initialize(token0, token1, sortedOracles);
+    fpmm.initialize(token0, token1, sortedOracles, owner);
 
     deal(token0, ALICE, 1_000 * 10 ** decimals0);
     deal(token1, ALICE, 1_000 * 10 ** decimals1);

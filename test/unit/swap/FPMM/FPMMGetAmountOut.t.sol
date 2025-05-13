@@ -44,11 +44,13 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     uint256 amountIn = 100e18;
 
     // Change fee to 1%
+    vm.prank(owner);
     fpmm.setProtocolFee(100); // 100 basis points = 1%
     uint256 expectedAmountOut = 9.9e18; // 10e18 - 1% fee
     assertEq(fpmm.getAmountOut(amountIn, token0), expectedAmountOut);
 
     // Change fee to 0%
+    vm.prank(owner);
     fpmm.setProtocolFee(0);
     expectedAmountOut = 10e18; // No fee
     assertEq(fpmm.getAmountOut(amountIn, token0), expectedAmountOut);

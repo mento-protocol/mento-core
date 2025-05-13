@@ -213,6 +213,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupMockOracleRate(1e18, 1e18)
   {
     // Set protocol fee to 0 for easier testing
+    vm.prank(owner);
     fpmm.setProtocolFee(0);
 
     uint256 flashLoanAmount0 = 30e18; // 18 decimals
@@ -249,6 +250,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupMockOracleRate(1e18, 1e18) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
   {
+    vm.prank(owner);
     fpmm.setProtocolFee(0);
 
     uint256 flashLoanAmount = 50e18;
@@ -274,6 +276,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupMockOracleRate(1e18, 1e18) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
   {
+    vm.prank(owner);
     fpmm.setProtocolFee(0);
 
     uint256 flashLoanAmount = 50e18;
@@ -299,6 +302,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupMockOracleRate(1e18, 1e18) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
   {
+    vm.prank(owner);
     fpmm.setProtocolFee(0);
 
     // Execute first arbitrage with favorable conditions

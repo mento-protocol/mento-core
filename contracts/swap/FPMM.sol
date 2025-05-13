@@ -38,7 +38,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     }
   }
 
-  function initialize(address _token0, address _token1, address _sortedOracles) external initializer {
+  function initialize(address _token0, address _token1, address _sortedOracles, address _owner) external initializer {
     (token0, token1) = (_token0, _token1);
 
     string memory symbol0 = ERC20Upgradeable(_token0).symbol();
@@ -54,8 +54,8 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
 
     protocolFee = 30; // 0.3% fee (30 basis points)
-
     setSortedOracles(_sortedOracles);
+    transferOwnership(_owner);
   }
 
   function setProtocolFee(uint256 _protocolFee) external onlyOwner {
