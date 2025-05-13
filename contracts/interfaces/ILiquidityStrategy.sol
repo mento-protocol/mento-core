@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 interface ILiquidityStrategy {
+  /* ==================== Enums & Structs ==================== */
+
   /**
    * @notice Enum representing the direction of price deviation from the oracle price.
    * @dev Used to determine the direction of the price movement when rebalancing.
@@ -19,6 +21,8 @@ interface ILiquidityStrategy {
     uint256 lastRebalance;
     uint256 rebalanceCooldown;
   }
+
+  /* ==================== Events ==================== */
 
   /**
    * @notice Emitted after an FPMM pool is added.
@@ -69,9 +73,39 @@ interface ILiquidityStrategy {
    */
   event RebalanceSkippedPriceInRange(address indexed pool);
 
+  /* ==================== Functions ==================== */
+
   /**
-   * @notice Triggers the liquidity rebalancing mechanism.
+   * @notice Adds an FPMM pool.
+   * @param pool The address of the pool to add.
+   * @param cooldown The cooldown period for the next rebalance of the pool.
+   */
+  function addPool(address pool, uint256 cooldown) external;
+
+  /**
+   * @notice Removes an FPMM pool.
+   * @param pool The address of the pool to be removed.
+   */
+  function removePool(address pool) external;
+
+  /**
+   * @notice Triggers the rebalancing process for a pool.
+   *         Obtains the pre-rebalance price, executes rebalancing logic,
+   *         updates the pool's state, and emits an event with the pricing information.
    * @param pool The address of the pool to rebalance.
    */
   function rebalance(address pool) external;
+
+  /**
+   * @notice Checks if a pool is registered.
+   * @param pool The address of the pool to check.
+   * @return True if the pool is registered, false otherwise.
+   */
+  function isPoolRegistered(address pool) external view returns (bool);
+
+  /**
+   * @notice Returns all registered pools.
+   * @return An array of pool addresses.
+   */
+  function getPools() external view returns (address[] memory);
 }

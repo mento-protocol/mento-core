@@ -23,7 +23,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
   EnumerableSet.AddressSet private fpmmPools;
 
-  /* ==================== Constructor & Initializer ==================== */
+  /* ==================== Constructor ==================== */
 
   constructor(bool disableInitializers) {
     if (disableInitializers) {
@@ -31,17 +31,9 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     }
   }
 
-  function initialize() external initializer {
-    __Ownable_init();
-  }
-
   /* ==================== Admin Functions ==================== */
 
-  /**
-   * @notice Adds an FPMM pool.
-   * @param poolAddress The address of the FPMM pool to add.
-   * @param cooldown The cooldown period for the next rebalance.
-   */
+  /// @inheritdoc ILiquidityStrategy
   function addPool(address poolAddress, uint256 cooldown) external onlyOwner {
     require(poolAddress != address(0), "Invalid pool");
     require(cooldown > 0, "Rebalance cooldown must be greater than 0");
@@ -62,10 +54,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     emit FPMMPoolAdded(poolAddress, cooldown);
   }
 
-  /**
-   * @notice Removes an FPMM pool.
-   * @param pool The address of the pool to remove.
-   */
+  /// @inheritdoc ILiquidityStrategy
   function removePool(address pool) external onlyOwner {
     require(fpmmPools.remove(pool), "Not added");
     delete fpmmPoolConfigs[pool];
@@ -74,12 +63,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
   /* ==================== Rebalancing ==================== */
 
-  /**
-   * @notice Triggers the rebalancing process for a pool.
-   *         Obtains the pre-rebalance price, executes rebalancing logic,
-   *         updates the pool's state, and emits an event with the pricing information.
-   * @param pool The address of the pool to rebalance.
-   */
+  /// @inheritdoc ILiquidityStrategy
   function rebalance(address pool) external nonReentrant {
     require(isPoolRegistered(pool), "Not added");
 
@@ -91,7 +75,6 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
     IFPMM fpm = IFPMM(pool);
     (uint256 oraclePrice, uint256 poolPrice) = fpm.getPrices();
-    // TODO: Are these checks valid? Can we have 0 oracle price?
     require(oraclePrice > 0 && poolPrice > 0, "Invalid prices");
 
     uint256 rawBps = fpm.rebalanceThreshold();
@@ -122,32 +105,25 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     emit RebalanceExecuted(pool, poolPrice, priceAfterRebalance);
   }
 
+  /* ==================== View Functions ==================== */
+
+  /// @inheritdoc ILiquidityStrategy
+  function isPoolRegistered(address pool) public view returns (bool) {
+    return fpmmPools.contains(pool);
+  }
+
+  /// @inheritdoc ILiquidityStrategy
+  function getPools() external view returns (address[] memory) {
+    return fpmmPools.values();
+  }
+
   /* ==================== Internal Functions ==================== */
 
   /**
-   * @notice Contains the specific logic that executes the rebalancing.
+   * @notice Contains the strategy-specific logic that executes the rebalancing.
    * @param pool The address of the pool to rebalance.
    * @param oraclePrice The off‑chain target price.
    * @param priceDirection The direction of the price movement.
    */
   function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal virtual;
-
-  /* ==================== View Functions ==================== */
-
-  /**
-   * @notice Checks if a pool is registered.
-   * @param pool The address of the pool to check.
-   * @return True if the pool is registered, false otherwise.
-   */
-  function isPoolRegistered(address pool) public view returns (bool) {
-    return fpmmPools.contains(pool);
-  }
-
-  /**
-   * @notice Returns all registered pools.
-   * @return An array of pool addresses.
-   */
-  function getPools() external view returns (address[] memory) {
-    return fpmmPools.values();
-  }
 }
