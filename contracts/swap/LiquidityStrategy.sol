@@ -23,8 +23,6 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
   EnumerableSet.AddressSet private fpmmPools;
 
-  UD60x18 ONE = ud(1e18);
-
   /* ==================== Constructor & Initializer ==================== */
 
   constructor(bool disableInitializers) {
@@ -103,8 +101,8 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     UD60x18 poolP = ud(poolPrice);
 
     UD60x18 threshold = ud(rawBps).div(ud(10_000));
-    UD60x18 upperBound = oracleP.mul(ONE.add(threshold));
-    UD60x18 lowerBound = oracleP.mul(ONE.sub(threshold));
+    UD60x18 upperBound = oracleP.mul(ud(1e18).add(threshold));
+    UD60x18 lowerBound = oracleP.mul(ud(1e18).sub(threshold));
 
     PriceDirection priceDirection;
 
