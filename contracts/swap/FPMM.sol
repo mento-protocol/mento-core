@@ -195,11 +195,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     uint256 denominator
   ) public pure returns (uint256) {
     if (fromDecimals > toDecimals) {
-      uint256 decimalAdjustment = fromDecimals / toDecimals;
-      return (amount * numerator) / (denominator * decimalAdjustment);
+      return (amount * numerator) / ((denominator * fromDecimals) / toDecimals);
     } else if (fromDecimals < toDecimals) {
-      uint256 decimalAdjustment = toDecimals / fromDecimals;
-      return (amount * numerator * decimalAdjustment) / denominator;
+      return ((amount * numerator * toDecimals) / fromDecimals) / denominator;
     } else {
       return (amount * numerator) / denominator;
     }
@@ -218,7 +216,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     uint256 amount1 = balance1 - _reserve1;
 
     uint256 _totalSupply = totalSupply();
-
+    // slither-disable-next-line incorrect-equality
     if (_totalSupply == 0) {
       liquidity = Math.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
       _mint(address(1), MINIMUM_LIQUIDITY);
@@ -252,8 +250,10 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
     _burn(address(this), liquidity);
 
+    // slither-disable-start reentrancy-benign
     IERC20(_token0).safeTransfer(to, amount0);
     IERC20(_token1).safeTransfer(to, amount1);
+    // slither-disable-end reentrancy-benign
 
     _update();
 
@@ -363,7 +363,8 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
    * @param data Optional callback data
    * @param isRebalance Whether this is a rebalance operation
    */
-
+  // slither-disable-start reentrancy-no-eth
+  // slither-disable-start reentrancy-benign
   function _swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data, bool isRebalance) private {
     require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
     (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1);
@@ -375,6 +376,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     );
 
     // used to avoid stack too deep error
+    // slither-disable-next-line uninitialized-local
     SwapData memory swapData;
 
     (swapData.rateNumerator, swapData.rateDenominator) = sortedOracles.medianRate(referenceRateFeedID);
@@ -412,6 +414,8 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     }
     emit Swap(msg.sender, swapData.amount0In, swapData.amount1In, amount0Out, amount1Out, to);
   }
+  // slither-disable-end reentrancy-no-eth
+  // slither-disable-end reentrancy-benign
 
   /**
    * @notice Rebalance checks to ensure the price difference is smaller than before and
