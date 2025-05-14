@@ -5,6 +5,8 @@
 pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 
+import { UD60x18, ud } from "prb-math/UD60x18.sol";
+
 import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 import { ReserveLiquidityStrategy } from "contracts/swap/ReserveLiquidityStrategy.sol";
 
@@ -191,5 +193,93 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.expectEmit(true, false, false, true);
     emit RebalanceSkippedPriceInRange(address(mockPool));
     strat.rebalance(address(mockPool));
+  }
+
+  /* ==================== Rebalance Core Logic Tests ==================== */
+
+  function test_rebalance_whenPoolPriceAboveOracle_shouldTriggerContraction() public {
+    // --- Setup ---
+    uint256 stableReserveInPool = 1050e18; // S
+    uint256 collateralReserveInPool = 1000e18; // C
+    uint256 oraclePrice = 1e18; // P_oracle
+    uint256 currentPoolPrice = 1.02e18; // P_pool > P_oracle + threshold
+    uint256 thresholdBps = 100; // 1%
+
+    mockPool.setReserves(stableReserveInPool, collateralReserveInPool);
+    mockPool.setPrices(oraclePrice, currentPoolPrice);
+    mockPool.setRebalanceThreshold(thresholdBps);
+
+    // --- Expected Calculations (Contraction) ---
+    // Y = (S - P * C) / (2 * P) -> collateralToSell (inputAmount)
+    // X = Y * P -> stablesToBuy (stableOut)
+
+    UD60x18 stableR_ud = ud(stableReserveInPool);
+    UD60x18 collateralR_ud = ud(collateralReserveInPool);
+    UD60x18 oracleP_ud = ud(oraclePrice);
+
+    UD60x18 numerator = stableR_ud.sub(oracleP_ud.mul(collateralR_ud)); // 50e18
+    UD60x18 collateralToSell_ud = numerator.div(oracleP_ud.mul(ud(2e18))); // 25e18
+
+    UD60x18 stablesToBuy_ud = collateralToSell_ud.mul(oracleP_ud); // 25e18
+    uint256 expectedStableOut = stablesToBuy_ud.unwrap(); // 25e18
+
+    uint256 expectedInputAmountCollateral = collateralToSell_ud.unwrap(); // 25e18
+    uint256 expectedCollateralOut = 0;
+    ILiquidityStrategy.PriceDirection expectedDirection = ILiquidityStrategy.PriceDirection.ABOVE_ORACLE;
+
+    // --- Expect RebalanceInitiated Event---
+    vm.expectEmit(true, true, true, true);
+    emit RebalanceInitiated(
+      address(mockPool),
+      expectedStableOut,
+      expectedCollateralOut,
+      expectedInputAmountCollateral,
+      expectedDirection
+    );
+
+    // --- Expect call to IFPMM.rebalance on mockPool ---
+    bytes memory expectedCallbackData = abi.encode(address(mockPool), expectedInputAmountCollateral, expectedDirection);
+    vm.expectCall(
+      address(mockPool),
+      abi.encodeWithSelector(
+        mockPool.rebalance.selector,
+        expectedStableOut,
+        expectedCollateralOut,
+        address(strat),
+        expectedCallbackData
+      ),
+      1
+    );
+
+    // --- Expect calls from strat.hook (Contraction) ---
+
+    // 1. Stable token burn
+    vm.expectCall(address(stableToken), abi.encodeWithSelector(stableToken.burn.selector, expectedStableOut), 1);
+
+    // 2. Reserve transfer collateral
+    vm.expectCall(
+      address(mockReserve),
+      abi.encodeWithSelector(
+        mockReserve.transferExchangeCollateralAsset.selector,
+        address(collateralToken),
+        payable(address(mockPool)),
+        expectedInputAmountCollateral
+      ),
+      1
+    );
+
+    // --- Expect RebalanceExecuted Event ---
+    uint256 poolPriceAfterRebalanceMock = (currentPoolPrice * 99) / 100;
+    vm.expectEmit(true, true, true, true);
+    emit RebalanceExecuted(address(mockPool), currentPoolPrice, poolPriceAfterRebalanceMock);
+
+    // --- Execute ---
+    (uint256 lastRebalanceBefore, ) = strat.fpmmPoolConfigs(address(mockPool));
+    strat.rebalance(address(mockPool));
+
+    // --- Assertions ---
+    (uint256 lastRebalanceAfter, ) = strat.fpmmPoolConfigs(address(mockPool));
+    assertTrue(lastRebalanceAfter > lastRebalanceBefore, "Last rebalance time not updated");
+    assertTrue(lastRebalanceAfter <= block.timestamp, "Last rebalance time in future");
   }
 }

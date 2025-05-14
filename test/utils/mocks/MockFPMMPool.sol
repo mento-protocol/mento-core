@@ -21,11 +21,6 @@ contract MockFPMMPool is IFPMM, Test {
   MockERC20 public token0_;
   MockERC20 public token1_;
 
-  uint256 public rebalance_amount0Out;
-  uint256 public rebalance_amount1Out;
-  address public rebalance_recipient;
-  bytes public rebalance_data;
-
   constructor(address _hookTarget, address _token0, address _token1) {
     hookTarget = _hookTarget;
     token0_ = MockERC20(_token0);
@@ -83,18 +78,9 @@ contract MockFPMMPool is IFPMM, Test {
     rebalanceThreshold = _threshold;
   }
 
-  function setPoolPriceAfterRebalance(uint256 _newPoolPrice) external {
-    poolPrice = _newPoolPrice;
-  }
-
   function rebalance(uint256 amount0Out, uint256 amount1Out, address recipient, bytes calldata data) external override {
     require(msg.sender == hookTarget, "MockFPMMPool: Caller not strategy");
     require(recipient == hookTarget, "MockFPMMPool: Recipient not strategy");
-
-    rebalance_amount0Out = amount0Out;
-    rebalance_amount1Out = amount1Out;
-    rebalance_recipient = recipient;
-    rebalance_data = data;
 
     if (amount0Out > 0) {
       token0_.transfer(recipient, amount0Out);
@@ -105,5 +91,7 @@ contract MockFPMMPool is IFPMM, Test {
     }
 
     IFPMMCallee(recipient).hook(address(this), amount0Out, amount1Out, data);
+
+    poolPrice = (poolPrice * 99) / 100;
   }
 }
