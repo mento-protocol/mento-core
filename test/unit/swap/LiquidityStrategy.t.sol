@@ -6,7 +6,6 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
-import { LiquidityStrategy } from "contracts/swap/LiquidityStrategy.sol";
 
 import { MockLiquidityStrategy } from "test/utils/mocks/MockLiquidityStrategy.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
@@ -29,7 +28,6 @@ contract LiquidityStrategyTest is Test {
     vm.startPrank(deployer);
     mockConcreteLiquidityStrat = new MockLiquidityStrategy();
     mockConcreteLiquidityStrat.initialize();
-
     createMockPool();
   }
 
@@ -124,8 +122,7 @@ contract LiquidityStrategyTest is Test {
 
   function test_rebalance_shouldRevert_whenThresholdIsInvalid() public {
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
-    vm.warp(1 days + 1); 
-
+    vm.warp(1 days + 1);
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThreshold.selector), abi.encode(0));
     vm.expectRevert("Invalid pool threshold");
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
