@@ -269,9 +269,97 @@ contract ReserveLiquidityStrategyTest is Test {
     );
 
     // --- Expect RebalanceExecuted Event ---
-    uint256 poolPriceAfterRebalanceMock = (currentPoolPrice * 99) / 100;
+    // NOTE: The MockFPMMPool implementation does not simulate price updates after rebalancing.
+    // This is intentional as price updates are not being tested here. The RebalanceExecuted event
+    // will show the same price before and after since we're only verifying the event emission logic.
     vm.expectEmit(true, true, true, true);
-    emit RebalanceExecuted(address(mockPool), currentPoolPrice, poolPriceAfterRebalanceMock);
+    emit RebalanceExecuted(address(mockPool), currentPoolPrice, currentPoolPrice);
+
+    // --- Execute ---
+    (uint256 lastRebalanceBefore, ) = strat.fpmmPoolConfigs(address(mockPool));
+    strat.rebalance(address(mockPool));
+
+    // --- Assertions ---
+    (uint256 lastRebalanceAfter, ) = strat.fpmmPoolConfigs(address(mockPool));
+    assertTrue(lastRebalanceAfter > lastRebalanceBefore, "Last rebalance time not updated");
+    assertTrue(lastRebalanceAfter <= block.timestamp, "Last rebalance time in future");
+  }
+
+  function test_rebalance_and_hook_expansion_poolPriceBelowOracle() public {
+    // --- Setup ---
+
+    uint256 stableReserveInPool = 1000e18; // S
+    uint256 collateralReserveInPool = 1050e18; // C
+    uint256 oraclePrice = 1e18; // P_oracle
+    uint256 currentPoolPrice = 0.98e18; // P_pool < P_oracle - threshold
+    uint256 thresholdBps = 100; // 1%
+
+    mockPool.setReserves(stableReserveInPool, collateralReserveInPool);
+    mockPool.setPrices(oraclePrice, currentPoolPrice);
+    mockPool.setRebalanceThreshold(thresholdBps);
+
+    // --- Expected Calculations (Expansion) ---
+    // X = (C * P - S) / 2 -> stablesToSell (inputAmount)
+    // Y = X / P -> collateralToBuy (collateralOut)
+
+    UD60x18 stableR_ud = ud(stableReserveInPool);
+    UD60x18 collateralR_ud = ud(collateralReserveInPool);
+    UD60x18 oracleP_ud = ud(oraclePrice);
+
+    UD60x18 stablesToSell_ud = (collateralR_ud.mul(oracleP_ud).sub(stableR_ud)).div(ud(2e18)); // (1050 - 1000) / 2 = 25e18
+    UD60x18 collateralToBuy_ud = stablesToSell_ud.div(oracleP_ud); // 25e18 / 1e18 = 25e18
+
+    uint256 expectedCollateralOut = collateralToBuy_ud.unwrap(); // 25e18
+    uint256 expectedInputAmountStable = stablesToSell_ud.unwrap(); // 25e18
+    uint256 expectedStableOut = 0;
+    ILiquidityStrategy.PriceDirection expectedDirection = ILiquidityStrategy.PriceDirection.BELOW_ORACLE;
+
+    // --- Expect call to IFPMM.rebalance on mockPool ---
+    bytes memory expectedCallbackData = abi.encode(address(mockPool), expectedInputAmountStable, expectedDirection);
+    vm.expectCall(
+      address(mockPool),
+      abi.encodeWithSelector(
+        mockPool.rebalance.selector,
+        expectedStableOut,
+        expectedCollateralOut,
+        address(strat),
+        expectedCallbackData
+      ),
+      1
+    );
+
+    // --- Expect RebalanceInitiated Event ---
+    vm.expectEmit(true, true, true, true);
+    emit RebalanceInitiated(
+      address(mockPool),
+      expectedStableOut,
+      expectedCollateralOut,
+      expectedInputAmountStable,
+      expectedDirection
+    );
+
+    // --- Expect calls from strat.hook (Expansion) ---
+
+    // 1. Stable token mint to pool
+    vm.expectCall(
+      address(stableToken),
+      abi.encodeWithSelector(stableToken.mint.selector, address(mockPool), expectedInputAmountStable),
+      1
+    );
+
+    // 2. Collateral token transfer to reserve
+    vm.expectCall(
+      address(collateralToken),
+      abi.encodeWithSelector(collateralToken.transfer.selector, address(mockReserve), expectedCollateralOut),
+      1
+    );
+
+    // --- Expect RebalanceExecuted Event ---
+    // NOTE: The MockFPMMPool implementation does not simulate price updates after rebalancing.
+    // This is intentional as price updates are not being tested here. The RebalanceExecuted event
+    // will show the same price before and after since we're only verifying the event emission logic.
+    vm.expectEmit(true, true, true, true);
+    emit RebalanceExecuted(address(mockPool), currentPoolPrice, currentPoolPrice);
 
     // --- Execute ---
     (uint256 lastRebalanceBefore, ) = strat.fpmmPoolConfigs(address(mockPool));

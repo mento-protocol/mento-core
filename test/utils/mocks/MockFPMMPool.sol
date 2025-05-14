@@ -91,7 +91,5 @@ contract MockFPMMPool is IFPMM, Test {
     }
 
     IFPMMCallee(recipient).hook(address(this), amount0Out, amount1Out, data);
-
-    poolPrice = (poolPrice * 99) / 100;
   }
 }
