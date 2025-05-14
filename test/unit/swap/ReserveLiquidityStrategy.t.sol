@@ -5,17 +5,12 @@
 pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 
-import { UD60x18, ud } from "prb-math/UD60x18.sol";
-
-import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
-import { LiquidityStrategy } from "contracts/swap/LiquidityStrategy.sol";
 import { ReserveLiquidityStrategy } from "contracts/swap/ReserveLiquidityStrategy.sol";
 
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { MockReserve } from "test/utils/mocks/MockReserve.sol";
 import { MockFPMMPool } from "test/utils/mocks/MockFPMMPool.sol";
-import { console } from "forge-std/console.sol";
 
 contract ReserveLiquidityStrategyTest is Test {
   address public deployer = makeAddr("Deployer");
@@ -197,5 +192,4 @@ contract ReserveLiquidityStrategyTest is Test {
     emit RebalanceSkippedPriceInRange(address(mockPool));
     strat.rebalance(address(mockPool));
   }
- 
 }

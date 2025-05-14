@@ -56,10 +56,10 @@ contract MockReserve {
     address payable to,
     uint256 amount
   ) external returns (bool) {
-    require(IERC20(tokenAddress).transfer(to, amount), "asset transfer failed");
     lastTokenSent = tokenAddress;
     lastRecipient = to;
     lastAmountSent = amount;
+    require(IERC20(tokenAddress).transfer(to, amount), "asset transfer failed");
     emit ReserveCollateralAssetsTransferred(msg.sender, to, amount, tokenAddress);
     return true;
   }
