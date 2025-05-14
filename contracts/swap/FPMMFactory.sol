@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.24;
+pragma solidity 0.8.18;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
@@ -24,6 +24,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   // Address of the proxy admin contract.
   address public proxyAdmin;
+
+  // Address of the breaker box contract.
+  address public breakerBox;
 
   // Address of the governance contract.
   address public governance;
@@ -56,10 +59,16 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMMFactory
-  function initialize(address _sortedOracles, address _proxyAdmin, address _governance) external initializer {
+  function initialize(
+    address _sortedOracles,
+    address _proxyAdmin,
+    address _breakerBox,
+    address _governance
+  ) external initializer {
     __Ownable_init();
     setProxyAdmin(_proxyAdmin);
     setSortedOracles(_sortedOracles);
+    setBreakerBox(_breakerBox);
     setGovernance(_governance);
   }
 
@@ -109,6 +118,13 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
     proxyAdmin = _proxyAdmin;
     emit ProxyAdminSet(_proxyAdmin);
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function setBreakerBox(address _breakerBox) public onlyOwner {
+    require(_breakerBox != address(0), "FPMMFactory: ZERO_ADDRESS");
+    breakerBox = _breakerBox;
+    emit BreakerBoxSet(_breakerBox);
   }
 
   /// @inheritdoc IFPMMFactory
@@ -171,7 +187,14 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", customSalt));
     bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
 
-    bytes memory initData = abi.encodeWithSelector(FPMM.initialize.selector, token0, token1, sortedOracles, governance);
+    bytes memory initData = abi.encodeWithSelector(
+      FPMM.initialize.selector,
+      token0,
+      token1,
+      sortedOracles,
+      breakerBox,
+      governance
+    );
     bytes memory proxyBytecode = abi.encodePacked(
       type(FPMMProxy).creationCode,
       abi.encode(fpmmImplementation, proxyAdmin, initData)

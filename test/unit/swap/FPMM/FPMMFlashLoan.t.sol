@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable func-name-mixedcase
 pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
@@ -42,7 +42,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     _;
   }
 
-  function test_flashLoan_token0_success()
+  function test_swap_whenBorrowingToken0_shouldTransferAndRepayWithFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -69,7 +69,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e18); // Unchanged
   }
 
-  function test_flashLoan_token1_success()
+  function test_swap_whenBorrowingToken1_shouldTransferAndRepayWithFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -96,7 +96,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e18 + swapFee); // Initial 200e18 + fee
   }
 
-  function test_flashLoan_bothTokens_success()
+  function test_swap_whenBorrowingBothTokens_shouldTransferAndRepayWithFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -124,7 +124,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e18 + swapFee); // Initial 200e18 + fee
   }
 
-  function test_flashLoan_failsWhenNotRepaid()
+  function test_swap_whenLoanNotRepaid_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -141,7 +141,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), "data");
   }
 
-  function test_flashLoan_failsWhenPaidLessThanRequired()
+  function test_swap_whenPaidLessThanRequired_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -159,7 +159,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), "data");
   }
 
-  function test_flashLoan_failsWhenReceiverReverts()
+  function test_swap_whenReceiverReverts_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -176,14 +176,13 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     fpmm.swap(flashLoanAmount, 0, flashLoanReceiver, "data");
   }
 
-  function test_flashLoan_maxAmounts()
+  function test_swap_whenUsingMaxAmounts_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
     setupMockOracleRate(1e18, 1e18)
   {
-    // Try to flash loan the maximum amount
     // Try to flash loan the maximum amount
     uint256 maxToken0Amount = fpmm.reserve0() - 1;
     uint256 maxToken1Amount = fpmm.reserve1() - 1;
@@ -205,7 +204,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e18 + 1e18); // Initial + fee
   }
 
-  function test_flashLoan_withDifferentDecimals()
+  function test_swap_whenTokensHaveDifferentDecimals_shouldHandleCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
@@ -227,7 +226,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(FlashLoanReceiver(flashLoanReceiver).amount1Received(), flashLoanAmount1);
   }
 
-  function test_flashLoan_reentrancy()
+  function test_swap_whenExploitingReentrancy_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -242,7 +241,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     ReentrancyExploiter(flashLoanReceiver).executeFlashLoanAttack(50e18, 0);
   }
 
-  function test_flashLoan_realArbitrageScenario()
+  function test_swap_whenPerformingArbitrageToken0ToToken1_shouldGenerateProfit()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -268,7 +267,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e18 + 50e18, "Reserve1 should increase by loan amount");
   }
 
-  function test_flashLoan_arbitrageWithReverseRates()
+  function test_swap_whenPerformingArbitrageToken1ToToken0_shouldGenerateProfit()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -294,7 +293,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e18 - flashLoanAmount, "Reserve1 should decrease by loan amount");
   }
 
-  function test_flashLoan_arbitrageWithChangingMarketConditions()
+  function test_swap_whenMarketConditionsChange_shouldHandleCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)

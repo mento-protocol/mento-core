@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable func-name-mixedcase
 pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
@@ -10,12 +10,12 @@ contract FPMMSwapTest is FPMMBaseTest {
     super.setUp();
   }
 
-  function test_swap_shouldRevert_whenCalledWith0AmountOut() public initializeFPMM_withDecimalTokens(18, 18) {
+  function test_swap_whenCalledWith0AmountOut_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     vm.expectRevert("FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
     fpmm.swap(0, 0, address(this), "");
   }
 
-  function test_swap_shouldRevert_whenCalledWithInsufficientLiquidity()
+  function test_swap_whenCalledWithInsufficientLiquidity_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
   {
@@ -23,7 +23,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     fpmm.swap(100e18, 0, address(this), "");
   }
 
-  function test_swap_shouldRevert_whenCalledWithInvalidToAddress()
+  function test_swap_whenCalledWithInvalidToAddress_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -34,13 +34,12 @@ contract FPMMSwapTest is FPMMBaseTest {
     fpmm.swap(50e18, 0, token0, "");
   }
 
-  function test_swap_shouldRevert_whenInsufficientOutputBasedOnOracle()
+  function test_swap_whenReserveValueDecreased_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupMockOracleRate(1e18, 1e18)
   {
-    deal(token0, address(this), 100e18);
     deal(token0, address(this), 100e18);
     IERC20(token0).transfer(address(fpmm), 100e18);
 
@@ -48,7 +47,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     fpmm.swap(0, 100e18, address(this), "");
   }
 
-  function test_swap_token0ForToken1()
+  function test_swap_whenSwappingToken0ForToken1_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -71,7 +70,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), initialReserve1 - amount1Out);
   }
 
-  function test_swap_token1ForToken0()
+  function test_swap_whenSwappingToken1ForToken0_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -94,13 +93,12 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), initialReserve1 + amount1In);
   }
 
-  function test_swap_withDifferentExchangeRate()
+  function test_swap_whenUsingDifferentExchangeRate_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupMockOracleRate(2e18, 1e18)
   {
-    // Swap 100 token0 for 199.4 token1 (after 0.3% fee)
     // Swap 100 token0 for 199.4 token1 (after 0.3% fee)
     uint256 amount0In = 100e18;
     uint256 amount1Out = 199.4e18;
@@ -112,13 +110,12 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(IERC20(token1).balanceOf(CHARLIE), amount1Out);
   }
 
-  function test_swap_withDifferentDecimals()
+  function test_swap_whenUsingDifferentDecimals_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
     setupMockOracleRate(1e18, 1e18)
   {
-    // Swap 100 token0 (18 decimals) for 99.7 token1 (6 decimals)
     // Swap 100 token0 (18 decimals) for 99.7 token1 (6 decimals)
     uint256 amount0In = 100e18;
     uint256 amount1Out = 99.7e6;
@@ -141,7 +138,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(IERC20(token0).balanceOf(CHARLIE), amount0Out);
   }
 
-  function test_swap_withDifferentFees()
+  function test_swap_whenUsingDifferentFees_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -176,7 +173,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(IERC20(token0).balanceOf(CHARLIE), amount0Out);
   }
 
-  function test_swap_withComplexExchangeRate()
+  function test_swap_whenUsingComplexExchangeRate_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -194,7 +191,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(IERC20(token1).balanceOf(CHARLIE), expectedAmountOut);
   }
 
-  function test_swap_updatesTimestamp()
+  function test_swap_whenExecuting_shouldUpdateTimestamp()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -218,5 +215,15 @@ contract FPMMSwapTest is FPMMBaseTest {
 
     assertEq(newTimestamp, block.timestamp);
     assertGt(newTimestamp, initialTimestamp);
+  }
+
+  function test_swap_whenTradingIsSuspended_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupMockBreakerBox(3)
+  {
+    vm.expectRevert("FPMM: TRADING_SUSPENDED");
+    fpmm.swap(0, 10e18, BOB, "");
   }
 }

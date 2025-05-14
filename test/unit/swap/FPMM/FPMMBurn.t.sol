@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable var-name-mixedcase
 pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
 contract FPMMBurnTest is FPMMBaseTest {
-  function test_burn_shouldRevert_whenNoLiquidityInPool()
+  function test_burn_whenNoLiquidityInPool_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -16,7 +16,7 @@ contract FPMMBurnTest is FPMMBaseTest {
     fpmm.burn(BOB);
   }
 
-  function test_burn_shouldTransferTokens_withCorrectProportions()
+  function test_burn_whenTokensProvided_shouldTransferWithCorrectProportions()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -51,7 +51,7 @@ contract FPMMBurnTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), reserve1 - expectedAmount1);
   }
 
-  function test_burn_shouldUpdateTimestamp()
+  function test_burn_whenExecuted_shouldUpdateTimestamp()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -74,7 +74,7 @@ contract FPMMBurnTest is FPMMBaseTest {
     assertGt(newTimestamp, initialTimestamp);
   }
 
-  function test_burn_shouldWork_withDifferentDecimals()
+  function test_burn_whenDifferentDecimals_shouldWorkCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
@@ -100,7 +100,7 @@ contract FPMMBurnTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), reserve1 - expectedAmount1);
   }
 
-  function test_burn_shouldTransferTokens_toSpecifiedRecipient()
+  function test_burn_whenSpecifiedRecipient_shouldTransferTokens()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -128,7 +128,7 @@ contract FPMMBurnTest is FPMMBaseTest {
     assertEq(amount1, expectedAmount1);
   }
 
-  function test_burn_shouldRevert_withZeroTokens()
+  function test_burn_whenZeroTokens_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -144,7 +144,7 @@ contract FPMMBurnTest is FPMMBaseTest {
     vm.stopPrank();
   }
 
-  function test_burn_shouldBurnCorrectAmount_forMultipleLPHolders()
+  function test_burn_whenMultipleLPHolders_shouldBurnCorrectAmount()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)

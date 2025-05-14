@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.24;
+pragma solidity 0.8.18;
 
 interface IFPMMFactory {
   /* ========================================== */
@@ -33,6 +33,12 @@ interface IFPMMFactory {
   event SortedOraclesSet(address indexed sortedOracles);
 
   /**
+   * @notice Emitted when the breaker box address is set.
+   * @param breakerBox The address of the new breaker box contract
+   */
+  event BreakerBoxSet(address indexed breakerBox);
+
+  /**
    * @notice Emitted when the governance address is set.
    * @param governance The address of the new governance contract
    */
@@ -64,9 +70,10 @@ interface IFPMMFactory {
    * @notice Initializes the factory with required addresses.
    * @param _sortedOracles The address of the sorted oracles contract
    * @param _proxyAdmin The address of the proxy admin contract
+   * @param _breakerBox The address of the breaker box contract
    * @param _governance The address of the governance contract
    */
-  function initialize(address _sortedOracles, address _proxyAdmin, address _governance) external;
+  function initialize(address _sortedOracles, address _proxyAdmin, address _breakerBox, address _governance) external;
 
   /**
    * @notice Sets the address of the sorted oracles contract.
@@ -79,6 +86,12 @@ interface IFPMMFactory {
    * @param _proxyAdmin The new address of the proxy admin contract
    */
   function setProxyAdmin(address _proxyAdmin) external;
+
+  /**
+   * @notice Sets the address of the breaker box contract.
+   * @param _breakerBox The new address of the breaker box contract
+   */
+  function setBreakerBox(address _breakerBox) external;
 
   /**
    * @notice Sets the address of the governance contract.

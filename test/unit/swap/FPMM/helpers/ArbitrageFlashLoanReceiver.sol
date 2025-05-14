@@ -43,14 +43,10 @@ contract ArbitrageFlashLoanReceiver is IFPMMCallee {
     require(msg.sender == address(fpmm), "Not called by FPMM");
 
     if (amount0 > 0) {
-      // Got token0, arbitrage by swapping on external exchange for token1
-      // First approve the exchange
       IERC20(token0).approve(address(exchange), amount0);
 
-      // Swap on external exchange
       uint256 token1Received = exchange.swapToken0ForToken1(amount0);
 
-      // Calculate required repayment amount
       uint256 token1ToRepay = amount0; // Simplified, in real world would use getAmountOut
 
       // If our arbitrage was successful, we should have more token1 than needed for repayment
@@ -62,14 +58,10 @@ contract ArbitrageFlashLoanReceiver is IFPMMCallee {
       // Record profit
       profit1 = token1Received - token1ToRepay;
     } else if (amount1 > 0) {
-      // Got token1, arbitrage by swapping on external exchange for token0
-      // First approve the exchange
       IERC20(token1).approve(address(exchange), amount1);
 
-      // Swap on external exchange
       uint256 token0Received = exchange.swapToken1ForToken0(amount1);
 
-      // Calculate required repayment amount
       uint256 token0ToRepay = amount1; // Simplified, in real world would use getAmountOut
 
       // If our arbitrage was successful, we should have more token0 than needed for repayment

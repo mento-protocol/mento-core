@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable var-name-mixedcase
 pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
@@ -9,18 +9,18 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     super.setUp();
   }
 
-  function test_getAmountOut_shouldReturnZero_whenAmountIsZero() public initializeFPMM_withDecimalTokens(18, 18) {
+  function test_getAmountOut_whenAmountIsZero_shouldReturnZero() public initializeFPMM_withDecimalTokens(18, 18) {
     assertEq(fpmm.getAmountOut(0, token0), 0);
   }
 
-  function test_getAmountOut_shouldRevert_whenTokenIsInvalid() public initializeFPMM_withDecimalTokens(18, 18) {
+  function test_getAmountOut_whenTokenIsInvalid_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     address invalidToken = makeAddr("INVALID_TOKEN");
 
     vm.expectRevert("FPMM: INVALID_TOKEN");
     fpmm.getAmountOut(100, invalidToken);
   }
 
-  function test_getAmountOut_shouldReturnCorrectAmount_whenRateIsOneToOne()
+  function test_getAmountOut_whenRateIsOneToOne_shouldReturnCorrectAmount()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     setupMockOracleRate(10e18, 100e18)
@@ -36,7 +36,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_shouldRespectProtocolFee()
+  function test_getAmountOut_whenProtocolFeeChanges_shouldRespectProtocolFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     setupMockOracleRate(10e18, 100e18)
@@ -56,7 +56,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(fpmm.getAmountOut(amountIn, token0), expectedAmountOut);
   }
 
-  function test_getAmountOut_shouldConvertCorrectly_withExchangeRate()
+  function test_getAmountOut_whenUsingExchangeRate_shouldConvertCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     setupMockOracleRate(2e18, 1e18)
@@ -74,7 +74,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_shouldHandleDifferentDecimals()
+  function test_getAmountOut_whenTokensHaveDifferentDecimals_shouldHandleConversion()
     public
     initializeFPMM_withDecimalTokens(18, 6)
     setupMockOracleRate(1e18, 1e18)
@@ -92,7 +92,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_shouldHandleDifferentDecimals_withExchangeRate()
+  function test_getAmountOut_whenTokensHaveDifferentDecimalsAndExchangeRate_shouldConvertCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 6)
     setupMockOracleRate(10e18, 100e18)
@@ -110,7 +110,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_shouldHandleComplexRates()
+  function test_getAmountOut_whenUsingComplexRates_shouldCalculateCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     setupMockOracleRate(1234e18, 5678e18)
