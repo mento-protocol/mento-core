@@ -87,6 +87,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     return ICreateX(CREATEX).computeCreate3Address(guardedSalt);
   }
 
+  // slither-disable-start encode-packed-collision
   /// @inheritdoc IFPMMFactory
   function getOrPrecomputeProxyAddress(address token0, address token1) public view returns (address) {
     if (address(deployedFPMMs[token0][token1]) != address(0)) {
@@ -100,6 +101,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
     return ICreateX(CREATEX).computeCreate3Address(guardedSalt);
   }
+  // slither-disable-end encode-packed-collision
 
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
@@ -157,6 +159,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @dev apply permissioned deploy protection with factory address and 0x00 flag
    *      see https://github.com/pcaversaccio/createx?tab=readme-ov-file for more details
    */
+  // slither-disable-start reentrancy-events
   function _deployFPMMImplementation() internal {
     bytes memory implementationBytecode = abi.encodePacked(type(FPMM).creationCode, abi.encode(true));
 
@@ -169,6 +172,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     assert(fpmmImplementation == expectedFPMMImplementation);
     emit FPMMImplementationDeployed(fpmmImplementation);
   }
+  // slither-disable-end reentrancy-events
 
   /**
    * @notice Deploys the FPMM proxy contract.
@@ -179,6 +183,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @param token1 The address of the second token
    * @return The address of the deployed FPMM proxy
    */
+  // slither-disable-start reentrancy-benign
+  // slither-disable-start reentrancy-events
+  // slither-disable-start encode-packed-collision
   function _deployFPMMProxy(address token0, address token1) internal returns (address) {
     bytes11 customSalt = bytes11(
       uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), IERC20(token1).symbol()))))
@@ -208,6 +215,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     assert(newProxyAddress == expectedProxyAddress);
     return newProxyAddress;
   }
+  // slither-disable-end reentrancy-benign
+  // slither-disable-end reentrancy-events
+  // slither-disable-end encode-packed-collision
 
   /**
    * @notice Hashes two bytes32 values efficiently.
