@@ -186,6 +186,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     }
   }
 
+  // slither-disable-start divide-before-multiply
   /// @inheritdoc IFPMM
   function convertWithRate(
     uint256 amount,
@@ -195,13 +196,16 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     uint256 denominator
   ) public pure returns (uint256) {
     if (fromDecimals > toDecimals) {
-      return (amount * numerator) / ((denominator * fromDecimals) / toDecimals);
+      uint256 decimalAdjustment = fromDecimals / toDecimals;
+      return (amount * numerator) / (denominator * decimalAdjustment);
     } else if (fromDecimals < toDecimals) {
-      return ((amount * numerator * toDecimals) / fromDecimals) / denominator;
+      uint256 decimalAdjustment = toDecimals / fromDecimals;
+      return (amount * numerator * decimalAdjustment) / denominator;
     } else {
       return (amount * numerator) / denominator;
     }
   }
+  // slither-disable-end divide-before-multiply
 
   /* ========== EXTERNAL FUNCTIONS ========== */
 
@@ -268,6 +272,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   /// @inheritdoc IFPMM
   function rebalance(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     require(liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
+    require(msg.sender == to, "FPMM: INVALID_TO_ADDRESS");
     _swap(amount0Out, amount1Out, to, data, true);
   }
 
