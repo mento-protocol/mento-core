@@ -306,7 +306,8 @@ contract ReserveLiquidityStrategyTest is Test {
     UD60x18 collateralR_ud = ud(collateralReserveInPool);
     UD60x18 oracleP_ud = ud(oraclePrice);
 
-    UD60x18 stablesToSell_ud = (collateralR_ud.mul(oracleP_ud).sub(stableR_ud)).div(ud(2e18)); // (1050 - 1000) / 2 = 25e18
+    // (1050 - 1000) / 2 = 25e18
+    UD60x18 stablesToSell_ud = (collateralR_ud.mul(oracleP_ud).sub(stableR_ud)).div(ud(2e18));
     UD60x18 collateralToBuy_ud = stablesToSell_ud.div(oracleP_ud); // 25e18 / 1e18 = 25e18
 
     uint256 expectedCollateralOut = collateralToBuy_ud.unwrap(); // 25e18
