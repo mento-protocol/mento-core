@@ -20,6 +20,7 @@ contract MockLiquidityStrategy is IFPMMCallee {
   bool public shouldUseExactRequiredAmounts;
   bool public shouldImprovePrice;
   uint256 public profitPercentage;
+  address public rebalanceRecipient;
 
   constructor(address _fpmm, address _token0, address _token1) {
     fpmm = FPMM(_fpmm);
@@ -32,6 +33,7 @@ contract MockLiquidityStrategy is IFPMMCallee {
     shouldUseExactRequiredAmounts = true;
     shouldImprovePrice = true;
     profitPercentage = 0;
+    rebalanceRecipient = address(this);
   }
 
   function setShouldFail(bool _shouldFail) external {
@@ -46,9 +48,13 @@ contract MockLiquidityStrategy is IFPMMCallee {
     shouldImprovePrice = _shouldImprovePrice;
   }
 
+  function setRebalanceRecipient(address _rebalanceRecipient) external {
+    rebalanceRecipient = _rebalanceRecipient;
+  }
+
   // Execute a flash loan to rebalance the pool
   function executeRebalance(uint256 amount0Out, uint256 amount1Out) external {
-    fpmm.rebalance(amount0Out, amount1Out, address(this), "Rebalance operation");
+    fpmm.rebalance(amount0Out, amount1Out, rebalanceRecipient, "Rebalance operation");
   }
 
   // The hook function that gets called during the flash loan
