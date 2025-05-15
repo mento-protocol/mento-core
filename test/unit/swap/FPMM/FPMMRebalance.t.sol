@@ -5,6 +5,8 @@ pragma solidity ^0.8;
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { MockLiquidityStrategy } from "./helpers/MockLiquidityStrategy.sol";
 
+import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+
 contract FPMMRebalanceTest is FPMMBaseTest {
   MockLiquidityStrategy public liquidityStrategy;
 
@@ -254,5 +256,52 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     (uint256 finalReserve0, uint256 finalReserve1, ) = fpmm.getReserves();
     assertEq(finalReserve0, initialReserve0 + ((rebalanceAmount * 10 ** 13) / 12));
     assertEq(finalReserve1, initialReserve1 - rebalanceAmount);
+  }
+
+  function test_rebalance_whenInitialMintIsUnbalanced_shouldNotFavorInitialMinter()
+    public
+    initializeFPMM_withDecimalTokens(18, 6)
+    setupRebalancer(18, 6)
+    setupMockOracleRate(1e18, 1e18)
+  {
+    // Alice mints 1000e18 token0 and 20 token1 to a Pool that is 1:1
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), 1000 * 10 ** 18);
+    IERC20(token1).transfer(address(fpmm), 20);
+    fpmm.mint(ALICE);
+    vm.stopPrank();
+
+    // Pool is rebalanced to ~500e18, ~500e6 => 1:1
+    liquidityStrategy.executeRebalance(500e18, 0);
+
+    assertApproxEqRel(fpmm.reserve0(), 500e18, 0.0001e18);
+    assertApproxEqRel(fpmm.reserve1(), 500e6, 0.0001e18);
+
+    // Bob mints 500e18 token0 and 500e6 token1 to the same Pool
+    vm.startPrank(BOB);
+    IERC20(token0).transfer(address(fpmm), 500e18);
+    IERC20(token1).transfer(address(fpmm), 500e6);
+    fpmm.mint(BOB);
+    vm.stopPrank();
+
+    // Alice and Bob should have roughly the same amount of liquidity tokens
+    // since both put in roughly the same amount of liquidity
+    assertApproxEqRel(fpmm.balanceOf(ALICE), fpmm.balanceOf(BOB), 0.0001e18);
+
+    uint256 aliceToken0BalanceBefore = IERC20(token0).balanceOf(ALICE);
+    uint256 aliceToken1BalanceBefore = IERC20(token1).balanceOf(ALICE);
+
+    // Alice burns her liquidity
+    vm.startPrank(ALICE);
+    IERC20(address(fpmm)).transfer(address(fpmm), fpmm.balanceOf(ALICE));
+    fpmm.burn(ALICE);
+    vm.stopPrank();
+
+    uint256 aliceToken0Received = IERC20(token0).balanceOf(ALICE) - aliceToken0BalanceBefore;
+    uint256 aliceToken1Received = IERC20(token1).balanceOf(ALICE) - aliceToken1BalanceBefore;
+
+    // Alice should have received ~500e18 token0 and ~500e6 token1
+    assertApproxEqRel(aliceToken0Received, 500e18, 0.0001e18);
+    assertApproxEqRel(aliceToken1Received, 500e6, 0.0001e18);
   }
 }
