@@ -75,7 +75,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       // Y = (S - P * C) / (2 * P)
       // X = Y * P
       UD60x18 numerator = stableReserve.sub(oraclePriceUD.mul(collateralReserve));
-      UD60x18 collateralToSell = numerator.div(oraclePriceUD.mul(ud(2e18)));
+      UD60x18 denominator = oraclePriceUD.mul(ud(2e18));
+      UD60x18 collateralToSell = numerator.div(denominator);
       UD60x18 stablesToBuy = collateralToSell.mul(oraclePriceUD);
 
       stableOut = stablesToBuy.unwrap() / tokenPrecisionMultipliers[stableToken];
@@ -84,7 +85,9 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       // Expansion: Buy collateral from the pool using newly minted stables
       // X = (C * P - S) / 2
       // Y = X / P
-      UD60x18 stablesToSell = (collateralReserve.mul(oraclePriceUD).sub(stableReserve)).div(ud(2e18));
+      UD60x18 numerator = (collateralReserve.mul(oraclePriceUD)).sub(stableReserve);
+      UD60x18 denominator = ud(2e18);
+      UD60x18 stablesToSell = numerator.div(denominator);
       UD60x18 collateralToBuy = stablesToSell.div(oraclePriceUD);
 
       collateralOut = collateralToBuy.unwrap() / tokenPrecisionMultipliers[collateralToken];

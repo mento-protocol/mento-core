@@ -22,8 +22,10 @@ contract ReserveLiquidityStrategyTest is Test {
   ReserveLiquidityStrategy public strat;
   MockReserve public mockReserve;
   MockFPMMPool public mockPool;
+  MockFPMMPool public mockPool6Dec;
   MockERC20 public stableToken;
   MockERC20 public collateralToken;
+  MockERC20 public collateralToken6Dec;
 
   uint256 constant ONE_DAY = 1 days;
   uint256 constant DEFAULT_COOLDOWN = ONE_DAY;
@@ -59,12 +61,15 @@ contract ReserveLiquidityStrategyTest is Test {
     // Deploy mock tokens (token0 = stable, token1 = collateral)
     stableToken = new MockERC20("Mock Stable", "mSTB", 18);
     collateralToken = new MockERC20("Mock Collateral", "mCOL", 18);
+    collateralToken6Dec = new MockERC20("Mock Collateral6", "mCOL6", 6);
     vm.label(address(stableToken), "StableToken (mSTB)");
     vm.label(address(collateralToken), "CollateralToken (mCOL)");
+    vm.label(address(collateralToken6Dec), "CollateralToken6Dec (mCOL6)");
 
     mockReserve = new MockReserve();
     vm.label(address(mockReserve), "MockReserve");
     collateralToken.mint(address(mockReserve), RESERVE_INITIAL_COLLATERAL_BALANCE);
+    collateralToken6Dec.mint(address(mockReserve), RESERVE_INITIAL_COLLATERAL_BALANCE);
 
     strat = new ReserveLiquidityStrategy(false);
     strat.initialize(address(mockReserve));
@@ -74,12 +79,18 @@ contract ReserveLiquidityStrategyTest is Test {
     mockPool = new MockFPMMPool(address(strat), address(stableToken), address(collateralToken));
     vm.label(address(mockPool), "MockFPMMPool");
 
+    mockPool6Dec = new MockFPMMPool(address(strat), address(stableToken), address(collateralToken6Dec));
+    vm.label(address(mockPool6Dec), "MockFPMMPool6Dec");
+
     // Fund MockFPMMPool with initial token balances
     stableToken.mint(address(mockPool), POOL_INITIAL_STABLE_BALANCE);
+    stableToken.mint(address(mockPool6Dec), POOL_INITIAL_STABLE_BALANCE);
     collateralToken.mint(address(mockPool), POOL_INITIAL_COLLATERAL_BALANCE);
+    collateralToken6Dec.mint(address(mockPool6Dec), POOL_INITIAL_COLLATERAL_BALANCE);
 
-    // Add pool to strategy
+    // Add pools to strategy
     strat.addPool(address(mockPool), DEFAULT_COOLDOWN);
+    strat.addPool(address(mockPool6Dec), DEFAULT_COOLDOWN);
     vm.stopPrank();
   }
 
@@ -195,7 +206,7 @@ contract ReserveLiquidityStrategyTest is Test {
     strat.rebalance(address(mockPool));
   }
 
-  /* ==================== Rebalance Core Logic Tests ==================== */
+  /* ---------- Rebalance Core Logic Tests ---------- */
 
   function test_rebalance_whenPoolPriceAboveOracle_shouldTriggerContraction() public {
     // --- Setup ---
@@ -285,7 +296,7 @@ contract ReserveLiquidityStrategyTest is Test {
     assertTrue(lastRebalanceAfter <= block.timestamp, "Last rebalance time in future");
   }
 
-  function test_rebalance_and_hook_expansion_poolPriceBelowOracle() public {
+  function test_rebalance_whenPoolPriceBelowOracle_shouldTriggerExpansion() public {
     // --- Setup ---
 
     uint256 stableReserveInPool = 1000e18; // S
@@ -370,5 +381,113 @@ contract ReserveLiquidityStrategyTest is Test {
     (uint256 lastRebalanceAfter, ) = strat.fpmmPoolConfigs(address(mockPool));
     assertTrue(lastRebalanceAfter > lastRebalanceBefore, "Last rebalance time not updated");
     assertTrue(lastRebalanceAfter <= block.timestamp, "Last rebalance time in future");
+  }
+
+  function test_rebalance_whenPoolPriceAboveOracle_shouldTriggerContraction_withDifferentDecimals() public {
+    // --- Setup ---
+    uint256 stableMultiplier = 1; // 10**(18-18)
+    uint256 collateralMultiplier = 10 ** (18 - 6); // 1e12
+
+    uint256 stableReserveInPool = 1050e18; // S (1050 with 18 decimals)
+    uint256 collateralReserveInPool = 1000e6; // C (1000 with 6 decimals)
+    uint256 oraclePrice = 1e18; // P_oracle
+    uint256 currentPoolPrice = 1.02e18; // P_pool > P_oracle + threshold
+    uint256 thresholdBps = 100; // 1%
+
+    mockPool6Dec.setReserves(stableReserveInPool, collateralReserveInPool);
+    mockPool6Dec.setPrices(oraclePrice, currentPoolPrice);
+    mockPool6Dec.setRebalanceThreshold(thresholdBps);
+
+    // --- Expected Calculations (Contraction) ---
+
+    UD60x18 stableR_ud = ud(stableReserveInPool * stableMultiplier); // 1050e18 * 1 = 1050e18
+    UD60x18 collateralR_ud = ud(collateralReserveInPool * collateralMultiplier); // 1000e6 * 1e12 = 1000e18
+    UD60x18 oracleP_ud = ud(oraclePrice);
+
+    UD60x18 numerator = stableR_ud.sub(oracleP_ud.mul(collateralR_ud)); // 1050e18 - 1e18 * 1000e18 = 50e18
+    UD60x18 collateralToSell_ud = numerator.div(oracleP_ud.mul(ud(2e18))); // // 50e18 / (1e18 * 2e18) = 25e18
+
+    uint256 expectedStableOut = collateralToSell_ud.mul(oracleP_ud).unwrap() / stableMultiplier;
+    uint256 expectedInputAmountCollateral = collateralToSell_ud.unwrap() / collateralMultiplier;
+    uint256 expectedCollateralOut = 0;
+    ILiquidityStrategy.PriceDirection expectedDirection = ILiquidityStrategy.PriceDirection.ABOVE_ORACLE;
+
+    vm.expectEmit(true, true, true, true);
+    emit RebalanceInitiated(
+      address(mockPool6Dec),
+      expectedStableOut,
+      expectedCollateralOut,
+      expectedInputAmountCollateral,
+      expectedDirection
+    );
+
+    vm.expectCall(address(stableToken), abi.encodeWithSelector(stableToken.burn.selector, expectedStableOut), 1);
+
+    vm.expectCall(
+      address(mockReserve),
+      abi.encodeWithSelector(
+        mockReserve.transferExchangeCollateralAsset.selector,
+        address(collateralToken6Dec),
+        payable(address(mockPool6Dec)),
+        expectedInputAmountCollateral
+      ),
+      1
+    );
+
+    // --- Expect call to IFPMM.rebalance on poolDiffDec ---
+    bytes memory expectedCallbackData = abi.encode(
+      address(mockPool6Dec),
+      expectedInputAmountCollateral,
+      expectedDirection
+    );
+
+    vm.expectCall(
+      address(mockPool6Dec),
+      abi.encodeWithSelector(
+        mockPool6Dec.rebalance.selector,
+        expectedStableOut,
+        expectedCollateralOut,
+        address(strat),
+        expectedCallbackData
+      ),
+      1
+    );
+
+    vm.expectEmit(true, true, true, true);
+    emit RebalanceExecuted(address(mockPool6Dec), currentPoolPrice, currentPoolPrice);
+
+    // --- Execute ---
+    strat.rebalance(address(mockPool6Dec));
+  }
+
+  /* ---------- Hook Revert Condition Tests ---------- */
+
+  function test_hook_whenCallerIsNotPool_shouldRevert() public {
+    bytes memory dummyData = abi.encode(address(mockPool), 0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    vm.prank(alice);
+    vm.expectRevert("Caller is not the pool");
+    strat.hook(address(mockPool), 0, 0, dummyData);
+  }
+
+  function test_hook_whenCallerIsNotPool_mismatchedPoolInData_shouldRevert() public {
+    MockFPMMPool otherPool = new MockFPMMPool(address(strat), address(stableToken), address(collateralToken));
+    bytes memory dataWithOtherPool = abi.encode(address(otherPool), 0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    vm.prank(address(mockPool));
+    vm.expectRevert("Caller is not the pool");
+    strat.hook(address(mockPool), 0, 0, dataWithOtherPool);
+  }
+
+  function test_hook_whenPoolIsNotRegistered_shouldRevert() public {
+    MockFPMMPool unregisteredPool = new MockFPMMPool(address(strat), address(stableToken), address(collateralToken));
+    vm.label(address(unregisteredPool), "UnregisteredPoolForHookTest");
+
+    bytes memory dataWithUnregisteredPool = abi.encode(
+      address(unregisteredPool),
+      0,
+      ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
+    );
+    vm.prank(address(unregisteredPool));
+    vm.expectRevert("Unregistered pool");
+    strat.hook(address(unregisteredPool), 0, 0, dataWithUnregisteredPool);
   }
 }

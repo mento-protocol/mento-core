@@ -129,7 +129,7 @@ contract LiquidityStrategyTest is Test {
   }
 
   function test_rebalance_shouldReturnAndEmitEvent_WhenPoolPriceIsWithinThreshold() public {
-    setPoolPrices(1000, 950);
+    setPoolPrices(1e18, 0.95e18);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
 
     vm.expectEmit(true, true, true, true);
@@ -139,11 +139,11 @@ contract LiquidityStrategyTest is Test {
   }
 
   function test_rebalance_shouldUpdateLastRebalanceAndEmitEvent_WhenPoolPriceIsAboveThreshold() public {
-    rebalanceWithPriceOutsideThreshold(1060, 1000);
+    rebalanceWithPriceOutsideThreshold(1.06e18, 1e18);
   }
 
   function test_rebalance_shouldUpdateLastRebalanceAndEmitEvent_WhenPoolPriceIsBelowThreshold() public {
-    rebalanceWithPriceOutsideThreshold(940, 1000);
+    rebalanceWithPriceOutsideThreshold(0.94e18, 1e18);
   }
 
   /* ==================== Test Helpers ==================== */
