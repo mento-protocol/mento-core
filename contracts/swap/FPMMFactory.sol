@@ -138,14 +138,19 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMMFactory
-  function deployFPMM(address token0, address token1) external onlyOwner returns (address, address) {
+  function deployFPMM(
+    address token0,
+    address token1,
+    address _referenceRateFeedID
+  ) external onlyOwner returns (address, address) {
     require(token0 != address(0) && token1 != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(token0 != token1, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    require(_referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
     if (fpmmImplementation == address(0)) {
       _deployFPMMImplementation();
     }
-    address fpmmProxy = _deployFPMMProxy(token0, token1);
+    address fpmmProxy = _deployFPMMProxy(token0, token1, _referenceRateFeedID);
 
     return (fpmmImplementation, fpmmProxy);
   }
@@ -181,12 +186,13 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    *      custom salt is a keccak256 hash of the token0 and token1 symbols
    * @param token0 The address of the first token
    * @param token1 The address of the second token
+   * @param _referenceRateFeedID The address of the reference rate feed
    * @return The address of the deployed FPMM proxy
    */
   // slither-disable-start reentrancy-benign
   // slither-disable-start reentrancy-events
   // slither-disable-start encode-packed-collision
-  function _deployFPMMProxy(address token0, address token1) internal returns (address) {
+  function _deployFPMMProxy(address token0, address token1, address _referenceRateFeedID) internal returns (address) {
     bytes11 customSalt = bytes11(
       uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), IERC20(token1).symbol()))))
     );
@@ -199,6 +205,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       token0,
       token1,
       sortedOracles,
+      _referenceRateFeedID,
       breakerBox,
       governance
     );

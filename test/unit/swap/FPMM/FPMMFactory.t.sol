@@ -22,6 +22,7 @@ contract FPMMFactoryTest is Test {
 
   address public deployer;
   address public createX;
+  address public referenceRateFeedID;
 
   // Celo
   uint256 public celoFork;
@@ -46,6 +47,7 @@ contract FPMMFactoryTest is Test {
   function setUp() public virtual {
     createX = 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed;
     deployer = makeAddr("Deployer");
+    referenceRateFeedID = makeAddr("token0/token1");
 
     celoFork = vm.createFork("https://forno.celo.org");
     token0Celo = makeAddr("Token 0 Celo");
@@ -300,7 +302,11 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     assertEq(implementation, address(0));
 
     vm.prank(governanceCelo);
-    (address deployedImplementation, address deployedProxy) = factoryCelo.deployFPMM(token0Celo, token1Celo);
+    (address deployedImplementation, address deployedProxy) = factoryCelo.deployFPMM(
+      token0Celo,
+      token1Celo,
+      referenceRateFeedID
+    );
 
     assertEq(deployedImplementation, precomputedImplementation);
     assertEq(deployedProxy, precomputedProxy);
@@ -321,22 +327,29 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
   function test_deployFPMM_whenCallerIsNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("Not Owner"));
-    factoryCelo.deployFPMM(token0Celo, token1Celo);
+    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
   }
 
   function test_deployFPMM_whenToken0OrToken1IsZeroAddress_shouldRevert() public {
     vm.startPrank(governanceCelo);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factoryCelo.deployFPMM(address(0), token1Celo);
+    factoryCelo.deployFPMM(address(0), token1Celo, referenceRateFeedID);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factoryCelo.deployFPMM(token0Celo, address(0));
+    factoryCelo.deployFPMM(token0Celo, address(0), referenceRateFeedID);
+    vm.stopPrank();
+  }
+
+  function test_deployFPMM_whenReferenceRateFeedIDIsZeroAddress_shouldRevert() public {
+    vm.startPrank(governanceCelo);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factoryCelo.deployFPMM(token0Celo, token1Celo, address(0));
     vm.stopPrank();
   }
 
   function test_deployFPMM_whenToken0AndToken1AreSame_shouldRevert() public {
     vm.startPrank(governanceCelo);
     vm.expectRevert("FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
-    factoryCelo.deployFPMM(token0Celo, token0Celo);
+    factoryCelo.deployFPMM(token0Celo, token0Celo, referenceRateFeedID);
     vm.stopPrank();
   }
 
@@ -347,7 +360,7 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
     address expectedFPMMImplementation = factoryCelo.getOrPrecomputeImplementationAddress();
     vm.expectEmit();
     emit FPMMImplementationDeployed(expectedFPMMImplementation);
-    factoryCelo.deployFPMM(token0Celo, token1Celo);
+    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
 
     assertEq(factoryCelo.fpmmImplementation(), expectedFPMMImplementation);
 
@@ -356,6 +369,7 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
       token0Celo,
       token1Celo,
       sortedOraclesCelo,
+      referenceRateFeedID,
       breakerBoxCelo,
       governanceCelo
     );
@@ -364,11 +378,11 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
 
   function test_deployFPMM_whenAlreadyDeployed_shouldNotDeploySecondImplementation() public {
     vm.startPrank(governanceCelo);
-    factoryCelo.deployFPMM(token0Celo, token1Celo);
+    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
     address implementation = factoryCelo.fpmmImplementation();
     assertTrue(implementation != address(0));
 
-    factoryCelo.deployFPMM(token1Celo, token0Celo);
+    factoryCelo.deployFPMM(token1Celo, token0Celo, referenceRateFeedID);
     assertEq(factoryCelo.fpmmImplementation(), implementation);
     vm.stopPrank();
   }
@@ -380,7 +394,7 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
 
     vm.expectEmit();
     emit FPMMDeployed(token0Celo, token1Celo, expectedProxyAddress);
-    factoryCelo.deployFPMM(token0Celo, token1Celo);
+    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
 
     address proxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
     assertEq(proxy, expectedProxyAddress);
@@ -408,6 +422,9 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
     address breakerBox = address(FPMM(proxy).breakerBox());
     assertEq(breakerBox, breakerBoxCelo);
 
+    address _referenceRateFeedID = address(FPMM(proxy).referenceRateFeedID());
+    assertEq(_referenceRateFeedID, referenceRateFeedID);
+
     address sortedOracles = address(FPMM(proxy).sortedOracles());
     assertEq(sortedOracles, sortedOraclesCelo);
   }
@@ -431,6 +448,7 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
       token0Celo,
       token1Celo,
       sortedOraclesCelo,
+      referenceRateFeedID,
       breakerBoxCelo,
       governanceCelo
     );
@@ -443,7 +461,7 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
     vm.stopPrank();
 
     vm.prank(governanceCelo);
-    factoryCelo.deployFPMM(token0Celo, token1Celo);
+    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
 
     address factoryImplementation = factoryCelo.fpmmImplementation();
     address factoryProxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
@@ -480,7 +498,7 @@ contract FPMMFactoryTest_DeployFPMMCrossChain is FPMMFactoryTest {
     vm.assertEq(vm.activeFork(), celoFork);
 
     vm.prank(governanceCelo);
-    factoryCelo.deployFPMM(token0Celo, token1Celo);
+    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
 
     address celoFPMMImplementation = factoryCelo.fpmmImplementation();
     address celoFPMMProxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
@@ -489,7 +507,7 @@ contract FPMMFactoryTest_DeployFPMMCrossChain is FPMMFactoryTest {
     vm.assertEq(vm.activeFork(), opFork);
 
     vm.prank(governanceOp);
-    factoryOp.deployFPMM(token0Op, token1Op);
+    factoryOp.deployFPMM(token0Op, token1Op, referenceRateFeedID);
 
     address opFPMMImplementation = factoryOp.fpmmImplementation();
     address opFPMMProxy = address(factoryOp.deployedFPMMs(token0Op, token1Op));

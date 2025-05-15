@@ -229,6 +229,7 @@ interface IFPMM {
     address _token0,
     address _token1,
     address _sortedOracles,
+    address _referenceRateFeedID,
     address _breakerBox,
     address _owner
   ) external;

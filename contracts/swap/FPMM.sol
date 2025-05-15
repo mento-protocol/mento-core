@@ -93,6 +93,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     address _token0,
     address _token1,
     address _sortedOracles,
+    address _referenceRateFeedID,
     address _breakerBox,
     address _owner
   ) external initializer {
@@ -115,6 +116,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     rebalanceThreshold = 500; // Default 5% rebalance threshold (500 basis points)
 
     setSortedOracles(_sortedOracles);
+    setReferenceRateFeedID(_referenceRateFeedID);
     setBreakerBox(_breakerBox);
     transferOwnership(_owner);
   }

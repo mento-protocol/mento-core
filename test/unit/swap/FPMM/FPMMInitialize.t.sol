@@ -10,7 +10,7 @@ contract FPMMInitializeTest is FPMMBaseTest {
     FPMM fpmmDisabled = new FPMM(true);
 
     vm.expectRevert("Initializable: contract is already initialized");
-    fpmmDisabled.initialize(address(0), address(0), address(0), address(0), address(0));
+    fpmmDisabled.initialize(address(0), address(0), address(0), address(0), address(0), address(0));
   }
 
   function test_initialize_whenCalledWithCorrectParams_shouldSetProperValues()
@@ -20,17 +20,21 @@ contract FPMMInitializeTest is FPMMBaseTest {
     assertEq(fpmm.symbol(), "FPMM-T0/T1");
     assertEq(fpmm.name(), "Mento Fixed Price MM - T0/T1");
     assertEq(fpmm.decimals(), 18);
-    assertEq(fpmm.owner(), owner);
 
     assertEq(fpmm.token0(), token0);
     assertEq(fpmm.token1(), token1);
+    assertEq(address(fpmm.sortedOracles()), sortedOracles);
+    assertEq(fpmm.referenceRateFeedID(), referenceRateFeedID);
+    assertEq(address(fpmm.breakerBox()), breakerBox);
+    assertEq(fpmm.owner(), owner);
+
     assertEq(fpmm.decimals0(), 1e18);
     assertEq(fpmm.decimals1(), 1e18);
   }
 
   function test_initialize_whenCalledTwice_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     vm.expectRevert("Initializable: contract is already initialized");
-    fpmm.initialize(token0, token1, sortedOracles, breakerBox, owner);
+    fpmm.initialize(token0, token1, sortedOracles, referenceRateFeedID, breakerBox, owner);
   }
 
   function test_initialize_whenTokensHaveDifferentDecimals_shouldSetCorrectDecimalScalingFactors()

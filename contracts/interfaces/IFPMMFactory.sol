@@ -103,8 +103,13 @@ interface IFPMMFactory {
    * @notice Deploys a new FPMM for a token pair.
    * @param token0 The address of the first token
    * @param token1 The address of the second token
+   * @param _referenceRateFeedID The address of the reference rate feed
    * @return implementation The address of the FPMM implementation
    * @return proxy The address of the deployed FPMM proxy
    */
-  function deployFPMM(address token0, address token1) external returns (address implementation, address proxy);
+  function deployFPMM(
+    address token0,
+    address token1,
+    address _referenceRateFeedID
+  ) external returns (address implementation, address proxy);
 }
