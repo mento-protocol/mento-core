@@ -10,8 +10,6 @@ import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { UD60x18, ud } from "prb-math/UD60x18.sol";
 
-import { console } from "forge-std/console.sol";
-
 /**
  * @title LiquidityStrategy
  * @notice Abstract base contract for implementing different liquidity sourcing strategies.
@@ -39,7 +37,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
   function addPool(address poolAddress, uint256 cooldown) external onlyOwner {
     require(poolAddress != address(0), "Invalid pool");
     require(cooldown > 0, "Rebalance cooldown must be greater than 0");
-    
+
     require(fpmmPools.add(poolAddress), "Already added");
 
     IFPMM pool = IFPMM(poolAddress);
