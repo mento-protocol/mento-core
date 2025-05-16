@@ -34,18 +34,18 @@ contract LiquidityStrategyTest is Test {
   /* ---------- Add Pool ---------- */
 
   function test_addPool_shouldRevert_whenPoolIsZeroAddress() public {
-    vm.expectRevert("Invalid pool");
+    vm.expectRevert("LS: INVALID_POOL_ADDRESS");
     mockConcreteLiquidityStrat.addPool(address(0), 1 days);
   }
 
   function test_addPool_shouldRevert_whenCooldownIsZero() public {
-    vm.expectRevert("Rebalance cooldown must be greater than 0");
+    vm.expectRevert("LS: ZERO_COOLDOWN_PERIOD");
     mockConcreteLiquidityStrat.addPool(address(1), 0);
   }
 
   function test_addPool_shouldRevert_whenPoolIsAlreadyAdded() public {
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
-    vm.expectRevert("Already added");
+    vm.expectRevert("LS: POOL_ALREADY_ADDED");
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
   }
 
@@ -56,15 +56,17 @@ contract LiquidityStrategyTest is Test {
   }
 
   function test_addPool_shouldRevert_whenTokenDecimalsGreaterThan18() public {
+    // Token 0 has 19 decimals
     vm.mockCall(address(mockToken0), abi.encodeWithSelector(MockERC20.decimals.selector), abi.encode(19));
 
-    vm.expectRevert("Token decimals too large");
+    vm.expectRevert("LS: TOKEN_DECIMALS_TOO_LARGE");
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
 
+    // Token 1 has 19 decimals & Token 0 has 18 decimals
     vm.mockCall(address(mockToken0), abi.encodeWithSelector(MockERC20.decimals.selector), abi.encode(18));
     vm.mockCall(address(mockToken1), abi.encodeWithSelector(MockERC20.decimals.selector), abi.encode(19));
 
-    vm.expectRevert("Token decimals too large");
+    vm.expectRevert("LS: TOKEN_DECIMALS_TOO_LARGE");
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
   }
 
@@ -80,7 +82,7 @@ contract LiquidityStrategyTest is Test {
   /* ---------- Remove Pool ---------- */
 
   function test_removePool_shouldRevert_whenPoolIsNotAdded() public {
-    vm.expectRevert("Not added");
+    vm.expectRevert("LS: UNREGISTERED_POOL");
     mockConcreteLiquidityStrat.removePool(address(mockPool));
   }
 
@@ -100,7 +102,7 @@ contract LiquidityStrategyTest is Test {
   /* ---------- Rebalance ---------- */
 
   function test_rebalance_shouldRevert_whenPoolIsNotAdded() public {
-    vm.expectRevert("Not added");
+    vm.expectRevert("LS: UNREGISTERED_POOL");
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
@@ -120,11 +122,17 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
-  function test_rebalance_shouldRevert_whenThresholdIsInvalid() public {
+  function test_rebalance_shouldRevert_whenThresholdIsZero() public {
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
-    vm.warp(1 days + 1);
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThreshold.selector), abi.encode(0));
-    vm.expectRevert("Invalid pool threshold");
+    vm.expectRevert("LS: INVALID_THRESHOLD");
+    mockConcreteLiquidityStrat.rebalance(address(mockPool));
+  }
+
+  function test_rebalance_shouldRevert_whenThresholdIsTooHigh() public {
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThreshold.selector), abi.encode(10001));
+    vm.expectRevert("LS: INVALID_THRESHOLD");
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 

@@ -35,17 +35,17 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
   /// @inheritdoc ILiquidityStrategy
   function addPool(address poolAddress, uint256 cooldown) external onlyOwner {
-    require(poolAddress != address(0), "Invalid pool");
-    require(cooldown > 0, "Rebalance cooldown must be greater than 0");
+    require(poolAddress != address(0), "LS: INVALID_POOL_ADDRESS");
+    require(cooldown > 0, "LS: ZERO_COOLDOWN_PERIOD");
 
-    require(fpmmPools.add(poolAddress), "Already added");
+    require(fpmmPools.add(poolAddress), "LS: POOL_ALREADY_ADDED");
 
     IFPMM pool = IFPMM(poolAddress);
 
     uint8 decimals0 = IERC20Metadata(pool.token0()).decimals();
     uint8 decimals1 = IERC20Metadata(pool.token1()).decimals();
 
-    require(decimals0 <= 18 && decimals1 <= 18, "Token decimals too large");
+    require(decimals0 <= 18 && decimals1 <= 18, "LS: TOKEN_DECIMALS_TOO_LARGE");
 
     tokenPrecisionMultipliers[pool.token0()] = 10 ** (18 - decimals0);
     tokenPrecisionMultipliers[pool.token1()] = 10 ** (18 - decimals1);
@@ -57,7 +57,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
   /// @inheritdoc ILiquidityStrategy
   function removePool(address pool) external onlyOwner {
-    require(fpmmPools.remove(pool), "Not added");
+    require(fpmmPools.remove(pool), "LS: UNREGISTERED_POOL");
     delete fpmmPoolConfigs[pool];
     emit FPMMPoolRemoved(pool);
   }
@@ -66,7 +66,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
   /// @inheritdoc ILiquidityStrategy
   function rebalance(address pool) external nonReentrant {
-    require(isPoolRegistered(pool), "Not added");
+    require(isPoolRegistered(pool), "LS: UNREGISTERED_POOL");
 
     FPMMConfig memory config = fpmmPoolConfigs[pool];
     if (config.lastRebalance > 0 && block.timestamp <= config.lastRebalance + config.rebalanceCooldown) {
@@ -76,10 +76,10 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
     IFPMM fpm = IFPMM(pool);
     (uint256 oraclePrice, uint256 poolPrice) = fpm.getPrices();
-    require(oraclePrice > 0 && poolPrice > 0, "Invalid prices");
+    require(oraclePrice > 0 && poolPrice > 0, "LS: INVALID_PRICES");
 
     uint256 rawBps = fpm.rebalanceThreshold();
-    require(rawBps > 0 && rawBps <= 10_000, "Invalid pool threshold");
+    require(rawBps > 0 && rawBps <= 10_000, "LS: INVALID_THRESHOLD");
 
     UD60x18 oracleP = ud(oraclePrice);
     UD60x18 poolP = ud(poolPrice);

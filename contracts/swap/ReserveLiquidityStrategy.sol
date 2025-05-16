@@ -36,7 +36,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    * @param _reserve The address of the reserve.
    */
   function setReserve(address _reserve) public onlyOwner {
-    require(_reserve != address(0), "Reserve cannot be the zero address");
+    require(_reserve != address(0), "RLS: ZERO_ADDRESS_RESERVE");
     reserve = IReserve(_reserve);
     emit ReserveSet(_reserve);
   }
@@ -112,8 +112,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       (address, uint256, PriceDirection)
     );
 
-    require(msg.sender == pool, "Caller is not the pool");
-    require(isPoolRegistered(pool), "Unregistered pool");
+    require(msg.sender == pool, "RLS: CALLER_NOT_POOL");
+    require(isPoolRegistered(pool), "RLS: UNREGISTERED_POOL");
 
     IFPMM fpm = IFPMM(pool);
 
@@ -123,11 +123,14 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
       // Contraction: burn stables, pull collateral from reserve and send to FPMM
       IERC20(stableToken).safeBurn(amount0Out);
-      require(reserve.transferExchangeCollateralAsset(collateralToken, payable(pool), amountIn), "Transfer of the collateral asset failed");
+      require(
+        reserve.transferExchangeCollateralAsset(collateralToken, payable(pool), amountIn),
+        "RLS: COLLATERAL_TRANSFER_FAILED"
+      );
     } else {
       // Expansion: mint stables to FPMM, transfer received collateral to reserve
       IERC20(stableToken).safeMint(pool, amountIn);
-      require(IERC20(collateralToken).transfer(address(reserve), amount1Out), "transfer failed");
+      require(IERC20(collateralToken).transfer(address(reserve), amount1Out), "RLS: COLLATERAL_TRANSFER_FAILED");
     }
   }
 }

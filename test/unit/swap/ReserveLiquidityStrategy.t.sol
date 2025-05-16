@@ -124,18 +124,12 @@ contract ReserveLiquidityStrategyTest is Test {
 
   function test_setReserve_revert_zeroAddress() public {
     vm.startPrank(deployer);
-    vm.expectRevert("Reserve cannot be the zero address");
+    vm.expectRevert("RLS: ZERO_ADDRESS_RESERVE");
     strat.setReserve(address(0));
     vm.stopPrank();
   }
 
   /* ---------- Rebalance Revert Condition Tests ---------- */
-
-  function test_rebalance_shouldRevert_whenPoolNotRegistered() public {
-    MockFPMMPool unregisteredPool = new MockFPMMPool(address(strat), address(stableToken), address(collateralToken));
-    vm.expectRevert("Not added");
-    strat.rebalance(address(unregisteredPool));
-  }
 
   function test_rebalance_shouldRevert_whenCooldownActive() public {
     // Initial rebalance to set timestamp
@@ -169,32 +163,6 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.expectEmit(true, false, false, true);
     emit RebalanceSkippedNotCool(address(mockPool));
     strat.rebalance(address(mockPool)); // Should skip
-  }
-
-  function test_rebalance_shouldRevert_whenOraclePriceZero() public {
-    mockPool.setPrices(0, 1e18);
-    vm.expectRevert("Invalid prices");
-    strat.rebalance(address(mockPool));
-  }
-
-  function test_rebalance_shouldRevert_whenPoolPriceZero() public {
-    mockPool.setPrices(1e18, 0);
-    vm.expectRevert("Invalid prices");
-    strat.rebalance(address(mockPool));
-  }
-
-  function test_rebalance_shouldRevert_whenInvalidThresholdZero() public {
-    mockPool.setRebalanceThreshold(0);
-    mockPool.setPrices(1e18, 1.02e18);
-    vm.expectRevert("Invalid pool threshold");
-    strat.rebalance(address(mockPool));
-  }
-
-  function test_rebalance_shouldRevert_whenInvalidThresholdTooHigh() public {
-    mockPool.setRebalanceThreshold(10001);
-    mockPool.setPrices(1e18, 1.02e18);
-    vm.expectRevert("Invalid pool threshold");
-    strat.rebalance(address(mockPool));
   }
 
   function test_rebalance_shouldSkip_whenPriceInRange() public {
@@ -465,7 +433,7 @@ contract ReserveLiquidityStrategyTest is Test {
   function test_hook_whenCallerIsNotPool_shouldRevert() public {
     bytes memory dummyData = abi.encode(address(mockPool), 0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
     vm.prank(alice);
-    vm.expectRevert("Caller is not the pool");
+    vm.expectRevert("RLS: CALLER_NOT_POOL");
     strat.hook(address(mockPool), 0, 0, dummyData);
   }
 
@@ -473,7 +441,7 @@ contract ReserveLiquidityStrategyTest is Test {
     MockFPMMPool otherPool = new MockFPMMPool(address(strat), address(stableToken), address(collateralToken));
     bytes memory dataWithOtherPool = abi.encode(address(otherPool), 0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
     vm.prank(address(mockPool));
-    vm.expectRevert("Caller is not the pool");
+    vm.expectRevert("RLS: CALLER_NOT_POOL");
     strat.hook(address(mockPool), 0, 0, dataWithOtherPool);
   }
 
@@ -487,7 +455,7 @@ contract ReserveLiquidityStrategyTest is Test {
       ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
     );
     vm.prank(address(unregisteredPool));
-    vm.expectRevert("Unregistered pool");
+    vm.expectRevert("RLS: UNREGISTERED_POOL");
     strat.hook(address(unregisteredPool), 0, 0, dataWithUnregisteredPool);
   }
 }
