@@ -66,8 +66,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     UD60x18 oraclePriceUD = ud(oraclePrice);
 
-    uint256 stableOut;
-    uint256 collateralOut;
+    uint256 stableOut = 0;
+    uint256 collateralOut = 0;
     uint256 inputAmount;
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
@@ -123,11 +123,11 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
       // Contraction: burn stables, pull collateral from reserve and send to FPMM
       IERC20(stableToken).safeBurn(amount0Out);
-      reserve.transferExchangeCollateralAsset(collateralToken, payable(pool), amountIn);
+      require(reserve.transferExchangeCollateralAsset(collateralToken, payable(pool), amountIn), "Transfer of the collateral asset failed");
     } else {
       // Expansion: mint stables to FPMM, transfer received collateral to reserve
       IERC20(stableToken).safeMint(pool, amountIn);
-      IERC20(collateralToken).transfer(address(reserve), amount1Out);
+      require(IERC20(collateralToken).transfer(address(reserve), amount1Out), "transfer failed");
     }
   }
 }

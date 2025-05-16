@@ -102,8 +102,8 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     _executeRebalance(pool, oraclePrice, priceDirection);
     fpmmPoolConfigs[pool].lastRebalance = block.timestamp;
 
-    (, uint256 priceAfterRebalance) = fpm.getPrices();
-    emit RebalanceExecuted(pool, poolPrice, priceAfterRebalance);
+    (uint256 _oraclePrice, uint256 poolPriceAfterRebalance) = fpm.getPrices();
+    emit RebalanceExecuted(pool, poolPrice, poolPriceAfterRebalance);
   }
 
   /* ==================== View Functions ==================== */
