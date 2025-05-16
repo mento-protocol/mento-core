@@ -492,10 +492,10 @@ contract FPMMFactoryTest_DeployFPMMCrossChain is FPMMFactoryTest {
   }
 
   function test_deployFPMM_shouldDeploySameFPMMToSameAddressOnDifferentChains() public {
-    // factoryCelo and factoryOp need to be the same address becuase of CREATEX permissioned deploy protection
+    // factoryCelo and factoryOp need to be deployed to the same address on both chains
+    // in order to have same FPMM address on both chains due to CREATEX permissioned deploy protection
     assertEq(address(factoryCelo), address(factoryOp));
     vm.selectFork(celoFork);
-    vm.assertEq(vm.activeFork(), celoFork);
 
     vm.prank(governanceCelo);
     factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
@@ -504,7 +504,6 @@ contract FPMMFactoryTest_DeployFPMMCrossChain is FPMMFactoryTest {
     address celoFPMMProxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
 
     vm.selectFork(opFork);
-    vm.assertEq(vm.activeFork(), opFork);
 
     vm.prank(governanceOp);
     factoryOp.deployFPMM(token0Op, token1Op, referenceRateFeedID);
