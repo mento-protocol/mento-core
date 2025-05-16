@@ -81,10 +81,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     if (fpmmImplementation != address(0)) {
       return fpmmImplementation;
     }
-    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", bytes11("FPMM_IMPLEM")));
-    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
 
-    return ICreateX(CREATEX).computeCreate3Address(guardedSalt);
+    (address precomputedImplementation, ) = _computeImplementationAddressAndSalt();
+    return precomputedImplementation;
   }
 
   // slither-disable-start encode-packed-collision
@@ -93,13 +92,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     if (address(deployedFPMMs[token0][token1]) != address(0)) {
       return address(deployedFPMMs[token0][token1]);
     }
-    bytes11 customSalt = bytes11(
-      uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), IERC20(token1).symbol()))))
-    );
-    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", customSalt));
-    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
 
-    return ICreateX(CREATEX).computeCreate3Address(guardedSalt);
+    (address precomputedProxyAddress, ) = _computeProxyAddressAndSalt(token0, token1);
+    return precomputedProxyAddress;
   }
   // slither-disable-end encode-packed-collision
 
@@ -161,17 +156,12 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /**
    * @notice Deploys the FPMM implementation contract if it is not already deployed.
-   * @dev apply permissioned deploy protection with factory address and 0x00 flag
-   *      see https://github.com/pcaversaccio/createx?tab=readme-ov-file for more details
    */
   // slither-disable-start reentrancy-events
   function _deployFPMMImplementation() internal {
     bytes memory implementationBytecode = abi.encodePacked(type(FPMM).creationCode, abi.encode(true));
 
-    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", bytes11("FPMM_IMPLEM")));
-    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
-
-    address expectedFPMMImplementation = ICreateX(CREATEX).computeCreate3Address(guardedSalt);
+    (address expectedFPMMImplementation, bytes32 salt) = _computeImplementationAddressAndSalt();
 
     fpmmImplementation = ICreateX(CREATEX).deployCreate3(salt, implementationBytecode);
     assert(fpmmImplementation == expectedFPMMImplementation);
@@ -181,9 +171,6 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /**
    * @notice Deploys the FPMM proxy contract.
-   * @dev apply permissioned deploy protection with factory address and custom salt
-   *      see https://github.com/pcaversaccio/createx?tab=readme-ov-file for more details
-   *      custom salt is a keccak256 hash of the token0 and token1 symbols
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @param _referenceRateFeedID The address of the reference rate feed
@@ -193,12 +180,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-start reentrancy-events
   // slither-disable-start encode-packed-collision
   function _deployFPMMProxy(address token0, address token1, address _referenceRateFeedID) internal returns (address) {
-    bytes11 customSalt = bytes11(
-      uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), IERC20(token1).symbol()))))
-    );
-
-    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", customSalt));
-    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
+    (address expectedProxyAddress, bytes32 salt) = _computeProxyAddressAndSalt(token0, token1);
 
     bytes memory initData = abi.encodeWithSelector(
       FPMM.initialize.selector,
@@ -214,8 +196,6 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       abi.encode(fpmmImplementation, proxyAdmin, initData)
     );
 
-    address expectedProxyAddress = ICreateX(CREATEX).computeCreate3Address(guardedSalt);
-
     address newProxyAddress = ICreateX(CREATEX).deployCreate3(salt, proxyBytecode);
     deployedFPMMs[token0][token1] = FPMM(newProxyAddress);
     emit FPMMDeployed(token0, token1, newProxyAddress);
@@ -226,6 +206,40 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-end reentrancy-events
   // slither-disable-end encode-packed-collision
 
+  /**
+   * @notice Computes the address of the FPMM implementation contract.
+   * @dev apply permissioned deploy protection with factory address and 0x00 flag
+   *      see https://github.com/pcaversaccio/createx?tab=readme-ov-file for more details
+   * @return The precomputed address of the FPMM implementation contract
+   * @return The salt used to deploy the FPMM implementation contract
+   */
+  function _computeImplementationAddressAndSalt() internal view returns (address, bytes32) {
+    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", bytes11("FPMM_IMPLEM")));
+    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
+
+    return (ICreateX(CREATEX).computeCreate3Address(guardedSalt), salt);
+  }
+
+  /**
+   * @notice Computes the address of the FPMM proxy contract.
+   * @dev apply permissioned deploy protection with factory address and custom salt
+   *      see https://github.com/pcaversaccio/createx?tab=readme-ov-file for more details
+   *      custom salt is a keccak256 hash of the token0 and token1 symbols
+   * @param token0 The address of the first token
+   * @param token1 The address of the second token
+   * @return The precomputed address of the FPMM proxy contract
+   * @return The salt used to deploy the FPMM proxy contract
+   */
+  function _computeProxyAddressAndSalt(address token0, address token1) internal view returns (address, bytes32) {
+    bytes11 customSalt = bytes11(
+      uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), IERC20(token1).symbol()))))
+    );
+    bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", customSalt));
+    bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });
+
+    address proxyAddress = ICreateX(CREATEX).computeCreate3Address(guardedSalt);
+    return (proxyAddress, salt);
+  }
   /**
    * @notice Hashes two bytes32 values efficiently.
    * @dev copied from CREATEX contract to precaluclated deployment addresses
