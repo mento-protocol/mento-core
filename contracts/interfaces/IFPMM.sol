@@ -131,6 +131,18 @@ interface IFPMM {
   function MINIMUM_LIQUIDITY() external view returns (uint256);
 
   /**
+   * @notice Returns the denominator for basis point calculations (10000 = 100%)
+   * @return Denominator for basis points
+   */
+  function BASIS_POINTS_DENOMINATOR() external view returns (uint256);
+
+  /**
+   * @notice Returns the mode value for bidirectional trading from circuit breaker
+   * @return Mode value for bidirectional trading
+   */
+  function TRADING_MODE_BIDIRECTIONAL() external view returns (uint256);
+
+  /**
    * @notice Returns the address of the first token in the pair
    * @return Address of token0
    */
@@ -253,21 +265,6 @@ interface IFPMM {
    * @return _blockTimestampLast Timestamp of last reserve update
    */
   function getReserves() external view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast);
-
-  /**
-   * @notice Calculates total value of a given amount of tokens in terms of token1
-   * @param amount0 Amount of token0
-   * @param amount1 Amount of token1
-   * @param rateNumerator Oracle rate numerator
-   * @param rateDenominator Oracle rate denominator
-   * @return Total value in token1
-   */
-  function totalValueInToken1(
-    uint256 amount0,
-    uint256 amount1,
-    uint256 rateNumerator,
-    uint256 rateDenominator
-  ) external view returns (uint256);
 
   /**
    * @notice Gets current oracle and reserve prices

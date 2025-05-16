@@ -52,22 +52,6 @@ contract FPMMGettersTest is FPMMBaseTest {
     assertEq(t1, token1);
   }
 
-  function test_totalValueInToken1_whenGivenAmounts_shouldCalculateCorrectly()
-    public
-    initializeFPMM_withDecimalTokens(18, 6)
-    mintInitialLiquidity(18, 6)
-  {
-    uint256 amount0 = 50e18;
-    uint256 amount1 = 100e6;
-
-    uint256 amount0InToken1 = 100e6;
-    uint256 expectedTotal = amount0InToken1 + amount1;
-
-    uint256 actualTotal = fpmm.totalValueInToken1(amount0, amount1, 2e18, 1e18);
-
-    assertEq(actualTotal, expectedTotal);
-  }
-
   function test_convertWithRate_whenSameDecimals_shouldConvertCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
