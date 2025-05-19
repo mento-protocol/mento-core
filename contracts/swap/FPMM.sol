@@ -302,7 +302,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /// @inheritdoc IFPMM
   function setSortedOracles(address _sortedOracles) public onlyOwner {
-    require(_sortedOracles != address(0), "SortedOracles address must be set");
+    require(_sortedOracles != address(0), "FPMM: SORTED_ORACLES_ADDRESS_MUST_BE_SET");
     address oldSortedOracles = address(sortedOracles);
     sortedOracles = ISortedOracles(_sortedOracles);
     emit SortedOraclesUpdated(oldSortedOracles, _sortedOracles);
@@ -310,7 +310,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /// @inheritdoc IFPMM
   function setBreakerBox(address _breakerBox) public onlyOwner {
-    require(_breakerBox != address(0), "BreakerBox address must be set");
+    require(_breakerBox != address(0), "FPMM: BREAKER_BOX_ADDRESS_MUST_BE_SET");
     address oldBreakerBox = address(breakerBox);
     breakerBox = IBreakerBox(_breakerBox);
     emit BreakerBoxUpdated(oldBreakerBox, _breakerBox);
@@ -318,7 +318,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /// @inheritdoc IFPMM
   function setReferenceRateFeedID(address _referenceRateFeedID) public onlyOwner {
-    require(_referenceRateFeedID != address(0), "Reference rate feed ID must be set");
+    require(_referenceRateFeedID != address(0), "FPMM: REFERENCE_RATE_FEED_ID_MUST_BE_SET");
     address oldRateFeedID = referenceRateFeedID;
     referenceRateFeedID = _referenceRateFeedID;
     emit ReferenceRateFeedIDUpdated(oldRateFeedID, _referenceRateFeedID);
