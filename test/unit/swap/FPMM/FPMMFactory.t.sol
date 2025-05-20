@@ -397,7 +397,11 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
     factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
 
     address proxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
+    address[] memory deployedFPMMAddresses = factoryCelo.getDeployedFPMMAddresses();
+
     assertEq(proxy, expectedProxyAddress);
+    assertEq(deployedFPMMAddresses.length, 1);
+    assertEq(deployedFPMMAddresses[0], proxy);
     vm.stopPrank();
 
     // if not pranked, the proxy will revert
@@ -427,6 +431,19 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
 
     address sortedOracles = address(FPMM(proxy).sortedOracles());
     assertEq(sortedOracles, sortedOraclesCelo);
+  }
+
+  function test_deployFPMM_shouldMaintainProxyAddressesArray() public {
+    vm.startPrank(governanceCelo);
+    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
+    address[] memory deployedFPMMAddresses = factoryCelo.getDeployedFPMMAddresses();
+    assertEq(deployedFPMMAddresses.length, 1);
+    factoryCelo.deployFPMM(token1Celo, token0Celo, referenceRateFeedID);
+    deployedFPMMAddresses = factoryCelo.getDeployedFPMMAddresses();
+    assertEq(deployedFPMMAddresses.length, 2);
+    assertEq(deployedFPMMAddresses[0], address(factoryCelo.deployedFPMMs(token0Celo, token1Celo)));
+    assertEq(deployedFPMMAddresses[1], address(factoryCelo.deployedFPMMs(token1Celo, token0Celo)));
+    vm.stopPrank();
   }
 
   function test_deployFPMM_whenSameSaltIsUsedByDifferentAddress_shouldNotDeployToSameAddress() public {

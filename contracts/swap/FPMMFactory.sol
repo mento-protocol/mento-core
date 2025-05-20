@@ -34,6 +34,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // Mapping of deployed FPMMs.
   mapping(address => mapping(address => FPMM)) public deployedFPMMs;
 
+  // List of deployed FPMM addresses.
+  address[] public deployedFPMMAddresses;
+
   // Address of the CREATEX contract.
   address public constant CREATEX = 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed;
 
@@ -98,6 +101,11 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
   // slither-disable-end encode-packed-collision
 
+  /// @inheritdoc IFPMMFactory
+  function getDeployedFPMMAddresses() public view returns (address[] memory) {
+    return deployedFPMMAddresses;
+  }
+
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */
@@ -136,16 +144,16 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   function deployFPMM(
     address token0,
     address token1,
-    address _referenceRateFeedID
+    address referenceRateFeedID
   ) external onlyOwner returns (address, address) {
     require(token0 != address(0) && token1 != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(token0 != token1, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
-    require(_referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
+    require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
     if (fpmmImplementation == address(0)) {
       _deployFPMMImplementation();
     }
-    address fpmmProxy = _deployFPMMProxy(token0, token1, _referenceRateFeedID);
+    address fpmmProxy = _deployFPMMProxy(token0, token1, referenceRateFeedID);
 
     return (fpmmImplementation, fpmmProxy);
   }
@@ -173,13 +181,13 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @notice Deploys the FPMM proxy contract.
    * @param token0 The address of the first token
    * @param token1 The address of the second token
-   * @param _referenceRateFeedID The address of the reference rate feed
+   * @param referenceRateFeedID The address of the reference rate feed
    * @return The address of the deployed FPMM proxy
    */
   // slither-disable-start reentrancy-benign
   // slither-disable-start reentrancy-events
   // slither-disable-start encode-packed-collision
-  function _deployFPMMProxy(address token0, address token1, address _referenceRateFeedID) internal returns (address) {
+  function _deployFPMMProxy(address token0, address token1, address referenceRateFeedID) internal returns (address) {
     (address expectedProxyAddress, bytes32 salt) = _computeProxyAddressAndSalt(token0, token1);
 
     bytes memory initData = abi.encodeWithSelector(
@@ -187,7 +195,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       token0,
       token1,
       sortedOracles,
-      _referenceRateFeedID,
+      referenceRateFeedID,
       breakerBox,
       governance
     );
@@ -198,6 +206,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
     address newProxyAddress = ICreateX(CREATEX).deployCreate3(salt, proxyBytecode);
     deployedFPMMs[token0][token1] = FPMM(newProxyAddress);
+    deployedFPMMAddresses.push(newProxyAddress);
     emit FPMMDeployed(token0, token1, newProxyAddress);
     assert(newProxyAddress == expectedProxyAddress);
     return newProxyAddress;

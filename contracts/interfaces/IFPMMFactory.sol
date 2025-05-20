@@ -62,6 +62,12 @@ interface IFPMMFactory {
    */
   function getOrPrecomputeProxyAddress(address token0, address token1) external view returns (address);
 
+  /**
+   * @notice Gets the list of deployed FPMM addresses.
+   * @return The list of deployed FPMM addresses
+   */
+  function getDeployedFPMMAddresses() external view returns (address[] memory);
+
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */
@@ -103,13 +109,13 @@ interface IFPMMFactory {
    * @notice Deploys a new FPMM for a token pair.
    * @param token0 The address of the first token
    * @param token1 The address of the second token
-   * @param _referenceRateFeedID The address of the reference rate feed
+   * @param referenceRateFeedID The address of the reference rate feed
    * @return implementation The address of the FPMM implementation
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
     address token0,
     address token1,
-    address _referenceRateFeedID
+    address referenceRateFeedID
   ) external returns (address implementation, address proxy);
 }
