@@ -74,11 +74,11 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
       return;
     }
 
-    IFPMM fpm = IFPMM(pool);
-    (uint256 oraclePrice, uint256 poolPrice) = fpm.getPrices();
+    IFPMM fpmm = IFPMM(pool);
+    (uint256 oraclePrice, uint256 poolPrice) = fpmm.getPrices();
     require(oraclePrice > 0 && poolPrice > 0, "LS: INVALID_PRICES");
 
-    uint256 rawBps = fpm.rebalanceThreshold();
+    uint256 rawBps = fpmm.rebalanceThreshold();
     require(rawBps > 0 && rawBps <= 10_000, "LS: INVALID_THRESHOLD");
 
     UD60x18 oracleP = ud(oraclePrice);
@@ -103,7 +103,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     fpmmPoolConfigs[pool].lastRebalance = block.timestamp;
 
     // slither-disable-next-line unused-return
-    (, uint256 poolPriceAfterRebalance) = fpm.getPrices();
+    (, uint256 poolPriceAfterRebalance) = fpmm.getPrices();
     emit RebalanceExecuted(pool, poolPrice, poolPriceAfterRebalance);
   }
 
