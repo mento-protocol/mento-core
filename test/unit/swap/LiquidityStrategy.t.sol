@@ -137,7 +137,7 @@ contract LiquidityStrategyTest is Test {
   }
 
   function test_rebalance_shouldReturnAndEmitEvent_WhenPoolPriceIsWithinThreshold() public {
-    setPoolPrices(1e18, 0.95e18);
+    setPoolPrices(1e18, 0.951e18);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
 
     vm.expectEmit(true, true, true, true);

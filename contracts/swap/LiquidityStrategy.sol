@@ -90,9 +90,9 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
     PriceDirection priceDirection;
 
-    if (poolP.gt(upperBound)) {
+    if (poolP.gte(upperBound)) {
       priceDirection = PriceDirection.ABOVE_ORACLE;
-    } else if (poolP.lt(lowerBound)) {
+    } else if (poolP.lte(lowerBound)) {
       priceDirection = PriceDirection.BELOW_ORACLE;
     } else {
       emit RebalanceSkippedPriceInRange(pool);
