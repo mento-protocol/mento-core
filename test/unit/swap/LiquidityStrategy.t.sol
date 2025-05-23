@@ -91,19 +91,21 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
-  function test_rebalance_shouldReturnAndEmitEvent_WhenRecentlyRebalanced() public {
+  function test_rebalance_shouldReturnAndEmitEvent_WhenCooldownNotSatisfied() public {
     // Set oracle price and pool price with diff bigger than threshold
     setPoolPrices(1000, 1);
 
     // Trigger the first rebalance
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
-    vm.warp(1 days + 1);
+    
+    // Warp forward but not enough to satisfy the cooldown (1 day + 1 second)
+    vm.warp(block.timestamp + 1);
 
     vm.expectEmit(true, true, true, true);
     emit RebalanceSkippedNotCool(address(mockPool));
 
-    // Try to rebalance again without any time being passed
+    // Try to rebalance again before cooldown is satisfied
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
