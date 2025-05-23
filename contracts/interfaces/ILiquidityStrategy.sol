@@ -61,17 +61,6 @@ interface ILiquidityStrategy {
    */
   event RebalanceExecuted(address indexed pool, uint256 priceBefore, uint256 priceAfter);
 
-  /**
-   * @notice Emitted when a rebalance is skipped because the cooldown period has not elapsed.
-   * @param pool The address of the pool that was skipped.
-   */
-  event RebalanceSkippedNotCool(address indexed pool);
-
-  /**
-   * @notice Emitted when a rebalance is skipped because the price is within the threshold.
-   * @param pool The address of the pool that was skipped.
-   */
-  event RebalanceSkippedPriceInRange(address indexed pool);
 
   /* ==================== Functions ==================== */
 

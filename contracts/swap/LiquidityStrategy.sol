@@ -58,8 +58,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
 
     FPMMConfig memory config = fpmmPoolConfigs[pool];
     if (config.lastRebalance > 0 && block.timestamp <= config.lastRebalance + config.rebalanceCooldown) {
-      emit RebalanceSkippedNotCool(pool);
-      return;
+      revert("LS: COOLDOWN_ACTIVE");
     }
 
     IFPMM fpmm = IFPMM(pool);
@@ -83,8 +82,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     } else if (poolP.lte(lowerBound)) {
       priceDirection = PriceDirection.BELOW_ORACLE;
     } else {
-      emit RebalanceSkippedPriceInRange(pool);
-      return;
+      revert("LS: PRICE_IN_RANGE");
     }
 
     _executeRebalance(pool, oraclePrice, priceDirection);
