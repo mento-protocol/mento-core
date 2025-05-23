@@ -14,7 +14,7 @@ import { UD60x18, ud } from "prb-math/UD60x18.sol";
  * @notice Abstract base contract for implementing different liquidity sourcing strategies.
  *         Manages pool registration, threshold checks, and rebalance triggering logic.
  */
-abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, ReentrancyGuardUpgradeable {
+abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, ReentrancyGuardUpgradeable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
   mapping(address => FPMMConfig) public fpmmPoolConfigs;
