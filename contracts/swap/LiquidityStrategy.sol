@@ -2,9 +2,8 @@
 pragma solidity ^0.8.0;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
-import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
-import { IERC20Metadata } from "openzeppelin-contracts-next/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { EnumerableSetUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
@@ -15,12 +14,12 @@ import { UD60x18, ud } from "prb-math/UD60x18.sol";
  * @notice Abstract base contract for implementing different liquidity sourcing strategies.
  *         Manages pool registration, threshold checks, and rebalance triggering logic.
  */
-abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, ReentrancyGuard {
-  using EnumerableSet for EnumerableSet.AddressSet;
+abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, ReentrancyGuardUpgradeable {
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
   mapping(address => FPMMConfig) public fpmmPoolConfigs;
 
-  EnumerableSet.AddressSet private fpmmPools;
+  EnumerableSetUpgradeable.AddressSet private fpmmPools;
 
   /* ==================== Constructor ==================== */
 
