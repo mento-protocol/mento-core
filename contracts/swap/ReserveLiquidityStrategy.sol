@@ -137,7 +137,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     }
 
     bytes memory callbackData = abi.encode(pool, inputAmount, priceDirection);
-    
+
     // Register this rebalance operation as pending
     registerPendingRebalance(pool, inputAmount, priceDirection);
 
@@ -159,7 +159,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     require(msg.sender == pool, "RLS: CALLER_NOT_POOL");
     require(isPoolRegistered(pool), "RLS: UNREGISTERED_POOL");
-    
+
     // Verify this is a legitimate rebalance initiated by this contract
     // This call will revert if the operation was not registered
     verifyPendingRebalance(pool, amountIn, priceDirection);

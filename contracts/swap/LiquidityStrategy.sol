@@ -21,7 +21,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
   mapping(address => FPMMConfig) public fpmmPoolConfigs;
-  
+
   // Mapping to track pending rebalance operations for security
   mapping(bytes32 => bool) private pendingRebalances;
 
@@ -119,7 +119,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
    * @param priceDirection The direction of the price movement.
    */
   function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal virtual;
-  
+
   /**
    * @notice Registers a pending rebalance operation for security verification
    * @dev Call this before initiating a rebalance with the pool
@@ -131,7 +131,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     bytes32 rebalanceId = keccak256(abi.encode(pool, amount, direction));
     pendingRebalances[rebalanceId] = true;
   }
-  
+
   /**
    * @notice Verifies that a rebalance operation was initiated by this contract
    * @dev Call this in hook/callback functions to verify legitimate operations
