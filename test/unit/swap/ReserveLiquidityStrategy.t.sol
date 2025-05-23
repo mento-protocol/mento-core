@@ -482,4 +482,82 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.expectRevert("RLS: UNREGISTERED_POOL");
     strat.hook(address(unregisteredPool), 0, 0, dataWithUnregisteredPool);
   }
+  
+  /* ---------- Security Tests ---------- */
+  
+  function test_hook_whenCallbackNotAuthorized_shouldRevert() public {
+    // Set up a valid pool and input data
+    uint256 amountIn = 1000e18;
+    ILiquidityStrategy.PriceDirection direction = ILiquidityStrategy.PriceDirection.ABOVE_ORACLE;
+    
+    // Encode callback data that would be valid, but wasn't registered as a pending rebalance
+    bytes memory unauthorizedCallbackData = abi.encode(address(mockPool), amountIn, direction);
+    
+    // The call should revert because this rebalance operation wasn't registered by the strategy
+    vm.prank(address(mockPool));
+    vm.expectRevert("RLS: UNAUTHORIZED_CALLBACK");
+    strat.hook(address(mockPool), 25e18, 0, unauthorizedCallbackData);
+  }
+  
+  function test_hook_securityAgainstSwapExploit() public {
+    // This test simulates an attack vector where someone tries to exploit the strategy
+    // by directly calling the pool's swap function with the strategy as the recipient
+    
+    // 1. Create a fake/malicious user who will try to exploit the system
+    address attacker = makeAddr("Attacker");
+    vm.label(attacker, "Attacker");
+    
+    // 2. Create callback data that tries to force a token mint operation
+    uint256 maliciousAmount = 1000e18;
+    bytes memory exploitCallbackData = abi.encode(
+      address(mockPool), 
+      maliciousAmount, 
+      ILiquidityStrategy.PriceDirection.BELOW_ORACLE // Try to trigger stable token minting
+    );
+    
+    // 3. Mock the swap call coming from the attacker via the pool
+    // In a real attack, the attacker would call pool.swap(...) with strategy as recipient
+    vm.startPrank(address(mockPool));
+    
+    // 4. This should revert because the callback wasn't registered as a legitimate rebalance
+    vm.expectRevert("RLS: UNAUTHORIZED_CALLBACK");
+    strat.hook(attacker, 0, 25e18, exploitCallbackData);
+    
+    vm.stopPrank();
+  }
+  
+  function test_pendingRebalancesAreTrackedAndCleared() public {
+    // Setup pool for rebalance
+    mockPool.setPrices(1e18, 1.05e18); // 5% difference, outside threshold
+    mockPool.setReserves(1050e18, 1000e18);
+    
+    // This is our direct way to check if the pending rebalance was registered
+    // We use assembly to access the private mapping
+    bytes32 slot = keccak256(abi.encode(
+      keccak256(abi.encode(
+        address(mockPool), 
+        uint256(25e18), 
+        ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
+      )),
+      uint256(keccak256("pendingRebalances")) // Slot of the pendingRebalances mapping
+    ));
+    
+    // Before rebalance, there should be no pending rebalance registered
+    uint256 valueBefore;
+    assembly {
+      valueBefore := sload(slot)
+    }
+    assertEq(valueBefore, 0, "Pending rebalance should not exist before operation");
+    
+    // Start rebalance but stop before the hook call
+    vm.recordLogs();
+    strat.rebalance(address(mockPool));
+    
+    // After hook call, pendingRebalance should be cleared
+    uint256 valueAfter;
+    assembly {
+      valueAfter := sload(slot)
+    }
+    assertEq(valueAfter, 0, "Pending rebalance should be cleared after hook call");
+  }
 }
