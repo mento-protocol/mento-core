@@ -137,10 +137,17 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     }
 
     bytes memory callbackData = abi.encode(pool, inputAmount, priceDirection);
+    
+    // Register this rebalance operation as pending
+    bytes32 rebalanceId = keccak256(abi.encode(pool, inputAmount, priceDirection));
+    pendingRebalances[rebalanceId] = true;
 
     emit RebalanceInitiated(pool, stableOut, collateralOut, inputAmount, priceDirection);
     fpm.rebalance(stableOut, collateralOut, address(this), callbackData);
   }
+
+  // Mapping to track pending rebalance operations
+  mapping(bytes32 => bool) private pendingRebalances;
 
   /**
    * @notice Handles the callback from the pool after a rebalance.
@@ -156,6 +163,15 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     require(msg.sender == pool, "RLS: CALLER_NOT_POOL");
     require(isPoolRegistered(pool), "RLS: UNREGISTERED_POOL");
+    
+    // Generate a unique identifier for this rebalance operation
+    bytes32 rebalanceId = keccak256(abi.encode(pool, amountIn, priceDirection));
+    
+    // Verify this is a legitimate rebalance initiated by this contract
+    require(pendingRebalances[rebalanceId], "RLS: UNAUTHORIZED_CALLBACK");
+    
+    // Clear the pending rebalance to prevent reentrancy
+    delete pendingRebalances[rebalanceId];
 
     IFPMM fpm = IFPMM(pool);
 
