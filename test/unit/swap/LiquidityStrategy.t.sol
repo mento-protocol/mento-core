@@ -55,28 +55,13 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
   }
 
-  function test_addPool_shouldRevert_whenTokenDecimalsGreaterThan18() public {
-    // Token 0 has 19 decimals
-    vm.mockCall(address(mockToken0), abi.encodeWithSelector(MockERC20.decimals.selector), abi.encode(19));
+  // Removed test_addPool_shouldRevert_whenTokenDecimalsGreaterThan18 as decimal validation
+  // now happens in _executeRebalance instead of addPool
 
-    vm.expectRevert("LS: TOKEN_DECIMALS_TOO_LARGE");
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
-
-    // Token 1 has 19 decimals & Token 0 has 18 decimals
-    vm.mockCall(address(mockToken0), abi.encodeWithSelector(MockERC20.decimals.selector), abi.encode(18));
-    vm.mockCall(address(mockToken1), abi.encodeWithSelector(MockERC20.decimals.selector), abi.encode(19));
-
-    vm.expectRevert("LS: TOKEN_DECIMALS_TOO_LARGE");
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
-  }
-
-  function test_addPool_shouldEmitEventAndSetTokenPrecisionMultipliers_WhenPoolIsAdded() public {
+  function test_addPool_shouldEmitEvent_WhenPoolIsAdded() public {
     vm.expectEmit(true, true, true, true);
     emit FPMMPoolAdded(address(mockPool), 1 days);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
-
-    assertEq(mockConcreteLiquidityStrat.tokenPrecisionMultipliers(address(mockToken0)), 1);
-    assertEq(mockConcreteLiquidityStrat.tokenPrecisionMultipliers(address(mockToken1)), 1);
   }
 
   /* ---------- Remove Pool ---------- */
@@ -172,7 +157,7 @@ contract LiquidityStrategyTest is Test {
     vm.mockCall(
       address(mockPool),
       abi.encodeWithSelector(IFPMM.getPrices.selector),
-      abi.encode(oraclePrice, poolPrice)
+      abi.encode(oraclePrice, poolPrice, 18, 18) // Include decimals in the return values
     );
   }
 

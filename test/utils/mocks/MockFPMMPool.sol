@@ -10,7 +10,7 @@ interface IFPMMCallee {
   function hook(address, uint256, uint256, bytes calldata) external;
 }
 
-contract MockFPMMPool is IFPMM, Test {
+contract MockFPMMPool is Test {
   uint256 public oraclePrice;
   uint256 public poolPrice;
   uint256 public reserve0;
@@ -42,8 +42,8 @@ contract MockFPMMPool is IFPMM, Test {
     reserve1 = _r1;
   }
 
-  function getPrices() external view returns (uint256 o, uint256 p) {
-    return (oraclePrice, poolPrice);
+  function getPrices() external view returns (uint256 o, uint256 p, uint256 d0, uint256 d1) {
+    return (oraclePrice, poolPrice, token0_.decimals(), token1_.decimals());
   }
 
   function getReserves() external view returns (uint256, uint256, uint256) {
@@ -71,14 +71,14 @@ contract MockFPMMPool is IFPMM, Test {
   }
 
   function metadata() external view returns (uint256, uint256, uint256, uint256, address, address) {
-    return (0, 0, 0, 0, address(token0_), address(token1_));
+    return (token0_.decimals(), token1_.decimals(), reserve0, reserve1, address(token0_), address(token1_));
   }
 
   function setRebalanceThreshold(uint256 _threshold) external {
     rebalanceThreshold = _threshold;
   }
 
-  function rebalance(uint256 amount0Out, uint256 amount1Out, address recipient, bytes calldata data) external override {
+  function rebalance(uint256 amount0Out, uint256 amount1Out, address recipient, bytes calldata data) external {
     require(msg.sender == hookTarget, "MockFPMMPool: Caller not strategy");
     require(recipient == hookTarget, "MockFPMMPool: Recipient not strategy");
 
