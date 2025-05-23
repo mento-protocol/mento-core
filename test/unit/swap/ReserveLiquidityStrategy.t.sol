@@ -38,8 +38,6 @@ contract ReserveLiquidityStrategyTest is Test {
   // Events from LiquidityStrategy
   event FPMMPoolAdded(address indexed pool, uint256 cooldown);
   event FPMMPoolRemoved(address indexed pool);
-  event RebalanceSkippedNotCool(address indexed pool);
-  event RebalanceSkippedPriceInRange(address indexed pool);
   event RebalanceExecuted(address indexed pool, uint256 priceBefore, uint256 priceAfter);
 
   // Events from ReserveLiquidityStrategy
@@ -188,17 +186,15 @@ contract ReserveLiquidityStrategyTest is Test {
     );
 
     // Attempt rebalance before cooldown
-    vm.expectEmit(true, false, false, true);
-    emit RebalanceSkippedNotCool(address(mockPool));
-    strat.rebalance(address(mockPool)); // Should skip
+    vm.expectRevert("LS: COOLDOWN_ACTIVE");
+    strat.rebalance(address(mockPool)); // Should revert
   }
 
-  function test_rebalance_shouldSkip_whenPriceInRange() public {
+  function test_rebalance_shouldRevert_whenPriceInRange() public {
     mockPool.setPrices(1e18, 1.005e18); // 0.5% deviation, threshold 1%
     mockPool.setRebalanceThreshold(100); // 1%
 
-    vm.expectEmit(true, false, false, true);
-    emit RebalanceSkippedPriceInRange(address(mockPool));
+    vm.expectRevert("LS: PRICE_IN_RANGE");
     strat.rebalance(address(mockPool));
   }
 

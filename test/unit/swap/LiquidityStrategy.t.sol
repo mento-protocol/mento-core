@@ -20,8 +20,6 @@ contract LiquidityStrategyTest is Test {
 
   event FPMMPoolAdded(address indexed pool, uint256 rebalanceCooldown);
   event FPMMPoolRemoved(address indexed pool);
-  event RebalanceSkippedNotCool(address indexed pool);
-  event RebalanceSkippedPriceInRange(address indexed pool);
   event RebalanceExecuted(address indexed pool, uint256 priceBefore, uint256 priceAfter);
 
   function setUp() public {
@@ -100,7 +98,7 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
-  function test_rebalance_shouldReturnAndEmitEvent_WhenCooldownNotSatisfied() public {
+  function test_rebalance_shouldRevert_WhenCooldownActive() public {
     // Set oracle price and pool price with diff bigger than threshold
     setPoolPrices(1000, 1);
 
@@ -112,10 +110,8 @@ contract LiquidityStrategyTest is Test {
     // Warp forward but not enough to satisfy the cooldown (1 day + 1 second)
     vm.warp(block.timestamp + 1);
 
-    vm.expectEmit(true, true, true, true);
-    emit RebalanceSkippedNotCool(address(mockPool));
-
     // Try to rebalance again before cooldown is satisfied
+    vm.expectRevert("LS: COOLDOWN_ACTIVE");
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
@@ -135,14 +131,12 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
-  function test_rebalance_shouldReturnAndEmitEvent_WhenPoolPriceIsWithinThreshold() public {
+  function test_rebalance_shouldRevert_WhenPoolPriceIsWithinThreshold() public {
     setPoolPrices(1e18, 0.951e18);
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
 
-    vm.expectEmit(true, true, true, true);
-    emit RebalanceSkippedPriceInRange(address(mockPool));
-
+    vm.expectRevert("LS: PRICE_IN_RANGE");
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
