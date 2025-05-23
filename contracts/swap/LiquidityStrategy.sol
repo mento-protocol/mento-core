@@ -19,7 +19,6 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
   using EnumerableSet for EnumerableSet.AddressSet;
 
   mapping(address => FPMMConfig) public fpmmPoolConfigs;
-  mapping(address => uint256) public tokenPrecisionMultipliers;
 
   EnumerableSet.AddressSet private fpmmPools;
 
@@ -37,18 +36,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
   function addPool(address poolAddress, uint256 cooldown) external onlyOwner {
     require(poolAddress != address(0), "LS: INVALID_POOL_ADDRESS");
     require(cooldown > 0, "LS: ZERO_COOLDOWN_PERIOD");
-
     require(fpmmPools.add(poolAddress), "LS: POOL_ALREADY_ADDED");
-
-    IFPMM pool = IFPMM(poolAddress);
-
-    uint8 decimals0 = IERC20Metadata(pool.token0()).decimals();
-    uint8 decimals1 = IERC20Metadata(pool.token1()).decimals();
-
-    require(decimals0 <= 18 && decimals1 <= 18, "LS: TOKEN_DECIMALS_TOO_LARGE");
-
-    tokenPrecisionMultipliers[pool.token0()] = 10 ** (18 - decimals0);
-    tokenPrecisionMultipliers[pool.token1()] = 10 ** (18 - decimals1);
 
     fpmmPoolConfigs[poolAddress] = FPMMConfig({ lastRebalance: 0, rebalanceCooldown: cooldown });
 
@@ -75,7 +63,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     }
 
     IFPMM fpmm = IFPMM(pool);
-    (uint256 oraclePrice, uint256 poolPrice) = fpmm.getPrices();
+    (uint256 oraclePrice, uint256 poolPrice, , ) = fpmm.getPrices();
     require(oraclePrice > 0 && poolPrice > 0, "LS: INVALID_PRICES");
 
     uint256 rawBps = fpmm.rebalanceThreshold();
@@ -103,7 +91,7 @@ abstract contract LiquidityStrategy is OwnableUpgradeable, ILiquidityStrategy, R
     fpmmPoolConfigs[pool].lastRebalance = block.timestamp;
 
     // slither-disable-next-line unused-return
-    (, uint256 poolPriceAfterRebalance) = fpmm.getPrices();
+    (, uint256 poolPriceAfterRebalance, , ) = fpmm.getPrices();
     emit RebalanceExecuted(pool, poolPrice, poolPriceAfterRebalance);
   }
 

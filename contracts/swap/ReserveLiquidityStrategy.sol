@@ -60,9 +60,15 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     address stableToken = fpm.token0();
     address collateralToken = fpm.token1();
-
-    UD60x18 stableReserve = ud(fpm.reserve0() * tokenPrecisionMultipliers[stableToken]);
-    UD60x18 collateralReserve = ud(fpm.reserve1() * tokenPrecisionMultipliers[collateralToken]);
+    
+    // Get reserves and decimal scaling factors from the pool
+    (uint256 decimals0, uint256 decimals1, uint256 reserve0, uint256 reserve1,,) = fpm.metadata();
+    require(decimals0 <= 18 && decimals1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
+    uint256 stablePrecisionMultiplier = 10 ** (18 - decimals0);
+    uint256 collateralPrecisionMultiplier = 10 ** (18 - decimals1);
+    
+    UD60x18 stableReserve = ud(reserve0 * stablePrecisionMultiplier);
+    UD60x18 collateralReserve = ud(reserve1 * collateralPrecisionMultiplier);
 
     UD60x18 oraclePriceUD = ud(oraclePrice);
 
@@ -79,8 +85,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       UD60x18 collateralToSell = numerator.div(denominator);
       UD60x18 stablesToBuy = collateralToSell.mul(oraclePriceUD);
 
-      stableOut = stablesToBuy.unwrap() / tokenPrecisionMultipliers[stableToken];
-      inputAmount = collateralToSell.unwrap() / tokenPrecisionMultipliers[collateralToken];
+      stableOut = stablesToBuy.unwrap() / stablePrecisionMultiplier;
+      inputAmount = collateralToSell.unwrap() / collateralPrecisionMultiplier;
     } else {
       // Expansion: Buy collateral from the pool using newly minted stables
       // X = (C * P - S) / 2
@@ -90,8 +96,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       UD60x18 stablesToSell = numerator.div(denominator);
       UD60x18 collateralToBuy = stablesToSell.div(oraclePriceUD);
 
-      collateralOut = collateralToBuy.unwrap() / tokenPrecisionMultipliers[collateralToken];
-      inputAmount = stablesToSell.unwrap() / tokenPrecisionMultipliers[stableToken];
+      collateralOut = collateralToBuy.unwrap() / collateralPrecisionMultiplier;
+      inputAmount = stablesToSell.unwrap() / stablePrecisionMultiplier;
     }
 
     bytes memory callbackData = abi.encode(pool, inputAmount, priceDirection);
