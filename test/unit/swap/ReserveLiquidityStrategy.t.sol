@@ -495,7 +495,7 @@ contract ReserveLiquidityStrategyTest is Test {
     
     // The call should revert because this rebalance operation wasn't registered by the strategy
     vm.prank(address(mockPool));
-    vm.expectRevert("RLS: UNAUTHORIZED_CALLBACK");
+    vm.expectRevert("LS: UNAUTHORIZED_CALLBACK");
     strat.hook(address(mockPool), 25e18, 0, unauthorizedCallbackData);
   }
   
@@ -520,7 +520,7 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.startPrank(address(mockPool));
     
     // 4. This should revert because the callback wasn't registered as a legitimate rebalance
-    vm.expectRevert("RLS: UNAUTHORIZED_CALLBACK");
+    vm.expectRevert("LS: UNAUTHORIZED_CALLBACK");
     strat.hook(attacker, 0, 25e18, exploitCallbackData);
     
     vm.stopPrank();
