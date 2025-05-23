@@ -113,9 +113,9 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     IFPMM fpm = IFPMM(pool);
 
     // Get reserves and decimal scaling factors from the pool
-    (uint256 decimals0, uint256 decimals1, uint256 reserve0, uint256 reserve1,,) = fpm.metadata();
+    (uint256 decimals0, uint256 decimals1, uint256 reserve0, uint256 reserve1, , ) = fpm.metadata();
     require(decimals0 <= 18 && decimals1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
-    
+
     // Create a reserves struct to pass to calculation functions
     PoolReserves memory reserves = PoolReserves({
       stableReserve: ud(reserve0 * (10 ** (18 - decimals0))),

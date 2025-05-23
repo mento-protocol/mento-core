@@ -61,7 +61,6 @@ interface ILiquidityStrategy {
    */
   event RebalanceExecuted(address indexed pool, uint256 priceBefore, uint256 priceAfter);
 
-
   /* ==================== Functions ==================== */
 
   /**
