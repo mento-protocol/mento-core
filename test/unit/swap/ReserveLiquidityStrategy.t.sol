@@ -133,25 +133,25 @@ contract ReserveLiquidityStrategyTest is Test {
     // Create mock tokens with invalid decimals
     MockERC20 tokenWithInvalidDecimals = new MockERC20("Invalid Decimals", "INVD", 19);
     MockFPMMPool poolWithInvalidDecimals = new MockFPMMPool(
-      address(strat), 
-      address(tokenWithInvalidDecimals), 
+      address(strat),
+      address(tokenWithInvalidDecimals),
       address(collateralToken)
     );
-    
+
     vm.startPrank(deployer);
     strat.addPool(address(poolWithInvalidDecimals), DEFAULT_COOLDOWN);
     vm.stopPrank();
-    
+
     // Mock metadata to return 19 decimals for token0
     vm.mockCall(
       address(poolWithInvalidDecimals),
       abi.encodeWithSelector(poolWithInvalidDecimals.metadata.selector),
       abi.encode(19, 18, 1000e18, 1000e18, address(tokenWithInvalidDecimals), address(collateralToken))
     );
-    
+
     // Set up prices for rebalance
     poolWithInvalidDecimals.setPrices(1e18, 1.05e18);
-    
+
     // Expect revert with RLS: TOKEN_DECIMALS_TOO_LARGE
     vm.expectRevert("RLS: TOKEN_DECIMALS_TOO_LARGE");
     strat.rebalance(address(poolWithInvalidDecimals));

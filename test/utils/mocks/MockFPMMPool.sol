@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8;
 
-import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { Test } from "mento-std/Test.sol";
 
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";

@@ -106,7 +106,7 @@ contract LiquidityStrategyTest is Test {
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
-    
+
     // Warp forward but not enough to satisfy the cooldown (1 day + 1 second)
     vm.warp(block.timestamp + 1);
 
