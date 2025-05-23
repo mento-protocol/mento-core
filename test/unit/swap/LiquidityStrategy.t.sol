@@ -29,28 +29,33 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat = new MockLiquidityStrategy();
     mockConcreteLiquidityStrat.initialize();
     createMockPool();
+    vm.stopPrank();
   }
 
   /* ---------- Add Pool ---------- */
 
   function test_addPool_shouldRevert_whenPoolIsZeroAddress() public {
+    vm.prank(deployer);
     vm.expectRevert("LS: INVALID_POOL_ADDRESS");
     mockConcreteLiquidityStrat.addPool(address(0), 1 days);
   }
 
   function test_addPool_shouldRevert_whenCooldownIsZero() public {
+    vm.prank(deployer);
     vm.expectRevert("LS: ZERO_COOLDOWN_PERIOD");
     mockConcreteLiquidityStrat.addPool(address(1), 0);
   }
 
   function test_addPool_shouldRevert_whenPoolIsAlreadyAdded() public {
+    vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    vm.prank(deployer);
     vm.expectRevert("LS: POOL_ALREADY_ADDED");
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
   }
 
   function test_addPool_shouldRevert_whenCallerNotOwner() public {
-    vm.stopPrank();
+    vm.prank(makeAddr("nonOwner"));
     vm.expectRevert("Ownable: caller is not the owner");
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
   }
@@ -61,25 +66,29 @@ contract LiquidityStrategyTest is Test {
   function test_addPool_shouldEmitEvent_WhenPoolIsAdded() public {
     vm.expectEmit(true, true, true, true);
     emit FPMMPoolAdded(address(mockPool), 1 days);
+    vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
   }
 
   /* ---------- Remove Pool ---------- */
 
   function test_removePool_shouldRevert_whenPoolIsNotAdded() public {
+    vm.prank(deployer);
     vm.expectRevert("LS: UNREGISTERED_POOL");
     mockConcreteLiquidityStrat.removePool(address(mockPool));
   }
 
   function test_removePool_shouldEmitEvent_WhenPoolIsRemoved() public {
+    vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
     vm.expectEmit(true, true, true, true);
     emit FPMMPoolRemoved(address(mockPool));
+    vm.prank(deployer);
     mockConcreteLiquidityStrat.removePool(address(mockPool));
   }
 
   function test_removePool_shouldRevert_whenCallerNotOwner() public {
-    vm.stopPrank();
+    vm.prank(makeAddr("nonOwner"));
     vm.expectRevert("Ownable: caller is not the owner");
     mockConcreteLiquidityStrat.removePool(address(mockPool));
   }
@@ -96,6 +105,7 @@ contract LiquidityStrategyTest is Test {
     setPoolPrices(1000, 1);
 
     // Trigger the first rebalance
+    vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
     
@@ -110,6 +120,7 @@ contract LiquidityStrategyTest is Test {
   }
 
   function test_rebalance_shouldRevert_whenThresholdIsZero() public {
+    vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThreshold.selector), abi.encode(0));
     vm.expectRevert("LS: INVALID_THRESHOLD");
@@ -117,6 +128,7 @@ contract LiquidityStrategyTest is Test {
   }
 
   function test_rebalance_shouldRevert_whenThresholdIsTooHigh() public {
+    vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThreshold.selector), abi.encode(10001));
     vm.expectRevert("LS: INVALID_THRESHOLD");
@@ -125,6 +137,7 @@ contract LiquidityStrategyTest is Test {
 
   function test_rebalance_shouldReturnAndEmitEvent_WhenPoolPriceIsWithinThreshold() public {
     setPoolPrices(1e18, 0.951e18);
+    vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
 
     vm.expectEmit(true, true, true, true);
@@ -165,6 +178,7 @@ contract LiquidityStrategyTest is Test {
 
   function rebalanceWithPriceOutsideThreshold(uint256 poolPrice, uint256 oraclePrice) private {
     setPoolPrices(oraclePrice, poolPrice);
+    vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
 
     vm.warp(123456);
