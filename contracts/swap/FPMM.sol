@@ -468,6 +468,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
       require(swapData.reservePriceAboveOraclePrice, "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION");
     } else {
       require(newPriceDifference < rebalanceThresholdBelow, "FPMM: POOL_NOT_REBALANCED");
+      // slither-disable-next-line incorrect-equality
       require(
         newPriceDifference == 0 || !swapData.reservePriceAboveOraclePrice,
         "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION"
