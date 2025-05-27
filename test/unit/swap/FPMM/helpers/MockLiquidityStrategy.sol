@@ -76,12 +76,12 @@ contract MockLiquidityStrategy is IFPMMCallee {
       if (reservePrice > oraclePrice) {
         token0ToAdd = fpmm.convertWithRate(amount1, decimals1, decimals0, 1e18, oraclePrice);
         if (profitPercentage > 0) {
-          token0ToAdd = (token0ToAdd * (100 - profitPercentage)) / 100;
+          token0ToAdd = (token0ToAdd * (10000 - profitPercentage)) / 10000;
         }
       } else {
         token1ToAdd = fpmm.convertWithRate(amount0, decimals0, decimals1, oraclePrice, 1e18);
         if (profitPercentage > 0) {
-          token1ToAdd = (token1ToAdd * (100 - profitPercentage)) / 100;
+          token1ToAdd = (token1ToAdd * (10000 - profitPercentage)) / 10000;
         }
       }
     } else {

@@ -90,7 +90,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // init reserve value: 320
     // Borrow 40 token1 and exchange it for 33.33 token0
     // 10 % profit -> returns 30 token0
-    liquidityStrategy.setProfitPercentage(10);
+    liquidityStrategy.setProfitPercentage(1000);
 
     // reserve0 = 130.0 reserve 1 = 160
     // final reserve value = 130 * 1.2 + 160 = 316
@@ -100,13 +100,16 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     vm.expectRevert("FPMM: EXCESSIVE_VALUE_LOSS");
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
-    // 3 % profit -> returns 32.33 tokens
-    liquidityStrategy.setProfitPercentage(3);
+    liquidityStrategy.setProfitPercentage(300);
+    // 3 % profit -> returns 32.33 tokens -> takes 1 token as incentive
+    // 32.33 * .5% = 0.16165
+    vm.expectRevert("FPMM: EXCESSIVE_VALUE_LOSS");
+    liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
-    // reserve0 = 132.33 reserve 1 = 160
-    // final reserve value = 132.33 * 1.2 + 160 = 318.796
-    // .375% loss < .5% threshold it should not revert
-
+    liquidityStrategy.setProfitPercentage(30);
+    // .3 % profit -> returns 33.23 tokens -> takes .1 token as incentive
+    // 33.23 * .5% = 0.16615
+    // incentive is smaller than allowed, it should not revert
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 

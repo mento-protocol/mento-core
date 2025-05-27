@@ -477,7 +477,24 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
     // Check for excessive value loss
     uint256 newReserveValue = _totalValueInToken1(reserve0, reserve1, swapData.rateNumerator, swapData.rateDenominator);
-    uint256 rebalanceIncentiveAmount = (swapData.initialReserveValue * rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
+
+    uint256 swapValue;
+    // Rebalance should be done borrowing only one token
+    // and incentive should be calculated based on the value of the swapped token
+    if (swapData.amount0In > 0) {
+      // Calculate the value of tokens being swapped in token1 terms
+      uint256 amount0InValue = convertWithRate(
+        swapData.amount0In,
+        decimals0,
+        decimals1,
+        swapData.rateNumerator,
+        swapData.rateDenominator
+      );
+      swapValue = amount0InValue;
+    } else {
+      swapValue = swapData.amount1In;
+    }
+    uint256 rebalanceIncentiveAmount = (swapValue * rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
     uint256 minAcceptableValue = swapData.initialReserveValue - rebalanceIncentiveAmount;
     require(newReserveValue >= minAcceptableValue, "FPMM: EXCESSIVE_VALUE_LOSS");
   }
