@@ -118,7 +118,8 @@ contract LiquidityStrategyTest is Test {
   function test_rebalance_shouldRevert_whenThresholdIsZero() public {
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
-    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThreshold.selector), abi.encode(0));
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(0));
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector), abi.encode(0));
     vm.expectRevert("LS: INVALID_THRESHOLD");
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
@@ -126,7 +127,8 @@ contract LiquidityStrategyTest is Test {
   function test_rebalance_shouldRevert_whenThresholdIsTooHigh() public {
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
-    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThreshold.selector), abi.encode(10001));
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(10001));
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector), abi.encode(10001));
     vm.expectRevert("LS: INVALID_THRESHOLD");
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
@@ -157,7 +159,8 @@ contract LiquidityStrategyTest is Test {
 
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.token0.selector), abi.encode(address(mockToken0)));
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.token1.selector), abi.encode(address(mockToken1)));
-    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThreshold.selector), abi.encode(500));
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(500));
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector), abi.encode(500));
 
     setPoolPrices(1000, 1000);
   }

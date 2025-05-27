@@ -24,6 +24,13 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
   IReserve public reserve;
 
+  struct PoolReserves {
+    UD60x18 stableReserve;
+    UD60x18 collateralReserve;
+    uint256 stablePrecision;
+    uint256 collateralPrecision;
+  }
+
   constructor(bool disableInitializers) LiquidityStrategy(disableInitializers) {}
 
   function initialize(address _reserve) external initializer {
@@ -42,57 +49,51 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
   }
 
   /**
-   * @notice Calculates the amounts for contraction (when pool price is above oracle price)
-   * @param reserves Structure containing reserve amounts and scaling factors
+   * @notice Calculates the amounts for contraction (when pool price is below oracle price)
+   * @param reserves Struct containing reserve amounts and scaling factors
    * @param oraclePrice The off-chain target price
-   * @return stableOut Amount of stable tokens to take from the pool
-   * @return inputAmount Amount of collateral tokens to provide
+   * @return stableOut Amount of stable tokens to move out of the pool
+   * @return collateralIn Amount of collateral tokens to move into the pool
    */
   function _calculateContractionAmounts(
     PoolReserves memory reserves,
     UD60x18 oraclePrice
-  ) private pure returns (uint256 stableOut, uint256 inputAmount) {
-    // Contraction: Buy stables from the pool using collateral from reserve
-    // Y = (S - P * C) / (2 * P)
-    // X = Y * P
-    UD60x18 numerator = reserves.stableReserve.sub(oraclePrice.mul(reserves.collateralReserve));
-    UD60x18 denominator = oraclePrice.mul(ud(2e18));
-    UD60x18 collateralToSell = numerator.div(denominator);
-    UD60x18 stablesToBuy = collateralToSell.mul(oraclePrice);
+  ) private pure returns (uint256 stableOut, uint256 collateralIn) {
+    // Contraction: Sell stables to buy collateral
+    // Y = (P * S - C) / 2
+    // X = (Y ^ 2) / P
+    UD60x18 numerator = (oraclePrice.mul(reserves.stableReserve)).sub(reserves.collateralReserve);
+    UD60x18 denominator = ud(2e18);
 
-    stableOut = stablesToBuy.unwrap() / reserves.stablePrecision;
-    inputAmount = collateralToSell.unwrap() / reserves.collateralPrecision;
+    UD60x18 collateralInUd = numerator.div(denominator);
+    UD60x18 stableOutUd = collateralInUd.powu(2).div(oraclePrice);
+
+    stableOut = stableOutUd.unwrap() / reserves.stablePrecision;
+    collateralIn = collateralInUd.unwrap() / reserves.collateralPrecision;
   }
 
   /**
-   * @notice Calculates the amounts for expansion (when pool price is below oracle price)
-   * @param reserves Structure containing reserve amounts and scaling factors
+   * @notice Calculates the amounts for expansion (when pool price is above oracle price)
+   * @param reserves Struct containing reserve amounts and scaling factors
    * @param oraclePrice The off-chain target price
-   * @return collateralOut Amount of collateral tokens to take from the pool
-   * @return inputAmount Amount of stable tokens to provide
+   * @return collateralOut Amount of collateral tokens to move out of the pool
+   * @return stablesIn Amount of stable tokens to move into the pool
    */
   function _calculateExpansionAmounts(
     PoolReserves memory reserves,
     UD60x18 oraclePrice
-  ) private pure returns (uint256 collateralOut, uint256 inputAmount) {
-    // Expansion: Buy collateral from the pool using newly minted stables
-    // X = (C * P - S) / 2
-    // Y = X / P
-    UD60x18 numerator = (reserves.collateralReserve.mul(oraclePrice)).sub(reserves.stableReserve);
+  ) private pure returns (uint256 collateralOut, uint256 stablesIn) {
+    // Expansion: Sell collateral to buy stables
+    // Y = (C - P * S) / 2
+    // X = Y / P
+    UD60x18 numerator = reserves.stableReserve.sub(reserves.stableReserve.mul(oraclePrice));
     UD60x18 denominator = ud(2e18);
-    UD60x18 stablesToSell = numerator.div(denominator);
-    UD60x18 collateralToBuy = stablesToSell.div(oraclePrice);
 
-    collateralOut = collateralToBuy.unwrap() / reserves.collateralPrecision;
-    inputAmount = stablesToSell.unwrap() / reserves.stablePrecision;
-  }
+    UD60x18 collateralOutUd = numerator.div(denominator);
+    UD60x18 stablesInUd = collateralOutUd.div(oraclePrice);
 
-  // Structure to hold pool reserve information and reduce stack variables
-  struct PoolReserves {
-    UD60x18 stableReserve;
-    UD60x18 collateralReserve;
-    uint256 stablePrecision;
-    uint256 collateralPrecision;
+    collateralOut = collateralOutUd.unwrap() / reserves.collateralPrecision;
+    stablesIn = stablesInUd.unwrap() / reserves.stablePrecision;
   }
 
   /**
@@ -129,17 +130,14 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     uint256 inputAmount;
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
-      (stableOut, inputAmount) = _calculateContractionAmounts(reserves, ud(oraclePrice));
-      collateralOut = 0;
-    } else {
       (collateralOut, inputAmount) = _calculateExpansionAmounts(reserves, ud(oraclePrice));
       stableOut = 0;
+    } else {
+      (stableOut, inputAmount) = _calculateContractionAmounts(reserves, ud(oraclePrice));
+      collateralOut = 0;
     }
 
     bytes memory callbackData = abi.encode(pool, inputAmount, priceDirection);
-
-    // Register this rebalance operation as pending
-    registerPendingRebalance(pool, inputAmount, priceDirection);
 
     emit RebalanceInitiated(pool, stableOut, collateralOut, inputAmount, priceDirection);
     fpm.rebalance(stableOut, collateralOut, address(this), callbackData);
@@ -151,18 +149,15 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    * @param amount1Out The amount of token1 to move out of the pool.
    * @param data The encoded data from the pool.
    */
-  function hook(address, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
+  function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
     (address pool, uint256 amountIn, PriceDirection priceDirection) = abi.decode(
       data,
       (address, uint256, PriceDirection)
     );
 
+    require(sender == address(this), "RLS: CALLER_NOT_REBALANCE_INITIATOR");
     require(msg.sender == pool, "RLS: CALLER_NOT_POOL");
     require(isPoolRegistered(pool), "RLS: UNREGISTERED_POOL");
-
-    // Verify this is a legitimate rebalance initiated by this contract
-    // This call will revert if the operation was not registered
-    verifyPendingRebalance(pool, amountIn, priceDirection);
 
     IFPMM fpm = IFPMM(pool);
 

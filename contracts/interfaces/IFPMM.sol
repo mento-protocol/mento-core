@@ -16,6 +16,7 @@ interface IFPMM {
     uint256 initialPriceDifference;
     uint256 amount0In;
     uint256 amount1In;
+    bool reservePriceAboveOraclePrice;
   }
 
   /* ========== EVENTS ========== */
@@ -73,10 +74,17 @@ interface IFPMM {
 
   /**
    * @notice Emitted when the rebalance threshold is updated
-   * @param oldThreshold Previous threshold in basis points
-   * @param newThreshold New threshold in basis points
+   * @param oldThresholdAbove Previous threshold above in basis points
+   * @param oldThresholdBelow Previous threshold below in basis points
+   * @param newThresholdAbove New threshold above in basis points
+   * @param newThresholdBelow New threshold below in basis points
    */
-  event RebalanceThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
+  event RebalanceThresholdUpdated(
+    uint256 oldThresholdAbove,
+    uint256 oldThresholdBelow,
+    uint256 newThresholdAbove,
+    uint256 newThresholdBelow
+  );
 
   /**
    * @notice Emitted when a liquidity strategy status is updated
@@ -215,10 +223,16 @@ interface IFPMM {
   function rebalanceIncentive() external view returns (uint256);
 
   /**
-   * @notice Returns the threshold for triggering rebalance in basis points
-   * @return Rebalance threshold in basis points
+   * @notice Returns the threshold for triggering rebalance when reserve price > oracle price in basis points
+   * @return Rebalance threshold above in basis points
    */
-  function rebalanceThreshold() external view returns (uint256);
+  function rebalanceThresholdAbove() external view returns (uint256);
+
+  /**
+   * @notice Returns the threshold for triggering rebalance when reserve price < oracle price in basis points
+   * @return Rebalance threshold below in basis points
+   */
+  function rebalanceThresholdBelow() external view returns (uint256);
 
   /**
    * @notice Checks if an address is a trusted liquidity strategy
@@ -351,9 +365,10 @@ interface IFPMM {
 
   /**
    * @notice Sets rebalance threshold
-   * @param _rebalanceThreshold New threshold in basis points
+   * @param _rebalanceThresholdAbove New threshold above in basis points
+   * @param _rebalanceThresholdBelow New threshold below in basis points
    */
-  function setRebalanceThreshold(uint256 _rebalanceThreshold) external;
+  function setRebalanceThresholds(uint256 _rebalanceThresholdAbove, uint256 _rebalanceThresholdBelow) external;
 
   /**
    * @notice Sets liquidity strategy status

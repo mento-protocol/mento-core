@@ -22,13 +22,19 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
 
   mapping(address => FPMMConfig) public fpmmPoolConfigs;
 
-  // Mapping to track pending rebalance operations for security
-  mapping(bytes32 => bool) private pendingRebalances;
-
   EnumerableSetUpgradeable.AddressSet private fpmmPools;
+
+  uint256 constant SCALE = 1e18;
+  uint256 constant BPS_SCALE = 10_000;
 
   /* ==================== Constructor ==================== */
 
+  /**
+   * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
+   * Call this with disable=false during testing, when used without a proxy.
+   * @param disableInitializers Set to true to run `_disableInitializers()` inherited from
+   * openzeppelin-contracts-upgradeable/Initializable.sol
+   */
   constructor(bool disableInitializers) {
     if (disableInitializers) {
       _disableInitializers();
@@ -40,7 +46,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
   /// @inheritdoc ILiquidityStrategy
   function addPool(address poolAddress, uint256 cooldown) external onlyOwner {
     require(poolAddress != address(0), "LS: INVALID_POOL_ADDRESS");
-    require(cooldown > 0, "LS: ZERO_COOLDOWN_PERIOD");
     require(fpmmPools.add(poolAddress), "LS: POOL_ALREADY_ADDED");
 
     fpmmPoolConfigs[poolAddress] = FPMMConfig({ lastRebalance: 0, rebalanceCooldown: cooldown });
@@ -59,7 +64,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
 
   /// @inheritdoc ILiquidityStrategy
   function rebalance(address pool) external nonReentrant {
-    require(isPoolRegistered(pool), "LS: UNREGISTERED_POOL");
+    require(fpmmPools.contains(pool), "LS: UNREGISTERED_POOL");
 
     FPMMConfig memory config = fpmmPoolConfigs[pool];
     if (config.lastRebalance > 0 && block.timestamp <= config.lastRebalance + config.rebalanceCooldown) {
@@ -70,21 +75,25 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     (uint256 oraclePrice, uint256 poolPrice, , ) = fpmm.getPrices();
     require(oraclePrice > 0 && poolPrice > 0, "LS: INVALID_PRICES");
 
-    uint256 rawBps = fpmm.rebalanceThreshold();
-    require(rawBps > 0 && rawBps <= 10_000, "LS: INVALID_THRESHOLD");
+    uint256 rawUpperThresholdBps = fpmm.rebalanceThresholdAbove();
+    require(rawUpperThresholdBps > 0 && rawUpperThresholdBps <= 10_000, "LS: INVALID_UPPER_THRESHOLD");
 
-    UD60x18 oracleP = ud(oraclePrice);
-    UD60x18 poolP = ud(poolPrice);
+    uint256 rawLowerThresholdBps = fpmm.rebalanceThresholdBelow();
+    require(rawLowerThresholdBps > 0 && rawLowerThresholdBps <= 10_000, "LS: INVALID_LOWER_THRESHOLD");
 
-    UD60x18 threshold = ud(rawBps).div(ud(10_000));
-    UD60x18 upperBound = oracleP.mul(ud(1e18).add(threshold));
-    UD60x18 lowerBound = oracleP.mul(ud(1e18).sub(threshold));
+    // Convert basis points to scaled decimals (e.g. 10000 bps = 1.0)
+    uint256 upperThreshold = (rawUpperThresholdBps * SCALE) / BPS_SCALE;
+    uint256 lowerThreshold = (rawLowerThresholdBps * SCALE) / BPS_SCALE;
+
+    // Calculate bounds
+    uint256 upperBound = (oraclePrice * (SCALE + upperThreshold)) / SCALE;
+    uint256 lowerBound = (oraclePrice * (SCALE - lowerThreshold)) / SCALE;
 
     PriceDirection priceDirection;
 
-    if (poolP.gte(upperBound)) {
+    if (poolPrice >= upperBound) {
       priceDirection = PriceDirection.ABOVE_ORACLE;
-    } else if (poolP.lte(lowerBound)) {
+    } else if (poolPrice <= lowerBound) {
       priceDirection = PriceDirection.BELOW_ORACLE;
     } else {
       revert("LS: PRICE_IN_RANGE");
@@ -119,29 +128,4 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
    * @param priceDirection The direction of the price movement.
    */
   function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal virtual;
-
-  /**
-   * @notice Registers a pending rebalance operation for security verification
-   * @dev Call this before initiating a rebalance with the pool
-   * @param pool The address of the pool being rebalanced
-   * @param amount The amount being used in the rebalance
-   * @param direction The direction of the rebalance
-   */
-  function registerPendingRebalance(address pool, uint256 amount, PriceDirection direction) internal {
-    bytes32 rebalanceId = keccak256(abi.encode(pool, amount, direction));
-    pendingRebalances[rebalanceId] = true;
-  }
-
-  /**
-   * @notice Verifies that a rebalance operation was initiated by this contract
-   * @dev Call this in hook/callback functions to verify legitimate operations
-   * @param pool The address of the pool being rebalanced
-   * @param amount The amount being used in the rebalance
-   * @param direction The direction of the rebalance
-   */
-  function verifyPendingRebalance(address pool, uint256 amount, PriceDirection direction) internal {
-    bytes32 rebalanceId = keccak256(abi.encode(pool, amount, direction));
-    require(pendingRebalances[rebalanceId], "LS: UNAUTHORIZED_CALLBACK");
-    delete pendingRebalances[rebalanceId];
-  }
 }
