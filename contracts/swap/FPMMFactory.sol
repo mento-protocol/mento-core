@@ -140,6 +140,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     emit GovernanceSet(_governance);
   }
 
+  // slither-disable-start reentrancy-no-eth
   /// @inheritdoc IFPMMFactory
   function deployFPMM(
     address token0,
@@ -158,6 +159,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
     return (fpmmImplementation, fpmmProxy);
   }
+  // slither-disable-end reentrancy-no-eth
 
   /* =========================================================== */
   /* ==================== Private Functions ==================== */
@@ -240,6 +242,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @return The precomputed address of the FPMM proxy contract
    * @return The salt used to deploy the FPMM proxy contract
    */
+  // slither-disable-start encode-packed-collision
   function _computeProxyAddressAndSalt(address token0, address token1) internal view returns (address, bytes32) {
     bytes11 customSalt = bytes11(
       uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), IERC20(token1).symbol()))))
@@ -250,6 +253,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address proxyAddress = ICreateX(CREATEX).computeCreate3Address(guardedSalt);
     return (proxyAddress, salt);
   }
+  // slither-disable-end encode-packed-collision
   /**
    * @notice Hashes two bytes32 values efficiently.
    * @dev copied from CREATEX contract to precaluclated deployment addresses
