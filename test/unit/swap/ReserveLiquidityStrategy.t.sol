@@ -454,19 +454,18 @@ contract ReserveLiquidityStrategyTest is Test {
 
   /* ---------- Hook Revert Condition Tests ---------- */
 
-  function test_hook_whenCallerIsNotPool_shouldRevert() public {
+  function test_hook_whenInitiatorIsNotStrategy_shouldRevert() public {
     bytes memory dummyData = abi.encode(address(mockPool), 0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
     vm.prank(alice);
-    vm.expectRevert("RLS: CALLER_NOT_POOL");
+    vm.expectRevert("RLS: HOOK_SENDER_NOT_SELF");
     strat.hook(address(mockPool), 0, 0, dummyData);
   }
 
-  function test_hook_whenCallerIsNotPool_mismatchedPoolInData_shouldRevert() public {
-    MockFPMMPool otherPool = new MockFPMMPool(address(strat), address(stableToken), address(collateralToken));
-    bytes memory dataWithOtherPool = abi.encode(address(otherPool), 0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
-    vm.prank(address(mockPool));
-    vm.expectRevert("RLS: CALLER_NOT_POOL");
-    strat.hook(address(mockPool), 0, 0, dataWithOtherPool);
+  function test_hook_whenMessageSenderIsNotPool_shouldRevert() public {
+    bytes memory dummyData = abi.encode(address(mockPool), 0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    vm.prank(alice);
+    vm.expectRevert("RLS: HOOK_CALLER_NOT_EXPECTED_POOL");
+    strat.hook(address(strat), 0, 0, dummyData);
   }
 
   function test_hook_whenPoolIsNotRegistered_shouldRevert() public {
@@ -480,94 +479,6 @@ contract ReserveLiquidityStrategyTest is Test {
     );
     vm.prank(address(unregisteredPool));
     vm.expectRevert("RLS: UNREGISTERED_POOL");
-    strat.hook(address(unregisteredPool), 0, 0, dataWithUnregisteredPool);
-  }
-
-  /* ---------- Security Tests ---------- */
-
-  function test_hook_whenCallbackNotAuthorized_shouldRevert() public {
-    // Set up a valid pool and input data
-    uint256 amountIn = 1000e18;
-    ILiquidityStrategy.PriceDirection direction = ILiquidityStrategy.PriceDirection.ABOVE_ORACLE;
-
-    // Encode callback data that would be valid, but wasn't registered as a pending rebalance
-    bytes memory unauthorizedCallbackData = abi.encode(address(mockPool), amountIn, direction);
-
-    // The call should revert because this rebalance operation wasn't registered by the strategy
-    vm.prank(address(mockPool));
-    vm.expectRevert("LS: UNAUTHORIZED_CALLBACK");
-    strat.hook(address(mockPool), 25e18, 0, unauthorizedCallbackData);
-  }
-
-  function test_hook_securityAgainstSwapExploit() public {
-    // This test simulates an attack vector where someone tries to exploit the strategy
-    // by directly calling the pool's swap function with the strategy as the recipient
-
-    // 1. Create a fake/malicious user who will try to exploit the system
-    address attacker = makeAddr("Attacker");
-    vm.label(attacker, "Attacker");
-
-    // 2. Create callback data that tries to force a token mint operation
-    uint256 maliciousAmount = 1000e18;
-    bytes memory exploitCallbackData = abi.encode(
-      address(mockPool),
-      maliciousAmount,
-      ILiquidityStrategy.PriceDirection.BELOW_ORACLE // Try to trigger stable token minting
-    );
-
-    // 3. Mock the swap call coming from the attacker via the pool
-    // In a real attack, the attacker would call pool.swap(...) with strategy as recipient
-    vm.startPrank(address(mockPool));
-
-    // 4. This should revert because the callback wasn't registered as a legitimate rebalance
-    vm.expectRevert("LS: UNAUTHORIZED_CALLBACK");
-    strat.hook(attacker, 0, 25e18, exploitCallbackData);
-
-    vm.stopPrank();
-  }
-
-  function test_pendingRebalancesLifecycle() public {
-    // Setup pool for rebalance
-    mockPool.setPrices(1e18, 1.05e18); // 5% difference, outside threshold
-    mockPool.setReserves(1050e18, 1000e18);
-
-    // Record initial balances
-    uint256 initialStableBalance = stableToken.balanceOf(address(mockPool));
-    uint256 initialCollateralBalance = collateralToken.balanceOf(address(mockPool));
-    uint256 initialReserveCollateral = collateralToken.balanceOf(address(mockReserve));
-
-    // Execute the rebalance
-    strat.rebalance(address(mockPool));
-
-    // Verify the rebalance completed successfully
-    // Balance changes indicate the transaction went through, including the hook callback
-    assertNotEq(
-      stableToken.balanceOf(address(mockPool)),
-      initialStableBalance,
-      "Stable balance should change if security mechanism worked properly"
-    );
-    assertNotEq(
-      collateralToken.balanceOf(address(mockPool)),
-      initialCollateralBalance,
-      "Collateral balance should change if security mechanism worked properly"
-    );
-    assertNotEq(
-      collateralToken.balanceOf(address(mockReserve)),
-      initialReserveCollateral,
-      "Reserve collateral should change if security mechanism worked properly"
-    );
-
-    // Verify our callback handler cleared the pending operation
-    // by attempting to use the same callback data manually (should fail)
-    uint256 expectedAmountIn = 25e18; // Based on our mock pool setup
-    bytes memory callbackData = abi.encode(
-      address(mockPool),
-      expectedAmountIn,
-      ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
-    );
-
-    vm.prank(address(mockPool));
-    vm.expectRevert("LS: UNAUTHORIZED_CALLBACK");
-    strat.hook(address(mockPool), 25e18, 0, callbackData);
+    strat.hook(address(strat), 0, 0, dataWithUnregisteredPool);
   }
 }

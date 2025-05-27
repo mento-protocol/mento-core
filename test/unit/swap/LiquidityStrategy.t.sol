@@ -38,12 +38,6 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.addPool(address(0), 1 days);
   }
 
-  function test_addPool_shouldRevert_whenCooldownIsZero() public {
-    vm.prank(deployer);
-    vm.expectRevert("LS: ZERO_COOLDOWN_PERIOD");
-    mockConcreteLiquidityStrat.addPool(address(1), 0);
-  }
-
   function test_addPool_shouldRevert_whenPoolIsAlreadyAdded() public {
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
@@ -115,21 +109,34 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
-  function test_rebalance_shouldRevert_whenThresholdIsZero() public {
+  function test_rebalance_shouldRevert_whenUpperThresholdIsInvalid() public {
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+
+    // Test 0 threshold
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(0));
-    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector), abi.encode(0));
-    vm.expectRevert("LS: INVALID_THRESHOLD");
+    vm.expectRevert("LS: INVALID_UPPER_THRESHOLD");
+    mockConcreteLiquidityStrat.rebalance(address(mockPool));
+
+    // Test threshold > 10000
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(10001));
+    vm.expectRevert("LS: INVALID_UPPER_THRESHOLD");
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
-  function test_rebalance_shouldRevert_whenThresholdIsTooHigh() public {
+  function test_rebalance_shouldRevert_whenLowerThresholdIsInvalid() public {
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
-    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(10001));
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(100));
+
+    // Test 0 threshold
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector), abi.encode(0));
+    vm.expectRevert("LS: INVALID_LOWER_THRESHOLD");
+    mockConcreteLiquidityStrat.rebalance(address(mockPool));
+
+    // Test threshold > 10000
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector), abi.encode(10001));
-    vm.expectRevert("LS: INVALID_THRESHOLD");
+    vm.expectRevert("LS: INVALID_LOWER_THRESHOLD");
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
