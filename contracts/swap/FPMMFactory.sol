@@ -41,7 +41,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     // Address of the implementation of the FPMM contract.
     address fpmmImplementation;
     // Mapping of deployed FPMMs.
-    mapping(address => mapping(address => FPMM)) deployedFPMMs;
+    mapping(address => mapping(address => address)) deployedFPMMs;
     // List of deployed FPMM addresses.
     address[] deployedFPMMAddresses;
   }
@@ -114,7 +114,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /// @inheritdoc IFPMMFactory
   function deployedFPMMs(address token0, address token1) public view returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    return address($.deployedFPMMs[token0][token1]);
+    return $.deployedFPMMs[token0][token1];
   }
 
   /// @inheritdoc IFPMMFactory
@@ -140,8 +140,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   function getOrPrecomputeProxyAddress(address token0, address token1) public view returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
 
-    if (address($.deployedFPMMs[token0][token1]) != address(0)) {
-      return address($.deployedFPMMs[token0][token1]);
+    if ($.deployedFPMMs[token0][token1] != address(0)) {
+      return $.deployedFPMMs[token0][token1];
     }
 
     (address precomputedProxyAddress, ) = _computeProxyAddressAndSalt(token0, token1);
@@ -196,7 +196,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     require(token0 != address(0) && token1 != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(token0 != token1, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
-    require(address($.deployedFPMMs[token0][token1]) == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
+    require($.deployedFPMMs[token0][token1] == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
     if ($.fpmmImplementation == address(0)) {
@@ -260,7 +260,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     );
 
     address newProxyAddress = ICreateX(CREATEX).deployCreate3(salt, proxyBytecode);
-    $.deployedFPMMs[token0][token1] = FPMM(newProxyAddress);
+    $.deployedFPMMs[token0][token1] = newProxyAddress;
     $.deployedFPMMAddresses.push(newProxyAddress);
     emit FPMMDeployed(token0, token1, newProxyAddress);
     assert(newProxyAddress == expectedProxyAddress);
