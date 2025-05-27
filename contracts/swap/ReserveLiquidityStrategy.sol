@@ -145,6 +145,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
   /**
    * @notice Handles the callback from the pool after a rebalance.
+   * @param sender The address that initiated the rebalance.
    * @param amount0Out The amount of token0 to move out of the pool.
    * @param amount1Out The amount of token1 to move out of the pool.
    * @param data The encoded data from the pool.
@@ -155,8 +156,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       (address, uint256, PriceDirection)
     );
 
-    require(sender == address(this), "RLS: CALLER_NOT_REBALANCE_INITIATOR");
-    require(msg.sender == pool, "RLS: CALLER_NOT_POOL");
+    require(sender == address(this), "RLS: HOOK_SENDER_NOT_SELF");
+    require(msg.sender == pool, "RLS: HOOK_CALLER_NOT_EXPECTED_POOL");
     require(isPoolRegistered(pool), "RLS: UNREGISTERED_POOL");
 
     IFPMM fpm = IFPMM(pool);
@@ -165,16 +166,16 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     address collateralToken = fpm.token1();
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
+      // Expansion: mint stables to FPMM, transfer received collateral to reserve
+      IERC20(stableToken).safeMint(pool, amountIn);
+      require(IERC20(collateralToken).transfer(address(reserve), amount1Out), "RLS: COLLATERAL_TRANSFER_FAILED");
+    } else {
       // Contraction: burn stables, pull collateral from reserve and send to FPMM
       IERC20(stableToken).safeBurn(amount0Out);
       require(
         reserve.transferExchangeCollateralAsset(collateralToken, payable(pool), amountIn),
         "RLS: COLLATERAL_TRANSFER_FAILED"
       );
-    } else {
-      // Expansion: mint stables to FPMM, transfer received collateral to reserve
-      IERC20(stableToken).safeMint(pool, amountIn);
-      require(IERC20(collateralToken).transfer(address(reserve), amount1Out), "RLS: COLLATERAL_TRANSFER_FAILED");
     }
   }
 }
