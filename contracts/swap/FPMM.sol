@@ -458,7 +458,6 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
    * @return newPriceDifference New price difference
    */
   function _rebalanceCheck(SwapData memory swapData) private view returns (uint256 newPriceDifference) {
-    uint256 newReserveValue = _totalValueInToken1(reserve0, reserve1, swapData.rateNumerator, swapData.rateDenominator);
     bool reservePriceAboveOraclePrice;
     (newPriceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference();
 
@@ -466,11 +465,17 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     require(newPriceDifference < swapData.initialPriceDifference, "FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
     if (reservePriceAboveOraclePrice) {
       require(newPriceDifference < rebalanceThresholdAbove, "FPMM: POOL_NOT_REBALANCED");
+      require(swapData.reservePriceAboveOraclePrice, "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION");
     } else {
       require(newPriceDifference < rebalanceThresholdBelow, "FPMM: POOL_NOT_REBALANCED");
+      require(
+        newPriceDifference == 0 || !swapData.reservePriceAboveOraclePrice,
+        "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION"
+      );
     }
 
     // Check for excessive value loss
+    uint256 newReserveValue = _totalValueInToken1(reserve0, reserve1, swapData.rateNumerator, swapData.rateDenominator);
     uint256 rebalanceIncentiveAmount = (swapData.initialReserveValue * rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
     uint256 minAcceptableValue = swapData.initialReserveValue - rebalanceIncentiveAmount;
     require(newReserveValue >= minAcceptableValue, "FPMM: EXCESSIVE_VALUE_LOSS");

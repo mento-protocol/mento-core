@@ -174,6 +174,26 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
+  function test_rebalance_whenMovingInWrongDirection_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupRebalancer(18, 18)
+    setupMockOracleRate(3e18, 1e18) // Oracle rate: 1 token0 = 3 token1
+  {
+    // Initial reserve price: 2 token1 per token0
+    // Oracle price: 3 token1 per token0
+    // Current price is too low, need to add token1 and remove token0
+    // Get token0 via flash loan and add token1 to rebalance
+
+    // Borrow 17 token0 and exchange it for 51 token1
+    // 251 / 83 = 3.024  Price moved from low to high
+    // Should revert because price moved in wrong direction
+    uint256 rebalanceAmount = 17e18;
+    vm.expectRevert("FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION");
+    liquidityStrategy.executeRebalance(rebalanceAmount, 0);
+  }
+
   function test_rebalance_whenAddingToken0_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
@@ -220,9 +240,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // Current price is too low, need to add token1 and remove token0
     // Get token0 via flash loan and add token1 to rebalance
 
-    // Borrow 17 token0 and exchange it for 51 token1
-    // 251 / 83 = 3.024
-    uint256 rebalanceAmount = 17e18;
+    // Borrow 16 token0 and exchange it for 48 token1
+    // 248 / 84 = 2.952
+    uint256 rebalanceAmount = 16e18;
     liquidityStrategy.executeRebalance(rebalanceAmount, 0);
 
     (uint256 finalReserve0, uint256 finalReserve1, ) = fpmm.getReserves();
@@ -266,21 +286,21 @@ contract FPMMRebalanceTest is FPMMBaseTest {
   {
     // Alice mints 1000e18 token0 and 20 token1 to a Pool that is 1:1
     vm.startPrank(ALICE);
-    IERC20(token0).transfer(address(fpmm), 1000 * 10 ** 18);
-    IERC20(token1).transfer(address(fpmm), 20);
+    IERC20(token0).transfer(address(fpmm), 1_000e18);
+    IERC20(token1).transfer(address(fpmm), 20e6);
     fpmm.mint(ALICE);
     vm.stopPrank();
 
-    // Pool is rebalanced to ~500e18, ~500e6 => 1:1
-    liquidityStrategy.executeRebalance(500e18, 0);
+    // Pool is rebalanced to ~510e18, ~510e6 => 1:1
+    liquidityStrategy.executeRebalance(490e18, 0);
 
-    assertApproxEqRel(fpmm.reserve0(), 500e18, 0.0001e18);
-    assertApproxEqRel(fpmm.reserve1(), 500e6, 0.0001e18);
+    assertApproxEqRel(fpmm.reserve0(), 510e18, 0.0001e18);
+    assertApproxEqRel(fpmm.reserve1(), 510e6, 0.0001e18);
 
-    // Bob mints 500e18 token0 and 500e6 token1 to the same Pool
+    // Bob mints 510e18 token0 and 510e6 token1 to the same Pool
     vm.startPrank(BOB);
-    IERC20(token0).transfer(address(fpmm), 500e18);
-    IERC20(token1).transfer(address(fpmm), 500e6);
+    IERC20(token0).transfer(address(fpmm), 510e18);
+    IERC20(token1).transfer(address(fpmm), 510e6);
     fpmm.mint(BOB);
     vm.stopPrank();
 
@@ -300,8 +320,8 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     uint256 aliceToken0Received = IERC20(token0).balanceOf(ALICE) - aliceToken0BalanceBefore;
     uint256 aliceToken1Received = IERC20(token1).balanceOf(ALICE) - aliceToken1BalanceBefore;
 
-    // Alice should have received ~500e18 token0 and ~500e6 token1
-    assertApproxEqRel(aliceToken0Received, 500e18, 0.0001e18);
-    assertApproxEqRel(aliceToken1Received, 500e6, 0.0001e18);
+    // Alice should have received ~510e18 token0 and ~510e6 token1
+    assertApproxEqRel(aliceToken0Received, 510e18, 0.0001e18);
+    assertApproxEqRel(aliceToken1Received, 510e6, 0.0001e18);
   }
 }
