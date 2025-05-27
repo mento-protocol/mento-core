@@ -49,6 +49,50 @@ interface IFPMMFactory {
   /* ======================================================== */
 
   /**
+   * @notice Gets the address of the sorted oracles contract.
+   * @return The address of the sorted oracles contract
+   */
+  function sortedOracles() external view returns (address);
+
+  /**
+   * @notice Gets the address of the proxy admin contract.
+   * @return The address of the proxy admin contract
+   */
+  function proxyAdmin() external view returns (address);
+
+  /**
+   * @notice Gets the address of the breaker box contract.
+   * @return The address of the breaker box contract
+   */
+  function breakerBox() external view returns (address);
+
+  /**
+   * @notice Gets the address of the governance contract.
+   * @return The address of the governance contract
+   */
+  function governance() external view returns (address);
+
+  /**
+   * @notice Gets the address of the FPMM implementation contract.
+   * @return The address of the FPMM implementation contract
+   */
+  function fpmmImplementation() external view returns (address);
+
+  /**
+   * @notice Gets the address of the deployed FPMM for a token pair.
+   * @param token0 The address of the first token
+   * @param token1 The address of the second token
+   * @return The address of the deployed FPMM for the token pair
+   */
+  function deployedFPMMs(address token0, address token1) external view returns (address);
+
+  /**
+   * @notice Gets the list of deployed FPMM addresses.
+   * @return The list of deployed FPMM addresses
+   */
+  function deployedFPMMAddresses() external view returns (address[] memory);
+
+  /**
    * @notice Gets the precomputed or current implementation address.
    * @return The address of the FPMM implementation
    */
@@ -61,12 +105,6 @@ interface IFPMMFactory {
    * @return The address of the FPMM proxy for the token pair
    */
   function getOrPrecomputeProxyAddress(address token0, address token1) external view returns (address);
-
-  /**
-   * @notice Gets the list of deployed FPMM addresses.
-   * @return The list of deployed FPMM addresses
-   */
-  function getDeployedFPMMAddresses() external view returns (address[] memory);
 
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */

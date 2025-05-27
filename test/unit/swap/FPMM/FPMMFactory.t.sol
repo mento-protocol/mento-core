@@ -405,7 +405,7 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
     factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
 
     address proxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
-    address[] memory deployedFPMMAddresses = factoryCelo.getDeployedFPMMAddresses();
+    address[] memory deployedFPMMAddresses = factoryCelo.deployedFPMMAddresses();
 
     assertEq(proxy, expectedProxyAddress);
     assertEq(deployedFPMMAddresses.length, 1);
@@ -444,10 +444,10 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
   function test_deployFPMM_shouldMaintainProxyAddressesArray() public {
     vm.startPrank(governanceCelo);
     factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
-    address[] memory deployedFPMMAddresses = factoryCelo.getDeployedFPMMAddresses();
+    address[] memory deployedFPMMAddresses = factoryCelo.deployedFPMMAddresses();
     assertEq(deployedFPMMAddresses.length, 1);
     factoryCelo.deployFPMM(token1Celo, token0Celo, referenceRateFeedID);
-    deployedFPMMAddresses = factoryCelo.getDeployedFPMMAddresses();
+    deployedFPMMAddresses = factoryCelo.deployedFPMMAddresses();
     assertEq(deployedFPMMAddresses.length, 2);
     assertEq(deployedFPMMAddresses[0], address(factoryCelo.deployedFPMMs(token0Celo, token1Celo)));
     assertEq(deployedFPMMAddresses[1], address(factoryCelo.deployedFPMMs(token1Celo, token0Celo)));

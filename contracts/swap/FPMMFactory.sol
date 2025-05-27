@@ -16,33 +16,35 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /* ==================== State Variables ==================== */
   /* ========================================================= */
 
-  // Address of the sorted oracles contract.
-  address public sortedOracles;
-
-  // Address of the implementation of the FPMM contract.
-  address public fpmmImplementation;
-
-  // Address of the proxy admin contract.
-  address public proxyAdmin;
-
-  // Address of the breaker box contract.
-  address public breakerBox;
-
-  // Address of the governance contract.
-  address public governance;
-
-  // Mapping of deployed FPMMs.
-  mapping(address => mapping(address => FPMM)) public deployedFPMMs;
-
-  // List of deployed FPMM addresses.
-  address[] public deployedFPMMAddresses;
-
   // Address of the CREATEX contract.
   address public constant CREATEX = 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed;
 
   // Bytecode hash of the CREATEX contract retrieved from celo mainnet
   // cast keccak $(cast code 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed --rpc-url https://forno.celo.org)
   bytes32 public constant CREATEX_BYTECODE_HASH = 0xbd8a7ea8cfca7b4e5f5041d7d4b17bc317c5ce42cfbc42066a00cf26b43eb53f;
+
+  // Storage location of the FPMMFactoryStorage struct
+  // keccak256(abi.encode(uint256(keccak256("mento.storage.FPMMFactory")) - 1)) & ~bytes32(uint256(0xff))
+  bytes32 private constant FPMM_FACTORY_STORAGE_LOCATION =
+    0x68492e385e38c18b9b27d9179e6aab533cb32a63ce1a1d4414f8c6f6f2d53b00;
+
+  /// @custom:storage-location erc7201:mento.storage.FPMMFactory
+  struct FPMMFactoryStorage {
+    // Address of the sorted oracles contract.
+    address sortedOracles;
+    // Address of the proxy admin contract.
+    address proxyAdmin;
+    // Address of the breaker box contract.
+    address breakerBox;
+    // Address of the governance contract.
+    address governance;
+    // Address of the implementation of the FPMM contract.
+    address fpmmImplementation;
+    // Mapping of deployed FPMMs.
+    mapping(address => mapping(address => FPMM)) deployedFPMMs;
+    // List of deployed FPMM addresses.
+    address[] deployedFPMMAddresses;
+  }
 
   /* ===================================================== */
   /* ==================== Constructor ==================== */
@@ -80,9 +82,53 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /* ======================================================== */
 
   /// @inheritdoc IFPMMFactory
+  function sortedOracles() public view returns (address) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return $.sortedOracles;
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function proxyAdmin() public view returns (address) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return $.proxyAdmin;
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function breakerBox() public view returns (address) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return $.breakerBox;
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function governance() public view returns (address) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return $.governance;
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function fpmmImplementation() public view returns (address) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return $.fpmmImplementation;
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function deployedFPMMs(address token0, address token1) public view returns (address) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return address($.deployedFPMMs[token0][token1]);
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function deployedFPMMAddresses() public view returns (address[] memory) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return $.deployedFPMMAddresses;
+  }
+
+  /// @inheritdoc IFPMMFactory
   function getOrPrecomputeImplementationAddress() public view returns (address) {
-    if (fpmmImplementation != address(0)) {
-      return fpmmImplementation;
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+
+    if ($.fpmmImplementation != address(0)) {
+      return $.fpmmImplementation;
     }
 
     (address precomputedImplementation, ) = _computeImplementationAddressAndSalt();
@@ -92,19 +138,16 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-start encode-packed-collision
   /// @inheritdoc IFPMMFactory
   function getOrPrecomputeProxyAddress(address token0, address token1) public view returns (address) {
-    if (address(deployedFPMMs[token0][token1]) != address(0)) {
-      return address(deployedFPMMs[token0][token1]);
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+
+    if (address($.deployedFPMMs[token0][token1]) != address(0)) {
+      return address($.deployedFPMMs[token0][token1]);
     }
 
     (address precomputedProxyAddress, ) = _computeProxyAddressAndSalt(token0, token1);
     return precomputedProxyAddress;
   }
   // slither-disable-end encode-packed-collision
-
-  /// @inheritdoc IFPMMFactory
-  function getDeployedFPMMAddresses() public view returns (address[] memory) {
-    return deployedFPMMAddresses;
-  }
 
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
@@ -113,29 +156,32 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /// @inheritdoc IFPMMFactory
   function setSortedOracles(address _sortedOracles) public onlyOwner {
     require(_sortedOracles != address(0), "FPMMFactory: ZERO_ADDRESS");
-    sortedOracles = _sortedOracles;
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    $.sortedOracles = _sortedOracles;
     emit SortedOraclesSet(_sortedOracles);
   }
 
   /// @inheritdoc IFPMMFactory
   function setProxyAdmin(address _proxyAdmin) public onlyOwner {
     require(_proxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
-
-    proxyAdmin = _proxyAdmin;
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    $.proxyAdmin = _proxyAdmin;
     emit ProxyAdminSet(_proxyAdmin);
   }
 
   /// @inheritdoc IFPMMFactory
   function setBreakerBox(address _breakerBox) public onlyOwner {
     require(_breakerBox != address(0), "FPMMFactory: ZERO_ADDRESS");
-    breakerBox = _breakerBox;
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    $.breakerBox = _breakerBox;
     emit BreakerBoxSet(_breakerBox);
   }
 
   /// @inheritdoc IFPMMFactory
   function setGovernance(address _governance) public onlyOwner {
     require(_governance != address(0), "FPMMFactory: ZERO_ADDRESS");
-    governance = _governance;
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    $.governance = _governance;
     transferOwnership(_governance);
     emit GovernanceSet(_governance);
   }
@@ -147,17 +193,18 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address token1,
     address referenceRateFeedID
   ) external onlyOwner returns (address, address) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
     require(token0 != address(0) && token1 != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(token0 != token1, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
-    require(address(deployedFPMMs[token0][token1]) == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
+    require(address($.deployedFPMMs[token0][token1]) == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
-    if (fpmmImplementation == address(0)) {
-      _deployFPMMImplementation();
+    if ($.fpmmImplementation == address(0)) {
+      _deployFPMMImplementation($);
     }
-    address fpmmProxy = _deployFPMMProxy(token0, token1, referenceRateFeedID);
+    address fpmmProxy = _deployFPMMProxy($, token0, token1, referenceRateFeedID);
 
-    return (fpmmImplementation, fpmmProxy);
+    return ($.fpmmImplementation, fpmmProxy);
   }
   // slither-disable-end reentrancy-no-eth
 
@@ -169,14 +216,14 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @notice Deploys the FPMM implementation contract if it is not already deployed.
    */
   // slither-disable-start reentrancy-events
-  function _deployFPMMImplementation() internal {
+  function _deployFPMMImplementation(FPMMFactoryStorage storage $) internal {
     bytes memory implementationBytecode = abi.encodePacked(type(FPMM).creationCode, abi.encode(true));
 
     (address expectedFPMMImplementation, bytes32 salt) = _computeImplementationAddressAndSalt();
 
-    fpmmImplementation = ICreateX(CREATEX).deployCreate3(salt, implementationBytecode);
-    assert(fpmmImplementation == expectedFPMMImplementation);
-    emit FPMMImplementationDeployed(fpmmImplementation);
+    $.fpmmImplementation = ICreateX(CREATEX).deployCreate3(salt, implementationBytecode);
+    assert($.fpmmImplementation == expectedFPMMImplementation);
+    emit FPMMImplementationDeployed($.fpmmImplementation);
   }
   // slither-disable-end reentrancy-events
 
@@ -190,26 +237,31 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-start reentrancy-benign
   // slither-disable-start reentrancy-events
   // slither-disable-start encode-packed-collision
-  function _deployFPMMProxy(address token0, address token1, address referenceRateFeedID) internal returns (address) {
+  function _deployFPMMProxy(
+    FPMMFactoryStorage storage $,
+    address token0,
+    address token1,
+    address referenceRateFeedID
+  ) internal returns (address) {
     (address expectedProxyAddress, bytes32 salt) = _computeProxyAddressAndSalt(token0, token1);
 
     bytes memory initData = abi.encodeWithSelector(
       FPMM.initialize.selector,
       token0,
       token1,
-      sortedOracles,
+      $.sortedOracles,
       referenceRateFeedID,
-      breakerBox,
-      governance
+      $.breakerBox,
+      $.governance
     );
     bytes memory proxyBytecode = abi.encodePacked(
       type(FPMMProxy).creationCode,
-      abi.encode(fpmmImplementation, proxyAdmin, initData)
+      abi.encode($.fpmmImplementation, $.proxyAdmin, initData)
     );
 
     address newProxyAddress = ICreateX(CREATEX).deployCreate3(salt, proxyBytecode);
-    deployedFPMMs[token0][token1] = FPMM(newProxyAddress);
-    deployedFPMMAddresses.push(newProxyAddress);
+    $.deployedFPMMs[token0][token1] = FPMM(newProxyAddress);
+    $.deployedFPMMAddresses.push(newProxyAddress);
     emit FPMMDeployed(token0, token1, newProxyAddress);
     assert(newProxyAddress == expectedProxyAddress);
     return newProxyAddress;
@@ -253,7 +305,18 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address proxyAddress = ICreateX(CREATEX).computeCreate3Address(guardedSalt);
     return (proxyAddress, salt);
   }
-  // slither-disable-end encode-packed-collision
+
+  /**
+   * @notice Returns the pointer to the FPMMFactoryStorage struct.
+   * @return $ The pointer to the FPMMFactoryStorage struct
+   */
+  function _getFPMMStorage() private pure returns (FPMMFactoryStorage storage $) {
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      $.slot := FPMM_FACTORY_STORAGE_LOCATION
+    }
+  }
+
   /**
    * @notice Hashes two bytes32 values efficiently.
    * @dev copied from CREATEX contract to precaluclated deployment addresses
@@ -271,11 +334,4 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       hash := keccak256(0x00, 0x40)
     }
   }
-
-  /**
-   * @dev This empty reserved space is put in place to allow future versions to add new
-   * variables without shifting down storage in the inheritance chain.
-   * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-   */
-  uint256[50] private __gap;
 }
