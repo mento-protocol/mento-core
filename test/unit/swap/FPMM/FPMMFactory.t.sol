@@ -353,6 +353,14 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
     vm.stopPrank();
   }
 
+  function test_deployFPMM_whenPairAlreadyExists_shouldRevert() public {
+    vm.startPrank(governanceCelo);
+    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
+    vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
+    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
+    vm.stopPrank();
+  }
+
   function test_deployFPMM_whenFirstTimeDeploying_shouldDeployFPMMImplementationAndEmitEvent() public {
     vm.startPrank(governanceCelo);
     assertEq(factoryCelo.fpmmImplementation(), address(0));

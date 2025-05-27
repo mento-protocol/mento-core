@@ -148,6 +148,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   ) external onlyOwner returns (address, address) {
     require(token0 != address(0) && token1 != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(token0 != token1, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    require(address(deployedFPMMs[token0][token1]) == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
     if (fpmmImplementation == address(0)) {
