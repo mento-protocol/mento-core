@@ -119,6 +119,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     IFPMM fpm = IFPMM(pool);
 
     // Get reserves and decimal scaling factors from the pool
+    // slither-disable-next-line unused-return
     (uint256 decimals0, uint256 decimals1, uint256 reserve0, uint256 reserve1, , ) = fpm.metadata();
     require(decimals0 <= 18 && decimals1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
 

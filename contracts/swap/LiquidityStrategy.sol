@@ -71,6 +71,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     }
 
     IFPMM fpmm = IFPMM(pool);
+    // slither-disable-next-line unused-return
     (uint256 oraclePrice, uint256 poolPrice, , ) = fpmm.getPrices();
     require(oraclePrice > 0 && poolPrice > 0, "LS: INVALID_PRICES");
 
@@ -88,6 +89,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     uint256 upperBound = (oraclePrice * (SCALE + upperThreshold)) / SCALE;
     uint256 lowerBound = (oraclePrice * (SCALE - lowerThreshold)) / SCALE;
 
+    // slither-disable-next-line uninitialized-local
     PriceDirection priceDirection;
 
     if (poolPrice >= upperBound) {
