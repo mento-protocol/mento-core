@@ -367,6 +367,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     uint256 oldThresholdBelow = $.rebalanceThresholdBelow;
     $.rebalanceThresholdAbove = _rebalanceThresholdAbove;
     $.rebalanceThresholdBelow = _rebalanceThresholdBelow;
+
     emit RebalanceThresholdUpdated(
       oldThresholdAbove,
       oldThresholdBelow,
@@ -420,6 +421,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
    * @return $ Pointer to the FPMM storage
    */
   function _getFPMMStorage() private pure returns (FPMMStorage storage $) {
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       $.slot := _FPMM_STORAGE_LOCATION
     }
