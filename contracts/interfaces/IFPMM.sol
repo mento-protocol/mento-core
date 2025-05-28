@@ -8,6 +8,25 @@ import { IBreakerBox } from "./IBreakerBox.sol";
 interface IFPMM {
   /* ========== STRUCTS ========== */
 
+  /// @notice Struct to store FPMM contract state
+  struct FPMMStorage {
+    address token0;
+    address token1;
+    uint256 decimals0;
+    uint256 decimals1;
+    uint256 reserve0;
+    uint256 reserve1;
+    uint256 blockTimestampLast;
+    ISortedOracles sortedOracles;
+    IBreakerBox breakerBox;
+    address referenceRateFeedID;
+    uint256 protocolFee;
+    uint256 rebalanceIncentive;
+    uint256 rebalanceThresholdAbove;
+    uint256 rebalanceThresholdBelow;
+    mapping(address => bool) liquidityStrategy;
+  }
+
   /// @notice Struct to store swap data
   struct SwapData {
     uint256 rateNumerator;
@@ -16,6 +35,8 @@ interface IFPMM {
     uint256 initialPriceDifference;
     uint256 amount0In;
     uint256 amount1In;
+    uint256 balance0;
+    uint256 balance1;
     bool reservePriceAboveOraclePrice;
   }
 
