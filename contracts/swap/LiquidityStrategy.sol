@@ -10,7 +10,6 @@ import { ReentrancyGuardUpgradeable } from "openzeppelin-contracts-upgradeable/c
 
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
-import { UD60x18, ud } from "prb-math/UD60x18.sol";
 
 /**
  * @title LiquidityStrategy
@@ -24,8 +23,8 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
 
   EnumerableSetUpgradeable.AddressSet private fpmmPools;
 
-  uint256 constant SCALE = 1e18;
-  uint256 constant BPS_SCALE = 10_000;
+  uint256 public constant SCALE = 1e18;
+  uint256 public constant BPS_SCALE = 10_000;
 
   /* ==================== Constructor ==================== */
 
