@@ -15,7 +15,8 @@ contract MockFPMMPool is Test {
   uint256 public reserve0;
   uint256 public reserve1;
   address public hookTarget;
-  uint256 public rebalanceThreshold;
+  uint256 public rebalanceThresholdAbove;
+  uint256 public rebalanceThresholdBelow;
 
   MockERC20 public token0_;
   MockERC20 public token1_;
@@ -28,7 +29,8 @@ contract MockFPMMPool is Test {
     reserve1 = 1000 * 10 ** 18;
     oraclePrice = 1 * 10 ** 18;
     poolPrice = 1 * 10 ** 18;
-    rebalanceThreshold = 100;
+    rebalanceThresholdAbove = 100;
+    rebalanceThresholdBelow = 100;
   }
 
   function setPrices(uint256 o, uint256 p) external {
@@ -73,8 +75,9 @@ contract MockFPMMPool is Test {
     return (token0_.decimals(), token1_.decimals(), reserve0, reserve1, address(token0_), address(token1_));
   }
 
-  function setRebalanceThreshold(uint256 _threshold) external {
-    rebalanceThreshold = _threshold;
+  function setRebalanceThreshold(uint256 _thresholdAbove, uint256 _thresholdBelow) external {
+    rebalanceThresholdAbove = _thresholdAbove;
+    rebalanceThresholdBelow = _thresholdBelow;
   }
 
   function rebalance(uint256 amount0Out, uint256 amount1Out, address recipient, bytes calldata data) external {
@@ -89,6 +92,6 @@ contract MockFPMMPool is Test {
       token1_.transfer(recipient, amount1Out);
     }
 
-    IFPMMCallee(recipient).hook(address(this), amount0Out, amount1Out, data);
+    IFPMMCallee(recipient).hook(msg.sender, amount0Out, amount1Out, data);
   }
 }

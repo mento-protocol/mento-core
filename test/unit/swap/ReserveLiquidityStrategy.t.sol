@@ -192,7 +192,7 @@ contract ReserveLiquidityStrategyTest is Test {
 
   function test_rebalance_shouldRevert_whenPriceInRange() public {
     mockPool.setPrices(1e18, 1.005e18); // 0.5% deviation, threshold 1%
-    mockPool.setRebalanceThreshold(100); // 1%
+    mockPool.setRebalanceThreshold(100, 100); // 1%
 
     vm.expectRevert("LS: PRICE_IN_RANGE");
     strat.rebalance(address(mockPool));
@@ -210,7 +210,7 @@ contract ReserveLiquidityStrategyTest is Test {
 
     mockPool.setReserves(stableReserveInPool, collateralReserveInPool);
     mockPool.setPrices(oraclePrice, currentPoolPrice);
-    mockPool.setRebalanceThreshold(thresholdBps);
+    mockPool.setRebalanceThreshold(thresholdBps, thresholdBps);
 
     // --- Expected Calculations (Contraction) ---
     // Y = (S - P * C) / (2 * P) -> collateralToSell (inputAmount)
@@ -299,7 +299,7 @@ contract ReserveLiquidityStrategyTest is Test {
 
     mockPool.setReserves(stableReserveInPool, collateralReserveInPool);
     mockPool.setPrices(oraclePrice, currentPoolPrice);
-    mockPool.setRebalanceThreshold(thresholdBps);
+    mockPool.setRebalanceThreshold(thresholdBps, thresholdBps);
 
     // --- Expected Calculations (Expansion) ---
     // X = (C * P - S) / 2 -> stablesToSell (inputAmount)
@@ -388,7 +388,7 @@ contract ReserveLiquidityStrategyTest is Test {
 
     mockPool6Dec.setReserves(stableReserveInPool, collateralReserveInPool);
     mockPool6Dec.setPrices(oraclePrice, currentPoolPrice);
-    mockPool6Dec.setRebalanceThreshold(thresholdBps);
+    mockPool6Dec.setRebalanceThreshold(thresholdBps, thresholdBps);
 
     // --- Expected Calculations (Contraction) ---
 
