@@ -114,12 +114,12 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    * @param priceDirection Indicates if the pool price is above or below the oracle price.
    */
   function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal override {
-    IFPMM fpm = IFPMM(pool);
+    IFPMM fpmm = IFPMM(pool);
     // slither-disable-next-line unused-return
-    (, , uint256 reserve0, uint256 reserve1, , ) = fpm.metadata();
+    (, , uint256 reserve0, uint256 reserve1, , ) = fpmm.metadata();
 
-    uint256 decimals0 = IERC20MetadataUpgradeable(fpm.token0()).decimals();
-    uint256 decimals1 = IERC20MetadataUpgradeable(fpm.token1()).decimals();
+    uint256 decimals0 = IERC20MetadataUpgradeable(fpmm.token0()).decimals();
+    uint256 decimals1 = IERC20MetadataUpgradeable(fpmm.token1()).decimals();
     require(decimals0 <= 18 && decimals1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
 
     // Create a reserves struct to pass to calculation functions
@@ -145,7 +145,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     bytes memory callbackData = abi.encode(inputAmount, priceDirection);
 
     emit RebalanceInitiated(pool, stableOut, collateralOut, inputAmount, priceDirection);
-    fpm.rebalance(stableOut, collateralOut, address(this), callbackData);
+    fpmm.rebalance(stableOut, collateralOut, address(this), callbackData);
   }
 
   /* ==================== Private Functions ==================== */
