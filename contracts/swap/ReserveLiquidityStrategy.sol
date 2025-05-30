@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import { SafeERC20MintableBurnable } from "contracts/common/SafeERC20MintableBurnable.sol";
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
+// solhint-disable-next-line max-line-length
+import { IERC20MetadataUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import { UD60x18, ud } from "prb-math/UD60x18.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
@@ -113,10 +115,11 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    */
   function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal override {
     IFPMM fpm = IFPMM(pool);
-
-    // Get reserves and decimal scaling factors from the pool
     // slither-disable-next-line unused-return
-    (uint256 decimals0, uint256 decimals1, uint256 reserve0, uint256 reserve1, , ) = fpm.metadata();
+    (, , uint256 reserve0, uint256 reserve1, , ) = fpm.metadata();
+
+    uint256 decimals0 = IERC20MetadataUpgradeable(fpm.token0()).decimals();
+    uint256 decimals1 = IERC20MetadataUpgradeable(fpm.token1()).decimals();
     require(decimals0 <= 18 && decimals1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
 
     // Create a reserves struct to pass to calculation functions
