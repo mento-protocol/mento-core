@@ -217,11 +217,7 @@ contract ReserveLiquidityStrategyTest is Test {
     );
 
     // Expect call to FPMM pool with zero amounts
-    bytes memory expectedCallbackData = abi.encode(
-      address(mockPool),
-      expectedStablesIn,
-      ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
-    );
+    bytes memory expectedCallbackData = abi.encode(expectedStablesIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
 
     vm.expectCall(
       address(mockPool),
@@ -282,11 +278,7 @@ contract ReserveLiquidityStrategyTest is Test {
     );
 
     // Expect call to FPMM pool with non-zero amounts
-    bytes memory expectedCallbackData = abi.encode(
-      address(mockPool),
-      expectedStablesIn,
-      ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
-    );
+    bytes memory expectedCallbackData = abi.encode(expectedStablesIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
 
     vm.expectCall(
       address(mockPool),
@@ -364,7 +356,6 @@ contract ReserveLiquidityStrategyTest is Test {
 
     // Expect call to FPMM pool with calculated amounts
     bytes memory expectedCallbackData = abi.encode(
-      address(mockPool),
       expectedCollateralIn,
       ILiquidityStrategy.PriceDirection.BELOW_ORACLE
     );
@@ -437,28 +428,17 @@ contract ReserveLiquidityStrategyTest is Test {
   /* ---------- Hook Tests ---------- */
 
   function test_hook_whenInitiatorIsNotStrategy_shouldRevert() public {
-    bytes memory dummyData = abi.encode(address(mockPool), 0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    bytes memory dummyData = abi.encode(0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
     vm.prank(alice);
     vm.expectRevert("RLS: HOOK_SENDER_NOT_SELF");
     strat.hook(address(mockPool), 0, 0, dummyData);
-  }
-
-  function test_hook_whenMessageSenderIsNotPool_shouldRevert() public {
-    bytes memory dummyData = abi.encode(address(mockPool), 0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
-    vm.prank(alice);
-    vm.expectRevert("RLS: HOOK_CALLER_NOT_EXPECTED_POOL");
-    strat.hook(address(strat), 0, 0, dummyData);
   }
 
   function test_hook_whenPoolIsNotRegistered_shouldRevert() public {
     MockFPMMPool unregisteredPool = new MockFPMMPool(address(strat), address(stableToken), address(collateralToken));
     vm.label(address(unregisteredPool), "UnregisteredPoolForHookTest");
 
-    bytes memory dataWithUnregisteredPool = abi.encode(
-      address(unregisteredPool),
-      0,
-      ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
-    );
+    bytes memory dataWithUnregisteredPool = abi.encode(0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
     vm.prank(address(unregisteredPool));
     vm.expectRevert("RLS: UNREGISTERED_POOL");
     strat.hook(address(strat), 0, 0, dataWithUnregisteredPool);
@@ -480,7 +460,7 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.prank(deployer);
     strat.addPool(address(testPool), 1 days);
 
-    bytes memory callbackData = abi.encode(address(testPool), amountIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    bytes memory callbackData = abi.encode(amountIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
 
     // Mock token calls
     vm.mockCall(
@@ -527,11 +507,7 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.prank(deployer);
     strat.addPool(address(testPool), 1 days);
 
-    bytes memory callbackData = abi.encode(
-      address(testPool),
-      collateralIn,
-      ILiquidityStrategy.PriceDirection.BELOW_ORACLE
-    );
+    bytes memory callbackData = abi.encode(collateralIn, ILiquidityStrategy.PriceDirection.BELOW_ORACLE);
 
     // Mock token calls
     vm.mockCall(
@@ -574,7 +550,7 @@ contract ReserveLiquidityStrategyTest is Test {
     uint256 amountIn = 100e18;
     uint256 amount1Out = 50e18;
 
-    bytes memory callbackData = abi.encode(address(mockPool), amountIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    bytes memory callbackData = abi.encode(amountIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
 
     // Mock the transfer to fail
     vm.mockCall(
@@ -606,11 +582,7 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.prank(deployer);
     strat.addPool(address(testPool), 1 days);
 
-    bytes memory callbackData = abi.encode(
-      address(testPool),
-      collateralIn,
-      ILiquidityStrategy.PriceDirection.BELOW_ORACLE
-    );
+    bytes memory callbackData = abi.encode(collateralIn, ILiquidityStrategy.PriceDirection.BELOW_ORACLE);
 
     // First mock the burn to succeed
     vm.mockCall(

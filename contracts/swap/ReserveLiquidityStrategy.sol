@@ -63,29 +63,25 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    * @param data The encoded data from the pool.
    */
   function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
-    (address pool, uint256 amountIn, PriceDirection priceDirection) = abi.decode(
-      data,
-      (address, uint256, PriceDirection)
-    );
+    (uint256 amountIn, PriceDirection priceDirection) = abi.decode(data, (uint256, PriceDirection));
 
     require(sender == address(this), "RLS: HOOK_SENDER_NOT_SELF");
-    require(msg.sender == pool, "RLS: HOOK_CALLER_NOT_EXPECTED_POOL");
-    require(isPoolRegistered(pool), "RLS: UNREGISTERED_POOL");
+    require(isPoolRegistered(msg.sender), "RLS: UNREGISTERED_POOL");
 
-    IFPMM fpm = IFPMM(pool);
+    IFPMM fpm = IFPMM(msg.sender);
 
     address stableToken = fpm.token0();
     address collateralToken = fpm.token1();
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
       // Expansion: mint stables to FPMM, transfer received collateral to reserve
-      IERC20(stableToken).safeMint(pool, amountIn);
+      IERC20(stableToken).safeMint(msg.sender, amountIn);
       require(IERC20(collateralToken).transfer(address(reserve), amount1Out), "RLS: COLLATERAL_TRANSFER_FAILED");
     } else {
       // Contraction: burn stables, pull collateral from reserve and send to FPMM
       IERC20(stableToken).safeBurn(amount0Out);
       require(
-        reserve.transferExchangeCollateralAsset(collateralToken, payable(pool), amountIn),
+        reserve.transferExchangeCollateralAsset(collateralToken, payable(msg.sender), amountIn),
         "RLS: COLLATERAL_TRANSFER_FAILED"
       );
     }
@@ -143,7 +139,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       collateralOut = 0;
     }
 
-    bytes memory callbackData = abi.encode(pool, inputAmount, priceDirection);
+    bytes memory callbackData = abi.encode(inputAmount, priceDirection);
 
     emit RebalanceInitiated(pool, stableOut, collateralOut, inputAmount, priceDirection);
     fpm.rebalance(stableOut, collateralOut, address(this), callbackData);
