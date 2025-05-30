@@ -291,6 +291,8 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     emit Mint(msg.sender, amount0, amount1, liquidity);
   }
 
+  // slither-disable-start reentrancy-benign
+  // slither-disable-start reentrancy-no-eth
   /// @inheritdoc IFPMM
   function burn(address to) external nonReentrant returns (uint256 amount0, uint256 amount1) {
     FPMMStorage storage $ = _getFPMMStorage();
@@ -311,15 +313,15 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
     _burn(address(this), liquidity);
 
-    // slither-disable-start reentrancy-benign
     IERC20(_token0).safeTransfer(to, amount0);
     IERC20(_token1).safeTransfer(to, amount1);
-    // slither-disable-end reentrancy-benign
 
     _update();
 
     emit Burn(msg.sender, amount0, amount1, liquidity, to);
   }
+  // slither-disable-end reentrancy-benign
+  // slither-disable-end reentrancy-no-eth
 
   /// @inheritdoc IFPMM
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
