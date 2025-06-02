@@ -23,7 +23,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
 
   EnumerableSetUpgradeable.AddressSet private fpmmPools;
 
-  uint256 public constant SCALE = 1e18;
   uint256 public constant BPS_SCALE = 10_000;
 
   /* ==================== Constructor ==================== */
@@ -75,19 +74,14 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     (uint256 oraclePrice, uint256 poolPrice, , ) = fpmm.getPrices();
     require(oraclePrice > 0 && poolPrice > 0, "LS: INVALID_PRICES");
 
-    uint256 rawUpperThresholdBps = fpmm.rebalanceThresholdAbove();
-    require(rawUpperThresholdBps > 0 && rawUpperThresholdBps <= 10_000, "LS: INVALID_UPPER_THRESHOLD");
+    uint256 upperThresholdBps = fpmm.rebalanceThresholdAbove();
+    require(upperThresholdBps > 0 && upperThresholdBps <= BPS_SCALE, "LS: INVALID_UPPER_THRESHOLD");
 
-    uint256 rawLowerThresholdBps = fpmm.rebalanceThresholdBelow();
-    require(rawLowerThresholdBps > 0 && rawLowerThresholdBps <= 10_000, "LS: INVALID_LOWER_THRESHOLD");
+    uint256 lowerThresholdBps = fpmm.rebalanceThresholdBelow();
+    require(lowerThresholdBps > 0 && lowerThresholdBps <= BPS_SCALE, "LS: INVALID_LOWER_THRESHOLD");
 
-    // Convert basis points to scaled decimals (e.g. 10000 bps = 1.0)
-    uint256 upperThreshold = (rawUpperThresholdBps * SCALE) / BPS_SCALE;
-    uint256 lowerThreshold = (rawLowerThresholdBps * SCALE) / BPS_SCALE;
-
-    // Calculate bounds
-    uint256 upperBound = (oraclePrice * (SCALE + upperThreshold)) / SCALE;
-    uint256 lowerBound = (oraclePrice * (SCALE - lowerThreshold)) / SCALE;
+    uint256 upperBound = (oraclePrice * (BPS_SCALE + upperThresholdBps)) / BPS_SCALE;
+    uint256 lowerBound = (oraclePrice * (BPS_SCALE - lowerThresholdBps)) / BPS_SCALE;
 
     // slither-disable-next-line uninitialized-local
     PriceDirection priceDirection;
