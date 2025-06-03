@@ -10,15 +10,22 @@ interface IFPMMFactory {
    * @notice Emitted when a new FPMM is deployed.
    * @param token0 The address of the first token
    * @param token1 The address of the second token
-   * @param fpmm The address of the deployed FPMM
+   * @param fpmmProxy The address of the deployed FPMM proxy
+   * @param fpmmImplementation The address of the deployed FPMM implementation
    */
-  event FPMMDeployed(address indexed token0, address indexed token1, address fpmm);
+  event FPMMDeployed(address indexed token0, address indexed token1, address fpmmProxy, address fpmmImplementation);
 
   /**
-   * @notice Emitted when the FPMM implementation is deployed.
-   * @param implementation The address of the deployed implementation
+   * @notice Emitted when a new FPMM implementation is registered.
+   * @param implementation The address of the registered implementation
    */
-  event FPMMImplementationDeployed(address indexed implementation);
+  event FPMMImplementationRegistered(address indexed implementation);
+
+  /**
+   * @notice Emitted when a new FPMM implementation is unregistered.
+   * @param implementation The address of the unregistered implementation
+   */
+  event FPMMImplementationUnregistered(address indexed implementation);
 
   /**
    * @notice Emitted when the proxy admin is set.
@@ -73,12 +80,6 @@ interface IFPMMFactory {
   function governance() external view returns (address);
 
   /**
-   * @notice Gets the address of the FPMM implementation contract.
-   * @return The address of the FPMM implementation contract
-   */
-  function fpmmImplementation() external view returns (address);
-
-  /**
    * @notice Gets the address of the deployed FPMM for a token pair.
    * @param token0 The address of the first token
    * @param token1 The address of the second token
@@ -93,10 +94,17 @@ interface IFPMMFactory {
   function deployedFPMMAddresses() external view returns (address[] memory);
 
   /**
-   * @notice Gets the precomputed or current implementation address.
-   * @return The address of the FPMM implementation
+   * @notice Checks if a FPMM implementation is registered.
+   * @param fpmmImplementation The address of the FPMM implementation
+   * @return True if the FPMM implementation is registered, false otherwise
    */
-  function getOrPrecomputeImplementationAddress() external view returns (address);
+  function isRegisteredImplementation(address fpmmImplementation) external view returns (bool);
+
+  /**
+   * @notice Gets the list of registered FPMM implementations.
+   * @return The list of registered FPMM implementations
+   */
+  function registeredImplementations() external view returns (address[] memory);
 
   /**
    * @notice Gets the precomputed or current proxy address for a token pair.
@@ -117,7 +125,13 @@ interface IFPMMFactory {
    * @param _breakerBox The address of the breaker box contract
    * @param _governance The address of the governance contract
    */
-  function initialize(address _sortedOracles, address _proxyAdmin, address _breakerBox, address _governance) external;
+  function initialize(
+    address _sortedOracles,
+    address _proxyAdmin,
+    address _breakerBox,
+    address _governance,
+    address _fpmmImplementation
+  ) external;
 
   /**
    * @notice Sets the address of the sorted oracles contract.
@@ -144,16 +158,52 @@ interface IFPMMFactory {
   function setGovernance(address _governance) external;
 
   /**
-   * @notice Deploys a new FPMM for a token pair.
+   * @notice Registers a new FPMM implementation address.
+   * @param fpmmImplementation The FPMM implementation address to register
+   */
+  function registerFPMMImplementation(address fpmmImplementation) external;
+
+  /**
+   * @notice Unregisters a FPMM implementation address.
+   * @param fpmmImplementation The FPMM implementation address to unregister
+   * @param index The index of the FPMM implementation to unregister
+   */
+  function unregisterFPMMImplementation(address fpmmImplementation, uint256 index) external;
+
+  /**
+   * @notice Deploys a new FPMM for a token pair using the default parameters.
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
-   * @return implementation The address of the FPMM implementation
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
+    address fpmmImplementation,
     address token0,
     address token1,
     address referenceRateFeedID
-  ) external returns (address implementation, address proxy);
+  ) external returns (address proxy);
+
+  /**
+   * @notice Deploys a new FPMM for a token pair using custom parameters.
+   * @param fpmmImplementation The address of the FPMM implementation
+   * @param customSortedOracles The address of the custom sorted oracles contract
+   * @param customProxyAdmin The address of the custom proxy admin contract
+   * @param customBreakerBox The address of the custom breaker box contract
+   * @param customGovernance The address of the custom governance contract
+   * @param token0 The address of the first token
+   * @param token1 The address of the second token
+   * @param referenceRateFeedID The address of the reference rate feed
+   * @return proxy The address of the deployed FPMM proxy
+   */
+  function deployFPMM(
+    address fpmmImplementation,
+    address customSortedOracles,
+    address customProxyAdmin,
+    address customBreakerBox,
+    address customGovernance,
+    address token0,
+    address token1,
+    address referenceRateFeedID
+  ) external returns (address proxy);
 }

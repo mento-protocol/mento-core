@@ -12,8 +12,9 @@ import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contra
 
 contract FPMMFactoryTest is Test {
   /* ------- Events from FPMMFactory ------- */
-  event FPMMDeployed(address indexed token0, address indexed token1, address fpmm);
-  event FPMMImplementationDeployed(address indexed implementation);
+  event FPMMDeployed(address indexed token0, address indexed token1, address fpmmProxy, address fpmmImplementation);
+  event FPMMImplementationRegistered(address indexed fpmmImplementation);
+  event FPMMImplementationUnregistered(address indexed fpmmImplementation);
   event ProxyAdminSet(address indexed proxyAdmin);
   event SortedOraclesSet(address indexed sortedOracles);
   event BreakerBoxSet(address indexed breakerBox);
@@ -33,6 +34,8 @@ contract FPMMFactoryTest is Test {
   address public proxyAdminCelo;
   address public governanceCelo;
   FPMMFactory public factoryCelo;
+  FPMM public fpmmImplementationCelo;
+  address public fpmmImplementationCeloAddress;
 
   // Optimism
   uint256 public opFork;
@@ -43,6 +46,8 @@ contract FPMMFactoryTest is Test {
   address public proxyAdminOp;
   address public governanceOp;
   FPMMFactory public factoryOp;
+  FPMM public fpmmImplementationOp;
+  address public fpmmImplementationOpAddress;
 
   function setUp() public virtual {
     createX = 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed;
@@ -56,6 +61,9 @@ contract FPMMFactoryTest is Test {
     breakerBoxCelo = makeAddr("BreakerBox Celo");
     proxyAdminCelo = makeAddr("ProxyAdmin Celo");
     governanceCelo = makeAddr("Governance Celo");
+    fpmmImplementationCelo = new FPMM(true);
+    fpmmImplementationCeloAddress = address(fpmmImplementationCelo);
+    vm.makePersistent(address(fpmmImplementationCelo));
 
     opFork = vm.createFork("https://mainnet.optimism.io");
     token0Op = makeAddr("Token 0 Optimism");
@@ -64,6 +72,9 @@ contract FPMMFactoryTest is Test {
     breakerBoxOp = makeAddr("BreakerBox Optimism");
     proxyAdminOp = makeAddr("ProxyAdmin Optimism");
     governanceOp = makeAddr("Governance Optimism");
+    fpmmImplementationOp = new FPMM(true);
+    fpmmImplementationOpAddress = address(fpmmImplementationOp);
+    vm.makePersistent(address(fpmmImplementationOp));
   }
 }
 
@@ -76,12 +87,24 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(true);
     vm.expectRevert("Initializable: contract is already initialized");
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
   }
   function test_constructor_whenDisableFalse_shouldNotDisableInitializers() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
   }
 
   function test_constructor_whenCreateXNotDeployed_shouldRevert() public {
@@ -99,7 +122,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
     vm.prank(deployer);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
     assertEq(factoryCelo.owner(), governanceCelo);
   }
 
@@ -107,28 +136,53 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factoryCelo.initialize(address(0), proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(address(0), proxyAdminCelo, breakerBoxCelo, governanceCelo, address(fpmmImplementationCelo));
   }
 
   function test_initialize_whenProxyAdminIsZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factoryCelo.initialize(sortedOraclesCelo, address(0), breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      address(0),
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
   }
 
   function test_initialize_whenBreakerBoxIsZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, address(0), governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      address(0),
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+  }
+
+  function test_initialize_whenFPMMImplementationIsZeroAddress_shouldRevert() public {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo, address(0));
   }
 
   function test_initialize_whenGovernanceIsZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, address(0));
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      address(0),
+      address(fpmmImplementationCelo)
+    );
   }
 
   function test_initialized_shouldSetVariablesAndEmitEvents() public {
@@ -142,12 +196,24 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     vm.expectEmit();
     emit BreakerBoxSet(breakerBoxCelo);
     vm.expectEmit();
+    emit FPMMImplementationRegistered(address(fpmmImplementationCelo));
+    vm.expectEmit();
     emit GovernanceSet(governanceCelo);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     assertEq(factoryCelo.sortedOracles(), sortedOraclesCelo);
     assertEq(factoryCelo.proxyAdmin(), proxyAdminCelo);
     assertEq(factoryCelo.breakerBox(), breakerBoxCelo);
+    assertEq(factoryCelo.isRegisteredImplementation(address(fpmmImplementationCelo)), true);
+    address[] memory registeredImplementations = factoryCelo.registeredImplementations();
+    assertEq(registeredImplementations.length, 1);
+    assertEq(registeredImplementations[0], address(fpmmImplementationCelo));
     assertEq(factoryCelo.governance(), governanceCelo);
     assertEq(factoryCelo.owner(), governanceCelo);
   }
@@ -155,7 +221,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setSortedOracles_whenCallerIsNotOwner_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("Not Owner"));
@@ -165,7 +237,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setSortedOracles_whenZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
     vm.prank(governanceCelo);
@@ -175,7 +253,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setSortedOracles_shouldSetSortedOraclesAndEmitEvent() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     address newSortedOracles = makeAddr("New SortedOracles");
     vm.expectEmit();
@@ -189,7 +273,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setProxyAdmin_whenCallerIsNotOwner_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("Not Owner"));
@@ -199,7 +289,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setProxyAdmin_whenZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
     vm.prank(governanceCelo);
@@ -209,7 +305,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setProxyAdmin_shouldSetProxyAdminAndEmitEvent() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     address newProxyAdmin = makeAddr("New ProxyAdmin");
     vm.expectEmit();
@@ -223,7 +325,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setBreakerBox_whenCallerIsNotOwner_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("Not Owner"));
@@ -233,7 +341,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setBreakerBox_whenZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
     vm.prank(governanceCelo);
@@ -243,7 +357,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setBreakerBox_shouldSetBreakerBoxAndEmitEvent() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     address newBreakerBox = makeAddr("New BreakerBox");
     vm.expectEmit();
@@ -257,7 +377,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setGovernance_whenCallerIsNotOwner_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("Not Owner"));
@@ -267,7 +393,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setGovernance_whenZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
     vm.prank(governanceCelo);
@@ -277,7 +409,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_setGovernance_shouldSetGovernanceAndEmitEvent() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
     address newGovernance = makeAddr("New Governance");
     vm.expectEmit();
@@ -288,181 +426,343 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     assertEq(factoryCelo.governance(), newGovernance);
   }
 
-  function test_getOrPrecomputeAddress_whenContractsAreNotDeployed_shouldReturnCorrectPrecomputedAddresses() public {
+  function test_registerImplementation_whenCallerIsNotOwner_shouldRevert() public {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("Not Owner"));
+    factoryCelo.registerFPMMImplementation(address(fpmmImplementationCelo));
+  }
+
+  function test_registerImplementation_whenImplementationIsZeroAddress_shouldRevert() public {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.prank(governanceCelo);
+    factoryCelo.registerFPMMImplementation(address(0));
+  }
+
+  function test_registerImplementation_whenImplementationIsAlreadyRegistered_shouldRevert() public {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.startPrank(governanceCelo);
+    factoryCelo.registerFPMMImplementation(makeAddr("Implementation2"));
+    vm.expectRevert("FPMMFactory: IMPLEMENTATION_ALREADY_REGISTERED");
+    factoryCelo.registerFPMMImplementation(makeAddr("Implementation2"));
+    vm.stopPrank();
+  }
+
+  function test_registerImplementation_whenImplementationIsNotRegistered_shouldRegisterImplementationAndEmitEvent()
+    public
+  {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.prank(governanceCelo);
+    vm.expectEmit();
+    emit FPMMImplementationRegistered(makeAddr("Implementation2"));
+    factoryCelo.registerFPMMImplementation(makeAddr("Implementation2"));
+    vm.stopPrank();
+  }
+
+  function test_unregisterImplementation_whenCallerIsNotOwner_shouldRevert() public {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("Not Owner"));
+    factoryCelo.unregisterFPMMImplementation(address(fpmmImplementationCelo), 0);
+  }
+
+  function test_unregisterImplementation_whenImplementationIsNotRegistered_shouldRevert() public {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+    vm.prank(governanceCelo);
+    factoryCelo.unregisterFPMMImplementation(makeAddr("Implementation2"), 0);
+  }
+
+  function test_unregisterImplemenattion_whenIndexIsOutOfBounds_shouldRevert() public {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.expectRevert("FPMMFactory: INDEX_OUT_OF_BOUNDS");
+    vm.prank(governanceCelo);
+    factoryCelo.unregisterFPMMImplementation(address(fpmmImplementationCelo), 1);
+  }
+
+  function test_unregisterImplementation_whenImplementationAddressAndIndexDoNotMatch_shouldRevert() public {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.startPrank(governanceCelo);
+    factoryCelo.registerFPMMImplementation(makeAddr("Implementation2"));
+    vm.expectRevert("FPMMFactory: IMPLEMENTATION_INDEX_MISMATCH");
+    factoryCelo.unregisterFPMMImplementation(makeAddr("Implementation2"), 0);
+    vm.stopPrank();
+  }
+
+  function test_unregisterImplementation_shouldUnregisterImplementationAndEmitEvent() public {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.prank(governanceCelo);
+    vm.expectEmit();
+    emit FPMMImplementationUnregistered(address(fpmmImplementationCelo));
+    factoryCelo.unregisterFPMMImplementation(address(fpmmImplementationCelo), 0);
+
+    assertEq(factoryCelo.registeredImplementations().length, 0);
+    assertEq(factoryCelo.isRegisteredImplementation(address(fpmmImplementationCelo)), false);
+  }
+
+  function test_unregisterImplementation_whenMultipleImplementations_shouldUnregisterImplementationAndEmitEvent()
+    public
+  {
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+    vm.prank(governanceCelo);
+    factoryCelo.registerFPMMImplementation(makeAddr("Implementation2"));
+    vm.prank(governanceCelo);
+    vm.expectEmit();
+    emit FPMMImplementationUnregistered(address(fpmmImplementationCelo));
+    factoryCelo.unregisterFPMMImplementation(address(fpmmImplementationCelo), 0);
+
+    assertEq(factoryCelo.registeredImplementations().length, 1);
+    assertEq(factoryCelo.isRegisteredImplementation(address(fpmmImplementationCelo)), false);
+    assertEq(factoryCelo.isRegisteredImplementation(makeAddr("Implementation2")), true);
+    assertEq(factoryCelo.registeredImplementations()[0], makeAddr("Implementation2"));
+  }
+
+  function test_getOrPrecomputeProxyAddress_whenContractIsNotDeployed_shouldReturnCorrectPrecomputedAddress() public {
     vm.selectFork(celoFork);
     deployCodeTo("ERC20", abi.encode("Token 0", "T0"), token0Celo);
     deployCodeTo("ERC20", abi.encode("Token 1", "T1"), token1Celo);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
 
-    address precomputedImplementation = factoryCelo.getOrPrecomputeImplementationAddress();
     address precomputedProxy = factoryCelo.getOrPrecomputeProxyAddress(token0Celo, token1Celo);
 
-    address implementation = factoryCelo.fpmmImplementation();
-    assertEq(implementation, address(0));
-
     vm.prank(governanceCelo);
-    (address deployedImplementation, address deployedProxy) = factoryCelo.deployFPMM(
+    address deployedProxy = factoryCelo.deployFPMM(
+      address(fpmmImplementationCelo),
       token0Celo,
       token1Celo,
       referenceRateFeedID
     );
 
-    assertEq(deployedImplementation, precomputedImplementation);
     assertEq(deployedProxy, precomputedProxy);
   }
 }
 
-contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
-  function setUp() public override {
-    super.setUp();
+abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
+  address public expectedImplementation;
+  address public expectedProxy;
+  address public expectedSortedOracles;
+  address public expectedProxyAdmin;
+  address public expectedBreakerBox;
+  address public expectedGovernance;
+  address public expectedToken0;
+  address public expectedToken1;
+  address public expectedReferenceRateFeedID;
 
+  function deploy(string memory chain) internal virtual returns (address);
+
+  function setUp() public virtual override {
+    super.setUp();
     vm.selectFork(celoFork);
+    vm.prank(deployer);
     factoryCelo = new FPMMFactory(false);
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      fpmmImplementationCeloAddress
+    );
     deployCodeTo("ERC20", abi.encode("Token 0", "T0"), token0Celo);
     deployCodeTo("ERC20", abi.encode("Token 1", "T1"), token1Celo);
   }
 
   function test_deployFPMM_whenCallerIsNotOwner_shouldRevert() public {
-    vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("Not Owner"));
-    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
+    vm.expectRevert("Ownable: caller is not the owner");
+    deploy("celo");
+  }
+
+  function test_deployFPMM_whenImplementationIsNotRegistered_shouldRevert() public {
+    fpmmImplementationCeloAddress = makeAddr("Not Registered Implementation");
+    vm.prank(governanceCelo);
+    vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+    deploy("celo");
   }
 
   function test_deployFPMM_whenToken0OrToken1IsZeroAddress_shouldRevert() public {
-    vm.startPrank(governanceCelo);
+    token0Celo = address(0);
+    vm.prank(governanceCelo);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factoryCelo.deployFPMM(address(0), token1Celo, referenceRateFeedID);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factoryCelo.deployFPMM(token0Celo, address(0), referenceRateFeedID);
-    vm.stopPrank();
-  }
+    deploy("celo");
 
-  function test_deployFPMM_whenReferenceRateFeedIDIsZeroAddress_shouldRevert() public {
-    vm.startPrank(governanceCelo);
+    token0Celo = makeAddr("Token 0 Celo");
+    token1Celo = address(0);
+    vm.prank(governanceCelo);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factoryCelo.deployFPMM(token0Celo, token1Celo, address(0));
-    vm.stopPrank();
+    deploy("celo");
   }
 
   function test_deployFPMM_whenToken0AndToken1AreSame_shouldRevert() public {
-    vm.startPrank(governanceCelo);
+    token0Celo = token1Celo;
+    vm.prank(governanceCelo);
     vm.expectRevert("FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
-    factoryCelo.deployFPMM(token0Celo, token0Celo, referenceRateFeedID);
-    vm.stopPrank();
+    deploy("celo");
   }
 
   function test_deployFPMM_whenPairAlreadyExists_shouldRevert() public {
-    vm.startPrank(governanceCelo);
-    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
+    vm.prank(governanceCelo);
+    deploy("celo");
     vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
-    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
-    vm.stopPrank();
+    vm.prank(governanceCelo);
+    deploy("celo");
   }
 
-  function test_deployFPMM_whenFirstTimeDeploying_shouldDeployFPMMImplementationAndEmitEvent() public {
-    vm.startPrank(governanceCelo);
-    assertEq(factoryCelo.fpmmImplementation(), address(0));
+  function test_deployFPMM_whenReferenceRateFeedIDIsZeroAddress_shouldRevert() public {
+    referenceRateFeedID = address(0);
+    vm.prank(governanceCelo);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    deploy("celo");
+  }
 
-    address expectedFPMMImplementation = factoryCelo.getOrPrecomputeImplementationAddress();
+  function testdeployFPMM_shouldUpdateAndEmit() public {
+    vm.prank(governanceCelo);
     vm.expectEmit();
-    emit FPMMImplementationDeployed(expectedFPMMImplementation);
-    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
+    emit FPMMDeployed(expectedToken0, expectedToken1, expectedProxy, expectedImplementation);
+    address deployedProxy = deploy("celo");
 
-    assertEq(factoryCelo.fpmmImplementation(), expectedFPMMImplementation);
-
-    vm.expectRevert("Initializable: contract is already initialized");
-    FPMM(expectedFPMMImplementation).initialize(
-      token0Celo,
-      token1Celo,
-      sortedOraclesCelo,
-      referenceRateFeedID,
-      breakerBoxCelo,
-      governanceCelo
-    );
-    vm.stopPrank();
-  }
-
-  function test_deployFPMM_whenAlreadyDeployed_shouldNotDeploySecondImplementation() public {
-    vm.startPrank(governanceCelo);
-    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
-    address implementation = factoryCelo.fpmmImplementation();
-    assertTrue(implementation != address(0));
-
-    factoryCelo.deployFPMM(token1Celo, token0Celo, referenceRateFeedID);
-    assertEq(factoryCelo.fpmmImplementation(), implementation);
-    vm.stopPrank();
-  }
-
-  function test_deployFPMM_shouldDeployFPMMProxyAndEmitEvent() public {
-    vm.startPrank(governanceCelo);
-
-    address expectedProxyAddress = factoryCelo.getOrPrecomputeProxyAddress(token0Celo, token1Celo);
-
-    vm.expectEmit();
-    emit FPMMDeployed(token0Celo, token1Celo, expectedProxyAddress);
-    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
-
-    address proxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
-    address[] memory deployedFPMMAddresses = factoryCelo.deployedFPMMAddresses();
-
-    assertEq(proxy, expectedProxyAddress);
-    assertEq(deployedFPMMAddresses.length, 1);
-    assertEq(deployedFPMMAddresses[0], proxy);
-    vm.stopPrank();
+    assertEq(deployedProxy, expectedProxy);
+    assertEq(factoryCelo.deployedFPMMs(expectedToken0, expectedToken1), deployedProxy);
+    assertEq(factoryCelo.deployedFPMMAddresses().length, 1);
+    assertEq(factoryCelo.deployedFPMMAddresses()[0], deployedProxy);
 
     // if not pranked, the proxy will revert
-    vm.startPrank(proxyAdminCelo);
-    address proxyAdmin = ITransparentUpgradeableProxy(proxy).admin();
-    assertEq(proxyAdmin, factoryCelo.proxyAdmin());
-
-    address implementation = ITransparentUpgradeableProxy(proxy).implementation();
-    assertEq(implementation, factoryCelo.fpmmImplementation());
-    vm.stopPrank();
+    vm.prank(expectedProxyAdmin);
+    address proxyAdmin = ITransparentUpgradeableProxy(deployedProxy).admin();
+    assertEq(proxyAdmin, expectedProxyAdmin);
 
     // test that the proxy is initialized correctly
-    address owner = FPMM(proxy).owner();
-    assertEq(owner, governanceCelo);
+    address owner = FPMM(deployedProxy).owner();
+    assertEq(owner, expectedGovernance);
 
-    address token0 = FPMM(proxy).token0();
-    assertEq(token0, token0Celo);
+    address token0 = FPMM(deployedProxy).token0();
+    assertEq(token0, expectedToken0);
 
-    address token1 = FPMM(proxy).token1();
-    assertEq(token1, token1Celo);
+    address token1 = FPMM(deployedProxy).token1();
+    assertEq(token1, expectedToken1);
 
-    address breakerBox = address(FPMM(proxy).breakerBox());
-    assertEq(breakerBox, breakerBoxCelo);
+    address breakerBox = address(FPMM(deployedProxy).breakerBox());
+    assertEq(breakerBox, expectedBreakerBox);
 
-    address _referenceRateFeedID = address(FPMM(proxy).referenceRateFeedID());
-    assertEq(_referenceRateFeedID, referenceRateFeedID);
+    address _referenceRateFeedID = address(FPMM(deployedProxy).referenceRateFeedID());
+    assertEq(_referenceRateFeedID, expectedReferenceRateFeedID);
 
-    address sortedOracles = address(FPMM(proxy).sortedOracles());
-    assertEq(sortedOracles, sortedOraclesCelo);
+    address sortedOracles = address(FPMM(deployedProxy).sortedOracles());
+    assertEq(sortedOracles, expectedSortedOracles);
   }
 
   function test_deployFPMM_shouldMaintainProxyAddressesArray() public {
-    vm.startPrank(governanceCelo);
-    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
+    vm.prank(governanceCelo);
+    address firstProxy = deploy("celo");
     address[] memory deployedFPMMAddresses = factoryCelo.deployedFPMMAddresses();
     assertEq(deployedFPMMAddresses.length, 1);
-    factoryCelo.deployFPMM(token1Celo, token0Celo, referenceRateFeedID);
+
+    // deploy second pair with switched token0,token1
+    token0Celo = expectedToken1;
+    token1Celo = expectedToken0;
+    vm.prank(governanceCelo);
+    address secondProxy = deploy("celo");
+
     deployedFPMMAddresses = factoryCelo.deployedFPMMAddresses();
     assertEq(deployedFPMMAddresses.length, 2);
-    assertEq(deployedFPMMAddresses[0], address(factoryCelo.deployedFPMMs(token0Celo, token1Celo)));
-    assertEq(deployedFPMMAddresses[1], address(factoryCelo.deployedFPMMs(token1Celo, token0Celo)));
-    vm.stopPrank();
+    assertEq(deployedFPMMAddresses[0], firstProxy);
+    assertEq(deployedFPMMAddresses[1], secondProxy);
+    assertEq(address(factoryCelo.deployedFPMMs(expectedToken0, expectedToken1)), firstProxy);
+    assertEq(address(factoryCelo.deployedFPMMs(expectedToken1, expectedToken0)), secondProxy);
   }
 
   function test_deployFPMM_whenSameSaltIsUsedByDifferentAddress_shouldNotDeployToSameAddress() public {
     vm.selectFork(celoFork);
     address alice = makeAddr("Alice");
 
-    bytes32 implementationSalt = bytes32(abi.encodePacked(address(factoryCelo), hex"00", bytes11("FPMM_IMPLEM")));
-    bytes memory implementationBytecode = abi.encodePacked(type(FPMM).creationCode, abi.encode(true));
-
     vm.startPrank(alice);
-    address aliceFPMMImplementation = ICreateX(createX).deployCreate3(implementationSalt, implementationBytecode);
 
     bytes11 customProxySalt = bytes11(
       uint88(uint256(keccak256(abi.encodePacked(IERC20(token0Celo).symbol(), IERC20(token1Celo).symbol()))))
@@ -472,71 +772,139 @@ contract FPMMFactoryTest_DeployFPMMUnitTests is FPMMFactoryTest {
       FPMM.initialize.selector,
       token0Celo,
       token1Celo,
-      sortedOraclesCelo,
-      referenceRateFeedID,
-      breakerBoxCelo,
-      governanceCelo
+      expectedSortedOracles,
+      expectedReferenceRateFeedID,
+      expectedBreakerBox,
+      expectedGovernance
     );
     bytes memory proxyBytecode = abi.encodePacked(
       type(FPMMProxy).creationCode,
-      abi.encode(aliceFPMMImplementation, proxyAdminCelo, proxyInitData)
+      abi.encode(fpmmImplementationCeloAddress, expectedProxyAdmin, proxyInitData)
     );
 
     address aliceFPMMProxy = ICreateX(createX).deployCreate3(proxySalt, proxyBytecode);
     vm.stopPrank();
 
     vm.prank(governanceCelo);
-    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
+    deploy("celo");
 
-    address factoryImplementation = factoryCelo.fpmmImplementation();
     address factoryProxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
-    assertNotEq(factoryImplementation, aliceFPMMImplementation);
     assertNotEq(factoryProxy, aliceFPMMProxy);
-  }
-}
-
-contract FPMMFactoryTest_DeployFPMMCrossChain is FPMMFactoryTest {
-  function setUp() public override {
-    super.setUp();
-    vm.selectFork(celoFork);
-
-    vm.prank(deployer);
-    factoryCelo = new FPMMFactory(false);
-
-    factoryCelo.initialize(sortedOraclesCelo, proxyAdminCelo, breakerBoxCelo, governanceCelo);
-    deployCodeTo("ERC20", abi.encode("Token 0", "T0"), token0Celo);
-    deployCodeTo("ERC20", abi.encode("Token 1", "T1"), token1Celo);
-
-    vm.selectFork(opFork);
-
-    vm.prank(deployer);
-    factoryOp = new FPMMFactory(false);
-    factoryOp.initialize(sortedOraclesOp, proxyAdminOp, breakerBoxOp, governanceOp);
-    deployCodeTo("ERC20", abi.encode("Token 0", "T0"), token0Op);
-    deployCodeTo("ERC20", abi.encode("Token 1", "T1"), token1Op);
   }
 
   function test_deployFPMM_shouldDeploySameFPMMToSameAddressOnDifferentChains() public {
-    // factoryCelo and factoryOp need to be deployed to the same address on both chains
-    // in order to have same FPMM address on both chains due to CREATEX permissioned deploy protection
-    assertEq(address(factoryCelo), address(factoryOp));
     vm.selectFork(celoFork);
-
     vm.prank(governanceCelo);
-    factoryCelo.deployFPMM(token0Celo, token1Celo, referenceRateFeedID);
-
-    address celoFPMMImplementation = factoryCelo.fpmmImplementation();
-    address celoFPMMProxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
+    address celoFPMMProxy = deploy("celo");
+    assertEq(celoFPMMProxy, factoryCelo.deployedFPMMs(token0Celo, token1Celo));
 
     vm.selectFork(opFork);
+    vm.prank(deployer);
+    factoryOp = new FPMMFactory(false);
+    factoryOp.initialize(sortedOraclesOp, proxyAdminOp, breakerBoxOp, governanceOp, fpmmImplementationOpAddress);
+    deployCodeTo("ERC20", abi.encode("Token 0", "T0"), token0Op);
+    deployCodeTo("ERC20", abi.encode("Token 1", "T1"), token1Op);
+
+    assertEq(address(factoryOp), address(factoryCelo));
 
     vm.prank(governanceOp);
-    factoryOp.deployFPMM(token0Op, token1Op, referenceRateFeedID);
+    address opFPMMProxy = deploy("op");
+    assertEq(opFPMMProxy, factoryOp.deployedFPMMs(token0Op, token1Op));
 
-    address opFPMMImplementation = factoryOp.fpmmImplementation();
-    address opFPMMProxy = address(factoryOp.deployedFPMMs(token0Op, token1Op));
+    assertEq(opFPMMProxy, celoFPMMProxy);
+  }
+}
 
-    vm.assertEq(celoFPMMImplementation, opFPMMImplementation, "FPMM implementations should be the same");
-    vm.assertEq(celoFPMMProxy, opFPMMProxy, "FPMM proxies should be the same");
+contract FPMMFactoryTest_DeployFPMMStandard is FPMMFactoryTest_DeployFPMM {
+  function setUp() public override {
+    super.setUp();
+    expectedImplementation = fpmmImplementationCeloAddress;
+    expectedProxy = factoryCelo.getOrPrecomputeProxyAddress(token0Celo, token1Celo);
+    expectedToken0 = token0Celo;
+    expectedToken1 = token1Celo;
+    expectedSortedOracles = sortedOraclesCelo;
+    expectedProxyAdmin = proxyAdminCelo;
+    expectedBreakerBox = breakerBoxCelo;
+    expectedGovernance = governanceCelo;
+    expectedReferenceRateFeedID = referenceRateFeedID;
+  }
+
+  function deploy(string memory chain) internal override returns (address) {
+    if (keccak256(abi.encode(chain)) == keccak256(abi.encode("celo"))) {
+      return factoryCelo.deployFPMM(fpmmImplementationCeloAddress, token0Celo, token1Celo, referenceRateFeedID);
+    } else if (keccak256(abi.encode(chain)) == keccak256(abi.encode("op"))) {
+      return factoryOp.deployFPMM(fpmmImplementationOpAddress, token0Op, token1Op, referenceRateFeedID);
+    }
+  }
+}
+
+contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
+  function setUp() public override {
+    super.setUp();
+    expectedImplementation = fpmmImplementationCeloAddress;
+    expectedProxy = factoryCelo.getOrPrecomputeProxyAddress(token0Celo, token1Celo);
+    expectedToken0 = token0Celo;
+    expectedToken1 = token1Celo;
+    expectedSortedOracles = makeAddr("Custom Sorted Oracles");
+    expectedProxyAdmin = makeAddr("Custom Proxy Admin");
+    expectedBreakerBox = makeAddr("Custom Breaker Box");
+    expectedGovernance = makeAddr("Custom Governance");
+    expectedReferenceRateFeedID = referenceRateFeedID;
+  }
+
+  function deploy(string memory chain) internal override returns (address) {
+    if (keccak256(abi.encode(chain)) == keccak256(abi.encode("celo"))) {
+      return
+        factoryCelo.deployFPMM(
+          fpmmImplementationCeloAddress,
+          expectedSortedOracles,
+          expectedProxyAdmin,
+          expectedBreakerBox,
+          expectedGovernance,
+          token0Celo,
+          token1Celo,
+          referenceRateFeedID
+        );
+    } else if (keccak256(abi.encode(chain)) == keccak256(abi.encode("op"))) {
+      return
+        factoryOp.deployFPMM(
+          fpmmImplementationOpAddress,
+          expectedSortedOracles,
+          expectedProxyAdmin,
+          expectedBreakerBox,
+          expectedGovernance,
+          token0Op,
+          token1Op,
+          referenceRateFeedID
+        );
+    }
+  }
+
+  function test_deployFPMM_whenCustomSortedOraclesIsZeroAddress_shouldRevert() public {
+    expectedSortedOracles = address(0);
+    vm.prank(governanceCelo);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    deploy("celo");
+  }
+
+  function test_deployFPMM_whenCustomProxyAdminIsZeroAddress_shouldRevert() public {
+    expectedProxyAdmin = address(0);
+    vm.prank(governanceCelo);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    deploy("celo");
+  }
+
+  function test_deployFPMM_whenCustomBreakerBoxIsZeroAddress_shouldRevert() public {
+    expectedBreakerBox = address(0);
+    vm.prank(governanceCelo);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    deploy("celo");
+  }
+
+  function test_deployFPMM_whenCustomGovernanceIsZeroAddress_shouldRevert() public {
+    expectedGovernance = address(0);
+    vm.prank(governanceCelo);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    deploy("celo");
   }
 }
