@@ -3,11 +3,11 @@
 pragma solidity ^0.8.0;
 
 interface ICollSurplusPool {
-    function getCollBalance() external view returns (uint256);
+  function getCollBalance() external view returns (uint256);
 
-    function getCollateral(address _account) external view returns (uint256);
+  function getCollateral(address _account) external view returns (uint256);
 
-    function accountSurplus(address _account, uint256 _amount) external;
+  function accountSurplus(address _account, uint256 _amount) external;
 
-    function claimColl(address _account) external;
+  function claimColl(address _account) external;
 }

@@ -84,6 +84,6 @@ uint256 constant MIN_BOLD_IN_SP = 1e18;
 
 // Dummy contract that lets legacy Hardhat tests query some of the constants
 contract Constants {
-    uint256 public constant _ETH_GAS_COMPENSATION = ETH_GAS_COMPENSATION;
-    uint256 public constant _MIN_DEBT = MIN_DEBT;
+  uint256 public constant _ETH_GAS_COMPENSATION = ETH_GAS_COMPENSATION;
+  uint256 public constant _MIN_DEBT = MIN_DEBT;
 }
