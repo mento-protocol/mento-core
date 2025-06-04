@@ -75,13 +75,13 @@ contract MultiTroveGetter is IMultiTroveGetter {
       // debt
       // coll
       _out.stake, // status
+      ,
+      ,
       // arrayIndex
-      ,
-      ,
       _out.lastDebtUpdateTime, // lastInterestRateAdjTime
+      ,
+      ,
       // annualInterestRate
-      ,
-      ,
       _out.interestBatchManager,
       _out.batchDebtShares
     ) = _troveManager.Troves(_id);

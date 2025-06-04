@@ -2,10 +2,10 @@
 pragma solidity 0.8.24;
 
 import "./TestContracts/DevTestSetup.sol";
-import { SPInvariantsTestHandler } from "./TestContracts/SPInvariantsTestHandler.t.sol";
+import { SPInvariantTestHandler } from "./TestContracts/SPInvariantTestHandler.t.sol";
 import { Logging } from "./Utils/Logging.sol";
 
-contract AnchoredSPInvariantsTest is DevTestSetup {
+contract AnchoredSPInvariantTest is DevTestSetup {
   using StringFormatting for uint256;
 
   struct Actor {
@@ -13,7 +13,7 @@ contract AnchoredSPInvariantsTest is DevTestSetup {
     address account;
   }
 
-  SPInvariantsTestHandler handler;
+  SPInvariantTestHandler handler;
 
   address constant adam = 0x1111111111111111111111111111111111111111;
   address constant barb = 0x2222222222222222222222222222222222222222;
@@ -41,8 +41,8 @@ contract AnchoredSPInvariantsTest is DevTestSetup {
     ) = deployer.deployAndConnectContracts();
     stabilityPool = contracts.stabilityPool;
 
-    handler = new SPInvariantsTestHandler(
-      SPInvariantsTestHandler.Contracts({
+    handler = new SPInvariantTestHandler(
+      SPInvariantTestHandler.Contracts({
         boldToken: boldToken,
         borrowerOperations: contracts.borrowerOperations,
         collateralToken: contracts.collToken,
