@@ -7,11 +7,11 @@ import { HintHelpers } from "contracts/v3/HintHelpers.sol";
 import { Assertions } from "./TestContracts/Assertions.sol";
 import { BaseInvariantTest } from "./TestContracts/BaseInvariantTest.sol";
 import { TestDeployer } from "./TestContracts/Deployment.t.sol";
-import { SPInvariantsTestHandler } from "./TestContracts/SPInvariantsTestHandler.t.sol";
+import { SPInvariantTestHandler } from "./TestContracts/SPInvariantTestHandler.t.sol";
 
-abstract contract SPInvariantsBase is Assertions, BaseInvariantTest {
+abstract contract SPInvariantBase is Assertions, BaseInvariantTest {
   IStabilityPool stabilityPool;
-  SPInvariantsTestHandler handler;
+  SPInvariantTestHandler handler;
 
   function setUp() public override {
     super.setUp();
@@ -28,8 +28,8 @@ abstract contract SPInvariantsBase is Assertions, BaseInvariantTest {
     ) = deployer.deployAndConnectContracts();
     stabilityPool = contracts.stabilityPool;
 
-    handler = new SPInvariantsTestHandler(
-      SPInvariantsTestHandler.Contracts({
+    handler = new SPInvariantTestHandler(
+      SPInvariantTestHandler.Contracts({
         boldToken: boldToken,
         borrowerOperations: contracts.borrowerOperations,
         collateralToken: contracts.collToken,
@@ -73,7 +73,7 @@ abstract contract SPInvariantsBase is Assertions, BaseInvariantTest {
   }
 }
 
-contract SPInvariantsTest is SPInvariantsBase {
+contract SPInvariantTest is SPInvariantBase {
   function invariant_AllFundsClaimable() external view {
     assert_AllFundsClaimable();
   }

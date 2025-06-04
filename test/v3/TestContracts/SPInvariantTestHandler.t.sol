@@ -29,7 +29,7 @@ uint256 constant LIQUIDATION_ICR = MCR - _1pct;
 // Universal constants
 uint256 constant MCR = 1.1 ether;
 
-contract SPInvariantsTestHandler is BaseHandler, TroveId {
+contract SPInvariantTestHandler is BaseHandler, TroveId {
   using StringFormatting for uint256;
 
   struct Contracts {

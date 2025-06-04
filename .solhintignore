@@ -1,4 +1,6 @@
 # directories
 **/lib
 **/node_modules
+contracts/v3/**/*.sol
+test/v3/**/*.sol
 ChainlinkRelayerFactory.sol
