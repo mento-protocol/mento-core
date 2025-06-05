@@ -37,20 +37,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
 
     // Try to call rebalance directly without being a trusted strategy
     vm.expectRevert("FPMM: NOT_LIQUIDITY_STRATEGY");
-    fpmm.rebalance(rebalanceAmount, 0, address(this), "Unauthorized rebalance");
-  }
-
-  function test_rebalance_whenInvalidRecipient_shouldRevert()
-    public
-    initializeFPMM_withDecimalTokens(18, 18)
-    mintInitialLiquidity(18, 18)
-    setupRebalancer(18, 18)
-  {
-    uint256 rebalanceAmount = 20e18;
-    liquidityStrategy.setRebalanceRecipient(address(1));
-
-    vm.expectRevert("FPMM: INVALID_TO_ADDRESS");
-    liquidityStrategy.executeRebalance(0, rebalanceAmount);
+    fpmm.rebalance(rebalanceAmount, 0, "Unauthorized rebalance");
   }
 
   function test_rebalance_whenThresholdNotMet_shouldRevert()

@@ -325,16 +325,97 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
   /// @inheritdoc IFPMM
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
-    _swap(amount0Out, amount1Out, to, data, false);
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
+    (uint256 _reserve0, uint256 _reserve1) = ($.reserve0, $.reserve1);
+    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
+    require(to != $.token0 && to != $.token1, "FPMM: INVALID_TO_ADDRESS");
+    require(
+      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
+      "FPMM: TRADING_SUSPENDED"
+    );
+
+    // used to avoid stack too deep error
+    // slither-disable-next-line uninitialized-local
+    SwapData memory swapData;
+
+    (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
+    swapData.initialReserveValue = _totalValueInToken1(
+      _reserve0,
+      _reserve1,
+      swapData.rateNumerator,
+      swapData.rateDenominator
+    );
+    (swapData.initialPriceDifference, swapData.reservePriceAboveOraclePrice) = _calculatePriceDifference();
+
+    if (amount0Out > 0) IERC20($.token0).safeTransfer(to, amount0Out);
+    if (amount1Out > 0) IERC20($.token1).safeTransfer(to, amount1Out);
+
+    if (data.length > 0) IFPMMCallee(to).hook(msg.sender, amount0Out, amount1Out, data);
+
+    swapData.balance0 = IERC20($.token0).balanceOf(address(this));
+    swapData.balance1 = IERC20($.token1).balanceOf(address(this));
+
+    swapData.amount0In = swapData.balance0 > _reserve0 - amount0Out ? swapData.balance0 - (_reserve0 - amount0Out) : 0;
+    swapData.amount1In = swapData.balance1 > _reserve1 - amount1Out ? swapData.balance1 - (_reserve1 - amount1Out) : 0;
+    require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
+
+    _update();
+
+    _swapCheck(swapData);
+
+    emit Swap(msg.sender, swapData.amount0In, swapData.amount1In, amount0Out, amount1Out, to);
   }
 
   /// @inheritdoc IFPMM
-  function rebalance(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
+  function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external nonReentrant {
     FPMMStorage storage $ = _getFPMMStorage();
 
     require($.liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
-    require(msg.sender == to, "FPMM: INVALID_TO_ADDRESS");
-    _swap(amount0Out, amount1Out, to, data, true);
+    require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
+    (uint256 _reserve0, uint256 _reserve1) = ($.reserve0, $.reserve1);
+    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
+    require(
+      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
+      "FPMM: TRADING_SUSPENDED"
+    );
+
+    // used to avoid stack too deep error
+    // slither-disable-next-line uninitialized-local
+    SwapData memory swapData;
+
+    (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
+    swapData.initialReserveValue = _totalValueInToken1(
+      _reserve0,
+      _reserve1,
+      swapData.rateNumerator,
+      swapData.rateDenominator
+    );
+    (swapData.initialPriceDifference, swapData.reservePriceAboveOraclePrice) = _calculatePriceDifference();
+
+    if (swapData.reservePriceAboveOraclePrice) {
+      require(swapData.initialPriceDifference >= $.rebalanceThresholdAbove, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
+    } else {
+      require(swapData.initialPriceDifference >= $.rebalanceThresholdBelow, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
+    }
+
+    if (amount0Out > 0) IERC20($.token0).safeTransfer(msg.sender, amount0Out);
+    if (amount1Out > 0) IERC20($.token1).safeTransfer(msg.sender, amount1Out);
+
+    if (data.length > 0) IFPMMCallee(msg.sender).hook(msg.sender, amount0Out, amount1Out, data);
+
+    swapData.balance0 = IERC20($.token0).balanceOf(address(this));
+    swapData.balance1 = IERC20($.token1).balanceOf(address(this));
+
+    swapData.amount0In = swapData.balance0 > _reserve0 - amount0Out ? swapData.balance0 - (_reserve0 - amount0Out) : 0;
+    swapData.amount1In = swapData.balance1 > _reserve1 - amount1Out ? swapData.balance1 - (_reserve1 - amount1Out) : 0;
+    require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
+
+    _update();
+
+    uint256 newPriceDifference = _rebalanceCheck(swapData);
+    emit Rebalanced(msg.sender, swapData.initialPriceDifference, newPriceDifference);
   }
 
   /* ========== ADMIN FUNCTIONS ========== */
@@ -484,76 +565,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   /**
-   * @notice Internal swap function used by both swap and rebalance
-   * @param amount0Out Amount of token0 to output
-   * @param amount1Out Amount of token1 to output
-   * @param to Address receiving output tokens
-   * @param data Optional callback data
-   * @param isRebalance Whether this is a rebalance operation
-   */
-  // slither-disable-start reentrancy-no-eth
-  // slither-disable-start reentrancy-benign
-  function _swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data, bool isRebalance) private {
-    FPMMStorage storage $ = _getFPMMStorage();
-
-    require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
-    (uint256 _reserve0, uint256 _reserve1) = ($.reserve0, $.reserve1);
-    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
-    require(to != $.token0 && to != $.token1, "FPMM: INVALID_TO_ADDRESS");
-    require(
-      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
-      "FPMM: TRADING_SUSPENDED"
-    );
-
-    // used to avoid stack too deep error
-    // slither-disable-next-line uninitialized-local
-    SwapData memory swapData;
-
-    (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
-    swapData.initialReserveValue = _totalValueInToken1(
-      _reserve0,
-      _reserve1,
-      swapData.rateNumerator,
-      swapData.rateDenominator
-    );
-    (swapData.initialPriceDifference, swapData.reservePriceAboveOraclePrice) = _calculatePriceDifference();
-
-    if (isRebalance) {
-      if (swapData.reservePriceAboveOraclePrice) {
-        require(swapData.initialPriceDifference >= $.rebalanceThresholdAbove, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
-      } else {
-        require(swapData.initialPriceDifference >= $.rebalanceThresholdBelow, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
-      }
-    }
-
-    if (amount0Out > 0) IERC20($.token0).safeTransfer(to, amount0Out);
-    if (amount1Out > 0) IERC20($.token1).safeTransfer(to, amount1Out);
-
-    if (data.length > 0) IFPMMCallee(to).hook(msg.sender, amount0Out, amount1Out, data);
-
-    swapData.balance0 = IERC20($.token0).balanceOf(address(this));
-    swapData.balance1 = IERC20($.token1).balanceOf(address(this));
-
-    swapData.amount0In = swapData.balance0 > _reserve0 - amount0Out ? swapData.balance0 - (_reserve0 - amount0Out) : 0;
-    swapData.amount1In = swapData.balance1 > _reserve1 - amount1Out ? swapData.balance1 - (_reserve1 - amount1Out) : 0;
-    require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
-
-    _update();
-
-    if (isRebalance) {
-      uint256 newPriceDifference = _rebalanceCheck(swapData);
-      emit Rebalanced(msg.sender, swapData.initialPriceDifference, newPriceDifference);
-    } else {
-      _swapCheck(swapData);
-    }
-    emit Swap(msg.sender, swapData.amount0In, swapData.amount1In, amount0Out, amount1Out, to);
-  }
-  // slither-disable-end reentrancy-no-eth
-  // slither-disable-end reentrancy-benign
-
-  /**
-   * @notice Rebalance checks to ensure the price difference is smaller than before and
-   * the reserve value is not decreased more than the rebalance incentive
+   * @notice Rebalance checks to ensure the price difference is smaller than before,
+   * the direction of the price difference is not changed,
+   * and the reserve value is not decreased more than the rebalance incentive
    * @param swapData Swap data
    * @return newPriceDifference New price difference
    */

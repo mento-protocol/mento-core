@@ -367,10 +367,9 @@ interface IFPMM {
    * @dev Only callable by approved liquidity strategies
    * @param amount0Out Amount of token0 to output
    * @param amount1Out Amount of token1 to output
-   * @param to Address receiving output tokens
    * @param data Optional callback data
    */
-  function rebalance(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
+  function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external;
 
   /**
    * @notice Sets protocol fee
