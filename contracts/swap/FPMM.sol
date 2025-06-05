@@ -323,6 +323,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   // slither-disable-end reentrancy-benign
   // slither-disable-end reentrancy-no-eth
 
+  // slither-disable-start reentrancy-no-eth
   /// @inheritdoc IFPMM
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     FPMMStorage storage $ = _getFPMMStorage();
@@ -367,7 +368,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
     emit Swap(msg.sender, swapData.amount0In, swapData.amount1In, amount0Out, amount1Out, to);
   }
+  // slither-disable-end reentrancy-no-eth
 
+  // slither-disable-start reentrancy-no-eth
   /// @inheritdoc IFPMM
   function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external nonReentrant {
     FPMMStorage storage $ = _getFPMMStorage();
@@ -417,6 +420,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     uint256 newPriceDifference = _rebalanceCheck(swapData);
     emit Rebalanced(msg.sender, swapData.initialPriceDifference, newPriceDifference);
   }
+  // slither-disable-end reentrancy-no-eth
 
   /* ========== ADMIN FUNCTIONS ========== */
 
