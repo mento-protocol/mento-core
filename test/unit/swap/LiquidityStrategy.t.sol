@@ -51,10 +51,7 @@ contract LiquidityStrategyTest is Test {
     vm.expectRevert("Ownable: caller is not the owner");
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
   }
-
-  // Removed test_addPool_shouldRevert_whenTokenDecimalsGreaterThan18 as decimal validation
-  // now happens in _executeRebalance instead of addPool
-
+  
   function test_addPool_shouldEmitEvent_WhenPoolIsAdded() public {
     vm.expectEmit(true, true, true, true);
     emit FPMMPoolAdded(address(mockPool), 1 days);
