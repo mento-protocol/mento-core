@@ -12,6 +12,7 @@ import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 contract LiquidityStrategyTest is Test {
   address public deployer = makeAddr("deployer");
+  address public nonOwner = makeAddr("nonOwner");
 
   MockLiquidityStrategy public mockConcreteLiquidityStrat;
   MockERC20 mockToken0;
@@ -47,11 +48,11 @@ contract LiquidityStrategyTest is Test {
   }
 
   function test_addPool_shouldRevert_whenCallerNotOwner() public {
-    vm.prank(makeAddr("nonOwner"));
+    vm.prank(nonOwner);
     vm.expectRevert("Ownable: caller is not the owner");
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
   }
-  
+
   function test_addPool_shouldEmitEvent_WhenPoolIsAdded() public {
     vm.expectEmit(true, true, true, true);
     emit FPMMPoolAdded(address(mockPool), 1 days);
@@ -96,6 +97,8 @@ contract LiquidityStrategyTest is Test {
     // Trigger the first rebalance
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+
+    vm.prank(nonOwner);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
 
     // Warp forward but not enough to satisfy the cooldown (1 day + 1 second)
@@ -113,6 +116,7 @@ contract LiquidityStrategyTest is Test {
     // Test 0 threshold
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(0));
     vm.expectRevert("LS: INVALID_UPPER_THRESHOLD");
+    vm.prank(nonOwner);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
 
     // Test threshold > 10000
@@ -129,6 +133,7 @@ contract LiquidityStrategyTest is Test {
     // Test 0 threshold
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector), abi.encode(0));
     vm.expectRevert("LS: INVALID_LOWER_THRESHOLD");
+    vm.prank(nonOwner);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
 
     // Test threshold > 10000
@@ -143,6 +148,7 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
 
     vm.expectRevert("LS: PRICE_IN_RANGE");
+    vm.prank(nonOwner);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
@@ -190,6 +196,7 @@ contract LiquidityStrategyTest is Test {
     // For this test, we don't care about the price change, we just want to test that the last rebalance is updated.
     // and that the event is emitted with the correct numbers (pool price before and after rebalance).
     emit RebalanceExecuted(address(mockPool), poolPrice, poolPrice);
+    vm.prank(nonOwner);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
 
     (uint256 lastRebalance, ) = mockConcreteLiquidityStrat.fpmmPoolConfigs(address(mockPool));
