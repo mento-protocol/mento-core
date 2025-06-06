@@ -225,7 +225,6 @@ contract ReserveLiquidityStrategyTest is Test {
         mockPool.rebalance.selector,
         0, // stableOut
         expectedCollateralOut,
-        address(strat),
         expectedCallbackData
       )
     );
@@ -286,7 +285,6 @@ contract ReserveLiquidityStrategyTest is Test {
         mockPool.rebalance.selector,
         0, // stableOut
         expectedCollateralOut,
-        address(strat),
         expectedCallbackData
       )
     );
@@ -366,7 +364,6 @@ contract ReserveLiquidityStrategyTest is Test {
         mockPool.rebalance.selector,
         expectedStableOut,
         0, // collateralOut
-        address(strat),
         expectedCallbackData
       )
     );

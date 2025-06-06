@@ -145,7 +145,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     bytes memory callbackData = abi.encode(inputAmount, priceDirection);
 
     emit RebalanceInitiated(pool, stableOut, collateralOut, inputAmount, priceDirection);
-    fpmm.rebalance(stableOut, collateralOut, address(this), callbackData);
+    fpmm.rebalance(stableOut, collateralOut, callbackData);
   }
 
   /* ==================== Private Functions ==================== */

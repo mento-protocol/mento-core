@@ -80,18 +80,17 @@ contract MockFPMMPool is Test {
     rebalanceThresholdBelow = _thresholdBelow;
   }
 
-  function rebalance(uint256 amount0Out, uint256 amount1Out, address recipient, bytes calldata data) external {
+  function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
     require(msg.sender == hookTarget, "MockFPMMPool: Caller not strategy");
-    require(recipient == hookTarget, "MockFPMMPool: Recipient not strategy");
 
     if (amount0Out > 0) {
-      token0_.transfer(recipient, amount0Out);
+      token0_.transfer(msg.sender, amount0Out);
     }
 
     if (amount1Out > 0) {
-      token1_.transfer(recipient, amount1Out);
+      token1_.transfer(msg.sender, amount1Out);
     }
 
-    IFPMMCallee(recipient).hook(msg.sender, amount0Out, amount1Out, data);
+    IFPMMCallee(msg.sender).hook(msg.sender, amount0Out, amount1Out, data);
   }
 }
