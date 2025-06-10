@@ -4,7 +4,8 @@ pragma solidity 0.8.18;
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { ERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import { ReentrancyGuardUpgradeable as ReentrancyGuard } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
+// solhint-disable-next-line max-line-length
+import { ReentrancyGuardUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 import { MathUpgradeable as Math } from "openzeppelin-contracts-upgradeable/contracts/utils/math/MathUpgradeable.sol";
 import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
@@ -19,7 +20,7 @@ import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
  * of two tokens and facilitates swaps between them based on oracle rates and potential fallback
  * to internal pricing.
  */
-contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
+contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
   /* ========== CONSTANTS ========== */
