@@ -4,8 +4,8 @@ pragma solidity 0.8.18;
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { ERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
-import { Math } from "openzeppelin-contracts-next/contracts/utils/math/Math.sol";
+import { ReentrancyGuardUpgradeable as ReentrancyGuard } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
+import { MathUpgradeable as Math } from "openzeppelin-contracts-upgradeable/contracts/utils/math/MathUpgradeable.sol";
 import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
@@ -154,9 +154,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMM
-  function referenceRateFeedID() external view returns (address) {
+  function sortedOracles() external view returns (ISortedOracles) {
     FPMMStorage storage $ = _getFPMMStorage();
-    return $.referenceRateFeedID;
+    return $.sortedOracles;
   }
 
   /// @inheritdoc IFPMM
@@ -166,9 +166,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMM
-  function liquidityStrategy(address strategy) external view returns (bool) {
+  function referenceRateFeedID() external view returns (address) {
     FPMMStorage storage $ = _getFPMMStorage();
-    return $.liquidityStrategy[strategy];
+    return $.referenceRateFeedID;
   }
 
   /// @inheritdoc IFPMM
@@ -196,9 +196,9 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMM
-  function sortedOracles() external view returns (ISortedOracles) {
+  function liquidityStrategy(address strategy) external view returns (bool) {
     FPMMStorage storage $ = _getFPMMStorage();
-    return $.sortedOracles;
+    return $.liquidityStrategy[strategy];
   }
 
   /// @inheritdoc IFPMM
@@ -224,6 +224,11 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   /// @inheritdoc IFPMM
   function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
     FPMMStorage storage $ = _getFPMMStorage();
+
+    require(
+      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
+      "FPMM: TRADING_SUSPENDED"
+    );
 
     require(tokenIn == $.token0 || tokenIn == $.token1, "FPMM: INVALID_TOKEN");
 
@@ -266,13 +271,12 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   /// @inheritdoc IFPMM
   function mint(address to) external nonReentrant returns (uint256 liquidity) {
     FPMMStorage storage $ = _getFPMMStorage();
-    (uint256 _reserve0, uint256 _reserve1) = ($.reserve0, $.reserve1);
 
     uint256 balance0 = IERC20($.token0).balanceOf(address(this));
     uint256 balance1 = IERC20($.token1).balanceOf(address(this));
 
-    uint256 amount0 = balance0 - _reserve0;
-    uint256 amount1 = balance1 - _reserve1;
+    uint256 amount0 = balance0 - $.reserve0;
+    uint256 amount1 = balance1 - $.reserve1;
 
     uint256 _totalSupply = totalSupply();
     // slither-disable-next-line incorrect-equality
@@ -280,7 +284,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
       liquidity = Math.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
       _mint(address(1), MINIMUM_LIQUIDITY);
     } else {
-      liquidity = Math.min((amount0 * _totalSupply) / _reserve0, (amount1 * _totalSupply) / _reserve1);
+      liquidity = Math.min((amount0 * _totalSupply) / $.reserve0, (amount1 * _totalSupply) / $.reserve1);
     }
 
     require(liquidity > MINIMUM_LIQUIDITY, "FPMM: INSUFFICIENT_LIQUIDITY_MINTED");
@@ -297,10 +301,8 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
   function burn(address to) external nonReentrant returns (uint256 amount0, uint256 amount1) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    (address _token0, address _token1) = ($.token0, $.token1);
-
-    uint256 balance0 = IERC20(_token0).balanceOf(address(this));
-    uint256 balance1 = IERC20(_token1).balanceOf(address(this));
+    uint256 balance0 = IERC20($.token0).balanceOf(address(this));
+    uint256 balance1 = IERC20($.token1).balanceOf(address(this));
 
     uint256 liquidity = balanceOf(address(this));
 
@@ -313,8 +315,8 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
     _burn(address(this), liquidity);
 
-    IERC20(_token0).safeTransfer(to, amount0);
-    IERC20(_token1).safeTransfer(to, amount1);
+    IERC20($.token0).safeTransfer(to, amount0);
+    IERC20($.token1).safeTransfer(to, amount1);
 
     _update();
 
@@ -329,8 +331,7 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     FPMMStorage storage $ = _getFPMMStorage();
 
     require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
-    (uint256 _reserve0, uint256 _reserve1) = ($.reserve0, $.reserve1);
-    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
+    require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
     require(to != $.token0 && to != $.token1, "FPMM: INVALID_TO_ADDRESS");
     require(
       $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
@@ -343,12 +344,11 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
     (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
     swapData.initialReserveValue = _totalValueInToken1(
-      _reserve0,
-      _reserve1,
+      $.reserve0,
+      $.reserve1,
       swapData.rateNumerator,
       swapData.rateDenominator
     );
-    (swapData.initialPriceDifference, swapData.reservePriceAboveOraclePrice) = _calculatePriceDifference();
 
     if (amount0Out > 0) IERC20($.token0).safeTransfer(to, amount0Out);
     if (amount1Out > 0) IERC20($.token1).safeTransfer(to, amount1Out);
@@ -358,8 +358,12 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     swapData.balance0 = IERC20($.token0).balanceOf(address(this));
     swapData.balance1 = IERC20($.token1).balanceOf(address(this));
 
-    swapData.amount0In = swapData.balance0 > _reserve0 - amount0Out ? swapData.balance0 - (_reserve0 - amount0Out) : 0;
-    swapData.amount1In = swapData.balance1 > _reserve1 - amount1Out ? swapData.balance1 - (_reserve1 - amount1Out) : 0;
+    swapData.amount0In = swapData.balance0 > $.reserve0 - amount0Out
+      ? swapData.balance0 - ($.reserve0 - amount0Out)
+      : 0;
+    swapData.amount1In = swapData.balance1 > $.reserve1 - amount1Out
+      ? swapData.balance1 - ($.reserve1 - amount1Out)
+      : 0;
     require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
 
     _update();
@@ -376,9 +380,8 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     FPMMStorage storage $ = _getFPMMStorage();
 
     require($.liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
-    require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
-    (uint256 _reserve0, uint256 _reserve1) = ($.reserve0, $.reserve1);
-    require(amount0Out < _reserve0 && amount1Out < _reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
+    require((amount0Out > 0) != (amount1Out > 0), "FPMM: ONE_OUTPUT_AMOUNT_REQUIRED");
+    require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
     require(
       $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
       "FPMM: TRADING_SUSPENDED"
@@ -390,8 +393,8 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
 
     (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
     swapData.initialReserveValue = _totalValueInToken1(
-      _reserve0,
-      _reserve1,
+      $.reserve0,
+      $.reserve1,
       swapData.rateNumerator,
       swapData.rateDenominator
     );
@@ -411,8 +414,12 @@ contract FPMM is IFPMM, ReentrancyGuard, ERC20Upgradeable, OwnableUpgradeable {
     swapData.balance0 = IERC20($.token0).balanceOf(address(this));
     swapData.balance1 = IERC20($.token1).balanceOf(address(this));
 
-    swapData.amount0In = swapData.balance0 > _reserve0 - amount0Out ? swapData.balance0 - (_reserve0 - amount0Out) : 0;
-    swapData.amount1In = swapData.balance1 > _reserve1 - amount1Out ? swapData.balance1 - (_reserve1 - amount1Out) : 0;
+    swapData.amount0In = swapData.balance0 > $.reserve0 - amount0Out
+      ? swapData.balance0 - ($.reserve0 - amount0Out)
+      : 0;
+    swapData.amount1In = swapData.balance1 > $.reserve1 - amount1Out
+      ? swapData.balance1 - ($.reserve1 - amount1Out)
+      : 0;
     require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
 
     _update();
