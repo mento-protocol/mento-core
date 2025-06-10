@@ -116,18 +116,16 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
   function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal override {
     IFPMM fpmm = IFPMM(pool);
     // slither-disable-next-line unused-return
-    (, , uint256 reserve0, uint256 reserve1, , ) = fpmm.metadata();
+    (uint256 dec0, uint256 dec1, uint256 reserve0, uint256 reserve1, , ) = fpmm.metadata();
 
-    uint256 decimals0 = IERC20MetadataUpgradeable(fpmm.token0()).decimals();
-    uint256 decimals1 = IERC20MetadataUpgradeable(fpmm.token1()).decimals();
-    require(decimals0 <= 18 && decimals1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
+    require(dec0 <= 18 && dec1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
 
     // Create a reserves struct to pass to calculation functions
     PoolReserves memory reserves = PoolReserves({
-      stableReserve: ud(reserve0 * (10 ** (18 - decimals0))),
-      collateralReserve: ud(reserve1 * (10 ** (18 - decimals1))),
-      stablePrecision: 10 ** (18 - decimals0),
-      collateralPrecision: 10 ** (18 - decimals1)
+      stableReserve: ud(reserve0 * (10 ** (18 - dec0))),
+      collateralReserve: ud(reserve1 * (10 ** (18 - dec1))),
+      stablePrecision: 10 ** (18 - dec0),
+      collateralPrecision: 10 ** (18 - dec1)
     });
 
     uint256 stableOut;
