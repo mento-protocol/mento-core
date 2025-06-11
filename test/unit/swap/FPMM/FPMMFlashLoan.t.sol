@@ -52,10 +52,10 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     uint256 flashLoanAmount = 50e18;
     bytes memory customData = abi.encode("Custom flash loan data");
 
-    uint256 swapFee = (flashLoanAmount * 10_000) / (10_000 - 30) - flashLoanAmount;
+    uint256 swapFee0 = (flashLoanAmount * 10_000) / (10_000 - 30) - flashLoanAmount;
 
     // Set to repay with extra fee
-    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee);
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee0, 0);
 
     fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), customData);
 
@@ -65,7 +65,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(FlashLoanReceiver(flashLoanReceiver).receivedData(), customData);
 
     // Verify FPMM reserves increased by the extra repaid amount
-    assertEq(fpmm.reserve0(), 100e18 + swapFee); // Initial 100e18 + fee
+    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
     assertEq(fpmm.reserve1(), 200e18); // Unchanged
   }
 
@@ -79,10 +79,10 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     uint256 flashLoanAmount = 50e18;
     bytes memory customData = abi.encode("Custom flash loan data");
 
-    uint256 swapFee = (flashLoanAmount * 31) / 10000;
+    uint256 swapFee1 = (flashLoanAmount * 10_000) / (10_000 - 30) - flashLoanAmount;
 
     // Set to repay with extra fee
-    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee);
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, 0, swapFee1);
 
     fpmm.swap(0, flashLoanAmount, flashLoanReceiver, customData);
 
@@ -93,7 +93,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
 
     // Verify FPMM reserves increased by the extra repaid amount
     assertEq(fpmm.reserve0(), 100e18); // Unchanged
-    assertEq(fpmm.reserve1(), 200e18 + swapFee); // Initial 200e18 + fee
+    assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
   }
 
   function test_swap_whenBorrowingBothTokens_shouldTransferAndRepayWithFee()
@@ -107,10 +107,11 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     uint256 flashLoanAmount1 = 40e18;
     bytes memory customData = abi.encode("Custom flash loan data");
 
-    uint256 swapFee = (flashLoanAmount1 * 31) / 10000;
+    uint256 swapFee0 = (flashLoanAmount0 * 10_000) / (10_000 - 30) - flashLoanAmount0;
+    uint256 swapFee1 = (flashLoanAmount1 * 10_000) / (10_000 - 30) - flashLoanAmount1;
 
     // Set to repay with extra fee
-    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee);
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee0, swapFee1);
 
     fpmm.swap(flashLoanAmount0, flashLoanAmount1, address(flashLoanReceiver), customData);
 
@@ -120,8 +121,8 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(FlashLoanReceiver(flashLoanReceiver).receivedData(), customData);
 
     // Verify FPMM reserves increased by the extra repaid amount
-    assertEq(fpmm.reserve0(), 100e18 + swapFee); // Initial 100e18 + fee
-    assertEq(fpmm.reserve1(), 200e18 + swapFee); // Initial 200e18 + fee
+    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
+    assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
   }
 
   function test_swap_whenLoanNotRepaid_shouldRevert()
@@ -134,7 +135,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     uint256 flashLoanAmount = 50e18;
 
     // Set NOT to repay
-    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(false, 0);
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(false, 0, 0);
 
     // Flash loan should fail because it's not repaid
     vm.expectRevert("FPMM: INSUFFICIENT_INPUT_AMOUNT");
@@ -149,10 +150,11 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupMockOracleRate(1e18, 1e18)
   {
     uint256 flashLoanAmount = 50e18;
-    uint256 lessThanRequiredFee = (flashLoanAmount * 20) / 10000;
+    uint256 lessThanRequiredFee0 = (flashLoanAmount * 10_000) / (10_000 - 30) - flashLoanAmount;
+    lessThanRequiredFee0 = lessThanRequiredFee0 - 1;
 
     // Pay back less than required
-    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, lessThanRequiredFee);
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, lessThanRequiredFee0, 0);
 
     // Flash loan should fail because it's not repaid correctly
     vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
@@ -187,12 +189,15 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     uint256 maxToken0Amount = fpmm.reserve0() - 1;
     uint256 maxToken1Amount = fpmm.reserve1() - 1;
 
+    uint256 swapFee0 = (maxToken0Amount * 10_000) / (10_000 - 30) - maxToken0Amount;
+    uint256 swapFee1 = (maxToken1Amount * 10_000) / (10_000 - 30) - maxToken1Amount;
+
     // Ensure the flash loan receiver has enough tokens to repay
-    deal(token0, flashLoanReceiver, maxToken0Amount + 1e18);
-    deal(token1, flashLoanReceiver, maxToken1Amount + 1e18);
+    deal(token0, flashLoanReceiver, swapFee0);
+    deal(token1, flashLoanReceiver, swapFee1);
 
     // Set to repay with extra fee (simplified to 1e18 for test)
-    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, 1e18);
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee0, swapFee1);
 
     fpmm.swap(maxToken0Amount, maxToken1Amount, flashLoanReceiver, "Max flash loan test");
 
@@ -200,8 +205,8 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(FlashLoanReceiver(flashLoanReceiver).amount1Received(), maxToken1Amount);
 
     // Verify FPMM reserves increased by the extra repaid amount
-    assertEq(fpmm.reserve0(), 100e18 + 1e18); // Initial + fee
-    assertEq(fpmm.reserve1(), 200e18 + 1e18); // Initial + fee
+    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial + fee
+    assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial + fee
   }
 
   function test_swap_whenTokensHaveDifferentDecimals_shouldHandleCorrectly()
@@ -211,18 +216,21 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 6, ReceiverType.FlashLoanReceiver)
     setupMockOracleRate(1e18, 1e18)
   {
-    // Set protocol fee to 0 for easier testing
-    fpmm.setProtocolFee(0);
-
     uint256 flashLoanAmount0 = 30e18; // 18 decimals
     uint256 flashLoanAmount1 = 40e6; // 6 decimals
 
-    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, 0);
+    uint256 swapFee0 = (flashLoanAmount0 * 10_000) / (10_000 - 30) - flashLoanAmount0;
+    uint256 swapFee1 = (flashLoanAmount1 * 10_000) / (10_000 - 30) - flashLoanAmount1;
+
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee0, swapFee1);
 
     fpmm.swap(flashLoanAmount0, flashLoanAmount1, flashLoanReceiver, "Different decimals");
 
     assertEq(FlashLoanReceiver(flashLoanReceiver).amount0Received(), flashLoanAmount0);
     assertEq(FlashLoanReceiver(flashLoanReceiver).amount1Received(), flashLoanAmount1);
+
+    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial + fee
+    assertEq(fpmm.reserve1(), 200e6 + swapFee1); // Initial + fee
   }
 
   function test_swap_whenExploitingReentrancy_shouldRevert()
