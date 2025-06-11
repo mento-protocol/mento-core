@@ -77,7 +77,7 @@ contract troveNFTTest is DevTestSetup {
 
     TestDeployer deployer = new TestDeployer();
     TestDeployer.LiquityContractsDev[] memory _contractsArray;
-    (_contractsArray, collateralRegistry, boldToken, , , WETH, ) = deployer.deployAndConnectContractsMultiColl(
+    (_contractsArray, collateralRegistry, boldToken, , , WETH) = deployer.deployAndConnectContractsMultiColl(
       troveManagerParamsArray
     );
     // Unimplemented feature (...):Copying of type struct LiquityContracts memory[] memory to storage not yet supported.

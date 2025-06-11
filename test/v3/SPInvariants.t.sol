@@ -17,15 +17,8 @@ abstract contract SPInvariantBase is Assertions, BaseInvariantTest {
     super.setUp();
 
     TestDeployer deployer = new TestDeployer();
-    (
-      TestDeployer.LiquityContractsDev memory contracts,
-      ,
-      IBoldToken boldToken,
-      HintHelpers hintHelpers,
-      ,
-      ,
-
-    ) = deployer.deployAndConnectContracts();
+    (TestDeployer.LiquityContractsDev memory contracts, , IBoldToken boldToken, HintHelpers hintHelpers, , ) = deployer
+      .deployAndConnectContracts();
     stabilityPool = contracts.stabilityPool;
 
     handler = new SPInvariantTestHandler(
