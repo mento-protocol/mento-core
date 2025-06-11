@@ -52,7 +52,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     uint256 flashLoanAmount = 50e18;
     bytes memory customData = abi.encode("Custom flash loan data");
 
-    uint256 swapFee = (flashLoanAmount * 31) / 10000;
+    uint256 swapFee = (flashLoanAmount * 10_000) / (10_000 - 30) - flashLoanAmount;
 
     // Set to repay with extra fee
     FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee);

@@ -343,6 +343,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     // slither-disable-next-line uninitialized-local
     SwapData memory swapData;
 
+    swapData.amount0Out = amount0Out;
+    swapData.amount1Out = amount1Out;
+
     (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
     swapData.initialReserveValue = _totalValueInToken1(
       $.reserve0,
@@ -646,8 +649,28 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateDenominator
     );
 
-    uint256 fee0 = (swapData.amount0In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
-    uint256 fee1 = (swapData.amount1In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
+    uint256 expectedAmount0In = convertWithRate(
+      swapData.amount1Out,
+      $.decimals1,
+      $.decimals0,
+      swapData.rateDenominator,
+      swapData.rateNumerator
+    );
+
+    uint256 expectedAmount1In = convertWithRate(
+      swapData.amount0Out,
+      $.decimals0,
+      $.decimals1,
+      swapData.rateNumerator,
+      swapData.rateDenominator
+    );
+
+    uint256 fee0 = (expectedAmount0In * BASIS_POINTS_DENOMINATOR) /
+      (BASIS_POINTS_DENOMINATOR - $.protocolFee) -
+      expectedAmount0In;
+    uint256 fee1 = (expectedAmount1In * BASIS_POINTS_DENOMINATOR) /
+      (BASIS_POINTS_DENOMINATOR - $.protocolFee) -
+      expectedAmount1In;
 
     uint256 fee0InToken1 = convertWithRate(
       fee0,

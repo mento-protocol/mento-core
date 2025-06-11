@@ -35,6 +35,8 @@ interface IFPMM {
     uint256 initialPriceDifference;
     uint256 amount0In;
     uint256 amount1In;
+    uint256 amount0Out;
+    uint256 amount1Out;
     uint256 balance0;
     uint256 balance1;
     bool reservePriceAboveOraclePrice;
