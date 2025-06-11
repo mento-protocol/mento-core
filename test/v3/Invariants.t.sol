@@ -92,8 +92,7 @@ contract InvariantTest is Assertions, Logging, BaseInvariantTest, BaseMultiColla
       contracts.boldToken,
       contracts.hintHelpers,
       ,
-      contracts.weth,
-
+      contracts.weth
     ) = deployer.deployAndConnectContractsMultiColl(p);
     setupContracts(contracts);
 

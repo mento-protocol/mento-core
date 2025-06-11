@@ -32,8 +32,7 @@ contract AnchoredInvariantsTest is Logging, BaseInvariantTest, BaseMultiCollater
       contracts.boldToken,
       contracts.hintHelpers,
       ,
-      contracts.weth,
-
+      contracts.weth
     ) = deployer.deployAndConnectContractsMultiColl(p);
     setupContracts(contracts);
 

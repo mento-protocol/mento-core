@@ -16,9 +16,6 @@ import "./PriceFeedTestnet.sol";
 import "contracts/v3/Interfaces/IInterestRouter.sol";
 import "contracts/v3/GasPool.sol";
 import "contracts/v3/HintHelpers.sol";
-import "contracts/v3/Zappers/WETHZapper.sol";
-import "contracts/v3/Zappers/GasCompZapper.sol";
-import "contracts/v3/Zappers/LeverageLSTZapper.sol";
 import { mulDivCeil } from "../Utils/Math.sol";
 import { Logging } from "../Utils/Logging.sol";
 import { StringFormatting } from "../Utils/StringFormatting.sol";
@@ -55,10 +52,6 @@ contract BaseTest is TestAccounts, Logging, TroveId {
   IERC20 collToken;
   HintHelpers hintHelpers;
   IWETH WETH; // used for gas compensation
-  WETHZapper wethZapper;
-  GasCompZapper gasCompZapper;
-  ILeverageZapper leverageZapperCurve;
-  ILeverageZapper leverageZapperUniV3;
 
   // Structs for use in test where we need to bi-pass "stack-too-deep" errors
   struct ABCDEF {
