@@ -5,7 +5,6 @@ import { SafeERC20MintableBurnable } from "contracts/common/SafeERC20MintableBur
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
 // solhint-disable-next-line max-line-length
 import { IERC20MetadataUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
-import { UD60x18, ud } from "prb-math/UD60x18.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
@@ -22,8 +21,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
   /// @notice Struct to store pool reserves and precision factors.
   struct PoolReserves {
-    UD60x18 stableReserve;
-    UD60x18 collateralReserve;
+    uint256 stableReserve;
+    uint256 collateralReserve;
     uint256 stablePrecision;
     uint256 collateralPrecision;
   }
@@ -122,8 +121,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     // Create a reserves struct to pass to calculation functions
     PoolReserves memory reserves = PoolReserves({
-      stableReserve: ud(reserve0 * (10 ** (18 - dec0))),
-      collateralReserve: ud(reserve1 * (10 ** (18 - dec1))),
+      stableReserve: reserve0 * (10 ** (18 - dec0)),
+      collateralReserve: reserve1 * (10 ** (18 - dec1)),
       stablePrecision: 10 ** (18 - dec0),
       collateralPrecision: 10 ** (18 - dec1)
     });
@@ -133,10 +132,10 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     uint256 inputAmount;
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
-      (collateralOut, inputAmount) = _calculateExpansionAmounts(reserves, ud(oraclePrice));
+      (collateralOut, inputAmount) = _calculateExpansionAmounts(reserves, oraclePrice);
       stableOut = 0;
     } else {
-      (stableOut, inputAmount) = _calculateContractionAmounts(reserves, ud(oraclePrice));
+      (stableOut, inputAmount) = _calculateContractionAmounts(reserves, oraclePrice);
       collateralOut = 0;
     }
 
@@ -157,19 +156,19 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    */
   function _calculateContractionAmounts(
     PoolReserves memory reserves,
-    UD60x18 oraclePrice
+    uint256 oraclePrice
   ) private pure returns (uint256 stableOut, uint256 collateralIn) {
     // Contraction: Sell stables to buy collateral
     // Y = (P * S - C) / 2
-    // X = (Y ^ 2) / P
-    UD60x18 numerator = (oraclePrice.mul(reserves.stableReserve)).sub(reserves.collateralReserve);
-    UD60x18 denominator = ud(2e18);
+    // X = Y / P
+    uint256 numerator = (oraclePrice * reserves.stableReserve) - reserves.collateralReserve;
+    uint256 denominator = 2e18;
 
-    UD60x18 collateralInUd = numerator.div(denominator);
-    UD60x18 stableOutUd = collateralInUd.powu(2).div(oraclePrice);
+    uint256 collateralInUd = numerator / denominator;
+    uint256 stableOutUd = collateralInUd / oraclePrice;
 
-    stableOut = stableOutUd.unwrap() / reserves.stablePrecision;
-    collateralIn = collateralInUd.unwrap() / reserves.collateralPrecision;
+    stableOut = stableOutUd / reserves.stablePrecision;
+    collateralIn = collateralInUd / reserves.collateralPrecision;
   }
 
   /**
@@ -181,18 +180,18 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    */
   function _calculateExpansionAmounts(
     PoolReserves memory reserves,
-    UD60x18 oraclePrice
+    uint256 oraclePrice
   ) private pure returns (uint256 collateralOut, uint256 stablesIn) {
     // Expansion: Sell collateral to buy stables
-    // Y = (C - P * S) / 2
+    // Y = (P * S - C) / 2
     // X = Y / P
-    UD60x18 numerator = reserves.stableReserve.sub(reserves.stableReserve.mul(oraclePrice));
-    UD60x18 denominator = ud(2e18);
+    uint256 numerator = (reserves.stableReserve * oraclePrice) - reserves.collateralReserve;
+    uint256 denominator = 2e18;
 
-    UD60x18 collateralOutUd = numerator.div(denominator);
-    UD60x18 stablesInUd = collateralOutUd.div(oraclePrice);
+    uint256 collateralOutUd = numerator / denominator;
+    uint256 stablesInUd = collateralOutUd / oraclePrice;
 
-    collateralOut = collateralOutUd.unwrap() / reserves.collateralPrecision;
-    stablesIn = stablesInUd.unwrap() / reserves.stablePrecision;
+    collateralOut = collateralOutUd / reserves.collateralPrecision;
+    stablesIn = stablesInUd / reserves.stablePrecision;
   }
 }
