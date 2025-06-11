@@ -7,8 +7,10 @@ import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts
 // solhint-disable-next-line max-line-length
 import { ReentrancyGuardUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 import { MathUpgradeable as Math } from "openzeppelin-contracts-upgradeable/contracts/utils/math/MathUpgradeable.sol";
-import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
+// solhint-disable-next-line max-line-length
+import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
+// solhint-disable-next-line max-line-length
+import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
@@ -21,7 +23,7 @@ import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
  * to internal pricing.
  */
 contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
-  using SafeERC20 for IERC20;
+  using SafeERC20Upgradeable for IERC20;
 
   /* ========== CONSTANTS ========== */
 
