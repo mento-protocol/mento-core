@@ -7,7 +7,6 @@ import { MIN_LIQUIDATION_PENALTY_SP, MAX_LIQUIDATION_PENALTY_REDISTRIBUTION } fr
 import "./Interfaces/IAddressesRegistry.sol";
 
 contract AddressesRegistry is Ownable, IAddressesRegistry {
-  IERC20Metadata public collToken;
   IBorrowerOperations public borrowerOperations;
   ITroveManager public troveManager;
   ITroveNFT public troveNFT;
@@ -24,7 +23,8 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
   IMultiTroveGetter public multiTroveGetter;
   ICollateralRegistry public collateralRegistry;
   IBoldToken public boldToken;
-  IWETH public WETH;
+  IERC20Metadata public collToken;
+  IERC20Metadata public gasToken;
 
   // Critical system collateral ratio. If the system's total collateral ratio (TCR) falls below the CCR, some borrowing operation restrictions are applied
   uint256 public immutable CCR;
@@ -49,7 +49,6 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
   error SPPenaltyGtRedist();
   error RedistPenaltyTooHigh();
 
-  event CollTokenAddressChanged(address _collTokenAddress);
   event BorrowerOperationsAddressChanged(address _borrowerOperationsAddress);
   event TroveManagerAddressChanged(address _troveManagerAddress);
   event TroveNFTAddressChanged(address _troveNFTAddress);
@@ -66,7 +65,8 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
   event MultiTroveGetterAddressChanged(address _multiTroveGetterAddress);
   event CollateralRegistryAddressChanged(address _collateralRegistryAddress);
   event BoldTokenAddressChanged(address _boldTokenAddress);
-  event WETHAddressChanged(address _wethAddress);
+  event CollTokenAddressChanged(address _collTokenAddress);
+  event GasTokenAddressChanged(address _gasTokenAddress);
 
   constructor(
     address _owner,
@@ -94,7 +94,6 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
   }
 
   function setAddresses(AddressVars memory _vars) external onlyOwner {
-    collToken = _vars.collToken;
     borrowerOperations = _vars.borrowerOperations;
     troveManager = _vars.troveManager;
     troveNFT = _vars.troveNFT;
@@ -111,7 +110,8 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
     multiTroveGetter = _vars.multiTroveGetter;
     collateralRegistry = _vars.collateralRegistry;
     boldToken = _vars.boldToken;
-    WETH = _vars.WETH;
+    collToken = _vars.collToken;
+    gasToken = _vars.gasToken;
 
     emit CollTokenAddressChanged(address(_vars.collToken));
     emit BorrowerOperationsAddressChanged(address(_vars.borrowerOperations));
@@ -130,7 +130,7 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
     emit MultiTroveGetterAddressChanged(address(_vars.multiTroveGetter));
     emit CollateralRegistryAddressChanged(address(_vars.collateralRegistry));
     emit BoldTokenAddressChanged(address(_vars.boldToken));
-    emit WETHAddressChanged(address(_vars.WETH));
+    emit GasTokenAddressChanged(address(_vars.gasToken));
 
     _renounceOwnership();
   }
