@@ -20,7 +20,6 @@ import "./IPriceFeed.sol";
 
 interface IAddressesRegistry {
   struct AddressVars {
-    IERC20Metadata collToken;
     IBorrowerOperations borrowerOperations;
     ITroveManager troveManager;
     ITroveNFT troveNFT;
@@ -37,7 +36,8 @@ interface IAddressesRegistry {
     IMultiTroveGetter multiTroveGetter;
     ICollateralRegistry collateralRegistry;
     IBoldToken boldToken;
-    IWETH WETH;
+    IERC20Metadata collToken;
+    IERC20Metadata gasToken;
   }
 
   function CCR() external returns (uint256);
@@ -47,7 +47,6 @@ interface IAddressesRegistry {
   function LIQUIDATION_PENALTY_SP() external returns (uint256);
   function LIQUIDATION_PENALTY_REDISTRIBUTION() external returns (uint256);
 
-  function collToken() external view returns (IERC20Metadata);
   function borrowerOperations() external view returns (IBorrowerOperations);
   function troveManager() external view returns (ITroveManager);
   function troveNFT() external view returns (ITroveNFT);
@@ -64,7 +63,8 @@ interface IAddressesRegistry {
   function multiTroveGetter() external view returns (IMultiTroveGetter);
   function collateralRegistry() external view returns (ICollateralRegistry);
   function boldToken() external view returns (IBoldToken);
-  function WETH() external returns (IWETH);
+  function collToken() external view returns (IERC20Metadata);
+  function gasToken() external view returns (IERC20Metadata);
 
   function setAddresses(AddressVars memory _vars) external;
 }
