@@ -426,7 +426,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     // slither-disable-next-line incorrect-equality
     require(
       (amount0Out > 0 && amount1In > 0 && amount0In == 0) || (amount1Out > 0 && amount0In > 0 && amount1In == 0),
-      "FPMM: INSUFFICIENT_INPUT_AMOUNT"
+      "FPMM: REBALANCE_DIRECTION_INVALID"
     );
 
     _update();
@@ -611,22 +611,24 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateDenominator
     );
 
-    uint256 rebalanceIncentiveInToken1;
+    uint256 amountOutInToken1;
     if (swapData.amount0Out > 0) {
-      rebalanceIncentiveInToken1 =
-        (convertWithRate(
-          swapData.amount0Out,
-          $.decimals0,
-          $.decimals1,
-          swapData.rateNumerator,
-          swapData.rateDenominator
-        ) * $.rebalanceIncentive) /
-        BASIS_POINTS_DENOMINATOR;
+      amountOutInToken1 = convertWithRate(
+        swapData.amount0Out,
+        $.decimals0,
+        $.decimals1,
+        swapData.rateNumerator,
+        swapData.rateDenominator
+      );
     } else {
-      rebalanceIncentiveInToken1 = (swapData.amount1Out * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
+      amountOutInToken1 = swapData.amount1Out;
     }
 
-    require(newReserveValue >= swapData.initialReserveValue - rebalanceIncentiveInToken1, "FPMM: EXCESSIVE_VALUE_LOSS");
+    uint256 maxRebalanceIncentiveInToken1 = (amountOutInToken1 * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
+    require(
+      newReserveValue >= swapData.initialReserveValue - maxRebalanceIncentiveInToken1,
+      "FPMM: EXCESSIVE_VALUE_LOSS"
+    );
   }
 
   /**

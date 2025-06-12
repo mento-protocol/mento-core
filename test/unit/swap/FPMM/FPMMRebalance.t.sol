@@ -173,7 +173,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
   {
     uint256 rebalanceAmount = 10e18;
     liquidityStrategy.setShouldMovePrice(false);
-    vm.expectRevert("FPMM: INSUFFICIENT_INPUT_AMOUNT");
+    vm.expectRevert("FPMM: REBALANCE_DIRECTION_INVALID");
     liquidityStrategy.executeRebalance(rebalanceAmount, 0);
   }
 
@@ -186,7 +186,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
   {
     uint256 rebalanceAmount = 10e18;
     liquidityStrategy.setShouldMovePrice(false);
-    vm.expectRevert("FPMM: INSUFFICIENT_INPUT_AMOUNT");
+    vm.expectRevert("FPMM: REBALANCE_DIRECTION_INVALID");
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
