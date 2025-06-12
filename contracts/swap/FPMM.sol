@@ -423,6 +423,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     uint256 amount0In = balance0 > $.reserve0 - amount0Out ? balance0 - ($.reserve0 - amount0Out) : 0;
     uint256 amount1In = balance1 > $.reserve1 - amount1Out ? balance1 - ($.reserve1 - amount1Out) : 0;
 
+    // slither-disable-next-line incorrect-equality
     require(
       (amount0Out > 0 && amount1In > 0 && amount0In == 0) || (amount1Out > 0 && amount0In > 0 && amount1In == 0),
       "FPMM: INSUFFICIENT_INPUT_AMOUNT"
@@ -596,6 +597,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     // Ensure price difference is smaller than before
     require(newPriceDifference < swapData.initialPriceDifference, "FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
+    // slither-disable-next-line incorrect-equality
     require(
       reservePriceAboveOraclePrice == swapData.reservePriceAboveOraclePrice || newPriceDifference == 0,
       "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION"
