@@ -107,30 +107,10 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 18)
     setupMockOracleRate(1.5e18, 1e18) // Big difference to meet threshold
   {
-    liquidityStrategy.setShouldImprovePrice(false);
-
     // Try to rebalance - should fail because price isn't improved
     uint256 rebalanceAmount = 20e18;
     vm.expectRevert("FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
-    liquidityStrategy.executeRebalance(0, rebalanceAmount);
-  }
-
-  function test_rebalance_whenPoolNotRebalanced_shouldRevert()
-    public
-    initializeFPMM_withDecimalTokens(18, 18)
-    mintInitialLiquidity(18, 18)
-    setupRebalancer(18, 18)
-    setupMockOracleRate(1.2e18, 1e18)
-  {
-    (uint256 oraclePrice, uint256 reservePrice, , ) = fpmm.getPrices();
-    assertEq(oraclePrice, 1.2e18);
-    assertEq(reservePrice, 2e18);
-
-    // Borrow 20 token1 and exchange it for 16.66 token0
-    // 180 / 116.66 = 1.54
-    uint256 rebalanceAmount = 20e18;
-    vm.expectRevert("FPMM: POOL_NOT_REBALANCED");
-    liquidityStrategy.executeRebalance(0, rebalanceAmount);
+    liquidityStrategy.executeRebalance(rebalanceAmount, 0);
   }
 
   function test_rebalance_whenInsufficientReserves_shouldRevert()
@@ -182,6 +162,32 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     uint256 rebalanceAmount = 17e18;
     vm.expectRevert("FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION");
     liquidityStrategy.executeRebalance(rebalanceAmount, 0);
+  }
+
+  function test_rebalance_whenToken0OutAndToken0In_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupRebalancer(18, 18)
+    setupMockOracleRate(1.2e18, 1e18)
+  {
+    uint256 rebalanceAmount = 10e18;
+    liquidityStrategy.setShouldMovePrice(false);
+    vm.expectRevert("FPMM: INSUFFICIENT_INPUT_AMOUNT");
+    liquidityStrategy.executeRebalance(rebalanceAmount, 0);
+  }
+
+  function test_rebalance_whenToken1OutAndToken1In_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupRebalancer(18, 18)
+    setupMockOracleRate(1.2e18, 1e18)
+  {
+    uint256 rebalanceAmount = 10e18;
+    liquidityStrategy.setShouldMovePrice(false);
+    vm.expectRevert("FPMM: INSUFFICIENT_INPUT_AMOUNT");
+    liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
   function test_rebalance_whenAddingToken0_shouldSucceed()

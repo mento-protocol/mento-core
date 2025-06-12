@@ -397,6 +397,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     // slither-disable-next-line uninitialized-local
     SwapData memory swapData;
 
+    swapData.amount0Out = amount0Out;
+    swapData.amount1Out = amount1Out;
+
     (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
     swapData.initialReserveValue = _totalValueInToken1(
       $.reserve0,
@@ -406,27 +409,24 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     );
     (swapData.initialPriceDifference, swapData.reservePriceAboveOraclePrice) = _calculatePriceDifference();
 
-    if (swapData.reservePriceAboveOraclePrice) {
-      require(swapData.initialPriceDifference >= $.rebalanceThresholdAbove, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
-    } else {
-      require(swapData.initialPriceDifference >= $.rebalanceThresholdBelow, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
-    }
+    uint256 threshold = swapData.reservePriceAboveOraclePrice ? $.rebalanceThresholdAbove : $.rebalanceThresholdBelow;
+    require(swapData.initialPriceDifference >= threshold, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
 
     if (amount0Out > 0) IERC20($.token0).safeTransfer(msg.sender, amount0Out);
     if (amount1Out > 0) IERC20($.token1).safeTransfer(msg.sender, amount1Out);
 
     if (data.length > 0) IFPMMCallee(msg.sender).hook(msg.sender, amount0Out, amount1Out, data);
 
-    swapData.balance0 = IERC20($.token0).balanceOf(address(this));
-    swapData.balance1 = IERC20($.token1).balanceOf(address(this));
+    uint256 balance0 = IERC20($.token0).balanceOf(address(this));
+    uint256 balance1 = IERC20($.token1).balanceOf(address(this));
 
-    swapData.amount0In = swapData.balance0 > $.reserve0 - amount0Out
-      ? swapData.balance0 - ($.reserve0 - amount0Out)
-      : 0;
-    swapData.amount1In = swapData.balance1 > $.reserve1 - amount1Out
-      ? swapData.balance1 - ($.reserve1 - amount1Out)
-      : 0;
-    require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
+    uint256 amount0In = balance0 > $.reserve0 - amount0Out ? balance0 - ($.reserve0 - amount0Out) : 0;
+    uint256 amount1In = balance1 > $.reserve1 - amount1Out ? balance1 - ($.reserve1 - amount1Out) : 0;
+
+    require(
+      (amount0Out > 0 && amount1In > 0 && amount0In == 0) || (amount1Out > 0 && amount0In > 0 && amount1In == 0),
+      "FPMM: INSUFFICIENT_INPUT_AMOUNT"
+    );
 
     _update();
 
@@ -596,17 +596,10 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     // Ensure price difference is smaller than before
     require(newPriceDifference < swapData.initialPriceDifference, "FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
-    if (reservePriceAboveOraclePrice) {
-      require(newPriceDifference < $.rebalanceThresholdAbove, "FPMM: POOL_NOT_REBALANCED");
-      require(swapData.reservePriceAboveOraclePrice, "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION");
-    } else {
-      require(newPriceDifference < $.rebalanceThresholdBelow, "FPMM: POOL_NOT_REBALANCED");
-      // slither-disable-next-line incorrect-equality
-      require(
-        newPriceDifference == 0 || !swapData.reservePriceAboveOraclePrice,
-        "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION"
-      );
-    }
+    require(
+      reservePriceAboveOraclePrice == swapData.reservePriceAboveOraclePrice || newPriceDifference == 0,
+      "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION"
+    );
 
     // Check for excessive value loss
     uint256 newReserveValue = _totalValueInToken1(
@@ -616,25 +609,22 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateDenominator
     );
 
-    uint256 swapValue;
-    // Rebalance should be done borrowing only one token
-    // and incentive should be calculated based on the value of the swapped token
-    if (swapData.amount0In > 0) {
-      // Calculate the value of tokens being swapped in token1 terms
-      uint256 amount0InValue = convertWithRate(
-        swapData.amount0In,
-        $.decimals0,
-        $.decimals1,
-        swapData.rateNumerator,
-        swapData.rateDenominator
-      );
-      swapValue = amount0InValue;
+    uint256 rebalanceIncentiveInToken1;
+    if (swapData.amount0Out > 0) {
+      rebalanceIncentiveInToken1 =
+        (convertWithRate(
+          swapData.amount0Out,
+          $.decimals0,
+          $.decimals1,
+          swapData.rateNumerator,
+          swapData.rateDenominator
+        ) * $.rebalanceIncentive) /
+        BASIS_POINTS_DENOMINATOR;
     } else {
-      swapValue = swapData.amount1In;
+      rebalanceIncentiveInToken1 = (swapData.amount1Out * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
     }
-    uint256 rebalanceIncentiveAmount = (swapValue * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
-    uint256 minAcceptableValue = swapData.initialReserveValue - rebalanceIncentiveAmount;
-    require(newReserveValue >= minAcceptableValue, "FPMM: EXCESSIVE_VALUE_LOSS");
+
+    require(newReserveValue >= swapData.initialReserveValue - rebalanceIncentiveInToken1, "FPMM: EXCESSIVE_VALUE_LOSS");
   }
 
   /**
