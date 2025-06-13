@@ -164,11 +164,11 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     uint256 numerator = (oraclePrice * reserves.stableReserve) - reserves.collateralReserve;
     uint256 denominator = 2e18;
 
-    uint256 collateralInUd = numerator / denominator;
-    uint256 stableOutUd = collateralInUd / oraclePrice;
+    uint256 collateralInRaw = numerator / denominator;
+    uint256 stableOutRaw = collateralInRaw / oraclePrice;
 
-    stableOut = stableOutUd / reserves.stablePrecision;
-    collateralIn = collateralInUd / reserves.collateralPrecision;
+    stableOut = stableOutRaw / reserves.stablePrecision;
+    collateralIn = collateralInRaw / reserves.collateralPrecision;
   }
 
   /**
@@ -183,15 +183,15 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     uint256 oraclePrice
   ) private pure returns (uint256 collateralOut, uint256 stablesIn) {
     // Expansion: Sell collateral to buy stables
-    // Y = (P * S - C) / 2
+    // Y = (C - P * S) / 2
     // X = Y / P
-    uint256 numerator = (reserves.stableReserve * oraclePrice) - reserves.collateralReserve;
+    uint256 numerator = reserves.collateralReserve - (oraclePrice * reserves.stableReserve);
     uint256 denominator = 2e18;
 
-    uint256 collateralOutUd = numerator / denominator;
-    uint256 stablesInUd = collateralOutUd / oraclePrice;
+    uint256 collateralOutRaw = numerator / denominator;
+    uint256 stablesInRaw = collateralOutRaw / oraclePrice;
 
-    collateralOut = collateralOutUd / reserves.collateralPrecision;
-    stablesIn = stablesInUd / reserves.stablePrecision;
+    collateralOut = collateralOutRaw / reserves.collateralPrecision;
+    stablesIn = stablesInRaw / reserves.stablePrecision;
   }
 }
