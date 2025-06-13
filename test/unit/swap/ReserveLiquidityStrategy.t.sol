@@ -188,7 +188,7 @@ contract ReserveLiquidityStrategyTest is Test {
   function test_rebalance_whenPoolPriceAboveOracle_shouldVerifyZeroExpansion() public {
     // --- Setup ---
     uint256 stableReserveInPool = 1050e18; // S
-    uint256 collateralReserveInPool = 1000e18; // C
+    uint256 collateralReserveInPool = 1050e18; // C must equal S for zero expansion when P=1
     uint256 oraclePrice = 1e18; // P_oracle
     uint256 poolPrice = 1.02e18; // P_pool > P_oracle + threshold
     uint256 thresholdBps = 100; // 1%
@@ -332,11 +332,11 @@ contract ReserveLiquidityStrategyTest is Test {
     uint256 reserveCollateralBefore = collateralToken.balanceOf(address(mockReserve));
 
     // Calculate expected amounts
-    // Using formula: numerator = P*S - C = 1e18*1000e18 - 950e18 = 50e18
+    // Using formula: numerator = P * S - C = 1e18*1000e18 - 950e18 = 50e18
     // collateralIn = numerator / 2 = 25e18
-    // stableOut = (collateralIn)^2 / P = (25e18)^2 / 1e18 = 625e18 / 1e18 = 625e18
+    // stableOut = collateralIn * 1e18 / P = 25e18 / 1e18 = 25e18
     uint256 expectedCollateralIn = 25e18;
-    uint256 expectedStableOut = 625e18;
+    uint256 expectedStableOut = 25e18;
 
     // Expect RebalanceInitiated event with calculated amounts
     vm.expectEmit(true, true, true, true);
