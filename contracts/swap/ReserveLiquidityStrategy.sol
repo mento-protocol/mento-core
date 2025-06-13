@@ -162,10 +162,10 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     // Y = (P * S - C) / 2
     // X = Y / P
     uint256 numerator = ((oraclePrice * reserves.stableReserve) / 1e18) - reserves.collateralReserve;
-    uint256 denominator = 2e18;
+    uint256 denominator = 2;
 
     uint256 collateralInRaw = numerator / denominator;
-    uint256 stableOutRaw = collateralInRaw / oraclePrice;
+    uint256 stableOutRaw = (collateralInRaw * 1e18) / oraclePrice;
 
     stableOut = stableOutRaw / reserves.stablePrecision;
     collateralIn = collateralInRaw / reserves.collateralPrecision;
@@ -186,10 +186,10 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     // Y = (C - P * S) / 2
     // X = Y / P
     uint256 numerator = reserves.collateralReserve - ((oraclePrice * reserves.stableReserve) / 1e18);
-    uint256 denominator = 2e18;
+    uint256 denominator = 2;
 
     uint256 collateralOutRaw = numerator / denominator;
-    uint256 stablesInRaw = collateralOutRaw / oraclePrice;
+    uint256 stablesInRaw = (collateralOutRaw * 1e18) / oraclePrice;
 
     collateralOut = collateralOutRaw / reserves.collateralPrecision;
     stablesIn = stablesInRaw / reserves.stablePrecision;

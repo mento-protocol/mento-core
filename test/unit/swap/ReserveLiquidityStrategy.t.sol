@@ -235,7 +235,7 @@ contract ReserveLiquidityStrategyTest is Test {
     assertTrue(lastRebalanceAfter <= block.timestamp, "Last rebalance time in future");
   }
 
-  function test_rebalance_whenPoolPriceAboveOracle_shouldTriggerNonZeroExpansion() public {
+  function test_rebalance_whenPoolPriceAboveOracle_shouldTriggerExpansion() public {
     // --- Setup with oracle price < 1e18 to create expansion ---
     uint256 stableReserveInPool = 1000e18; // S
     uint256 collateralReserveInPool = 1000e18; // C
@@ -251,9 +251,9 @@ contract ReserveLiquidityStrategyTest is Test {
     collateralToken.mint(address(mockPool), 1000e18);
 
     // Pre-calculate expected amounts with these values
-    // Using formula: numerator = S - S*P = 1000e18 - 1000e18*0.9 = 100e18
+    // Using formula: numerator = C - P * S = 1000e18 - 1000e18*0.9 = 100e18
     // collateralOut = numerator / 2 = 50e18
-    // stablesIn = collateralOut / P = 50e18 / 0.9 = 55.555...e18
+    // stablesIn = (collateralOut * 1e18) / P = (50e18 * 1e18) / 0.9 = 55.555...e18
     uint256 expectedCollateralOut = 50e18;
     uint256 expectedStablesIn = 55555555555555555555; // 55.555...e18
 
@@ -394,19 +394,9 @@ contract ReserveLiquidityStrategyTest is Test {
   }
 
   function test_rebalance_withDifferentDecimals() public {
-    // This test verifies that the contract can handle tokens with different decimal places.
-    // The test invokes code paths that handle decimal precision adjustments.
-
-    // --- Setup ---
-    uint256 stableReserveInPool = 1050e18; // S (1050 with 18 decimals)
-    uint256 collateralReserveInPool = 1000e6; // C (1000 with 6 decimals)
-    uint256 oraclePrice = 1e18; // P_oracle
-    uint256 poolPrice = 1.02e18; // P_pool > P_oracle + threshold
-    uint256 thresholdBps = 100; // 1%
-
-    mockPool6Dec.setReserves(stableReserveInPool, collateralReserveInPool);
-    mockPool6Dec.setPrices(oraclePrice, poolPrice);
-    mockPool6Dec.setRebalanceThreshold(thresholdBps, thresholdBps);
+    mockPool6Dec.setReserves(1050e18, 1100e6);
+    mockPool6Dec.setPrices(1e18, 1.02e18);
+    mockPool6Dec.setRebalanceThreshold(100, 100);
 
     // --- Execute ---
     (uint256 lastRebalanceBefore, ) = strat.fpmmPoolConfigs(address(mockPool6Dec));
