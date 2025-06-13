@@ -160,12 +160,8 @@ contract ReserveLiquidityStrategyTest is Test {
   function test_rebalance_whenCooldownActive_shouldRevert() public {
     // Initial rebalance to set timestamp
     // Create a scenario that will trigger expansion (price above oracle)
-    mockPool.setPrices(1e18, 1.05e18); // poolPrice > Oracle + threshold
-    mockPool.setReserves(1050e18, 1000e18); // S=1050, C=1000, P_oracle=1
-
-    // We need values that will create a numerator > 0 in the expansion calculation
-    // Resetting these values to something that will actually trigger the expansion
-    mockPool.setReserves(1000e18, 1050e18);
+    mockPool.setPrices(1e18, 2e18); // poolPrice > Oracle + threshold
+    mockPool.setReserves(2e21, 5e21); // S=2000, C=5000, P_oracle=1
 
     // Mint tokens to support the test
     collateralToken.mint(address(mockPool), 50e18);
@@ -240,7 +236,7 @@ contract ReserveLiquidityStrategyTest is Test {
   }
 
   function test_rebalance_whenPoolPriceAboveOracle_shouldTriggerNonZeroExpansion() public {
-    // --- Setup with oracle price < 1e18 to create non-zero expansion ---
+    // --- Setup with oracle price < 1e18 to create expansion ---
     uint256 stableReserveInPool = 1000e18; // S
     uint256 collateralReserveInPool = 1000e18; // C
     uint256 oraclePrice = 0.9e18; // P_oracle < 1e18 will make stable * (1-P) > 0

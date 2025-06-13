@@ -161,7 +161,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     // Contraction: Sell stables to buy collateral
     // Y = (P * S - C) / 2
     // X = Y / P
-    uint256 numerator = (oraclePrice * reserves.stableReserve) - reserves.collateralReserve;
+    uint256 numerator = ((oraclePrice * reserves.stableReserve) / 1e18) - reserves.collateralReserve;
     uint256 denominator = 2e18;
 
     uint256 collateralInRaw = numerator / denominator;
@@ -185,7 +185,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     // Expansion: Sell collateral to buy stables
     // Y = (C - P * S) / 2
     // X = Y / P
-    uint256 numerator = reserves.collateralReserve - (oraclePrice * reserves.stableReserve);
+    uint256 numerator = reserves.collateralReserve - ((oraclePrice * reserves.stableReserve) / 1e18);
     uint256 denominator = 2e18;
 
     uint256 collateralOutRaw = numerator / denominator;
