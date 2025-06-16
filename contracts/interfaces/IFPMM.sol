@@ -9,21 +9,38 @@ interface IFPMM {
   /* ========== STRUCTS ========== */
 
   /// @notice Struct to store FPMM contract state
+  /// @custom:storage-location erc7201:mento.storage.FPMM
   struct FPMMStorage {
+    // token0 is the stable token
     address token0;
+    // token1 is the collateral token
     address token1;
+    // decimals of token0 kepts as 10^decimals
     uint256 decimals0;
+    // decimals of token1 kepts as 10^decimals
     uint256 decimals1;
+    // reserve amount of token0
     uint256 reserve0;
+    // reserve amount of token1
     uint256 reserve1;
+    // timestamp of the last reserve update
     uint256 blockTimestampLast;
+    // contract for oracle price feeds(to be replaced)
     ISortedOracles sortedOracles;
+    // onchain circuit breaker
     IBreakerBox breakerBox;
+    // identifier for the reference rate feed
+    // required for sorted oracles and breaker box
     address referenceRateFeedID;
+    // fee taken from the swap
     uint256 protocolFee;
+    // incentive percentage for rebalancing the pool
     uint256 rebalanceIncentive;
+    // threshold for rebalancing the pool when reserve price > oracle price
     uint256 rebalanceThresholdAbove;
+    // threshold for rebalancing the pool when reserve price < oracle price
     uint256 rebalanceThresholdBelow;
+    // true if the address is a trusted liquidity strategy
     mapping(address => bool) liquidityStrategy;
   }
 
@@ -326,10 +343,10 @@ interface IFPMM {
   /**
    * @notice Converts token amount using the provided exchange rate and adjusts for decimals
    * @param amount Amount to convert
-   * @param fromDecimals Source token decimal scaling factor
-   * @param toDecimals Destination token decimal scaling factor
-   * @param numerator Rate numerator
-   * @param denominator Rate denominator
+   * @param fromDecimals Source token decimal scaling factor, 10^fromDecimals
+   * @param toDecimals Destination token decimal scaling factor, 10^toDecimals
+   * @param numerator Rate numerator,
+   * @param denominator Rate denominator,
    * @return Converted amount
    */
   function convertWithRate(

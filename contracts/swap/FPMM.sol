@@ -21,6 +21,11 @@ import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
  * @notice This contract implements a fixed price market maker that manages a liquidity pool
  * of two tokens and facilitates swaps between them based on oracle rates and potential fallback
  * to internal pricing.
+ * @dev Invariants of the pool:
+ * 1. Swap does not decrease the total value of the pool
+ * 2. Rebalance does not decrease the reserve value more than the rebalance incentive
+ * 3. Rebalance moves the price difference towards 0
+ * 4. Rebalance does not change the direction of the price difference
  */
 contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
