@@ -578,13 +578,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   {
     (uint256 oraclePrice, uint256 reservePrice, , ) = getPrices();
 
-    if (reservePrice > oraclePrice) {
-      priceDifference = ((reservePrice - oraclePrice) * BASIS_POINTS_DENOMINATOR) / oraclePrice;
-      reservePriceAboveOraclePrice = true;
-    } else {
-      priceDifference = ((oraclePrice - reservePrice) * BASIS_POINTS_DENOMINATOR) / oraclePrice;
-      reservePriceAboveOraclePrice = false;
-    }
+    reservePriceAboveOraclePrice = reservePrice > oraclePrice;
+    uint256 absolutePriceDiff = reservePriceAboveOraclePrice ? reservePrice - oraclePrice : oraclePrice - reservePrice;
+    priceDifference = (absolutePriceDiff * BASIS_POINTS_DENOMINATOR) / oraclePrice;
   }
 
   /**
