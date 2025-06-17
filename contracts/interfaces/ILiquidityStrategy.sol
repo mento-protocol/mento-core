@@ -61,6 +61,12 @@ interface ILiquidityStrategy {
    */
   event RebalanceExecuted(address indexed pool, uint256 priceBefore, uint256 priceAfter);
 
+  /**
+   * @notice Emitted when the rebalance incentive is set.
+   * @param rebalanceIncentive The new rebalance incentive in basis points.
+   */
+  event RebalanceIncentiveSet(uint256 rebalanceIncentive);
+
   /* ==================== Functions ==================== */
 
   /**

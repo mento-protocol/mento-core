@@ -21,6 +21,8 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
 
   mapping(address => FPMMConfig) public fpmmPoolConfigs;
 
+  uint256 public rebalanceIncentive;
+
   EnumerableSetUpgradeable.AddressSet private fpmmPools;
 
   uint256 public constant BPS_SCALE = 10_000;
@@ -56,6 +58,15 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     require(fpmmPools.remove(pool), "LS: UNREGISTERED_POOL");
     delete fpmmPoolConfigs[pool];
     emit FPMMPoolRemoved(pool);
+  }
+
+  /**
+   * @notice Sets the rebalance incentive in basis points.
+   * @param _rebalanceIncentive The rebalance incentive in basis points.
+   */
+  function setRebalanceIncentive(uint256 _rebalanceIncentive) public onlyOwner {
+    rebalanceIncentive = _rebalanceIncentive;
+    emit RebalanceIncentiveSet(_rebalanceIncentive);
   }
 
   /* ==================== Rebalancing ==================== */
