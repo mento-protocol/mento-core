@@ -198,7 +198,7 @@ contract ReserveLiquidityStrategyTest is Test {
     mockPool.setRebalanceThreshold(thresholdBps, thresholdBps);
 
     // Calculate expected amounts which should be zero with these values
-    // stableR_ud.sub(stableR_ud.mul(oracleP_ud)) = 1050e18 - 1050e18 = 0
+    // C - (P * S) = 1050e18 - (1e18 * 1050e18) = 0
     uint256 expectedCollateralOut = 0;
     uint256 expectedStablesIn = 0;
 
