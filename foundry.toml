@@ -19,6 +19,7 @@ allow_paths = ["node_modules/@celo"]
 fs_permissions = [{ access = "read", path = "out" },
     { access = "read", path = "contracts/v3/assets/" },
     { access = "read-write", path = "contracts/v3/assets/test_output" },
+    { access = "read-write", path = "script/deployment-manifest.json" },
 ]
 
 [profile.ci]
