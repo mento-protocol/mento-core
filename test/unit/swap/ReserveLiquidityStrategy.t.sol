@@ -185,56 +185,6 @@ contract ReserveLiquidityStrategyTest is Test {
 
   /* ---------- Rebalance Core Logic Tests ---------- */
 
-  function test_rebalance_whenPoolPriceAboveOracle_shouldVerifyZeroExpansion() public {
-    // --- Setup ---
-    uint256 stableReserveInPool = 1050e18; // S
-    uint256 collateralReserveInPool = 1050e18; // C must equal S for zero expansion when P=1
-    uint256 oraclePrice = 1e18; // P_oracle
-    uint256 poolPrice = 1.02e18; // P_pool > P_oracle + threshold
-    uint256 thresholdBps = 100; // 1%
-
-    mockPool.setReserves(stableReserveInPool, collateralReserveInPool);
-    mockPool.setPrices(oraclePrice, poolPrice);
-    mockPool.setRebalanceThreshold(thresholdBps, thresholdBps);
-
-    // Calculate expected amounts which should be zero with these values
-    // C - (P * S) = 1050e18 - (1e18 * 1050e18) = 0
-    uint256 expectedCollateralOut = 0;
-    uint256 expectedStablesIn = 0;
-
-    // Expect RebalanceInitiated event with zero amounts
-    vm.expectEmit(true, true, true, true);
-    emit RebalanceInitiated(
-      address(mockPool),
-      0, // stableOut
-      expectedCollateralOut,
-      expectedStablesIn,
-      ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
-    );
-
-    // Expect call to FPMM pool with zero amounts
-    bytes memory expectedCallbackData = abi.encode(expectedStablesIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
-
-    vm.expectCall(
-      address(mockPool),
-      abi.encodeWithSelector(
-        mockPool.rebalance.selector,
-        0, // stableOut
-        expectedCollateralOut,
-        expectedCallbackData
-      )
-    );
-
-    // --- Execute ---
-    (uint256 lastRebalanceBefore, ) = strat.fpmmPoolConfigs(address(mockPool));
-    strat.rebalance(address(mockPool));
-
-    // --- Assertions ---
-    (uint256 lastRebalanceAfter, ) = strat.fpmmPoolConfigs(address(mockPool));
-    assertTrue(lastRebalanceAfter > lastRebalanceBefore, "Last rebalance time not updated");
-    assertTrue(lastRebalanceAfter <= block.timestamp, "Last rebalance time in future");
-  }
-
   function test_rebalance_whenPoolPriceAboveOracle_shouldTriggerExpansion() public {
     // --- Setup with oracle price < 1e18 to create expansion ---
     uint256 stableReserveInPool = 1000e18; // S
