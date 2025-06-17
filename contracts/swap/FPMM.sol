@@ -63,7 +63,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     address _token0,
     address _token1,
     address _sortedOracles,
-    address _breakerBox
+    address _referenceRateFeedID,
+    address _breakerBox,
+    address _owner
   ) external initializer {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -88,6 +90,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     setSortedOracles(_sortedOracles);
     setBreakerBox(_breakerBox);
+    setReferenceRateFeedID(_referenceRateFeedID);
+    transferOwnership(_owner);
   }
 
   /* ========== VIEW FUNCTIONS ========== */
