@@ -161,7 +161,7 @@ contract ReserveLiquidityStrategyTest is Test {
     // Initial rebalance to set timestamp
     // Create a scenario that will trigger expansion (price above oracle)
     mockPool.setPrices(1e18, 2e18); // poolPrice > Oracle + threshold
-    mockPool.setReserves(2e21, 5e21); // S=2000, C=5000, P_oracle=1
+    mockPool.setReserves(2e21, 4e21); // S=2000, C=4000, P_oracle=1
 
     // Mint tokens to support the test
     collateralToken.mint(address(mockPool), 50e18);
