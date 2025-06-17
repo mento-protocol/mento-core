@@ -18,9 +18,8 @@ contract MockLiquidityStrategy is IFPMMCallee {
   bool public shouldFail;
   bool public shouldPartiallyRebalance;
   bool public shouldUseExactRequiredAmounts;
-  bool public shouldImprovePrice;
+  bool public shouldMovePrice;
   uint256 public profitPercentage;
-  address public rebalanceRecipient;
 
   constructor(address _fpmm, address _token0, address _token1) {
     fpmm = FPMM(_fpmm);
@@ -31,9 +30,8 @@ contract MockLiquidityStrategy is IFPMMCallee {
     shouldFail = false;
     shouldPartiallyRebalance = false;
     shouldUseExactRequiredAmounts = true;
-    shouldImprovePrice = true;
+    shouldMovePrice = true;
     profitPercentage = 0;
-    rebalanceRecipient = address(this);
   }
 
   function setShouldFail(bool _shouldFail) external {
@@ -44,17 +42,13 @@ contract MockLiquidityStrategy is IFPMMCallee {
     profitPercentage = _profitPercentage;
   }
 
-  function setShouldImprovePrice(bool _shouldImprovePrice) external {
-    shouldImprovePrice = _shouldImprovePrice;
-  }
-
-  function setRebalanceRecipient(address _rebalanceRecipient) external {
-    rebalanceRecipient = _rebalanceRecipient;
+  function setShouldMovePrice(bool _shouldMovePrice) external {
+    shouldMovePrice = _shouldMovePrice;
   }
 
   // Execute a flash loan to rebalance the pool
   function executeRebalance(uint256 amount0Out, uint256 amount1Out) external {
-    fpmm.rebalance(amount0Out, amount1Out, rebalanceRecipient, "Rebalance operation");
+    fpmm.rebalance(amount0Out, amount1Out, "Rebalance operation");
   }
 
   // The hook function that gets called during the flash loan
@@ -66,23 +60,18 @@ contract MockLiquidityStrategy is IFPMMCallee {
       revert("MockRebalancer: Forced failure");
     }
 
-    (uint256 oraclePrice, uint256 reservePrice, uint256 decimals0, uint256 decimals1) = fpmm.getPrices();
+    (uint256 oraclePrice, , uint256 decimals0, uint256 decimals1) = fpmm.getPrices();
 
     // Calculate amounts needed for rebalancing
     uint256 token0ToAdd;
     uint256 token1ToAdd;
 
-    if (shouldImprovePrice) {
-      if (reservePrice > oraclePrice) {
-        token0ToAdd = fpmm.convertWithRate(amount1, decimals1, decimals0, 1e18, oraclePrice);
-        if (profitPercentage > 0) {
-          token0ToAdd = (token0ToAdd * (100 - profitPercentage)) / 100;
-        }
-      } else {
-        token1ToAdd = fpmm.convertWithRate(amount0, decimals0, decimals1, oraclePrice, 1e18);
-        if (profitPercentage > 0) {
-          token1ToAdd = (token1ToAdd * (100 - profitPercentage)) / 100;
-        }
+    if (shouldMovePrice) {
+      token0ToAdd = fpmm.convertWithRate(amount1, decimals1, decimals0, 1e18, oraclePrice);
+      token1ToAdd = fpmm.convertWithRate(amount0, decimals0, decimals1, oraclePrice, 1e18);
+      if (profitPercentage > 0) {
+        token0ToAdd = (token0ToAdd * (10000 - profitPercentage)) / 10000;
+        token1ToAdd = (token1ToAdd * (10000 - profitPercentage)) / 10000;
       }
     } else {
       token0ToAdd = amount0;

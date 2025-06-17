@@ -11,7 +11,8 @@ contract FlashLoanReceiver is IFPMMCallee {
   address public token0;
   address public token1;
   bool public shouldRepay;
-  uint256 public repayExtra;
+  uint256 public repayExtra0;
+  uint256 public repayExtra1;
   address public sender;
   uint256 public amount0Received;
   uint256 public amount1Received;
@@ -23,12 +24,14 @@ contract FlashLoanReceiver is IFPMMCallee {
     token0 = _token0;
     token1 = _token1;
     shouldRepay = true;
-    repayExtra = 0;
+    repayExtra0 = 0;
+    repayExtra1 = 0;
   }
 
-  function setRepayBehavior(bool _shouldRepay, uint256 _repayExtra) external {
+  function setRepayBehavior(bool _shouldRepay, uint256 _repayExtra0, uint256 _repayExtra1) external {
     shouldRepay = _shouldRepay;
-    repayExtra = _repayExtra;
+    repayExtra0 = _repayExtra0;
+    repayExtra1 = _repayExtra1;
   }
 
   function setRevertInHook(bool _shouldRevert) external {
@@ -53,12 +56,12 @@ contract FlashLoanReceiver is IFPMMCallee {
       if (amount0Received > 0) {
         // Get tokens to repay (either by having them already or through some other means)
         // In a real scenario, this would be arbitrage or other operations
-        uint256 repayAmount = amount0Received + repayExtra;
+        uint256 repayAmount = amount0Received + repayExtra0;
         IERC20(token0).transfer(address(fpmm), repayAmount);
       }
 
       if (amount1Received > 0) {
-        uint256 repayAmount = amount1Received + repayExtra;
+        uint256 repayAmount = amount1Received + repayExtra1;
         IERC20(token1).transfer(address(fpmm), repayAmount);
       }
     }

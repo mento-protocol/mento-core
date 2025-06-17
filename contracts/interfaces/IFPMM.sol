@@ -8,6 +8,42 @@ import { IBreakerBox } from "./IBreakerBox.sol";
 interface IFPMM {
   /* ========== STRUCTS ========== */
 
+  /// @notice Struct to store FPMM contract state
+  /// @custom:storage-location erc7201:mento.storage.FPMM
+  struct FPMMStorage {
+    // token0 is the stable token
+    address token0;
+    // token1 is the collateral token
+    address token1;
+    // decimals of token0 kepts as 10^decimals
+    uint256 decimals0;
+    // decimals of token1 kepts as 10^decimals
+    uint256 decimals1;
+    // reserve amount of token0
+    uint256 reserve0;
+    // reserve amount of token1
+    uint256 reserve1;
+    // timestamp of the last reserve update
+    uint256 blockTimestampLast;
+    // contract for oracle price feeds(to be replaced)
+    ISortedOracles sortedOracles;
+    // onchain circuit breaker
+    IBreakerBox breakerBox;
+    // identifier for the reference rate feed
+    // required for sorted oracles and breaker box
+    address referenceRateFeedID;
+    // fee taken from the swap
+    uint256 protocolFee;
+    // incentive percentage for rebalancing the pool
+    uint256 rebalanceIncentive;
+    // threshold for rebalancing the pool when reserve price > oracle price
+    uint256 rebalanceThresholdAbove;
+    // threshold for rebalancing the pool when reserve price < oracle price
+    uint256 rebalanceThresholdBelow;
+    // true if the address is a trusted liquidity strategy
+    mapping(address => bool) liquidityStrategy;
+  }
+
   /// @notice Struct to store swap data
   struct SwapData {
     uint256 rateNumerator;
@@ -16,6 +52,11 @@ interface IFPMM {
     uint256 initialPriceDifference;
     uint256 amount0In;
     uint256 amount1In;
+    uint256 amount0Out;
+    uint256 amount1Out;
+    uint256 balance0;
+    uint256 balance1;
+    bool reservePriceAboveOraclePrice;
   }
 
   /* ========== EVENTS ========== */
@@ -73,10 +114,17 @@ interface IFPMM {
 
   /**
    * @notice Emitted when the rebalance threshold is updated
-   * @param oldThreshold Previous threshold in basis points
-   * @param newThreshold New threshold in basis points
+   * @param oldThresholdAbove Previous threshold above in basis points
+   * @param oldThresholdBelow Previous threshold below in basis points
+   * @param newThresholdAbove New threshold above in basis points
+   * @param newThresholdBelow New threshold below in basis points
    */
-  event RebalanceThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
+  event RebalanceThresholdUpdated(
+    uint256 oldThresholdAbove,
+    uint256 oldThresholdBelow,
+    uint256 newThresholdAbove,
+    uint256 newThresholdBelow
+  );
 
   /**
    * @notice Emitted when a liquidity strategy status is updated
@@ -129,6 +177,18 @@ interface IFPMM {
    * @return Minimum liquidity amount
    */
   function MINIMUM_LIQUIDITY() external view returns (uint256);
+
+  /**
+   * @notice Returns the denominator for basis point calculations (10000 = 100%)
+   * @return Denominator for basis points
+   */
+  function BASIS_POINTS_DENOMINATOR() external view returns (uint256);
+
+  /**
+   * @notice Returns the mode value for bidirectional trading from circuit breaker
+   * @return Mode value for bidirectional trading
+   */
+  function TRADING_MODE_BIDIRECTIONAL() external view returns (uint256);
 
   /**
    * @notice Returns the address of the first token in the pair
@@ -203,10 +263,16 @@ interface IFPMM {
   function rebalanceIncentive() external view returns (uint256);
 
   /**
-   * @notice Returns the threshold for triggering rebalance in basis points
-   * @return Rebalance threshold in basis points
+   * @notice Returns the threshold for triggering rebalance when reserve price > oracle price in basis points
+   * @return Rebalance threshold above in basis points
    */
-  function rebalanceThreshold() external view returns (uint256);
+  function rebalanceThresholdAbove() external view returns (uint256);
+
+  /**
+   * @notice Returns the threshold for triggering rebalance when reserve price < oracle price in basis points
+   * @return Rebalance threshold below in basis points
+   */
+  function rebalanceThresholdBelow() external view returns (uint256);
 
   /**
    * @notice Checks if an address is a trusted liquidity strategy
@@ -263,21 +329,6 @@ interface IFPMM {
   function getReserves() external view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast);
 
   /**
-   * @notice Calculates total value of a given amount of tokens in terms of token1
-   * @param amount0 Amount of token0
-   * @param amount1 Amount of token1
-   * @param rateNumerator Oracle rate numerator
-   * @param rateDenominator Oracle rate denominator
-   * @return Total value in token1
-   */
-  function totalValueInToken1(
-    uint256 amount0,
-    uint256 amount1,
-    uint256 rateNumerator,
-    uint256 rateDenominator
-  ) external view returns (uint256);
-
-  /**
    * @notice Gets current oracle and reserve prices
    * @return oraclePrice Oracle price in 18 decimals
    * @return reservePrice Pool reserve price in 18 decimals
@@ -300,10 +351,10 @@ interface IFPMM {
   /**
    * @notice Converts token amount using the provided exchange rate and adjusts for decimals
    * @param amount Amount to convert
-   * @param fromDecimals Source token decimal scaling factor
-   * @param toDecimals Destination token decimal scaling factor
-   * @param numerator Rate numerator
-   * @param denominator Rate denominator
+   * @param fromDecimals Source token decimal scaling factor, 10^fromDecimals
+   * @param toDecimals Destination token decimal scaling factor, 10^toDecimals
+   * @param numerator Rate numerator,
+   * @param denominator Rate denominator,
    * @return Converted amount
    */
   function convertWithRate(
@@ -343,10 +394,9 @@ interface IFPMM {
    * @dev Only callable by approved liquidity strategies
    * @param amount0Out Amount of token0 to output
    * @param amount1Out Amount of token1 to output
-   * @param to Address receiving output tokens
    * @param data Optional callback data
    */
-  function rebalance(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
+  function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external;
 
   /**
    * @notice Sets protocol fee
@@ -362,9 +412,10 @@ interface IFPMM {
 
   /**
    * @notice Sets rebalance threshold
-   * @param _rebalanceThreshold New threshold in basis points
+   * @param _rebalanceThresholdAbove New threshold above in basis points
+   * @param _rebalanceThresholdBelow New threshold below in basis points
    */
-  function setRebalanceThreshold(uint256 _rebalanceThreshold) external;
+  function setRebalanceThresholds(uint256 _rebalanceThresholdAbove, uint256 _rebalanceThresholdBelow) external;
 
   /**
    * @notice Sets liquidity strategy status

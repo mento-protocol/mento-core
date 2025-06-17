@@ -23,16 +23,15 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenRateIsOneToOne_shouldReturnCorrectAmount()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    setupMockOracleRate(10e18, 100e18)
+    setupMockOracleRate(1e18, 1e18)
   {
     uint256 amountIn = 100e18;
     uint256 amountOut = fpmm.getAmountOut(amountIn, token0);
 
-    uint256 expectedAmountOut = 9.97e18; // 10e18 - 0.3% fee
+    uint256 expectedAmountOut = 99.7e18; // 100e18 - 0.3% fee
     assertEq(amountOut, expectedAmountOut);
 
     amountOut = fpmm.getAmountOut(amountIn, token1);
-    expectedAmountOut = 997e18; // 1000e18 - 0.3% fee
     assertEq(amountOut, expectedAmountOut);
   }
 

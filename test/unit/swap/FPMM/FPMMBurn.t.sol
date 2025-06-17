@@ -6,6 +6,7 @@ import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
 contract FPMMBurnTest is FPMMBaseTest {
+  event Burn(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity, address indexed to);
   function test_burn_whenNoLiquidityInPool_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
@@ -171,6 +172,8 @@ contract FPMMBurnTest is FPMMBaseTest {
 
     vm.startPrank(ALICE);
     fpmm.transfer(address(fpmm), aliceLiquidity);
+    vm.expectEmit(true, true, true, true);
+    emit Burn(ALICE, expectedAmount0, expectedAmount1, aliceLiquidity, ALICE);
     (uint256 amount0, uint256 amount1) = fpmm.burn(ALICE);
     vm.stopPrank();
 

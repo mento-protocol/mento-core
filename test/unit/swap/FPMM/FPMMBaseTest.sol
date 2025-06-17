@@ -12,7 +12,6 @@ contract FPMMBaseTest is Test {
 
   address public token0;
   address public token1;
-  address public owner = makeAddr("Owner");
 
   address public ALICE = makeAddr("ALICE");
   address public BOB = makeAddr("BOB");
@@ -21,11 +20,11 @@ contract FPMMBaseTest is Test {
   address public sortedOracles = makeAddr("SortedOracles");
   address public breakerBox = makeAddr("BreakerBox");
   address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
+  address public owner = makeAddr("OWNER");
 
   function setUp() public virtual {
     fpmm = new FPMM(false);
     vm.prank(fpmm.owner());
-    fpmm.setReferenceRateFeedID(referenceRateFeedID);
 
     bytes memory tradingModeCalldata = abi.encodeWithSelector(
       IBreakerBox.getRateFeedTradingMode.selector,

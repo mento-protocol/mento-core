@@ -6,6 +6,8 @@ import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
 contract FPMMMintTest is FPMMBaseTest {
+  event Mint(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity);
+
   function test_mint_whenCalledWithLessThanMinLiquidity_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     uint256 amount0 = 1_000;
     uint256 amount1 = 1_000;
@@ -86,8 +88,12 @@ contract FPMMMintTest is FPMMBaseTest {
     IERC20(token0).transfer(address(fpmm), amount0);
     IERC20(token1).transfer(address(fpmm), amount1);
 
-    uint256 liquidity = fpmm.mint(BOB);
     uint256 expectedLiquidity = 141421356237309504880 / 2; // half of the initial liquidity
+
+    vm.expectEmit(true, true, true, true);
+    emit Mint(BOB, amount0, amount1, expectedLiquidity);
+    uint256 liquidity = fpmm.mint(BOB);
+
     assertEq(liquidity, expectedLiquidity);
     assertEq(fpmm.balanceOf(BOB), expectedLiquidity);
     assertEq(fpmm.totalSupply(), 3 * expectedLiquidity);
