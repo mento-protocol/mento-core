@@ -20,11 +20,11 @@ contract FPMMBaseTest is Test {
   address public sortedOracles = makeAddr("SortedOracles");
   address public breakerBox = makeAddr("BreakerBox");
   address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
+  address public owner = makeAddr("OWNER");
 
   function setUp() public virtual {
     fpmm = new FPMM(false);
     vm.prank(fpmm.owner());
-    fpmm.setReferenceRateFeedID(referenceRateFeedID);
 
     bytes memory tradingModeCalldata = abi.encodeWithSelector(
       IBreakerBox.getRateFeedTradingMode.selector,
@@ -37,7 +37,7 @@ contract FPMMBaseTest is Test {
     token0 = address(new ERC20DecimalsMock("token0", "T0", decimals0));
     token1 = address(new ERC20DecimalsMock("token1", "T1", decimals1));
 
-    fpmm.initialize(token0, token1, sortedOracles, breakerBox);
+    fpmm.initialize(token0, token1, sortedOracles, referenceRateFeedID, breakerBox, owner);
 
     deal(token0, ALICE, 1_000 * 10 ** decimals0);
     deal(token1, ALICE, 1_000 * 10 ** decimals1);

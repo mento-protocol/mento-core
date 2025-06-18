@@ -77,7 +77,6 @@ contract MockLiquidityStrategy is IFPMMCallee {
       token0ToAdd = amount0;
       token1ToAdd = amount1;
     }
-
     // Transfer tokens back to FPMM
     if (token0ToAdd > 0) {
       IERC20(token0).transfer(address(fpmm), token0ToAdd);

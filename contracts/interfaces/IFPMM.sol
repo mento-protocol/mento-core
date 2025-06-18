@@ -289,8 +289,16 @@ interface IFPMM {
    * @param _token1 Address of the second token
    * @param _sortedOracles Address of the SortedOracles contract
    * @param _breakerBox Address of the BreakerBox contract
+   * @param _owner Address of the owner
    */
-  function initialize(address _token0, address _token1, address _sortedOracles, address _breakerBox) external;
+  function initialize(
+    address _token0,
+    address _token1,
+    address _sortedOracles,
+    address _referenceRateFeedID,
+    address _breakerBox,
+    address _owner
+  ) external;
 
   /**
    * @notice Returns pool metadata
