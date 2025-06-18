@@ -21,8 +21,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
 
   mapping(address => FPMMConfig) public fpmmPoolConfigs;
 
-  uint256 public rebalanceIncentive;
-
   EnumerableSetUpgradeable.AddressSet private fpmmPools;
 
   uint256 public constant BPS_SCALE = 10_000;
@@ -44,13 +42,14 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
   /* ==================== Admin Functions ==================== */
 
   /// @inheritdoc ILiquidityStrategy
-  function addPool(address poolAddress, uint256 cooldown) external onlyOwner {
+  function addPool(address poolAddress, uint256 cooldown, uint256 rebalanceIncentive) external onlyOwner {
     require(poolAddress != address(0), "LS: INVALID_POOL_ADDRESS");
     require(fpmmPools.add(poolAddress), "LS: POOL_ALREADY_ADDED");
+    require(rebalanceIncentive > 0 && rebalanceIncentive <= BPS_SCALE, "LS: INVALID_REBALANCE_INCENTIVE");
 
-    fpmmPoolConfigs[poolAddress] = FPMMConfig({ lastRebalance: 0, rebalanceCooldown: cooldown });
+    fpmmPoolConfigs[poolAddress] = FPMMConfig({ lastRebalance: 0, rebalanceCooldown: cooldown, rebalanceIncentive: rebalanceIncentive });
 
-    emit FPMMPoolAdded(poolAddress, cooldown);
+    emit FPMMPoolAdded(poolAddress, cooldown, rebalanceIncentive);
   }
 
   /// @inheritdoc ILiquidityStrategy
@@ -62,11 +61,14 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
 
   /**
    * @notice Sets the rebalance incentive in basis points.
-   * @param _rebalanceIncentive The rebalance incentive in basis points.
+   * @param pool The address of the pool to set the rebalance incentive for.
+   * @param rebalanceIncentive The rebalance incentive in basis points.
    */
-  function setRebalanceIncentive(uint256 _rebalanceIncentive) public onlyOwner {
-    rebalanceIncentive = _rebalanceIncentive;
-    emit RebalanceIncentiveSet(_rebalanceIncentive);
+  function setRebalanceIncentive(address pool, uint256 rebalanceIncentive) public onlyOwner {
+    FPMMConfig memory config = fpmmPoolConfigs[pool];
+    config.rebalanceIncentive = rebalanceIncentive;
+    fpmmPoolConfigs[pool] = config;
+    emit RebalanceIncentiveSet(pool, rebalanceIncentive);
   }
 
   /* ==================== Rebalancing ==================== */

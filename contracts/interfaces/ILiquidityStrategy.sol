@@ -16,10 +16,12 @@ interface ILiquidityStrategy {
    * @notice Struct holding the configuration of an FPMM pool.
    * @param lastRebalance The timestamp of the last rebalance for this pool.
    * @param rebalanceCooldown The cooldown period for the next rebalance.
+   * @param rebalanceIncentive The incentive for the rebalance.
    */
   struct FPMMConfig {
     uint256 lastRebalance;
     uint256 rebalanceCooldown;
+    uint256 rebalanceIncentive;
   }
 
   /* ==================== Events ==================== */
@@ -28,8 +30,9 @@ interface ILiquidityStrategy {
    * @notice Emitted after an FPMM pool is added.
    * @param pool The address of the pool that was added.
    * @param rebalanceCooldown The cooldown period for the next rebalance.
+   * @param rebalanceIncentive The rebalance incentive in basis points.
    */
-  event FPMMPoolAdded(address indexed pool, uint256 rebalanceCooldown);
+  event FPMMPoolAdded(address indexed pool, uint256 rebalanceCooldown, uint256 rebalanceIncentive);
 
   /**
    * @notice Emitted when an FPMM pool is removed.
@@ -63,9 +66,10 @@ interface ILiquidityStrategy {
 
   /**
    * @notice Emitted when the rebalance incentive is set.
+   * @param pool The address of the pool to set the rebalance incentive for.
    * @param rebalanceIncentive The new rebalance incentive in basis points.
    */
-  event RebalanceIncentiveSet(uint256 rebalanceIncentive);
+  event RebalanceIncentiveSet(address indexed pool, uint256 rebalanceIncentive);
 
   /* ==================== Functions ==================== */
 
@@ -73,8 +77,9 @@ interface ILiquidityStrategy {
    * @notice Adds an FPMM pool.
    * @param pool The address of the pool to add.
    * @param cooldown The cooldown period for the next rebalance of the pool.
+   * @param rebalanceIncentive The rebalance incentive in basis points.
    */
-  function addPool(address pool, uint256 cooldown) external;
+  function addPool(address pool, uint256 cooldown, uint256 rebalanceIncentive) external;
 
   /**
    * @notice Removes an FPMM pool.
