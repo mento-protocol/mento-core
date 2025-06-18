@@ -144,6 +144,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     uint256 oraclePrice,
     PriceDirection priceDirection
   ) private view returns (uint256 stableOut, uint256 collateralOut, uint256 inputAmount, uint256 incentiveAmount) {
+    // slither-disable-next-line unused-return
     (uint256 dec0, uint256 dec1, uint256 reserve0, uint256 reserve1, , ) = fpmm.metadata();
 
     require(dec0 <= 18 && dec1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
