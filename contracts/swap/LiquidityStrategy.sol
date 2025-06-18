@@ -47,7 +47,11 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     require(fpmmPools.add(poolAddress), "LS: POOL_ALREADY_ADDED");
     require(rebalanceIncentive > 0 && rebalanceIncentive <= BPS_SCALE, "LS: INVALID_REBALANCE_INCENTIVE");
 
-    fpmmPoolConfigs[poolAddress] = FPMMConfig({ lastRebalance: 0, rebalanceCooldown: cooldown, rebalanceIncentive: rebalanceIncentive });
+    fpmmPoolConfigs[poolAddress] = FPMMConfig({
+      lastRebalance: 0,
+      rebalanceCooldown: cooldown,
+      rebalanceIncentive: rebalanceIncentive
+    });
 
     emit FPMMPoolAdded(poolAddress, cooldown, rebalanceIncentive);
   }

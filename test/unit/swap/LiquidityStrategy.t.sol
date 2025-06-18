@@ -47,6 +47,12 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
   }
 
+  function test_addPool_shouldRevert_whenRebalanceIncentiveIsInvalid() public {
+    vm.prank(deployer);
+    vm.expectRevert("LS: INVALID_REBALANCE_INCENTIVE");
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 0);
+  }
+
   function test_addPool_shouldRevert_whenCallerNotOwner() public {
     vm.prank(nonOwner);
     vm.expectRevert("Ownable: caller is not the owner");
@@ -81,6 +87,14 @@ contract LiquidityStrategyTest is Test {
     vm.prank(makeAddr("nonOwner"));
     vm.expectRevert("Ownable: caller is not the owner");
     mockConcreteLiquidityStrat.removePool(address(mockPool));
+  }
+
+  /* ---------- Set Rebalance Incentive ---------- */
+
+  function test_setRebalanceIncentive_shouldRevert_whenCallerNotOwner() public {
+    vm.prank(nonOwner);
+    vm.expectRevert("Ownable: caller is not the owner");
+    mockConcreteLiquidityStrat.setRebalanceIncentive(address(mockPool), 100);
   }
 
   /* ---------- Rebalance ---------- */
