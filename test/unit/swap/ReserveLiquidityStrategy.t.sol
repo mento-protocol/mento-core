@@ -29,6 +29,7 @@ contract ReserveLiquidityStrategyTest is Test {
 
   uint256 constant ONE_DAY = 1 days;
   uint256 constant DEFAULT_COOLDOWN = ONE_DAY;
+  uint256 constant DEFAULT_INCENTIVE = 100;
 
   // Initial balances
   uint256 constant POOL_INITIAL_STABLE_BALANCE = 10000e18;
@@ -87,8 +88,8 @@ contract ReserveLiquidityStrategyTest is Test {
     collateralToken6Dec.mint(address(mockPool6Dec), POOL_INITIAL_COLLATERAL_BALANCE);
 
     // Add pools to strategy
-    strat.addPool(address(mockPool), DEFAULT_COOLDOWN);
-    strat.addPool(address(mockPool6Dec), DEFAULT_COOLDOWN);
+    strat.addPool(address(mockPool), DEFAULT_COOLDOWN, DEFAULT_INCENTIVE);
+    strat.addPool(address(mockPool6Dec), DEFAULT_COOLDOWN, DEFAULT_INCENTIVE);
     vm.stopPrank();
   }
 
@@ -139,7 +140,7 @@ contract ReserveLiquidityStrategyTest is Test {
     );
 
     vm.startPrank(deployer);
-    strat.addPool(address(poolWithInvalidDecimals), DEFAULT_COOLDOWN);
+    strat.addPool(address(poolWithInvalidDecimals), DEFAULT_COOLDOWN, DEFAULT_INCENTIVE);
     vm.stopPrank();
 
     // Mock metadata to return 19 decimals for token0
@@ -315,11 +316,11 @@ contract ReserveLiquidityStrategyTest is Test {
     );
 
     // --- Execute ---
-    (uint256 lastRebalanceBefore, ) = strat.fpmmPoolConfigs(address(mockPool));
+    (uint256 lastRebalanceBefore, , ) = strat.fpmmPoolConfigs(address(mockPool));
     strat.rebalance(address(mockPool));
 
     // --- Assertions ---
-    (uint256 lastRebalanceAfter, ) = strat.fpmmPoolConfigs(address(mockPool));
+    (uint256 lastRebalanceAfter, , ) = strat.fpmmPoolConfigs(address(mockPool));
     assertTrue(lastRebalanceAfter > lastRebalanceBefore, "Last rebalance time not updated");
     assertTrue(lastRebalanceAfter <= block.timestamp, "Last rebalance time in future");
 
@@ -349,11 +350,11 @@ contract ReserveLiquidityStrategyTest is Test {
     mockPool6Dec.setRebalanceThreshold(100, 100);
 
     // --- Execute ---
-    (uint256 lastRebalanceBefore, ) = strat.fpmmPoolConfigs(address(mockPool6Dec));
+    (uint256 lastRebalanceBefore, , ) = strat.fpmmPoolConfigs(address(mockPool6Dec));
     strat.rebalance(address(mockPool6Dec));
 
     // --- Assertions ---
-    (uint256 lastRebalanceAfter, ) = strat.fpmmPoolConfigs(address(mockPool6Dec));
+    (uint256 lastRebalanceAfter, , ) = strat.fpmmPoolConfigs(address(mockPool6Dec));
     assertTrue(lastRebalanceAfter > lastRebalanceBefore, "Last rebalance time not updated");
     assertTrue(lastRebalanceAfter <= block.timestamp, "Last rebalance time in future");
   }
@@ -391,7 +392,7 @@ contract ReserveLiquidityStrategyTest is Test {
     // Mock pool with our mocked token addresses
     MockFPMMPool testPool = new MockFPMMPool(address(strat), mockStableToken, mockCollateralToken);
     vm.prank(deployer);
-    strat.addPool(address(testPool), 1 days);
+    strat.addPool(address(testPool), 1 days, DEFAULT_INCENTIVE);
 
     bytes memory callbackData = abi.encode(amountIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
 
@@ -438,7 +439,7 @@ contract ReserveLiquidityStrategyTest is Test {
     // Mock pool with our mocked token addresses
     MockFPMMPool testPool = new MockFPMMPool(address(strat), mockStableToken, mockCollateralToken);
     vm.prank(deployer);
-    strat.addPool(address(testPool), 1 days);
+    strat.addPool(address(testPool), 1 days, DEFAULT_INCENTIVE);
 
     bytes memory callbackData = abi.encode(collateralIn, ILiquidityStrategy.PriceDirection.BELOW_ORACLE);
 
@@ -513,7 +514,7 @@ contract ReserveLiquidityStrategyTest is Test {
     // Mock pool with our mocked token addresses
     MockFPMMPool testPool = new MockFPMMPool(address(strat), mockStableToken, mockCollateralToken);
     vm.prank(deployer);
-    strat.addPool(address(testPool), 1 days);
+    strat.addPool(address(testPool), 1 days, DEFAULT_INCENTIVE);
 
     bytes memory callbackData = abi.encode(collateralIn, ILiquidityStrategy.PriceDirection.BELOW_ORACLE);
 

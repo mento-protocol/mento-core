@@ -19,7 +19,7 @@ contract LiquidityStrategyTest is Test {
   MockERC20 mockToken1;
   address mockPool;
 
-  event FPMMPoolAdded(address indexed pool, uint256 rebalanceCooldown);
+  event FPMMPoolAdded(address indexed pool, uint256 rebalanceCooldown, uint256 rebalanceIncentive);
   event FPMMPoolRemoved(address indexed pool);
   event RebalanceExecuted(address indexed pool, uint256 priceBefore, uint256 priceAfter);
 
@@ -36,28 +36,28 @@ contract LiquidityStrategyTest is Test {
   function test_addPool_shouldRevert_whenPoolIsZeroAddress() public {
     vm.prank(deployer);
     vm.expectRevert("LS: INVALID_POOL_ADDRESS");
-    mockConcreteLiquidityStrat.addPool(address(0), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(0), 1 days, 100);
   }
 
   function test_addPool_shouldRevert_whenPoolIsAlreadyAdded() public {
     vm.prank(deployer);
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
     vm.prank(deployer);
     vm.expectRevert("LS: POOL_ALREADY_ADDED");
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
   }
 
   function test_addPool_shouldRevert_whenCallerNotOwner() public {
     vm.prank(nonOwner);
     vm.expectRevert("Ownable: caller is not the owner");
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
   }
 
   function test_addPool_shouldEmitEvent_WhenPoolIsAdded() public {
     vm.expectEmit(true, true, true, true);
-    emit FPMMPoolAdded(address(mockPool), 1 days);
+    emit FPMMPoolAdded(address(mockPool), 1 days, 100);
     vm.prank(deployer);
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
   }
 
   /* ---------- Remove Pool ---------- */
@@ -70,7 +70,7 @@ contract LiquidityStrategyTest is Test {
 
   function test_removePool_shouldEmitEvent_WhenPoolIsRemoved() public {
     vm.prank(deployer);
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
     vm.expectEmit(true, true, true, true);
     emit FPMMPoolRemoved(address(mockPool));
     vm.prank(deployer);
@@ -96,7 +96,7 @@ contract LiquidityStrategyTest is Test {
 
     // Trigger the first rebalance
     vm.prank(deployer);
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
 
     vm.prank(nonOwner);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
@@ -111,7 +111,7 @@ contract LiquidityStrategyTest is Test {
 
   function test_rebalance_shouldRevert_whenUpperThresholdIsInvalid() public {
     vm.prank(deployer);
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
 
     // Test 0 threshold
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(0));
@@ -127,7 +127,7 @@ contract LiquidityStrategyTest is Test {
 
   function test_rebalance_shouldRevert_whenLowerThresholdIsInvalid() public {
     vm.prank(deployer);
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(100));
 
     // Test 0 threshold
@@ -145,7 +145,7 @@ contract LiquidityStrategyTest is Test {
   function test_rebalance_shouldRevert_WhenPoolPriceIsWithinThreshold() public {
     setPoolPrices(1e18, 0.951e18);
     vm.prank(deployer);
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
 
     vm.expectRevert("LS: PRICE_IN_RANGE");
     vm.prank(nonOwner);
@@ -186,7 +186,7 @@ contract LiquidityStrategyTest is Test {
   function rebalanceWithPriceOutsideThreshold(uint256 poolPrice, uint256 oraclePrice) private {
     setPoolPrices(oraclePrice, poolPrice);
     vm.prank(deployer);
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
 
     vm.warp(123456);
     vm.expectEmit(true, true, true, true);
@@ -199,7 +199,7 @@ contract LiquidityStrategyTest is Test {
     vm.prank(nonOwner);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
 
-    (uint256 lastRebalance, ) = mockConcreteLiquidityStrat.fpmmPoolConfigs(address(mockPool));
+    (uint256 lastRebalance, , ) = mockConcreteLiquidityStrat.fpmmPoolConfigs(address(mockPool));
     assertEq(lastRebalance, 123456);
   }
 }
