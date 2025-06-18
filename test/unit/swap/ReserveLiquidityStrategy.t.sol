@@ -34,7 +34,7 @@ contract ReserveLiquidityStrategyTest is Test {
   // Initial balances
   uint256 constant POOL_INITIAL_STABLE_BALANCE = 10000e18;
   uint256 constant POOL_INITIAL_COLLATERAL_BALANCE = 10000e18;
-  uint256 constant RESERVE_INITIAL_COLLATERAL_BALANCE = 10000e18;
+  uint256 constant RESERVE_INITIAL_COLLATERAL_BALANCE = 100000e18;
 
   // Events from LiquidityStrategy
   event FPMMPoolAdded(address indexed pool, uint256 cooldown);
@@ -207,6 +207,7 @@ contract ReserveLiquidityStrategyTest is Test {
     // stablesIn = (collateralOut * 1e18) / P = (50e18 * 1e18) / 0.9 = 55.555...e18
     uint256 expectedCollateralOut = 50e18;
     uint256 expectedStablesIn = 55555555555555555555; // 55.555...e18
+    uint256 incentiveAmount = (expectedStablesIn * DEFAULT_INCENTIVE) / 10_000;
 
     // Record balances before rebalance
     uint256 poolStableBefore = stableToken.balanceOf(address(mockPool));
@@ -224,7 +225,11 @@ contract ReserveLiquidityStrategyTest is Test {
     );
 
     // Expect call to FPMM pool with non-zero amounts
-    bytes memory expectedCallbackData = abi.encode(expectedStablesIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    bytes memory expectedCallbackData = abi.encode(
+      expectedStablesIn,
+      ILiquidityStrategy.PriceDirection.ABOVE_ORACLE,
+      incentiveAmount
+    );
 
     vm.expectCall(
       address(mockPool),
@@ -243,7 +248,7 @@ contract ReserveLiquidityStrategyTest is Test {
     // Verify balance changes
     assertEq(
       stableToken.balanceOf(address(mockPool)),
-      poolStableBefore + expectedStablesIn,
+      poolStableBefore + expectedStablesIn - incentiveAmount,
       "Pool stable balance should increase during expansion"
     );
 
@@ -288,6 +293,7 @@ contract ReserveLiquidityStrategyTest is Test {
     // stableOut = collateralIn * 1e18 / P = 25e18 / 1e18 = 25e18
     uint256 expectedCollateralIn = 25e18;
     uint256 expectedStableOut = 25e18;
+    uint256 incentiveAmount = (expectedCollateralIn * DEFAULT_INCENTIVE) / 10_000;
 
     // Expect RebalanceInitiated event with calculated amounts
     vm.expectEmit(true, true, true, true);
@@ -302,7 +308,8 @@ contract ReserveLiquidityStrategyTest is Test {
     // Expect call to FPMM pool with calculated amounts
     bytes memory expectedCallbackData = abi.encode(
       expectedCollateralIn,
-      ILiquidityStrategy.PriceDirection.BELOW_ORACLE
+      ILiquidityStrategy.PriceDirection.BELOW_ORACLE,
+      incentiveAmount
     );
 
     vm.expectCall(
@@ -333,7 +340,7 @@ contract ReserveLiquidityStrategyTest is Test {
 
     assertEq(
       collateralToken.balanceOf(address(mockPool)),
-      poolCollateralBefore + expectedCollateralIn,
+      poolCollateralBefore + expectedCollateralIn - incentiveAmount,
       "Pool collateral balance should increase by the exact calculated amount"
     );
 
@@ -362,7 +369,7 @@ contract ReserveLiquidityStrategyTest is Test {
   /* ---------- Hook Tests ---------- */
 
   function test_hook_whenInitiatorIsNotStrategy_shouldRevert() public {
-    bytes memory dummyData = abi.encode(0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    bytes memory dummyData = abi.encode(0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE, 0);
     vm.prank(alice);
     vm.expectRevert("RLS: HOOK_SENDER_NOT_SELF");
     strat.hook(address(mockPool), 0, 0, dummyData);
@@ -372,7 +379,7 @@ contract ReserveLiquidityStrategyTest is Test {
     MockFPMMPool unregisteredPool = new MockFPMMPool(address(strat), address(stableToken), address(collateralToken));
     vm.label(address(unregisteredPool), "UnregisteredPoolForHookTest");
 
-    bytes memory dataWithUnregisteredPool = abi.encode(0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    bytes memory dataWithUnregisteredPool = abi.encode(0, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE, 0);
     vm.prank(address(unregisteredPool));
     vm.expectRevert("RLS: UNREGISTERED_POOL");
     strat.hook(address(strat), 0, 0, dataWithUnregisteredPool);
@@ -382,10 +389,6 @@ contract ReserveLiquidityStrategyTest is Test {
     // Setup for expansion (ABOVE_ORACLE)
     uint256 amountIn = 100e18; // Amount of stables to mint
     uint256 amount1Out = 50e18; // Amount of collateral to transfer to reserve
-
-    // Create a simplified version that only tests the hook mechanism, not the actual token transfers
-    // We'll mock just enough to verify that the right function calls happen
-
     address mockStableToken = makeAddr("MockStableToken");
     address mockCollateralToken = makeAddr("MockCollateralToken");
 
@@ -394,12 +397,17 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.prank(deployer);
     strat.addPool(address(testPool), 1 days, DEFAULT_INCENTIVE);
 
-    bytes memory callbackData = abi.encode(amountIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    uint256 incentiveAmount = (amountIn * DEFAULT_INCENTIVE) / 10_000;
+    bytes memory callbackData = abi.encode(amountIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE, incentiveAmount);
 
-    // Mock token calls
     vm.mockCall(
       mockStableToken,
-      abi.encodeWithSelector(IERC20MintableBurnable.mint.selector, address(testPool), amountIn),
+      abi.encodeWithSelector(IERC20MintableBurnable.mint.selector, address(testPool), amountIn - incentiveAmount),
+      abi.encode(true)
+    );
+    vm.mockCall(
+      mockStableToken,
+      abi.encodeWithSelector(IERC20MintableBurnable.mint.selector, address(strat), incentiveAmount),
       abi.encode(true)
     );
 
@@ -409,10 +417,13 @@ contract ReserveLiquidityStrategyTest is Test {
       abi.encode(true)
     );
 
-    // Expect these calls to be made
     vm.expectCall(
       mockStableToken,
-      abi.encodeWithSelector(IERC20MintableBurnable.mint.selector, address(testPool), amountIn)
+      abi.encodeWithSelector(IERC20MintableBurnable.mint.selector, address(testPool), amountIn - incentiveAmount)
+    );
+    vm.expectCall(
+      mockStableToken,
+      abi.encodeWithSelector(IERC20MintableBurnable.mint.selector, address(strat), incentiveAmount)
     );
 
     vm.expectCall(
@@ -429,10 +440,6 @@ contract ReserveLiquidityStrategyTest is Test {
     // Setup for contraction (BELOW_ORACLE)
     uint256 amount0Out = 50e18; // Amount of stables to burn
     uint256 collateralIn = 100e18; // Amount of collateral to transfer from reserve
-
-    // Create a simplified version that only tests the hook mechanism, not the actual token transfers
-    // We'll mock just enough to verify that the right function calls happen
-
     address mockStableToken = makeAddr("MockStableToken");
     address mockCollateralToken = makeAddr("MockCollateralToken");
 
@@ -441,7 +448,12 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.prank(deployer);
     strat.addPool(address(testPool), 1 days, DEFAULT_INCENTIVE);
 
-    bytes memory callbackData = abi.encode(collateralIn, ILiquidityStrategy.PriceDirection.BELOW_ORACLE);
+    uint256 incentiveAmount = (collateralIn * DEFAULT_INCENTIVE) / 10_000;
+    bytes memory callbackData = abi.encode(
+      collateralIn,
+      ILiquidityStrategy.PriceDirection.BELOW_ORACLE,
+      incentiveAmount
+    );
 
     // Mock token calls
     vm.mockCall(
@@ -450,13 +462,24 @@ contract ReserveLiquidityStrategyTest is Test {
       abi.encode(true)
     );
 
+    // Mock the reserve transfers with corrected amounts
     vm.mockCall(
       address(mockReserve),
       abi.encodeWithSelector(
         mockReserve.transferExchangeCollateralAsset.selector,
         mockCollateralToken,
         payable(address(testPool)),
-        collateralIn
+        collateralIn - incentiveAmount
+      ),
+      abi.encode(true)
+    );
+    vm.mockCall(
+      address(mockReserve),
+      abi.encodeWithSelector(
+        mockReserve.transferExchangeCollateralAsset.selector,
+        mockCollateralToken,
+        payable(address(strat)),
+        incentiveAmount
       ),
       abi.encode(true)
     );
@@ -464,13 +487,23 @@ contract ReserveLiquidityStrategyTest is Test {
     // Expect these calls to be made
     vm.expectCall(mockStableToken, abi.encodeWithSelector(IERC20MintableBurnable.burn.selector, amount0Out));
 
+    // Expect both reserve transfers with corrected amounts
     vm.expectCall(
       address(mockReserve),
       abi.encodeWithSelector(
         mockReserve.transferExchangeCollateralAsset.selector,
         mockCollateralToken,
         payable(address(testPool)),
-        collateralIn
+        collateralIn - incentiveAmount
+      )
+    );
+    vm.expectCall(
+      address(mockReserve),
+      abi.encodeWithSelector(
+        mockReserve.transferExchangeCollateralAsset.selector,
+        mockCollateralToken,
+        payable(address(strat)),
+        incentiveAmount
       )
     );
 
@@ -484,7 +517,8 @@ contract ReserveLiquidityStrategyTest is Test {
     uint256 amountIn = 100e18;
     uint256 amount1Out = 50e18;
 
-    bytes memory callbackData = abi.encode(amountIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE);
+    uint256 incentiveAmount = (amountIn * DEFAULT_INCENTIVE) / 10_000;
+    bytes memory callbackData = abi.encode(amountIn, ILiquidityStrategy.PriceDirection.ABOVE_ORACLE, incentiveAmount);
 
     // Mock the transfer to fail
     vm.mockCall(
@@ -506,8 +540,6 @@ contract ReserveLiquidityStrategyTest is Test {
     // Setup for contraction (BELOW_ORACLE) with failing reserve transfer
     uint256 amount0Out = 50e18; // Amount of stables to burn
     uint256 collateralIn = 100e18; // Amount of collateral to transfer from reserve
-
-    // Create a test setup with mocked addresses
     address mockStableToken = makeAddr("MockStableToken");
     address mockCollateralToken = makeAddr("MockCollateralToken");
 
@@ -516,7 +548,12 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.prank(deployer);
     strat.addPool(address(testPool), 1 days, DEFAULT_INCENTIVE);
 
-    bytes memory callbackData = abi.encode(collateralIn, ILiquidityStrategy.PriceDirection.BELOW_ORACLE);
+    uint256 incentiveAmount = (collateralIn * DEFAULT_INCENTIVE) / 10_000;
+    bytes memory callbackData = abi.encode(
+      collateralIn,
+      ILiquidityStrategy.PriceDirection.BELOW_ORACLE,
+      incentiveAmount
+    );
 
     // First mock the burn to succeed
     vm.mockCall(
@@ -532,7 +569,7 @@ contract ReserveLiquidityStrategyTest is Test {
         mockReserve.transferExchangeCollateralAsset.selector,
         mockCollateralToken,
         payable(address(testPool)),
-        collateralIn
+        collateralIn - incentiveAmount
       ),
       abi.encode(false)
     );

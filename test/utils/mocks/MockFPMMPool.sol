@@ -71,6 +71,10 @@ contract MockFPMMPool is Test {
     return 9000;
   }
 
+  function rebalanceIncentive() external view returns (uint256) {
+    return 100;
+  }
+
   function metadata() external view returns (uint256, uint256, uint256, uint256, address, address) {
     return (token0_.decimals(), token1_.decimals(), reserve0, reserve1, address(token0_), address(token1_));
   }
