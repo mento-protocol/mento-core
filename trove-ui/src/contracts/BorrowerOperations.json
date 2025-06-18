@@ -1,0 +1,73 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_borrower",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_ownerIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_ETHAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_boldAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_upperHint",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_lowerHint",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_annualInterestRate",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_maxUpfrontFee",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_addManager",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_removeManager",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_receiver",
+          "type": "address"
+        }
+      ],
+      "name": "openTrove",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]
+}
