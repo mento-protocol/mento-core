@@ -23,7 +23,6 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     uint256 collateralReserve;
     uint256 stablePrecision;
     uint256 collateralPrecision;
-    uint256 incentive;
   }
 
   /**
@@ -63,7 +62,10 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    * @param data The encoded data from the pool.
    */
   function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
-    (uint256 amountIn, PriceDirection priceDirection) = abi.decode(data, (uint256, PriceDirection));
+    (uint256 amountIn, PriceDirection priceDirection, uint256 incentiveAmount) = abi.decode(
+      data,
+      (uint256, PriceDirection, uint256)
+    );
 
     require(sender == address(this), "RLS: HOOK_SENDER_NOT_SELF");
     require(isPoolRegistered(msg.sender), "RLS: UNREGISTERED_POOL");
@@ -74,15 +76,20 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     address collateralToken = fpm.token1();
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
-      // Expansion: mint stables to FPMM, transfer received collateral to reserve
-      IERC20(stableToken).safeMint(msg.sender, amountIn);
+      // Expansion: mint stables to FPMM, transfer received collateral to reserve, collect incentive in strategy contract
+      IERC20(stableToken).safeMint(msg.sender, amountIn - incentiveAmount);
+      IERC20(stableToken).safeMint(address(this), incentiveAmount);
       require(IERC20(collateralToken).transfer(address(reserve), amount1Out), "RLS: COLLATERAL_TRANSFER_FAILED");
     } else {
-      // Contraction: burn stables, pull collateral from reserve and send to FPMM
+      // Contraction: burn stables, pull collateral from reserve and send to FPMM, collect incentive in strategy contract
       IERC20(stableToken).safeBurn(amount0Out);
       require(
-        reserve.transferExchangeCollateralAsset(collateralToken, payable(msg.sender), amountIn),
+        reserve.transferExchangeCollateralAsset(collateralToken, payable(msg.sender), amountIn - incentiveAmount),
         "RLS: COLLATERAL_TRANSFER_FAILED"
+      );
+      require(
+        reserve.transferExchangeCollateralAsset(collateralToken, payable(address(this)), incentiveAmount),
+        "RLS: INCENTIVE_TRANSFER_FAILED"
       );
     }
   }
@@ -114,13 +121,14 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
   function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal override {
     IFPMM fpmm = IFPMM(pool);
 
-    (uint256 stableOut, uint256 collateralOut, uint256 inputAmount) = _calculateRebalanceAmounts(
-      fpmm,
-      oraclePrice,
-      priceDirection
-    );
+    (
+      uint256 stableOut,
+      uint256 collateralOut,
+      uint256 inputAmount,
+      uint256 incentiveAmount
+    ) = _calculateRebalanceAmounts(fpmm, oraclePrice, priceDirection);
 
-    bytes memory callbackData = abi.encode(inputAmount, priceDirection);
+    bytes memory callbackData = abi.encode(inputAmount, priceDirection, incentiveAmount);
 
     emit RebalanceInitiated(pool, stableOut, collateralOut, inputAmount, priceDirection);
     fpmm.rebalance(stableOut, collateralOut, callbackData);
@@ -135,7 +143,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     IFPMM fpmm,
     uint256 oraclePrice,
     PriceDirection priceDirection
-  ) private view returns (uint256 stableOut, uint256 collateralOut, uint256 inputAmount) {
+  ) private view returns (uint256 stableOut, uint256 collateralOut, uint256 inputAmount, uint256 incentiveAmount) {
     (uint256 dec0, uint256 dec1, uint256 reserve0, uint256 reserve1, , ) = fpmm.metadata();
 
     require(dec0 <= 18 && dec1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
@@ -148,8 +156,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       stableReserve: reserve0 * (10 ** (18 - dec0)),
       collateralReserve: reserve1 * (10 ** (18 - dec1)),
       stablePrecision: 10 ** (18 - dec0),
-      collateralPrecision: 10 ** (18 - dec1),
-      incentive: incentive
+      collateralPrecision: 10 ** (18 - dec1)
     });
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
@@ -159,6 +166,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       (stableOut, inputAmount) = _calculateContractionAmounts(params, oraclePrice);
       collateralOut = 0;
     }
+
+    incentiveAmount = (inputAmount * incentive) / BPS_SCALE;
   }
 
   /**
@@ -172,18 +181,14 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     RebalanceParams memory params,
     uint256 oraclePrice
   ) private pure returns (uint256 stableOut, uint256 collateralIn) {
-    uint256 adjustedOraclePrice = params.incentive > 0
-      ? oraclePrice - (oraclePrice * params.incentive) / BPS_SCALE
-      : oraclePrice;
-
     // Contraction: Sell stables to buy collateral
     // Y = (P * S - C) / 2
     // X = Y / P
-    uint256 numerator = ((adjustedOraclePrice * params.stableReserve) / 1e18) - params.collateralReserve;
+    uint256 numerator = ((oraclePrice * params.stableReserve) / 1e18) - params.collateralReserve;
     uint256 denominator = 2;
 
     uint256 collateralInRaw = numerator / denominator;
-    uint256 stableOutRaw = (numerator * 1e18) / (denominator * adjustedOraclePrice);
+    uint256 stableOutRaw = (numerator * 1e18) / (denominator * oraclePrice);
 
     stableOut = stableOutRaw / params.stablePrecision;
     collateralIn = collateralInRaw / params.collateralPrecision;
@@ -200,18 +205,14 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     RebalanceParams memory params,
     uint256 oraclePrice
   ) private pure returns (uint256 collateralOut, uint256 stablesIn) {
-    uint256 adjustedOraclePrice = params.incentive > 0
-      ? oraclePrice + (oraclePrice * params.incentive) / BPS_SCALE
-      : oraclePrice;
-
     // Expansion: Sell collateral to buy stables
     // Y = (C - P * S) / 2
     // X = Y / P
-    uint256 numerator = params.collateralReserve - ((adjustedOraclePrice * params.stableReserve) / 1e18);
+    uint256 numerator = params.collateralReserve - ((oraclePrice * params.stableReserve) / 1e18);
     uint256 denominator = 2;
 
     uint256 collateralOutRaw = numerator / denominator;
-    uint256 stablesInRaw = (numerator * 1e18) / (denominator * adjustedOraclePrice);
+    uint256 stablesInRaw = (numerator * 1e18) / (denominator * oraclePrice);
 
     collateralOut = collateralOutRaw / params.collateralPrecision;
     stablesIn = stablesInRaw / params.stablePrecision;
