@@ -118,7 +118,7 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
   }
 
   struct DeploymentConfig {
-    address USDC_ALFAJORES_ADDRESS;
+    address cUSD_ALFAJORES_ADDRESS;
     string stableTokenName;
     string stableTokenSymbol;
     // Parameters for the TroveManager
@@ -132,9 +132,9 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
 
   DeploymentConfig internal CONFIG =
     DeploymentConfig({
-      USDC_ALFAJORES_ADDRESS: 0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B,
-      stableTokenName: "mUSD Test",
-      stableTokenSymbol: "mUSD",
+      cUSD_ALFAJORES_ADDRESS: 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1,
+      stableTokenName: "cEUR Test",
+      stableTokenSymbol: "cEUR",
       // TODO: reconsider these values
       CCR: 150e16,
       MCR: 110e16,
@@ -197,7 +197,7 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
       keccak256(getBytecode(type(TroveManager).creationCode, address(addressesRegistry)))
     );
 
-    IERC20Metadata collToken = IERC20Metadata(CONFIG.USDC_ALFAJORES_ADDRESS);
+    IERC20Metadata collToken = IERC20Metadata(CONFIG.cUSD_ALFAJORES_ADDRESS);
 
     IERC20Metadata[] memory collaterals = new IERC20Metadata[](1);
     collaterals[0] = collToken;
@@ -326,7 +326,7 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
       multiTroveGetter: r.multiTroveGetter,
       collateralRegistry: r.collateralRegistry,
       boldToken: IBoldToken(address(r.stableToken)),
-      gasToken: IERC20Metadata(CONFIG.USDC_ALFAJORES_ADDRESS)
+      gasToken: IERC20Metadata(CONFIG.cUSD_ALFAJORES_ADDRESS)
     });
     contracts.addressesRegistry.setAddresses(addressVars);
   }
