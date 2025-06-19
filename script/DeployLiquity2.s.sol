@@ -7,6 +7,7 @@ import { Strings } from "openzeppelin-contracts-v4.9.5/contracts/utils/Strings.s
 import { IERC20 as IERC20_GOV } from "openzeppelin-contracts-v4.9.5/contracts/token/ERC20/IERC20.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-v4.9.5/contracts/proxy/transparent/ProxyAdmin.sol";
 import { TransparentUpgradeableProxy } from "openzeppelin-contracts-v4.9.5/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 
 import { ETH_GAS_COMPENSATION } from "contracts/v3/Dependencies/Constants.sol";
 import { IBorrowerOperations } from "contracts/v3/Interfaces/IBorrowerOperations.sol";
@@ -115,10 +116,15 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
     IStableTokenV3 stableToken;
     address stabilityPoolImpl;
     address stableTokenV3Impl;
+    address fpmm;
   }
 
   struct DeploymentConfig {
-    address cUSD_ALFAJORES_ADDRESS;
+    address USDm_ALFAJORES_ADDRESS;
+    address proxyAdmin;
+    address fpmmFactory;
+    address fpmmImplementation;
+    address referenceRateFeedID;
     string stableTokenName;
     string stableTokenSymbol;
     // Parameters for the TroveManager
@@ -132,9 +138,13 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
 
   DeploymentConfig internal CONFIG =
     DeploymentConfig({
-      cUSD_ALFAJORES_ADDRESS: 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1,
-      stableTokenName: "cEUR Test",
-      stableTokenSymbol: "cEUR",
+      USDm_ALFAJORES_ADDRESS: 0x52D56f0a3CE019DE24b025077580bfD9be3760ae,
+      proxyAdmin: 0x2ed096A05712D3E3BD623Ec26d73cCa19d3f78Ef,
+      fpmmFactory: 0xD3856d0777f75e629B2Ae14236073CB0C3fEAA50,
+      fpmmImplementation: 0x40aDbA5BD170685B7cd607e9d9eE5fE880E31C1D,
+      referenceRateFeedID: 0x206B25Ea01E188Ee243131aFdE526bA6E131a016,
+      stableTokenName: "EUR.m Test",
+      stableTokenSymbol: "EUR.m",
       // TODO: reconsider these values
       CCR: 150e16,
       MCR: 110e16,
@@ -172,6 +182,7 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
   function _deployAndConnectContracts() internal returns (DeploymentResult memory r) {
     _deployProxyInfrastructure(r);
     _deployAndInitializeStableToken(r);
+    _deployFPMM(r);
 
     TroveManagerParams memory troveManagerParams = TroveManagerParams({
       CCR: CONFIG.CCR,
@@ -197,7 +208,7 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
       keccak256(getBytecode(type(TroveManager).creationCode, address(addressesRegistry)))
     );
 
-    IERC20Metadata collToken = IERC20Metadata(CONFIG.cUSD_ALFAJORES_ADDRESS);
+    IERC20Metadata collToken = IERC20Metadata(CONFIG.USDm_ALFAJORES_ADDRESS);
 
     IERC20Metadata[] memory collaterals = new IERC20Metadata[](1);
     collaterals[0] = collToken;
@@ -215,13 +226,10 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
   }
 
   function _deployProxyInfrastructure(DeploymentResult memory r) internal {
-    r.proxyAdmin = new ProxyAdmin{ salt: SALT }();
+    r.proxyAdmin = ProxyAdmin(CONFIG.proxyAdmin);
     r.stableTokenV3Impl = address(new StableTokenV3{ salt: SALT }(true));
     r.stabilityPoolImpl = address(new StabilityPool{ salt: SALT }(true));
 
-    assert(
-      address(r.proxyAdmin) == vm.computeCreate2Address(SALT, keccak256(bytes.concat(type(ProxyAdmin).creationCode)))
-    );
     assert(
       address(r.stableTokenV3Impl) ==
         vm.computeCreate2Address(SALT, keccak256(bytes.concat(type(StableTokenV3).creationCode, abi.encode(true))))
@@ -240,6 +248,15 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
     r.stableToken.initialize(CONFIG.stableTokenName, CONFIG.stableTokenSymbol, new address[](0), new uint256[](0));
     // TODO: run initialize with correct addresses
     r.stableToken.initializeV2(address(deployer), address(deployer));
+  }
+
+  function _deployFPMM(DeploymentResult memory r) internal {
+    r.fpmm = IFPMMFactory(CONFIG.fpmmFactory).deployFPMM(
+      CONFIG.fpmmImplementation,
+      address(r.stableToken),
+      CONFIG.USDm_ALFAJORES_ADDRESS,
+      CONFIG.referenceRateFeedID
+    );
   }
 
   function _deployAndConnectCollateralContracts(
@@ -326,7 +343,7 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
       multiTroveGetter: r.multiTroveGetter,
       collateralRegistry: r.collateralRegistry,
       boldToken: IBoldToken(address(r.stableToken)),
-      gasToken: IERC20Metadata(CONFIG.cUSD_ALFAJORES_ADDRESS)
+      gasToken: IERC20Metadata(CONFIG.USDm_ALFAJORES_ADDRESS)
     });
     contracts.addressesRegistry.setAddresses(addressVars);
   }
@@ -431,10 +448,10 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
         string.concat('"collateralRegistry":"', address(deployed.collateralRegistry).toHexString(), '",'),
         string.concat('"boldToken":"', address(deployed.stableToken).toHexString(), '",'),
         string.concat('"hintHelpers":"', address(deployed.hintHelpers).toHexString(), '",'),
-        string.concat('"proxyAdmin":"', address(deployed.proxyAdmin).toHexString(), '",'),
         string.concat('"stableTokenV3Impl":"', address(deployed.stableTokenV3Impl).toHexString(), '",'),
         string.concat('"stabilityPoolImpl":"', address(deployed.stabilityPoolImpl).toHexString(), '",'),
         string.concat('"multiTroveGetter":"', address(deployed.multiTroveGetter).toHexString(), '",'),
+        string.concat('"fpmm":"', address(deployed.fpmm).toHexString(), '",'),
         string.concat('"branches":[', branches.join(","), "]"),
         "}"
       );

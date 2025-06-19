@@ -21,7 +21,7 @@ interface IPriceFeed {
 
 contract Demo is StdCheats, Script {
   // -------- Configuration --------
-  address public registry = 0x6f10cc394F0FC8ef2A8B58e02E9cAF90C2f0922f;
+  address public registry = 0xf9Bc8B3a0fb0ed51E2C4339849CA96B0BA7A69a4;
   uint256 public troveId;
 
   //--------------------------------
@@ -42,6 +42,7 @@ contract Demo is StdCheats, Script {
 
   function run() public {
     setup();
+    updatePriceFeed(9e17);
 
     uint256 privateKey1 = vm.envUint("DEPLOYER");
     deployer = vm.addr(privateKey1);
@@ -69,9 +70,9 @@ contract Demo is StdCheats, Script {
     vm.startBroadcast(privateKey2);
 
     liquidateTroveIfPossible();
-    updatePriceFeed(100e18);
+    updatePriceFeed(5e17);
     liquidateTroveIfPossible();
-    updatePriceFeed(200e18);
+    updatePriceFeed(9e17);
 
     vm.stopBroadcast();
   }
@@ -122,8 +123,8 @@ contract Demo is StdCheats, Script {
     troveId = borrowerOperations.openTrove(
       deployer,
       timestamp + counter, // use timestamp as ownerIndex
-      150e18, // MCR 110%
-      20000e18, // MIN_DEBT 2000e18
+      17000e18, // MCR 110%
+      10000e18, // MIN_DEBT 2000e18
       0,
       0,
       1e17,
