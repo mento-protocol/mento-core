@@ -22,6 +22,8 @@ contract LiquidityStrategyTest is Test {
   event FPMMPoolAdded(address indexed pool, uint256 rebalanceCooldown, uint256 rebalanceIncentive);
   event FPMMPoolRemoved(address indexed pool);
   event RebalanceExecuted(address indexed pool, uint256 priceBefore, uint256 priceAfter);
+  event RebalanceIncentiveSet(address indexed pool, uint256 rebalanceIncentive);
+  event RebalanceCooldownSet(address indexed pool, uint256 rebalanceCooldown);
 
   function setUp() public {
     vm.startPrank(deployer);
@@ -50,7 +52,7 @@ contract LiquidityStrategyTest is Test {
   function test_addPool_shouldRevert_whenRebalanceIncentiveIsInvalid() public {
     vm.prank(deployer);
     vm.expectRevert("LS: INVALID_REBALANCE_INCENTIVE");
-    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 0);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 101);
   }
 
   function test_addPool_shouldRevert_whenCallerNotOwner() public {
@@ -95,6 +97,53 @@ contract LiquidityStrategyTest is Test {
     vm.prank(nonOwner);
     vm.expectRevert("Ownable: caller is not the owner");
     mockConcreteLiquidityStrat.setRebalanceIncentive(address(mockPool), 100);
+  }
+
+  function test_setRebalanceIncentive_shouldRevert_whenPoolIsNotAdded() public {
+    vm.prank(deployer);
+    vm.expectRevert("LS: UNREGISTERED_POOL");
+    mockConcreteLiquidityStrat.setRebalanceIncentive(address(mockPool), 100);
+  }
+
+  function test_setRebalanceIncentive_shouldRevert_whenRebalanceIncentiveIsInvalid() public {
+    vm.prank(deployer);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
+
+    vm.prank(deployer);
+    vm.expectRevert("LS: INVALID_REBALANCE_INCENTIVE");
+    mockConcreteLiquidityStrat.setRebalanceIncentive(address(mockPool), 101);
+  }
+
+  function test_setRebalanceIncentive_shouldEmitEvent_WhenRebalanceIncentiveIsSet() public {
+    vm.prank(deployer);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
+    vm.expectEmit(true, true, true, true);
+    emit RebalanceIncentiveSet(address(mockPool), 100);
+    vm.prank(deployer);
+    mockConcreteLiquidityStrat.setRebalanceIncentive(address(mockPool), 100);
+  }
+
+  /* ---------- Set Rebalance Cooldown ---------- */
+
+  function test_setRebalanceCooldown_shouldRevert_whenCallerNotOwner() public {
+    vm.prank(nonOwner);
+    vm.expectRevert("Ownable: caller is not the owner");
+    mockConcreteLiquidityStrat.setRebalanceCooldown(address(mockPool), 1 days);
+  }
+
+  function test_setRebalanceCooldown_shouldRevert_whenPoolIsNotAdded() public {
+    vm.prank(deployer);
+    vm.expectRevert("LS: UNREGISTERED_POOL");
+    mockConcreteLiquidityStrat.setRebalanceCooldown(address(mockPool), 1 days);
+  }
+
+  function test_setRebalanceCooldown_shouldEmitEvent_WhenRebalanceCooldownIsSet() public {
+    vm.prank(deployer);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
+    vm.expectEmit(true, true, true, true);
+    emit RebalanceCooldownSet(address(mockPool), 1 days);
+    vm.prank(deployer);
+    mockConcreteLiquidityStrat.setRebalanceCooldown(address(mockPool), 1 days);
   }
 
   /* ---------- Rebalance ---------- */
@@ -185,6 +234,7 @@ contract LiquidityStrategyTest is Test {
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.token1.selector), abi.encode(address(mockToken1)));
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector), abi.encode(500));
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector), abi.encode(500));
+    vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceIncentive.selector), abi.encode(100));
 
     setPoolPrices(1000, 1000);
   }
