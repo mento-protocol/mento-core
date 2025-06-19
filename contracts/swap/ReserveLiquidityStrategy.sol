@@ -195,7 +195,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     collateralIn = collateralInRaw / params.collateralPrecision;
   }
 
-  /**
+  /** 
    * @notice Calculates the amounts for expansion (when pool price is above oracle price)
    * @param params Struct containing rebalancing parameters.
    * @param oraclePrice The off-chain target price.

@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 // solhint-disable-next-line max-line-length
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 // solhint-disable-next-line max-line-length
+import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
+// solhint-disable-next-line max-line-length
 import { EnumerableSetUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
 // solhint-disable-next-line max-line-length
 import { ReentrancyGuardUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
@@ -61,6 +63,21 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     require(fpmmPools.remove(pool), "LS: UNREGISTERED_POOL");
     delete fpmmPoolConfigs[pool];
     emit FPMMPoolRemoved(pool);
+  }
+
+  /**
+   * @notice Withdraws the total balance of a specified ERC20 token from this contract.
+   * @dev This function can be used to retrieve collected fees.
+   * @param tokenAddress The address of the ERC20 token to withdraw.
+   */
+  function withdraw(address tokenAddress) external onlyOwner {
+    require(tokenAddress != address(0), "LS: INVALID_TOKEN_ADDRESS");
+    IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
+    uint256 balance = token.balanceOf(address(this));
+    require(balance > 0, "LS: NO_TOKENS_TO_WITHDRAW");
+
+    bool success = token.transfer(owner(), balance);
+    require(success, "LS: WITHDRAW_FAILED");
   }
 
   /**
