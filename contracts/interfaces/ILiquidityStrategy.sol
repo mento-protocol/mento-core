@@ -66,10 +66,17 @@ interface ILiquidityStrategy {
 
   /**
    * @notice Emitted when the rebalance incentive is set.
-   * @param pool The address of the pool to set the rebalance incentive for.
+   * @param pool The address of the pool the rebalance incentive was set for.
    * @param rebalanceIncentive The new rebalance incentive in basis points.
    */
   event RebalanceIncentiveSet(address indexed pool, uint256 rebalanceIncentive);
+
+  /**
+   * @notice Emitted when the rebalance cooldown is set.
+   * @param pool The address of the pool the rebalance cooldown was set for.
+   * @param rebalanceCooldown The new rebalance cooldown in seconds.
+   */
+  event RebalanceCooldownSet(address indexed pool, uint256 rebalanceCooldown);
 
   /* ==================== Functions ==================== */
 

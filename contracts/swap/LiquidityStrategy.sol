@@ -64,6 +64,20 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
   }
 
   /**
+   * @notice Sets the rebalance cooldown in seconds.
+   * @param pool The address of the pool to set the rebalance cooldown for.
+   * @param rebalanceCooldown The rebalance cooldown in seconds.
+   */
+  function setRebalanceCooldown(address pool, uint256 rebalanceCooldown) public onlyOwner {
+    require(fpmmPools.contains(pool), "LS: UNREGISTERED_POOL");
+
+    FPMMConfig memory config = fpmmPoolConfigs[pool];
+    config.rebalanceCooldown = rebalanceCooldown;
+    fpmmPoolConfigs[pool] = config;
+    emit RebalanceCooldownSet(pool, rebalanceCooldown);
+  }
+
+  /**
    * @notice Sets the rebalance incentive in basis points.
    * @param pool The address of the pool to set the rebalance incentive for.
    * @param rebalanceIncentive The rebalance incentive in basis points.
