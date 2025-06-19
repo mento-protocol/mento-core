@@ -46,6 +46,7 @@ interface ILiquidityStrategy {
    * @param stableOut Amount of stable token being taken out of the pool.
    * @param collateralOut Amount of collateral being taken out of the pool.
    * @param inputAmount The amount the strategy is supplying in the callback.
+   * @param incentiveAmount The amount of incentive being supplied in the callback.
    * @param direction ABOVE_ORACLE for contraction, BELOW_ORACLE for expansion.
    */
   event RebalanceInitiated(
@@ -53,6 +54,7 @@ interface ILiquidityStrategy {
     uint256 stableOut,
     uint256 collateralOut,
     uint256 inputAmount,
+    uint256 incentiveAmount,
     PriceDirection direction
   );
 
