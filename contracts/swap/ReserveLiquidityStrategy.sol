@@ -183,8 +183,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     uint256 oraclePrice
   ) private pure returns (uint256 stableOut, uint256 collateralIn) {
     // Contraction: Sell stables to buy collateral
-    // Y = (P * S - C) / 2
-    // X = Y / P
+    // CollateralIn = (OraclePrice * StableReserve - CollateralReserve) / 2
+    // StablesOut = CollateralIn / OraclePrice
     uint256 numerator = ((oraclePrice * params.stableReserve) / 1e18) - params.collateralReserve;
     uint256 denominator = 2;
 
@@ -207,8 +207,8 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     uint256 oraclePrice
   ) private pure returns (uint256 collateralOut, uint256 stablesIn) {
     // Expansion: Sell collateral to buy stables
-    // Y = (C - P * S) / 2
-    // X = Y / P
+    // CollateralOut = (CollateralReserve - OraclePrice * StableReserve) / 2
+    // StablesIn = CollateralOut / OraclePrice
     uint256 numerator = params.collateralReserve - ((oraclePrice * params.stableReserve) / 1e18);
     uint256 denominator = 2;
 
