@@ -45,7 +45,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
   function addPool(address poolAddress, uint256 cooldown, uint256 rebalanceIncentive) external onlyOwner {
     require(poolAddress != address(0), "LS: INVALID_POOL_ADDRESS");
     require(fpmmPools.add(poolAddress), "LS: POOL_ALREADY_ADDED");
-    require(rebalanceIncentive > 0 && rebalanceIncentive <= BPS_SCALE, "LS: INVALID_REBALANCE_INCENTIVE");
+    require(rebalanceIncentive <= IFPMM(poolAddress).rebalanceIncentive(), "LS: INVALID_REBALANCE_INCENTIVE");
 
     fpmmPoolConfigs[poolAddress] = FPMMConfig({
       lastRebalance: 0,
@@ -69,6 +69,9 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
    * @param rebalanceIncentive The rebalance incentive in basis points.
    */
   function setRebalanceIncentive(address pool, uint256 rebalanceIncentive) public onlyOwner {
+    require(fpmmPools.contains(pool), "LS: UNREGISTERED_POOL");
+    require(rebalanceIncentive <= IFPMM(pool).rebalanceIncentive(), "LS: INVALID_REBALANCE_INCENTIVE");
+
     FPMMConfig memory config = fpmmPoolConfigs[pool];
     config.rebalanceIncentive = rebalanceIncentive;
     fpmmPoolConfigs[pool] = config;
