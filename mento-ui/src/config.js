@@ -8,14 +8,14 @@ export const CONFIG = {
   // Contract addresses (to be updated with actual deployed addresses)
   CONTRACTS: {
     // Main registry contract
-    ADDRESSES_REGISTRY: "0xf9bc8b3a0fb0ed51e2c4339849ca96b0ba7a69a4",
+    ADDRESSES_REGISTRY: "0xd39c90bb4c1e5d63f83a9fe52359897bb1068ed3",
 
     // Token addresses
     CUSD: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1", // cUSD on Alfajores
     CELO: "0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9", // CELO on Alfajores
 
     // FPMM contract for swaps
-    FPMM: "0x792f74e2892b6dc89eb0e546734f089503e93a12", // TODO: Add actual FPMM address
+    FPMM: "0x8d5671f4a37a6ff95cafb7c26faf1d5db6129fa9", // TODO: Add actual FPMM address
   },
 
   // Default values
