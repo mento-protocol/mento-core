@@ -270,6 +270,14 @@
           <p><strong>Address:</strong> <span id="walletAddress"></span></p>
           <p><strong>Network:</strong> <span id="networkInfo"></span></p>
           <p><strong>Balance:</strong> <span id="walletBalance"></span></p>
+          
+          <div class="token-balances-section">
+            <div class="token-balances-header">
+              <h4>Token Balances</h4>
+              <button id="refreshBalancesBtn" class="refresh-btn">↻</button>
+            </div>
+            <div id="tokenBalancesContainer" class="token-balances"></div>
+          </div>
         </div>
       </div>
 
@@ -396,6 +404,59 @@
       .pool-item p {
         margin-bottom: 8px;
         color: #666;
+      }
+      
+      /* Token Balances Styles */
+      .token-balances-section {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #e1e5e9;
+      }
+      
+      .token-balances-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      
+      .token-balances-header h4 {
+        margin: 0;
+        color: #333;
+      }
+      
+      .refresh-btn {
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+      }
+      
+      .refresh-btn:hover {
+        transform: rotate(180deg);
+      }
+      
+      .token-balances {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      
+      .token-balance-item {
+        background: #f1f3f5;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        color: #555;
+        display: inline-block;
       }
     </style>
 

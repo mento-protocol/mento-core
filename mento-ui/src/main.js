@@ -65,6 +65,12 @@ class MentoUI {
     if (this.refreshPoolsBtn) {
       this.refreshPoolsBtn.addEventListener("click", () => this.loadPools());
     }
+    
+    // Token balances refresh button
+    const refreshBalancesBtn = document.getElementById("refreshBalancesBtn");
+    if (refreshBalancesBtn) {
+      refreshBalancesBtn.addEventListener("click", () => this.loadTokenBalances());
+    }
   }
 
   async checkConnection() {
@@ -253,6 +259,7 @@ class MentoUI {
 
   async loadInitialData() {
     await Promise.all([this.loadPrice(), this.loadTroves(), this.loadPools()]);
+    await this.loadTokenBalances();
   }
 
   async loadPrice() {
@@ -618,6 +625,8 @@ class MentoUI {
       this.renderPools();
       this.updatePoolsDropdown();
       
+      await this.loadTokenBalances();
+      
     } catch (error) {
       console.error("Error loading pools:", error);
       this.poolsList.innerHTML = '<div class="error">Error loading pools</div>';
@@ -699,9 +708,104 @@ class MentoUI {
     this.pools.forEach(pool => {
       const option = document.createElement('option');
       option.value = pool.address;
-      option.textContent = `${pool.address.substring(0, 6)}...${pool.address.substring(38)}`;
+      option.textContent = `${pool.token0Symbol}/${pool.token1Symbol} Pool`;
       this.rebalancePoolSelect.appendChild(option);
     });
+  }
+  
+  /**
+   * Load token balances for the connected wallet
+   * Only loads balances for tokens that appear in pools
+   */
+  async loadTokenBalances() {
+    if (!this.address || !this.pools || this.pools.length === 0) {
+      console.log("Cannot load token balances: wallet not connected or no pools loaded");
+      return;
+    }
+    
+    try {
+      console.log("Loading token balances for tokens in pools...");
+      
+      const uniqueTokenAddresses = new Set();
+      
+      this.pools.forEach(pool => {
+        uniqueTokenAddresses.add(pool.token0Address);
+        uniqueTokenAddresses.add(pool.token1Address);
+      });
+      
+      console.log("Unique token addresses in pools:", uniqueTokenAddresses);
+      
+      this.tokenBalances = [];
+      
+      for (const tokenAddress of uniqueTokenAddresses) {
+        try {
+          const tokenContract = new ethers.Contract(tokenAddress, ABIS.ERC20, this.signer);
+          
+          let symbol = "Unknown";
+          let decimals = 18;
+          
+          try {
+            symbol = await tokenContract.symbol();
+            decimals = await tokenContract.decimals();
+          } catch (error) {
+            console.error(`Error getting details for token ${tokenAddress}:`, error);
+            symbol = tokenAddress.substring(0, 6) + "...";
+          }
+          
+          const balance = await tokenContract.balanceOf(this.address);
+          const balanceFormatted = ethers.formatUnits(balance, decimals);
+          
+          this.tokenBalances.push({
+            address: tokenAddress,
+            symbol,
+            balance,
+            balanceFormatted,
+            decimals
+          });
+          
+          console.log(`Balance for ${symbol}: ${balanceFormatted}`);
+        } catch (error) {
+          console.error(`Error loading balance for token ${tokenAddress}:`, error);
+        }
+      }
+      
+      this.displayTokenBalances();
+    } catch (error) {
+      console.error("Error loading token balances:", error);
+    }
+  }
+  
+  /**
+   * Display token balances in the UI
+   */
+  displayTokenBalances() {
+    if (!this.tokenBalances || this.tokenBalances.length === 0) {
+      return;
+    }
+    
+    const tokenBalancesContainer = document.getElementById("tokenBalancesContainer");
+    
+    if (!tokenBalancesContainer) {
+      console.error("Token balances container not found");
+      return;
+    }
+    
+    tokenBalancesContainer.innerHTML = "";
+    
+    const sortedBalances = [...this.tokenBalances].sort((a, b) => a.symbol.localeCompare(b.symbol));
+    
+    sortedBalances.forEach(token => {
+      if (parseFloat(token.balanceFormatted) > 0) {
+        const tokenBalance = document.createElement("div");
+        tokenBalance.className = "token-balance-item";
+        tokenBalance.innerHTML = `<strong>${token.symbol}:</strong> ${parseFloat(token.balanceFormatted).toFixed(4)}`;
+        tokenBalancesContainer.appendChild(tokenBalance);
+      }
+    });
+    
+    if (tokenBalancesContainer.childElementCount === 0) {
+      tokenBalancesContainer.innerHTML = '<div class="token-balance-item no-balance">No tokens with balance</div>';
+    }
   }
   
   async rebalancePool(poolAddress) {
