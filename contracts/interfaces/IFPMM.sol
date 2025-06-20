@@ -27,6 +27,8 @@ interface IFPMM {
     uint256 blockTimestampLast;
     // contract for oracle price feeds(to be replaced)
     ISortedOracles sortedOracles;
+    // true if the rate feed should be reverted
+    bool revertRateFeed;
     // onchain circuit breaker
     IBreakerBox breakerBox;
     // identifier for the reference rate feed
@@ -239,6 +241,12 @@ interface IFPMM {
   function sortedOracles() external view returns (ISortedOracles);
 
   /**
+   * @notice Returns the revert rate feed flag
+   * @return Revert rate feed flag
+   */
+  function revertRateFeed() external view returns (bool);
+
+  /**
    * @notice Returns the circuit breaker contract to enable/disable trading
    * @return Address of the BreakerBox contract
    */
@@ -288,6 +296,8 @@ interface IFPMM {
    * @param _token0 Address of the first token
    * @param _token1 Address of the second token
    * @param _sortedOracles Address of the SortedOracles contract
+   * @param _referenceRateFeedID Address of the reference rate feed ID
+   * @param _revertRateFeed Whether to revert the rate feed
    * @param _breakerBox Address of the BreakerBox contract
    * @param _owner Address of the owner
    */
@@ -296,6 +306,7 @@ interface IFPMM {
     address _token1,
     address _sortedOracles,
     address _referenceRateFeedID,
+    bool _revertRateFeed,
     address _breakerBox,
     address _owner
   ) external;

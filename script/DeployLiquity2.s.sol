@@ -255,7 +255,8 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
       CONFIG.fpmmImplementation,
       address(r.stableToken),
       CONFIG.USDm_ALFAJORES_ADDRESS,
-      CONFIG.referenceRateFeedID
+      CONFIG.referenceRateFeedID,
+      false // revertRateFeed - set to false as default
     );
   }
 

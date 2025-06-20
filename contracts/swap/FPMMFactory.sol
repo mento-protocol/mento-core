@@ -217,7 +217,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address customGovernance,
     address token0,
     address token1,
-    address referenceRateFeedID
+    address referenceRateFeedID,
+    bool revertRateFeed
   ) external onlyOwner returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
@@ -251,7 +252,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address fpmmImplementation,
     address token0,
     address token1,
-    address referenceRateFeedID
+    address referenceRateFeedID,
+    bool revertRateFeed
   ) external onlyOwner returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
@@ -313,6 +315,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       _token1,
       _sortedOracles,
       _referenceRateFeedID,
+      false, // revertRateFeed
       _breakerBox,
       _governance
     );

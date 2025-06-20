@@ -64,6 +64,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     address _token1,
     address _sortedOracles,
     address _referenceRateFeedID,
+    bool _revertRateFeed,
     address _breakerBox,
     address _owner
   ) external initializer {
@@ -91,6 +92,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     setSortedOracles(_sortedOracles);
     setBreakerBox(_breakerBox);
     setReferenceRateFeedID(_referenceRateFeedID);
+    setRevertRateFeed(_revertRateFeed);
     transferOwnership(_owner);
   }
 
@@ -172,6 +174,12 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
+  function revertRateFeed() external view returns (bool) {
+    FPMMStorage storage $ = _getFPMMStorage();
+    return $.revertRateFeed;
+  }
+
+  /// @inheritdoc IFPMM
   function breakerBox() external view returns (IBreakerBox) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.breakerBox;
@@ -227,7 +235,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     _decimals0 = $.decimals0;
     _decimals1 = $.decimals1;
 
-    (uint256 rateNumerator, uint256 rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
+    (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
     oraclePrice = (rateNumerator * 1e18) / (rateDenominator);
     reservePrice = ($.reserve1 * _decimals0 * 1e18) / ($.reserve0 * _decimals1);
@@ -246,7 +254,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     if (amountIn == 0) return 0;
 
-    (uint256 rateNumerator, uint256 rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
+    (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
     uint256 amountInAfterFee = amountIn - ((amountIn * $.protocolFee) / BASIS_POINTS_DENOMINATOR);
 
@@ -357,7 +365,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     swapData.amount0Out = amount0Out;
     swapData.amount1Out = amount1Out;
 
-    (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
+    (swapData.rateNumerator, swapData.rateDenominator) = _getRateFeed();
     swapData.initialReserveValue = _totalValueInToken1(
       $.reserve0,
       $.reserve1,
@@ -409,7 +417,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     swapData.amount0Out = amount0Out;
     swapData.amount1Out = amount1Out;
 
-    (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
+    (swapData.rateNumerator, swapData.rateDenominator) = _getRateFeed();
     swapData.initialReserveValue = _totalValueInToken1(
       $.reserve0,
       $.reserve1,
@@ -504,6 +512,11 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     emit SortedOraclesUpdated(oldSortedOracles, _sortedOracles);
   }
 
+  function setRevertRateFeed(bool _revertRateFeed) public onlyOwner {
+    FPMMStorage storage $ = _getFPMMStorage();
+    $.revertRateFeed = _revertRateFeed;
+  }
+
   /// @inheritdoc IFPMM
   function setBreakerBox(address _breakerBox) public onlyOwner {
     require(_breakerBox != address(0), "FPMM: BREAKER_BOX_ADDRESS_MUST_BE_SET");
@@ -585,6 +598,14 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     reservePriceAboveOraclePrice = reservePrice > oraclePrice;
     uint256 absolutePriceDiff = reservePriceAboveOraclePrice ? reservePrice - oraclePrice : oraclePrice - reservePrice;
     priceDifference = (absolutePriceDiff * BASIS_POINTS_DENOMINATOR) / oraclePrice;
+  }
+
+  function _getRateFeed() private view returns (uint256 rateNumerator, uint256 rateDenominator) {
+    FPMMStorage storage $ = _getFPMMStorage();
+    (rateNumerator, rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
+    if ($.revertRateFeed) {
+      (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);
+    }
   }
 
   /**

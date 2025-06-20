@@ -61,7 +61,8 @@ contract DeployReserveFPMM is Script {
       address(fpmmImplementation),
       address(USDm),
       USDC,
-      USDCUSDRateFeedID
+      USDCUSDRateFeedID,
+      false // revertRateFeed - set to false as default
     );
 
     //FPMM(cUSDaxlUSDCFPMM).setLiquidityStrategy(liquidityStrategy, true); //TODO: LiquidityStrategy`

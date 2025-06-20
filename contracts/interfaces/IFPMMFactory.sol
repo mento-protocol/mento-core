@@ -124,6 +124,7 @@ interface IFPMMFactory {
    * @param _proxyAdmin The address of the proxy admin contract
    * @param _breakerBox The address of the breaker box contract
    * @param _governance The address of the governance contract
+   * @param _fpmmImplementation The address of the FPMM implementation
    */
   function initialize(
     address _sortedOracles,
@@ -172,16 +173,19 @@ interface IFPMMFactory {
 
   /**
    * @notice Deploys a new FPMM for a token pair using the default parameters.
+   * @param fpmmImplementation The address of the FPMM implementation
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
+   * @param revertRateFeed Whether to revert if the rate feed is not available
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
     address fpmmImplementation,
     address token0,
     address token1,
-    address referenceRateFeedID
+    address referenceRateFeedID,
+    bool revertRateFeed
   ) external returns (address proxy);
 
   /**
@@ -194,6 +198,7 @@ interface IFPMMFactory {
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
+   * @param revertRateFeed Whether to revert if the rate feed is not available
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
@@ -204,6 +209,7 @@ interface IFPMMFactory {
     address customGovernance,
     address token0,
     address token1,
-    address referenceRateFeedID
+    address referenceRateFeedID,
+    bool revertRateFeed
   ) external returns (address proxy);
 }
