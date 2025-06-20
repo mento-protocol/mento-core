@@ -79,6 +79,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
    */
   function withdraw(address tokenAddress, address recipient) external onlyOwner {
     require(tokenAddress != address(0), "LS: INVALID_TOKEN_ADDRESS");
+    require(recipient != address(0), "LS: INVALID_RECIPIENT_ADDRESS");
     IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
     uint256 balance = token.balanceOf(address(this));
     require(balance > 0, "LS: NO_TOKENS_TO_WITHDRAW");
