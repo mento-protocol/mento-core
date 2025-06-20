@@ -5,6 +5,7 @@ import { StableTokenV3 } from "contracts/v3/StableTokenV3.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-v4.9.5/contracts/proxy/transparent/ProxyAdmin.sol";
+import { ReserveLiquidityStrategy } from "contracts/swap/ReserveLiquidityStrategy.sol";
 
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
@@ -17,14 +18,13 @@ contract DeployReserveFPMM is Script {
 
   address public sortedOracles = 0xFdd8bD58115FfBf04e47411c1d228eCC45E93075;
   address public breakerBox = 0xC76BDf0AFb654888728003683cf748A8B1b4f5fD;
-  address public proxyAdmin;
+  ProxyAdmin public proxyAdmin;
   address public registry = 0x000000000000000000000000000000000000ce10;
 
   address public cUSDaxlUSDCFPMM;
   address public USDCUSDRateFeedID = 0xA1A8003936862E7a15092A91898D69fa8bCE290c;
 
-  //TODO: LiquidityStrategy
-  address public liquidityStrategy = makeAddr("LiquidityStrategy");
+  ReserveLiquidityStrategy public liquidityStrategy;
 
   function run() public {
     address reserve;
@@ -42,6 +42,7 @@ contract DeployReserveFPMM is Script {
     initialBalanceValues[0] = 10_000_000e18;
 
     USDm.initialize("USD.m", "USD.m", initialBalanceAddresses, initialBalanceValues);
+    liquidityStrategy = new ReserveLiquidityStrategy(false);
 
     // Deploy Reserve
     reserve = deployReserve();
@@ -50,14 +51,14 @@ contract DeployReserveFPMM is Script {
     FPMM fpmmImplementation = new FPMM(true);
 
     // Deploy Proxy Admin
-    ProxyAdmin proxyAdmin = new ProxyAdmin();
+    proxyAdmin = new ProxyAdmin();
 
     // Deploy FPMM Factory
     FPMMFactory fpmmFactory = new FPMMFactory(false);
     fpmmFactory.initialize(sortedOracles, address(proxyAdmin), breakerBox, deployer, address(fpmmImplementation));
 
     // Deploy FPMM Proxy mUSD.m/USDC
-    address cUSDaxlUSDCFPMM = fpmmFactory.deployFPMM(
+    cUSDaxlUSDCFPMM = fpmmFactory.deployFPMM(
       address(fpmmImplementation),
       address(USDm),
       USDC,
@@ -65,7 +66,15 @@ contract DeployReserveFPMM is Script {
       false // revertRateFeed - set to false as default
     );
 
-    //FPMM(cUSDaxlUSDCFPMM).setLiquidityStrategy(liquidityStrategy, true); //TODO: LiquidityStrategy`
+    // Deploy Liquidity Strategy
+    liquidityStrategy.initialize(reserve);
+
+    // Add pool to liquidity strategy
+    liquidityStrategy.addPool(cUSDaxlUSDCFPMM, 600, 50);
+
+    USDm.initializeV2(address(deployer), address(liquidityStrategy));
+
+    FPMM(cUSDaxlUSDCFPMM).setLiquidityStrategy(address(liquidityStrategy), true);
 
     IERC20(USDC).transfer(cUSDaxlUSDCFPMM, 1e12); // 1_000_000 USDC to fpmm for mint call
     USDm.transfer(cUSDaxlUSDCFPMM, 1e24); // 1_000_000 USD.m to fpmm for mint call
@@ -78,7 +87,7 @@ contract DeployReserveFPMM is Script {
     console.log("proxyAdmin", address(proxyAdmin));
     console.log("fpmmFactory", address(fpmmFactory));
     console.log("fpmmImplementation", address(fpmmImplementation));
-    console.log("liquidityStrategy", liquidityStrategy);
+    console.log("liquidityStrategy", address(liquidityStrategy));
     console.log("USDC", USDC);
     console.log("USDm", address(USDm));
   }
@@ -122,6 +131,6 @@ contract DeployReserveFPMM is Script {
 
     IERC20(USDC).transfer(reserve, 1e13); // 10_000_000 USDC to reserve for reserve setup
 
-    //IReserve(reserve).addExchangeSpender(liquidityStrategy); //TODO: LiquidityStrategy
+    IReserve(reserve).addExchangeSpender(address(liquidityStrategy));
   }
 }

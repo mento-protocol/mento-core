@@ -60,11 +60,11 @@ contract MockFPMMPool is Test {
   }
 
   function decimals0() external pure returns (uint256) {
-    return 18;
+    return 1e18;
   }
 
   function decimals1() external pure returns (uint256) {
-    return 18;
+    return 1e18;
   }
 
   function protocolFee() external pure returns (uint256) {
@@ -76,7 +76,7 @@ contract MockFPMMPool is Test {
   }
 
   function metadata() external view returns (uint256, uint256, uint256, uint256, address, address) {
-    return (token0_.decimals(), token1_.decimals(), reserve0, reserve1, address(token0_), address(token1_));
+    return (10 ** token0_.decimals(), 10 ** token1_.decimals(), reserve0, reserve1, address(token0_), address(token1_));
   }
 
   function setRebalanceThreshold(uint256 _thresholdAbove, uint256 _thresholdBelow) external {

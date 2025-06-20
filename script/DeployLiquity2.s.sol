@@ -138,10 +138,10 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
 
   DeploymentConfig internal CONFIG =
     DeploymentConfig({
-      USDm_ALFAJORES_ADDRESS: 0x52D56f0a3CE019DE24b025077580bfD9be3760ae,
-      proxyAdmin: 0x2ed096A05712D3E3BD623Ec26d73cCa19d3f78Ef,
-      fpmmFactory: 0xD3856d0777f75e629B2Ae14236073CB0C3fEAA50,
-      fpmmImplementation: 0x40aDbA5BD170685B7cd607e9d9eE5fE880E31C1D,
+      USDm_ALFAJORES_ADDRESS: 0x9E2d4412d0f434cC85500b79447d9323a7416f09,
+      proxyAdmin: 0xe4DdacCAdb64114215FCe8251B57B2AEB5C2C0E2,
+      fpmmFactory: 0xd8098494a749a3fDAD2D2e7Fa5272D8f274D8FF6,
+      fpmmImplementation: 0x0292efcB331C6603eaa29D570d12eB336D6c01d6,
       referenceRateFeedID: 0x206B25Ea01E188Ee243131aFdE526bA6E131a016,
       stableTokenName: "EUR.m Test",
       stableTokenSymbol: "EUR.m",

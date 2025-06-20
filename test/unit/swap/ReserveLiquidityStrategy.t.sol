@@ -148,7 +148,7 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.mockCall(
       address(poolWithInvalidDecimals),
       abi.encodeWithSelector(poolWithInvalidDecimals.metadata.selector),
-      abi.encode(19, 18, 1000e18, 1000e18, address(tokenWithInvalidDecimals), address(collateralToken))
+      abi.encode(19e18, 18e18, 1000e18, 1000e18, address(tokenWithInvalidDecimals), address(collateralToken))
     );
 
     // Set up prices for rebalance

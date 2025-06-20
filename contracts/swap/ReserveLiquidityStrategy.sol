@@ -157,17 +157,17 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     // slither-disable-next-line unused-return
     (uint256 dec0, uint256 dec1, uint256 reserve0, uint256 reserve1, , ) = fpmm.metadata();
 
-    require(dec0 <= 18 && dec1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
+    require(dec0 <= 1e18 && dec1 <= 1e18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
 
     uint256 strategyIncentive = fpmmPoolConfigs[address(fpmm)].rebalanceIncentive;
     uint256 poolIncentive = fpmm.rebalanceIncentive();
     uint256 incentive = strategyIncentive < poolIncentive ? strategyIncentive : poolIncentive;
 
     RebalanceParams memory params = RebalanceParams({
-      stableReserve: reserve0 * (10 ** (18 - dec0)),
-      collateralReserve: reserve1 * (10 ** (18 - dec1)),
-      stablePrecision: 10 ** (18 - dec0),
-      collateralPrecision: 10 ** (18 - dec1)
+      stableReserve: reserve0 * (1e18 / dec0),
+      collateralReserve: reserve1 * (1e18 / dec1),
+      stablePrecision: 1e18 / dec0,
+      collateralPrecision: 1e18 / dec1
     });
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
