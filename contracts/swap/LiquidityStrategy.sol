@@ -6,6 +6,7 @@ import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts
 // solhint-disable-next-line max-line-length
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20MintableBurnable } from "contracts/common/SafeERC20MintableBurnable.sol";
+// solhint-disable-next-line max-line-length
 import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 // solhint-disable-next-line max-line-length

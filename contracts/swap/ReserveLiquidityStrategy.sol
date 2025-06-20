@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { SafeERC20MintableBurnable } from "contracts/common/SafeERC20MintableBurnable.sol";
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
+// solhint-disable-next-line max-line-length
 import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
