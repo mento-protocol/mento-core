@@ -80,6 +80,14 @@ interface ILiquidityStrategy {
    */
   event RebalanceCooldownSet(address indexed pool, uint256 rebalanceCooldown);
 
+  /**
+   * @notice Emitted when tokens are withdrawn from the strategy.
+   * @param tokenAddress The address of the token that was withdrawn.
+   * @param recipient The address that received the tokens.
+   * @param amount The amount of tokens that were withdrawn.
+   */
+  event Withdraw(address indexed tokenAddress, address indexed recipient, uint256 amount);
+
   /* ==================== Functions ==================== */
 
   /**

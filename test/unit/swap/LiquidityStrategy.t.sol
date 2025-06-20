@@ -24,6 +24,7 @@ contract LiquidityStrategyTest is Test {
   event RebalanceExecuted(address indexed pool, uint256 priceBefore, uint256 priceAfter);
   event RebalanceIncentiveSet(address indexed pool, uint256 rebalanceIncentive);
   event RebalanceCooldownSet(address indexed pool, uint256 rebalanceCooldown);
+  event Withdraw(address indexed tokenAddress, address indexed recipient, uint256 amount);
 
   function setUp() public {
     vm.startPrank(deployer);
@@ -152,6 +153,8 @@ contract LiquidityStrategyTest is Test {
     mockToken0.mint(address(mockConcreteLiquidityStrat), initialBalance);
 
     vm.prank(deployer);
+    vm.expectEmit(true, true, true, true);
+    emit Withdraw(address(mockToken0), address(deployer), initialBalance);
     mockConcreteLiquidityStrat.withdraw(address(mockToken0), address(deployer));
 
     assertEq(mockToken0.balanceOf(address(deployer)), initialBalance);

@@ -85,6 +85,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     require(balance > 0, "LS: NO_TOKENS_TO_WITHDRAW");
 
     token.safeTransfer(recipient, balance);
+    emit Withdraw(tokenAddress, recipient, balance);
   }
 
   /**
