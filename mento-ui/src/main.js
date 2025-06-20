@@ -36,15 +36,19 @@ class MentoUI {
     this.swapAmount = document.getElementById("swapAmount");
     this.swapFrom = document.getElementById("swapFrom");
     this.swapTo = document.getElementById("swapTo");
+    this.rebalancePoolSelect = document.getElementById("rebalancePoolSelect");
 
     // Button elements
     this.openTroveBtn = document.getElementById("openTroveBtn");
     this.redeemBtn = document.getElementById("redeemBtn");
     this.refreshTrovesBtn = document.getElementById("refreshTrovesBtn");
     this.swapBtn = document.getElementById("swapBtn");
+    this.rebalanceBtn = document.getElementById("rebalanceBtn");
+    this.refreshPoolsBtn = document.getElementById("refreshPoolsBtn");
 
     // List elements
     this.troveList = document.getElementById("troveList");
+    this.poolsList = document.getElementById("poolsList");
   }
 
   bindEvents() {
@@ -53,6 +57,14 @@ class MentoUI {
     this.redeemBtn.addEventListener("click", () => this.redeemCollateral());
     this.refreshTrovesBtn.addEventListener("click", () => this.loadTroves());
     this.swapBtn.addEventListener("click", () => this.swapTokens());
+    
+    // Rebalance related events
+    if (this.rebalanceBtn) {
+      this.rebalanceBtn.addEventListener("click", () => this.rebalancePool());
+    }
+    if (this.refreshPoolsBtn) {
+      this.refreshPoolsBtn.addEventListener("click", () => this.loadPools());
+    }
   }
 
   async checkConnection() {
@@ -193,7 +205,28 @@ class MentoUI {
 
     // Initialize FPMM if address is available
     if (CONFIG.CONTRACTS.FPMM !== "0x0000000000000000000000000000000000000000") {
-      this.contracts.fpmm = new ethers.Contract(CONFIG.CONTRACTS.FPMM, ABIS.FPMM, this.signer);
+      try {
+        this.contracts.fpmm = new ethers.Contract(CONFIG.CONTRACTS.FPMM, ABIS.FPMM, this.signer);
+        console.log("FPMM contract initialized at:", CONFIG.CONTRACTS.FPMM);
+      } catch (error) {
+        console.error("Error initializing FPMM contract:", error);
+      }
+    }
+    
+    // Initialize LiquidityStrategy if address is available
+    if (CONFIG.CONTRACTS.LIQUIDITY_STRATEGY !== "0x0000000000000000000000000000000000000000") {
+      try {
+        this.contracts.liquidityStrategy = new ethers.Contract(
+          CONFIG.CONTRACTS.LIQUIDITY_STRATEGY,
+          ABIS.LIQUIDITY_STRATEGY,
+          this.signer
+        );
+        console.log("Liquidity Strategy contract initialized at:", CONFIG.CONTRACTS.LIQUIDITY_STRATEGY);
+      } catch (error) {
+        console.error("Error initializing Liquidity Strategy contract:", error);
+      }
+    } else {
+      console.warn("Liquidity Strategy contract address not configured");
     }
   }
 
@@ -219,7 +252,7 @@ class MentoUI {
   }
 
   async loadInitialData() {
-    await Promise.all([this.loadPrice(), this.loadTroves()]);
+    await Promise.all([this.loadPrice(), this.loadTroves(), this.loadPools()]);
   }
 
   async loadPrice() {
@@ -446,6 +479,273 @@ class MentoUI {
     } finally {
       this.swapBtn.disabled = false;
       this.swapBtn.textContent = "Swap Tokens";
+    }
+  }
+  
+  async loadPools() {
+    console.log("Loading pools...");
+    
+    if (!this.contracts.liquidityStrategy) {
+      console.error("Liquidity strategy not configured:", this.contracts.liquidityStrategy);
+      if (this.poolsList) {
+        this.poolsList.innerHTML = '<div class="error">Liquidity strategy contract not configured</div>';
+      }
+      return;
+    }
+    
+    if (!this.poolsList) {
+      console.error("Pools list element not found");
+      return;
+    }
+    
+    console.log("Liquidity strategy initialized:", this.contracts.liquidityStrategy.target);
+    
+    try {
+      this.poolsList.innerHTML = '<div class="loading">Loading pools...</div>';
+      
+      // Get all registered pools
+      console.log("Fetching registered pools...");
+      const pools = await this.contracts.liquidityStrategy.getPools();
+      console.log("Pools found:", pools);
+      
+      if (pools.length === 0) {
+        this.poolsList.innerHTML = '<div class="loading">No pools registered in the liquidity strategy. Please add pools to the strategy first.</div>';
+        
+        // Add a sample test pool for UI testing if needed
+        if (window.location.search.includes('addTestPool=true')) {
+          this.poolsList.innerHTML += '<div class="pool-item test-pool">' +
+            '<h4>Test Pool (UI Testing Only)</h4>' +
+            '<div class="pool-data">' +
+            '<div class="pool-column">' +
+            '<p><strong>Tokens:</strong> USD.m/EUR.m</p>' +
+            '<p><strong>Reserves:</strong> 1000.00/1000.00</p>' +
+            '<p><strong>Oracle Price:</strong> $1.0000</p>' +
+            '<p><strong>Pool Price:</strong> $1.0000</p>' +
+            '</div>' +
+            '<div class="pool-column">' +
+            '<p><strong>Last Rebalance:</strong> Never</p>' +
+            '<p><strong>Cooldown Ends:</strong> N/A</p>' +
+            '<p><strong>Rebalance Incentive:</strong> 0.25%</p>' +
+            '<p><strong>Thresholds:</strong> +0.5% / -0.5%</p>' +
+            '</div>' +
+            '</div>' +
+            '<button class="btn btn-primary" disabled>Rebalance Unavailable (Test)</button>' +
+            '</div>';
+        }
+        
+        // Clear the dropdown options except the first default option
+        if (this.rebalancePoolSelect) {
+          this.rebalancePoolSelect.innerHTML = '<option value="">Select a pool</option>';
+        }
+        return;
+      }
+      
+      // Store pools data
+      this.pools = [];
+      
+      // Fetch data for each pool
+      for (const poolAddress of pools) {
+        try {
+          const fpmmContract = new ethers.Contract(poolAddress, ABIS.FPMM, this.signer);
+          
+          // Get pool configuration from liquidity strategy
+          const poolConfig = await this.contracts.liquidityStrategy.fpmmPoolConfigs(poolAddress);
+          
+          // Get token information
+          const token0Address = await fpmmContract.token0();
+          const token1Address = await fpmmContract.token1();
+          
+          // Get token symbols
+          const token0Contract = new ethers.Contract(token0Address, ABIS.ERC20, this.signer);
+          const token1Contract = new ethers.Contract(token1Address, ABIS.ERC20, this.signer);
+          
+          let token0Symbol = "Unknown";
+          let token1Symbol = "Unknown";
+          
+          try {
+            token0Symbol = await token0Contract.symbol();
+            console.log(`Token 0 (${token0Address}) symbol:`, token0Symbol);
+          } catch (error) {
+            console.error(`Error getting symbol for token 0 (${token0Address}):`, error);
+            token0Symbol = token0Address.substring(0, 6) + "...";
+          }
+          
+          try {
+            token1Symbol = await token1Contract.symbol();
+            console.log(`Token 1 (${token1Address}) symbol:`, token1Symbol);
+          } catch (error) {
+            console.error(`Error getting symbol for token 1 (${token1Address}):`, error);
+            token1Symbol = token1Address.substring(0, 6) + "...";
+          }
+          
+          // Get metadata
+          const metadata = await fpmmContract.metadata();
+          
+          // Get prices
+          const prices = await fpmmContract.getPrices();
+          
+          // Get rebalance thresholds
+          const thresholdAbove = await fpmmContract.rebalanceThresholdAbove();
+          const thresholdBelow = await fpmmContract.rebalanceThresholdBelow();
+          
+          // Calculate if rebalance is possible (cooldown check)
+          const now = Math.floor(Date.now() / 1000);
+          const cooldownEnds = Number(poolConfig.lastRebalance) + Number(poolConfig.rebalanceCooldown);
+          const canRebalance = now > cooldownEnds;
+          
+          this.pools.push({
+            address: poolAddress,
+            token0Address: token0Address,
+            token1Address: token1Address,
+            token0Symbol: token0Symbol,
+            token1Symbol: token1Symbol,
+            reserve0: metadata.reserve0,
+            reserve1: metadata.reserve1,
+            oraclePrice: prices.oraclePrice,
+            poolPrice: prices.poolPrice,
+            lastRebalance: poolConfig.lastRebalance,
+            rebalanceCooldown: poolConfig.rebalanceCooldown,
+            rebalanceIncentive: poolConfig.rebalanceIncentive,
+            thresholdAbove,
+            thresholdBelow,
+            canRebalance
+          });
+        } catch (error) {
+          console.error(`Error loading pool ${poolAddress}:`, error);
+        }
+      }
+      
+      this.renderPools();
+      this.updatePoolsDropdown();
+      
+    } catch (error) {
+      console.error("Error loading pools:", error);
+      this.poolsList.innerHTML = '<div class="error">Error loading pools</div>';
+    }
+  }
+  
+  renderPools() {
+    if (!this.poolsList || this.pools.length === 0) {
+      return;
+    }
+    
+    this.poolsList.innerHTML = this.pools
+      .map(pool => {
+        try {
+          // Convert BigInt values to Numbers safely
+          const lastRebalanceNum = BigInt(pool.lastRebalance.toString());
+          const rebalanceCooldownNum = BigInt(pool.rebalanceCooldown.toString());
+          
+          const lastRebalanceDate = new Date(Number(lastRebalanceNum) * 1000).toLocaleString();
+          const cooldownEnds = new Date(Number(lastRebalanceNum + rebalanceCooldownNum) * 1000).toLocaleString();
+          
+          // Format numbers properly
+          const oraclePriceFormatted = ethers.formatUnits(pool.oraclePrice, 18);
+          const poolPriceFormatted = ethers.formatUnits(pool.poolPrice, 18);
+          const reserve0Formatted = ethers.formatUnits(pool.reserve0, 18);
+          const reserve1Formatted = ethers.formatUnits(pool.reserve1, 6);
+          
+          // Convert thresholds (which could be BigInt) to Numbers safely
+          const thresholdAboveNum = Number(BigInt(pool.thresholdAbove.toString())) / 100;
+          const thresholdBelowNum = Number(BigInt(pool.thresholdBelow.toString())) / 100;
+          const rebalanceIncentiveNum = Number(BigInt(pool.rebalanceIncentive.toString())) / 100;
+          
+          return `
+          <div class="pool-item">
+            <h4>Pool ${pool.address.substring(0, 6)}...${pool.address.substring(38)}</h4>
+            <div class="pool-data">
+              <div class="pool-column">
+                <p><strong>Tokens:</strong> ${pool.token0Symbol}/${pool.token1Symbol}</p>
+                <p><strong>Reserves:</strong> ${parseFloat(reserve0Formatted).toFixed(2)} ${pool.token0Symbol} / ${parseFloat(reserve1Formatted).toFixed(2)} ${pool.token1Symbol}</p>
+                <p><strong>Oracle Price:</strong> $${parseFloat(oraclePriceFormatted).toFixed(4)}</p>
+                <p><strong>Pool Price:</strong> $${parseFloat(poolPriceFormatted).toFixed(4)}</p>
+              </div>
+              <div class="pool-column">
+                <p><strong>Last Rebalance:</strong> ${lastRebalanceDate}</p>
+                <p><strong>Cooldown Ends:</strong> ${cooldownEnds}</p>
+                <p><strong>Rebalance Incentive:</strong> ${rebalanceIncentiveNum.toFixed(2)}%</p>
+                <p><strong>Thresholds:</strong> +${thresholdAboveNum.toFixed(2)}% / -${thresholdBelowNum.toFixed(2)}%</p>
+              </div>
+            </div>
+            <button class="btn ${pool.canRebalance ? 'btn-primary' : 'btn-secondary'}" 
+              onclick="mentoUI.rebalancePool('${pool.address}')" 
+              ${!pool.canRebalance ? 'disabled' : ''}>
+              ${pool.canRebalance ? 'Rebalance Pool' : 'Cooldown Active'}
+            </button>
+          </div>
+        `;
+        } catch (error) {
+          console.error("Error rendering pool:", error, pool);
+          return `
+          <div class="pool-item error-pool">
+            <h4>Error displaying pool ${pool.address ? (pool.address.substring(0, 6) + '...' + pool.address.substring(38)) : 'unknown'}</h4>
+            <p>Error: ${error.message}</p>
+          </div>
+          `;
+        }
+      })
+      .join("");
+  }
+  
+  updatePoolsDropdown() {
+    if (!this.rebalancePoolSelect || this.pools.length === 0) {
+      return;
+    }
+    
+    // Clear existing options
+    this.rebalancePoolSelect.innerHTML = '<option value="">Select a pool</option>';
+    
+    // Add options for each pool
+    this.pools.forEach(pool => {
+      const option = document.createElement('option');
+      option.value = pool.address;
+      option.textContent = `${pool.address.substring(0, 6)}...${pool.address.substring(38)}`;
+      this.rebalancePoolSelect.appendChild(option);
+    });
+  }
+  
+  async rebalancePool(poolAddress) {
+    if (!this.contracts.liquidityStrategy) {
+      this.showError("Liquidity strategy not configured");
+      return;
+    }
+    
+    // If no poolAddress provided, get it from the dropdown
+    if (!poolAddress && this.rebalancePoolSelect) {
+      poolAddress = this.rebalancePoolSelect.value;
+    }
+    
+    if (!poolAddress) {
+      this.showError("Please select a pool to rebalance");
+      return;
+    }
+    
+    try {
+      // Disable all rebalance buttons
+      const rebalanceButtons = document.querySelectorAll('.pool-item button');
+      rebalanceButtons.forEach(button => {
+        button.disabled = true;
+        button.textContent = "Rebalancing...";
+      });
+      
+      // Execute rebalance
+      const tx = await this.contracts.liquidityStrategy.rebalance(poolAddress);
+      await tx.wait();
+      
+      this.showSuccess("Pool rebalanced successfully!");
+      
+      // Reload pools data
+      await this.loadPools();
+    } catch (error) {
+      console.error("Error rebalancing pool:", error);
+      this.showError("Failed to rebalance pool: " + error.message);
+      
+      // Re-enable buttons
+      const rebalanceButtons = document.querySelectorAll('.pool-item button');
+      rebalanceButtons.forEach(button => {
+        button.disabled = false;
+        button.textContent = "Rebalance Pool";
+      });
     }
   }
 

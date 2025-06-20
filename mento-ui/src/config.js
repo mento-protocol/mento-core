@@ -15,7 +15,10 @@ export const CONFIG = {
     CELO: "0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9", // CELO on Alfajores
 
     // FPMM contract for swaps
-    FPMM: "0x792f74e2892b6dc89eb0e546734f089503e93a12", // TODO: Add actual FPMM address
+    FPMM: "0x7DBA083Db8303416D858cbF6282698F90f375Aec",
+
+    // Liquidity Strategy contract
+    LIQUIDITY_STRATEGY: "0x3dD78d0b0805dcf9E798Bc89c186d5d0a5ffDBda", // For testing only - replace with actual Liquidity Strategy address
   },
 
   // Default values
@@ -101,6 +104,20 @@ export const ABIS = {
     "function token0() view returns (address)",
     "function token1() view returns (address)",
     "function getReserves() view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast)",
+    "function metadata() view returns (uint256 decimal0, uint256 decimal1, uint256 reserve0, uint256 reserve1, uint256 blockTimestampLast, uint256 oraclePrice)",
+    "function getPrices() view returns (uint256 oraclePrice, uint256 poolPrice, uint256 timestamp, uint256 blockNumber)",
+    "function rebalanceIncentive() view returns (uint256)",
+    "function rebalanceThresholdAbove() view returns (uint256)",
+    "function rebalanceThresholdBelow() view returns (uint256)",
+    "function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data)",
+  ],
+  
+  // LiquidityStrategy ABI
+  LIQUIDITY_STRATEGY: [
+    "function rebalance(address pool) external",
+    "function isPoolRegistered(address pool) view returns (bool)",
+    "function getPools() view returns (address[])",
+    "function fpmmPoolConfigs(address) view returns (uint256 lastRebalance, uint256 rebalanceCooldown, uint256 rebalanceIncentive)",
   ],
 };
 
