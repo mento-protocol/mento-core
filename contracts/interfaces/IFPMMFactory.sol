@@ -177,15 +177,13 @@ interface IFPMMFactory {
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
-   * @param revertRateFeed Whether to revert if the rate feed is not available
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
     address fpmmImplementation,
     address token0,
     address token1,
-    address referenceRateFeedID,
-    bool revertRateFeed
+    address referenceRateFeedID
   ) external returns (address proxy);
 
   /**
@@ -198,7 +196,6 @@ interface IFPMMFactory {
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
-   * @param revertRateFeed Whether to revert if the rate feed is not available
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
@@ -209,7 +206,6 @@ interface IFPMMFactory {
     address customGovernance,
     address token0,
     address token1,
-    address referenceRateFeedID,
-    bool revertRateFeed
+    address referenceRateFeedID
   ) external returns (address proxy);
 }

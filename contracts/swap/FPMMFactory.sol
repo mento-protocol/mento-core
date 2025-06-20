@@ -208,6 +208,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     emit FPMMImplementationUnregistered(fpmmImplementation);
   }
 
+  // bool revertRateFeed // TODO: Add this back in
   /// @inheritdoc IFPMMFactory
   function deployFPMM(
     address fpmmImplementation,
@@ -217,8 +218,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address customGovernance,
     address token0,
     address token1,
-    address referenceRateFeedID,
-    bool revertRateFeed
+    address referenceRateFeedID
   ) external onlyOwner returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
@@ -246,14 +246,14 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     return fpmmProxy;
   }
 
+  // bool revertRateFeed // TODO: Add this back in
   // slither-disable-start reentrancy-no-eth
   /// @inheritdoc IFPMMFactory
   function deployFPMM(
     address fpmmImplementation,
     address token0,
     address token1,
-    address referenceRateFeedID,
-    bool revertRateFeed
+    address referenceRateFeedID
   ) external onlyOwner returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");

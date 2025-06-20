@@ -58,13 +58,7 @@ contract DeployReserveFPMM is Script {
     fpmmFactory.initialize(sortedOracles, address(proxyAdmin), breakerBox, deployer, address(fpmmImplementation));
 
     // Deploy FPMM Proxy mUSD.m/USDC
-    cUSDaxlUSDCFPMM = fpmmFactory.deployFPMM(
-      address(fpmmImplementation),
-      address(USDm),
-      USDC,
-      USDCUSDRateFeedID,
-      false // revertRateFeed - set to false as default
-    );
+    cUSDaxlUSDCFPMM = fpmmFactory.deployFPMM(address(fpmmImplementation), address(USDm), USDC, USDCUSDRateFeedID);
 
     // Deploy Liquidity Strategy
     liquidityStrategy.initialize(reserve);
