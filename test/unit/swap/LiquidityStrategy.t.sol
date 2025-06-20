@@ -123,6 +123,41 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.setRebalanceIncentive(address(mockPool), 100);
   }
 
+  /* ---------- Withdraw ---------- */
+
+  function test_withdraw_shouldRevert_whenTokenAddressIsZeroAddress() public {
+    vm.prank(deployer);
+    vm.expectRevert("LS: INVALID_TOKEN_ADDRESS");
+    mockConcreteLiquidityStrat.withdraw(address(0), address(deployer));
+  }
+
+  function test_withdraw_shouldRevert_whenRecipientIsZeroAddress() public {
+    vm.prank(deployer);
+    vm.expectRevert("LS: INVALID_RECIPIENT_ADDRESS");
+    mockConcreteLiquidityStrat.withdraw(address(mockToken0), address(0));
+  }
+
+  function test_withdraw_shouldRevert_whenNoTokensToWithdraw() public {
+    vm.prank(deployer);
+    vm.expectRevert("LS: NO_TOKENS_TO_WITHDRAW");
+    mockConcreteLiquidityStrat.withdraw(address(mockToken0), address(deployer));
+  }
+
+  function test_withdraw_shouldTransferTokens_WhenTokensToWithdraw() public {
+    uint256 initialBalance = 100e18;
+    vm.prank(deployer);
+    mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
+
+    vm.prank(deployer);
+    mockToken0.mint(address(mockConcreteLiquidityStrat), initialBalance);
+
+    vm.prank(deployer);
+    mockConcreteLiquidityStrat.withdraw(address(mockToken0), address(deployer));
+
+    assertEq(mockToken0.balanceOf(address(deployer)), initialBalance);
+    assertEq(mockToken0.balanceOf(address(mockConcreteLiquidityStrat)), 0);
+  }
+
   /* ---------- Set Rebalance Cooldown ---------- */
 
   function test_setRebalanceCooldown_shouldRevert_whenCallerNotOwner() public {
