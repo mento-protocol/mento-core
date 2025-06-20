@@ -48,6 +48,7 @@ contract ReserveLiquidityStrategyTest is Test {
     uint256 stableOut,
     uint256 collateralOut,
     uint256 inputAmount,
+    uint256 incentiveAmount,
     ILiquidityStrategy.PriceDirection direction
   );
 
@@ -220,7 +221,8 @@ contract ReserveLiquidityStrategyTest is Test {
       address(mockPool),
       0, // stableOut
       expectedCollateralOut,
-      expectedStablesIn,
+      expectedStablesIn - incentiveAmount,
+      incentiveAmount,
       ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
     );
 
@@ -301,7 +303,8 @@ contract ReserveLiquidityStrategyTest is Test {
       address(mockPool),
       expectedStableOut,
       0, // collateralOut
-      expectedCollateralIn,
+      expectedCollateralIn - incentiveAmount,
+      incentiveAmount,
       ILiquidityStrategy.PriceDirection.BELOW_ORACLE
     );
 
@@ -352,9 +355,55 @@ contract ReserveLiquidityStrategyTest is Test {
   }
 
   function test_rebalance_withDifferentDecimals() public {
-    mockPool6Dec.setReserves(1050e18, 1100e6);
-    mockPool6Dec.setPrices(1e18, 1.02e18);
-    mockPool6Dec.setRebalanceThreshold(100, 100);
+    // --- Setup ---
+    // stable has 18 decimals, collateral has 6 decimals
+    uint256 stableReserveInPool = 1050e18; // S
+    uint256 collateralReserveInPool = 1100e6; // C
+    uint256 oraclePrice = 1e18; // P_oracle
+    uint256 poolPrice = 1.02e18; // P_pool > P_oracle + threshold
+    uint256 thresholdBps = 100; // 1%
+
+    mockPool6Dec.setReserves(stableReserveInPool, collateralReserveInPool);
+    mockPool6Dec.setPrices(oraclePrice, poolPrice);
+    mockPool6Dec.setRebalanceThreshold(thresholdBps, thresholdBps);
+
+    // --- Calculations ---
+    uint256 collateralReserveInPool_scaled = collateralReserveInPool * 1e12;
+
+    // numerator = C_scaled - (P_oracle * S / 1e18)
+    uint256 numerator = collateralReserveInPool_scaled - (oraclePrice * stableReserveInPool) / 1e18;
+
+    uint256 collateralOut_scaled = numerator / 2;
+    uint256 expectedCollateralOut = collateralOut_scaled / 1e12;
+    uint256 expectedStablesIn = (collateralOut_scaled * 1e18) / oraclePrice;
+    uint256 incentiveAmount = (expectedStablesIn * DEFAULT_INCENTIVE) / 10_000;
+
+    // --- Balances ---
+    uint256 poolStableBefore = stableToken.balanceOf(address(mockPool6Dec));
+    uint256 poolCollateralBefore = collateralToken6Dec.balanceOf(address(mockPool6Dec));
+    uint256 reserveCollateralBefore = collateralToken6Dec.balanceOf(address(mockReserve));
+
+    // --- Event and call expectations ---
+    vm.expectEmit(true, true, true, true);
+    emit RebalanceInitiated(
+      address(mockPool6Dec),
+      0, // stableOut
+      expectedCollateralOut,
+      expectedStablesIn - incentiveAmount,
+      incentiveAmount,
+      ILiquidityStrategy.PriceDirection.ABOVE_ORACLE
+    );
+
+    bytes memory expectedCallbackData = abi.encode(
+      expectedStablesIn,
+      ILiquidityStrategy.PriceDirection.ABOVE_ORACLE,
+      incentiveAmount
+    );
+
+    vm.expectCall(
+      address(mockPool6Dec),
+      abi.encodeWithSelector(mockPool6Dec.rebalance.selector, 0, expectedCollateralOut, expectedCallbackData)
+    );
 
     // --- Execute ---
     (uint256 lastRebalanceBefore, , ) = strat.fpmmPoolConfigs(address(mockPool6Dec));
@@ -364,6 +413,24 @@ contract ReserveLiquidityStrategyTest is Test {
     (uint256 lastRebalanceAfter, , ) = strat.fpmmPoolConfigs(address(mockPool6Dec));
     assertTrue(lastRebalanceAfter > lastRebalanceBefore, "Last rebalance time not updated");
     assertTrue(lastRebalanceAfter <= block.timestamp, "Last rebalance time in future");
+
+    assertEq(
+      stableToken.balanceOf(address(mockPool6Dec)),
+      poolStableBefore + expectedStablesIn - incentiveAmount,
+      "Pool stable balance should increase during expansion"
+    );
+
+    assertEq(
+      collateralToken6Dec.balanceOf(address(mockPool6Dec)),
+      poolCollateralBefore - expectedCollateralOut,
+      "Pool collateral balance should decrease during expansion"
+    );
+
+    assertEq(
+      collateralToken6Dec.balanceOf(address(mockReserve)),
+      reserveCollateralBefore + expectedCollateralOut,
+      "Reserve collateral balance should increase during expansion"
+    );
   }
 
   /* ---------- Hook Tests ---------- */
@@ -529,7 +596,7 @@ contract ReserveLiquidityStrategyTest is Test {
 
     // Execute hook and expect revert
     vm.prank(address(mockPool));
-    vm.expectRevert("RLS: COLLATERAL_TRANSFER_FAILED");
+    vm.expectRevert("SafeERC20: ERC20 operation did not succeed");
     strat.hook(address(strat), 0, amount1Out, callbackData);
 
     // Clear the mock to not affect other tests
