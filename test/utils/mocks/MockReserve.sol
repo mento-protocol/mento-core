@@ -15,6 +15,17 @@ contract MockReserve {
 
   bool public reserveSpender;
 
+  address public lastTokenSent;
+  address public lastRecipient;
+  uint256 public lastAmountSent;
+
+  event ReserveCollateralAssetsTransferred(
+    address indexed from,
+    address indexed to,
+    uint256 value,
+    address indexed collateralAsset
+  );
+
   // solhint-disable-next-line no-empty-blocks
   fallback() external payable {}
 
@@ -45,7 +56,11 @@ contract MockReserve {
     address payable to,
     uint256 amount
   ) external returns (bool) {
+    lastTokenSent = tokenAddress;
+    lastRecipient = to;
+    lastAmountSent = amount;
     require(IERC20(tokenAddress).transfer(to, amount), "asset transfer failed");
+    emit ReserveCollateralAssetsTransferred(msg.sender, to, amount, tokenAddress);
     return true;
   }
 
