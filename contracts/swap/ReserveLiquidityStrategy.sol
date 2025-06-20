@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { SafeERC20MintableBurnable } from "contracts/common/SafeERC20MintableBurnable.sol";
 import { IERC20MintableBurnable as IERC20 } from "contracts/common/IERC20MintableBurnable.sol";
+import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
@@ -14,6 +15,7 @@ import { IReserve } from "../interfaces/IReserve.sol";
  */
 contract ReserveLiquidityStrategy is LiquidityStrategy {
   using SafeERC20MintableBurnable for IERC20;
+  using SafeERC20Upgradeable for IERC20;
 
   IReserve public reserve;
 
@@ -79,7 +81,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       // Expansion: mint stables to FPMM, transfer received collateral to reserve, collect incentive in strategy contract
       IERC20(stableToken).safeMint(msg.sender, amountIn - incentiveAmount);
       IERC20(stableToken).safeMint(address(this), incentiveAmount);
-      require(IERC20(collateralToken).transfer(address(reserve), amount1Out), "RLS: COLLATERAL_TRANSFER_FAILED");
+      IERC20(collateralToken).safeTransfer(address(reserve), amount1Out);
     } else {
       // Contraction: burn stables, pull collateral from reserve and send to FPMM, collect incentive in strategy contract
       IERC20(stableToken).safeBurn(amount0Out);
@@ -130,7 +132,14 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     bytes memory callbackData = abi.encode(inputAmount, priceDirection, incentiveAmount);
 
-    emit RebalanceInitiated(pool, stableOut, collateralOut, inputAmount - incentiveAmount, incentiveAmount, priceDirection);
+    emit RebalanceInitiated(
+      pool,
+      stableOut,
+      collateralOut,
+      inputAmount - incentiveAmount,
+      incentiveAmount,
+      priceDirection
+    );
     fpmm.rebalance(stableOut, collateralOut, callbackData);
   }
 

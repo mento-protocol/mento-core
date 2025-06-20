@@ -59,19 +59,19 @@ contract MockFPMMPool is Test {
     return address(token1_);
   }
 
-  function decimals0() external view returns (uint256) {
+  function decimals0() external pure returns (uint256) {
     return 18;
   }
 
-  function decimals1() external view returns (uint256) {
+  function decimals1() external pure returns (uint256) {
     return 18;
   }
 
-  function protocolFee() external view returns (uint256) {
+  function protocolFee() external pure returns (uint256) {
     return 9000;
   }
 
-  function rebalanceIncentive() external view returns (uint256) {
+  function rebalanceIncentive() external pure returns (uint256) {
     return 100;
   }
 
