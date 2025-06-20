@@ -83,9 +83,8 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
     uint256 balance = token.balanceOf(address(this));
     require(balance > 0, "LS: NO_TOKENS_TO_WITHDRAW");
-
-    token.safeTransfer(recipient, balance);
     emit Withdraw(tokenAddress, recipient, balance);
+    token.safeTransfer(recipient, balance);
   }
 
   /**
