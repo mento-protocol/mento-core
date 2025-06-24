@@ -171,10 +171,10 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
     });
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
-      (collateralOut, inputAmount) = _calculateExpansionAmounts(params, oraclePrice);
+      (collateralOut, inputAmount) = _calculateExpansionAmounts(params, oraclePrice, incentive);
       stableOut = 0;
     } else {
-      (stableOut, inputAmount) = _calculateContractionAmounts(params, oraclePrice);
+      (stableOut, inputAmount) = _calculateContractionAmounts(params, oraclePrice, incentive);
       collateralOut = 0;
     }
 
@@ -190,16 +190,17 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    */
   function _calculateContractionAmounts(
     RebalanceParams memory params,
-    uint256 oraclePrice
+    uint256 oraclePrice,
+    uint256 incentive
   ) private pure returns (uint256 stableOut, uint256 collateralIn) {
     // Contraction: Sell stables to buy collateral
-    // CollateralIn = (OraclePrice * StableReserve - CollateralReserve) / 2
-    // StablesOut = CollateralIn / OraclePrice
+    // StablesOut = (OraclePrice * StableReserve - CollateralReserve) / (OraclePrice + OraclePrice * (1 - incentive))
+    // CollateralIn = StablesOut * OraclePrice
     uint256 numerator = ((oraclePrice * params.stableReserve) / 1e18) - params.collateralReserve;
-    uint256 denominator = 2;
+    uint256 denominator = oraclePrice + ((oraclePrice * (BPS_SCALE - incentive)) / BPS_SCALE);
 
-    uint256 collateralInRaw = numerator / denominator;
-    uint256 stableOutRaw = (numerator * 1e18) / (denominator * oraclePrice);
+    uint256 stableOutRaw = (numerator * 1e18) / denominator;
+    uint256 collateralInRaw = (stableOutRaw * oraclePrice) / 1e18;
 
     stableOut = stableOutRaw / params.stablePrecision;
     collateralIn = collateralInRaw / params.collateralPrecision;
@@ -214,16 +215,17 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    */
   function _calculateExpansionAmounts(
     RebalanceParams memory params,
-    uint256 oraclePrice
+    uint256 oraclePrice,
+    uint256 incentive
   ) private pure returns (uint256 collateralOut, uint256 stablesIn) {
     // Expansion: Sell collateral to buy stables
-    // CollateralOut = (CollateralReserve - OraclePrice * StableReserve) / 2
+    // CollateralOut = (CollateralReserve - OraclePrice * StableReserve) / (1 + 1 - incentive)
     // StablesIn = CollateralOut / OraclePrice
     uint256 numerator = params.collateralReserve - ((oraclePrice * params.stableReserve) / 1e18);
-    uint256 denominator = 2;
+    uint256 denominator = BPS_SCALE * 2 - incentive;
 
-    uint256 collateralOutRaw = numerator / denominator;
-    uint256 stablesInRaw = (numerator * 1e18) / (denominator * oraclePrice);
+    uint256 collateralOutRaw = (numerator * BPS_SCALE) / denominator;
+    uint256 stablesInRaw = (collateralOutRaw * 1e18) / oraclePrice;
 
     collateralOut = collateralOutRaw / params.collateralPrecision;
     stablesIn = stablesInRaw / params.stablePrecision;

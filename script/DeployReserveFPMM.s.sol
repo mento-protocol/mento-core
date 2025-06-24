@@ -64,9 +64,10 @@ contract DeployReserveFPMM is Script {
     liquidityStrategy.initialize(reserve);
 
     // Add pool to liquidity strategy
-    liquidityStrategy.addPool(cUSDaxlUSDCFPMM, 600, 50);
+    // conservative rebalance incentive until we fixed the precision errors
+    liquidityStrategy.addPool(cUSDaxlUSDCFPMM, 600, 25);
 
-    USDm.initializeV2(address(deployer), address(liquidityStrategy));
+    USDm.initializeV2(address(liquidityStrategy), address(deployer));
 
     FPMM(cUSDaxlUSDCFPMM).setLiquidityStrategy(address(liquidityStrategy), true);
 
