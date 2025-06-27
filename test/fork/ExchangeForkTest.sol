@@ -56,8 +56,15 @@ abstract contract ExchangeForkTest is SwapAssertions, CircuitBreakerAssertions, 
     );
     for (uint256 i = 0; i < COLLATERAL_ASSETS_COUNT; i++) {
       address collateralAsset = mentoReserve.collateralAssets(i);
+      if (collateralAsset == lookup("GoldToken")) {
+        // CELO is already in the reserve, so no need to do anything.
+        // In case we need additional CELO for the trading limit tests we can
+        // add a manual transfer from an address that has some, e.g. Celo Governance
+        continue;
+      }
+
       vm.label(collateralAsset, IERC20(collateralAsset).symbol());
-      mint(collateralAsset, address(mentoReserve), uint256(25_000_000).toSubunits(collateralAsset), true);
+      mint(collateralAsset, address(mentoReserve), uint256(20_000_000).toSubunits(collateralAsset), true);
     }
   }
 
