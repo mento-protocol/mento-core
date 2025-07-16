@@ -33,58 +33,75 @@ contract DeployReserveFPMM is Script {
 
     vm.startBroadcast(privateKey);
 
-    /// Deploy USD.m
-    StableTokenV3 USDm = new StableTokenV3(false);
+    // /// Deploy USD.m
+    // StableTokenV3 USDm = new StableTokenV3(false);
 
-    address[] memory initialBalanceAddresses = new address[](1);
-    initialBalanceAddresses[0] = deployer;
-    uint256[] memory initialBalanceValues = new uint256[](1);
-    initialBalanceValues[0] = 10_000_000e18;
+    // address[] memory initialBalanceAddresses = new address[](1);
+    // initialBalanceAddresses[0] = deployer;
+    // uint256[] memory initialBalanceValues = new uint256[](1);
+    // initialBalanceValues[0] = 10_000_000e18;
 
-    USDm.initialize("USD.m", "USD.m", initialBalanceAddresses, initialBalanceValues);
+    // USDm.initialize("USD.m", "USD.m", initialBalanceAddresses, initialBalanceValues);
     liquidityStrategy = new ReserveLiquidityStrategy(false);
+    cUSDaxlUSDCFPMM = 0x7DBA083Db8303416D858cbF6282698F90f375Aec;
 
-    // Deploy Reserve
-    reserve = deployReserve();
+    // // // Deploy Reserve
+    // // reserve = deployReserve();
+    // reserve = 0x8ec4B539E7Cbf7c078A037c8Ac26fCD7B2DAd820;
 
-    // Deploy FPMM implementation
-    FPMM fpmmImplementation = new FPMM(true);
+    // // // Deploy FPMM implementation
+    // // FPMM fpmmImplementation = new FPMM(true);
 
-    // Deploy Proxy Admin
-    proxyAdmin = new ProxyAdmin();
+    // // // Deploy Proxy Admin
+    // // proxyAdmin = new ProxyAdmin();
 
-    // Deploy FPMM Factory
-    FPMMFactory fpmmFactory = new FPMMFactory(false);
-    fpmmFactory.initialize(sortedOracles, address(proxyAdmin), breakerBox, deployer, address(fpmmImplementation));
+    // // // Deploy FPMM Factory
+    // // FPMMFactory fpmmFactory = new FPMMFactory(false);
+    // // fpmmFactory.initialize(sortedOracles, address(proxyAdmin), breakerBox, deployer, address(fpmmImplementation));
 
-    // Deploy FPMM Proxy mUSD.m/USDC
-    cUSDaxlUSDCFPMM = fpmmFactory.deployFPMM(address(fpmmImplementation), address(USDm), USDC, USDCUSDRateFeedID);
+    // // // Deploy FPMM Proxy mUSD.m/USDC
+    // // cUSDaxlUSDCFPMM = fpmmFactory.deployFPMM(address(fpmmImplementation), address(USDm), USDC, USDCUSDRateFeedID);
 
-    // Deploy Liquidity Strategy
-    liquidityStrategy.initialize(reserve);
+    // // Deploy Liquidity Strategy
+    // liquidityStrategy.initialize(reserve);
 
-    // Add pool to liquidity strategy
-    // conservative rebalance incentive until we fixed the precision errors
-    liquidityStrategy.addPool(cUSDaxlUSDCFPMM, 600, 25);
+    // // Add pool to liquidity strategy
+    // // conservative rebalance incentive until we fixed the precision errors
 
-    USDm.initializeV2(address(liquidityStrategy), address(deployer));
+    // // USDm.initializeV2(address(liquidityStrategy), address(deployer));
 
-    FPMM(cUSDaxlUSDCFPMM).setLiquidityStrategy(address(liquidityStrategy), true);
+    // FPMM(cUSDaxlUSDCFPMM).setLiquidityStrategy(address(liquidityStrategy), true);
+    // FPMM(cUSDaxlUSDCFPMM).setLiquidityStrategy(0x2EDFdC56DdF9e048f8BA9E337aa1dFFB0A1d03F8, false);
 
-    IERC20(USDC).transfer(cUSDaxlUSDCFPMM, 1e12); // 1_000_000 USDC to fpmm for mint call
-    USDm.transfer(cUSDaxlUSDCFPMM, 1e24); // 1_000_000 USD.m to fpmm for mint call
+    // IReserve(reserve).removeExchangeSpender(0x2EDFdC56DdF9e048f8BA9E337aa1dFFB0A1d03F8, 0);
+    // IReserve(reserve).addExchangeSpender(address(liquidityStrategy));
 
-    FPMM(cUSDaxlUSDCFPMM).mint(deployer);
+    // StableTokenV3(0x9E2d4412d0f434cC85500b79447d9323a7416f09).setBroker(address(liquidityStrategy));
+
+    // liquidityStrategy.addPool(cUSDaxlUSDCFPMM, 600, 25);
+
+    // IERC20(0x9E2d4412d0f434cC85500b79447d9323a7416f09).transfer(cUSDaxlUSDCFPMM, 10000e18); // 1_000_000 USDC to fpmm for mint call
+    // uint256 amountOut = FPMM(cUSDaxlUSDCFPMM).getAmountOut(10000e18, 0x9E2d4412d0f434cC85500b79447d9323a7416f09);
+    // FPMM(cUSDaxlUSDCFPMM).swap(0, 1, deployer, "");
+
+    IERC20(USDC).transfer(cUSDaxlUSDCFPMM, 10000e6); // 1_000_000 USDC to fpmm for mint call
+    uint256 amountOut = FPMM(cUSDaxlUSDCFPMM).getAmountOut(10000e6, USDC);
+    FPMM(cUSDaxlUSDCFPMM).swap(amountOut, 0, deployer, "");
+
+    //liquidityStrategy.rebalance(cUSDaxlUSDCFPMM);
+    //USDm.transfer(cUSDaxlUSDCFPMM, 1e24); // 1_000_000 USD.m to fpmm for mint call
+
+    //FPMM(cUSDaxlUSDCFPMM).mint(deployer);
 
     vm.stopBroadcast();
-    console.log("cUSDaxlUSDCFPMM", cUSDaxlUSDCFPMM);
-    console.log("reserve", reserve);
-    console.log("proxyAdmin", address(proxyAdmin));
-    console.log("fpmmFactory", address(fpmmFactory));
-    console.log("fpmmImplementation", address(fpmmImplementation));
-    console.log("liquidityStrategy", address(liquidityStrategy));
-    console.log("USDC", USDC);
-    console.log("USDm", address(USDm));
+    // console.log("cUSDaxlUSDCFPMM", cUSDaxlUSDCFPMM);
+    // console.log("reserve", reserve);
+    // console.log("proxyAdmin", address(proxyAdmin));
+    // console.log("fpmmFactory", address(fpmmFactory));
+    // console.log("fpmmImplementation", address(fpmmImplementation));
+    // console.log("liquidityStrategy", address(liquidityStrategy));
+    // console.log("USDC", USDC);
+    // console.log("USDm", address(USDm));
   }
 
   function deployReserve() public returns (address reserve) {
