@@ -535,6 +535,9 @@ contract Router is IRouter, ERC2771Context {
         address pool = poolFor(zapInPool.tokenA, zapInPool.tokenB, zapInPool.stable, zapInPool.factory);
 
         if (stake) {
+            // Staking is not currently supported
+            // The code is not removed to avoid changes in the codebase
+            revert("Stake is not currently supported");
             liquidity = IPool(pool).mint(address(this));
             address gauge = IVoter(voter).gauges(pool);
             IERC20(pool).safeApprove(address(gauge), liquidity);

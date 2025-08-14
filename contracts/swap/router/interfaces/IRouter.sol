@@ -36,7 +36,10 @@ interface IRouter {
     function factoryRegistry() external view returns (address);
 
     /// @notice Address of Protocol PoolFactory.sol
-    function defaultFactory() external view returns (address);
+    function defaultFactory() external view returns (address);   
+    
+    /// @notice Address of Voter.sol
+    function voter() external view returns (address);
 
     function weth() external view returns (IWETH);
 
@@ -359,6 +362,7 @@ interface IRouter {
     /// @param routesA      Route used to convert input token to tokenA
     /// @param routesB      Route used to convert input token to tokenB
     /// @param to           Address you wish to mint liquidity to.
+    /// @param stake        Auto-stake liquidity in corresponding gauge.
     /// @return liquidity   Amount of LP tokens created from zapping in.
     function zapIn(
         address tokenIn,
@@ -367,7 +371,8 @@ interface IRouter {
         Zap calldata zapInPool,
         Route[] calldata routesA,
         Route[] calldata routesB,
-        address to
+        address to,
+        bool stake
     ) external payable returns (uint256 liquidity);
 
     /// @notice Zap out a pool (B, C) into A.
