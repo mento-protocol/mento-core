@@ -36,11 +36,12 @@ interface IRouter {
     function factoryRegistry() external view returns (address);
 
     /// @notice Address of Protocol PoolFactory.sol
-    function defaultFactory() external view returns (address);   
-    
+    function defaultFactory() external view returns (address);
+
     /// @notice Address of Voter.sol
     function voter() external view returns (address);
 
+    /// @notice Interface of WETH contract used for WETH => ETH wrapping/unwrapping
     function weth() external view returns (IWETH);
 
     /// @dev Represents Ether. Used by zapper to determine whether to return assets as ETH/WETH.
