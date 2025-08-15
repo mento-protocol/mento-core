@@ -55,8 +55,8 @@ contract FPMMFactoryTest is Test {
     referenceRateFeedID = makeAddr("token0/token1");
 
     celoFork = vm.createFork("https://forno.celo.org");
-    token0Celo = makeAddr("Token 0 Celo");
-    token1Celo = makeAddr("Token 1 Celo");
+    token0Celo = 0x0000000000000000000000000000000000000c31;
+    token1Celo = 0x0000000000000000000000000000000000000c32;
     sortedOraclesCelo = makeAddr("SortedOracles Celo");
     breakerBoxCelo = makeAddr("BreakerBox Celo");
     proxyAdminCelo = makeAddr("ProxyAdmin Celo");
@@ -66,8 +66,8 @@ contract FPMMFactoryTest is Test {
     vm.makePersistent(address(fpmmImplementationCelo));
 
     opFork = vm.createFork("https://mainnet.optimism.io");
-    token0Op = makeAddr("Token 0 Optimism");
-    token1Op = makeAddr("Token 1 Optimism");
+    token0Op = 0x0000000000000000000000000000000000000c39;
+    token1Op = 0x0000000000000000000000000000000000000C3a;
     sortedOraclesOp = makeAddr("SortedOracles Optimism");
     breakerBoxOp = makeAddr("BreakerBox Optimism");
     proxyAdminOp = makeAddr("ProxyAdmin Optimism");
@@ -738,7 +738,7 @@ abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
     assertEq(sortedOracles, expectedSortedOracles);
   }
 
-  function test_deployFPMM_shouldMaintainProxyAddressesArray() public {
+  function test_deployFPMM_shouldRevertForSamePairInDifferentOrder() public {
     vm.prank(governanceCelo);
     address firstProxy = deploy("celo");
     address[] memory deployedFPMMAddresses = factoryCelo.deployedFPMMAddresses();
@@ -748,14 +748,8 @@ abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
     token0Celo = expectedToken1;
     token1Celo = expectedToken0;
     vm.prank(governanceCelo);
-    address secondProxy = deploy("celo");
-
-    deployedFPMMAddresses = factoryCelo.deployedFPMMAddresses();
-    assertEq(deployedFPMMAddresses.length, 2);
-    assertEq(deployedFPMMAddresses[0], firstProxy);
-    assertEq(deployedFPMMAddresses[1], secondProxy);
-    assertEq(address(factoryCelo.deployedFPMMs(expectedToken0, expectedToken1)), firstProxy);
-    assertEq(address(factoryCelo.deployedFPMMs(expectedToken1, expectedToken0)), secondProxy);
+    vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
+    deploy("celo");
   }
 
   function test_deployFPMM_whenSameSaltIsUsedByDifferentAddress_shouldNotDeployToSameAddress() public {
@@ -906,5 +900,203 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
     vm.prank(governanceCelo);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
     deploy("celo");
+  }
+}
+
+contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
+  function setUp() public override {
+    super.setUp();
+    vm.selectFork(celoFork);
+    factoryCelo = new FPMMFactory(false);
+    factoryCelo.initialize(
+      sortedOraclesCelo,
+      proxyAdminCelo,
+      breakerBoxCelo,
+      governanceCelo,
+      address(fpmmImplementationCelo)
+    );
+  }
+
+  function testSortTokens_whenTokenAIsLessThanTokenB_shouldReturnTokensInOrder() public {
+    address tokenA = address(0x1000);
+    address tokenB = address(0x2000);
+
+    (address token0, address token1) = factoryCelo.sortTokens(tokenA, tokenB);
+
+    assertEq(token0, tokenA);
+    assertEq(token1, tokenB);
+  }
+
+  function testSortTokens_whenTokenBIsLessThanTokenA_shouldReturnTokensInOrder() public {
+    address tokenA = address(0x2000);
+    address tokenB = address(0x1000);
+
+    (address token0, address token1) = factoryCelo.sortTokens(tokenA, tokenB);
+
+    assertEq(token0, tokenB);
+    assertEq(token1, tokenA);
+  }
+
+  function testSortTokens_whenTokensAreEqual_shouldRevert() public {
+    address tokenA = address(0x1000);
+    address tokenB = address(0x1000);
+
+    vm.expectRevert("FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    factoryCelo.sortTokens(tokenA, tokenB);
+  }
+
+  function testSortTokens_whenTokenAIsZeroAddress_shouldRevert() public {
+    address tokenA = address(0);
+    address tokenB = address(0x1000);
+
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factoryCelo.sortTokens(tokenA, tokenB);
+  }
+
+  function testSortTokens_whenTokenBIsZeroAddress_shouldRevert() public {
+    address tokenA = address(0x1000);
+    address tokenB = address(0);
+
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factoryCelo.sortTokens(tokenA, tokenB);
+  }
+
+  function testSortTokens_integrationWithDeployFPMM_shouldUseSortedTokens() public {
+    // Deploy tokens with specific addresses
+    address lowerToken = address(0x1000);
+    address higherToken = address(0x2000);
+
+    deployCodeTo("ERC20", abi.encode("Lower Token", "LOW"), lowerToken);
+    deployCodeTo("ERC20", abi.encode("Higher Token", "HIGH"), higherToken);
+
+    // Deploy with tokens in reverse order
+    vm.prank(governanceCelo);
+    address deployedProxy = factoryCelo.deployFPMM(
+      address(fpmmImplementationCelo),
+      higherToken, // token0 (higher address)
+      lowerToken, // token1 (lower address)
+      referenceRateFeedID
+    );
+
+    // Verify the FPMM was deployed with sorted tokens
+    FPMM fpmm = FPMM(deployedProxy);
+    assertEq(fpmm.token0(), lowerToken); // Should be sorted to lower address
+    assertEq(fpmm.token1(), higherToken); // Should be sorted to higher address
+
+    // Verify the factory mapping uses sorted tokens
+    assertEq(factoryCelo.deployedFPMMs(lowerToken, higherToken), deployedProxy);
+    assertEq(factoryCelo.deployedFPMMs(higherToken, lowerToken), address(0)); // Should not exist
+  }
+
+  function testSortTokens_integrationWithGetOrPrecomputeProxyAddress_shouldUseSortedTokens() public {
+    address lowerToken = address(0x1000);
+    address higherToken = address(0x2000);
+
+    deployCodeTo("ERC20", abi.encode("Lower Token", "LOW"), lowerToken);
+    deployCodeTo("ERC20", abi.encode("Higher Token", "HIGH"), higherToken);
+
+    // Get precomputed address with tokens in reverse order
+    address precomputedAddress = factoryCelo.getOrPrecomputeProxyAddress(higherToken, lowerToken);
+
+    // Deploy with tokens in correct order
+    vm.prank(governanceCelo);
+    address deployedProxy = factoryCelo.deployFPMM(
+      address(fpmmImplementationCelo),
+      lowerToken,
+      higherToken,
+      referenceRateFeedID
+    );
+
+    // Verify both addresses match
+    assertEq(deployedProxy, precomputedAddress);
+
+    // Verify the factory mapping uses sorted tokens
+    assertEq(factoryCelo.deployedFPMMs(lowerToken, higherToken), deployedProxy);
+  }
+
+  function testSortTokens_deploymentMappingConsistency_shouldUseSortedTokensInMapping() public {
+    address lowerToken = address(0x1000);
+    address higherToken = address(0x2000);
+
+    deployCodeTo("ERC20", abi.encode("Lower Token", "LOW"), lowerToken);
+    deployCodeTo("ERC20", abi.encode("Higher Token", "HIGH"), higherToken);
+
+    // Deploy with tokens in reverse order
+    vm.prank(governanceCelo);
+    address deployedProxy = factoryCelo.deployFPMM(
+      address(fpmmImplementationCelo),
+      higherToken, // token0 (higher address)
+      lowerToken, // token1 (lower address)
+      referenceRateFeedID
+    );
+
+    // Verify the factory mapping only exists for sorted tokens
+    assertEq(factoryCelo.deployedFPMMs(lowerToken, higherToken), deployedProxy);
+    assertEq(factoryCelo.deployedFPMMs(higherToken, lowerToken), address(0));
+
+    // Verify deployedFPMMAddresses contains the deployed proxy
+    address[] memory deployedAddresses = factoryCelo.deployedFPMMAddresses();
+    assertEq(deployedAddresses.length, 1);
+    assertEq(deployedAddresses[0], deployedProxy);
+  }
+
+  function testSortTokens_multipleDeploymentsWithDifferentOrders_shouldMaintainConsistency() public {
+    address tokenA = address(0x1000);
+    address tokenB = address(0x2000);
+    address tokenC = address(0x3000);
+
+    deployCodeTo("ERC20", abi.encode("Token A", "TKA"), tokenA);
+    deployCodeTo("ERC20", abi.encode("Token B", "TKB"), tokenB);
+    deployCodeTo("ERC20", abi.encode("Token C", "TKC"), tokenC);
+
+    // Deploy pair A-B with A first
+    vm.prank(governanceCelo);
+    address proxyAB1 = factoryCelo.deployFPMM(address(fpmmImplementationCelo), tokenA, tokenB, referenceRateFeedID);
+
+    // Deploy pair B-C with B first
+    vm.prank(governanceCelo);
+    address proxyBC1 = factoryCelo.deployFPMM(address(fpmmImplementationCelo), tokenB, tokenC, referenceRateFeedID);
+
+    // Verify mappings use sorted tokens
+    assertEq(factoryCelo.deployedFPMMs(tokenA, tokenB), proxyAB1);
+    assertEq(factoryCelo.deployedFPMMs(tokenB, tokenC), proxyBC1);
+
+    // Verify reverse mappings don't exist
+    assertEq(factoryCelo.deployedFPMMs(tokenB, tokenA), address(0));
+    assertEq(factoryCelo.deployedFPMMs(tokenC, tokenB), address(0));
+
+    // Verify deployed addresses list
+    address[] memory deployedAddresses = factoryCelo.deployedFPMMAddresses();
+    assertEq(deployedAddresses.length, 2);
+    assertEq(deployedAddresses[0], proxyAB1);
+    assertEq(deployedAddresses[1], proxyBC1);
+  }
+
+  function testSortTokens_getOrPrecomputeProxyAddress_shouldReturnSameAddressForDifferentOrders() public {
+    address lowerToken = address(0x1000);
+    address higherToken = address(0x2000);
+
+    deployCodeTo("ERC20", abi.encode("Lower Token", "LOW"), lowerToken);
+    deployCodeTo("ERC20", abi.encode("Higher Token", "HIGH"), higherToken);
+
+    // Get precomputed addresses with different token orders
+    address precomputedAddress1 = factoryCelo.getOrPrecomputeProxyAddress(lowerToken, higherToken);
+    address precomputedAddress2 = factoryCelo.getOrPrecomputeProxyAddress(higherToken, lowerToken);
+
+    // Both should return the same address
+    assertEq(precomputedAddress1, precomputedAddress2);
+
+    // Deploy the actual contract
+    vm.prank(governanceCelo);
+    address deployedProxy = factoryCelo.deployFPMM(
+      address(fpmmImplementationCelo),
+      higherToken, // Deploy with reverse order
+      lowerToken,
+      referenceRateFeedID
+    );
+
+    // Verify the deployed address matches both precomputed addresses
+    assertEq(deployedProxy, precomputedAddress1);
+    assertEq(deployedProxy, precomputedAddress2);
   }
 }

@@ -114,6 +114,15 @@ interface IFPMMFactory {
    */
   function getOrPrecomputeProxyAddress(address token0, address token1) external view returns (address);
 
+  /**
+   * @notice Sorts two tokens by their address value.
+   * @param tokenA The address of the first token
+   * @param tokenB The address of the second token
+   * @return token0 The address of the first token
+   * @return token1 The address of the second token
+   */
+  function sortTokens(address tokenA, address tokenB) external pure returns (address token0, address token1);
+
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */

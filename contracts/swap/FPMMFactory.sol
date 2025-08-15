@@ -138,6 +138,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   function getOrPrecomputeProxyAddress(address token0, address token1) public view returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
 
+    (token0, token1) = sortTokens(token0, token1);
+
     if ($.deployedFPMMs[token0][token1] != address(0)) {
       return $.deployedFPMMs[token0][token1];
     }
@@ -146,6 +148,13 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     return precomputedProxyAddress;
   }
   // slither-disable-end encode-packed-collision
+
+  /// @inheritdoc IFPMMFactory
+  function sortTokens(address tokenA, address tokenB) public pure returns (address token0, address token1) {
+    require(tokenA != tokenB, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+    require(token0 != address(0), "FPMMFactory: ZERO_ADDRESS");
+  }
 
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
@@ -220,13 +229,13 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address referenceRateFeedID
   ) external onlyOwner returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
+    (token0, token1) = sortTokens(token0, token1);
+
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
     require(customSortedOracles != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customProxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customBreakerBox != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customGovernance != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(token0 != address(0) && token1 != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(token0 != token1, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
     require($.deployedFPMMs[token0][token1] == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
@@ -255,8 +264,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   ) external onlyOwner returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
-    require(token0 != address(0) && token1 != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(token0 != token1, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    (token0, token1) = sortTokens(token0, token1);
+
     require($.deployedFPMMs[token0][token1] == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
