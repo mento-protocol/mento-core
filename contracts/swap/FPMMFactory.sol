@@ -140,8 +140,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
     (token0, token1) = sortTokens(token0, token1);
 
-    if ($.deployedFPMMs[token0][token1] != address(0)) {
-      return $.deployedFPMMs[token0][token1];
+    if (isPool(token0, token1)) {
+      return deployedFPMMs(token0, token1);
     }
 
     (address precomputedProxyAddress, ) = _computeProxyAddressAndSalt(token0, token1);
@@ -154,6 +154,17 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     require(tokenA != tokenB, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
     (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
     require(token0 != address(0), "FPMMFactory: ZERO_ADDRESS");
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function isPool(address token0, address token1) public view returns (bool) {
+    return deployedFPMMs(token0, token1) != address(0);
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function getPool(address token0, address token1) external view returns (address) {
+    require(isPool(token0, token1), "FPMMFactory: POOL_NOT_FOUND");
+    return deployedFPMMs(token0, token1);
   }
 
   /* ============================================================ */
@@ -236,7 +247,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     require(customProxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customBreakerBox != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customGovernance != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require($.deployedFPMMs[token0][token1] == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
+    require(!isPool(token0, token1), "FPMMFactory: PAIR_ALREADY_EXISTS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
     address fpmmProxy = _deployFPMMProxy(
@@ -266,7 +277,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
     (token0, token1) = sortTokens(token0, token1);
 
-    require($.deployedFPMMs[token0][token1] == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
+    require(!isPool(token0, token1), "FPMMFactory: PAIR_ALREADY_EXISTS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
     address fpmmProxy = _deployFPMMProxy(
