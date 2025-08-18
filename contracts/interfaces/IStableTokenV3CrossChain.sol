@@ -4,6 +4,10 @@ import {
   IERC20PermitUpgradeable
 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 
+/**
+ * @title IStableTokenV3CrossChain
+ * @notice Interface for the StableTokenV3CrossChain contract.
+ */
 interface IStableTokenV3CrossChain is IERC20PermitUpgradeable {
   /**
    * @notice Initializes a StableTokenV3.
