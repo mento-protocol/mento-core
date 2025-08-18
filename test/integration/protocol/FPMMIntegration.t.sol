@@ -635,6 +635,123 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
+  function test_swapExactTokensForTokens_shouldSwapTokens_whenPriceIs1() public {
+    address fpmm = _deployFPMM(address(tokenA), address(tokenB));
+    _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
+
+    uint256 amountIn = 10e18;
+    uint256 expectedAmountOut = (amountIn * 997) / 1000;
+
+    IRouter.Route memory route = _createRoute(address(tokenA), address(tokenB));
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = route;
+
+    vm.startPrank(alice);
+    tokenA.approve(address(router), amountIn);
+
+    uint256 balanceBefore = tokenB.balanceOf(alice);
+
+    router.swapExactTokensForTokens(
+      amountIn,
+      0, // amountOutMin
+      routes,
+      alice,
+      block.timestamp
+    );
+
+    uint256 balanceAfter = tokenB.balanceOf(alice);
+    assertEq(balanceAfter - balanceBefore, expectedAmountOut);
+    assertEq(tokenA.balanceOf(alice), 1000e18 - amountIn);
+
+    vm.stopPrank();
+  }
+
+  function test_swapExactTokensForTokens_shouldSwapTokens_whenPriceIsNot1() public {
+    address fpmm = _deployFPMM(address(tokenA), address(tokenB));
+    _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
+
+    vm.mockCall(
+      address(sortedOracles),
+      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
+      abi.encode(1e18, 1.1e18) // 10% higher price
+    );
+
+    IRouter.Route memory route = _createRoute(address(tokenB), address(tokenA));
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = route;
+
+    uint256 amountIn = 10e18;
+    uint256 expectedAmountOut = (((amountIn * 997) / 1000) * 10) / 11;
+
+    vm.startPrank(alice);
+    tokenB.approve(address(router), amountIn);
+
+    uint256 balanceBefore = tokenA.balanceOf(alice);
+
+    router.swapExactTokensForTokens(amountIn, 0, routes, alice, block.timestamp);
+
+    uint256 balanceAfter = tokenA.balanceOf(alice);
+    assertEq(balanceAfter - balanceBefore, expectedAmountOut);
+    assertEq(tokenB.balanceOf(alice), 1000e18 - amountIn);
+
+    vm.stopPrank();
+  }
+
+  function test_swapExactTokensForTokens_shouldRevertForInsufficientOutput() public {
+    address fpmm = _deployFPMM(address(tokenA), address(tokenB));
+    _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
+
+    uint256 amountIn = 10e18;
+
+    IRouter.Route memory route = _createRoute(address(tokenA), address(tokenB));
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = route;
+
+    vm.startPrank(alice);
+    tokenA.approve(address(router), amountIn);
+
+    vm.expectRevert(abi.encodeWithSignature("InsufficientOutputAmount()"));
+    router.swapExactTokensForTokens(
+      amountIn,
+      amountIn, // amountOutMin
+      routes,
+      alice,
+      block.timestamp
+    );
+
+    vm.stopPrank();
+  }
+
+  function test_unsafeSwapExactTokensForTokens_shouldSwapTokensWithoutSlippageProtection() public {
+    address fpmm = _deployFPMM(address(tokenA), address(tokenB));
+    _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
+
+    uint256 amountIn = 10e18;
+
+    IRouter.Route memory route = _createRoute(address(tokenA), address(tokenB));
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = route;
+
+    vm.startPrank(alice);
+    tokenA.approve(address(router), amountIn);
+
+    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
+    router.UNSAFE_swapExactTokensForTokens(amounts, routes, alice, block.timestamp);
+
+    vm.stopPrank();
+
+    assertEq(tokenA.balanceOf(alice), 1000e18 - amountIn);
+    assertEq(tokenB.balanceOf(alice), 1000e18 + amounts[1]);
+  }
+
+  function test_swapExactTokensForTokens_shouldRevertForExpiredDeadline() public {
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), stable: false, factory: address(factory) });
+
+    vm.expectRevert(abi.encodeWithSignature("Expired()"));
+    router.swapExactTokensForTokens(10e18, 0, routes, alice, block.timestamp - 1);
+  }
+
   function test_removeLiquidity_shouldRevertForExpiredDeadline() public {
     vm.expectRevert(abi.encodeWithSignature("Expired()"));
     router.removeLiquidity(address(tokenA), address(tokenB), false, 100e18, 0, 0, alice, block.timestamp - 1);
