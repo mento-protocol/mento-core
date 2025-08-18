@@ -30,8 +30,8 @@ import "contracts/v3/SortedTroves.sol";
 import "contracts/v3/StabilityPool.sol";
 
 import "contracts/v3/CollateralRegistry.sol";
-import "contracts/v3/StableTokenV3.sol";
-import "contracts/v3/Interfaces/IStableTokenV3.sol";
+import "contracts/tokens/StableTokenV3.sol";
+import "contracts/interfaces/IStableTokenV3.sol";
 import "test/v3/TestContracts/PriceFeedTestnet.sol";
 import "test/v3/TestContracts/MetadataDeployment.sol";
 import "test/v3/Utils/Logging.sol";
@@ -181,7 +181,7 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
 
   function _deployAndConnectContracts() internal returns (DeploymentResult memory r) {
     _deployProxyInfrastructure(r);
-    _deployAndInitializeStableToken(r);
+    _deployStableToken(r);
     _deployFPMM(r);
 
     TroveManagerParams memory troveManagerParams = TroveManagerParams({
@@ -240,14 +240,10 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
     );
   }
 
-  function _deployAndInitializeStableToken(DeploymentResult memory r) internal {
+  function _deployStableToken(DeploymentResult memory r) internal {
     r.stableToken = IStableTokenV3(
       address(new TransparentUpgradeableProxy(address(r.stableTokenV3Impl), address(r.proxyAdmin), ""))
     );
-
-    r.stableToken.initialize(CONFIG.stableTokenName, CONFIG.stableTokenSymbol, new address[](0), new uint256[](0));
-    // TODO: run initialize with correct addresses
-    r.stableToken.initializeV2(address(deployer), address(deployer));
   }
 
   function _deployFPMM(DeploymentResult memory r) internal {
@@ -316,8 +312,28 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
 
     IStabilityPool(stabilityPool).initialize(contracts.addressesRegistry);
 
-    // Configure StableToken branches
-    _configureStableToken(r, contracts);
+    address[] memory minters = new address[](2);
+    minters[0] = address(contracts.borrowerOperations);
+    minters[1] = address(contracts.activePool);
+
+    address[] memory burners = new address[](4);
+    burners[0] = address(contracts.troveManager);
+    burners[1] = address(r.collateralRegistry);
+    burners[2] = address(contracts.borrowerOperations);
+    burners[3] = address(contracts.stabilityPool);
+
+    address[] memory operators = new address[](1);
+    operators[0] = address(contracts.stabilityPool);
+
+    r.stableToken.initialize(
+      CONFIG.stableTokenName,
+      CONFIG.stableTokenSymbol,
+      new address[](0),
+      new uint256[](0),
+      minters,
+      burners,
+      operators
+    );
   }
 
   function _setupAddressesRegistry(
@@ -376,17 +392,6 @@ contract DeployLiquity2Script is StdCheats, MetadataDeployment, Logging {
     address _addressesRegistry
   ) internal view returns (address) {
     return vm.computeCreate2Address(SALT, keccak256(getBytecode(creationCode, _addressesRegistry)));
-  }
-
-  function _configureStableToken(DeploymentResult memory r, LiquityContracts memory contracts) internal {
-    r.stableToken.setBranchAddresses(
-      address(contracts.troveManager),
-      address(contracts.stabilityPool),
-      address(contracts.borrowerOperations),
-      address(contracts.activePool)
-    );
-
-    r.stableToken.setCollateralRegistry(address(r.collateralRegistry));
   }
 
   function _getBranchContractsJson(LiquityContracts memory c) internal view returns (string memory) {
