@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
+/**
+ * @title IStableTokenV3
+ * @notice Interface for the StableTokenV3 contract.
+ */
 interface IStableTokenV3 {
   /**
    * @notice Initializes a StableTokenV3.
@@ -163,15 +167,6 @@ interface IStableTokenV3 {
     bytes32 r,
     bytes32 s
   ) external;
-
-  /**
-   * @notice Transfer token for a specified address
-   * @param to The address to transfer to.
-   * @param value The amount to be transferred.
-   * @param comment The transfer comment.
-   * @return True if the transaction succeeds.
-   */
-  function transferWithComment(address to, uint256 value, string calldata comment) external returns (bool);
 
   /**
    * @notice Transfer token from a specified address to the stability pool.

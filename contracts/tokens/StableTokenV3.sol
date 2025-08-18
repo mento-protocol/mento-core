@@ -38,7 +38,6 @@ contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
   /* ======================== Events ========================= */
   /* ========================================================= */
 
-  event TransferComment(string comment);
   event MinterUpdated(address indexed minter, bool isMinter);
   event BurnerUpdated(address indexed burner, bool isBurner);
   event OperatorUpdated(address indexed operator, bool isOperator);
@@ -151,12 +150,6 @@ contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
   /// @inheritdoc IStableTokenV3
   function setBurner(address _burner, bool _isBurner) external onlyOwner {
     _setBurner(_burner, _isBurner);
-  }
-
-  /// @inheritdoc IStableTokenV3
-  function transferWithComment(address to, uint256 value, string calldata comment) external returns (bool) {
-    emit TransferComment(comment);
-    return transfer(to, value);
   }
 
   /// @inheritdoc IStableTokenV3

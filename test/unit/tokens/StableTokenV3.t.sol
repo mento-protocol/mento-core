@@ -9,7 +9,6 @@ import { Test } from "mento-std/Test.sol";
 import { StableTokenV3 } from "contracts/tokens/StableTokenV3.sol";
 
 contract StableTokenV3Test is Test {
-  event TransferComment(string comment);
   event Transfer(address indexed from, address indexed to, uint256 value);
   event MinterUpdated(address indexed minter, bool isMinter);
   event BurnerUpdated(address indexed burner, bool isBurner);
@@ -168,14 +167,6 @@ contract StableTokenV3Test is Test {
     vm.prank(holder0);
     vm.expectRevert(bytes("Ownable: caller is not the owner"));
     token.setBurner(newBurner, true);
-  }
-
-  function test_transferWithComment_shouldEmitCorrectMessage() public {
-    vm.expectEmit(true, true, true, true);
-    emit TransferComment("Hello World");
-
-    vm.prank(holder0);
-    token.transferWithComment(holder1, 100, "Hello World");
   }
 
   function test_mint_whenCalledByMinter_shouldMintTokens() public {
