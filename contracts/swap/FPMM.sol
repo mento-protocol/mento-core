@@ -66,7 +66,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     address _referenceRateFeedID,
     bool _revertRateFeed,
     address _breakerBox,
-    address _owner
+    address owner_
   ) external initializer {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -93,7 +93,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     setBreakerBox(_breakerBox);
     setReferenceRateFeedID(_referenceRateFeedID);
     setRevertRateFeed(_revertRateFeed);
-    transferOwnership(_owner);
+    transferOwnership(owner_);
   }
 
   /* ========== VIEW FUNCTIONS ========== */
@@ -319,13 +319,13 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     uint256 amount0 = balance0 - $.reserve0;
     uint256 amount1 = balance1 - $.reserve1;
 
-    uint256 _totalSupply = totalSupply();
+    uint256 totalSupply_ = totalSupply();
     // slither-disable-next-line incorrect-equality
-    if (_totalSupply == 0) {
+    if (totalSupply_ == 0) {
       liquidity = Math.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
       _mint(address(1), MINIMUM_LIQUIDITY);
     } else {
-      liquidity = Math.min((amount0 * _totalSupply) / $.reserve0, (amount1 * _totalSupply) / $.reserve1);
+      liquidity = Math.min((amount0 * totalSupply_) / $.reserve0, (amount1 * totalSupply_) / $.reserve1);
     }
 
     require(liquidity > MINIMUM_LIQUIDITY, "FPMM: INSUFFICIENT_LIQUIDITY_MINTED");
