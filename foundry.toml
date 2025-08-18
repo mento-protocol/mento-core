@@ -10,13 +10,17 @@ fuzz_runs = 256
 gas_reports = ["*"]
 optimizer = false
 legacy = true
-no_match_contract = "ForkTest"
+no_match_contract = "ForkTest|InvariantTest" # Ignore fork and invariant tests by default
 gas_limit = 9223372036854775807
 
 
 allow_paths = ["node_modules/@celo"]
 
-fs_permissions = [{ access = "read", path = "out" }]
+fs_permissions = [{ access = "read", path = "out" },
+    { access = "read", path = "contracts/v3/assets/" },
+    { access = "read-write", path = "contracts/v3/assets/test_output" },
+    { access = "read-write", path = "script/deployment-manifest.json" },
+]
 
 [profile.ci]
 fuzz_runs = 1_000
@@ -27,8 +31,12 @@ optimizer = true
 optimizer_runs = 200
 
 [profile.fork-tests]
-no_match_contract = "_random" # in order to reset the no_match_contract
+no_match_contract = "InvariantTest"
 match_contract = "ForkTest"
+
+[profile.invariant-tests]
+no_match_contract = "ForkTest"
+match_contract = "InvariantTest"
 
 [rpc_endpoints]
 celo = "${CELO_MAINNET_RPC_URL}"

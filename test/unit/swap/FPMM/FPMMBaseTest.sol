@@ -37,7 +37,7 @@ contract FPMMBaseTest is Test {
     token0 = address(new ERC20DecimalsMock("token0", "T0", decimals0));
     token1 = address(new ERC20DecimalsMock("token1", "T1", decimals1));
 
-    fpmm.initialize(token0, token1, sortedOracles, referenceRateFeedID, breakerBox, owner);
+    fpmm.initialize(token0, token1, sortedOracles, referenceRateFeedID, false, breakerBox, owner);
 
     deal(token0, ALICE, 1_000 * 10 ** decimals0);
     deal(token1, ALICE, 1_000 * 10 ** decimals1);
