@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.18;
-
+pragma solidity 0.8.24;
 
 // OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
 
@@ -15,11 +14,11 @@ pragma solidity 0.8.18;
  * This contract is only required for intermediate, library-like contracts.
  */
 abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
+  function _msgSender() internal view virtual returns (address) {
+    return msg.sender;
+  }
 
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
-    }
+  function _msgData() internal view virtual returns (bytes calldata) {
+    return msg.data;
+  }
 }
