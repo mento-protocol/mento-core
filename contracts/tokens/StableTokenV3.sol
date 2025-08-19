@@ -62,7 +62,8 @@ contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
 
   /// @dev Restricts a function so it can only be executed by the operator role.
   modifier onlyOperator() {
-    require(isOperator[msg.sender], "StableTokenV3: not allowed to call only by operator");
+    address sender = _msgSender();
+    require(isOperator[sender], "StableTokenV3: not allowed to call only by operator");
     _;
   }
 
