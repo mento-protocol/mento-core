@@ -7,7 +7,6 @@ interface IRouter {
   struct Route {
     address from;
     address to;
-    bool stable;
     address factory;
   }
 
@@ -50,7 +49,6 @@ interface IRouter {
   /// @dev Struct containing information necessary to zap in and out of pools
   /// @param tokenA           .
   /// @param tokenB           .
-  /// @param stable           Stable or volatile pool
   /// @param factory          factory of pool
   /// @param amountOutMinA    Minimum amount expected from swap leg of zap via routesA
   /// @param amountOutMinB    Minimum amount expected from swap leg of zap via routesB
@@ -59,7 +57,6 @@ interface IRouter {
   struct Zap {
     address tokenA;
     address tokenB;
-    bool stable;
     address factory;
     uint256 amountOutMinA;
     uint256 amountOutMinB;
@@ -80,21 +77,18 @@ interface IRouter {
   /// @dev Returns a randomly generated address for a nonexistent pool
   /// @param tokenA   Address of token to query
   /// @param tokenB   Address of token to query
-  /// @param stable   True if pool is stable, false if volatile
   /// @param _factory Address of factory which created the pool
-  function poolFor(address tokenA, address tokenB, bool stable, address _factory) external view returns (address pool);
+  function poolFor(address tokenA, address tokenB, address _factory) external view returns (address pool);
 
   /// @notice Fetch and sort the reserves for a pool
   /// @param tokenA       .
   /// @param tokenB       .
-  /// @param stable       True if pool is stable, false if volatile
   /// @param _factory     Address of PoolFactory for tokenA and tokenB
   /// @return reserveA    Amount of reserves of the sorted token A
   /// @return reserveB    Amount of reserves of the sorted token B
   function getReserves(
     address tokenA,
     address tokenB,
-    bool stable,
     address _factory
   ) external view returns (uint256 reserveA, uint256 reserveB);
 
@@ -106,7 +100,6 @@ interface IRouter {
   /// @notice Quote the amount deposited into a Pool
   /// @param tokenA           .
   /// @param tokenB           .
-  /// @param stable           True if pool is stable, false if volatile
   /// @param _factory         Address of PoolFactory for tokenA and tokenB
   /// @param amountADesired   Amount of tokenA desired to deposit
   /// @param amountBDesired   Amount of tokenB desired to deposit
@@ -116,7 +109,6 @@ interface IRouter {
   function quoteAddLiquidity(
     address tokenA,
     address tokenB,
-    bool stable,
     address _factory,
     uint256 amountADesired,
     uint256 amountBDesired
@@ -125,7 +117,6 @@ interface IRouter {
   /// @notice Quote the amount of liquidity removed from a Pool
   /// @param tokenA       .
   /// @param tokenB       .
-  /// @param stable       True if pool is stable, false if volatile
   /// @param _factory     Address of PoolFactory for tokenA and tokenB
   /// @param liquidity    Amount of liquidity to remove
   /// @return amountA     Amount of tokenA received
@@ -133,7 +124,6 @@ interface IRouter {
   function quoteRemoveLiquidity(
     address tokenA,
     address tokenB,
-    bool stable,
     address _factory,
     uint256 liquidity
   ) external view returns (uint256 amountA, uint256 amountB);
@@ -141,7 +131,6 @@ interface IRouter {
   /// @notice Add liquidity of two tokens to a Pool
   /// @param tokenA           .
   /// @param tokenB           .
-  /// @param stable           True if pool is stable, false if volatile
   /// @param amountADesired   Amount of tokenA desired to deposit
   /// @param amountBDesired   Amount of tokenB desired to deposit
   /// @param amountAMin       Minimum amount of tokenA to deposit
@@ -154,7 +143,6 @@ interface IRouter {
   function addLiquidity(
     address tokenA,
     address tokenB,
-    bool stable,
     uint256 amountADesired,
     uint256 amountBDesired,
     uint256 amountAMin,
@@ -165,7 +153,6 @@ interface IRouter {
 
   /// @notice Add liquidity of a token and WETH (transferred as ETH) to a Pool
   /// @param token                .
-  /// @param stable               True if pool is stable, false if volatile
   /// @param amountTokenDesired   Amount of token desired to deposit
   /// @param amountTokenMin       Minimum amount of token to deposit
   /// @param amountETHMin         Minimum amount of ETH to deposit
@@ -176,7 +163,6 @@ interface IRouter {
   /// @return liquidity           Amount of liquidity token returned from deposit
   function addLiquidityETH(
     address token,
-    bool stable,
     uint256 amountTokenDesired,
     uint256 amountTokenMin,
     uint256 amountETHMin,
@@ -189,7 +175,6 @@ interface IRouter {
   /// @notice Remove liquidity of two tokens from a Pool
   /// @param tokenA       .
   /// @param tokenB       .
-  /// @param stable       True if pool is stable, false if volatile
   /// @param liquidity    Amount of liquidity to remove
   /// @param amountAMin   Minimum amount of tokenA to receive
   /// @param amountBMin   Minimum amount of tokenB to receive
@@ -200,7 +185,6 @@ interface IRouter {
   function removeLiquidity(
     address tokenA,
     address tokenB,
-    bool stable,
     uint256 liquidity,
     uint256 amountAMin,
     uint256 amountBMin,
@@ -210,7 +194,6 @@ interface IRouter {
 
   /// @notice Remove liquidity of a token and WETH (returned as ETH) from a Pool
   /// @param token            .
-  /// @param stable           True if pool is stable, false if volatile
   /// @param liquidity        Amount of liquidity to remove
   /// @param amountTokenMin   Minimum amount of token to receive
   /// @param amountETHMin     Minimum amount of ETH to receive
@@ -220,7 +203,6 @@ interface IRouter {
   /// @return amountETH       Amount of ETH received
   function removeLiquidityETH(
     address token,
-    bool stable,
     uint256 liquidity,
     uint256 amountTokenMin,
     uint256 amountETHMin,
@@ -230,7 +212,6 @@ interface IRouter {
 
   /// @notice Remove liquidity of a fee-on-transfer token and WETH (returned as ETH) from a Pool
   /// @param token            .
-  /// @param stable           True if pool is stable, false if volatile
   /// @param liquidity        Amount of liquidity to remove
   /// @param amountTokenMin   Minimum amount of token to receive
   /// @param amountETHMin     Minimum amount of ETH to receive
@@ -239,7 +220,6 @@ interface IRouter {
   /// @return amountETH       Amount of ETH received
   function removeLiquidityETHSupportingFeeOnTransferTokens(
     address token,
-    bool stable,
     uint256 liquidity,
     uint256 amountTokenMin,
     uint256 amountETHMin,
@@ -291,18 +271,6 @@ interface IRouter {
     address to,
     uint256 deadline
   ) external returns (uint256[] memory amounts);
-
-  /// @notice Swap one token for another without slippage protection
-  /// @return amounts     Array of amounts to swap  per route
-  /// @param routes       Array of trade routes used in the swap
-  /// @param to           Recipient of the tokens received
-  /// @param deadline     Deadline to receive tokens
-  function UNSAFE_swapExactTokensForTokens(
-    uint256[] memory amounts,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external returns (uint256[] memory);
 
   // **** SWAP (supporting fee-on-transfer tokens) ****
 
@@ -358,7 +326,6 @@ interface IRouter {
   /// @param routesA      Route used to convert input token to tokenA
   /// @param routesB      Route used to convert input token to tokenB
   /// @param to           Address you wish to mint liquidity to.
-  /// @param stake        Auto-stake liquidity in corresponding gauge.
   /// @return liquidity   Amount of LP tokens created from zapping in.
   function zapIn(
     address tokenIn,
@@ -367,8 +334,7 @@ interface IRouter {
     Zap calldata zapInPool,
     Route[] calldata routesA,
     Route[] calldata routesB,
-    address to,
-    bool stake
+    address to
   ) external payable returns (uint256 liquidity);
 
   /// @notice Zap out a pool (B, C) into A.
@@ -395,7 +361,6 @@ interface IRouter {
   /// @dev Output token refers to the token you want to zap in from.
   /// @param tokenA           .
   /// @param tokenB           .
-  /// @param stable           .
   /// @param _factory         .
   /// @param amountInA        Amount of input token you wish to send down routesA
   /// @param amountInB        Amount of input token you wish to send down routesB
@@ -408,7 +373,6 @@ interface IRouter {
   function generateZapInParams(
     address tokenA,
     address tokenB,
-    bool stable,
     address _factory,
     uint256 amountInA,
     uint256 amountInB,
@@ -422,7 +386,6 @@ interface IRouter {
   /// @dev Output token refers to the token you want to zap out of.
   /// @param tokenA           .
   /// @param tokenB           .
-  /// @param stable           .
   /// @param _factory         .
   /// @param liquidity        Amount of liquidity being zapped out of into a given output token.
   /// @param routesA          Route used to convert tokenA into output token.
@@ -434,24 +397,9 @@ interface IRouter {
   function generateZapOutParams(
     address tokenA,
     address tokenB,
-    bool stable,
     address _factory,
     uint256 liquidity,
     Route[] calldata routesA,
     Route[] calldata routesB
   ) external view returns (uint256 amountOutMinA, uint256 amountOutMinB, uint256 amountAMin, uint256 amountBMin);
-
-  /// @notice Used by zapper to determine appropriate ratio of A to B to deposit liquidity. Assumes stable pool.
-  /// @dev Returns stable liquidity ratio of B to (A + B).
-  ///      E.g. if ratio is 0.4, it means there is more of A than there is of B.
-  ///      Therefore you should deposit more of token A than B.
-  /// @param tokenA   tokenA of stable pool you are zapping into.
-  /// @param tokenB   tokenB of stable pool you are zapping into.
-  /// @param factory  Factory that created stable pool.
-  /// @return ratio   Ratio of token0 to token1 required to deposit into zap.
-  function quoteStableLiquidityRatio(
-    address tokenA,
-    address tokenB,
-    address factory
-  ) external view returns (uint256 ratio);
 }

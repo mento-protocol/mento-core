@@ -125,11 +125,11 @@ contract RouterFPMMIntegrationTest is Test {
   // Test pool creation and management
   function test_poolFor_shouldReturnCorrectPoolAddress() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
-    address pool = router.poolFor(address(tokenA), address(tokenB), false, address(0));
+    address pool = router.poolFor(address(tokenA), address(tokenB), address(0));
     assertEq(pool, fpmm);
 
     // Should work with reversed token order
-    address poolReversed = router.poolFor(address(tokenB), address(tokenA), false, address(0));
+    address poolReversed = router.poolFor(address(tokenB), address(tokenA), address(0));
     assertEq(poolReversed, fpmm);
   }
 
@@ -224,7 +224,6 @@ contract RouterFPMMIntegrationTest is Test {
     (uint256 amountA, uint256 amountB, uint256 liquidity) = router.quoteAddLiquidity(
       address(tokenA),
       address(tokenB),
-      false,
       address(factory),
       amountADesired,
       amountBDesired
@@ -246,7 +245,6 @@ contract RouterFPMMIntegrationTest is Test {
     (uint256 amount0, uint256 amount1, uint256 liquidity) = router.quoteAddLiquidity(
       token0,
       token1,
-      false,
       address(factory),
       amount0Desired,
       amount1Desired
@@ -268,7 +266,6 @@ contract RouterFPMMIntegrationTest is Test {
     (uint256 amount0, uint256 amount1, uint256 liquidity) = router.quoteAddLiquidity(
       token0,
       token1,
-      false,
       address(factory),
       amount0Desired,
       amount1Desired
@@ -283,7 +280,6 @@ contract RouterFPMMIntegrationTest is Test {
     (uint256 amountA, uint256 amountB) = router.quoteRemoveLiquidity(
       address(tokenA),
       address(tokenB),
-      false,
       address(factory),
       100e18
     );
@@ -302,7 +298,6 @@ contract RouterFPMMIntegrationTest is Test {
     (uint256 amount0, uint256 amount1) = router.quoteRemoveLiquidity(
       token0,
       token1,
-      false,
       address(factory),
       liquidityToRemove
     );
@@ -326,7 +321,6 @@ contract RouterFPMMIntegrationTest is Test {
     (uint256 amount0, uint256 amount1, uint256 liquidity) = router.addLiquidity(
       token0,
       token1,
-      false,
       amount0Desired,
       amount1Desired,
       0, // amountAMin
@@ -360,7 +354,6 @@ contract RouterFPMMIntegrationTest is Test {
     (uint256 amount0, uint256 amount1, uint256 liquidity) = router.addLiquidity(
       token0,
       token1,
-      false,
       amount0Desired,
       amount1Desired,
       0, // amountAMin
@@ -391,7 +384,6 @@ contract RouterFPMMIntegrationTest is Test {
     router.addLiquidity(
       token0,
       token1,
-      false,
       50e18, // amount0Desired
       50e18, // amount1Desired
       51e18, // amountAMin - higher than desired
@@ -404,7 +396,6 @@ contract RouterFPMMIntegrationTest is Test {
     router.addLiquidity(
       token0,
       token1,
-      false,
       50e18, // amount0Desired
       50e18, // amount1Desired
       0, // amountAMin
@@ -425,7 +416,6 @@ contract RouterFPMMIntegrationTest is Test {
     router.addLiquidity(
       token0,
       token1,
-      false,
       50e18, // amount0Desired
       50e18, // amount1Desired
       50e18, // amountAMin
@@ -446,7 +436,6 @@ contract RouterFPMMIntegrationTest is Test {
     router.addLiquidity(
       token0,
       token1,
-      false,
       50e18, // amount0Desired
       50e18, // amount1Desired
       50e18, // amountAMin
@@ -466,7 +455,6 @@ contract RouterFPMMIntegrationTest is Test {
     router.addLiquidity(
       token0,
       token1,
-      false,
       50e18, // amount0Desired
       50e18, // amount1Desired
       50e18, // amountAMin
@@ -483,7 +471,6 @@ contract RouterFPMMIntegrationTest is Test {
     router.addLiquidity(
       address(tokenA),
       address(tokenB),
-      false,
       50e18, // amount0Desired
       50e18, // amount1Desired
       50e18, // amountAMin
@@ -507,7 +494,6 @@ contract RouterFPMMIntegrationTest is Test {
     (uint256 amount0Added, uint256 amount1Added, uint256 liquidity) = router.addLiquidity(
       token0,
       token1,
-      false,
       100e18, // amount0Desired
       100e18, // amount1Desired
       100e18, // amountAMin
@@ -524,7 +510,6 @@ contract RouterFPMMIntegrationTest is Test {
     (uint256 amount0, uint256 amount1) = router.removeLiquidity(
       token0,
       token1,
-      false,
       halfLiquidity,
       0, // amountAMin
       0, // amountBMin
@@ -543,7 +528,6 @@ contract RouterFPMMIntegrationTest is Test {
     router.removeLiquidity(
       token0,
       token1,
-      false,
       halfLiquidity,
       0, // amountAMin
       0, // amountBMin
@@ -570,7 +554,6 @@ contract RouterFPMMIntegrationTest is Test {
     (, , uint256 liquidity) = router.addLiquidity(
       token0,
       token1,
-      false,
       100e18,
       100e18,
       100e18,
@@ -586,7 +569,6 @@ contract RouterFPMMIntegrationTest is Test {
     router.removeLiquidity(
       token0,
       token1,
-      false,
       liquidity,
       101e18, // amountAMin > possible amount
       0,
@@ -609,7 +591,6 @@ contract RouterFPMMIntegrationTest is Test {
     (, , uint256 liquidity) = router.addLiquidity(
       token0,
       token1,
-      false,
       100e18,
       100e18,
       100e18,
@@ -625,7 +606,6 @@ contract RouterFPMMIntegrationTest is Test {
     router.removeLiquidity(
       token0,
       token1,
-      false,
       liquidity,
       0,
       101e18, // amountBMin > possible amount
@@ -633,6 +613,11 @@ contract RouterFPMMIntegrationTest is Test {
       block.timestamp
     );
     vm.stopPrank();
+  }
+
+  function test_removeLiquidity_shouldRevertForExpiredDeadline() public {
+    vm.expectRevert(abi.encodeWithSignature("Expired()"));
+    router.removeLiquidity(address(tokenA), address(tokenB), 100e18, 0, 0, alice, block.timestamp - 1);
   }
 
   function test_swapExactTokensForTokens_shouldSwapTokens_whenPriceIs1() public {
@@ -722,11 +707,20 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
-  function test_unsafeSwapExactTokensForTokens_shouldSwapTokensWithoutSlippageProtection() public {
+  function test_swapExactTokensForTokens_shouldRevertForExpiredDeadline() public {
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(factory) });
+
+    vm.expectRevert(abi.encodeWithSignature("Expired()"));
+    router.swapExactTokensForTokens(10e18, 0, routes, alice, block.timestamp - 1);
+  }
+
+  function test_swapExactTokensForTokensSupportingFeeOnTransferTokens_shouldSwapTokens() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
 
     uint256 amountIn = 10e18;
+    uint256 expectedAmountOut = (amountIn * 997) / 1000;
 
     IRouter.Route memory route = _createRoute(address(tokenA), address(tokenB));
     IRouter.Route[] memory routes = new IRouter.Route[](1);
@@ -735,26 +729,12 @@ contract RouterFPMMIntegrationTest is Test {
     vm.startPrank(alice);
     tokenA.approve(address(router), amountIn);
 
-    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
-    router.UNSAFE_swapExactTokensForTokens(amounts, routes, alice, block.timestamp);
+    router.swapExactTokensForTokensSupportingFeeOnTransferTokens(amountIn, 0, routes, alice, block.timestamp);
 
     vm.stopPrank();
 
     assertEq(tokenA.balanceOf(alice), 1000e18 - amountIn);
-    assertEq(tokenB.balanceOf(alice), 1000e18 + amounts[1]);
-  }
-
-  function test_swapExactTokensForTokens_shouldRevertForExpiredDeadline() public {
-    IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), stable: false, factory: address(factory) });
-
-    vm.expectRevert(abi.encodeWithSignature("Expired()"));
-    router.swapExactTokensForTokens(10e18, 0, routes, alice, block.timestamp - 1);
-  }
-
-  function test_removeLiquidity_shouldRevertForExpiredDeadline() public {
-    vm.expectRevert(abi.encodeWithSignature("Expired()"));
-    router.removeLiquidity(address(tokenA), address(tokenB), false, 100e18, 0, 0, alice, block.timestamp - 1);
+    assertEq(tokenB.balanceOf(alice), 1000e18 + expectedAmountOut);
   }
 
   function _setupMocks() internal {
@@ -819,7 +799,6 @@ contract RouterFPMMIntegrationTest is Test {
       IRouter.Route({
         from: from,
         to: to,
-        stable: false,
         factory: address(0) // Use default factory
       });
   }
