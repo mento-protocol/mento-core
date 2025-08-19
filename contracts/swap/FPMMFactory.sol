@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.18;
+pragma solidity 0.8.24;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
@@ -228,6 +228,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     emit FPMMImplementationUnregistered(fpmmImplementation);
   }
 
+  // bool revertRateFeed // TODO: Add this back in
   /// @inheritdoc IFPMMFactory
   function deployFPMM(
     address fpmmImplementation,
@@ -265,6 +266,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     return fpmmProxy;
   }
 
+  // bool revertRateFeed // TODO: Add this back in
   // slither-disable-start reentrancy-no-eth
   /// @inheritdoc IFPMMFactory
   function deployFPMM(
@@ -333,6 +335,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       _token1,
       _sortedOracles,
       _referenceRateFeedID,
+      false, // revertRateFeed
       _breakerBox,
       _governance
     );

@@ -1,0 +1,37 @@
+{
+  "constants": {
+    "ETH_GAS_COMPENSATION": "37500000000000000",
+    "INTEREST_RATE_ADJ_COOLDOWN": "604800",
+    "MAX_ANNUAL_INTEREST_RATE": "2500000000000000000",
+    "MIN_ANNUAL_INTEREST_RATE": "5000000000000000",
+    "MIN_DEBT": "2000000000000000000000",
+    "SP_YIELD_SPLIT": "750000000000000000",
+    "UPFRONT_INTEREST_PERIOD": "604800"
+  },
+  "collateralRegistry": "0xaf9389f1297a73d237a9a6554d4b173c247ed2d2",
+  "boldToken": "0x46504ef8f2fd6858e8a94c662350eb62ce1b627f",
+  "hintHelpers": "0xaf326e30e52e710c432f44777552779b185701dd",
+  "stableTokenV3Impl": "0x38b118d200dc9be0c1e1240d371a539d0f0fecc8",
+  "stabilityPoolImpl": "0xbd82b95d00a9d5fee05d23f70699fba09eeab384",
+  "multiTroveGetter": "0x888e266eb10072c321d9e152ddd7b105e24f4918",
+  "fpmm": "0x8d5671f4a37a6ff95cafb7c26faf1d5db6129fa9",
+  "branches": [
+    {
+      "collSymbol": "USD.m",
+      "collToken": "0x9e2d4412d0f434cc85500b79447d9323a7416f09",
+      "addressesRegistry": "0xd39c90bb4c1e5d63f83a9fe52359897bb1068ed3",
+      "activePool": "0xefa2b64170bb5eae5561e09e8675d0b0213d2809",
+      "borrowerOperations": "0x67f5593588826046498a3db93cab6be3d59d2c9a",
+      "collSurplusPool": "0x4174ec960848fa5782158856443109f9dc8f1e32",
+      "defaultPool": "0x10cdfcb509029e633858906eb821f734400e3eab",
+      "sortedTroves": "0x8e1412785d147387f8617cd8f817c27eabab0d49",
+      "stabilityPool": "0xc74a5856070bddde7746b9c91353bd466eebe958",
+      "troveManager": "0xdeaabcc9357940e1a2e6fc869fd9291401ac4758",
+      "troveNFT": "0x6fd6303f462ba4bf8d26b1895fa13d0432b608c7",
+      "metadataNFT": "0xf7ed9860dc39e63b5f18a8110d57c84b5702e43c",
+      "priceFeed": "0x12147ff996f20cca15eb35ad5c701822526ebb1a",
+      "gasPool": "0x5ad957426d00e4f1f1e473d5bcbc2c41324ace4c",
+      "interestRouter": "0x56fd3f2bee130e9867942d0f463a16fbe49b8d81"
+    }
+  ]
+}

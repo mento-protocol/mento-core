@@ -38,6 +38,7 @@
     "fork-test": "env FOUNDRY_PROFILE=fork-tests forge test",
     "fork-test:alfajores": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Alfajores",
     "fork-test:celo-mainnet": "env FOUNDRY_PROFILE=fork-tests forge test --match-contract Celo",
+    "invariant-test": "env FOUNDRY_PROFILE=invariant-tests forge test",
     "check-no-ir": "./bin/check-contracts.sh",
     "check-contract-sizes": "env FOUNDRY_PROFILE=optimized forge build --sizes --skip \"test/**/*\"",
     "slither": "slither .",

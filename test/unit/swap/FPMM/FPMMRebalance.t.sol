@@ -63,11 +63,22 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(1.2e18, 1e18)
+    setupMockOracleRate(1.2e24, 1e24)
   {
-    (uint256 oraclePrice, uint256 reservePrice, , ) = fpmm.getPrices();
-    assertEq(oraclePrice, 1.2e18);
-    assertEq(reservePrice, 2e18);
+    (
+      uint256 oraclePriceNumerator,
+      uint256 oraclePriceDenominator,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      uint256 priceDifference,
+      bool reservePriceAboveOraclePrice
+    ) = fpmm.getPrices();
+    assertEq(oraclePriceNumerator, 1.2e18);
+    assertEq(oraclePriceDenominator, 1e18);
+    assertEq(reservePriceNumerator, 200e18);
+    assertEq(reservePriceDenominator, 100e18);
+    assertEq(priceDifference, 6666);
+    assertEq(reservePriceAboveOraclePrice, true);
 
     // Initial reserve price: 2 token1 per token0
     // Oracle price: 1.2 token1 per token0
@@ -84,13 +95,13 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // 1.25 % loss > .5% threshold it should revert
 
     uint256 rebalanceAmount = 40e18;
-    vm.expectRevert("FPMM: EXCESSIVE_VALUE_LOSS");
+    vm.expectRevert("FPMM: INSUFFICIENT_AMOUNT_0_IN");
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
     liquidityStrategy.setProfitPercentage(300);
     // 3 % profit -> returns 32.33 tokens -> takes 1 token as incentive
     // 32.33 * .5% = 0.16165
-    vm.expectRevert("FPMM: EXCESSIVE_VALUE_LOSS");
+    vm.expectRevert("FPMM: INSUFFICIENT_AMOUNT_0_IN");
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
     liquidityStrategy.setProfitPercentage(30);
@@ -195,11 +206,24 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(1.2e18, 1e18) // Oracle rate: 1 token0 = 1.2 token1
+    setupMockOracleRate(1.2e24, 1e24) // Oracle rate: 1 token0 = 1.2 token1
   {
-    (uint256 oraclePrice, uint256 reservePrice, , ) = fpmm.getPrices();
-    assertEq(oraclePrice, 1.2e18);
-    assertEq(reservePrice, 2e18);
+    (
+      uint256 oraclePriceNumerator,
+      uint256 oraclePriceDenominator,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      uint256 priceDifference,
+      bool reservePriceAboveOraclePrice
+    ) = fpmm.getPrices();
+
+    assertEq(oraclePriceNumerator, 1.2e18);
+    assertEq(oraclePriceDenominator, 1e18);
+    assertEq(reservePriceNumerator, 200e18);
+    assertEq(reservePriceDenominator, 100e18);
+    // (2-1.2)/1.2 = 66.66% in bps
+    assertEq(priceDifference, 6666);
+    assertEq(reservePriceAboveOraclePrice, true);
 
     (uint256 initialReserve0, uint256 initialReserve1, ) = fpmm.getReserves();
 
@@ -214,7 +238,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
     (uint256 finalReserve0, uint256 finalReserve1, ) = fpmm.getReserves();
-    assertEq(finalReserve0, initialReserve0 + (rebalanceAmount * 1e18) / oraclePrice);
+    assertEq(finalReserve0, initialReserve0 + (rebalanceAmount * oraclePriceDenominator) / oraclePriceNumerator);
     assertEq(finalReserve1, initialReserve1 - rebalanceAmount);
   }
 
@@ -223,11 +247,23 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(3e18, 1e18) // Oracle rate: 1 token0 = 3 token1
+    setupMockOracleRate(3e24, 1e24) // Oracle rate: 1 token0 = 3 token1
   {
-    (uint256 oraclePrice, uint256 reservePrice, , ) = fpmm.getPrices();
-    assertEq(oraclePrice, 3e18);
-    assertEq(reservePrice, 2e18);
+    (
+      uint256 oraclePriceNumerator,
+      uint256 oraclePriceDenominator,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      uint256 priceDifference,
+      bool reservePriceAboveOraclePrice
+    ) = fpmm.getPrices();
+    assertEq(oraclePriceNumerator, 3e18);
+    assertEq(oraclePriceDenominator, 1e18);
+    assertEq(reservePriceNumerator, 200e18);
+    assertEq(reservePriceDenominator, 100e18);
+    // (3-2)/3 = 33.33% in bps
+    assertEq(priceDifference, 3333);
+    assertEq(reservePriceAboveOraclePrice, false);
 
     (uint256 initialReserve0, uint256 initialReserve1, ) = fpmm.getReserves();
 
@@ -243,7 +279,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
 
     (uint256 finalReserve0, uint256 finalReserve1, ) = fpmm.getReserves();
     assertEq(finalReserve0, initialReserve0 - rebalanceAmount);
-    assertEq(finalReserve1, initialReserve1 + (rebalanceAmount * oraclePrice) / 1e18);
+    assertEq(finalReserve1, initialReserve1 + (rebalanceAmount * oraclePriceNumerator) / oraclePriceDenominator);
   }
 
   function test_rebalance_whenDifferentDecimals_shouldSucceed()
@@ -251,11 +287,23 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
     setupRebalancer(18, 6)
-    setupMockOracleRate(1.2e18, 1e18)
+    setupMockOracleRate(1.2e24, 1e24)
   {
-    (uint256 oraclePrice, uint256 reservePrice, , ) = fpmm.getPrices();
-    assertEq(oraclePrice, 1.2e18);
-    assertEq(reservePrice, 2e18);
+    (
+      uint256 oraclePriceNumerator,
+      uint256 oraclePriceDenominator,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      uint256 priceDifference,
+      bool reservePriceAboveOraclePrice
+    ) = fpmm.getPrices();
+    assertEq(oraclePriceNumerator, 1.2e18);
+    assertEq(oraclePriceDenominator, 1e18);
+    assertEq(reservePriceNumerator, 200e18);
+    assertEq(reservePriceDenominator, 100e18);
+    // (2-1.2)/1.2 = 66.66% in bps
+    assertEq(priceDifference, 6666);
+    assertEq(reservePriceAboveOraclePrice, true);
 
     (uint256 initialReserve0, uint256 initialReserve1, ) = fpmm.getReserves();
 
@@ -267,10 +315,16 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // Borrow 40 token1 and exchange it for 33.33 token0
     // 133.33 / 160 = 1.2
     uint256 rebalanceAmount = 40e6;
+    uint256 expectedAmount0In = fpmm.convertWithRate(
+      rebalanceAmount,
+      1e6,
+      1e18,
+      oraclePriceDenominator,
+      oraclePriceNumerator
+    );
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
-
     (uint256 finalReserve0, uint256 finalReserve1, ) = fpmm.getReserves();
-    assertEq(finalReserve0, initialReserve0 + ((rebalanceAmount * 10 ** 13) / 12));
+    assertEq(finalReserve0, initialReserve0 + expectedAmount0In);
     assertEq(finalReserve1, initialReserve1 - rebalanceAmount);
   }
 
