@@ -106,7 +106,7 @@ contract StableTokenV3Test is Test {
     disabledToken.initialize("cUSD", "cUSD", initialAddresses, initialBalances, minters, burners, operators);
 
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
-    token.migrateToV3(minters, burners, operators);
+    token.initializeV3(minters, burners, operators);
   }
 
   function test_setOperator_whenCalledByOwner_shouldSetOperatorAndEmitEvent() public {

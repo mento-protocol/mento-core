@@ -117,7 +117,7 @@ contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
   }
 
   /// @inheritdoc IStableTokenV3
-  function migrateToV3(
+  function initializeV3(
     address[] memory _minters,
     address[] memory _burners,
     address[] memory _operators

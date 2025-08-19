@@ -6,9 +6,9 @@ pragma solidity ^0.8;
 import { addresses, uints } from "mento-std/Array.sol";
 import { Test } from "mento-std/Test.sol";
 
-import { StableTokenV3CrossChain } from "contracts/tokens/StableTokenV3CrossChain.sol";
+import { StableTokenSpoke } from "contracts/tokens/StableTokenSpoke.sol";
 
-contract StableTokenV3CrossChainTest is Test {
+contract StableTokenSpokeTest is Test {
   event MinterUpdated(address indexed minter, bool isMinter);
   event BurnerUpdated(address indexed burner, bool isBurner);
 
@@ -19,7 +19,7 @@ contract StableTokenV3CrossChainTest is Test {
   address _burner1 = makeAddr("burner1");
   address _burner2 = makeAddr("burner2");
 
-  StableTokenV3CrossChain private _token;
+  StableTokenSpoke private _token;
 
   function setUp() public {
     address[] memory minters = new address[](2);
@@ -30,7 +30,7 @@ contract StableTokenV3CrossChainTest is Test {
     burners[0] = _burner1;
     burners[1] = _burner2;
 
-    _token = new StableTokenV3CrossChain(false);
+    _token = new StableTokenSpoke(false);
     _token.initialize(
       "cUSD",
       "cUSD",
@@ -47,7 +47,7 @@ contract StableTokenV3CrossChainTest is Test {
   }
 
   function test_initializers_disabled() public {
-    StableTokenV3CrossChain disabledToken = new StableTokenV3CrossChain(true);
+    StableTokenSpoke disabledToken = new StableTokenSpoke(true);
 
     address[] memory emptyAddresses = new address[](0);
     uint256[] memory emptyBalances = new uint256[](0);
@@ -115,7 +115,7 @@ contract StableTokenV3CrossChainTest is Test {
 
   function test_mint_whenSenderIsNotAuthorized_shouldRevert() public {
     vm.prank(_holder0);
-    vm.expectRevert(bytes("StableTokenV3: not allowed to mint"));
+    vm.expectRevert(bytes("StableToken: not allowed to mint"));
     _token.mint(_holder0, 100);
   }
 
@@ -129,7 +129,7 @@ contract StableTokenV3CrossChainTest is Test {
 
   function test_burn_whenSenderIsNotAuthorized_shouldRevert() public {
     vm.prank(_holder0);
-    vm.expectRevert(bytes("StableTokenV3: not allowed to burn"));
+    vm.expectRevert(bytes("StableToken: not allowed to burn"));
     _token.burn(100);
   }
 }

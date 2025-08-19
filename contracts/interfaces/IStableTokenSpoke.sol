@@ -5,12 +5,12 @@ import {
 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 
 /**
- * @title IStableTokenV3CrossChain
- * @notice Interface for the StableTokenV3CrossChain contract.
+ * @title IStableTokenSpoke
+ * @notice Interface for the StableTokenSpoke contract.
  */
-interface IStableTokenV3CrossChain is IERC20PermitUpgradeable {
+interface IStableTokenSpoke is IERC20PermitUpgradeable {
   /**
-   * @notice Initializes a StableTokenV3.
+   * @notice Initializes a StableTokenSpoke.
    * @param _name The name of the stable token (English)
    * @param _symbol A short symbol identifying the token (e.g. "cUSD")
    * @param initialBalanceAddresses Array of addresses with an initial balance.

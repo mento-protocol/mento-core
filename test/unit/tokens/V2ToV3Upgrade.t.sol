@@ -77,7 +77,7 @@ contract V2ToV3UpgradeTest is Test {
     assertEq(IProxy(cUSDProxy)._getImplementation(), StableTokenV3Implementation);
     assertEq(IProxy(cUSDProxy)._getOwner(), owner);
 
-    tokenV3.migrateToV3(minters, burners, operators);
+    tokenV3.initializeV3(minters, burners, operators);
 
     assertEq(tokenV3.isMinter(minters[0]), true);
     assertEq(tokenV3.isMinter(minters[1]), true);
@@ -101,6 +101,6 @@ contract V2ToV3UpgradeTest is Test {
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
     tokenV3.initialize("cUSD", "cUSD", emptyAddresses, emptyBalances, minters, burners, operators);
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
-    tokenV3.migrateToV3(minters, burners, operators);
+    tokenV3.initializeV3(minters, burners, operators);
   }
 }

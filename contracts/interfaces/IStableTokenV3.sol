@@ -35,7 +35,7 @@ interface IStableTokenV3 {
    * @param _burners The addresses that are allowed to burn.
    * @param _operators The addresses that are allowed to call the operator functions.
    */
-  function migrateToV3(
+  function initializeV3(
     address[] calldata _minters,
     address[] calldata _burners,
     address[] calldata _operators

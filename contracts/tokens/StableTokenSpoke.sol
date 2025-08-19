@@ -3,14 +3,14 @@ pragma solidity 0.8.24;
 // solhint-disable-next-line max-line-length
 import { ERC20PermitUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import { IStableTokenV3CrossChain } from "../interfaces/IStableTokenV3CrossChain.sol";
+import { IStableTokenSpoke } from "../interfaces/IStableTokenSpoke.sol";
 
 /**
- * @title StableTokenV3CrossChain
- * @notice A cross-chain version of the StableTokenV3 contract.
+ * @title StableTokenSpoke
+ * @notice A spoke version of the StableTokenV3 contract.
  * @dev This contract is used to mint and burn tokens on a different chain.
  */
-contract StableTokenV3CrossChain is ERC20PermitUpgradeable, OwnableUpgradeable, IStableTokenV3CrossChain {
+contract StableTokenSpoke is ERC20PermitUpgradeable, OwnableUpgradeable, IStableTokenSpoke {
   /* ========================================================= */
   /* ==================== State Variables ==================== */
   /* ========================================================= */
@@ -33,13 +33,13 @@ contract StableTokenV3CrossChain is ERC20PermitUpgradeable, OwnableUpgradeable, 
 
   modifier onlyMinter() {
     address sender = _msgSender();
-    require(isMinter[sender], "StableTokenV3: not allowed to mint");
+    require(isMinter[sender], "StableToken: not allowed to mint");
     _;
   }
 
   modifier onlyBurner() {
     address sender = _msgSender();
-    require(isBurner[sender], "StableTokenV3: not allowed to burn");
+    require(isBurner[sender], "StableToken: not allowed to burn");
     _;
   }
 
@@ -48,7 +48,7 @@ contract StableTokenV3CrossChain is ERC20PermitUpgradeable, OwnableUpgradeable, 
   /* ========================================================= */
 
   /**
-   * @notice The constructor for the StableTokenV3 contract.
+   * @notice The constructor for the StableTokenSpoke contract.
    * @dev Should be called with disable=true in deployments when
    * it's accessed through a Proxy.
    * Call this with disable=false during testing, when used
@@ -62,7 +62,7 @@ contract StableTokenV3CrossChain is ERC20PermitUpgradeable, OwnableUpgradeable, 
     }
   }
 
-  /// @inheritdoc IStableTokenV3CrossChain
+  /// @inheritdoc IStableTokenSpoke
   function initialize(
     string memory name,
     string memory symbol,
@@ -91,23 +91,23 @@ contract StableTokenV3CrossChain is ERC20PermitUpgradeable, OwnableUpgradeable, 
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */
 
-  /// @inheritdoc IStableTokenV3CrossChain
+  /// @inheritdoc IStableTokenSpoke
   function setMinter(address _minter, bool _isMinter) external onlyOwner {
     _setMinter(_minter, _isMinter);
   }
 
-  /// @inheritdoc IStableTokenV3CrossChain
+  /// @inheritdoc IStableTokenSpoke
   function setBurner(address _burner, bool _isBurner) external onlyOwner {
     _setBurner(_burner, _isBurner);
   }
 
-  /// @inheritdoc IStableTokenV3CrossChain
+  /// @inheritdoc IStableTokenSpoke
   function mint(address to, uint256 value) external onlyMinter returns (bool) {
     _mint(to, value);
     return true;
   }
 
-  /// @inheritdoc IStableTokenV3CrossChain
+  /// @inheritdoc IStableTokenSpoke
   function burn(uint256 value) external onlyBurner returns (bool) {
     _burn(msg.sender, value);
     return true;
