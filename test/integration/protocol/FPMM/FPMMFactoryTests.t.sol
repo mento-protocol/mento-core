@@ -1,0 +1,526 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
+pragma solidity ^0.8;
+
+import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
+
+import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
+
+// FPMM contracts
+import { FPMM } from "contracts/swap/FPMM.sol";
+import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
+import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
+
+// Interfaces
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+
+// OpenZeppelin
+import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+
+// Forge
+import { console } from "forge-std/console.sol";
+
+/**
+ * @title FPMMFactoryTests
+ * @notice Integration tests for FPMMFactory functionality
+ * @dev Tests cover deployment, management, and edge cases
+ */
+contract FPMMFactoryTests is FPMMBaseIntegration {
+  // ============ STATE VARIABLES ============
+
+  FPMM public fpmmImplementation2;
+
+  // ============ SETUP ============
+
+  function setUp() public override {
+    super.setUp();
+    fpmmImplementation2 = new FPMM(true);
+  }
+
+  // ============ FACTORY SETUP TESTS ============
+
+  function test_initialize_whenCalledByOwner_shouldSetCorrectValues() public {
+    // Verify factory configuration
+    assertEq(factory.sortedOracles(), sortedOracles);
+    assertEq(factory.proxyAdmin(), proxyAdmin);
+    assertEq(factory.breakerBox(), breakerBox);
+    assertEq(factory.governance(), governance);
+    assertEq(factory.owner(), governance);
+
+    // Verify implementation registration
+    assertEq(factory.isRegisteredImplementation(address(fpmmImplementation)), true);
+    address[] memory registeredImplementations = factory.registeredImplementations();
+    assertEq(registeredImplementations.length, 1);
+    assertEq(registeredImplementations[0], address(fpmmImplementation));
+  }
+
+  function test_initialize_whenCalledTwice_shouldRevert() public {
+    vm.expectRevert("Initializable: contract is already initialized");
+    factory.initialize(sortedOracles, proxyAdmin, breakerBox, governance, address(fpmmImplementation));
+  }
+
+  // ============ IMPLEMENTATION MANAGEMENT TESTS ============
+
+  function test_registerFPMMImplementation_whenCalledByOwner_shouldRegisterImplementation() public {
+    address newImplementation = address(0x1234567890123456789012345678901234567890);
+
+    vm.prank(governance);
+    factory.registerFPMMImplementation(newImplementation);
+
+    assertEq(factory.isRegisteredImplementation(newImplementation), true);
+    address[] memory registeredImplementations = factory.registeredImplementations();
+    assertEq(registeredImplementations.length, 2);
+    assertEq(registeredImplementations[1], newImplementation);
+  }
+
+  function test_registerFPMMImplementation_whenCalledByNonOwner_shouldRevert() public {
+    address newImplementation = address(0x1234567890123456789012345678901234567890);
+
+    vm.prank(alice);
+    vm.expectRevert();
+    factory.registerFPMMImplementation(newImplementation);
+  }
+
+  function test_registerFPMMImplementation_whenZeroAddress_shouldRevert() public {
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factory.registerFPMMImplementation(address(0));
+  }
+
+  function test_registerFPMMImplementation_whenAlreadyRegistered_shouldRevert() public {
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: IMPLEMENTATION_ALREADY_REGISTERED");
+    factory.registerFPMMImplementation(address(fpmmImplementation));
+  }
+
+  function test_unregisterFPMMImplementation_whenCalledByOwner_shouldUnregisterImplementation() public {
+    // Register a second implementation first
+    address newImplementation = address(0x1234567890123456789012345678901234567890);
+    vm.prank(governance);
+    factory.registerFPMMImplementation(newImplementation);
+
+    // Unregister the new implementation
+    vm.prank(governance);
+    factory.unregisterFPMMImplementation(newImplementation, 1);
+
+    assertEq(factory.isRegisteredImplementation(newImplementation), false);
+    address[] memory registeredImplementations = factory.registeredImplementations();
+    assertEq(registeredImplementations.length, 1);
+  }
+
+  function test_unregisterFPMMImplementation_whenCalledByNonOwner_shouldRevert() public {
+    vm.prank(alice);
+    vm.expectRevert();
+    factory.unregisterFPMMImplementation(address(fpmmImplementation), 0);
+  }
+
+  function test_unregisterFPMMImplementation_whenNotRegistered_shouldRevert() public {
+    address nonRegisteredImplementation = address(0x1234567890123456789012345678901234567890);
+
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+    factory.unregisterFPMMImplementation(nonRegisteredImplementation, 0);
+  }
+
+  function test_unregisterFPMMImplementation_whenInvalidIndex_shouldRevert() public {
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: INDEX_OUT_OF_BOUNDS");
+    factory.unregisterFPMMImplementation(address(fpmmImplementation), 1);
+  }
+
+  function test_unregisterFPMMImplementation_whenIndexMismatch_shouldRevert() public {
+    // Register a second implementation
+    address newImplementation = address(0x1234567890123456789012345678901234567890);
+    vm.prank(governance);
+    factory.registerFPMMImplementation(newImplementation);
+
+    // Try to unregister with wrong index
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: IMPLEMENTATION_INDEX_MISMATCH");
+    factory.unregisterFPMMImplementation(newImplementation, 0);
+  }
+
+  // ============ POOL DEPLOYMENT TESTS ============
+
+  function test_deployFPMM_whenCalledByOwner_shouldDeployPool() public {
+    vm.prank(governance);
+
+    address fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
+
+    assertTrue(fpmm != address(0));
+    (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
+
+    assertEq(factory.deployedFPMMs(token0, token1), fpmm);
+    assertEq(factory.deployedFPMMs(token1, token0), address(0));
+    assertTrue(factory.isPool(address(token0), address(token1)));
+    assertFalse(factory.isPool(address(token1), address(token0)));
+
+    // Verify FPMM configuration
+    assertEq(IFPMM(fpmm).token0(), token0);
+    assertEq(IFPMM(fpmm).token1(), token1);
+    assertEq(address(IFPMM(fpmm).sortedOracles()), sortedOracles);
+    assertEq(IFPMM(fpmm).referenceRateFeedID(), referenceRateFeedID);
+    assertEq(address(IFPMM(fpmm).breakerBox()), breakerBox);
+    assertEq(OwnableUpgradeable(fpmm).owner(), governance);
+  }
+
+  function test_deployFPMM_whenCalledByNonOwner_shouldRevert() public {
+    vm.prank(alice);
+    vm.expectRevert();
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+  }
+
+  function test_deployFPMM_whenImplementationNotRegistered_shouldRevert() public {
+    address nonRegisteredImplementation = address(0x1234567890123456789012345678901234567890);
+
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+    factory.deployFPMM(nonRegisteredImplementation, address(tokenA), address(tokenB), referenceRateFeedID);
+  }
+
+  function test_deployFPMM_whenPoolAlreadyExists_shouldRevert() public {
+    // Deploy first pool
+    vm.prank(governance);
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+
+    // Try to deploy again
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+  }
+
+  function test_deployFPMM_whenZeroReferenceRateFeedID_shouldRevert() public {
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), address(0));
+  }
+
+  function test_deployFPMM_whenCustomParameters_shouldDeployWithCustomConfig() public {
+    address customSortedOracles = makeAddr("customSortedOracles");
+    address customProxyAdmin = makeAddr("customProxyAdmin");
+    address customBreakerBox = makeAddr("customBreakerBox");
+    address customGovernance = makeAddr("customGovernance");
+
+    vm.prank(governance);
+    address fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      customSortedOracles,
+      customProxyAdmin,
+      customBreakerBox,
+      customGovernance,
+      address(tokenA),
+      address(tokenC),
+      referenceRateFeedID
+    );
+
+    assertTrue(fpmm != address(0));
+    assertEq(factory.deployedFPMMs(address(tokenA), address(tokenC)), fpmm);
+    assertTrue(factory.isPool(address(tokenA), address(tokenC)));
+
+    // Verify custom configuration
+    assertEq(address(IFPMM(fpmm).sortedOracles()), customSortedOracles);
+    assertEq(address(IFPMM(fpmm).breakerBox()), customBreakerBox);
+    assertEq(OwnableUpgradeable(fpmm).owner(), customGovernance);
+  }
+
+  // ============ POOL QUERY TESTS ============
+
+  function test_isPool_whenPoolExists_shouldReturnTrue() public {
+    vm.prank(governance);
+    address fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
+
+    (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
+
+    assertTrue(factory.isPool(token0, token1));
+    assertFalse(factory.isPool(token1, token0));
+  }
+
+  function test_isPool_whenPoolDoesNotExist_shouldReturnFalse() public {
+    assertFalse(factory.isPool(address(tokenA), address(tokenB)));
+    assertFalse(factory.isPool(address(tokenB), address(tokenA)));
+  }
+
+  function test_getPool_whenPoolExists_shouldReturnPoolAddress() public {
+    vm.prank(governance);
+    address fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
+
+    (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
+
+    assertEq(factory.getPool(token0, token1), fpmm);
+    vm.expectRevert("FPMMFactory: POOL_NOT_FOUND");
+    factory.getPool(token1, token0);
+  }
+
+  function test_getPool_whenPoolDoesNotExist_shouldRevert() public {
+    vm.expectRevert("FPMMFactory: POOL_NOT_FOUND");
+    factory.getPool(address(tokenA), address(tokenB));
+  }
+
+  function test_deployedFPMMs_whenPoolExists_shouldReturnPoolAddress() public {
+    vm.prank(governance);
+    address fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
+
+    (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
+
+    assertEq(factory.deployedFPMMs(token0, token1), fpmm);
+    assertEq(factory.deployedFPMMs(token1, token0), address(0));
+  }
+
+  function test_deployedFPMMs_whenPoolDoesNotExist_shouldReturnZeroAddress() public {
+    assertEq(factory.deployedFPMMs(address(tokenA), address(tokenB)), address(0));
+    assertEq(factory.deployedFPMMs(address(tokenB), address(tokenA)), address(0));
+  }
+
+  function test_deployedFPMMAddresses_whenPoolsDeployed_shouldReturnAllAddresses() public {
+    vm.prank(governance);
+    address fpmm1 = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
+
+    vm.prank(governance);
+    address fpmm2 = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenC),
+      referenceRateFeedID
+    );
+
+    address[] memory deployedAddresses = factory.deployedFPMMAddresses();
+    assertEq(deployedAddresses.length, 2);
+    assertEq(deployedAddresses[0], fpmm1);
+    assertEq(deployedAddresses[1], fpmm2);
+  }
+
+  // ============ ADDRESS COMPUTATION TESTS ============
+
+  function test_getOrPrecomputeProxyAddress_whenPoolExists_shouldReturnActualAddress() public {
+    vm.prank(governance);
+    address fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
+
+    address computedAddress = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
+    assertEq(computedAddress, fpmm);
+  }
+
+  function test_getOrPrecomputeProxyAddress_whenPoolDoesNotExist_shouldReturnPrecomputedAddress() public {
+    address precomputedAddress = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
+    assertTrue(precomputedAddress != address(0));
+    assertEq(factory.deployedFPMMs(address(tokenA), address(tokenB)), address(0));
+  }
+
+  function test_getOrPrecomputeProxyAddress_whenTokensReversed_shouldReturnSameAddress() public {
+    address address1 = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
+    address address2 = factory.getOrPrecomputeProxyAddress(address(tokenB), address(tokenA));
+    assertEq(address1, address2);
+  }
+
+  // ============ TOKEN SORTING TESTS ============
+
+  function test_sortTokens_whenTokenALessThanTokenB_shouldReturnCorrectOrder() public {
+    address token0 = address(0x0000000000000000000000000000000000000011);
+    address token1 = address(0x0000000000000000000000000000000000000022);
+
+    (address sorted0, address sorted1) = factory.sortTokens(token0, token1);
+    assertEq(sorted0, token0);
+    assertEq(sorted1, token1);
+  }
+
+  function test_sortTokens_whenTokenAGreaterThanTokenB_shouldReturnCorrectOrder() public {
+    address token0 = address(0x0000000000000000000000000000000000000011);
+    address token1 = address(0x0000000000000000000000000000000000000022);
+
+    (address sorted0, address sorted1) = factory.sortTokens(token1, token0);
+    assertEq(sorted0, token0);
+    assertEq(sorted1, token1);
+  }
+
+  function test_sortTokens_whenSameTokens_shouldRevert() public {
+    vm.expectRevert("FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    factory.sortTokens(address(tokenA), address(tokenA));
+  }
+
+  function test_sortTokens_whenZeroAddress_shouldRevert() public {
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factory.sortTokens(address(0), address(tokenA));
+  }
+
+  // ============ ADMIN FUNCTION TESTS ============
+
+  function test_setSortedOracles_whenCalledByOwner_shouldUpdateAddress() public {
+    address newSortedOracles = makeAddr("newSortedOracles");
+
+    vm.prank(governance);
+    factory.setSortedOracles(newSortedOracles);
+
+    assertEq(factory.sortedOracles(), newSortedOracles);
+  }
+
+  function test_setSortedOracles_whenCalledByNonOwner_shouldRevert() public {
+    address newSortedOracles = makeAddr("newSortedOracles");
+
+    vm.prank(alice);
+    vm.expectRevert();
+    factory.setSortedOracles(newSortedOracles);
+  }
+
+  function test_setSortedOracles_whenZeroAddress_shouldRevert() public {
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factory.setSortedOracles(address(0));
+  }
+
+  function test_setProxyAdmin_whenCalledByOwner_shouldUpdateAddress() public {
+    address newProxyAdmin = makeAddr("newProxyAdmin");
+
+    vm.prank(governance);
+    factory.setProxyAdmin(newProxyAdmin);
+
+    assertEq(factory.proxyAdmin(), newProxyAdmin);
+  }
+
+  function test_setProxyAdmin_whenCalledByNonOwner_shouldRevert() public {
+    address newProxyAdmin = makeAddr("newProxyAdmin");
+
+    vm.prank(alice);
+    vm.expectRevert();
+    factory.setProxyAdmin(newProxyAdmin);
+  }
+
+  function test_setProxyAdmin_whenZeroAddress_shouldRevert() public {
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factory.setProxyAdmin(address(0));
+  }
+
+  function test_setBreakerBox_whenCalledByOwner_shouldUpdateAddress() public {
+    address newBreakerBox = makeAddr("newBreakerBox");
+
+    vm.prank(governance);
+    factory.setBreakerBox(newBreakerBox);
+
+    assertEq(factory.breakerBox(), newBreakerBox);
+  }
+
+  function test_setBreakerBox_whenCalledByNonOwner_shouldRevert() public {
+    address newBreakerBox = makeAddr("newBreakerBox");
+
+    vm.prank(alice);
+    vm.expectRevert();
+    factory.setBreakerBox(newBreakerBox);
+  }
+
+  function test_setBreakerBox_whenZeroAddress_shouldRevert() public {
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factory.setBreakerBox(address(0));
+  }
+
+  function test_setGovernance_whenCalledByOwner_shouldUpdateAddress() public {
+    address newGovernance = makeAddr("newGovernance");
+
+    vm.prank(governance);
+    factory.setGovernance(newGovernance);
+
+    assertEq(factory.governance(), newGovernance);
+    assertEq(factory.owner(), newGovernance);
+  }
+
+  function test_setGovernance_whenCalledByNonOwner_shouldRevert() public {
+    address newGovernance = makeAddr("newGovernance");
+
+    vm.prank(alice);
+    vm.expectRevert();
+    factory.setGovernance(newGovernance);
+  }
+
+  function test_setGovernance_whenZeroAddress_shouldRevert() public {
+    vm.prank(governance);
+    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    factory.setGovernance(address(0));
+  }
+
+  // ============ EDGE CASE TESTS ============
+
+  function test_deployFPMM_whenTokensHaveDifferentDecimals_shouldDeployCorrectly() public {
+    // Create tokens with different decimals
+    TestERC20 token6Decimals = new TestERC20("Token6", "TK6");
+    TestERC20 token12Decimals = new TestERC20("Token12", "TK12");
+
+    vm.prank(governance);
+    address fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(token6Decimals),
+      address(token12Decimals),
+      referenceRateFeedID
+    );
+
+    assertTrue(fpmm != address(0));
+    assertTrue(factory.isPool(address(token6Decimals), address(token12Decimals)));
+  }
+
+  function test_deployFPMM_whenMultiplePools_shouldTrackAllPools() public {
+    vm.prank(governance);
+    address fpmm1 = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
+
+    vm.prank(governance);
+    address fpmm2 = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenC),
+      referenceRateFeedID
+    );
+
+    vm.prank(governance);
+    address fpmm3 = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenB),
+      address(tokenC),
+      referenceRateFeedID
+    );
+
+    address[] memory deployedAddresses = factory.deployedFPMMAddresses();
+    assertEq(deployedAddresses.length, 3);
+    assertEq(deployedAddresses[0], fpmm1);
+    assertEq(deployedAddresses[1], fpmm2);
+    assertEq(deployedAddresses[2], fpmm3);
+
+    assertEq(factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB)), fpmm1);
+    assertEq(factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenC)), fpmm2);
+    assertEq(factory.getOrPrecomputeProxyAddress(address(tokenB), address(tokenC)), fpmm3);
+  }
+}
