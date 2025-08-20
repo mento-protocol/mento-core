@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.24;
+pragma solidity 0.8.18;
 
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { ERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
@@ -64,9 +64,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     address _token1,
     address _sortedOracles,
     address _referenceRateFeedID,
-    bool _revertRateFeed,
     address _breakerBox,
-    address owner_
+    address _owner
   ) external initializer {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -92,8 +91,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     setSortedOracles(_sortedOracles);
     setBreakerBox(_breakerBox);
     setReferenceRateFeedID(_referenceRateFeedID);
-    setRevertRateFeed(_revertRateFeed);
-    transferOwnership(owner_);
+    transferOwnership(_owner);
   }
 
   /* ========== VIEW FUNCTIONS ========== */
@@ -174,12 +172,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function revertRateFeed() external view returns (bool) {
-    FPMMStorage storage $ = _getFPMMStorage();
-    return $.revertRateFeed;
-  }
-
-  /// @inheritdoc IFPMM
   function breakerBox() external view returns (IBreakerBox) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.breakerBox;
@@ -225,41 +217,20 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function getPrices()
     public
     view
-    returns (
-      uint256 oraclePriceNumerator,
-      uint256 oraclePriceDenominator,
-      uint256 reservePriceNumerator,
-      uint256 reservePriceDenominator,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    )
+    returns (uint256 oraclePrice, uint256 reservePrice, uint256 _decimals0, uint256 _decimals1)
   {
     FPMMStorage storage $ = _getFPMMStorage();
 
     require($.referenceRateFeedID != address(0), "FPMM: REFERENCE_RATE_NOT_SET");
     require($.reserve0 > 0 && $.reserve1 > 0, "FPMM: RESERVES_EMPTY");
 
-    (oraclePriceNumerator, oraclePriceDenominator) = _getRateFeed();
+    _decimals0 = $.decimals0;
+    _decimals1 = $.decimals1;
 
-    reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
-    reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
+    (uint256 rateNumerator, uint256 rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
 
-    uint256 oracleCrossProduct = oraclePriceNumerator * reservePriceDenominator;
-    uint256 reserveCrossProduct = reservePriceNumerator * oraclePriceDenominator;
-    reservePriceAboveOraclePrice = reserveCrossProduct > oracleCrossProduct;
-
-    uint256 absolutePriceDiff = reservePriceAboveOraclePrice
-      ? reserveCrossProduct - oracleCrossProduct
-      : oracleCrossProduct - reserveCrossProduct;
-    priceDifference = (absolutePriceDiff * BASIS_POINTS_DENOMINATOR) / oracleCrossProduct;
-    return (
-      oraclePriceNumerator,
-      oraclePriceDenominator,
-      reservePriceNumerator,
-      reservePriceDenominator,
-      priceDifference,
-      reservePriceAboveOraclePrice
-    );
+    oraclePrice = (rateNumerator * 1e18) / (rateDenominator);
+    reservePrice = ($.reserve1 * _decimals0 * 1e18) / ($.reserve0 * _decimals1);
   }
 
   /// @inheritdoc IFPMM
@@ -275,7 +246,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     if (amountIn == 0) return 0;
 
-    (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
+    (uint256 rateNumerator, uint256 rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
 
     uint256 amountInAfterFee = amountIn - ((amountIn * $.protocolFee) / BASIS_POINTS_DENOMINATOR);
 
@@ -319,13 +290,13 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     uint256 amount0 = balance0 - $.reserve0;
     uint256 amount1 = balance1 - $.reserve1;
 
-    uint256 totalSupply_ = totalSupply();
+    uint256 _totalSupply = totalSupply();
     // slither-disable-next-line incorrect-equality
-    if (totalSupply_ == 0) {
+    if (_totalSupply == 0) {
       liquidity = Math.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
       _mint(address(1), MINIMUM_LIQUIDITY);
     } else {
-      liquidity = Math.min((amount0 * totalSupply_) / $.reserve0, (amount1 * totalSupply_) / $.reserve1);
+      liquidity = Math.min((amount0 * _totalSupply) / $.reserve0, (amount1 * _totalSupply) / $.reserve1);
     }
 
     require(liquidity > MINIMUM_LIQUIDITY, "FPMM: INSUFFICIENT_LIQUIDITY_MINTED");
@@ -386,8 +357,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     swapData.amount0Out = amount0Out;
     swapData.amount1Out = amount1Out;
 
-    (swapData.rateNumerator, swapData.rateDenominator) = _getRateFeed();
-    swapData.initialReserveValue = _totalValueInToken1Scaled(
+    (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
+    swapData.initialReserveValue = _totalValueInToken1(
       $.reserve0,
       $.reserve1,
       swapData.rateNumerator,
@@ -438,21 +409,14 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     swapData.amount0Out = amount0Out;
     swapData.amount1Out = amount1Out;
 
-    (
-      swapData.rateNumerator,
-      swapData.rateDenominator,
-      ,
-      ,
-      swapData.initialPriceDifference,
-      swapData.reservePriceAboveOraclePrice
-    ) = getPrices();
-
-    swapData.initialReserveValue = _totalValueInToken1Scaled(
+    (swapData.rateNumerator, swapData.rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
+    swapData.initialReserveValue = _totalValueInToken1(
       $.reserve0,
       $.reserve1,
       swapData.rateNumerator,
       swapData.rateDenominator
     );
+    (swapData.initialPriceDifference, swapData.reservePriceAboveOraclePrice) = _calculatePriceDifference();
 
     uint256 threshold = swapData.reservePriceAboveOraclePrice ? $.rebalanceThresholdAbove : $.rebalanceThresholdBelow;
     require(swapData.initialPriceDifference >= threshold, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
@@ -473,9 +437,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       (amount0Out > 0 && amount1In > 0 && amount0In == 0) || (amount1Out > 0 && amount0In > 0 && amount1In == 0),
       "FPMM: REBALANCE_DIRECTION_INVALID"
     );
-
-    swapData.amount0In = amount0In;
-    swapData.amount1In = amount1In;
 
     _update();
 
@@ -543,11 +504,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     emit SortedOraclesUpdated(oldSortedOracles, _sortedOracles);
   }
 
-  function setRevertRateFeed(bool _revertRateFeed) public onlyOwner {
-    FPMMStorage storage $ = _getFPMMStorage();
-    $.revertRateFeed = _revertRateFeed;
-  }
-
   /// @inheritdoc IFPMM
   function setBreakerBox(address _breakerBox) public onlyOwner {
     require(_breakerBox != address(0), "FPMM: BREAKER_BOX_ADDRESS_MUST_BE_SET");
@@ -596,14 +552,14 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /**
-   * @notice Calculates total value of a given amount of tokens in terms of token1 scaled to 18 decimals
+   * @notice Calculates total value of a given amount of tokens in terms of token1
    * @param amount0 Amount of token0
    * @param amount1 Amount of token1
    * @param rateNumerator Oracle rate numerator
    * @param rateDenominator Oracle rate denominator
    * @return Total value in token1
    */
-  function _totalValueInToken1Scaled(
+  function _totalValueInToken1(
     uint256 amount0,
     uint256 amount1,
     uint256 rateNumerator,
@@ -611,19 +567,24 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   ) private view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    uint256 token0ValueInToken1 = convertWithRate(amount0, $.decimals0, 1e18, rateNumerator, rateDenominator);
-    amount1 = amount1 * (1e18 / $.decimals1);
+    uint256 token0ValueInToken1 = convertWithRate(amount0, $.decimals0, $.decimals1, rateNumerator, rateDenominator);
     return token0ValueInToken1 + amount1;
   }
 
-  function _getRateFeed() private view returns (uint256 rateNumerator, uint256 rateDenominator) {
-    FPMMStorage storage $ = _getFPMMStorage();
-    (rateNumerator, rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
-    rateNumerator = rateNumerator / 1e6;
-    rateDenominator = rateDenominator / 1e6;
-    if ($.revertRateFeed) {
-      (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);
-    }
+  /**
+   * @notice Calculates price difference between oracle and reserves in basis points
+   * @return priceDifference Price difference in basis points
+   */
+  function _calculatePriceDifference()
+    private
+    view
+    returns (uint256 priceDifference, bool reservePriceAboveOraclePrice)
+  {
+    (uint256 oraclePrice, uint256 reservePrice, , ) = getPrices();
+
+    reservePriceAboveOraclePrice = reservePrice > oraclePrice;
+    uint256 absolutePriceDiff = reservePriceAboveOraclePrice ? reservePrice - oraclePrice : oraclePrice - reservePrice;
+    priceDifference = (absolutePriceDiff * BASIS_POINTS_DENOMINATOR) / oraclePrice;
   }
 
   /**
@@ -637,7 +598,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     FPMMStorage storage $ = _getFPMMStorage();
 
     bool reservePriceAboveOraclePrice;
-    (, , , , newPriceDifference, reservePriceAboveOraclePrice) = getPrices();
+    (newPriceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference();
 
     // Ensure price difference is smaller than before
     require(newPriceDifference < swapData.initialPriceDifference, "FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
@@ -647,29 +608,32 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION"
     );
 
-    if (swapData.amount0In > 0) {
-      uint256 expectedAmount0In = convertWithRate(
-        swapData.amount1Out,
-        $.decimals1,
-        1e18,
-        swapData.rateDenominator,
-        swapData.rateNumerator
-      );
-      uint256 minAmount0In = expectedAmount0In - (expectedAmount0In * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
+    // Check for excessive value loss
+    uint256 newReserveValue = _totalValueInToken1(
+      $.reserve0,
+      $.reserve1,
+      swapData.rateNumerator,
+      swapData.rateDenominator
+    );
 
-      require(swapData.amount0In >= minAmount0In, "FPMM: INSUFFICIENT_AMOUNT_0_IN");
-    } else {
-      uint256 expectedAmount1In = convertWithRate(
+    uint256 amountOutInToken1;
+    if (swapData.amount0Out > 0) {
+      amountOutInToken1 = convertWithRate(
         swapData.amount0Out,
         $.decimals0,
-        1e18,
+        $.decimals1,
         swapData.rateNumerator,
         swapData.rateDenominator
       );
-      expectedAmount1In = expectedAmount1In / (1e18 / $.decimals1);
-      uint256 minAmount1In = expectedAmount1In - (expectedAmount1In * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
-      require(swapData.amount1In >= minAmount1In, "FPMM: INSUFFICIENT_AMOUNT_1_IN");
+    } else {
+      amountOutInToken1 = swapData.amount1Out;
     }
+
+    uint256 maxRebalanceIncentiveInToken1 = (amountOutInToken1 * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
+    require(
+      newReserveValue >= swapData.initialReserveValue - maxRebalanceIncentiveInToken1,
+      "FPMM: EXCESSIVE_VALUE_LOSS"
+    );
   }
 
   /**
@@ -679,14 +643,13 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function _swapCheck(SwapData memory swapData) private view {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    uint256 newReserveValue = _totalValueInToken1Scaled(
+    uint256 newReserveValue = _totalValueInToken1(
       $.reserve0,
       $.reserve1,
       swapData.rateNumerator,
       swapData.rateDenominator
     );
 
-    // TODO: think about rounding here
     uint256 expectedAmount0In = convertWithRate(
       swapData.amount1Out,
       $.decimals1,
@@ -695,7 +658,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateNumerator
     );
 
-    // TODO: think about rounding here
     uint256 expectedAmount1In = convertWithRate(
       swapData.amount0Out,
       $.decimals0,
@@ -719,8 +681,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateDenominator
     );
     uint256 totalFeeInToken1 = fee0InToken1 + fee1;
-    // convert to 18 decimals
-    totalFeeInToken1 = totalFeeInToken1 * (1e18 / $.decimals1);
 
     // Check the reserve value is not decreased
     uint256 expectedReserveValue = swapData.initialReserveValue + totalFeeInToken1;

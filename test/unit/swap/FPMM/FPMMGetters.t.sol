@@ -127,29 +127,16 @@ contract FPMMGettersTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
-    setupMockOracleRate(2e24, 1e24)
+    setupMockOracleRate(2e18, 1e18)
   {
-    // FPMM scales the oracle rate down to 18 decimals
-    uint256 expectedOraclePriceNumerator = 2e18;
-    uint256 expectedOraclePriceDenominator = 1e18;
+    uint256 expectedOraclePrice = 2e18;
+    uint256 expectedReservePrice = 2e18;
 
-    uint256 expectedReservePriceNumerator = 200e18;
-    uint256 expectedReservePriceDenominator = 100e18;
+    (uint256 oraclePrice, uint256 reservePrice, uint256 _decimals0, uint256 _decimals1) = fpmm.getPrices();
 
-    (
-      uint256 oraclePriceNumerator,
-      uint256 oraclePriceDenominator,
-      uint256 reservePriceNumerator,
-      uint256 reservePriceDenominator,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
-
-    assertEq(oraclePriceNumerator, expectedOraclePriceNumerator);
-    assertEq(oraclePriceDenominator, expectedOraclePriceDenominator);
-    assertEq(reservePriceNumerator, expectedReservePriceNumerator);
-    assertEq(reservePriceDenominator, expectedReservePriceDenominator);
-    assertEq(priceDifference, 0);
-    assertEq(reservePriceAboveOraclePrice, false);
+    assertEq(oraclePrice, expectedOraclePrice);
+    assertEq(reservePrice, expectedReservePrice);
+    assertEq(_decimals0, 1e18);
+    assertEq(_decimals1, 1e6);
   }
 }

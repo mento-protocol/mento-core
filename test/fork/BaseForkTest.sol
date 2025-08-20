@@ -129,8 +129,7 @@ abstract contract BaseForkTest is Test {
   }
 
   function transferCeloFromReserve(address to, uint256 amount) internal {
-    vm.startPrank(address(mentoReserve));
+    vm.prank(address(mentoReserve));
     IERC20(lookup("GoldToken")).transfer(to, amount);
-    vm.stopPrank();
   }
 }

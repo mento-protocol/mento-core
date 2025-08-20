@@ -148,11 +148,11 @@ contract ReserveLiquidityStrategyTest is Test {
     vm.mockCall(
       address(poolWithInvalidDecimals),
       abi.encodeWithSelector(poolWithInvalidDecimals.metadata.selector),
-      abi.encode(19e18, 18e18, 1000e18, 1000e18, address(tokenWithInvalidDecimals), address(collateralToken))
+      abi.encode(19, 18, 1000e18, 1000e18, address(tokenWithInvalidDecimals), address(collateralToken))
     );
 
     // Set up prices for rebalance
-    poolWithInvalidDecimals.setPrices(1e18, 1e18, 1.05e18, 1e18, 500, true);
+    poolWithInvalidDecimals.setPrices(1e18, 1.05e18);
 
     // Expect revert with RLS: TOKEN_DECIMALS_TOO_LARGE
     vm.expectRevert("RLS: TOKEN_DECIMALS_TOO_LARGE");
@@ -162,7 +162,7 @@ contract ReserveLiquidityStrategyTest is Test {
   function test_rebalance_whenCooldownActive_shouldRevert() public {
     // Initial rebalance to set timestamp
     // Create a scenario that will trigger expansion (price above oracle)
-    mockPool.setPrices(1e18, 1e18, 2e18, 1e18, 10_000, true); // poolPrice > Oracle + threshold
+    mockPool.setPrices(1e18, 2e18); // poolPrice > Oracle + threshold
     mockPool.setReserves(2e21, 4e21); // S=2000, C=4000, P_oracle=1
 
     // Mint tokens to support the test
@@ -178,7 +178,7 @@ contract ReserveLiquidityStrategyTest is Test {
   }
 
   function test_rebalance_whenPriceInRange_shouldRevert() public {
-    mockPool.setPrices(1e18, 1e18, 1.005e18, 1e18, 50, true); // 0.5% deviation, threshold 1%
+    mockPool.setPrices(1e18, 1.005e18); // 0.5% deviation, threshold 1%
     mockPool.setRebalanceThreshold(100, 100); // 1%
 
     vm.expectRevert("LS: PRICE_IN_RANGE");
@@ -192,24 +192,22 @@ contract ReserveLiquidityStrategyTest is Test {
     uint256 stableReserveInPool = 1000e18; // S
     uint256 collateralReserveInPool = 1000e18; // C
     uint256 oraclePrice = 0.9e18; // P_oracle < 1e18 will make stable * (1-P) > 0
-    uint256 poolPrice = 1e18; // P_pool > P_oracle + threshold
+    uint256 poolPrice = 1.02e18; // P_pool > P_oracle + threshold
     uint256 thresholdBps = 100; // 1%
 
     mockPool.setReserves(stableReserveInPool, collateralReserveInPool);
-    mockPool.setPrices(oraclePrice, 1e18, poolPrice, 1e18, 1000, true);
+    mockPool.setPrices(oraclePrice, poolPrice);
     mockPool.setRebalanceThreshold(thresholdBps, thresholdBps);
 
     // Add sufficient tokens to the pool and reserve for the test
     collateralToken.mint(address(mockPool), 1000e18);
 
     // Pre-calculate expected amounts with these values
-    // Using formula:
-    // numerator = C - P * S = 1000e18 - 1000e18*0.9 = 100e18
-    // denominator = 1 + 1 - incentive = 2 - 0.1 = 1.9
-    // collateralOut = numerator / denominator = 100e18 / 1.9 = 50.251256281407035175
-    // stablesIn = (collateralOut * 1e18) / P = 55.834729201563372416
-    uint256 expectedCollateralOut = 50251256281407035175;
-    uint256 expectedStablesIn = 55834729201563372416; // 55.834...
+    // Using formula: numerator = C - P * S = 1000e18 - 1000e18*0.9 = 100e18
+    // collateralOut = numerator / 2 = 50e18
+    // stablesIn = (collateralOut * 1e18) / P = (50e18 * 1e18) / 0.9 = 55.555...e18
+    uint256 expectedCollateralOut = 50e18;
+    uint256 expectedStablesIn = 55555555555555555555; // 55.555...e18
     uint256 incentiveAmount = (expectedStablesIn * DEFAULT_INCENTIVE) / 10_000;
 
     // Record balances before rebalance
@@ -276,11 +274,11 @@ contract ReserveLiquidityStrategyTest is Test {
     uint256 stableReserveInPool = 1000e18; // S
     uint256 collateralReserveInPool = 950e18; // C < P * S (1000e18)
     uint256 oraclePrice = 1e18; // P_oracle
-    uint256 poolPrice = 0.95e18; // P_pool < P_oracle - threshold
+    uint256 poolPrice = 0.98e18; // P_pool < P_oracle - threshold
     uint256 thresholdBps = 100; // 1%
 
     mockPool.setReserves(stableReserveInPool, collateralReserveInPool);
-    mockPool.setPrices(oraclePrice, 1e18, poolPrice, 1e18, 500, false);
+    mockPool.setPrices(oraclePrice, poolPrice);
     mockPool.setRebalanceThreshold(thresholdBps, thresholdBps);
 
     // Mint additional collateral to the reserve for the test
@@ -292,13 +290,11 @@ contract ReserveLiquidityStrategyTest is Test {
     uint256 reserveCollateralBefore = collateralToken.balanceOf(address(mockReserve));
 
     // Calculate expected amounts
-    // Using formula:
-    // numerator = P * S - C = 1000e18 - 950e18 = 50e18
-    // denominator = P + P * (1 - incentive) =  1e18 + 1e18 * (1 - 0.01) = 1.99e18
-    // stableOut = numerator / denominator = 50e18 / 1.99 = 25.125628140703517587
-    // collateralIn = stableOut * 1e18 / P = 25.125628140703517587
-    uint256 expectedCollateralIn = 25125628140703517587;
-    uint256 expectedStableOut = 25125628140703517587;
+    // Using formula: numerator = P * S - C = 1e18*1000e18 - 950e18 = 50e18
+    // collateralIn = numerator / 2 = 25e18
+    // stableOut = collateralIn * 1e18 / P = 25e18 / 1e18 = 25e18
+    uint256 expectedCollateralIn = 25e18;
+    uint256 expectedStableOut = 25e18;
     uint256 incentiveAmount = (expectedCollateralIn * DEFAULT_INCENTIVE) / 10_000;
 
     // Expect RebalanceInitiated event with calculated amounts
@@ -361,16 +357,14 @@ contract ReserveLiquidityStrategyTest is Test {
   function test_rebalance_withDifferentDecimals() public {
     // --- Setup ---
     // stable has 18 decimals, collateral has 6 decimals
-    // pool price C/S = 1.02
     uint256 stableReserveInPool = 1050e18; // S
-    uint256 collateralReserveInPool = 1071e6; // C
+    uint256 collateralReserveInPool = 1100e6; // C
     uint256 oraclePrice = 1e18; // P_oracle
+    uint256 poolPrice = 1.02e18; // P_pool > P_oracle + threshold
     uint256 thresholdBps = 100; // 1%
 
     mockPool6Dec.setReserves(stableReserveInPool, collateralReserveInPool);
-    // Pool balance scaled to 18 decimals
-    // price difference = 200 = 0.2% in bps
-    mockPool6Dec.setPrices(oraclePrice, 1e18, collateralReserveInPool * 1e12, stableReserveInPool, 200, true);
+    mockPool6Dec.setPrices(oraclePrice, poolPrice);
     mockPool6Dec.setRebalanceThreshold(thresholdBps, thresholdBps);
 
     // --- Calculations ---
@@ -378,11 +372,10 @@ contract ReserveLiquidityStrategyTest is Test {
 
     // numerator = C_scaled - (P_oracle * S / 1e18)
     uint256 numerator = collateralReserveInPool_scaled - (oraclePrice * stableReserveInPool) / 1e18;
-    uint256 denominator = 10_000 * 2 - DEFAULT_INCENTIVE;
 
-    uint256 collateralOut_scaled = (numerator * 10_000) / denominator;
+    uint256 collateralOut_scaled = numerator / 2;
     uint256 expectedCollateralOut = collateralOut_scaled / 1e12;
-    uint256 expectedStablesIn = (expectedCollateralOut * 1e12 * 1e18) / oraclePrice;
+    uint256 expectedStablesIn = (collateralOut_scaled * 1e18) / oraclePrice;
     uint256 incentiveAmount = (expectedStablesIn * DEFAULT_INCENTIVE) / 10_000;
 
     // --- Balances ---

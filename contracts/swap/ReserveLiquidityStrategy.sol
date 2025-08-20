@@ -116,32 +116,20 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
    *         initiates the movement of tokens out of the pool (either stable or collateral,
    *         depending on the rebalance direction). The rebalance is completed in the `hook`
    *         function, which is called by the pool, handling the corresponding token mints/burns
-   *         and transfers to/from the reserve. The incentive is the reward for the strategy to
-   *         incentivize the rebalance.
+   *         and transfers to/from the reserve.
    * @param pool The address of the pool.
-   * @param oraclePriceNumerator The numerator of the target price.
-   * @param oraclePriceDenominator The denominator of the target price.
+   * @param oraclePrice The off‑chain target price.
    * @param priceDirection Indicates if the pool price is above or below the oracle price.
    */
-  function _executeRebalance(
-    address pool,
-    uint256 oraclePriceNumerator,
-    uint256 oraclePriceDenominator,
-    PriceDirection priceDirection
-  ) internal override {
+  function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal override {
     IFPMM fpmm = IFPMM(pool);
 
-    uint256 incentive = _getIncentive(fpmm);
-
-    (uint256 stableOut, uint256 collateralOut, uint256 inputAmount) = _calculateRebalanceAmounts(
-      fpmm,
-      oraclePriceNumerator,
-      oraclePriceDenominator,
-      priceDirection,
-      incentive
-    );
-
-    uint256 incentiveAmount = (inputAmount * incentive) / BPS_SCALE;
+    (
+      uint256 stableOut,
+      uint256 collateralOut,
+      uint256 inputAmount,
+      uint256 incentiveAmount
+    ) = _calculateRebalanceAmounts(fpmm, oraclePrice, priceDirection);
 
     bytes memory callbackData = abi.encode(inputAmount, priceDirection, incentiveAmount);
 
@@ -160,119 +148,84 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
   /**
    * @dev Calculates all amounts needed for a rebalance.
-   * @param fpmm The pool contract.
-   * @param oraclePriceNumerator The numerator of the target price.
-   * @param oraclePriceDenominator The denominator of the target price.
-   * @param priceDirection Indicates if the pool price is above or below the oracle price.
-   * @param incentive The rebalance incentive in basis points.
-   * @return stableOut Amount of stable tokens to move out of the pool.
-   * @return collateralOut Amount of collateral tokens to move into the pool.
-   * @return inputAmount Amount of tokens to move into the pool.
    */
   function _calculateRebalanceAmounts(
     IFPMM fpmm,
-    uint256 oraclePriceNumerator,
-    uint256 oraclePriceDenominator,
-    PriceDirection priceDirection,
-    uint256 incentive
-  ) private view returns (uint256 stableOut, uint256 collateralOut, uint256 inputAmount) {
+    uint256 oraclePrice,
+    PriceDirection priceDirection
+  ) private view returns (uint256 stableOut, uint256 collateralOut, uint256 inputAmount, uint256 incentiveAmount) {
     // slither-disable-next-line unused-return
     (uint256 dec0, uint256 dec1, uint256 reserve0, uint256 reserve1, , ) = fpmm.metadata();
 
-    require(dec0 <= 1e18 && dec1 <= 1e18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
+    require(dec0 <= 18 && dec1 <= 18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
 
-    RebalanceParams memory params;
-    params.stablePrecision = 1e18 / dec0;
-    params.collateralPrecision = 1e18 / dec1;
-    params.stableReserve = reserve0 * params.stablePrecision;
-    params.collateralReserve = reserve1 * params.collateralPrecision;
+    uint256 strategyIncentive = fpmmPoolConfigs[address(fpmm)].rebalanceIncentive;
+    uint256 poolIncentive = fpmm.rebalanceIncentive();
+    uint256 incentive = strategyIncentive < poolIncentive ? strategyIncentive : poolIncentive;
+
+    RebalanceParams memory params = RebalanceParams({
+      stableReserve: reserve0 * (10 ** (18 - dec0)),
+      collateralReserve: reserve1 * (10 ** (18 - dec1)),
+      stablePrecision: 10 ** (18 - dec0),
+      collateralPrecision: 10 ** (18 - dec1)
+    });
 
     if (priceDirection == PriceDirection.ABOVE_ORACLE) {
-      (collateralOut, inputAmount) = _calculateExpansionAmounts(
-        params,
-        oraclePriceNumerator,
-        oraclePriceDenominator,
-        incentive
-      );
+      (collateralOut, inputAmount) = _calculateExpansionAmounts(params, oraclePrice);
       stableOut = 0;
     } else {
-      (stableOut, inputAmount) = _calculateContractionAmounts(
-        params,
-        oraclePriceNumerator,
-        oraclePriceDenominator,
-        incentive
-      );
+      (stableOut, inputAmount) = _calculateContractionAmounts(params, oraclePrice);
       collateralOut = 0;
     }
+
+    incentiveAmount = (inputAmount * incentive) / BPS_SCALE;
   }
 
   /**
    * @notice Calculates the amounts for contraction (when pool price is below oracle price)
-   * @dev Contraction: move stables out of the pool and move collateral into the pool.
-   *      StablesOut = (OraclePrice * StableReserve - CollateralReserve) / (OraclePrice + OraclePrice * (1 - incentive))
-   *      CollateralIn = StablesOut * OraclePrice
    * @param params Struct containing rebalancing parameters.
-   * @param oraclePriceNumerator The numerator of the target price.
-   * @param oraclePriceDenominator The denominator of the target price.
-   * @param incentive The rebalance incentive in basis points.
+   * @param oraclePrice The off-chain target price.
    * @return stableOut Amount of stable tokens to move out of the pool.
    * @return collateralIn Amount of collateral tokens to move into the pool.
    */
   function _calculateContractionAmounts(
     RebalanceParams memory params,
-    uint256 oraclePriceNumerator,
-    uint256 oraclePriceDenominator,
-    uint256 incentive
+    uint256 oraclePrice
   ) private pure returns (uint256 stableOut, uint256 collateralIn) {
-    uint256 numerator = (params.stableReserve * oraclePriceNumerator) -
-      (params.collateralReserve * oraclePriceDenominator);
-    uint256 denominator = oraclePriceNumerator + ((oraclePriceNumerator * (BPS_SCALE - incentive)) / BPS_SCALE);
-    uint256 stableOutRaw = numerator / denominator;
+    // Contraction: Sell stables to buy collateral
+    // CollateralIn = (OraclePrice * StableReserve - CollateralReserve) / 2
+    // StablesOut = CollateralIn / OraclePrice
+    uint256 numerator = ((oraclePrice * params.stableReserve) / 1e18) - params.collateralReserve;
+    uint256 denominator = 2;
+
+    uint256 collateralInRaw = numerator / denominator;
+    uint256 stableOutRaw = (numerator * 1e18) / (denominator * oraclePrice);
+
     stableOut = stableOutRaw / params.stablePrecision;
-
-    uint256 collateralInRaw = (stableOut * params.stablePrecision * oraclePriceNumerator) / oraclePriceDenominator;
-
     collateralIn = collateralInRaw / params.collateralPrecision;
   }
 
   /**
    * @notice Calculates the amounts for expansion (when pool price is above oracle price)
-   * @dev Expansion: move collateral out of the pool and move stables into the pool.
-   *      CollateralOut = (CollateralReserve - OraclePrice * StableReserve) / (1 + 1 - incentive)
-   *      StablesIn = CollateralOut / OraclePrice
    * @param params Struct containing rebalancing parameters.
-   * @param oraclePriceNumerator The numerator of the target price.
-   * @param oraclePriceDenominator The denominator of the target price.
-   * @param incentive The rebalance incentive in basis points.
+   * @param oraclePrice The off-chain target price.
    * @return collateralOut Amount of collateral tokens to move out of the pool.
    * @return stablesIn Amount of stable tokens to move into the pool.
    */
   function _calculateExpansionAmounts(
     RebalanceParams memory params,
-    uint256 oraclePriceNumerator,
-    uint256 oraclePriceDenominator,
-    uint256 incentive
+    uint256 oraclePrice
   ) private pure returns (uint256 collateralOut, uint256 stablesIn) {
-    uint256 numerator = params.collateralReserve -
-      ((params.stableReserve * oraclePriceNumerator) / oraclePriceDenominator);
-    uint256 denominator = BPS_SCALE * 2 - incentive;
+    // Expansion: Sell collateral to buy stables
+    // CollateralOut = (CollateralReserve - OraclePrice * StableReserve) / 2
+    // StablesIn = CollateralOut / OraclePrice
+    uint256 numerator = params.collateralReserve - ((oraclePrice * params.stableReserve) / 1e18);
+    uint256 denominator = 2;
 
-    uint256 collateralOutRaw = (numerator * BPS_SCALE) / denominator;
+    uint256 collateralOutRaw = numerator / denominator;
+    uint256 stablesInRaw = (numerator * 1e18) / (denominator * oraclePrice);
+
     collateralOut = collateralOutRaw / params.collateralPrecision;
-
-    uint256 stablesInRaw = (collateralOut * params.collateralPrecision * oraclePriceDenominator) / oraclePriceNumerator;
     stablesIn = stablesInRaw / params.stablePrecision;
-  }
-
-  /**
-   * @notice Gets the incentive bps to be used for the given pool.
-   *         The incentive is the lower of the strategy incentive and the pool incentive.
-   * @param fpmm The pool contract.
-   * @return incentive The incentive in basis points.
-   */
-  function _getIncentive(IFPMM fpmm) private view returns (uint256) {
-    uint256 strategyIncentive = fpmmPoolConfigs[address(fpmm)].rebalanceIncentive;
-    uint256 poolIncentive = fpmm.rebalanceIncentive();
-    return strategyIncentive < poolIncentive ? strategyIncentive : poolIncentive;
   }
 }

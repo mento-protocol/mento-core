@@ -129,16 +129,8 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
 
     IFPMM fpmm = IFPMM(pool);
     // slither-disable-next-line unused-return
-    (
-      uint256 oraclePriceNumerator,
-      uint256 oraclePriceDenominator,
-      uint256 poolPriceNumerator,
-      ,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
-
-    require(oraclePriceNumerator > 0 && poolPriceNumerator > 0, "LS: INVALID_PRICES");
+    (uint256 oraclePrice, uint256 poolPrice, , ) = fpmm.getPrices();
+    require(oraclePrice > 0 && poolPrice > 0, "LS: INVALID_PRICES");
 
     uint256 upperThresholdBps = fpmm.rebalanceThresholdAbove();
     require(upperThresholdBps > 0 && upperThresholdBps <= BPS_SCALE, "LS: INVALID_UPPER_THRESHOLD");
@@ -146,23 +138,26 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
     uint256 lowerThresholdBps = fpmm.rebalanceThresholdBelow();
     require(lowerThresholdBps > 0 && lowerThresholdBps <= BPS_SCALE, "LS: INVALID_LOWER_THRESHOLD");
 
+    uint256 upperBound = (oraclePrice * (BPS_SCALE + upperThresholdBps)) / BPS_SCALE;
+    uint256 lowerBound = (oraclePrice * (BPS_SCALE - lowerThresholdBps)) / BPS_SCALE;
+
     // slither-disable-next-line uninitialized-local
     PriceDirection priceDirection;
 
-    if (upperThresholdBps <= priceDifference && reservePriceAboveOraclePrice) {
+    if (poolPrice >= upperBound) {
       priceDirection = PriceDirection.ABOVE_ORACLE;
-    } else if (lowerThresholdBps <= priceDifference && !reservePriceAboveOraclePrice) {
+    } else if (poolPrice <= lowerBound) {
       priceDirection = PriceDirection.BELOW_ORACLE;
     } else {
       revert("LS: PRICE_IN_RANGE");
     }
 
-    _executeRebalance(pool, oraclePriceNumerator, oraclePriceDenominator, priceDirection);
+    _executeRebalance(pool, oraclePrice, priceDirection);
     fpmmPoolConfigs[pool].lastRebalance = block.timestamp;
 
     // slither-disable-next-line unused-return
-    (, , , , uint256 priceDifferenceAfter, ) = fpmm.getPrices();
-    emit RebalanceExecuted(pool, priceDifference, priceDifferenceAfter);
+    (, uint256 poolPriceAfterRebalance, , ) = fpmm.getPrices();
+    emit RebalanceExecuted(pool, poolPrice, poolPriceAfterRebalance);
   }
 
   /* ==================== View Functions ==================== */
@@ -182,14 +177,8 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, R
   /**
    * @notice Contains the strategy-specific logic that executes the rebalancing.
    * @param pool The address of the pool to rebalance.
-   * @param oraclePriceNumerator The numerator of the target price.
-   * @param oraclePriceDenominator The denominator of the target price.
+   * @param oraclePrice The off‑chain target price.
    * @param priceDirection The direction of the price movement.
    */
-  function _executeRebalance(
-    address pool,
-    uint256 oraclePriceNumerator,
-    uint256 oraclePriceDenominator,
-    PriceDirection priceDirection
-  ) internal virtual;
+  function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal virtual;
 }

@@ -10,10 +10,5 @@ contract MockLiquidityStrategy is LiquidityStrategy {
     __Ownable_init();
   }
 
-  function _executeRebalance(
-    address pool,
-    uint256 oraclePriceNumerator,
-    uint256 oraclePriceDenominator,
-    PriceDirection priceDirection
-  ) internal override {}
+  function _executeRebalance(address pool, uint256 oraclePrice, PriceDirection priceDirection) internal override {}
 }
