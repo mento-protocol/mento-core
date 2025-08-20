@@ -18,14 +18,12 @@ contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
   /* ========================================================= */
 
   // Deprecated storage slots for backwards compatibility with StableTokenV2
-  // slither-disable-start constable-states
   // solhint-disable-next-line var-name-mixedcase
   address public deprecated_validators_storage_slot__;
   // solhint-disable-next-line var-name-mixedcase
   address public deprecated_broker_storage_slot__;
   // solhint-disable-next-line var-name-mixedcase
   address public deprecated_exchange_storage_slot__;
-  // slither-disable-end constable-states
 
   // Mapping of allowed addresses that can mint
   mapping(address => bool) public isMinter;
