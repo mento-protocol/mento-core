@@ -31,13 +31,10 @@ import { console } from "forge-std/console.sol";
 contract FPMMFactoryTests is FPMMBaseIntegration {
   // ============ STATE VARIABLES ============
 
-  FPMM public fpmmImplementation2;
-
   // ============ SETUP ============
 
   function setUp() public override {
     super.setUp();
-    fpmmImplementation2 = new FPMM(true);
   }
 
   // ============ FACTORY SETUP TESTS ============
@@ -156,6 +153,18 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     );
 
     assertTrue(fpmm != address(0));
+
+    // Verify token ordering and symbol
+    if (address(tokenA) < address(tokenB)) {
+      assertEq(IFPMM(fpmm).token0(), address(tokenA));
+      assertEq(IFPMM(fpmm).token1(), address(tokenB));
+      assertEq(IERC20(fpmm).symbol(), "FPMM-TKA/TKB");
+    } else {
+      assertEq(IFPMM(fpmm).token0(), address(tokenB));
+      assertEq(IFPMM(fpmm).token1(), address(tokenA));
+      assertEq(IERC20(fpmm).symbol(), "FPMM-TKB/TKA");
+    }
+
     (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
 
     assertEq(factory.deployedFPMMs(token0, token1), fpmm);

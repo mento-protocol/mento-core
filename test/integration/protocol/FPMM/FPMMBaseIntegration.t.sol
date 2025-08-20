@@ -133,8 +133,8 @@ contract FPMMBaseIntegration is Test {
   }
 
   function _addInitialLiquidity(address token0, address token1, address fpmm) internal {
-    deal(token0, fpmm, 1000e18);
-    deal(token1, fpmm, 1000e18);
+    deal(token0, fpmm, 1000 * 10 ** TestERC20(token0).decimals());
+    deal(token1, fpmm, 1000 * 10 ** TestERC20(token1).decimals());
 
     // Mint liquidity tokens
     IFPMM(fpmm).mint(makeAddr("LP"));
