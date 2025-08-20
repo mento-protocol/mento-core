@@ -5,7 +5,7 @@ import { StableTokenV3 } from "contracts/v3/StableTokenV3.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-v4.9.5/contracts/proxy/transparent/ProxyAdmin.sol";
-import { ReserveLiquidityStrategy } from "contracts/swap/ReserveLiquidityStrategy.sol";
+// import { ReserveLiquidityStrategy } from "contracts/swap/ReserveLiquidityStrategy.sol";
 
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
@@ -24,7 +24,7 @@ contract DeployReserveFPMM is Script {
   address public cUSDaxlUSDCFPMM;
   address public USDCUSDRateFeedID = 0xA1A8003936862E7a15092A91898D69fa8bCE290c;
 
-  ReserveLiquidityStrategy public liquidityStrategy;
+  // ReserveLiquidityStrategy public liquidityStrategy;
 
   function run() public {
     address reserve;
@@ -42,7 +42,7 @@ contract DeployReserveFPMM is Script {
     // initialBalanceValues[0] = 10_000_000e18;
 
     // USDm.initialize("USD.m", "USD.m", initialBalanceAddresses, initialBalanceValues);
-    liquidityStrategy = new ReserveLiquidityStrategy(false);
+    // liquidityStrategy = new ReserveLiquidityStrategy(false);
     cUSDaxlUSDCFPMM = 0x7DBA083Db8303416D858cbF6282698F90f375Aec;
 
     // // // Deploy Reserve
@@ -143,6 +143,6 @@ contract DeployReserveFPMM is Script {
 
     IERC20(USDC).transfer(reserve, 1e13); // 10_000_000 USDC to reserve for reserve setup
 
-    IReserve(reserve).addExchangeSpender(address(liquidityStrategy));
+    IReserve(reserve).addExchangeSpender(address(0));
   }
 }
