@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.24;
+pragma solidity 0.8.18;
 
 import { ERC2771Context } from "./utils/ERC2771.sol";
 import { SafeERC20 } from "./utils/SafeERC20.sol";
