@@ -3,9 +3,9 @@
 pragma solidity ^0.8;
 
 import { Test } from "forge-std/Test.sol";
-
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 
+// Router contracts
 import { Router } from "contracts/swap/router/Router.sol";
 import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 import { IPool } from "contracts/swap/router/interfaces/IPool.sol";
@@ -13,21 +13,34 @@ import { IPoolFactory } from "contracts/swap/router/interfaces/IPoolFactory.sol"
 import { IFactoryRegistry } from "contracts/swap/router/interfaces/IFactoryRegistry.sol";
 import { IWETH } from "contracts/swap/router/interfaces/IWETH.sol";
 import { IVoter } from "contracts/swap/router/interfaces/IVoter.sol";
+
+// FPMM contracts
 import { FPMM } from "contracts/swap/FPMM.sol";
-import { IFPMM } from "contracts/interfaces/IFPMM.sol";
-import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
+
+// Interfaces
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+
+// OpenZeppelin
+import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+
+// Forge
 import { console } from "forge-std/console.sol";
 
+/**
+ * @title RouterFPMMIntegrationTest
+ * @notice Integration tests for Router and FPMM interaction
+ * @dev Tests cover setup, pool management, liquidity operations, swaps, and zaps
+ */
 contract RouterFPMMIntegrationTest is Test {
-  // Router contracts
+  // ============ STATE VARIABLES ============
+
+  // Core contracts
   Router public router;
   FPMMFactory public factory;
-
-  // FPMM contracts
   FPMM public fpmmImplementation;
 
   // Test tokens
@@ -35,17 +48,16 @@ contract RouterFPMMIntegrationTest is Test {
   TestERC20 public tokenB;
   TestERC20 public tokenC;
 
-  // Test addresses
+  // Test accounts
   address public deployer = makeAddr("deployer");
   address public alice = makeAddr("alice");
   address public bob = makeAddr("bob");
   address public charlie = makeAddr("charlie");
   address public owner = makeAddr("owner");
 
+  // External addresses
   address public createX = 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed;
-
   address public referenceRateFeedID = makeAddr("referenceRateFeedID");
-
   address public factoryRegistry = makeAddr("factoryRegistry");
   address public voter = makeAddr("voter");
   address public weth = makeAddr("weth");
@@ -54,54 +66,41 @@ contract RouterFPMMIntegrationTest is Test {
   address public proxyAdmin = makeAddr("proxyAdmin");
   address public governance = makeAddr("governance");
 
+  // Test environment
   uint256 public celoFork = vm.createFork("https://forno.celo.org");
+
+  // ============ SETUP ============
 
   function setUp() public virtual {
     vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp
-
     vm.selectFork(celoFork);
 
-    // Deploy test tokens
-    tokenA = new TestERC20("TokenA", "TKA");
-    tokenB = new TestERC20("TokenB", "TKB");
-    tokenC = new TestERC20("TokenC", "TKC");
-
-    factory = new FPMMFactory(false);
-    fpmmImplementation = new FPMM(true);
-
-    router = new Router(
-      address(0), // forwarder
-      factoryRegistry,
-      address(factory),
-      voter,
-      weth
-    );
-
-    factory.initialize(sortedOracles, proxyAdmin, breakerBox, governance, address(fpmmImplementation));
-
-    // Setup mock behavior
+    _deployContracts();
     _setupMocks();
-
-    // Fund test accounts
     _fundTestAccounts();
   }
 
-  // Test setup verification
-  function test_setup_shouldDeployContractsCorrectly() public {
+  // ============ SETUP TESTS ============
+
+  function test_setUp_whenContractsDeployed_shouldConfigureFactoryCorrectly() public {
+    // Verify factory configuration
     assertEq(factory.sortedOracles(), sortedOracles);
     assertEq(factory.proxyAdmin(), proxyAdmin);
     assertEq(factory.breakerBox(), breakerBox);
+    assertEq(factory.governance(), governance);
+    assertEq(factory.owner(), governance);
+
+    // Verify implementation registration
     assertEq(factory.isRegisteredImplementation(address(fpmmImplementation)), true);
     address[] memory registeredImplementations = factory.registeredImplementations();
     assertEq(registeredImplementations.length, 1);
     assertEq(registeredImplementations[0], address(fpmmImplementation));
-    assertEq(factory.governance(), governance);
-    assertEq(factory.owner(), governance);
   }
 
-  function test_deploy_shouldDeployFPMMCorrectly() public {
+  function test_deployFPMM_whenTokensProvided_shouldDeployWithCorrectConfiguration() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
 
+    // Verify token ordering and symbol
     if (address(tokenA) < address(tokenB)) {
       assertEq(IFPMM(fpmm).token0(), address(tokenA));
       assertEq(IFPMM(fpmm).token1(), address(tokenB));
@@ -112,55 +111,63 @@ contract RouterFPMMIntegrationTest is Test {
       assertEq(IERC20(fpmm).symbol(), "FPMM-TKB/TKA");
     }
 
+    // Verify basic configuration
     assertEq(IERC20(fpmm).decimals(), 18);
     assertEq(address(IFPMM(fpmm).sortedOracles()), sortedOracles);
     assertEq(IFPMM(fpmm).referenceRateFeedID(), referenceRateFeedID);
     assertEq(address(IFPMM(fpmm).breakerBox()), breakerBox);
     assertEq(OwnableUpgradeable(fpmm).owner(), governance);
 
+    // Verify decimals
     assertEq(IFPMM(fpmm).decimals0(), 1e18);
     assertEq(IFPMM(fpmm).decimals1(), 1e18);
   }
 
-  // Test pool creation and management
-  function test_poolFor_shouldReturnCorrectPoolAddress() public {
+  // ============ POOL MANAGEMENT TESTS ============
+
+  function test_poolFor_whenPoolExists_shouldReturnCorrectPoolAddress() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
+
+    // Test forward order
     address pool = router.poolFor(address(tokenA), address(tokenB), address(0));
     assertEq(pool, fpmm);
 
-    // Should work with reversed token order
+    // Test reversed order
     address poolReversed = router.poolFor(address(tokenB), address(tokenA), address(0));
     assertEq(poolReversed, fpmm);
   }
 
-  function test_sortTokens_shouldSortTokensCorrectly() public {
+  function test_sortTokens_whenDifferentTokensProvided_shouldSortByAddress() public {
     address _token0 = address(0x0000000000000000000000000000000000000011);
     address _token1 = address(0x0000000000000000000000000000000000000022);
-    (address token0, address token1) = router.sortTokens(_token0, _token1);
 
+    // Test forward order
+    (address token0, address token1) = router.sortTokens(_token0, _token1);
     assertEq(token0, _token0);
     assertEq(token1, _token1);
 
+    // Test reversed order
     (token0, token1) = router.sortTokens(address(_token1), address(_token0));
-
     assertEq(token0, _token0);
     assertEq(token1, _token1);
   }
 
-  function test_sortTokens_shouldRevertForSameTokens() public {
+  function test_sortTokens_whenSameTokensProvided_shouldRevert() public {
     vm.expectRevert(IRouter.SameAddresses.selector);
     router.sortTokens(address(tokenA), address(tokenA));
   }
 
-  function test_sortTokens_shouldRevertForZeroAddress() public {
+  function test_sortTokens_whenZeroAddressProvided_shouldRevert() public {
     vm.expectRevert(IRouter.ZeroAddress.selector);
     router.sortTokens(address(0), address(tokenA));
   }
 
-  // Test getAmountsOut
-  function test_getAmountsOut_shouldCalculateCorrectAmounts_whenTokenAIsToken0AndOracleRateIs1() public {
+  // ============ AMOUNT CALCULATION TESTS ============
+
+  function test_getAmountsOut_whenTokenAIsToken0AndOracleRateIs1_shouldCalculateCorrectAmounts() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
+
     uint256 amountIn = 10e18;
     uint256 amountOutExpected = (10e18 * 997) / 1000; // .3% fee
 
@@ -174,10 +181,11 @@ contract RouterFPMMIntegrationTest is Test {
     assertEq(amounts[1], amountOutExpected);
   }
 
-  function test_getAmountsOut_shouldCalculateCorrectAmounts_whenTokenBIsToken0AndOracleRateIs2() public {
+  function test_getAmountsOut_whenTokenBIsToken0AndOracleRateIs2_shouldCalculateCorrectAmounts() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
 
+    // Mock oracle rate
     vm.mockCall(
       address(sortedOracles),
       abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
@@ -197,25 +205,32 @@ contract RouterFPMMIntegrationTest is Test {
     assertEq(amounts[1], amountOutExpected);
   }
 
-  function test_getReserves_shouldReturnCorrectReserves() public {
+  function test_getReserves_whenLiquidityAdded_shouldReturnCorrectReserves() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
     _addInitialLiquidity(token0, token1, fpmm);
+
+    // Check initial reserves
     (uint256 reserve0, uint256 reserve1, ) = IFPMM(fpmm).getReserves();
     assertEq(reserve0, 1000e18);
     assertEq(reserve1, 1000e18);
 
+    // Add more liquidity
     vm.startPrank(alice);
     IERC20(token0).transfer(fpmm, 1000e18);
     IERC20(token1).transfer(fpmm, 500e18);
     IFPMM(fpmm).mint(alice);
     vm.stopPrank();
 
+    // Check updated reserves
     (reserve0, reserve1, ) = IFPMM(fpmm).getReserves();
     assertEq(reserve0, 2000e18);
     assertEq(reserve1, 1500e18);
   }
-  function test_quoteAddLiquidity_shouldReturnCorrectAmountsForNewPool() public {
+
+  // ============ LIQUIDITY QUOTE TESTS ============
+
+  function test_quoteAddLiquidity_whenNewPool_shouldReturnDesiredAmounts() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
 
     uint256 amountADesired = 400e18;
@@ -231,10 +246,10 @@ contract RouterFPMMIntegrationTest is Test {
 
     assertEq(amountA, amountADesired);
     assertEq(amountB, amountBDesired);
-    assertEq(liquidity, 200e18 - 1000);
+    assertEq(liquidity, 200e18 - 1e3);
   }
 
-  function test_quoteAddLiquidity_shouldReturnCorrectAmountsForExistingPool() public {
+  function test_quoteAddLiquidity_whenExistingPool_shouldReturnDesiredAmounts() public {
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
     address fpmm = _deployFPMM(token0, token1);
     _addInitialLiquidity(token0, token1, fpmm);
@@ -255,7 +270,7 @@ contract RouterFPMMIntegrationTest is Test {
     assertEq(liquidity, 100e18); // 10% of total supply since we're adding 10% of initial liquidity
   }
 
-  function test_quoteAddLiquidity_shouldHandleImbalancedDesiredAmounts() public {
+  function test_quoteAddLiquidity_whenImbalancedDesiredAmounts_shouldAdjustToMaintainRatio() public {
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
     address fpmm = _deployFPMM(token0, token1);
     _addInitialLiquidity(token0, token1, fpmm);
@@ -276,7 +291,7 @@ contract RouterFPMMIntegrationTest is Test {
     assertEq(liquidity, 50e18); // 5% of total supply since we're adding 5% of initial liquidity
   }
 
-  function test_quoteRemoveLiquidity_shouldReturnZeroForNonexistentPool() public {
+  function test_quoteRemoveLiquidity_whenNonexistentPool_shouldReturnZero() public {
     (uint256 amountA, uint256 amountB) = router.quoteRemoveLiquidity(
       address(tokenA),
       address(tokenB),
@@ -288,7 +303,7 @@ contract RouterFPMMIntegrationTest is Test {
     assertEq(amountB, 0);
   }
 
-  function test_quoteRemoveLiquidity_shouldHandlePartialLiquidityRemoval() public {
+  function test_quoteRemoveLiquidity_whenPartialLiquidityRemoval_shouldReturnProportionalAmounts() public {
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
     address fpmm = _deployFPMM(token0, token1);
     _addInitialLiquidity(token0, token1, fpmm);
@@ -306,9 +321,10 @@ contract RouterFPMMIntegrationTest is Test {
     assertEq(amount1, 50e18); // Should get back 5% of reserves
   }
 
-  function test_addLiquidity_shouldAddInitialLiquidity() public {
-    _deployFPMM(address(tokenA), address(tokenB));
+  // ============ ADD LIQUIDITY TESTS ============
 
+  function test_addLiquidity_whenNewPool_shouldAddInitialLiquidity() public {
+    _deployFPMM(address(tokenA), address(tokenB));
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
 
     uint256 amount0Desired = 100e18;
@@ -339,7 +355,7 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
-  function test_addLiquidity_shouldAddToExistingPool() public {
+  function test_addLiquidity_whenExistingPool_shouldAddToPool() public {
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
     address fpmm = _deployFPMM(token0, token1);
     _addInitialLiquidity(token0, token1, fpmm);
@@ -365,13 +381,12 @@ contract RouterFPMMIntegrationTest is Test {
     assertEq(amount0, amount0Desired);
     assertEq(amount1, amount1Desired);
     assertEq(liquidity, 50e18);
-
     assertEq(IERC20(fpmm).balanceOf(bob), liquidity);
 
     vm.stopPrank();
   }
 
-  function test_addLiquidity_shouldRespectMinimumAmounts() public {
+  function test_addLiquidity_whenMinimumAmountsNotMet_shouldRevert() public {
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
     address fpmm = _deployFPMM(token0, token1);
     _addInitialLiquidity(token0, token1, fpmm);
@@ -380,6 +395,7 @@ contract RouterFPMMIntegrationTest is Test {
     tokenA.approve(address(router), type(uint256).max);
     tokenB.approve(address(router), type(uint256).max);
 
+    // Test insufficient amountA desired
     vm.expectRevert(abi.encodeWithSignature("InsufficientAmountADesired()"));
     router.addLiquidity(
       token0,
@@ -392,6 +408,7 @@ contract RouterFPMMIntegrationTest is Test {
       block.timestamp
     );
 
+    // Test insufficient amountB desired
     vm.expectRevert(abi.encodeWithSignature("InsufficientAmountBDesired()"));
     router.addLiquidity(
       token0,
@@ -404,14 +421,14 @@ contract RouterFPMMIntegrationTest is Test {
       block.timestamp
     );
 
-    // add liquidity to imbalance pool
+    // Add liquidity to imbalance pool
     vm.startPrank(alice);
     IERC20(token0).transfer(fpmm, 100e18);
     IERC20(token1).transfer(fpmm, 50e18);
     IFPMM(fpmm).mint(alice);
     vm.stopPrank();
 
-    // the pool is imbalanced, so the amountBDesired should be adjusted down to maintain the ratio
+    // Test insufficient amountB (pool is imbalanced)
     vm.expectRevert(abi.encodeWithSignature("InsufficientAmountB()"));
     router.addLiquidity(
       token0,
@@ -424,14 +441,14 @@ contract RouterFPMMIntegrationTest is Test {
       block.timestamp
     );
 
-    // add liquidity to rebalance the pool
+    // Rebalance the pool
     vm.startPrank(alice);
     IERC20(token0).transfer(fpmm, 50e18);
     IERC20(token1).transfer(fpmm, 100e18);
     IFPMM(fpmm).mint(alice);
     vm.stopPrank();
 
-    // pool is rebalanced
+    // Pool is rebalanced - should succeed
     vm.startPrank(bob);
     router.addLiquidity(
       token0,
@@ -444,13 +461,14 @@ contract RouterFPMMIntegrationTest is Test {
       block.timestamp
     );
 
-    // add liquidity to debalance the pool to the other side
+    // Imbalance pool to the other side
     vm.startPrank(alice);
     IERC20(token0).transfer(fpmm, 50e18);
     IERC20(token1).transfer(fpmm, 100e18);
     IFPMM(fpmm).mint(alice);
     vm.stopPrank();
 
+    // Test insufficient amountA
     vm.expectRevert(abi.encodeWithSignature("InsufficientAmountA()"));
     router.addLiquidity(
       token0,
@@ -466,7 +484,7 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
-  function test_addLiquidity_shouldRevertForInvalidDeadline() public {
+  function test_addLiquidity_whenExpiredDeadline_shouldRevert() public {
     vm.expectRevert(abi.encodeWithSignature("Expired()"));
     router.addLiquidity(
       address(tokenA),
@@ -479,7 +497,10 @@ contract RouterFPMMIntegrationTest is Test {
       block.timestamp - 1
     );
   }
-  function test_removeLiquidity_shouldRemoveLiquidityCorrectly() public {
+
+  // ============ REMOVE LIQUIDITY TESTS ============
+
+  function test_removeLiquidity_whenValidLiquidity_shouldRemoveCorrectly() public {
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
     address fpmm = _deployFPMM(token0, token1);
     _addInitialLiquidity(token0, token1, fpmm);
@@ -491,6 +512,7 @@ contract RouterFPMMIntegrationTest is Test {
     uint256 balance0Before = IERC20(token0).balanceOf(alice);
     uint256 balance1Before = IERC20(token1).balanceOf(alice);
 
+    // Add liquidity
     (uint256 amount0Added, uint256 amount1Added, uint256 liquidity) = router.addLiquidity(
       token0,
       token1,
@@ -520,11 +542,9 @@ contract RouterFPMMIntegrationTest is Test {
     // Verify received amounts are proportional
     assertEq(amount0, amount0Added / 2);
     assertEq(amount1, amount1Added / 2);
-
-    // Verify remaining liquidity
     assertEq(IERC20(fpmm).balanceOf(alice), halfLiquidity);
 
-    // remove the remaining liquidity from alice
+    // Remove remaining liquidity
     router.removeLiquidity(
       token0,
       token1,
@@ -536,12 +556,13 @@ contract RouterFPMMIntegrationTest is Test {
     );
     vm.stopPrank();
 
+    // Verify final balances
     assertEq(IERC20(token0).balanceOf(alice), balance0Before);
     assertEq(IERC20(token1).balanceOf(alice), balance1Before);
     assertEq(IERC20(fpmm).balanceOf(alice), 0);
   }
 
-  function test_removeLiquidity_shouldRevertForInsufficientAmountA() public {
+  function test_removeLiquidity_whenInsufficientAmountA_shouldRevert() public {
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
     address fpmm = _deployFPMM(token0, token1);
     _addInitialLiquidity(token0, token1, fpmm);
@@ -578,7 +599,7 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
-  function test_removeLiquidity_shouldRevertForInsufficientAmountB() public {
+  function test_removeLiquidity_whenInsufficientAmountB_shouldRevert() public {
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));
     address fpmm = _deployFPMM(token0, token1);
     _addInitialLiquidity(token0, token1, fpmm);
@@ -615,12 +636,14 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
-  function test_removeLiquidity_shouldRevertForExpiredDeadline() public {
+  function test_removeLiquidity_whenExpiredDeadline_shouldRevert() public {
     vm.expectRevert(abi.encodeWithSignature("Expired()"));
     router.removeLiquidity(address(tokenA), address(tokenB), 100e18, 0, 0, alice, block.timestamp - 1);
   }
 
-  function test_swapExactTokensForTokens_shouldSwapTokens_whenPriceIs1() public {
+  // ============ SWAP TESTS ============
+
+  function test_swapExactTokensForTokens_whenPriceIs1_shouldSwapTokens() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
 
@@ -651,14 +674,15 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
-  function test_swapExactTokensForTokens_shouldSwapTokens_whenPriceIsNot1() public {
+  function test_swapExactTokensForTokens_whenPriceIsNot1_shouldSwapTokens() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
 
+    // Mock oracle rate for 10% higher price
     vm.mockCall(
       address(sortedOracles),
       abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
-      abi.encode(1e18, 1.1e18) // 10% higher price
+      abi.encode(1e18, 1.1e18)
     );
 
     IRouter.Route memory route = _createRoute(address(tokenB), address(tokenA));
@@ -682,7 +706,7 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
-  function test_swapExactTokensForTokens_shouldRevertForInsufficientOutput() public {
+  function test_swapExactTokensForTokens_whenInsufficientOutput_shouldRevert() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
 
@@ -698,7 +722,7 @@ contract RouterFPMMIntegrationTest is Test {
     vm.expectRevert(abi.encodeWithSignature("InsufficientOutputAmount()"));
     router.swapExactTokensForTokens(
       amountIn,
-      amountIn, // amountOutMin
+      amountIn, // amountOutMin can not be equal to amountIn because of the fee
       routes,
       alice,
       block.timestamp
@@ -707,7 +731,7 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
-  function test_swapExactTokensForTokens_shouldRevertForExpiredDeadline() public {
+  function test_swapExactTokensForTokens_whenExpiredDeadline_shouldRevert() public {
     IRouter.Route[] memory routes = new IRouter.Route[](1);
     routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(factory) });
 
@@ -715,7 +739,7 @@ contract RouterFPMMIntegrationTest is Test {
     router.swapExactTokensForTokens(10e18, 0, routes, alice, block.timestamp - 1);
   }
 
-  function test_swapExactTokensForTokensSupportingFeeOnTransferTokens_shouldSwapTokens() public {
+  function test_swapExactTokensForTokensSupportingFeeOnTransferTokens_whenValidSwap_shouldSwapTokens() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
 
@@ -737,35 +761,26 @@ contract RouterFPMMIntegrationTest is Test {
     assertEq(tokenB.balanceOf(alice), 1000e18 + expectedAmountOut);
   }
 
-  function test_zapIn_shouldZapInTokens() public {
-    // sort 3 tokens by address
-    address[] memory tokens = new address[](3);
-    tokens[0] = address(tokenA);
-    tokens[1] = address(tokenB);
-    tokens[2] = address(tokenC);
+  // ============ ZAP TESTS ============
 
-    for (uint256 i = 0; i < tokens.length; i++) {
-      for (uint256 j = i + 1; j < tokens.length; j++) {
-        address tempToken = tokens[i];
-        if (tempToken > tokens[j]) {
-          tokens[i] = tokens[j];
-          tokens[j] = tempToken;
-        }
-      }
-    }
+  function test_zapIn_whenValidTokens_shouldZapInTokens() public {
+    // Sort tokens by address
+    address[] memory tokens = _sortTokensByAddress();
+
+    // Deploy pools
     address fpmm_0_1 = _deployFPMM(tokens[0], tokens[1]);
     address fpmm_1_2 = _deployFPMM(tokens[1], tokens[2]);
     address fpmm_0_2 = _deployFPMM(tokens[0], tokens[2]);
 
+    // Add initial liquidity to all pools
     _addInitialLiquidity(tokens[0], tokens[1], fpmm_0_1);
     _addInitialLiquidity(tokens[1], tokens[2], fpmm_1_2);
     _addInitialLiquidity(tokens[0], tokens[2], fpmm_0_2);
 
     vm.startPrank(alice);
-    IERC20(tokens[0]).approve(address(router), type(uint256).max);
-    IERC20(tokens[1]).approve(address(router), type(uint256).max);
-    IERC20(tokens[2]).approve(address(router), type(uint256).max);
+    _approveRouterMax(alice, tokens);
 
+    // Setup zap parameters
     IRouter.Zap memory zapInPool = IRouter.Zap({
       tokenA: tokens[1],
       tokenB: tokens[2],
@@ -781,24 +796,23 @@ contract RouterFPMMIntegrationTest is Test {
     IRouter.Route[] memory routesB = new IRouter.Route[](1);
     routesB[0] = IRouter.Route({ from: tokens[0], to: tokens[2], factory: address(factory) });
 
-    // get before balances
+    // Record balances before zap
     uint256 balanceBefore0 = IERC20(tokens[0]).balanceOf(alice);
     uint256 balanceBefore1 = IERC20(tokens[1]).balanceOf(alice);
     uint256 balanceBefore2 = IERC20(tokens[2]).balanceOf(alice);
-
-    // get before liquidity
     uint256 balanceBefore01 = IERC20(fpmm_0_1).balanceOf(alice);
     uint256 balanceBefore12 = IERC20(fpmm_1_2).balanceOf(alice);
     uint256 balanceBefore02 = IERC20(fpmm_0_2).balanceOf(alice);
 
+    // Execute zap
     router.zapIn(tokens[0], 10e18, 10e18, zapInPool, routesA, routesB, alice);
 
-    // only token0 is used in the zapIn
+    // Verify token balances
     assertEq(IERC20(tokens[0]).balanceOf(alice), balanceBefore0 - 20e18);
     assertEq(IERC20(tokens[1]).balanceOf(alice), balanceBefore1);
     assertEq(IERC20(tokens[2]).balanceOf(alice), balanceBefore2);
 
-    // liquidity is added to fpmm_1_2
+    // Verify LP token balances
     assertEq(IERC20(fpmm_0_1).balanceOf(alice), balanceBefore01);
     assertEq(IERC20(fpmm_0_2).balanceOf(alice), balanceBefore02);
     assertEq(IERC20(fpmm_1_2).balanceOf(alice), balanceBefore12 + (10e18 * 997) / 1000);
@@ -806,36 +820,25 @@ contract RouterFPMMIntegrationTest is Test {
     vm.stopPrank();
   }
 
-  function testZapOut() public {
-    address[] memory tokens = new address[](3);
-    tokens[0] = address(tokenA);
-    tokens[1] = address(tokenB);
-    tokens[2] = address(tokenC);
+  function test_zapOut_whenValidLiquidity_shouldZapOutTokens() public {
+    // Sort tokens by address
+    address[] memory tokens = _sortTokensByAddress();
 
-    for (uint256 i = 0; i < tokens.length; i++) {
-      for (uint256 j = i + 1; j < tokens.length; j++) {
-        address tempToken = tokens[i];
-        if (tempToken > tokens[j]) {
-          tokens[i] = tokens[j];
-          tokens[j] = tempToken;
-        }
-      }
-    }
-
+    // Deploy pools
     address fpmm_0_1 = _deployFPMM(tokens[0], tokens[1]);
     address fpmm_1_2 = _deployFPMM(tokens[1], tokens[2]);
     address fpmm_0_2 = _deployFPMM(tokens[0], tokens[2]);
 
+    // Add initial liquidity to all pools
     _addInitialLiquidity(tokens[0], tokens[1], fpmm_0_1);
     _addInitialLiquidity(tokens[1], tokens[2], fpmm_1_2);
     _addInitialLiquidity(tokens[0], tokens[2], fpmm_0_2);
 
     vm.startPrank(alice);
-    IERC20(tokens[0]).approve(address(router), type(uint256).max);
-    IERC20(tokens[1]).approve(address(router), type(uint256).max);
-    IERC20(tokens[2]).approve(address(router), type(uint256).max);
+    _approveRouterMax(alice, tokens);
     IERC20(fpmm_1_2).approve(address(router), type(uint256).max);
 
+    // Setup zap parameters
     IRouter.Zap memory zapOutPool = IRouter.Zap({
       tokenA: tokens[1],
       tokenB: tokens[2],
@@ -854,35 +857,57 @@ contract RouterFPMMIntegrationTest is Test {
     // First add some liquidity to get LP tokens
     router.zapIn(tokens[0], 10e18, 10e18, zapOutPool, routesA, routesB, alice);
 
-    // get before balances
+    // Record balances before zap out
     uint256 balanceBefore0 = IERC20(tokens[0]).balanceOf(alice);
     uint256 balanceBefore1 = IERC20(tokens[1]).balanceOf(alice);
     uint256 balanceBefore2 = IERC20(tokens[2]).balanceOf(alice);
-
-    // get before liquidity
     uint256 balanceBefore01 = IERC20(fpmm_0_1).balanceOf(alice);
     uint256 balanceBefore12 = IERC20(fpmm_1_2).balanceOf(alice);
     uint256 balanceBefore02 = IERC20(fpmm_0_2).balanceOf(alice);
 
+    // Setup reverse routes for zap out
     routesA[0] = IRouter.Route({ from: tokens[1], to: tokens[0], factory: address(factory) });
     routesB[0] = IRouter.Route({ from: tokens[2], to: tokens[0], factory: address(factory) });
 
     // Zap out the LP tokens back to token0
     router.zapOut(tokens[0], balanceBefore12, zapOutPool, routesA, routesB);
 
-    // LP tokens are burned
+    // Verify LP tokens are burned
     assertEq(IERC20(fpmm_1_2).balanceOf(alice), 0);
 
-    // Other LP token balances unchanged
+    // Verify other LP token balances unchanged
     assertEq(IERC20(fpmm_0_1).balanceOf(alice), balanceBefore01);
     assertEq(IERC20(fpmm_0_2).balanceOf(alice), balanceBefore02);
 
-    // Received token0 back, other token balances unchanged
+    // Verify received token0 back, other token balances unchanged
     assertGt(IERC20(tokens[0]).balanceOf(alice), balanceBefore0);
     assertEq(IERC20(tokens[1]).balanceOf(alice), balanceBefore1);
     assertEq(IERC20(tokens[2]).balanceOf(alice), balanceBefore2);
 
     vm.stopPrank();
+  }
+
+  // ============ INTERNAL FUNCTIONS ============
+
+  function _deployContracts() internal {
+    // Deploy test tokens
+    tokenA = new TestERC20("TokenA", "TKA");
+    tokenB = new TestERC20("TokenB", "TKB");
+    tokenC = new TestERC20("TokenC", "TKC");
+
+    // Deploy core contracts
+    factory = new FPMMFactory(false);
+    fpmmImplementation = new FPMM(true);
+
+    router = new Router(
+      address(0), // forwarder
+      factoryRegistry,
+      address(factory),
+      voter,
+      weth
+    );
+
+    factory.initialize(sortedOracles, proxyAdmin, breakerBox, governance, address(fpmmImplementation));
   }
 
   function _setupMocks() internal {
@@ -941,7 +966,6 @@ contract RouterFPMMIntegrationTest is Test {
     fpmm = factory.deployFPMM(address(fpmmImplementation), address(token0), address(token1), referenceRateFeedID);
   }
 
-  // Helper function to create a route
   function _createRoute(address from, address to) internal pure returns (IRouter.Route memory) {
     return
       IRouter.Route({
@@ -949,5 +973,29 @@ contract RouterFPMMIntegrationTest is Test {
         to: to,
         factory: address(0) // Use default factory
       });
+  }
+
+  function _sortTokensByAddress() internal view returns (address[] memory tokens) {
+    tokens = new address[](3);
+    tokens[0] = address(tokenA);
+    tokens[1] = address(tokenB);
+    tokens[2] = address(tokenC);
+
+    // Sort tokens by address
+    for (uint256 i = 0; i < tokens.length; i++) {
+      for (uint256 j = i + 1; j < tokens.length; j++) {
+        if (tokens[i] > tokens[j]) {
+          address tempToken = tokens[i];
+          tokens[i] = tokens[j];
+          tokens[j] = tempToken;
+        }
+      }
+    }
+  }
+
+  function _approveRouterMax(address user, address[] memory tokens) internal {
+    for (uint256 i = 0; i < tokens.length; i++) {
+      IERC20(tokens[i]).approve(address(router), type(uint256).max);
+    }
   }
 }
