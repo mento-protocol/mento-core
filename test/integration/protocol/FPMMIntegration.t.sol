@@ -737,6 +737,154 @@ contract RouterFPMMIntegrationTest is Test {
     assertEq(tokenB.balanceOf(alice), 1000e18 + expectedAmountOut);
   }
 
+  function test_zapIn_shouldZapInTokens() public {
+    // sort 3 tokens by address
+    address[] memory tokens = new address[](3);
+    tokens[0] = address(tokenA);
+    tokens[1] = address(tokenB);
+    tokens[2] = address(tokenC);
+
+    for (uint256 i = 0; i < tokens.length; i++) {
+      for (uint256 j = i + 1; j < tokens.length; j++) {
+        address tempToken = tokens[i];
+        if (tempToken > tokens[j]) {
+          tokens[i] = tokens[j];
+          tokens[j] = tempToken;
+        }
+      }
+    }
+    address fpmm_0_1 = _deployFPMM(tokens[0], tokens[1]);
+    address fpmm_1_2 = _deployFPMM(tokens[1], tokens[2]);
+    address fpmm_0_2 = _deployFPMM(tokens[0], tokens[2]);
+
+    _addInitialLiquidity(tokens[0], tokens[1], fpmm_0_1);
+    _addInitialLiquidity(tokens[1], tokens[2], fpmm_1_2);
+    _addInitialLiquidity(tokens[0], tokens[2], fpmm_0_2);
+
+    vm.startPrank(alice);
+    IERC20(tokens[0]).approve(address(router), type(uint256).max);
+    IERC20(tokens[1]).approve(address(router), type(uint256).max);
+    IERC20(tokens[2]).approve(address(router), type(uint256).max);
+
+    IRouter.Zap memory zapInPool = IRouter.Zap({
+      tokenA: tokens[1],
+      tokenB: tokens[2],
+      factory: address(factory),
+      amountOutMinA: 0,
+      amountOutMinB: 0,
+      amountAMin: 0,
+      amountBMin: 0
+    });
+
+    IRouter.Route[] memory routesA = new IRouter.Route[](1);
+    routesA[0] = IRouter.Route({ from: tokens[0], to: tokens[1], factory: address(factory) });
+    IRouter.Route[] memory routesB = new IRouter.Route[](1);
+    routesB[0] = IRouter.Route({ from: tokens[0], to: tokens[2], factory: address(factory) });
+
+    // get before balances
+    uint256 balanceBefore0 = IERC20(tokens[0]).balanceOf(alice);
+    uint256 balanceBefore1 = IERC20(tokens[1]).balanceOf(alice);
+    uint256 balanceBefore2 = IERC20(tokens[2]).balanceOf(alice);
+
+    // get before liquidity
+    uint256 balanceBefore01 = IERC20(fpmm_0_1).balanceOf(alice);
+    uint256 balanceBefore12 = IERC20(fpmm_1_2).balanceOf(alice);
+    uint256 balanceBefore02 = IERC20(fpmm_0_2).balanceOf(alice);
+
+    router.zapIn(tokens[0], 10e18, 10e18, zapInPool, routesA, routesB, alice);
+
+    // only token0 is used in the zapIn
+    assertEq(IERC20(tokens[0]).balanceOf(alice), balanceBefore0 - 20e18);
+    assertEq(IERC20(tokens[1]).balanceOf(alice), balanceBefore1);
+    assertEq(IERC20(tokens[2]).balanceOf(alice), balanceBefore2);
+
+    // liquidity is added to fpmm_1_2
+    assertEq(IERC20(fpmm_0_1).balanceOf(alice), balanceBefore01);
+    assertEq(IERC20(fpmm_0_2).balanceOf(alice), balanceBefore02);
+    assertEq(IERC20(fpmm_1_2).balanceOf(alice), balanceBefore12 + (10e18 * 997) / 1000);
+
+    vm.stopPrank();
+  }
+
+  function testZapOut() public {
+    address[] memory tokens = new address[](3);
+    tokens[0] = address(tokenA);
+    tokens[1] = address(tokenB);
+    tokens[2] = address(tokenC);
+
+    for (uint256 i = 0; i < tokens.length; i++) {
+      for (uint256 j = i + 1; j < tokens.length; j++) {
+        address tempToken = tokens[i];
+        if (tempToken > tokens[j]) {
+          tokens[i] = tokens[j];
+          tokens[j] = tempToken;
+        }
+      }
+    }
+
+    address fpmm_0_1 = _deployFPMM(tokens[0], tokens[1]);
+    address fpmm_1_2 = _deployFPMM(tokens[1], tokens[2]);
+    address fpmm_0_2 = _deployFPMM(tokens[0], tokens[2]);
+
+    _addInitialLiquidity(tokens[0], tokens[1], fpmm_0_1);
+    _addInitialLiquidity(tokens[1], tokens[2], fpmm_1_2);
+    _addInitialLiquidity(tokens[0], tokens[2], fpmm_0_2);
+
+    vm.startPrank(alice);
+    IERC20(tokens[0]).approve(address(router), type(uint256).max);
+    IERC20(tokens[1]).approve(address(router), type(uint256).max);
+    IERC20(tokens[2]).approve(address(router), type(uint256).max);
+    IERC20(fpmm_1_2).approve(address(router), type(uint256).max);
+
+    IRouter.Zap memory zapOutPool = IRouter.Zap({
+      tokenA: tokens[1],
+      tokenB: tokens[2],
+      factory: address(factory),
+      amountOutMinA: 0,
+      amountOutMinB: 0,
+      amountAMin: 0,
+      amountBMin: 0
+    });
+
+    IRouter.Route[] memory routesA = new IRouter.Route[](1);
+    routesA[0] = IRouter.Route({ from: tokens[0], to: tokens[1], factory: address(factory) });
+    IRouter.Route[] memory routesB = new IRouter.Route[](1);
+    routesB[0] = IRouter.Route({ from: tokens[0], to: tokens[2], factory: address(factory) });
+
+    // First add some liquidity to get LP tokens
+    router.zapIn(tokens[0], 10e18, 10e18, zapOutPool, routesA, routesB, alice);
+
+    // get before balances
+    uint256 balanceBefore0 = IERC20(tokens[0]).balanceOf(alice);
+    uint256 balanceBefore1 = IERC20(tokens[1]).balanceOf(alice);
+    uint256 balanceBefore2 = IERC20(tokens[2]).balanceOf(alice);
+
+    // get before liquidity
+    uint256 balanceBefore01 = IERC20(fpmm_0_1).balanceOf(alice);
+    uint256 balanceBefore12 = IERC20(fpmm_1_2).balanceOf(alice);
+    uint256 balanceBefore02 = IERC20(fpmm_0_2).balanceOf(alice);
+
+    routesA[0] = IRouter.Route({ from: tokens[1], to: tokens[0], factory: address(factory) });
+    routesB[0] = IRouter.Route({ from: tokens[2], to: tokens[0], factory: address(factory) });
+
+    // Zap out the LP tokens back to token0
+    router.zapOut(tokens[0], balanceBefore12, zapOutPool, routesA, routesB);
+
+    // LP tokens are burned
+    assertEq(IERC20(fpmm_1_2).balanceOf(alice), 0);
+
+    // Other LP token balances unchanged
+    assertEq(IERC20(fpmm_0_1).balanceOf(alice), balanceBefore01);
+    assertEq(IERC20(fpmm_0_2).balanceOf(alice), balanceBefore02);
+
+    // Received token0 back, other token balances unchanged
+    assertGt(IERC20(tokens[0]).balanceOf(alice), balanceBefore0);
+    assertEq(IERC20(tokens[1]).balanceOf(alice), balanceBefore1);
+    assertEq(IERC20(tokens[2]).balanceOf(alice), balanceBefore2);
+
+    vm.stopPrank();
+  }
+
   function _setupMocks() internal {
     // Mock factory registry to approve our pool factory
     vm.mockCall(
@@ -802,9 +950,4 @@ contract RouterFPMMIntegrationTest is Test {
         factory: address(0) // Use default factory
       });
   }
-
-  // // Helper function to get current deadline
-  // function getDeadline() internal view returns (uint256) {
-  //     return block.timestamp + 3600; // 1 hour from now
-  // }
 }
