@@ -26,8 +26,7 @@ import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 
 /**
  * @title RouterTests
- * @notice Core tests for Router functionality including setup, pool management, liquidity operations, swaps, and zaps
- * @dev Tests cover the main functionality tested in FPMMIntegration.t.sol but organized in RouterAdvancedTests.t.sol structure
+ * @notice Core tests for Router functionality including setup, pool management, liquidity operations, swaps
  */
 contract RouterTests is FPMMBaseIntegration {
   // ============ STATE VARIABLES ============
@@ -40,20 +39,15 @@ contract RouterTests is FPMMBaseIntegration {
 
   // ============ SETUP TESTS ============
 
-  function test_setUp_whenContractsDeployed_shouldConfigureFactoryCorrectly() public {
+  function test_setUp_whenContractsDeployed_shouldConfigureRouterCorrectly() public view {
     // Verify factory configuration
-    assertEq(factory.sortedOracles(), sortedOracles);
-    assertEq(factory.proxyAdmin(), proxyAdmin);
-    assertEq(factory.breakerBox(), breakerBox);
-    assertEq(factory.governance(), governance);
-    assertEq(factory.owner(), governance);
-
-    // Verify implementation registration
-    assertEq(factory.isRegisteredImplementation(address(fpmmImplementation)), true);
-    address[] memory registeredImplementations = factory.registeredImplementations();
-    assertEq(registeredImplementations.length, 1);
-    assertEq(registeredImplementations[0], address(fpmmImplementation));
+    assertEq(router.factoryRegistry(), address(factoryRegistry));
+    assertEq(router.defaultFactory(), address(factory));
+    assertEq(router.voter(), address(voter));
+    assertEq(address(router.weth()), address(weth));
+    assertEq(router.ETHER(), 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
   }
+
   // ============ POOL MANAGEMENT TESTS ============
 
   function test_poolFor_whenPoolExists_shouldReturnCorrectPoolAddress() public {
@@ -68,7 +62,7 @@ contract RouterTests is FPMMBaseIntegration {
     assertEq(poolReversed, fpmm);
   }
 
-  function test_sortTokens_whenDifferentTokensProvided_shouldSortByAddress() public {
+  function test_sortTokens_whenDifferentTokensProvided_shouldSortByAddress() public view {
     address _token0 = address(0x0000000000000000000000000000000000000011);
     address _token1 = address(0x0000000000000000000000000000000000000022);
 
@@ -162,7 +156,7 @@ contract RouterTests is FPMMBaseIntegration {
   // ============ LIQUIDITY QUOTE TESTS ============
 
   function test_quoteAddLiquidity_whenNewPool_shouldReturnDesiredAmounts() public {
-    address fpmm = _deployFPMM(address(tokenA), address(tokenB));
+    _deployFPMM(address(tokenA), address(tokenB));
 
     uint256 amountADesired = 400e18;
     uint256 amountBDesired = 100e18;
@@ -222,7 +216,7 @@ contract RouterTests is FPMMBaseIntegration {
     assertEq(liquidity, 50e18); // 5% of total supply since we're adding 5% of initial liquidity
   }
 
-  function test_quoteRemoveLiquidity_whenNonexistentPool_shouldReturnZero() public {
+  function test_quoteRemoveLiquidity_whenNonexistentPool_shouldReturnZero() public view {
     (uint256 amountA, uint256 amountB) = router.quoteRemoveLiquidity(
       address(tokenA),
       address(tokenB),
@@ -262,8 +256,6 @@ contract RouterTests is FPMMBaseIntegration {
     uint256 amount1Desired = 100e18;
 
     vm.startPrank(alice);
-    tokenA.approve(address(router), type(uint256).max);
-    tokenB.approve(address(router), type(uint256).max);
 
     (uint256 amount0, uint256 amount1, uint256 liquidity) = router.addLiquidity(
       token0,
@@ -295,8 +287,6 @@ contract RouterTests is FPMMBaseIntegration {
     uint256 amount1Desired = 50e18;
 
     vm.startPrank(bob);
-    tokenA.approve(address(router), type(uint256).max);
-    tokenB.approve(address(router), type(uint256).max);
 
     (uint256 amount0, uint256 amount1, uint256 liquidity) = router.addLiquidity(
       token0,
@@ -323,8 +313,6 @@ contract RouterTests is FPMMBaseIntegration {
     _addInitialLiquidity(token0, token1, fpmm);
 
     vm.startPrank(bob);
-    tokenA.approve(address(router), type(uint256).max);
-    tokenB.approve(address(router), type(uint256).max);
 
     // Test insufficient amountA desired
     vm.expectRevert(IRouter.InsufficientAmountADesired.selector);
@@ -383,8 +371,6 @@ contract RouterTests is FPMMBaseIntegration {
     _addInitialLiquidity(token0, token1, fpmm);
 
     vm.startPrank(alice);
-    IERC20(token0).approve(address(router), 100e18);
-    IERC20(token1).approve(address(router), 100e18);
 
     uint256 balance0Before = IERC20(token0).balanceOf(alice);
     uint256 balance1Before = IERC20(token1).balanceOf(alice);
@@ -446,8 +432,6 @@ contract RouterTests is FPMMBaseIntegration {
 
     // Add initial liquidity
     vm.startPrank(alice);
-    IERC20(token0).approve(address(router), 100e18);
-    IERC20(token1).approve(address(router), 100e18);
 
     (, , uint256 liquidity) = router.addLiquidity(
       token0,
@@ -483,8 +467,6 @@ contract RouterTests is FPMMBaseIntegration {
 
     // Add initial liquidity
     vm.startPrank(alice);
-    IERC20(token0).approve(address(router), 100e18);
-    IERC20(token1).approve(address(router), 100e18);
 
     (, , uint256 liquidity) = router.addLiquidity(
       token0,
@@ -527,7 +509,6 @@ contract RouterTests is FPMMBaseIntegration {
     routes[0] = route;
 
     vm.startPrank(alice);
-    tokenA.approve(address(router), amountIn);
 
     uint256 balanceBefore = tokenB.balanceOf(alice);
 
@@ -565,7 +546,6 @@ contract RouterTests is FPMMBaseIntegration {
     uint256 expectedAmountOut = (((amountIn * 997) / 1000) * 10) / 11;
 
     vm.startPrank(alice);
-    tokenB.approve(address(router), amountIn);
 
     uint256 balanceBefore = tokenA.balanceOf(alice);
 
@@ -589,7 +569,6 @@ contract RouterTests is FPMMBaseIntegration {
     routes[0] = route;
 
     vm.startPrank(alice);
-    tokenA.approve(address(router), amountIn);
 
     vm.expectRevert(IRouter.InsufficientOutputAmount.selector);
     router.swapExactTokensForTokens(
@@ -615,7 +594,6 @@ contract RouterTests is FPMMBaseIntegration {
     routes[0] = route;
 
     vm.startPrank(alice);
-    tokenA.approve(address(router), amountIn);
 
     router.swapExactTokensForTokensSupportingFeeOnTransferTokens(amountIn, 0, routes, alice, block.timestamp);
 
@@ -642,7 +620,7 @@ contract RouterTests is FPMMBaseIntegration {
     _addInitialLiquidity(tokens[0], tokens[2], fpmm_0_2);
 
     vm.startPrank(alice);
-    _approveRouterMax(alice, tokens);
+    _approveRouterMax(tokens);
 
     // Setup zap parameters
     IRouter.Zap memory zapInPool = IRouter.Zap({
@@ -699,7 +677,7 @@ contract RouterTests is FPMMBaseIntegration {
     _addInitialLiquidity(tokens[0], tokens[2], fpmm_0_2);
 
     vm.startPrank(alice);
-    _approveRouterMax(alice, tokens);
+    _approveRouterMax(tokens);
     IERC20(fpmm_1_2).approve(address(router), type(uint256).max);
 
     // Setup zap parameters
@@ -780,7 +758,7 @@ contract RouterTests is FPMMBaseIntegration {
     }
   }
 
-  function _approveRouterMax(address user, address[] memory tokens) internal {
+  function _approveRouterMax(address[] memory tokens) internal {
     for (uint256 i = 0; i < tokens.length; i++) {
       IERC20(tokens[i]).approve(address(router), type(uint256).max);
     }

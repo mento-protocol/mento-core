@@ -29,7 +29,6 @@ import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 /**
  * @title RouterAdvancedTests
  * @notice Advanced tests for Router functionality including edge cases and error conditions
- * @dev Tests cover complex scenarios, error handling, and edge cases
  */
 contract RouterAdvancedTests is FPMMBaseIntegration {
   // ============ STATE VARIABLES ============
@@ -307,8 +306,10 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
     assertEq(amounts.length, 3);
     assertEq(amounts[0], 1000e18);
-    assertGt(amounts[1], 0);
-    assertGt(amounts[2], 0);
+    uint256 expectedAmountB = (1000e18 * 997) / 1000;
+    assertEq(amounts[1], expectedAmountB);
+    uint256 expectedAmountC = (expectedAmountB * 997) / 1000;
+    assertEq(amounts[2], expectedAmountC);
   }
 
   function test_swapExactTokensForTokens_whenMultipleRoutes_shouldSwapCorrectly() public {
@@ -331,9 +332,11 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
     assertEq(amounts.length, 3);
     assertEq(amounts[0], 1000e18);
-    assertGt(amounts[1], 0);
-    assertGt(amounts[2], 0);
-    assertGt(tokenC.balanceOf(alice), balanceBefore);
+    uint256 expectedAmountB = (1000e18 * 997) / 1000;
+    assertEq(amounts[1], expectedAmountB);
+    uint256 expectedAmountC = (expectedAmountB * 997) / 1000;
+    assertEq(amounts[2], expectedAmountC);
+    assertEq(tokenC.balanceOf(alice), balanceBefore + expectedAmountC);
 
     vm.stopPrank();
   }
@@ -354,7 +357,8 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
     router.swapExactTokensForTokensSupportingFeeOnTransferTokens(1000e18, 0, routes, alice, block.timestamp);
 
-    assertGt(tokenB.balanceOf(alice), balanceBefore);
+    uint256 expectedAmountB = (1000e18 * 997) / 1000;
+    assertEq(tokenB.balanceOf(alice), balanceBefore + expectedAmountB);
 
     vm.stopPrank();
   }
@@ -381,7 +385,7 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
     vm.stopPrank();
   }
 
-  // ============ EDGE CASE TESTS ============
+  // ============ OTHER TESTS ============
 
   function test_getReserves_whenPoolExists_shouldReturnCorrectReserves() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
@@ -389,8 +393,8 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
     (uint256 reserveA, uint256 reserveB) = router.getReserves(address(tokenA), address(tokenB), address(0));
 
-    assertGt(reserveA, 0);
-    assertGt(reserveB, 0);
+    assertEq(reserveA, 1000e18);
+    assertEq(reserveB, 1000e18);
   }
 
   function test_getReserves_whenPoolDoesNotExist_shouldRevert() public {
@@ -409,7 +413,7 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
     assertEq(amountA, 1000e18);
     assertEq(amountB, 1000e18);
-    assertGt(liquidity, 0);
+    assertEq(liquidity, 1000e18 - 1e3);
   }
 
   function test_quoteAddLiquidity_whenExistingPool_shouldReturnAdjustedAmounts() public {
@@ -426,7 +430,7 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
     assertEq(amountA, 1000e18);
     assertEq(amountB, 1000e18);
-    assertGt(liquidity, 0);
+    assertEq(liquidity, 1000e18 - 1e3);
   }
 
   function test_quoteRemoveLiquidity_whenPoolExists_shouldReturnCorrectAmounts() public {

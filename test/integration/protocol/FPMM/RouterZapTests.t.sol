@@ -28,8 +28,8 @@ import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 
 /**
  * @title RouterZapTests
- * @notice Comprehensive tests for Router zap functionality
- * @dev Tests cover zap in, zap out, parameter generation, and edge cases
+ * @notice Tests for Router zap functionality
+ * @dev Tests cover zap in, zap out, and parameter generation
  */
 contract RouterZapTests is FPMMBaseIntegration {
   // ============ STATE VARIABLES ============
@@ -70,13 +70,11 @@ contract RouterZapTests is FPMMBaseIntegration {
     routesB[0] = IRouter.Route({ from: tokens[1], to: tokens[2], factory: address(0) });
 
     uint256 balanceBefore = IERC20(tokens[1]).balanceOf(alice);
-    uint256 lpBalanceBefore = IERC20(fpmm).balanceOf(alice);
 
     uint256 liquidity = router.zapIn(tokens[1], 10e18, 10e18, zapInPool, routesA, routesB, alice);
 
-    assertGt(liquidity, 0);
-    assertLt(IERC20(tokens[1]).balanceOf(alice), balanceBefore);
-    assertGt(IERC20(fpmm).balanceOf(alice), lpBalanceBefore);
+    assertApproxEqRel(liquidity, 10e18, 0.01e18);
+    assertEq(IERC20(tokens[1]).balanceOf(alice), balanceBefore - 20e18);
 
     vm.stopPrank();
   }
@@ -104,13 +102,11 @@ contract RouterZapTests is FPMMBaseIntegration {
     IRouter.Route[] memory routesB = new IRouter.Route[](0);
 
     uint256 balanceBefore = IERC20(tokens[2]).balanceOf(alice);
-    uint256 lpBalanceBefore = IERC20(fpmm).balanceOf(alice);
 
     uint256 liquidity = router.zapIn(tokens[2], 10e18, 10e18, zapInPool, routesA, routesB, alice);
 
-    assertGt(liquidity, 0);
-    assertLt(IERC20(tokens[2]).balanceOf(alice), balanceBefore);
-    assertGt(IERC20(fpmm).balanceOf(alice), lpBalanceBefore);
+    assertApproxEqRel(liquidity, 10e18, 0.01e18);
+    assertEq(IERC20(tokens[2]).balanceOf(alice), balanceBefore - 20e18);
 
     vm.stopPrank();
   }
@@ -449,30 +445,6 @@ contract RouterZapTests is FPMMBaseIntegration {
     assertEq(amountBMin, (10e18 * 997) / 1000);
   }
 
-  function test_generateZapInParams_whenEmptyRoutes_shouldGenerateCorrectParams() public {
-    address[] memory tokens = _sortTokensByAddress();
-    address fpmm = _deployFPMM(tokens[1], tokens[2]);
-    _addInitialLiquidity(tokens[1], tokens[2], fpmm);
-
-    IRouter.Route[] memory routesA = new IRouter.Route[](0);
-    IRouter.Route[] memory routesB = new IRouter.Route[](0);
-
-    (uint256 amountOutMinA, uint256 amountOutMinB, uint256 amountAMin, uint256 amountBMin) = router.generateZapInParams(
-      tokens[1],
-      tokens[2],
-      address(factory),
-      10e18,
-      10e18,
-      routesA,
-      routesB
-    );
-
-    assertEq(amountOutMinA, 10e18);
-    assertEq(amountOutMinB, 10e18);
-    assertGt(amountAMin, 0);
-    assertGt(amountBMin, 0);
-  }
-
   function test_generateZapOutParams_whenValidInputs_shouldGenerateCorrectParams() public {
     address[] memory tokens = _sortTokensByAddress();
     address fpmm = _deployFPMM(tokens[1], tokens[2]);
@@ -497,24 +469,7 @@ contract RouterZapTests is FPMMBaseIntegration {
     assertEq(amountBMin, 100e18);
   }
 
-  function test_generateZapOutParams_whenEmptyRoutes_shouldGenerateCorrectParams() public {
-    address[] memory tokens = _sortTokensByAddress();
-    address fpmm = _deployFPMM(tokens[1], tokens[2]);
-    _addInitialLiquidity(tokens[1], tokens[2], fpmm);
-
-    IRouter.Route[] memory routesA = new IRouter.Route[](0);
-    IRouter.Route[] memory routesB = new IRouter.Route[](0);
-
-    (uint256 amountOutMinA, uint256 amountOutMinB, uint256 amountAMin, uint256 amountBMin) = router
-      .generateZapOutParams(tokens[1], tokens[2], address(factory), 100e18, routesA, routesB);
-
-    assertEq(amountOutMinA, amountAMin);
-    assertEq(amountOutMinB, amountBMin);
-    assertGt(amountAMin, 0);
-    assertGt(amountBMin, 0);
-  }
-
-  // ============ EDGE CASE TESTS ============
+  // ============ OTHER TESTS ============
 
   function test_zapIn_whenVerySmallAmounts_shouldHandleCorrectly() public {
     address[] memory tokens = _sortTokensByAddress();

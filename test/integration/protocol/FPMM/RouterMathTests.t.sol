@@ -28,8 +28,8 @@ import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 
 /**
  * @title RouterMathTests
- * @notice Comprehensive mathematical tests for Router calculations
- * @dev Tests focus on edge cases, precision, and complex mathematical scenarios
+ * @notice  Mathematical tests for Router calculations
+ * @dev Tests focus on decimals, precision, and complex mathematical scenarios
  */
 contract RouterMathTests is FPMMBaseIntegration {
   // ============ STATE VARIABLES ============
@@ -85,7 +85,8 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     assertEq(amounts.length, 2);
     assertEq(amounts[0], amountIn);
-    assertGt(amounts[1], 0);
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
+    assertEq(amounts[1], expectedAmountOut);
   }
 
   function test_getAmountsOut_whenMultipleRoutes_shouldCalculateCorrectly() public {
@@ -104,8 +105,10 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     assertEq(amounts.length, 3);
     assertEq(amounts[0], amountIn);
-    assertGt(amounts[1], 0);
-    assertGt(amounts[2], 0);
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
+    assertEq(amounts[1], expectedAmountOut);
+    uint256 expectedAmountOut2 = ((expectedAmountOut * 997) / 1000) * 1e2;
+    assertEq(amounts[2], expectedAmountOut2);
   }
 
   function test_getAmountsOut_whenEmptyRoutes_shouldRevert() public {
@@ -134,7 +137,8 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     assertEq(amounts.length, 2);
     assertEq(amounts[0], amountIn);
-    assertGt(amounts[1], 0);
+    uint256 expectedAmountOut = ((amountIn * 2 * 997) / 1000) / 1e12;
+    assertEq(amounts[1], expectedAmountOut);
   }
 
   // ============ QUOTE ADD LIQUIDITY TESTS ============
@@ -196,8 +200,8 @@ contract RouterMathTests is FPMMBaseIntegration {
     address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
     _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
 
-    uint256 amountADesired = 2000e18;
-    uint256 amountBDesired = 500e6; // This should be adjusted down
+    uint256 amountADesired = 2000e18; // This should be adjusted down
+    uint256 amountBDesired = 500e6;
 
     (uint256 amountA, uint256 amountB, uint256 liquidity) = router.quoteAddLiquidity(
       address(token18Decimals),
@@ -209,7 +213,7 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     assertLt(amountA, amountADesired);
     assertEq(amountB, amountBDesired);
-    assertGt(liquidity, 0);
+    assertEq(liquidity, 500e12);
   }
 
   // ============ QUOTE REMOVE LIQUIDITY TESTS ============
@@ -218,7 +222,7 @@ contract RouterMathTests is FPMMBaseIntegration {
     address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
     _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
 
-    uint256 liquidityToRemove = 100e18;
+    uint256 liquidityToRemove = 100e12;
 
     (uint256 amountA, uint256 amountB) = router.quoteRemoveLiquidity(
       address(token18Decimals),
@@ -226,9 +230,13 @@ contract RouterMathTests is FPMMBaseIntegration {
       address(factory),
       liquidityToRemove
     );
-
-    assertGt(amountA, 0);
-    assertGt(amountB, 0);
+    if (address(token18Decimals) < address(token6Decimals)) {
+      assertEq(amountA, 100e18);
+      assertEq(amountB, 100e6);
+    } else {
+      assertEq(amountA, 100e6);
+      assertEq(amountB, 100e18);
+    }
   }
 
   function test_quoteRemoveLiquidity_whenNonexistentPool_shouldReturnZero() public {
@@ -259,25 +267,27 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     assertEq(amounts.length, 2);
     assertEq(amounts[0], amountIn);
-    assertGt(amounts[1], 0);
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
+    assertEq(amounts[1], expectedAmountOut);
   }
 
   function test_getAmountsOut_whenHighPrecisionTokens_shouldHandleCorrectly() public {
     address fpmm = _deployFPMM(address(token12Decimals), address(token8Decimals));
     _addInitialLiquidity(address(token12Decimals), address(token8Decimals), fpmm);
 
-    uint256 amountIn = 1e12; // 1 token with 12 decimals
+    uint256 amountIn = 1e8; // 1 token with 8 decimals
     IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = IRouter.Route({ from: address(token12Decimals), to: address(token8Decimals), factory: address(0) });
+    routes[0] = IRouter.Route({ from: address(token8Decimals), to: address(token12Decimals), factory: address(0) });
 
     uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
 
     assertEq(amounts.length, 2);
     assertEq(amounts[0], amountIn);
-    assertGt(amounts[1], 0);
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) * 1e4;
+    assertEq(amounts[1], expectedAmountOut);
   }
 
-  // ============ EDGE CASE TESTS ============
+  // ============ OTHER TESTS ============
 
   function test_getAmountsOut_whenSmallAmount_shouldHandleCorrectly() public {
     address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
@@ -299,7 +309,7 @@ contract RouterMathTests is FPMMBaseIntegration {
     address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
     _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
 
-    uint256 amountIn = 1e30; // Very large amount
+    uint256 amountIn = 1e30; // Large amount
     IRouter.Route[] memory routes = new IRouter.Route[](1);
     routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
 
@@ -307,7 +317,8 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     assertEq(amounts.length, 2);
     assertEq(amounts[0], amountIn);
-    assertGt(amounts[1], 0);
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
+    assertEq(amounts[1], expectedAmountOut);
   }
 
   // ============ ORACLE RATE TESTS ============
@@ -340,7 +351,7 @@ contract RouterMathTests is FPMMBaseIntegration {
     uint256[] memory amounts2 = router.getAmountsOut(amountIn, routes);
 
     assertEq(amounts1[0], amounts2[0]); // Input amount should be same
-    assertNotEq(amounts1[1], amounts2[1]); // Output amount should be different
+    assertEq(amounts1[1], amounts2[1] / 2); // Output amount should be different
   }
 
   // ============ COMPLEX ROUTING TESTS ============
@@ -365,8 +376,11 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     assertEq(amounts.length, 4);
     assertEq(amounts[0], amountIn);
-    assertGt(amounts[1], 0);
-    assertGt(amounts[2], 0);
-    assertGt(amounts[3], 0);
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
+    assertEq(amounts[1], expectedAmountOut);
+    uint256 expectedAmountOut2 = ((expectedAmountOut * 997) / 1000) * 1e2;
+    assertEq(amounts[2], expectedAmountOut2);
+    uint256 expectedAmountOut3 = ((expectedAmountOut2 * 997) / 1000) * 1e4;
+    assertEq(amounts[3], expectedAmountOut3);
   }
 }

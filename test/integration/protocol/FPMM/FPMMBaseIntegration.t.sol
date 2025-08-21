@@ -13,6 +13,12 @@ import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { Router } from "contracts/swap/router/Router.sol";
 import { IFactoryRegistry } from "contracts/swap/router/interfaces/IFactoryRegistry.sol";
 
+/**
+ * @title FPMMBaseIntegration
+ * @notice Base contract for FPMM integration tests
+ * @dev This base contract is used to simplify the implementation of integration tests for FPMM.
+ * It provides common setup functions and state variables for the tests.
+ */
 contract FPMMBaseIntegration is Test {
   FPMMFactory public factory;
   Router public router;

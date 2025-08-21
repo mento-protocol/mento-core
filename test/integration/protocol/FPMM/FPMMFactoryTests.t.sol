@@ -338,13 +338,24 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     );
 
     address computedAddress = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
+    address computedAddress2 = factory.getOrPrecomputeProxyAddress(address(tokenB), address(tokenA));
     assertEq(computedAddress, fpmm);
+    assertEq(computedAddress2, fpmm);
   }
 
   function test_getOrPrecomputeProxyAddress_whenPoolDoesNotExist_shouldReturnPrecomputedAddress() public {
     address precomputedAddress = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
     assertTrue(precomputedAddress != address(0));
     assertEq(factory.deployedFPMMs(address(tokenA), address(tokenB)), address(0));
+
+    vm.prank(governance);
+    address fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
+    assertEq(precomputedAddress, fpmm);
   }
 
   function test_getOrPrecomputeProxyAddress_whenTokensReversed_shouldReturnSameAddress() public {
@@ -478,7 +489,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     factory.setGovernance(address(0));
   }
 
-  // ============ EDGE CASE TESTS ============
+  // ============ OTHER TESTS ============
 
   function test_deployFPMM_whenTokensHaveDifferentDecimals_shouldDeployCorrectly() public {
     // Create tokens with different decimals
