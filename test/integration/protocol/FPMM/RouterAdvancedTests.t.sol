@@ -64,7 +64,7 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
     assertTrue(pool != address(0));
   }
 
-  function test_getAmountsOut_whenPoolDoesNotExist_shouldReturnZero() public {
+  function test_getAmountsOut_whenPoolDoesNotExist_shouldReturnZero() public view {
     IRouter.Route[] memory routes = new IRouter.Route[](1);
     routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(0) });
 
@@ -392,7 +392,7 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
     router.getReserves(address(tokenA), address(tokenB), address(0));
   }
 
-  function test_quoteAddLiquidity_whenNewPool_shouldReturnDesiredAmounts() public {
+  function test_quoteAddLiquidity_whenNewPool_shouldReturnDesiredAmounts() public view {
     (uint256 amountA, uint256 amountB, uint256 liquidity) = router.quoteAddLiquidity(
       address(tokenA),
       address(tokenB),
@@ -435,7 +435,7 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
     assertEq(amountB, 100e18);
   }
 
-  function test_quoteRemoveLiquidity_whenPoolDoesNotExist_shouldReturnZero() public {
+  function test_quoteRemoveLiquidity_whenPoolDoesNotExist_shouldReturnZero() public view {
     (uint256 amountA, uint256 amountB) = router.quoteRemoveLiquidity(
       address(tokenA),
       address(tokenB),

@@ -36,26 +36,6 @@ contract RouterMathTests is FPMMBaseIntegration {
     token12Decimals = new MockERC20("Token12", "TK12", 12);
   }
 
-  // ============ QUOTE LIQUIDITY TESTS ============
-
-  function test_quoteLiquidity_whenEqualReserves_shouldReturnEqualAmount() public {
-    uint256 amountA = 1000e18;
-    uint256 reserveA = 10000e18;
-    uint256 reserveB = 10000e18;
-
-    uint256 expectedAmountB = (amountA * reserveB) / reserveA;
-    assertEq(expectedAmountB, 1000e18);
-  }
-
-  function test_quoteLiquidity_whenImbalancedReserves_shouldReturnProportionalAmount() public {
-    uint256 amountA = 1000e18;
-    uint256 reserveA = 5000e18;
-    uint256 reserveB = 10000e18;
-
-    uint256 expectedAmountB = (amountA * reserveB) / reserveA;
-    assertEq(expectedAmountB, 2000e18);
-  }
-
   // ============ GET AMOUNTS OUT TESTS ============
 
   function test_getAmountsOut_whenSingleRoute_shouldCalculateCorrectly() public {
@@ -128,7 +108,7 @@ contract RouterMathTests is FPMMBaseIntegration {
 
   // ============ QUOTE ADD LIQUIDITY TESTS ============
 
-  function test_quoteAddLiquidity_whenNewPool_shouldCalculateCorrectly() public {
+  function test_quoteAddLiquidity_whenNewPool_shouldCalculateCorrectly() public view {
     uint256 amountADesired = 1000e18;
     uint256 amountBDesired = 500e6; // 6 decimals
 
@@ -224,7 +204,7 @@ contract RouterMathTests is FPMMBaseIntegration {
     }
   }
 
-  function test_quoteRemoveLiquidity_whenNonexistentPool_shouldReturnZero() public {
+  function test_quoteRemoveLiquidity_whenNonexistentPool_shouldReturnZero() public view {
     uint256 liquidityToRemove = 100e18;
 
     (uint256 amountA, uint256 amountB) = router.quoteRemoveLiquidity(

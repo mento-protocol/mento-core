@@ -740,6 +740,7 @@ abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
 
   function test_deployFPMM_shouldRevertForSamePairInDifferentOrder() public {
     vm.prank(governanceCelo);
+    deploy("celo");
     address[] memory deployedFPMMAddresses = factoryCelo.deployedFPMMAddresses();
     assertEq(deployedFPMMAddresses.length, 1);
 
