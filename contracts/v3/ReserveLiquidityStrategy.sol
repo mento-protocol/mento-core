@@ -26,6 +26,9 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
   /// @notice The reserve contract that holds collateral
   IReserve public reserve;
 
+  /// @notice Mapping of trusted liquidity pools
+  mapping(address => bool) public trustedPools;
+
   /* ============================================================ */
   /* ======================== Events ============================ */
   /* ============================================================ */
@@ -39,6 +42,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
   );
 
   event ReserveSet(address indexed oldReserve, address indexed newReserve);
+  event TrustedPoolUpdated(address indexed pool, bool isTrusted);
 
   /* ============================================================ */
   /* ==================== Initialization ======================== */
@@ -76,6 +80,17 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
     reserve = IReserve(_reserve);
 
     emit ReserveSet(oldReserve, _reserve);
+  }
+
+  /**
+   * @notice Set a trusted liquidity pool
+   * @param pool The address of the liquidity pool
+   * @param isTrusted Whether the pool is trusted or not
+   */
+  function setTrustedPool(address pool, bool isTrusted) external onlyOwner {
+    require(pool != address(0), "RLS: INVALID_POOL");
+    trustedPools[pool] = isTrusted;
+    emit TrustedPoolUpdated(pool, isTrusted);
   }
 
   /* ============================================================ */
@@ -126,6 +141,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
    * @param data Encoded callback data
    */
   function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
+    require(trustedPools[msg.sender], "RLS: UNTRUSTED_POOL");
     require(sender == address(this), "RLS: INVALID_SENDER");
 
     (uint256 inputAmount, LQ.Direction direction, uint256 incentiveAmount, bool isToken0Debt) = abi.decode(
