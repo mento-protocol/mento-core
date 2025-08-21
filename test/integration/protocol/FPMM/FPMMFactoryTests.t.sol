@@ -6,22 +6,11 @@ import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 
 import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 
-// FPMM contracts
-import { FPMM } from "contracts/swap/FPMM.sol";
-import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
-import { IFPMM } from "contracts/interfaces/IFPMM.sol";
-import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
-
 // Interfaces
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
-import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 
 // OpenZeppelin
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-
-// Forge
-import { console } from "forge-std/console.sol";
 
 /**
  * @title FPMMFactoryTests
@@ -244,12 +233,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_isPool_whenPoolExists_shouldReturnTrue() public {
     vm.prank(governance);
-    address fpmm = factory.deployFPMM(
-      address(fpmmImplementation),
-      address(tokenA),
-      address(tokenB),
-      referenceRateFeedID
-    );
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
 
     (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
 

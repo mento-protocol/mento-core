@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
+// solhint-disable immutable-vars-naming
 
 import { ERC2771Context } from "./utils/ERC2771.sol";
 import { SafeERC20 } from "./utils/SafeERC20.sol";
@@ -11,8 +12,6 @@ import { IWETH } from "./interfaces/IWETH.sol";
 import { IFactoryRegistry } from "./interfaces/IFactoryRegistry.sol";
 import { IFPMMFactory } from "../../interfaces/IFPMMFactory.sol";
 import { IFPMM } from "../../interfaces/IFPMM.sol";
-
-import "forge-std/console.sol";
 
 /// @title Protocol Router
 /// @author velodrome.finance, Mento Labs
@@ -67,6 +66,7 @@ contract Router is IRouter, ERC2771Context {
     if (token0 == address(0)) revert ZeroAddress();
   }
 
+  // slither-disable-start calls-loop
   /// @inheritdoc IRouter
   function poolFor(address tokenA, address tokenB, address _factory) public view returns (address pool) {
     address _defaultFactory = defaultFactory;
@@ -77,10 +77,13 @@ contract Router is IRouter, ERC2771Context {
 
     pool = IFPMMFactory(factory).getOrPrecomputeProxyAddress(token0, token1);
   }
+  // slither-disable-end calls-loop
 
   /// @dev given some amount of an asset and pool reserves, returns an equivalent amount of the other asset
   function quoteLiquidity(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
+    // slither-disable-next-line incorrect-equality
     if (amountA == 0) revert InsufficientAmount();
+    // slither-disable-next-line incorrect-equality
     if (reserveA == 0 || reserveB == 0) revert InsufficientLiquidity();
     amountB = (amountA * reserveB) / reserveA;
   }
@@ -92,10 +95,12 @@ contract Router is IRouter, ERC2771Context {
     address _factory
   ) public view returns (uint256 reserveA, uint256 reserveB) {
     (address token0, ) = sortTokens(tokenA, tokenB);
+    // slither-disable-next-line unused-return
     (uint256 reserve0, uint256 reserve1, ) = IFPMM(poolFor(tokenA, tokenB, _factory)).getReserves();
     (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
   }
 
+  // slither-disable-start calls-loop
   /// @inheritdoc IRouter
   function getAmountsOut(uint256 amountIn, Route[] memory routes) public view returns (uint256[] memory amounts) {
     if (routes.length < 1) revert InvalidPath();
@@ -111,6 +116,7 @@ contract Router is IRouter, ERC2771Context {
       }
     }
   }
+  // slither-disable-end calls-loop
 
   /// @inheritdoc IRouter
   function quoteAddLiquidity(
@@ -385,7 +391,8 @@ contract Router is IRouter, ERC2771Context {
       uint256 amountOutput;
       {
         // stack too deep
-        (uint256 reserveA, ) = getReserves(routes[i].from, routes[i].to, routes[i].factory); // getReserves sorts it for us i.e. reserveA is always for from
+        // getReserves sorts it for us i.e. reserveA is always for from
+        (uint256 reserveA, ) = getReserves(routes[i].from, routes[i].to, routes[i].factory);
         amountInput = IERC20(routes[i].from).balanceOf(pool) - reserveA;
       }
       amountOutput = IFPMM(pool).getAmountOut(amountInput, routes[i].from);
@@ -494,6 +501,7 @@ contract Router is IRouter, ERC2771Context {
     address pool = poolFor(tokenA, tokenB, factory);
 
     {
+      // slither-disable-next-line unused-return
       (uint256 reserve0, uint256 reserve1, ) = IFPMM(pool).getReserves();
       if (reserve0 <= MINIMUM_LIQUIDITY || reserve1 <= MINIMUM_LIQUIDITY) revert PoolDoesNotExist();
     }
@@ -678,16 +686,20 @@ contract Router is IRouter, ERC2771Context {
   }
 
   function _safeTransfer(address token, address to, uint256 value) internal {
-    require(token.code.length > 0);
+    require(token.code.length > 0, "Not a contract");
+    // solhint-disable-next-line avoid-low-level-calls
     (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, to, value));
-    require(success && (data.length == 0 || abi.decode(data, (bool))));
+    // slither-disable-next-line incorrect-equality
+    require(success && (data.length == 0 || abi.decode(data, (bool))), "Transfer failed");
   }
 
   function _safeTransferFrom(address token, address from, address to, uint256 value) internal {
-    require(token.code.length > 0);
+    require(token.code.length > 0, "Not a contract");
+    // solhint-disable-next-line avoid-low-level-calls
     (bool success, bytes memory data) = token.call(
       abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, value)
     );
-    require(success && (data.length == 0 || abi.decode(data, (bool))));
+    // slither-disable-next-line incorrect-equality
+    require(success && (data.length == 0 || abi.decode(data, (bool))), "Transfer failed");
   }
 }

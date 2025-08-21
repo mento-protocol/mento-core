@@ -2,32 +2,14 @@
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
 pragma solidity ^0.8;
 
-import { Test } from "forge-std/Test.sol";
-import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
-
 // Router contracts
-import { Router } from "contracts/swap/router/Router.sol";
 import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
-
-// FPMM contracts
-import { FPMM } from "contracts/swap/FPMM.sol";
-import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
-import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 // Base integration
 import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 
 // Interfaces
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
-import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
-import { IFactoryRegistry } from "contracts/swap/router/interfaces/IFactoryRegistry.sol";
-
-// OpenZeppelin
-import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-
-// Forge
-import { console } from "forge-std/console.sol";
 
 /**
  * @title RouterETHFunctionsTest
