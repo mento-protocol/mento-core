@@ -7,42 +7,21 @@ import { EnumerableSetUpgradeable } from "openzeppelin-contracts-upgradeable/con
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable as SafeERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol"; // TODO: Confirm location
 import { ILiquidityPolicy } from "./Interfaces/ILiquidityPolicy.sol";
 import { ILiquidityStrategy } from "./Interfaces/ILiquidityStrategy.sol";
+import { ILiquidityController } from "./Interfaces/ILiquidityController.sol";
 
-// TODO: Add interface
+import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
 
 /**
  * @title LiquidityController
  * @notice Orchestrates per-pool policy pipelines and executes actions via liquidity source-specific strategies.
  *         Also stores per-pool FPMM config (cooldown, incentive cap, lastRebalance, tokens).
  */
-contract LiquidityController is OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract LiquidityController is ILiquidityController, OwnableUpgradeable, ReentrancyGuardUpgradeable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using SafeERC20 for IERC20Upgradeable;
-
-  /* ============================================================ */
-  /* ===================== Structs & Enums ====================== */
-  /* ============================================================ */
-
-  /**
-   * @notice Struct holding the complete configuration of an FPMM pool, 
-   *         in the context of liquidity management.
-   * @param debtToken The Mento-issued debt token (e.g., cUSD, USD.M etc)
-   * @param collateralToken The backing/collateral token (e.g., USDC, USDT)
-   * @param lastRebalance The timestamp of the last rebalance for this pool.
-   * @param rebalanceCooldown The cooldown period that must pass before the next rebalance.
-   * @param rebalanceIncentive The controller-side incentive cap (bps) for the rebalance.
-   */
-  struct PoolConfig {
-    address debtToken;
-    address collateralToken;
-    uint128 lastRebalance;
-    uint64 rebalanceCooldown;
-    uint32 rebalanceIncentive;
-  }
 
   /* ============================================================ */
   /* ==================== State Variables ======================= */
@@ -58,18 +37,6 @@ contract LiquidityController is OwnableUpgradeable, ReentrancyGuardUpgradeable {
   mapping(LQ.LiquiditySource => ILiquidityStrategy) public strategies;
 
   /* ============================================================ */
-  /* ======================== Events ============================ */
-  /* ============================================================ */
-
-  event PoolAdded(address indexed pool, address debt, address collateral, uint64 cooldown, uint32 incentiveBps);
-  event PoolRemoved(address indexed pool);
-  event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
-  event RebalanceIncentiveSet(address indexed pool, uint32 incentiveBps);
-  event PipelineSet(address indexed pool, address[] policies);
-  event StrategySet(LQ.LiquiditySource indexed source, address strategy);
-  event RebalanceExecuted(address indexed pool, uint256 diffBeforeBps, uint256 diffAfterBps);
-
-  /* ============================================================ */
   /* ==================== Initialization ======================== */
   /* ============================================================ */
 
@@ -83,6 +50,7 @@ contract LiquidityController is OwnableUpgradeable, ReentrancyGuardUpgradeable {
   /* ================ Admin Functions - Pools =================== */
   /* ============================================================ */
 
+  /// @inheritdoc ILiquidityController
   function addPool(
     address pool,
     address debtToken,
@@ -115,6 +83,7 @@ contract LiquidityController is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     emit PoolAdded(pool, debtToken, collateralToken, cooldown, incentiveBps);
   }
 
+  /// @inheritdoc ILiquidityController
   function removePool(address pool) external onlyOwner {
     require(pools.remove(pool), "LC: POOL_NOT_FOUND");
     delete poolConfigs[pool];
@@ -122,12 +91,14 @@ contract LiquidityController is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     emit PoolRemoved(pool);
   }
 
+  /// @inheritdoc ILiquidityController
   function setRebalanceCooldown(address pool, uint64 cooldown) external onlyOwner {
     _ensurePool(pool);
     poolConfigs[pool].rebalanceCooldown = cooldown;
     emit RebalanceCooldownSet(pool, cooldown);
   }
 
+  /// @inheritdoc ILiquidityController
   function setRebalanceIncentive(address pool, uint32 incentiveBps) external onlyOwner {
     _ensurePool(pool);
     uint256 poolIncentiveCap = IFPMM(pool).rebalanceIncentive();
@@ -140,6 +111,7 @@ contract LiquidityController is OwnableUpgradeable, ReentrancyGuardUpgradeable {
   /* ======== Admin Functions - Pipelines  & Strategies ========= */
   /* ============================================================ */
 
+  /// @inheritdoc ILiquidityController
   function setPoolPipeline(address pool, ILiquidityPolicy[] calldata policies) external onlyOwner {
     _ensurePool(pool);
     delete pipelines[pool];
@@ -151,6 +123,7 @@ contract LiquidityController is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     emit PipelineSet(pool, policyAddresses);
   }
 
+  /// @inheritdoc ILiquidityController
   function setLiquiditySourceStrategy(LQ.LiquiditySource source, ILiquidityStrategy strategy) external onlyOwner {
     require(address(strategy) != address(0), "LC: STRATEGY_ADDRESS_IS_ZERO");
     strategies[source] = strategy;
@@ -161,7 +134,7 @@ contract LiquidityController is OwnableUpgradeable, ReentrancyGuardUpgradeable {
   /* ==================== External Functions ==================== */
   /* ============================================================ */
 
-  /// @notice Rebalance a pool using its configured policy pipeline.
+  /// @inheritdoc ILiquidityController
   function rebalance(address pool) external nonReentrant {
     _ensurePool(pool);
 
@@ -219,10 +192,12 @@ contract LiquidityController is OwnableUpgradeable, ReentrancyGuardUpgradeable {
   /* ==================== View Functions ======================== */
   /* ============================================================ */
 
+  /// @inheritdoc ILiquidityController
   function isPoolRegistered(address pool) public view returns (bool) {
     return pools.contains(pool);
   }
 
+  /// @inheritdoc ILiquidityController
   function getPools() external view returns (address[] memory) {
     return pools.values();
   }
