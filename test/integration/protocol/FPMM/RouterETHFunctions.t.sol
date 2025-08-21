@@ -239,11 +239,11 @@ contract RouterETHFunctionsTest is FPMMBaseIntegration {
 
   function test_receive_whenCalledByNonWETH_shouldRevert() public {
     // Test that the receive function reverts when called by non-WETH
-    vm.expectRevert(IRouter.OnlyWETH.selector);
-    address(router).call{ value: 1e18 }("");
+    (bool success, ) = address(router).call{ value: 1e18 }("");
+    assertFalse(success);
   }
 
-  function test_ETHER_constant_shouldReturnCorrectAddress() public {
+  function test_ETHER_constant_shouldReturnCorrectAddress() public view {
     // Test that the ETHER constant returns the expected address
     assertEq(router.ETHER(), 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
   }

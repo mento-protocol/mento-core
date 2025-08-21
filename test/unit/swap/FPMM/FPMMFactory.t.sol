@@ -827,6 +827,8 @@ contract FPMMFactoryTest_DeployFPMMStandard is FPMMFactoryTest_DeployFPMM {
       return factoryCelo.deployFPMM(fpmmImplementationCeloAddress, token0Celo, token1Celo, referenceRateFeedID);
     } else if (keccak256(abi.encode(chain)) == keccak256(abi.encode("op"))) {
       return factoryOp.deployFPMM(fpmmImplementationOpAddress, token0Op, token1Op, referenceRateFeedID);
+    } else {
+      return address(0);
     }
   }
 }
@@ -870,6 +872,8 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
           token1Op,
           referenceRateFeedID
         );
+    } else {
+      return address(0);
     }
   }
 
@@ -916,7 +920,7 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
     );
   }
 
-  function testSortTokens_whenTokenAIsLessThanTokenB_shouldReturnTokensInOrder() public {
+  function testSortTokens_whenTokenAIsLessThanTokenB_shouldReturnTokensInOrder() public view {
     address tokenA = address(0x1000);
     address tokenB = address(0x2000);
 
@@ -926,7 +930,7 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
     assertEq(token1, tokenB);
   }
 
-  function testSortTokens_whenTokenBIsLessThanTokenA_shouldReturnTokensInOrder() public {
+  function testSortTokens_whenTokenBIsLessThanTokenA_shouldReturnTokensInOrder() public view {
     address tokenA = address(0x2000);
     address tokenB = address(0x1000);
 

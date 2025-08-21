@@ -8,6 +8,7 @@ import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 
 // Interfaces
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 // OpenZeppelin
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
@@ -28,7 +29,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   // ============ FACTORY SETUP TESTS ============
 
-  function test_initialize_whenCalledByOwner_shouldSetCorrectValues() public {
+  function test_initialize_whenCalledByOwner_shouldSetCorrectValues() public view {
     // Verify factory configuration
     assertEq(factory.sortedOracles(), sortedOracles);
     assertEq(factory.proxyAdmin(), proxyAdmin);
@@ -241,7 +242,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     assertFalse(factory.isPool(token1, token0));
   }
 
-  function test_isPool_whenPoolDoesNotExist_shouldReturnFalse() public {
+  function test_isPool_whenPoolDoesNotExist_shouldReturnFalse() public view {
     assertFalse(factory.isPool(address(tokenA), address(tokenB)));
     assertFalse(factory.isPool(address(tokenB), address(tokenA)));
   }
@@ -282,7 +283,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     assertEq(factory.deployedFPMMs(token1, token0), address(0));
   }
 
-  function test_deployedFPMMs_whenPoolDoesNotExist_shouldReturnZeroAddress() public {
+  function test_deployedFPMMs_whenPoolDoesNotExist_shouldReturnZeroAddress() public view {
     assertEq(factory.deployedFPMMs(address(tokenA), address(tokenB)), address(0));
     assertEq(factory.deployedFPMMs(address(tokenB), address(tokenA)), address(0));
   }
@@ -342,7 +343,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     assertEq(precomputedAddress, fpmm);
   }
 
-  function test_getOrPrecomputeProxyAddress_whenTokensReversed_shouldReturnSameAddress() public {
+  function test_getOrPrecomputeProxyAddress_whenTokensReversed_shouldReturnSameAddress() public view {
     address address1 = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
     address address2 = factory.getOrPrecomputeProxyAddress(address(tokenB), address(tokenA));
     assertEq(address1, address2);
@@ -350,7 +351,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   // ============ TOKEN SORTING TESTS ============
 
-  function test_sortTokens_whenTokenALessThanTokenB_shouldReturnCorrectOrder() public {
+  function test_sortTokens_whenTokenALessThanTokenB_shouldReturnCorrectOrder() public view {
     address token0 = address(0x0000000000000000000000000000000000000011);
     address token1 = address(0x0000000000000000000000000000000000000022);
 
@@ -359,7 +360,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     assertEq(sorted1, token1);
   }
 
-  function test_sortTokens_whenTokenAGreaterThanTokenB_shouldReturnCorrectOrder() public {
+  function test_sortTokens_whenTokenAGreaterThanTokenB_shouldReturnCorrectOrder() public view {
     address token0 = address(0x0000000000000000000000000000000000000011);
     address token1 = address(0x0000000000000000000000000000000000000022);
 
