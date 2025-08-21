@@ -136,8 +136,6 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-start encode-packed-collision
   /// @inheritdoc IFPMMFactory
   function getOrPrecomputeProxyAddress(address token0, address token1) public view returns (address) {
-    FPMMFactoryStorage storage $ = _getFPMMStorage();
-
     (token0, token1) = sortTokens(token0, token1);
 
     if (isPool(token0, token1)) {

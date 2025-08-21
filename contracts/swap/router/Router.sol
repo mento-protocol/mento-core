@@ -170,7 +170,7 @@ contract Router is IRouter, ERC2771Context {
     uint256 amountBDesired,
     uint256 amountAMin,
     uint256 amountBMin
-  ) internal returns (uint256 amountA, uint256 amountB) {
+  ) internal view returns (uint256 amountA, uint256 amountB) {
     if (amountADesired < amountAMin) revert InsufficientAmountADesired();
     if (amountBDesired < amountBMin) revert InsufficientAmountBDesired();
     // create the pool if it doesn't exist yet

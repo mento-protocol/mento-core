@@ -124,11 +124,11 @@ contract FPMMBaseIntegration is Test {
     vm.stopPrank();
   }
 
-  function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
-    if (tokenA < tokenB) {
-      return (tokenA, tokenB);
+  function _sortTokens(address tokenA_, address tokenB_) internal pure returns (address token0, address token1) {
+    if (tokenA_ < tokenB_) {
+      return (tokenA_, tokenB_);
     } else {
-      return (tokenB, tokenA);
+      return (tokenB_, tokenA_);
     }
   }
 
