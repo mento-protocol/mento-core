@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
+import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { IERC20MintableBurnable } from "../common/IERC20MintableBurnable.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
@@ -16,7 +17,7 @@ import { ILiquidityStrategy } from "./Interfaces/ILiquidityStrategy.sol";
  *          from the Reserve by minting/burning debt tokens and
  *          moving collateral.
  */
-contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
+contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, ReentrancyGuardUpgradeable {
   using SafeERC20 for IERC20;
 
   /* ============================================================ */
@@ -55,6 +56,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
    */
   function initialize(address _reserve, address _owner) external initializer {
     __Ownable_init();
+    __ReentrancyGuard_init();
 
     require(_reserve != address(0), "RLS: INVALID_RESERVE");
     require(_owner != address(0), "RLS: INVALID_OWNER");
@@ -103,7 +105,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
    * @param data Additional callback data
    * @return ok True if execution succeeded
    */
-  function execute(LQ.Action calldata action, bytes calldata data) external returns (bool ok) {
+  function execute(LQ.Action calldata action, bytes calldata data) external nonReentrant returns (bool ok) {
     require(action.liquiditySource == LQ.LiquiditySource.Reserve, "RLS: WRONG_SOURCE");
     require(action.pool != address(0), "RLS: INVALID_POOL");
 
