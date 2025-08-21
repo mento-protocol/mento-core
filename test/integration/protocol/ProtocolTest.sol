@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { bytes32s, addresses, uints } from "mento-std/Array.sol";
-import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
+// import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
 
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { IFreezer } from "celo/contracts/common/interfaces/IFreezer.sol";
@@ -134,7 +134,7 @@ contract ProtocolTest is Test, WithRegistry {
     assetDailySpendingRatios[2] = 100000000000000000000000;
     reserve = IReserve(deployCode("Reserve", abi.encode(true)));
     reserve.initialize(
-      CELO_REGISTRY_ADDRESS,
+      address(registry),
       tobinTaxStalenessThreshold,
       dailySpendingRatio,
       0,

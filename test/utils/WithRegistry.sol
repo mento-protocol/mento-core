@@ -2,7 +2,7 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
+// import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
 
 import { IRegistry } from "celo/contracts/common/interfaces/IRegistry.sol";
 
@@ -11,10 +11,13 @@ interface IRegistryInit {
 }
 
 contract WithRegistry is Test {
-  IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
+  // IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
+  IRegistry public registry;
 
   constructor() {
-    deployCodeTo("Registry", abi.encode(true), CELO_REGISTRY_ADDRESS);
-    IRegistryInit(CELO_REGISTRY_ADDRESS).initialize();
+    // deployCodeTo("Registry", abi.encode(true), CELO_REGISTRY_ADDRESS);
+    // IRegistryInit(CELO_REGISTRY_ADDRESS).initialize();
+    registry = IRegistry(deployCode("Registry", abi.encode(true)));
+    IRegistryInit(address(registry)).initialize();
   }
 }
