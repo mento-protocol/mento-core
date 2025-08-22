@@ -9,7 +9,7 @@ contract MockLiquidityStrategy is ILiquidityStrategy {
   bytes public lastCallback;
   LQ.Action public lastAction;
   bytes public executionCallback;
-  
+
   // Execution tracking for testing
   uint256 public executionCount;
   uint256 public lastInputAmount;
@@ -25,10 +25,10 @@ contract MockLiquidityStrategy is ILiquidityStrategy {
   function execute(LQ.Action memory _action, bytes memory _callback) external returns (bool) {
     lastAction = _action;
     lastCallback = _callback;
-    
+
     // Track execution count
     executionCount++;
-    
+
     // Decode and track input amount for testing
     if (_callback.length > 0) {
       (uint256 inputAmount, , , , , ) = abi.decode(
@@ -37,16 +37,16 @@ contract MockLiquidityStrategy is ILiquidityStrategy {
       );
       lastInputAmount = inputAmount;
     }
-    
+
     // Execute callback if set (to simulate price changes after execution)
     if (executionCallback.length > 0) {
       (bool success, ) = _action.pool.call(executionCallback);
       require(success, "Callback failed");
     }
-    
+
     return executionResult;
   }
-  
+
   // Reset tracking state for cleaner test setup
   function resetTracking() external {
     executionCount = 0;
