@@ -95,7 +95,7 @@ contract Alfajores_P0E22_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 2
 
 contract Alfajores_P0E23_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 23) {}
 
-contract Celo_ChainForkTest is ChainForkTest(CELO_ID, 1, uints(21)) {}
+contract Celo_ChainForkTest is ChainForkTest(CELO_ID, 1, uints(24)) {}
 
 contract Celo_P0E00_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 0) {}
 
@@ -138,6 +138,12 @@ contract Celo_P0E18_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 18) {}
 contract Celo_P0E19_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 19) {}
 
 contract Celo_P0E20_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 20) {}
+
+contract Celo_P0E21_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 21) {}
+
+contract Celo_P0E22_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 22) {}
+
+contract Celo_P0E23_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 23) {}
 
 contract Celo_BancorExchangeProviderForkTest is BancorExchangeProviderForkTest(CELO_ID) {}
 

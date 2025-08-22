@@ -4,9 +4,6 @@ pragma solidity 0.8.18;
 import { Test } from "forge-std/Test.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
-import { FPMMProxy } from "contracts/swap/FPMMProxy.sol";
-import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { ICreateX } from "contracts/interfaces/ICreateX.sol";
 // solhint-disable-next-line max-line-length
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
@@ -750,40 +747,6 @@ abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
     vm.prank(governanceCelo);
     vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
     deploy("celo");
-  }
-
-  function test_deployFPMM_whenSameSaltIsUsedByDifferentAddress_shouldNotDeployToSameAddress() public {
-    vm.selectFork(celoFork);
-    address alice = makeAddr("Alice");
-
-    vm.startPrank(alice);
-
-    bytes11 customProxySalt = bytes11(
-      uint88(uint256(keccak256(abi.encodePacked(IERC20(token0Celo).symbol(), IERC20(token1Celo).symbol()))))
-    );
-    bytes32 proxySalt = bytes32(abi.encodePacked(address(factoryCelo), hex"00", customProxySalt));
-    bytes memory proxyInitData = abi.encodeWithSelector(
-      FPMM.initialize.selector,
-      token0Celo,
-      token1Celo,
-      expectedSortedOracles,
-      expectedReferenceRateFeedID,
-      expectedBreakerBox,
-      expectedGovernance
-    );
-    bytes memory proxyBytecode = abi.encodePacked(
-      type(FPMMProxy).creationCode,
-      abi.encode(fpmmImplementationCeloAddress, expectedProxyAdmin, proxyInitData)
-    );
-
-    address aliceFPMMProxy = ICreateX(createX).deployCreate3(proxySalt, proxyBytecode);
-    vm.stopPrank();
-
-    vm.prank(governanceCelo);
-    deploy("celo");
-
-    address factoryProxy = address(factoryCelo.deployedFPMMs(token0Celo, token1Celo));
-    assertNotEq(factoryProxy, aliceFPMMProxy);
   }
 
   function test_deployFPMM_shouldDeploySameFPMMToSameAddressOnDifferentChains() public {

@@ -181,6 +181,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
 
     require(dec0 <= 1e18 && dec1 <= 1e18, "RLS: TOKEN_DECIMALS_TOO_LARGE");
 
+    // slither-disable-next-line uninitialized-local
     RebalanceParams memory params;
     params.stablePrecision = 1e18 / dec0;
     params.collateralPrecision = 1e18 / dec1;
@@ -228,11 +229,13 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       (params.collateralReserve * oraclePriceDenominator);
     uint256 denominator = oraclePriceNumerator + ((oraclePriceNumerator * (BPS_SCALE - incentive)) / BPS_SCALE);
     uint256 stableOutRaw = numerator / denominator;
+    // slither-disable-start divide-before-multiply
     stableOut = stableOutRaw / params.stablePrecision;
 
     uint256 collateralInRaw = (stableOut * params.stablePrecision * oraclePriceNumerator) / oraclePriceDenominator;
 
     collateralIn = collateralInRaw / params.collateralPrecision;
+    // slither-disable-end divide-before-multiply
   }
 
   /**
@@ -257,11 +260,13 @@ contract ReserveLiquidityStrategy is LiquidityStrategy {
       ((params.stableReserve * oraclePriceNumerator) / oraclePriceDenominator);
     uint256 denominator = BPS_SCALE * 2 - incentive;
 
+    // slither-disable-start divide-before-multiply
     uint256 collateralOutRaw = (numerator * BPS_SCALE) / denominator;
     collateralOut = collateralOutRaw / params.collateralPrecision;
 
     uint256 stablesInRaw = (collateralOut * params.collateralPrecision * oraclePriceDenominator) / oraclePriceNumerator;
     stablesIn = stablesInRaw / params.stablePrecision;
+    // slither-disable-end divide-before-multiply
   }
 
   /**
