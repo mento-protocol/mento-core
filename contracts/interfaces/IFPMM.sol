@@ -27,6 +27,8 @@ interface IFPMM {
     uint256 blockTimestampLast;
     // contract for oracle price feeds(to be replaced)
     ISortedOracles sortedOracles;
+    // true if the rate feed should be reverted
+    bool revertRateFeed;
     // onchain circuit breaker
     IBreakerBox breakerBox;
     // identifier for the reference rate feed
@@ -239,6 +241,12 @@ interface IFPMM {
   function sortedOracles() external view returns (ISortedOracles);
 
   /**
+   * @notice Returns the revert rate feed flag
+   * @return Revert rate feed flag
+   */
+  function revertRateFeed() external view returns (bool);
+
+  /**
    * @notice Returns the circuit breaker contract to enable/disable trading
    * @return Address of the BreakerBox contract
    */
@@ -288,6 +296,8 @@ interface IFPMM {
    * @param _token0 Address of the first token
    * @param _token1 Address of the second token
    * @param _sortedOracles Address of the SortedOracles contract
+   * @param _referenceRateFeedID Address of the reference rate feed ID
+   * @param _revertRateFeed Whether to revert the rate feed
    * @param _breakerBox Address of the BreakerBox contract
    * @param _owner Address of the owner
    */
@@ -296,6 +306,7 @@ interface IFPMM {
     address _token1,
     address _sortedOracles,
     address _referenceRateFeedID,
+    bool _revertRateFeed,
     address _breakerBox,
     address _owner
   ) external;
@@ -330,15 +341,25 @@ interface IFPMM {
 
   /**
    * @notice Gets current oracle and reserve prices
-   * @return oraclePrice Oracle price in 18 decimals
-   * @return reservePrice Pool reserve price in 18 decimals
-   * @return _decimals0 Scaling factor for token0
-   * @return _decimals1 Scaling factor for token1
+   * @return oraclePriceNumerator The numerator of the oracle price.
+   * @return oraclePriceDenominator The denominator of the oracle price.
+   * @return reservePriceNumerator The numerator of the pool reserve price.
+   * @return reservePriceDenominator The denominator of the pool reserve price.
+   * @return priceDifference The price difference between the oracle and pool reserve prices in basis points.
+   * @return reservePriceAboveOraclePrice Whether the pool reserve price is above the oracle price.
+   * @dev The prices are returned in 18 decimals.
    */
   function getPrices()
     external
     view
-    returns (uint256 oraclePrice, uint256 reservePrice, uint256 _decimals0, uint256 _decimals1);
+    returns (
+      uint256 oraclePriceNumerator,
+      uint256 oraclePriceDenominator,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      uint256 priceDifference,
+      bool reservePriceAboveOraclePrice
+    );
 
   /**
    * @notice Calculates output amount for a given input

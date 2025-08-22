@@ -10,8 +10,13 @@ interface IFPMMCallee {
 }
 
 contract MockFPMMPool is Test {
-  uint256 public oraclePrice;
-  uint256 public poolPrice;
+  uint256 public oraclePriceNumerator;
+  uint256 public oraclePriceDenominator;
+  uint256 public poolPriceNumerator;
+  uint256 public poolPriceDenominator;
+  uint256 public priceDifference;
+  bool public reservePriceAboveOraclePrice;
+
   uint256 public reserve0;
   uint256 public reserve1;
   address public hookTarget;
@@ -25,17 +30,34 @@ contract MockFPMMPool is Test {
     hookTarget = _hookTarget;
     token0_ = MockERC20(_token0);
     token1_ = MockERC20(_token1);
-    reserve0 = 1000 * 10 ** 18;
-    reserve1 = 1000 * 10 ** 18;
-    oraclePrice = 1 * 10 ** 18;
-    poolPrice = 1 * 10 ** 18;
+    reserve0 = 1000e18;
+    reserve1 = 1000e18;
+
+    oraclePriceNumerator = 1e18;
+    oraclePriceDenominator = 1e18;
+    poolPriceNumerator = 1e18;
+    poolPriceDenominator = 1e18;
+    priceDifference = 0;
+    reservePriceAboveOraclePrice = false;
+
     rebalanceThresholdAbove = 100;
     rebalanceThresholdBelow = 100;
   }
 
-  function setPrices(uint256 o, uint256 p) external {
-    oraclePrice = o;
-    poolPrice = p;
+  function setPrices(
+    uint256 oNumerator,
+    uint256 oDenominator,
+    uint256 pNumerator,
+    uint256 pDenominator,
+    uint256 pDiff,
+    bool rAboveO
+  ) external {
+    oraclePriceNumerator = oNumerator;
+    oraclePriceDenominator = oDenominator;
+    poolPriceNumerator = pNumerator;
+    poolPriceDenominator = pDenominator;
+    priceDifference = pDiff;
+    reservePriceAboveOraclePrice = rAboveO;
   }
 
   function setReserves(uint256 _r0, uint256 _r1) external {
@@ -43,8 +65,15 @@ contract MockFPMMPool is Test {
     reserve1 = _r1;
   }
 
-  function getPrices() external view returns (uint256 o, uint256 p, uint256 d0, uint256 d1) {
-    return (oraclePrice, poolPrice, token0_.decimals(), token1_.decimals());
+  function getPrices() external view returns (uint256, uint256, uint256, uint256, uint256, bool) {
+    return (
+      oraclePriceNumerator,
+      oraclePriceDenominator,
+      poolPriceNumerator,
+      poolPriceDenominator,
+      priceDifference,
+      reservePriceAboveOraclePrice
+    );
   }
 
   function getReserves() external view returns (uint256, uint256, uint256) {
@@ -60,11 +89,11 @@ contract MockFPMMPool is Test {
   }
 
   function decimals0() external pure returns (uint256) {
-    return 18;
+    return 1e18;
   }
 
   function decimals1() external pure returns (uint256) {
-    return 18;
+    return 1e18;
   }
 
   function protocolFee() external pure returns (uint256) {
@@ -76,7 +105,7 @@ contract MockFPMMPool is Test {
   }
 
   function metadata() external view returns (uint256, uint256, uint256, uint256, address, address) {
-    return (token0_.decimals(), token1_.decimals(), reserve0, reserve1, address(token0_), address(token1_));
+    return (10 ** token0_.decimals(), 10 ** token1_.decimals(), reserve0, reserve1, address(token0_), address(token1_));
   }
 
   function setRebalanceThreshold(uint256 _thresholdAbove, uint256 _thresholdBelow) external {

@@ -62,7 +62,7 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
   }
 
-  function test_addPool_shouldEmitEvent_WhenPoolIsAdded() public {
+  function test_addPool_shouldEmitEvent_whenPoolIsAdded() public {
     vm.expectEmit(true, true, true, true);
     emit FPMMPoolAdded(address(mockPool), 1 days, 100);
     vm.prank(deployer);
@@ -77,7 +77,7 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.removePool(address(mockPool));
   }
 
-  function test_removePool_shouldEmitEvent_WhenPoolIsRemoved() public {
+  function test_removePool_shouldEmitEvent_whenPoolIsRemoved() public {
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
     vm.expectEmit(true, true, true, true);
@@ -115,7 +115,7 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.setRebalanceIncentive(address(mockPool), 101);
   }
 
-  function test_setRebalanceIncentive_shouldEmitEvent_WhenRebalanceIncentiveIsSet() public {
+  function test_setRebalanceIncentive_shouldEmitEvent_whenRebalanceIncentiveIsSet() public {
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
     vm.expectEmit(true, true, true, true);
@@ -144,7 +144,7 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.withdraw(address(mockToken0), address(deployer));
   }
 
-  function test_withdraw_shouldTransferTokens_WhenTokensToWithdraw() public {
+  function test_withdraw_shouldTransferTokens_whenTokensToWithdraw() public {
     uint256 initialBalance = 100e18;
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
@@ -175,7 +175,7 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.setRebalanceCooldown(address(mockPool), 1 days);
   }
 
-  function test_setRebalanceCooldown_shouldEmitEvent_WhenRebalanceCooldownIsSet() public {
+  function test_setRebalanceCooldown_shouldEmitEvent_whenRebalanceCooldownIsSet() public {
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
     vm.expectEmit(true, true, true, true);
@@ -191,9 +191,9 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
-  function test_rebalance_shouldRevert_WhenCooldownActive() public {
+  function test_rebalance_shouldRevert_whenCooldownActive() public {
     // Set oracle price and pool price with diff bigger than threshold
-    setPoolPrices(1000, 1);
+    setPoolPrices(1e18, 1e18, 2e18, 1e18, 10_000, true);
 
     // Trigger the first rebalance
     vm.prank(deployer);
@@ -243,8 +243,9 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
-  function test_rebalance_shouldRevert_WhenPoolPriceIsWithinThreshold() public {
-    setPoolPrices(1e18, 0.951e18);
+  function test_rebalance_shouldRevert_whenPoolPriceIsWithinThreshold() public {
+    // pool price 1, reserve price 1.01
+    setPoolPrices(1e18, 1e18, 101e16, 1e18, 0, true);
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
 
@@ -253,12 +254,14 @@ contract LiquidityStrategyTest is Test {
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
   }
 
-  function test_rebalance_shouldUpdateLastRebalanceAndEmitEvent_WhenPoolPriceIsAboveThreshold() public {
-    rebalanceWithPriceOutsideThreshold(1.06e18, 1e18);
+  function test_rebalance_shouldUpdateLastRebalanceAndEmitEvent_whenPoolPriceIsAboveThreshold() public {
+    // oraclePrice = 1.1, poolPrice = 2
+    rebalanceWithPriceOutsideThreshold(11e17, 1e18, 2e18, 1e18, 8181, true);
   }
 
-  function test_rebalance_shouldUpdateLastRebalanceAndEmitEvent_WhenPoolPriceIsBelowThreshold() public {
-    rebalanceWithPriceOutsideThreshold(0.94e18, 1e18);
+  function test_rebalance_shouldUpdateLastRebalanceAndEmitEvent_whenPoolPriceIsBelowThreshold() public {
+    // oraclePrice = 2, poolPrice = 1.1
+    rebalanceWithPriceOutsideThreshold(2e18, 1e18, 11e17, 1e18, 8181, false);
   }
 
   /* ==================== Test Helpers ==================== */
@@ -274,19 +277,47 @@ contract LiquidityStrategyTest is Test {
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector), abi.encode(500));
     vm.mockCall(address(mockPool), abi.encodeWithSelector(IFPMM.rebalanceIncentive.selector), abi.encode(100));
 
-    setPoolPrices(1000, 1000);
+    setPoolPrices(1e18, 1e18, 1000e18, 1000e18, 0, false);
   }
 
-  function setPoolPrices(uint256 oraclePrice, uint256 poolPrice) private {
+  function setPoolPrices(
+    uint256 oraclePriceNumerator,
+    uint256 oraclePriceDenominator,
+    uint256 poolPriceNumerator,
+    uint256 poolPriceDenominator,
+    uint256 priceDifference,
+    bool reservePriceAboveOraclePrice
+  ) private {
     vm.mockCall(
       address(mockPool),
       abi.encodeWithSelector(IFPMM.getPrices.selector),
-      abi.encode(oraclePrice, poolPrice, 18, 18) // Include decimals in the return values
+      abi.encode(
+        oraclePriceNumerator,
+        oraclePriceDenominator,
+        poolPriceNumerator,
+        poolPriceDenominator,
+        priceDifference,
+        reservePriceAboveOraclePrice
+      )
     );
   }
 
-  function rebalanceWithPriceOutsideThreshold(uint256 poolPrice, uint256 oraclePrice) private {
-    setPoolPrices(oraclePrice, poolPrice);
+  function rebalanceWithPriceOutsideThreshold(
+    uint256 oraclePriceNumerator,
+    uint256 oraclePriceDenominator,
+    uint256 poolPriceDenominator,
+    uint256 poolPriceNumerator,
+    uint256 priceDifference,
+    bool reservePriceAboveOraclePrice
+  ) private {
+    setPoolPrices(
+      oraclePriceNumerator,
+      oraclePriceDenominator,
+      poolPriceNumerator,
+      poolPriceDenominator,
+      priceDifference,
+      reservePriceAboveOraclePrice
+    );
     vm.prank(deployer);
     mockConcreteLiquidityStrat.addPool(address(mockPool), 1 days, 100);
 
@@ -297,7 +328,7 @@ contract LiquidityStrategyTest is Test {
     // so the price before and after rebalance is the same.
     // For this test, we don't care about the price change, we just want to test that the last rebalance is updated.
     // and that the event is emitted with the correct numbers (pool price before and after rebalance).
-    emit RebalanceExecuted(address(mockPool), poolPrice, poolPrice);
+    emit RebalanceExecuted(address(mockPool), priceDifference, priceDifference);
     vm.prank(nonOwner);
     mockConcreteLiquidityStrat.rebalance(address(mockPool));
 

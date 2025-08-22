@@ -60,15 +60,17 @@ contract MockLiquidityStrategy is IFPMMCallee {
       revert("MockRebalancer: Forced failure");
     }
 
-    (uint256 oraclePrice, , uint256 decimals0, uint256 decimals1) = fpmm.getPrices();
+    (uint256 dec0, uint256 dec1, , , , ) = fpmm.metadata();
+
+    (uint256 oraclePriceNumerator, uint256 oraclePriceDenominator, , , , ) = fpmm.getPrices();
 
     // Calculate amounts needed for rebalancing
     uint256 token0ToAdd;
     uint256 token1ToAdd;
 
     if (shouldMovePrice) {
-      token0ToAdd = fpmm.convertWithRate(amount1, decimals1, decimals0, 1e18, oraclePrice);
-      token1ToAdd = fpmm.convertWithRate(amount0, decimals0, decimals1, oraclePrice, 1e18);
+      token0ToAdd = fpmm.convertWithRate(amount1, dec1, dec0, oraclePriceDenominator, oraclePriceNumerator);
+      token1ToAdd = fpmm.convertWithRate(amount0, dec0, dec1, oraclePriceNumerator, oraclePriceDenominator);
       if (profitPercentage > 0) {
         token0ToAdd = (token0ToAdd * (10000 - profitPercentage)) / 10000;
         token1ToAdd = (token1ToAdd * (10000 - profitPercentage)) / 10000;
