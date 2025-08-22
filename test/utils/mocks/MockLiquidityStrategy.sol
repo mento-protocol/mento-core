@@ -40,6 +40,7 @@ contract MockLiquidityStrategy is ILiquidityStrategy {
 
     // Execute callback if set (to simulate price changes after execution)
     if (executionCallback.length > 0) {
+      // solhint-disable-next-line avoid-low-level-calls
       (bool success, ) = _action.pool.call(executionCallback);
       require(success, "Callback failed");
     }
