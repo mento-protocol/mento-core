@@ -30,8 +30,6 @@ library LiquidityTypes {
     Contract
   }
 
-  /// TODO: Could get granular with the sources if necessary (e.g. StabilityPool, CollateralRegistry) ?
-
   /// @notice Indicates where the liquidity comes from
   enum LiquiditySource {
     Reserve,
@@ -44,8 +42,8 @@ library LiquidityTypes {
 
   /// @notice Struct to store the reserves of the FPMM pool
   struct Reserves {
-    uint256 debt;
-    uint256 collateral;
+    uint256 reserveNum;
+    uint256 reserveDen;
   }
 
   /// @notice Price snapshot and deviation info
@@ -62,35 +60,23 @@ library LiquidityTypes {
     Reserves reserves;
     Prices prices;
     uint256 incentiveBps; // min(strategy cap, pool cap)
-    uint256 decDebt;
-    uint256 decCollateral;
-    address debtToken;
-    address collateralToken;
+    uint256 token0Dec;
+    uint256 token1Dec;
+    address token0;
+    address token1;
+    bool isToken0Debt;
   }
 
-  /**
-   * @notice A single rebalance step produced by a policy
-   * @dev inputAmount is the amount moved into the pool before incentive fee
-   */
+  /// @notice A single rebalance step produced by a policy
   struct Action {
     address pool;
     Direction dir;
     LiquiditySource liquiditySource;
-    uint256 debtOut; // amount of debt tokens to move out of pool
-    uint256 collateralOut; // amount of collateral to move out of pool
+    uint256 amount0Out; // amount of token0 to move out of pool
+    uint256 amount1Out; // amount of token1 to move out of pool
     uint256 inputAmount; // amount moved into pool (pre-incentive)
     uint256 incentiveBps; // incentive bps applied to inputAmount
     bytes data; // strategy-specific data (optional)
-  }
-
-  /// @notice Standard payload used by strategies for FPMM callback encoding
-  struct CallbackData {
-    uint256 inputAmount;
-    Direction dir;
-    uint256 incentiveAmount;
-    LiquiditySource liquiditySource;
-    bool isToken0Debt;
-    bytes extra; // extra strategy-specific data (optional)
   }
 
   /* ============================================================ */
@@ -127,19 +113,6 @@ library LiquidityTypes {
   /// @notice Incentive amount for a given input and bps.
   function incentiveAmount(uint256 inputAmount, uint256 incentiveBps) internal pure returns (uint256) {
     return mulBps(inputAmount, incentiveBps);
-  }
-
-  /// @notice Encode standard callback payload used by strategies in FPMM.rebalance hooks.
-  function encodeCallback(CallbackData memory c) internal pure returns (bytes memory) {
-    return abi.encode(c.inputAmount, c.dir, c.incentiveAmount, c.liquiditySource, c.isToken0Debt, c.extra);
-  }
-
-  /// @notice Decode standard callback payload used by strategies.
-  function decodeCallback(bytes calldata data) internal pure returns (CallbackData memory c) {
-    (c.inputAmount, c.dir, c.incentiveAmount, c.liquiditySource, c.isToken0Debt, c.extra) = abi.decode(
-      data,
-      (uint256, Direction, uint256, LiquiditySource, bool, bytes)
-    );
   }
 
   /// @notice Convert debt/collateral amounts to token order based on isToken0Debt.

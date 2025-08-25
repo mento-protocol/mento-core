@@ -102,34 +102,27 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, Ree
   /**
    * @notice Execute a liquidity action by calling FPMM.rebalance()
    * @param action The action to execute
-   * @param data Additional callback data
    * @return ok True if execution succeeded
    */
-  function execute(LQ.Action calldata action, bytes calldata data) external nonReentrant returns (bool ok) {
+  function execute(LQ.Action calldata action) external nonReentrant returns (bool ok) {
     require(action.liquiditySource == LQ.LiquiditySource.Reserve, "RLS: WRONG_SOURCE");
     require(action.pool != address(0), "RLS: INVALID_POOL");
+    require(trustedPools[action.pool], "RLS: UNTRUSTED_POOL");
 
-    // Decode callback data
-    LQ.CallbackData memory cbData = LQ.decodeCallback(data);
+    // Decode callback data from action
+    (uint256 incentiveAmount, bool isToken0Debt) = abi.decode(action.data, (uint256, bool));
 
-    // Prep amounts for FPMM.rebalance() call
-    (uint256 amount0Out, uint256 amount1Out) = LQ.toTokenOrder(
-      action.debtOut,
-      action.collateralOut,
-      cbData.isToken0Debt
-    );
+    // Combine and encode necessary callback data for the hook
+    bytes memory hookData = abi.encode(action.inputAmount, incentiveAmount, action.dir, isToken0Debt);
 
-    // Encode callback data for the hook
-    bytes memory hookData = abi.encode(action.inputAmount, action.dir, cbData.incentiveAmount, cbData.isToken0Debt);
-
-    IFPMM(action.pool).rebalance(amount0Out, amount1Out, hookData);
+    IFPMM(action.pool).rebalance(action.amount0Out, action.amount1Out, hookData);
 
     emit RebalanceExecuted(
       action.pool,
       action.dir,
-      action.dir == LQ.Direction.Expand ? action.inputAmount : action.debtOut,
-      action.dir == LQ.Direction.Contract ? action.inputAmount : action.collateralOut,
-      cbData.incentiveAmount
+      action.dir == LQ.Direction.Expand ? action.inputAmount : action.amount0Out + action.amount1Out,
+      action.dir == LQ.Direction.Contract ? action.inputAmount : action.amount0Out + action.amount1Out,
+      incentiveAmount
     );
 
     return true;
@@ -146,9 +139,9 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, Ree
     require(trustedPools[msg.sender], "RLS: UNTRUSTED_POOL");
     require(sender == address(this), "RLS: INVALID_SENDER");
 
-    (uint256 inputAmount, LQ.Direction direction, uint256 incentiveAmount, bool isToken0Debt) = abi.decode(
+    (uint256 inputAmount, uint256 incentiveAmount, LQ.Direction direction, bool isToken0Debt) = abi.decode(
       data,
-      (uint256, LQ.Direction, uint256, bool)
+      (uint256, uint256, LQ.Direction, bool)
     );
 
     if (direction == LQ.Direction.Expand) {
