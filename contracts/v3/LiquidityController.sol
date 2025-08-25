@@ -141,7 +141,7 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
     PoolConfig memory config = poolConfigs[pool];
     require(block.timestamp > config.lastRebalance + config.rebalanceCooldown, "LC: COOLDOWN_ACTIVE");
 
-    (LQ.Context memory ctx, bool inRange, uint256 diffBefore, bool isToken0Debt) = _readCtx(pool, config);
+    (LQ.Context memory ctx, bool inRange, uint256 diffBefore) = _readCtx(pool, config);
     require(!inRange, "LC: POOL_PRICE_IN_RANGE");
 
     ILiquidityPolicy[] memory policies = pipelines[pool];
@@ -156,24 +156,12 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
       ILiquidityStrategy strategy = strategies[action.liquiditySource];
       require(address(strategy) != address(0), "LC: NO_STRATEGY_FOR_LIQUIDITY_SOURCE");
 
-      uint256 incentiveAmount = LQ.incentiveAmount(action.inputAmount, action.incentiveBps);
-      bytes memory cb = LQ.encodeCallback(
-        LQ.CallbackData({
-          inputAmount: action.inputAmount,
-          dir: action.dir,
-          incentiveAmount: incentiveAmount,
-          liquiditySource: action.liquiditySource,
-          isToken0Debt: isToken0Debt,
-          extra: bytes("")
-        })
-      );
-
-      bool ok = strategy.execute(action, cb);
+      bool ok = strategy.execute(action);
       require(ok, "LC: STRATEGY_EXECUTION_FAILED");
       acted = true;
 
       // refresh after action execution, stop early if price in range
-      (ctx, inRange, , isToken0Debt) = _readCtx(pool, config);
+      (ctx, inRange, ) = _readCtx(pool, config);
       if (inRange) break;
     }
 
@@ -214,26 +202,26 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
   function _readCtx(
     address pool,
     PoolConfig memory config
-  ) internal view returns (LQ.Context memory ctx, bool inRange, uint256 diffBps, bool isToken0Debt) {
+  ) internal view returns (LQ.Context memory ctx, bool priceInRange, uint256 priceDiffBps) {
     // Build context with all data including thresholds
     uint256 upperThreshold;
     uint256 lowerThreshold;
-    (ctx, isToken0Debt, upperThreshold, lowerThreshold) = _buildFullContext(pool, config);
+    (ctx, upperThreshold, lowerThreshold) = _buildFullContext(pool, config);
 
-    // Check if in range
-    diffBps = ctx.prices.diffBps;
-    inRange = _checkInRange(ctx.prices, upperThreshold, lowerThreshold);
+    // Check if price in range
+    priceDiffBps = ctx.prices.diffBps;
+    priceInRange = _checkInRange(ctx.prices, upperThreshold, lowerThreshold);
   }
 
   /// @dev Build full context combining all data needed for rebalancing
   function _buildFullContext(
     address pool,
     PoolConfig memory config
-  ) internal view returns (LQ.Context memory ctx, bool isToken0Debt, uint256 upperThreshold, uint256 lowerThreshold) {
+  ) internal view returns (LQ.Context memory ctx, uint256 upperThreshold, uint256 lowerThreshold) {
     IFPMM fpmm = IFPMM(pool);
 
     // Get FPMM data
-    (uint256 dec0, uint256 dec1, , , , ) = fpmm.metadata();
+    (uint256 dec0, uint256 dec1, , , address t0, address t1) = fpmm.metadata();
     (
       uint256 oracleNum,
       uint256 oracleDen,
@@ -252,27 +240,22 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
     // Validate prices
     require(oracleNum > 0 && oracleDen > 0, "LC: INVALID_PRICES");
 
-    // Determine debt token
-    isToken0Debt = config.debtToken < config.collateralToken;
-
-    // Build reserves
-    if (isToken0Debt) {
-      ctx.reserves.debt = reserveDen;
-      ctx.reserves.collateral = reserveNum;
-    } else {
-      ctx.reserves.debt = reserveNum;
-      ctx.reserves.collateral = reserveDen;
-    }
+    // Store reserves
+    // @dev Reserve numerator == FPMM.r1 normalized (18 decimals)
+    //      Reserve denominator == FPMM.r0 normalized (18 decimals)
+    ctx.reserves.reserveNum = reserveNum;
+    ctx.reserves.reserveDen = reserveDen;
 
     // Build context
     ctx.pool = pool;
     ctx.prices = LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolAbove, diffBps: diffBps });
 
     // Set decimals and tokens
-    ctx.decDebt = isToken0Debt ? dec0 : dec1;
-    ctx.decCollateral = isToken0Debt ? dec1 : dec0;
-    ctx.debtToken = config.debtToken;
-    ctx.collateralToken = config.collateralToken;
+    ctx.token0Dec = dec0;
+    ctx.token1Dec = dec1;
+    ctx.token0 = t0;
+    ctx.token1 = t1;
+    ctx.isToken0Debt = config.debtToken == t0;
 
     // Min of controller & FPMM
     ctx.incentiveBps = config.rebalanceIncentive < fpmmIncentive ? config.rebalanceIncentive : fpmmIncentive;
