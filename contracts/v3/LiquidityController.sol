@@ -165,9 +165,6 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
       if (inRange) break;
     }
 
-    // TODO: Do we want to revert if still out of range after pipeline execution or
-    //       is it okay that we tried and may have gotten a little closer ?
-
     if (acted) {
       poolConfigs[pool].lastRebalance = uint128(block.timestamp);
     }
