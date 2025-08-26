@@ -93,6 +93,7 @@ contract GoodDollarExchangeProviderTest is Test {
       abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveToken)),
       abi.encode(true)
     );
+    IReserve(reserveAddress).setRegistry(address(0));
   }
 
   function initializeGoodDollarExchangeProvider() internal returns (GoodDollarExchangeProvider) {

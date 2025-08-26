@@ -4,6 +4,7 @@ pragma solidity 0.8.18;
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
 import { Test } from "forge-std/Test.sol";
+import "forge-std/console.sol";
 import { ERC20Mock } from "openzeppelin-contracts-next/contracts/mocks/ERC20Mock.sol";
 import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
@@ -75,6 +76,11 @@ contract GoodDollarExpansionControllerTest is Test {
       exchangeProvider,
       abi.encodeWithSelector(IBancorExchangeProvider(exchangeProvider).getPoolExchange.selector),
       abi.encode(pool)
+    );
+    vm.mockCall(
+      reserveAddress,
+      abi.encodeWithSelector(IReserve(reserveAddress).registry.selector, address(0)),
+      abi.encode(address(0))
     );
   }
 

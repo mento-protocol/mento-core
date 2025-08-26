@@ -124,6 +124,7 @@ contract BancorExchangeProviderTest is Test {
       abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveTokenWith6Decimals)),
       abi.encode(true)
     );
+    IReserve(reserveAddress).setRegistry(address(0));
   }
 
   function initializeBancorExchangeProvider() internal returns (BancorExchangeProvider) {
