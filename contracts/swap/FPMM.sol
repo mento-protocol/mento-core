@@ -11,9 +11,8 @@ import { MathUpgradeable as Math } from "openzeppelin-contracts-upgradeable/cont
 import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 // solhint-disable-next-line max-line-length
 import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
-import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
+import { IAdaptore } from "../interfaces/IAdaptore.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
-import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 
 /**
  * @title Fixed Price Market Maker (FPMM)
@@ -62,10 +61,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function initialize(
     address _token0,
     address _token1,
-    address _sortedOracles,
+    address _adaptore,
     address _referenceRateFeedID,
     bool _revertRateFeed,
-    address _breakerBox,
     address owner_
   ) external initializer {
     FPMMStorage storage $ = _getFPMMStorage();
@@ -89,8 +87,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     setRebalanceIncentive(50); // Default .5% incentive tolerance (50 basis points)
     setRebalanceThresholds(500, 500); // Default 5% rebalance threshold (500 basis points)
 
-    setSortedOracles(_sortedOracles);
-    setBreakerBox(_breakerBox);
+    setAdaptore(_adaptore);
     setReferenceRateFeedID(_referenceRateFeedID);
     setRevertRateFeed(_revertRateFeed);
     transferOwnership(owner_);
@@ -168,21 +165,15 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function sortedOracles() external view returns (ISortedOracles) {
+  function adaptore() external view returns (IAdaptore) {
     FPMMStorage storage $ = _getFPMMStorage();
-    return $.sortedOracles;
+    return $.adaptore;
   }
 
   /// @inheritdoc IFPMM
   function revertRateFeed() external view returns (bool) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.revertRateFeed;
-  }
-
-  /// @inheritdoc IFPMM
-  function breakerBox() external view returns (IBreakerBox) {
-    FPMMStorage storage $ = _getFPMMStorage();
-    return $.breakerBox;
   }
 
   /// @inheritdoc IFPMM
@@ -266,14 +257,13 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(
-      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
-      "FPMM: TRADING_SUSPENDED"
-    );
-
     require(tokenIn == $.token0 || tokenIn == $.token1, "FPMM: INVALID_TOKEN");
 
     if (amountIn == 0) return 0;
+
+    require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
+    require($.adaptore.hasValidRate($.referenceRateFeedID), "FPMM: NO_VALID_RATE");
+    require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
 
     (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
@@ -374,10 +364,10 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
     require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
     require(to != $.token0 && to != $.token1, "FPMM: INVALID_TO_ADDRESS");
-    require(
-      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
-      "FPMM: TRADING_SUSPENDED"
-    );
+
+    require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
+    require($.adaptore.hasValidRate($.referenceRateFeedID), "FPMM: NO_VALID_RATE");
+    require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
 
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
@@ -426,10 +416,10 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require($.liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
     require((amount0Out > 0) != (amount1Out > 0), "FPMM: ONE_OUTPUT_AMOUNT_REQUIRED");
     require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
-    require(
-      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
-      "FPMM: TRADING_SUSPENDED"
-    );
+
+    require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
+    require($.adaptore.hasValidRate($.referenceRateFeedID), "FPMM: NO_VALID_RATE");
+    require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
 
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
@@ -534,28 +524,18 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function setSortedOracles(address _sortedOracles) public onlyOwner {
-    require(_sortedOracles != address(0), "FPMM: SORTED_ORACLES_ADDRESS_MUST_BE_SET");
+  function setAdaptore(address _adaptore) public onlyOwner {
+    require(_adaptore != address(0), "FPMM: ADAPTORE_ADDRESS_MUST_BE_SET");
     FPMMStorage storage $ = _getFPMMStorage();
 
-    address oldSortedOracles = address($.sortedOracles);
-    $.sortedOracles = ISortedOracles(_sortedOracles);
-    emit SortedOraclesUpdated(oldSortedOracles, _sortedOracles);
+    address oldAdaptore = address($.adaptore);
+    $.adaptore = IAdaptore(_adaptore);
+    emit AdaptoreUpdated(oldAdaptore, _adaptore);
   }
 
   function setRevertRateFeed(bool _revertRateFeed) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
     $.revertRateFeed = _revertRateFeed;
-  }
-
-  /// @inheritdoc IFPMM
-  function setBreakerBox(address _breakerBox) public onlyOwner {
-    require(_breakerBox != address(0), "FPMM: BREAKER_BOX_ADDRESS_MUST_BE_SET");
-    FPMMStorage storage $ = _getFPMMStorage();
-
-    address oldBreakerBox = address($.breakerBox);
-    $.breakerBox = IBreakerBox(_breakerBox);
-    emit BreakerBoxUpdated(oldBreakerBox, _breakerBox);
   }
 
   /// @inheritdoc IFPMM
@@ -618,9 +598,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
   function _getRateFeed() private view returns (uint256 rateNumerator, uint256 rateDenominator) {
     FPMMStorage storage $ = _getFPMMStorage();
-    (rateNumerator, rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
-    rateNumerator = rateNumerator / 1e6;
-    rateDenominator = rateDenominator / 1e6;
+
+    (rateNumerator, rateDenominator) = $.adaptore.getRate($.referenceRateFeedID);
+
     if ($.revertRateFeed) {
       (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);
     }

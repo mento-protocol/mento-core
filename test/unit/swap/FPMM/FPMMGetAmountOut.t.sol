@@ -23,7 +23,9 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenRateIsOneToOne_shouldReturnCorrectAmount()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    setupMockOracleRate(1e18, 1e18)
+    withOracleRate(1e18, 1e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     uint256 amountIn = 100e18;
     uint256 amountOut = fpmm.getAmountOut(amountIn, token0);
@@ -38,7 +40,9 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenProtocolFeeChanges_shouldRespectProtocolFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    setupMockOracleRate(10e18, 100e18)
+    withOracleRate(10e18, 100e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     uint256 amountIn = 100e18;
 
@@ -58,7 +62,9 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenUsingExchangeRate_shouldConvertCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    setupMockOracleRate(2e18, 1e18)
+    withOracleRate(2e18, 1e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     uint256 amountIn = 100e18;
 
@@ -76,7 +82,9 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenTokensHaveDifferentDecimals_shouldHandleConversion()
     public
     initializeFPMM_withDecimalTokens(18, 6)
-    setupMockOracleRate(1e18, 1e18)
+    withOracleRate(1e18, 1e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     // token0 (18 decimals) to token1 (6 decimals)
     uint256 amountIn = 100e18; // 100 tokens with 18 decimals
@@ -94,7 +102,9 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenTokensHaveDifferentDecimalsAndExchangeRate_shouldConvertCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 6)
-    setupMockOracleRate(10e18, 100e18)
+    withOracleRate(10e18, 100e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     // token0 (18 decimals) to token1 (6 decimals)
     uint256 amountIn = 100e18; // 100 tokens with 18 decimals
@@ -112,7 +122,9 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenUsingComplexRates_shouldCalculateCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    setupMockOracleRate(1234e18, 5678e18)
+    withOracleRate(1234e18, 5678e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     uint256 amountIn = 1000e18;
 
@@ -125,5 +137,39 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     uint256 amountOutToken1 = fpmm.getAmountOut(amountIn, token1);
     uint256 expectedAmountOutToken1 = 4587492706645056726094; // (1000e18 *  1234e18 / 5678e18) * (997 / 1000)
     assertEq(amountOutToken1, expectedAmountOutToken1);
+  }
+
+  function test_getAmountOut_whenMarketIsClosed_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withOracleRate(1e18, 1e18)
+    withMarketOpen(false)
+    withValidRate(true)
+  {
+    vm.expectRevert("FPMM: MARKET_CLOSED");
+    fpmm.getAmountOut(100e18, token0);
+  }
+
+  function test_getAmountOut_whenRateIsExpired_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withOracleRate(1e18, 1e18)
+    withMarketOpen(true)
+    withValidRate(false)
+  {
+    vm.expectRevert("FPMM: NO_VALID_RATE");
+    fpmm.getAmountOut(100e18, token0);
+  }
+
+  function test_getAmountOut_whenTradingIsSuspended_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withOracleRate(1e18, 1e18)
+    withTradingMode(3)
+    withMarketOpen(true)
+    withValidRate(true)
+  {
+    vm.expectRevert("FPMM: TRADING_SUSPENDED");
+    fpmm.getAmountOut(100e18, token0);
   }
 }

@@ -46,7 +46,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
     // Set a small price difference
-    setupMockOracleRate(2.01e18, 1e18)
+    withOracleRate(2.01e18, 1e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     // Current internal price: 2 token1 per token0
     // Oracle price: 2.01 token1 per token0
@@ -63,7 +65,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(1.2e24, 1e24)
+    withOracleRate(1.2e24, 1e24)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     (
       uint256 oraclePriceNumerator,
@@ -116,7 +120,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(1.5e18, 1e18) // Big difference to meet threshold
+    withOracleRate(1.5e18, 1e18) // Big difference to meet threshold
+    withMarketOpen(true)
+    withValidRate(true)
   {
     // Try to rebalance - should fail because price isn't improved
     uint256 rebalanceAmount = 20e18;
@@ -129,7 +135,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(1.5e18, 1e18)
+    withOracleRate(1.5e18, 1e18)
   {
     // Try to rebalance with too large amounts
     uint256 tooLargeAmount0 = 101e18; // More than reserve0
@@ -147,8 +153,10 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(1.2e18, 1e18)
-    setupMockBreakerBox(3)
+    withOracleRate(1.2e18, 1e18)
+    withTradingMode(3)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     uint256 rebalanceAmount = 10e18;
     vm.expectRevert("FPMM: TRADING_SUSPENDED");
@@ -160,7 +168,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(3e18, 1e18) // Oracle rate: 1 token0 = 3 token1
+    withOracleRate(3e18, 1e18) // Oracle rate: 1 token0 = 3 token1
+    withMarketOpen(true)
+    withValidRate(true)
   {
     // Initial reserve price: 2 token1 per token0
     // Oracle price: 3 token1 per token0
@@ -180,7 +190,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(1.2e18, 1e18)
+    withOracleRate(1.2e18, 1e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     uint256 rebalanceAmount = 10e18;
     liquidityStrategy.setShouldMovePrice(false);
@@ -193,7 +205,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(1.2e18, 1e18)
+    withOracleRate(1.2e18, 1e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     uint256 rebalanceAmount = 10e18;
     liquidityStrategy.setShouldMovePrice(false);
@@ -206,7 +220,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(1.2e24, 1e24) // Oracle rate: 1 token0 = 1.2 token1
+    withOracleRate(1.2e24, 1e24) // Oracle rate: 1 token0 = 1.2 token1
+    withMarketOpen(true)
+    withValidRate(true)
   {
     (
       uint256 oraclePriceNumerator,
@@ -247,7 +263,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    setupMockOracleRate(3e24, 1e24) // Oracle rate: 1 token0 = 3 token1
+    withOracleRate(3e24, 1e24) // Oracle rate: 1 token0 = 3 token1
+    withMarketOpen(true)
+    withValidRate(true)
   {
     (
       uint256 oraclePriceNumerator,
@@ -287,7 +305,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
     setupRebalancer(18, 6)
-    setupMockOracleRate(1.2e24, 1e24)
+    withOracleRate(1.2e24, 1e24)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     (
       uint256 oraclePriceNumerator,
@@ -332,7 +352,9 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     setupRebalancer(18, 6)
-    setupMockOracleRate(1e18, 1e18)
+    withOracleRate(1e18, 1e18)
+    withMarketOpen(true)
+    withValidRate(true)
   {
     // Alice mints 1000e18 token0 and 20 token1 to a Pool that is 1:1
     vm.startPrank(ALICE);

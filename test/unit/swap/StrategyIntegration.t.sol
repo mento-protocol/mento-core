@@ -5,7 +5,9 @@
 pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 
+import { Adaptore } from "contracts/oracles/Adaptore.sol";
 import { ReserveLiquidityStrategy } from "contracts/swap/ReserveLiquidityStrategy.sol";
+import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { MockReserve } from "test/utils/mocks/MockReserve.sol";
@@ -16,38 +18,31 @@ contract StrategyIntegrationTest is Test {
   MockERC20 public token0;
   MockERC20 public token1;
   MockReserve public reserve;
+  IAdaptore public adaptore;
   MockSortedOracles public sortedOracles;
   FPMM public pool;
   ReserveLiquidityStrategy public strategy;
   address public rateFeed;
   address public breakerBox;
+  address public marketHoursBreaker;
   address public trader;
 
   function setUp() public {
     breakerBox = makeAddr("BreakerBox");
+    marketHoursBreaker = makeAddr("MarketHoursBreaker");
     rateFeed = makeAddr("RateFeed");
     trader = makeAddr("Trader");
-
-    bytes memory tradingModeCalldata = abi.encodeWithSelector(IBreakerBox.getRateFeedTradingMode.selector, rateFeed);
-    vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(0));
 
     token0 = new MockERC20("Token0", "T0", 18);
     token1 = new MockERC20("Token1", "T1", 6);
     reserve = new MockReserve();
     sortedOracles = new MockSortedOracles();
     sortedOracles.setMedianRate(rateFeed, 909884940000000000000000);
+    adaptore = IAdaptore(new Adaptore(address(sortedOracles), address(breakerBox), address(marketHoursBreaker)));
     pool = new FPMM(false);
     strategy = new ReserveLiquidityStrategy(false);
     strategy.initialize(address(reserve));
-    pool.initialize(
-      address(token0),
-      address(token1),
-      address(sortedOracles),
-      rateFeed,
-      true,
-      address(breakerBox),
-      address(this)
-    );
+    pool.initialize(address(token0), address(token1), address(adaptore), rateFeed, true, address(this));
     pool.setLiquidityStrategy(address(strategy), true);
     strategy.addPool(address(pool), 0, 50);
 
@@ -61,6 +56,15 @@ contract StrategyIntegrationTest is Test {
     token1.transfer(address(pool), 1e12);
     pool.mint(trader);
     vm.stopPrank();
+
+    bytes memory tradingModeCalldata = abi.encodeWithSelector(IBreakerBox.getRateFeedTradingMode.selector, rateFeed);
+    vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(0));
+
+    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IAdaptore.isMarketOpen.selector);
+    vm.mockCall(address(adaptore), isMarketOpenCalldata, abi.encode(true));
+
+    bytes memory hasValidRateCalldata = abi.encodeWithSelector(IAdaptore.hasValidRate.selector, rateFeed);
+    vm.mockCall(address(adaptore), hasValidRateCalldata, abi.encode(true));
   }
 
   function test_rebalance_contraction() public {

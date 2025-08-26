@@ -6,9 +6,14 @@ import { FPMM } from "contracts/swap/FPMM.sol";
 import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+
+import { Adaptore } from "contracts/oracles/Adaptore.sol";
+
 contract FPMMBaseTest is Test {
   FPMM public fpmm;
+  IAdaptore public adaptore;
 
   address public token0;
   address public token1;
@@ -19,11 +24,14 @@ contract FPMMBaseTest is Test {
 
   address public sortedOracles = makeAddr("SortedOracles");
   address public breakerBox = makeAddr("BreakerBox");
+  address public marketHoursBreaker = makeAddr("MarketHoursBreaker");
   address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
   address public owner = makeAddr("OWNER");
 
   function setUp() public virtual {
     fpmm = new FPMM(false);
+    adaptore = IAdaptore(new Adaptore(address(sortedOracles), address(breakerBox), address(marketHoursBreaker)));
+
     vm.prank(fpmm.owner());
 
     bytes memory tradingModeCalldata = abi.encodeWithSelector(
@@ -37,7 +45,7 @@ contract FPMMBaseTest is Test {
     token0 = address(new ERC20DecimalsMock("token0", "T0", decimals0));
     token1 = address(new ERC20DecimalsMock("token1", "T1", decimals1));
 
-    fpmm.initialize(token0, token1, sortedOracles, referenceRateFeedID, false, breakerBox, owner);
+    fpmm.initialize(token0, token1, address(adaptore), referenceRateFeedID, false, owner);
 
     deal(token0, ALICE, 1_000 * 10 ** decimals0);
     deal(token1, ALICE, 1_000 * 10 ** decimals1);
@@ -57,14 +65,26 @@ contract FPMMBaseTest is Test {
     _;
   }
 
-  modifier setupMockOracleRate(uint256 nominator, uint256 denominator) {
+  modifier withMarketOpen(bool isMarketOpen) {
+    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IAdaptore.isMarketOpen.selector);
+    vm.mockCall(address(adaptore), isMarketOpenCalldata, abi.encode(isMarketOpen));
+    _;
+  }
+
+  modifier withValidRate(bool hasValidRate) {
+    bytes memory hasValidRateCalldata = abi.encodeWithSelector(IAdaptore.hasValidRate.selector, referenceRateFeedID);
+    vm.mockCall(address(adaptore), hasValidRateCalldata, abi.encode(hasValidRate));
+    _;
+  }
+
+  modifier withOracleRate(uint256 nominator, uint256 denominator) {
     bytes memory medianRateCalldata = abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID);
     vm.mockCall(sortedOracles, medianRateCalldata, abi.encode(nominator, denominator));
 
     _;
   }
 
-  modifier setupMockBreakerBox(uint256 tradingMode) {
+  modifier withTradingMode(uint256 tradingMode) {
     bytes memory tradingModeCalldata = abi.encodeWithSelector(
       IBreakerBox.getRateFeedTradingMode.selector,
       referenceRateFeedID

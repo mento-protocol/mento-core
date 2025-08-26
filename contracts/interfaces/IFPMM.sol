@@ -2,8 +2,7 @@
 pragma solidity ^0.8.0;
 // solhint-disable func-name-mixedcase
 
-import { ISortedOracles } from "./ISortedOracles.sol";
-import { IBreakerBox } from "./IBreakerBox.sol";
+import { IAdaptore } from "./IAdaptore.sol";
 
 interface IFPMM {
   /* ========== STRUCTS ========== */
@@ -25,12 +24,10 @@ interface IFPMM {
     uint256 reserve1;
     // timestamp of the last reserve update
     uint256 blockTimestampLast;
-    // contract for oracle price feeds(to be replaced)
-    ISortedOracles sortedOracles;
+    // contract for querying oracle price feeds and trading modes
+    IAdaptore adaptore;
     // true if the rate feed should be reverted
     bool revertRateFeed;
-    // onchain circuit breaker
-    IBreakerBox breakerBox;
     // identifier for the reference rate feed
     // required for sorted oracles and breaker box
     address referenceRateFeedID;
@@ -143,18 +140,11 @@ interface IFPMM {
   event ReferenceRateFeedIDUpdated(address oldRateFeedID, address newRateFeedID);
 
   /**
-   * @notice Emitted when the SortedOracles contract is updated
-   * @param oldSortedOracles Previous SortedOracles address
-   * @param newSortedOracles New SortedOracles address
+   * @notice Emitted when the Adaptore contract is updated
+   * @param oldAdaptore Previous Adaptore address
+   * @param newAdaptore New Adaptore address
    */
-  event SortedOraclesUpdated(address oldSortedOracles, address newSortedOracles);
-
-  /**
-   * @notice Emitted when the BreakerBox contract is updated
-   * @param oldBreakerBox Previous BreakerBox address
-   * @param newBreakerBox New BreakerBox address
-   */
-  event BreakerBoxUpdated(address oldBreakerBox, address newBreakerBox);
+  event AdaptoreUpdated(address oldAdaptore, address newAdaptore);
 
   /**
    * @notice Emitted when a successful rebalance operation occurs
@@ -235,22 +225,16 @@ interface IFPMM {
   function blockTimestampLast() external view returns (uint256);
 
   /**
-   * @notice Returns the contract for oracle price feeds
-   * @return Address of the SortedOracles contract
+   * @notice Returns the Adaptore contract
+   * @return Address of the Adaptore contract
    */
-  function sortedOracles() external view returns (ISortedOracles);
+  function adaptore() external view returns (IAdaptore);
 
   /**
    * @notice Returns the revert rate feed flag
    * @return Revert rate feed flag
    */
   function revertRateFeed() external view returns (bool);
-
-  /**
-   * @notice Returns the circuit breaker contract to enable/disable trading
-   * @return Address of the BreakerBox contract
-   */
-  function breakerBox() external view returns (IBreakerBox);
 
   /**
    * @notice Returns the reference rate feed ID for oracle price
@@ -295,19 +279,17 @@ interface IFPMM {
    * @notice Initializes the FPMM contract
    * @param _token0 Address of the first token
    * @param _token1 Address of the second token
-   * @param _sortedOracles Address of the SortedOracles contract
+   * @param _adaptore Address of the Adaptore contract
    * @param _referenceRateFeedID Address of the reference rate feed ID
    * @param _revertRateFeed Whether to revert the rate feed
-   * @param _breakerBox Address of the BreakerBox contract
    * @param _owner Address of the owner
    */
   function initialize(
     address _token0,
     address _token1,
-    address _sortedOracles,
+    address _adaptore,
     address _referenceRateFeedID,
     bool _revertRateFeed,
-    address _breakerBox,
     address _owner
   ) external;
 
@@ -446,16 +428,10 @@ interface IFPMM {
   function setLiquidityStrategy(address strategy, bool state) external;
 
   /**
-   * @notice Sets the SortedOracles contract
-   * @param _sortedOracles Address of the SortedOracles contract
+   * @notice Sets the Adaptore contract
+   * @param _adaptore Address of the Adaptore contract
    */
-  function setSortedOracles(address _sortedOracles) external;
-
-  /**
-   * @notice Sets the BreakerBox contract
-   * @param _breakerBox Address of the BreakerBox contract
-   */
-  function setBreakerBox(address _breakerBox) external;
+  function setAdaptore(address _adaptore) external;
 
   /**
    * @notice Sets the reference rate feed ID
