@@ -220,45 +220,31 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
   ) internal view returns (LQ.Context memory ctx, uint256 upperThreshold, uint256 lowerThreshold) {
     IFPMM fpmm = IFPMM(pool);
 
-    // Get FPMM data
+    // Get FPMM metadata and validate decimals
     (uint256 dec0, uint256 dec1, , , address t0, address t1) = fpmm.metadata();
-    (
-      uint256 oracleNum,
-      uint256 oracleDen,
-      uint256 reserveNum,
-      uint256 reserveDen,
-      uint256 diffBps,
-      bool poolAbove
-    ) = fpmm.getPrices();
-    uint256 fpmmIncentive = fpmm.rebalanceIncentive();
-    upperThreshold = fpmm.rebalanceThresholdAbove();
-    lowerThreshold = fpmm.rebalanceThresholdBelow();
-
-    // Validate decimals
     _validateDecimals(dec0, dec1);
 
-    // Validate prices
+    // Get price data and validate
+    (uint256 oracleNum, uint256 oracleDen, uint256 reserveNum, uint256 reserveDen, uint256 diffBps, bool poolAbove) = fpmm.getPrices();
     require(oracleNum > 0 && oracleDen > 0, "LC: INVALID_PRICES");
 
-    // Store reserves
-    // @dev Reserve numerator == FPMM.r1 normalized (18 decimals)
-    //      Reserve denominator == FPMM.r0 normalized (18 decimals)
-    ctx.reserves.reserveNum = reserveNum;
-    ctx.reserves.reserveDen = reserveDen;
+    // Get thresholds and incentive
+    upperThreshold = fpmm.rebalanceThresholdAbove();
+    lowerThreshold = fpmm.rebalanceThresholdBelow();
+    uint256 fpmmIncentive = fpmm.rebalanceIncentive();
 
-    // Build context
-    ctx.pool = pool;
-    ctx.prices = LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolAbove, diffBps: diffBps });
-
-    // Set decimals and tokens
-    ctx.token0Dec = dec0;
-    ctx.token1Dec = dec1;
-    ctx.token0 = t0;
-    ctx.token1 = t1;
-    ctx.isToken0Debt = config.debtToken == t0;
-
-    // Min of controller & FPMM
-    ctx.incentiveBps = config.rebalanceIncentive < fpmmIncentive ? config.rebalanceIncentive : fpmmIncentive;
+    // Build context struct
+    ctx = LQ.Context({
+      pool: pool,
+      reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
+      prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolAbove, diffBps: diffBps }),
+      token0: t0,
+      token1: t1,
+      incentiveBps: uint128(config.rebalanceIncentive < fpmmIncentive ? config.rebalanceIncentive : fpmmIncentive),
+      token0Dec: uint64(dec0),
+      token1Dec: uint64(dec1),
+      isToken0Debt: config.debtToken == t0
+    });
   }
 
   /// @dev Validate decimal are in valid range
