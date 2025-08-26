@@ -157,8 +157,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
     (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
 
-    assertEq(factory.deployedFPMMs(token0, token1), fpmm);
-    assertEq(factory.deployedFPMMs(token1, token0), address(0));
+    assertEq(factory.getPool(token0, token1), fpmm);
+    assertEq(factory.getPool(token1, token0), address(0));
     assertTrue(factory.isPool(address(token0), address(token1)));
     assertFalse(factory.isPool(address(token1), address(token0)));
 
@@ -221,7 +221,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     );
 
     assertTrue(fpmm != address(0));
-    assertEq(factory.deployedFPMMs(address(tokenA), address(tokenC)), fpmm);
+    assertEq(factory.getPool(address(tokenA), address(tokenC)), fpmm);
     assertTrue(factory.isPool(address(tokenA), address(tokenC)));
 
     // Verify custom configuration
@@ -259,13 +259,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
 
     assertEq(factory.getPool(token0, token1), fpmm);
-    vm.expectRevert("FPMMFactory: POOL_NOT_FOUND");
-    factory.getPool(token1, token0);
-  }
-
-  function test_getPool_whenPoolDoesNotExist_shouldRevert() public {
-    vm.expectRevert("FPMMFactory: POOL_NOT_FOUND");
-    factory.getPool(address(tokenA), address(tokenB));
+    assertEq(factory.getPool(token1, token0), address(0));
   }
 
   function test_deployedFPMMs_whenPoolExists_shouldReturnPoolAddress() public {
@@ -279,13 +273,13 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
     (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
 
-    assertEq(factory.deployedFPMMs(token0, token1), fpmm);
-    assertEq(factory.deployedFPMMs(token1, token0), address(0));
+    assertEq(factory.getPool(token0, token1), fpmm);
+    assertEq(factory.getPool(token1, token0), address(0));
   }
 
   function test_deployedFPMMs_whenPoolDoesNotExist_shouldReturnZeroAddress() public view {
-    assertEq(factory.deployedFPMMs(address(tokenA), address(tokenB)), address(0));
-    assertEq(factory.deployedFPMMs(address(tokenB), address(tokenA)), address(0));
+    assertEq(factory.getPool(address(tokenA), address(tokenB)), address(0));
+    assertEq(factory.getPool(address(tokenB), address(tokenA)), address(0));
   }
 
   function test_deployedFPMMAddresses_whenPoolsDeployed_shouldReturnAllAddresses() public {
@@ -331,7 +325,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
   function test_getOrPrecomputeProxyAddress_whenPoolDoesNotExist_shouldReturnPrecomputedAddress() public {
     address precomputedAddress = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
     assertTrue(precomputedAddress != address(0));
-    assertEq(factory.deployedFPMMs(address(tokenA), address(tokenB)), address(0));
+    assertEq(factory.getPool(address(tokenA), address(tokenB)), address(0));
 
     vm.prank(governance);
     address fpmm = factory.deployFPMM(

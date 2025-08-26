@@ -126,7 +126,7 @@ contract Router is IRouter, ERC2771Context {
     uint256 amountADesired,
     uint256 amountBDesired
   ) public view returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
-    address _pool = IFPMMFactory(_factory).deployedFPMMs(tokenA, tokenB);
+    address _pool = IFPMMFactory(_factory).getPool(tokenA, tokenB);
     (uint256 reserveA, uint256 reserveB) = (0, 0);
     uint256 _totalSupply = 0;
     if (_pool != address(0)) {
@@ -156,7 +156,7 @@ contract Router is IRouter, ERC2771Context {
     address _factory,
     uint256 liquidity
   ) public view returns (uint256 amountA, uint256 amountB) {
-    address _pool = IFPMMFactory(_factory).deployedFPMMs(tokenA, tokenB);
+    address _pool = IFPMMFactory(_factory).getPool(tokenA, tokenB);
 
     if (_pool == address(0)) {
       return (0, 0);
@@ -180,7 +180,7 @@ contract Router is IRouter, ERC2771Context {
     if (amountADesired < amountAMin) revert InsufficientAmountADesired();
     if (amountBDesired < amountBMin) revert InsufficientAmountBDesired();
     // create the pool if it doesn't exist yet
-    address _pool = IFPMMFactory(defaultFactory).deployedFPMMs(tokenA, tokenB);
+    address _pool = IFPMMFactory(defaultFactory).getPool(tokenA, tokenB);
     if (_pool == address(0)) {
       revert PoolDoesNotExist();
     }

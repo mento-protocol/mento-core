@@ -110,12 +110,6 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMMFactory
-  function deployedFPMMs(address token0, address token1) public view returns (address) {
-    FPMMFactoryStorage storage $ = _getFPMMStorage();
-    return $.deployedFPMMs[token0][token1];
-  }
-
-  /// @inheritdoc IFPMMFactory
   function deployedFPMMAddresses() public view returns (address[] memory) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     return $.deployedFPMMAddresses;
@@ -139,7 +133,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     (token0, token1) = sortTokens(token0, token1);
 
     if (isPool(token0, token1)) {
-      return deployedFPMMs(token0, token1);
+      return getPool(token0, token1);
     }
 
     (address precomputedProxyAddress, ) = _computeProxyAddressAndSalt(token0, token1);
@@ -156,13 +150,13 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @inheritdoc IFPMMFactory
   function isPool(address token0, address token1) public view returns (bool) {
-    return deployedFPMMs(token0, token1) != address(0);
+    return getPool(token0, token1) != address(0);
   }
 
   /// @inheritdoc IFPMMFactory
-  function getPool(address token0, address token1) external view returns (address) {
-    require(isPool(token0, token1), "FPMMFactory: POOL_NOT_FOUND");
-    return deployedFPMMs(token0, token1);
+  function getPool(address token0, address token1) public view returns (address) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return $.deployedFPMMs[token0][token1];
   }
 
   /* ============================================================ */

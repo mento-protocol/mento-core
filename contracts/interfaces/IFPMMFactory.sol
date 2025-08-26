@@ -80,14 +80,6 @@ interface IFPMMFactory {
   function governance() external view returns (address);
 
   /**
-   * @notice Gets the address of the deployed FPMM for a token pair.
-   * @param token0 The address of the first token
-   * @param token1 The address of the second token
-   * @return The address of the deployed FPMM for the token pair
-   */
-  function deployedFPMMs(address token0, address token1) external view returns (address);
-
-  /**
    * @notice Gets the list of deployed FPMM addresses.
    * @return The list of deployed FPMM addresses
    */
@@ -132,7 +124,7 @@ interface IFPMMFactory {
   function isPool(address token0, address token1) external view returns (bool);
 
   /**
-   * @notice Gets the address of the deployed FPMM for a token pair.
+   * @notice Gets the address of the deployed FPMM for a token pair..
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @return The address of the deployed FPMM for the token pair

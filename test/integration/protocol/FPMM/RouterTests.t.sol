@@ -259,7 +259,7 @@ contract RouterTests is FPMMBaseIntegration {
     assertEq(amount1, amount1Desired);
     assertEq(liquidity, 100e18 - 1e3);
 
-    address pool = factory.deployedFPMMs(token0, token1);
+    address pool = factory.getPool(token0, token1);
     assertEq(IERC20(pool).balanceOf(alice), liquidity);
 
     vm.stopPrank();
