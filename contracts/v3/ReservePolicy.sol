@@ -28,13 +28,58 @@ contract ReservePolicy is ILiquidityPolicy {
    * @return action The action to execute
    */
   function determineAction(LQ.Context memory ctx) external pure returns (bool shouldAct, LQ.Action memory action) {
-    LQ.Direction direction = ctx.prices.poolPriceAbove ? LQ.Direction.Expand : LQ.Direction.Contract;
+    (uint256 amount0Out, uint256 amount1Out, uint256 amount0In, uint256 amount1In) = _calculateRebalanceAmounts(ctx);
 
-    if (direction == LQ.Direction.Expand) {
-      return _handleExpansion(ctx);
-    } else {
-      return _handleContraction(ctx);
+    // Check if action is needed
+    if (amount0Out == 0 && amount1Out == 0 && amount0In == 0 && amount1In == 0) {
+      return (false, _emptyAction(ctx.pool));
     }
+
+    // Determine direction based on debt/collateral flows
+    // The direction is determined by what the RESERVE needs to do:
+    // Expand: Reserve expands debt supply (provides debt to pool, receives collateral)
+    // Contract: Reserve contracts debt supply (receives debt from pool, provides collateral)
+    LQ.Direction direction;
+    uint256 inputAmount;
+    
+    if (ctx.isToken0Debt) {
+      // Token0 is debt, Token1 is collateral
+      if (amount0In > 0) {
+        // Debt flows into pool → Reserve is expanding debt supply
+        direction = LQ.Direction.Expand;
+        inputAmount = amount0In;
+      } else {
+        // Debt flows out of pool → Reserve is contracting debt supply
+        direction = LQ.Direction.Contract;
+        inputAmount = amount1In;
+      }
+    } else {
+      // Token1 is debt, Token0 is collateral
+      if (amount1In > 0) {
+        // Debt flows into pool → Reserve is expanding debt supply
+        direction = LQ.Direction.Expand;
+        inputAmount = amount1In;
+      } else {
+        // Debt flows out of pool → Reserve is contracting debt supply
+        direction = LQ.Direction.Contract;
+        inputAmount = amount0In;
+      }
+    }
+    
+    bytes memory callbackData = abi.encode(LQ.incentiveAmount(inputAmount, ctx.incentiveBps), ctx.isToken0Debt);
+
+    action = LQ.Action({
+      pool: ctx.pool,
+      dir: direction,
+      liquiditySource: LQ.LiquiditySource.Reserve,
+      amount0Out: amount0Out,
+      amount1Out: amount1Out,
+      inputAmount: inputAmount,
+      incentiveBps: ctx.incentiveBps,
+      data: callbackData
+    });
+
+    return (true, action);
   }
 
   /* ============================================================ */
@@ -42,187 +87,69 @@ contract ReservePolicy is ILiquidityPolicy {
   /* ============================================================ */
 
   /**
-   * @notice Handle expansion case (pool price > oracle price)
-   * @dev Move collateral OUT of pool, debt tokens IN to pool
+   * @notice Calculate rebalance amounts
+   * @dev When PP > OP: X = (OD * RN - ON * RD) / (OD * (2 - i))
+   *      - X = token1 to REMOVE from pool
+   *      - Y = X * OD/ON represents token0 to ADD to pool
+   *      
+   *      When PP < OP: X = (ON * RD - OD * RN) / (OD * (2 - i))
+   *      - X = token1 to ADD to pool
+   *      - Y = X * OD/ON represents token0 to REMOVE from pool
+   *      
+   *      The direction depends on which token is debt/collateral:
+   *      - If token1 is debt and PP > OP: Contract (remove debt from pool)
+   *      - If token1 is collateral and PP > OP: Expand (remove collateral from pool)
+   *      
+   * @param ctx The current pool context with reserves and prices
+   * @return amount0Out Amount of token0 to remove from pool
+   * @return amount1Out Amount of token1 to remove from pool
+   * @return amount0In Amount of token0 to add to pool
+   * @return amount1In Amount of token1 to add to pool
    */
-  function _handleExpansion(LQ.Context memory ctx) internal pure returns (bool shouldAct, LQ.Action memory action) {
-    (uint256 collateralOut18, uint256 debtIn18) = _calculateExpansionAmounts(
-      ctx.reserves,
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.incentiveBps,
-      ctx.isToken0Debt
-    );
-
-    // Get decimal factors based on token ordering
-    uint256 debtDec = ctx.isToken0Debt ? uint256(ctx.token0Dec) : uint256(ctx.token1Dec);
-    uint256 collateralDec = ctx.isToken0Debt ? uint256(ctx.token1Dec) : uint256(ctx.token0Dec);
-
-    // Convert to raw token units
-    uint256 collateralOutRaw = LQ.from1e18(collateralOut18, collateralDec);
-    uint256 debtInRaw = LQ.from1e18(debtIn18, debtDec);
-
-    // Check if we need to take action
-    if (collateralOutRaw == 0 && debtInRaw == 0) {
-      return (false, _emptyAction(ctx.pool));
+  function _calculateRebalanceAmounts(
+    LQ.Context memory ctx
+  ) internal pure returns (uint256 amount0Out, uint256 amount1Out, uint256 amount0In, uint256 amount1In) {
+    uint256 poolPriceNumerator = ctx.reserves.reserveNum * ctx.prices.oracleDen;    // RN * OD
+    uint256 oraclePriceNumerator = ctx.prices.oracleNum * ctx.reserves.reserveDen;  // ON * RD
+    
+    // If prices are equal, no rebalancing needed
+    if (poolPriceNumerator == oraclePriceNumerator) {
+      return (0, 0, 0, 0);
     }
-
-    // Convert to token0/token1 ordering for FPMM
-    (uint256 amount0Out, uint256 amount1Out) = LQ.toTokenOrder(
-      0, // debtOut is 0 (debt flows INTO pool)
-      collateralOutRaw, // collateral flows OUT of pool
-      ctx.isToken0Debt
-    );
-
-    // Build extra data for strategy callback
-    bytes memory cb = abi.encode(LQ.incentiveAmount(debtInRaw, ctx.incentiveBps), ctx.isToken0Debt);
-
-    // Build action
-    action = LQ.Action({
-      pool: ctx.pool,
-      dir: LQ.Direction.Expand,
-      liquiditySource: LQ.LiquiditySource.Reserve,
-      amount0Out: amount0Out,
-      amount1Out: amount1Out,
-      inputAmount: debtInRaw, // amount strategy will provide
-      incentiveBps: ctx.incentiveBps,
-      data: cb
-    });
-
-    return (true, action);
-  }
-
-  /**
-   * @notice Handle contraction case (pool price < oracle price)
-   * @dev Move debt tokens OUT of pool, collateral IN to pool
-   */
-  function _handleContraction(LQ.Context memory ctx) internal pure returns (bool shouldAct, LQ.Action memory action) {
-    (uint256 debtOut18, uint256 collateralIn18) = _calculateContractionAmounts(
-      ctx.reserves,
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.incentiveBps,
-      ctx.isToken0Debt
-    );
-
-    // Get decimal factors
-    uint256 debtDec = ctx.isToken0Debt ? uint256(ctx.token0Dec) : uint256(ctx.token1Dec);
-    uint256 collateralDec = ctx.isToken0Debt ? uint256(ctx.token1Dec) : uint256(ctx.token0Dec);
-
-    // Convert to raw token units
-    uint256 debtOutRaw = LQ.from1e18(debtOut18, debtDec);
-    uint256 collateralInRaw = LQ.from1e18(collateralIn18, collateralDec);
-
-    // Check if we need to take action
-    if (debtOutRaw == 0 && collateralInRaw == 0) {
-      return (false, _emptyAction(ctx.pool));
+    
+    // OD * (2 - i)
+    uint256 denominator = ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps);
+    
+    // Prevent division by zero
+    if (denominator == 0) {
+      return (0, 0, 0, 0);
     }
-
-    // Convert to token0/token1 ordering for FPMM
-    (uint256 amount0Out, uint256 amount1Out) = LQ.toTokenOrder(
-      debtOutRaw, // debt flows OUT of pool
-      0, // collateralOut is 0 (collateral flows INTO pool)
-      ctx.isToken0Debt
-    );
-
-    // Build extra data for strategy callback
-    bytes memory cb = abi.encode(LQ.incentiveAmount(collateralInRaw, ctx.incentiveBps), ctx.isToken0Debt);
-
-    // Build action
-    action = LQ.Action({
-      pool: ctx.pool,
-      dir: LQ.Direction.Contract,
-      liquiditySource: LQ.LiquiditySource.Reserve,
-      amount0Out: amount0Out,
-      amount1Out: amount1Out,
-      inputAmount: collateralInRaw, // amount strategy will provide
-      incentiveBps: ctx.incentiveBps,
-      data: cb
-    });
-
-    return (true, action);
-  }
-
-  /**
-   * @notice Calculates the amounts for expansion
-   * @dev Expansion: move collateral out of the pool and move debt tokens into the pool.
-   *      CollateralOut = (CollateralReserve - OraclePrice * DebtReserve) / (1 + 1 - incentive)
-   *      DebtIn = CollateralOut / OraclePrice
-   * @param reserves The current reserves of the pool,
-   * @param oracleNum The numerator of the target price
-   * @param oracleDen The denominator of the target price
-   * @param incentiveBps The rebalance incentive in basis points
-   * @return collateralOut18 The amount of collateral tokens to move out of the pool
-   * @return debtIn18 The amount of debt tokens to move into the pool
-   */
-  function _calculateExpansionAmounts(
-    LQ.Reserves memory reserves,
-    uint256 oracleNum,
-    uint256 oracleDen,
-    uint256 incentiveBps,
-    bool isToken0Debt
-  ) internal pure returns (uint256 collateralOut18, uint256 debtIn18) {
-    // reserveNum = normalized token1, reserveDen = normalized token0
-    // If token0 is debt, then: debt = reserveDen (token0), collateral = reserveNum (token1)
-    // If token1 is debt, then: debt = reserveNum (token1), collateral = reserveDen (token0)
-    uint256 debt18 = isToken0Debt ? reserves.reserveDen : reserves.reserveNum;
-    uint256 collateral18 = isToken0Debt ? reserves.reserveNum : reserves.reserveDen;
-
-    uint256 priceAdjustedDebt = ((debt18 * oracleNum) / oracleDen);
-
-    // Check if expansion is actually feasible
-    // If collateral <= debt*oracle_price, pool is balanced/under-collateralized
-    // Expansion only makes sense when pool has excess collateral (collateral > debt*oracle_price)
-    if (collateral18 <= priceAdjustedDebt) {
-      return (0, 0); // No expansion needed as pool doesn't have excess collateral
+    
+    if (poolPriceNumerator > oraclePriceNumerator) {
+      // PP > OP: Pool price above oracle (RN/RD > ON/OD)
+      // X = (OD * RN - ON * RD) / (OD * (2 - i))
+      // X is token1 to REMOVE from pool
+      // Y = X * OD/ON is token0 to ADD to pool
+      uint256 token1ToRemove18 = ((poolPriceNumerator - oraclePriceNumerator) * LQ.BASIS_POINTS_DENOMINATOR) / denominator;
+      uint256 token0ToAdd18 = (token1ToRemove18 * ctx.prices.oracleDen) / ctx.prices.oracleNum;
+      
+      amount0Out = 0;
+      amount1Out = LQ.from1e18(token1ToRemove18, ctx.token1Dec);
+      amount0In = LQ.from1e18(token0ToAdd18, ctx.token0Dec);
+      amount1In = 0;
+    } else {
+      // PP < OP: Pool price below oracle (RN/RD < ON/OD)
+      // X = (ON * RD - OD * RN) / (OD * (2 - i))
+      // X is token1 to ADD to pool
+      // Y = X * OD/ON is token0 to REMOVE from pool
+      uint256 token1ToAdd18 = ((oraclePriceNumerator - poolPriceNumerator) * LQ.BASIS_POINTS_DENOMINATOR) / denominator;
+      uint256 token0ToRemove18 = (token1ToAdd18 * ctx.prices.oracleDen) / ctx.prices.oracleNum;
+      
+      amount0Out = LQ.from1e18(token0ToRemove18, ctx.token0Dec);
+      amount1Out = 0;
+      amount0In = 0;
+      amount1In = LQ.from1e18(token1ToAdd18, ctx.token1Dec);
     }
-
-    uint256 numerator = collateral18 - priceAdjustedDebt;
-    uint256 denominator = (LQ.BASIS_POINTS_DENOMINATOR * 2) - incentiveBps;
-
-    collateralOut18 = (numerator * LQ.BASIS_POINTS_DENOMINATOR) / denominator;
-    debtIn18 = (collateralOut18 * oracleDen) / oracleNum;
-  }
-
-  /**
-   * @notice Calculates the amounts for contraction
-   * @dev Contraction: move debt tokens out of the pool and move collateral into the pool.
-   *      DebtOut = (OraclePrice * DebtReserve - CollateralReserve) / (OraclePrice + OraclePrice * (1 - incentive))
-   *      CollateralIn = DebtOut * OraclePrice
-   * @param reserves The current reserves of the pool.
-   * @param oracleNum The numerator of the target price.
-   * @param oracleDen The denominator of the target price.
-   * @param incentiveBps The rebalance incentive in basis points.
-   * @return debtOut18 The amount of debt tokens to move out of the pool.
-   * @return collateralIn18 The amount of collateral tokens to move into the pool.
-   */
-  function _calculateContractionAmounts(
-    LQ.Reserves memory reserves,
-    uint256 oracleNum,
-    uint256 oracleDen,
-    uint256 incentiveBps,
-    bool isToken0Debt
-  ) internal pure returns (uint256 debtOut18, uint256 collateralIn18) {
-    // reserveNum = normalized token1, reserveDen = normalized token0
-    // If token0 is debt, then: debt = reserveDen (token0), collateral = reserveNum (token1)
-    // If token1 is debt, then: debt = reserveNum (token1), collateral = reserveDen (token0)
-    uint256 debt18 = isToken0Debt ? reserves.reserveDen : reserves.reserveNum;
-    uint256 collateral18 = isToken0Debt ? reserves.reserveNum : reserves.reserveDen;
-
-    uint256 priceAdjustedDebt = (debt18 * oracleNum) / oracleDen;
-
-    // Check if contraction is actually feasible
-    // If debt*oracle_price <= collateral, pool is balanced/over-collateralized
-    // Contraction only makes sense when pool has excess debt (debt*oracle_price > collateral)
-    if (priceAdjustedDebt <= collateral18) {
-      return (0, 0); // No contraction needed
-    }
-
-    uint256 numerator = priceAdjustedDebt - collateral18;
-    uint256 denominator = (2 * LQ.BASIS_POINTS_DENOMINATOR) - incentiveBps;
-
-    debtOut18 = (numerator * oracleDen * LQ.BASIS_POINTS_DENOMINATOR) / (oracleNum * denominator);
-    collateralIn18 = (debtOut18 * oracleNum) / oracleDen;
   }
 
   /**
