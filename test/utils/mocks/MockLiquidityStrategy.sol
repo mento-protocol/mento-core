@@ -6,13 +6,14 @@ import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol"
 
 contract MockLiquidityStrategy is ILiquidityStrategy {
   bool public executionResult = true;
-  bytes public lastCallback;
   LQ.Action public lastAction;
   bytes public executionCallback;
 
   // Execution tracking for testing
   uint256 public executionCount;
   uint256 public lastInputAmount;
+  uint256 public lastIncentiveAmount;
+  bool public lastIsToken0Debt;
 
   function setExecutionResult(bool _result) external {
     executionResult = _result;
@@ -22,20 +23,18 @@ contract MockLiquidityStrategy is ILiquidityStrategy {
     executionCallback = _callback;
   }
 
-  function execute(LQ.Action memory _action, bytes memory _callback) external returns (bool) {
+  function execute(LQ.Action calldata _action) external returns (bool) {
     lastAction = _action;
-    lastCallback = _callback;
 
     // Track execution count
     executionCount++;
+    lastInputAmount = _action.inputAmount;
 
-    // Decode and track input amount for testing
-    if (_callback.length > 0) {
-      (uint256 inputAmount, , , , , ) = abi.decode(
-        _callback,
-        (uint256, LQ.Direction, uint256, LQ.LiquiditySource, bool, bytes)
-      );
-      lastInputAmount = inputAmount;
+    // Decode action data if present
+    if (_action.data.length > 0) {
+      (uint256 incentiveAmount, bool isToken0Debt) = abi.decode(_action.data, (uint256, bool));
+      lastIncentiveAmount = incentiveAmount;
+      lastIsToken0Debt = isToken0Debt;
     }
 
     // Execute callback if set (to simulate price changes after execution)
@@ -52,5 +51,7 @@ contract MockLiquidityStrategy is ILiquidityStrategy {
   function resetTracking() external {
     executionCount = 0;
     lastInputAmount = 0;
+    lastIncentiveAmount = 0;
+    lastIsToken0Debt = false;
   }
 }
