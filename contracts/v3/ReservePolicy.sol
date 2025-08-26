@@ -55,8 +55,8 @@ contract ReservePolicy is ILiquidityPolicy {
     );
 
     // Get decimal factors based on token ordering
-    uint256 debtDec = ctx.isToken0Debt ? ctx.token0Dec : ctx.token1Dec;
-    uint256 collateralDec = ctx.isToken0Debt ? ctx.token1Dec : ctx.token0Dec;
+    uint256 debtDec = ctx.isToken0Debt ? uint256(ctx.token0Dec) : uint256(ctx.token1Dec);
+    uint256 collateralDec = ctx.isToken0Debt ? uint256(ctx.token1Dec) : uint256(ctx.token0Dec);
 
     // Convert to raw token units
     uint256 collateralOutRaw = LQ.from1e18(collateralOut18, collateralDec);
@@ -106,8 +106,8 @@ contract ReservePolicy is ILiquidityPolicy {
     );
 
     // Get decimal factors
-    uint256 debtDec = ctx.isToken0Debt ? ctx.token0Dec : ctx.token1Dec;
-    uint256 collateralDec = ctx.isToken0Debt ? ctx.token1Dec : ctx.token0Dec;
+    uint256 debtDec = ctx.isToken0Debt ? uint256(ctx.token0Dec) : uint256(ctx.token1Dec);
+    uint256 collateralDec = ctx.isToken0Debt ? uint256(ctx.token1Dec) : uint256(ctx.token0Dec);
 
     // Convert to raw token units
     uint256 debtOutRaw = LQ.from1e18(debtOut18, debtDec);
