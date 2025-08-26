@@ -29,7 +29,8 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   address constant AVATAR_ADDRESS = 0x495d133B938596C9984d462F007B676bDc57eCEC;
   address constant CUSD_ADDRESS = 0x765DE816845861e75A25fCA122bb6898B8B1282a;
   address constant GOOD_DOLLAR_ADDRESS = 0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A;
-  address constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
+  // address constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
+  address constant REGISTRY_ADDRESS = 0x0000000000000000000000000000000000000000;
   address ownerAddress;
   address distributionHelperAddress = makeAddr("distributionHelper");
 

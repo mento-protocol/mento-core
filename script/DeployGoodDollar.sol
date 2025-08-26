@@ -96,7 +96,8 @@ contract DeployMento is Script {
 
     console.log("initializing reserve...");
     reserveProxied.initialize(
-      0x000000000000000000000000000000000000ce10, // registry address
+      // 0x000000000000000000000000000000000000ce10, // registry address
+      0x0000000000000000000000000000000000000000, // registry address
       3153600000, // tobinTaxStalenessThreshold
       1e24, // spendingRatioForCelo (0.1 in fixidity)
       0, // frozenGold
