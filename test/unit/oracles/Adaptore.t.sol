@@ -11,7 +11,7 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
 
 contract AdaptoreTest is Test {
-  IAdaptore adaptore;
+  Adaptore adaptore;
 
   address public sortedOracles = makeAddr("SortedOracles");
   address public breakerBox = makeAddr("BreakerBox");
