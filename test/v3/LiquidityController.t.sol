@@ -33,6 +33,8 @@ contract LiquidityControllerTest is Test {
   address public ALICE = makeAddr("ALICE");
   address public BOB = makeAddr("BOB");
   address public NOT_OWNER = makeAddr("NOT_OWNER");
+  
+  bool public isToken0Debt;
 
   event PoolAdded(address indexed pool, address debt, address collateral, uint64 cooldown, uint32 incentiveBps);
   event PoolRemoved(address indexed pool);
@@ -42,7 +44,7 @@ contract LiquidityControllerTest is Test {
   event StrategySet(LQ.LiquiditySource indexed source, address strategy);
   event RebalanceExecuted(address indexed pool, uint256 diffBeforeBps, uint256 diffAfterBps);
 
-  function setUp() public virtual {
+  function setUp() public {
     vm.label(OWNER, "OWNER");
     vm.label(ALICE, "ALICE");
     vm.label(BOB, "BOB");
@@ -55,6 +57,9 @@ contract LiquidityControllerTest is Test {
 
     debtToken = address(new ERC20DecimalsMock("DebtToken", "DEBT", 18));
     collateralToken = address(new ERC20DecimalsMock("CollateralToken", "COLL", 18));
+    
+    // Calculate token ordering once
+    isToken0Debt = debtToken < collateralToken;
 
     mockPool = new MockFPMM(debtToken, collateralToken, false);
     mockPolicy = new MockLiquidityPolicy();
@@ -399,13 +404,16 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
+    
+    (uint256 amount0Out, uint256 amount1Out) = LQ.toTokenOrder(0, 100e18, isToken0Debt);
+    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
         dir: LQ.Direction.Expand,
         liquiditySource: LQ.LiquiditySource.Reserve,
-        debtOut: 0,
-        collateralOut: 100e18,
+        amount0Out: amount0Out,
+        amount1Out: amount1Out,
         inputAmount: 100e18,
         incentiveBps: 50,
         data: bytes("")
@@ -452,13 +460,16 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
+    
+    (uint256 amount0Out, uint256 amount1Out) = LQ.toTokenOrder(0, 100e18, isToken0Debt);
+    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
         dir: LQ.Direction.Expand,
         liquiditySource: LQ.LiquiditySource.Reserve,
-        debtOut: 0,
-        collateralOut: 100e18,
+        amount0Out: amount0Out,
+        amount1Out: amount1Out,
         inputAmount: 100e18,
         incentiveBps: 50,
         data: bytes("")
@@ -482,13 +493,15 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
+    
+    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
         dir: LQ.Direction.Expand,
         liquiditySource: LQ.LiquiditySource.Reserve,
-        debtOut: 0,
-        collateralOut: 100e18,
+        amount0Out: isToken0Debt ? 0 : 100e18,
+        amount1Out: isToken0Debt ? 100e18 : 0,
         inputAmount: 100e18,
         incentiveBps: 50,
         data: bytes("")
@@ -513,13 +526,15 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
+    
+    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
         dir: LQ.Direction.Expand,
         liquiditySource: LQ.LiquiditySource.Reserve,
-        debtOut: 0,
-        collateralOut: 100e18,
+        amount0Out: isToken0Debt ? 0 : 100e18,
+        amount1Out: isToken0Debt ? 100e18 : 0,
         inputAmount: 100e18,
         incentiveBps: 50,
         data: bytes("")
@@ -554,6 +569,7 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
 
+
     mockPolicy.setShouldAct(false);
     policy2.setShouldAct(true);
     policy2.setAction(
@@ -561,8 +577,8 @@ contract LiquidityControllerTest is Test {
         pool: address(mockPool),
         dir: LQ.Direction.Contract,
         liquiditySource: LQ.LiquiditySource.Reserve,
-        debtOut: 100e18,
-        collateralOut: 0,
+        amount0Out: isToken0Debt ? 100e18 : 0,
+        amount1Out: isToken0Debt ? 0 : 100e18,
         inputAmount: 100e18,
         incentiveBps: 25,
         data: bytes("")
@@ -600,6 +616,7 @@ contract LiquidityControllerTest is Test {
     // Set initial price out of range (600 bps difference, above threshold of 500)
     mockPool.setDiffBps(600, true);
 
+
     // Configure policy1 to act and bring price closer to range
     policy1.setShouldAct(true);
     policy1.setAction(
@@ -607,8 +624,8 @@ contract LiquidityControllerTest is Test {
         pool: address(mockPool),
         dir: LQ.Direction.Expand,
         liquiditySource: LQ.LiquiditySource.Reserve,
-        debtOut: 0,
-        collateralOut: 100e18,
+        amount0Out: isToken0Debt ? 0 : 100e18,
+        amount1Out: isToken0Debt ? 100e18 : 0,
         inputAmount: 100e18,
         incentiveBps: 50,
         data: bytes("")
@@ -622,8 +639,8 @@ contract LiquidityControllerTest is Test {
         pool: address(mockPool),
         dir: LQ.Direction.Expand,
         liquiditySource: LQ.LiquiditySource.Reserve,
-        debtOut: 0,
-        collateralOut: 50e18,
+        amount0Out: isToken0Debt ? 0 : 50e18,
+        amount1Out: isToken0Debt ? 50e18 : 0,
         inputAmount: 50e18,
         incentiveBps: 50,
         data: bytes("")
@@ -688,13 +705,15 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
+    
+    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
         dir: LQ.Direction.Expand,
         liquiditySource: LQ.LiquiditySource.Reserve,
-        debtOut: 0,
-        collateralOut: 100e18,
+        amount0Out: isToken0Debt ? 0 : 100e18,
+        amount1Out: isToken0Debt ? 100e18 : 0,
         inputAmount: 100e18,
         incentiveBps: 50,
         data: bytes("")
@@ -774,13 +793,15 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
+    
+    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
         dir: LQ.Direction.Expand,
         liquiditySource: LQ.LiquiditySource.Reserve,
-        debtOut: 0,
-        collateralOut: 100e18,
+        amount0Out: isToken0Debt ? 0 : 100e18,
+        amount1Out: isToken0Debt ? 100e18 : 0,
         inputAmount: 100e18,
         incentiveBps: 0,
         data: bytes("")
@@ -790,11 +811,8 @@ contract LiquidityControllerTest is Test {
     vm.prank(ALICE);
     liquidityController.rebalance(address(mockPool));
 
-    // Decode the callback data manually since it's encoded as individual parameters
-    (, , uint256 incentiveAmount, , , ) = abi.decode(
-      mockStrategy.lastCallback(),
-      (uint256, LQ.Direction, uint256, LQ.LiquiditySource, bool, bytes)
-    );
+    // Check the incentive amount tracked by the mock strategy
+    uint256 incentiveAmount = mockStrategy.lastIncentiveAmount();
     assertEq(incentiveAmount, 0);
   }
 
@@ -822,7 +840,7 @@ contract ReentrantStrategy is ILiquidityStrategy {
     pool = _pool;
   }
 
-  function execute(LQ.Action memory, bytes memory) external returns (bool) {
+  function execute(LQ.Action calldata) external returns (bool) {
     controller.rebalance(pool);
     return true;
   }
