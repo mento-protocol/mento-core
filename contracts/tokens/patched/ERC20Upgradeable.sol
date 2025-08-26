@@ -45,6 +45,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
   address private __deprecated_registry_storage_slot__;
   string private _name;
   string private _symbol;
+  // slither-disable-start constable-states
   uint8 private __deprecated_decimals_storage_slot__;
 
   mapping(address => uint256) private _balances;
@@ -53,7 +54,7 @@ contract ERC20Upgradeable is Ownable, Initializable, IERC20Upgradeable, IERC20Me
 
   uint256[4] private __deprecated_inflationState_storage_slot__;
   bytes32 private __deprecated_exchangeRegistryId_storage_slot__;
-
+  // slither-disable-end constable-states
   // solhint-enable var-name-mixedcase
 
   /**

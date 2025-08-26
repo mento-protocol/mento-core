@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 // solhint-disable immutable-vars-naming
+// slither-disable-start calls-loop
 
 import { ERC2771Context } from "./utils/ERC2771.sol";
 import { SafeERC20 } from "./utils/SafeERC20.sol";
@@ -66,7 +67,6 @@ contract Router is IRouter, ERC2771Context {
     if (token0 == address(0)) revert ZeroAddress();
   }
 
-  // slither-disable-start calls-loop
   /// @inheritdoc IRouter
   function poolFor(address tokenA, address tokenB, address _factory) public view returns (address pool) {
     address _defaultFactory = defaultFactory;
@@ -77,7 +77,6 @@ contract Router is IRouter, ERC2771Context {
 
     pool = IFPMMFactory(factory).getOrPrecomputeProxyAddress(token0, token1);
   }
-  // slither-disable-end calls-loop
 
   /// @dev given some amount of an asset and pool reserves, returns an equivalent amount of the other asset
   function quoteLiquidity(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
@@ -100,7 +99,6 @@ contract Router is IRouter, ERC2771Context {
     (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
   }
 
-  // slither-disable-start calls-loop
   /// @inheritdoc IRouter
   function getAmountsOut(uint256 amountIn, Route[] memory routes) public view returns (uint256[] memory amounts) {
     if (routes.length < 1) revert InvalidPath();
@@ -116,7 +114,6 @@ contract Router is IRouter, ERC2771Context {
       }
     }
   }
-  // slither-disable-end calls-loop
 
   /// @inheritdoc IRouter
   function quoteAddLiquidity(
@@ -703,3 +700,4 @@ contract Router is IRouter, ERC2771Context {
     require(success && (data.length == 0 || abi.decode(data, (bool))), "Transfer failed");
   }
 }
+// slither-disable-end calls-loop
