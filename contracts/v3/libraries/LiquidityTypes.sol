@@ -59,11 +59,11 @@ library LiquidityTypes {
     address pool;
     Reserves reserves;
     Prices prices;
-    uint256 incentiveBps; // min(strategy cap, pool cap)
-    uint256 token0Dec;
-    uint256 token1Dec;
     address token0;
     address token1;
+    uint128 incentiveBps;
+    uint64 token0Dec;
+    uint64 token1Dec;
     bool isToken0Debt;
   }
 
