@@ -11,14 +11,14 @@ interface IRegistryInit {
 }
 
 contract WithRegistry is Test {
-  // IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
-  IRegistry public registry;
+  IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
+  // IRegistry public registry;
 
   constructor() {
-    // deployCodeTo("Registry", abi.encode(true), CELO_REGISTRY_ADDRESS);
-    // IRegistryInit(CELO_REGISTRY_ADDRESS).initialize();
-    registry = IRegistry(deployCode("Registry", abi.encode(true)));
-    IRegistryInit(address(registry)).initialize();
+    deployCodeTo("Registry", abi.encode(true), CELO_REGISTRY_ADDRESS);
+    IRegistryInit(CELO_REGISTRY_ADDRESS).initialize();
+    // registry = IRegistry(deployCode("Registry", abi.encode(true)));
+    // IRegistryInit(address(registry)).initialize();
     // registry = IRegistry(address(0));
   }
 }
