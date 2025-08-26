@@ -203,48 +203,63 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
     address pool,
     PoolConfig memory config
   ) internal view returns (LQ.Context memory ctx, bool priceInRange, uint256 priceDiffBps) {
-    // Build context with all data including thresholds
-    uint256 upperThreshold;
-    uint256 lowerThreshold;
-    (ctx, upperThreshold, lowerThreshold) = _buildFullContext(pool, config);
+    // Build context with all data
+    (ctx) = _buildFullContext(pool, config);
 
     // Check if price in range
     priceDiffBps = ctx.prices.diffBps;
-    priceInRange = _checkInRange(ctx.prices, upperThreshold, lowerThreshold);
+    priceInRange = _checkInRange(ctx.prices, pool);
   }
 
   /// @dev Build full context combining all data needed for rebalancing
-  function _buildFullContext(
-    address pool,
-    PoolConfig memory config
-  ) internal view returns (LQ.Context memory ctx, uint256 upperThreshold, uint256 lowerThreshold) {
+  function _buildFullContext(address pool, PoolConfig memory config) internal view returns (LQ.Context memory ctx) {
     IFPMM fpmm = IFPMM(pool);
+    ctx.pool = pool;
 
-    // Get FPMM metadata and validate decimals
-    (uint256 dec0, uint256 dec1, , , address t0, address t1) = fpmm.metadata();
-    _validateDecimals(dec0, dec1);
+    // Get and set token data
+    {
+      (uint256 dec0, uint256 dec1, , , address t0, address t1) = fpmm.metadata();
+      _validateDecimals(dec0, dec1);
 
-    // Get price data and validate
-    (uint256 oracleNum, uint256 oracleDen, uint256 reserveNum, uint256 reserveDen, uint256 diffBps, bool poolAbove) = fpmm.getPrices();
-    require(oracleNum > 0 && oracleDen > 0, "LC: INVALID_PRICES");
+      ctx.token0 = t0;
+      ctx.token1 = t1;
+      ctx.token0Dec = uint64(dec0);
+      ctx.token1Dec = uint64(dec1);
+      ctx.isToken0Debt = config.debtToken == t0;
 
-    // Get thresholds and incentive
+      // Set incentive
+      uint256 fpmmIncentive = fpmm.rebalanceIncentive();
+      ctx.incentiveBps = uint128(config.rebalanceIncentive < fpmmIncentive ? config.rebalanceIncentive : fpmmIncentive);
+    }
+
+    // Get and set price data
+    {
+      (
+        uint256 oracleNum,
+        uint256 oracleDen,
+        uint256 reserveNum,
+        uint256 reserveDen,
+        uint256 diffBps,
+        bool poolAbove
+      ) = fpmm.getPrices();
+
+      require(oracleNum > 0 && oracleDen > 0, "LC: INVALID_PRICES");
+
+      ctx.reserves = LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen });
+      ctx.prices = LQ.Prices({
+        oracleNum: oracleNum,
+        oracleDen: oracleDen,
+        poolPriceAbove: poolAbove,
+        diffBps: diffBps
+      });
+    }
+  }
+
+  /// @dev Fetch rebalance thresholds from FPMM
+  function _getThresholds(address pool) internal view returns (uint256 upperThreshold, uint256 lowerThreshold) {
+    IFPMM fpmm = IFPMM(pool);
     upperThreshold = fpmm.rebalanceThresholdAbove();
     lowerThreshold = fpmm.rebalanceThresholdBelow();
-    uint256 fpmmIncentive = fpmm.rebalanceIncentive();
-
-    // Build context struct
-    ctx = LQ.Context({
-      pool: pool,
-      reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
-      prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolAbove, diffBps: diffBps }),
-      token0: t0,
-      token1: t1,
-      incentiveBps: uint128(config.rebalanceIncentive < fpmmIncentive ? config.rebalanceIncentive : fpmmIncentive),
-      token0Dec: uint64(dec0),
-      token1Dec: uint64(dec1),
-      isToken0Debt: config.debtToken == t0
-    });
   }
 
   /// @dev Validate decimal are in valid range
@@ -254,15 +269,12 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
   }
 
   /// @dev Check if price is in range using provided thresholds
-  function _checkInRange(
-    LQ.Prices memory prices,
-    uint256 upperThresholdBps,
-    uint256 lowerThresholdBps
-  ) internal pure returns (bool) {
-    _validateThresholds(upperThresholdBps, lowerThresholdBps);
+  function _checkInRange(LQ.Prices memory prices, address pool) internal view returns (bool) {
+    (uint256 upperThreshold, uint256 lowerThreshold) = _getThresholds(pool);
+    _validateThresholds(upperThreshold, lowerThreshold);
 
     // Price is in range if deviation is below the relevant threshold
-    uint256 threshold = prices.poolPriceAbove ? upperThresholdBps : lowerThresholdBps;
+    uint256 threshold = prices.poolPriceAbove ? upperThreshold : lowerThreshold;
     return prices.diffBps < threshold;
   }
 
