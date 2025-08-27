@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 // Libraries
 import { Test } from "mento-std/Test.sol";
-// import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
+import { CELO_REGISTRY_ADDRESS } from "mento-std/Constants.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 // Interfaces
@@ -22,7 +22,6 @@ import { ITradingLimitsHarness } from "test/utils/harnesses/ITradingLimitsHarnes
 import { Broker } from "contracts/swap/Broker.sol";
 import { TradingLimitsHarness } from "test/utils/harnesses/TradingLimitsHarness.sol";
 import { toRateFeed } from "./helpers/misc.sol";
-import { WithRegistry } from "../utils/WithRegistry.sol";
 
 interface IMint {
   function mint(address, uint256) external;
@@ -37,10 +36,10 @@ interface IMint {
  * the system to test specific scenarios. However, it should be exhaustive in testing
  * invariants across all tradable pairs in the system.
  */
-abstract contract BaseForkTest is Test, WithRegistry {
+abstract contract BaseForkTest is Test {
   using FixidityLib for FixidityLib.Fraction;
 
-  // IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
+  IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
 
   address governance;
   IBroker public broker;
