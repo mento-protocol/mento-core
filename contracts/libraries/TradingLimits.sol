@@ -3,7 +3,6 @@ pragma solidity 0.8.18;
 pragma experimental ABIEncoderV2;
 
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
-import "forge-std/console.sol";
 
 /**
  * @title TradingLimits
@@ -72,22 +71,6 @@ library TradingLimits {
    * @param config the trading limit Config to check against.
    */
   function verify(ITradingLimits.State memory self, ITradingLimits.Config memory config) internal pure {
-    // if ((config.flags & L0) > 0 && (-1 * config.limit0 > self.netflow0 || self.netflow0 > config.limit0)) {
-    //   revert("L0 Exceeded");
-    // }
-    // if ((config.flags & L1) > 0 && (-1 * config.limit1 > self.netflow1 || self.netflow1 > config.limit1)) {
-    //   revert("L1 Exceeded");
-    // }
-    // if ((-1 * config.limit0) != -1 * int48(config.limit0Out)) {
-    //   console.log("(-1 * config.limit0) : ", (-1 * config.limit0));
-    //   console.log("-1 * int48(config.limit0Out) : ", -1 * int48(config.limit0Out));
-    //   revert("Whoops 1 ~~~");
-    // }
-    // if ((-1 * config.limit1) != -1 * int48(config.limit1Out)) {
-    //   console.log("(-1 * config.limit1) : ", (-1 * config.limit0));
-    //   console.log("-1 * int48(config.limit1Out): ", -1 * int48(config.limit0Out));
-    //   revert("Whoops 2 ~~~");
-    // }
     if ((config.flags & L0) > 0 && ((-1 * int48(config.limit0Out)) > self.netflow0 || self.netflow0 > int48(config.limit0In))) {
       revert("L0 Exceeded");
     }
