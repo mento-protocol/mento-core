@@ -77,4 +77,8 @@ contract MockERC20 is IERC20 {
   function setBalance(address account, uint256 amount) external {
     balanceOf[account] = amount;
   }
+
+  function setTotalSupply(uint256 supply) external {
+    totalSupply = supply;
+  }
 }
