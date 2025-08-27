@@ -639,6 +639,8 @@ contract BrokerTest_swap is BrokerTest {
     config.flags = 1;
     config.timestep0 = 10000;
     config.limit0 = 1000;
+    config.limit0In = 1000;
+    config.limit0Out = 1000;
 
     vm.expectEmit(true, true, true, true);
     emit TradingLimitConfigured(exchangeId, address(stableAsset), config);
@@ -656,6 +658,8 @@ contract BrokerTest_swap is BrokerTest {
     config.flags = 1;
     config.timestep0 = 10000;
     config.limit0 = 100;
+    config.limit0In = 100;
+    config.limit0Out = 100;
 
     vm.expectEmit(true, true, true, true);
     emit TradingLimitConfigured(exchangeId, address(stableAsset), config);

@@ -20,7 +20,11 @@ library TradingLimitHelpers {
       limitConfig.timestep0,
       limitConfig.timestep1,
       limitConfig.limit0,
+      limitConfig.limit0In,
+      limitConfig.limit0Out,
       limitConfig.limit1,
+      limitConfig.limit1In,
+      limitConfig.limit1Out,
       limitConfig.limitGlobal,
       limitConfig.flags
     ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);
@@ -36,7 +40,11 @@ library TradingLimitHelpers {
       limitConfig.timestep0,
       limitConfig.timestep1,
       limitConfig.limit0,
+      limitConfig.limit0In,
+      limitConfig.limit0Out,
       limitConfig.limit1,
+      limitConfig.limit1In,
+      limitConfig.limit1Out,
       limitConfig.limitGlobal,
       limitConfig.flags
     ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);
@@ -65,7 +73,11 @@ library TradingLimitHelpers {
       limitConfig.timestep0,
       limitConfig.timestep1,
       limitConfig.limit0,
+      limitConfig.limit0In,
+      limitConfig.limit0Out,
       limitConfig.limit1,
+      limitConfig.limit1In,
+      limitConfig.limit1Out,
       limitConfig.limitGlobal,
       limitConfig.flags
     ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);

@@ -200,9 +200,13 @@ contract GoodDollarBaseForkTest is BaseForkTest {
       // No more than 5,000 cUSD outflow within 5 minutes
       timestep0: 300,
       limit0: 5_000,
+      limit0In: 5_000,
+      limit0Out: 5_000,
       // No more than 50,000 cUSD outflow within 1 day
       timestep1: 86_400,
       limit1: 50_000,
+      limit1In: 50_000,
+      limit1Out: 50_000,
       // No more than 100,000 cUSD outflow in total
       limitGlobal: 100_000,
       flags: 1 | 2 | 4 // L0 = 1, L1 = 2, LG = 4
@@ -239,7 +243,7 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   function getTradingLimitsConfig(address tokenAddress) public view returns (ITradingLimits.Config memory config) {
     bytes32 limitId = getTradingLimitId(tokenAddress);
     ITradingLimits.Config memory _config;
-    (_config.timestep0, _config.timestep1, _config.limit0, _config.limit1, _config.limitGlobal, _config.flags) = Broker(
+    (_config.timestep0, _config.timestep1, _config.limit0, _config.limit0In, _config.limit0Out, _config.limit1, _config.limit1In, _config.limit1Out, _config.limitGlobal, _config.flags) = Broker(
       address(broker)
     ).tradingLimitsConfig(limitId);
 
