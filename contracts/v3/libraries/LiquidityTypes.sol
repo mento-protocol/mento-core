@@ -105,6 +105,10 @@ library LiquidityTypes {
     return amount18 / (1e18 / tokenDecimalsFactor);
   }
 
+  function scaleFromTo(uint256 amount, uint256 fromDec, uint256 toDec) internal pure returns (uint256) {
+    return (amount * toDec) / fromDec;
+  }
+
   /// @notice Calc an amount in bps.
   function mulBps(uint256 amount, uint256 bps) internal pure returns (uint256) {
     return (amount * bps) / BASIS_POINTS_DENOMINATOR;

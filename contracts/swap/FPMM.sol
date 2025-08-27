@@ -295,15 +295,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     uint256 numerator,
     uint256 denominator
   ) public pure returns (uint256) {
-    if (fromDecimals > toDecimals) {
-      uint256 decimalAdjustment = fromDecimals / toDecimals;
-      return (amount * numerator) / (denominator * decimalAdjustment);
-    } else if (fromDecimals < toDecimals) {
-      uint256 decimalAdjustment = toDecimals / fromDecimals;
-      return (amount * numerator * decimalAdjustment) / denominator;
-    } else {
-      return (amount * numerator) / denominator;
-    }
+    // TODO: need overflow check
+    return (amount * numerator * toDecimals) / (denominator * fromDecimals);
   }
   // slither-disable-end divide-before-multiply
 
