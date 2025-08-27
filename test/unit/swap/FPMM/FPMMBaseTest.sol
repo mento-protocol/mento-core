@@ -28,6 +28,9 @@ contract FPMMBaseTest is Test {
   address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
   address public owner = makeAddr("OWNER");
 
+  uint256 public constant TRADING_MODE_BIDIRECTIONAL = 0;
+  uint256 public constant TRADING_MODE_DISABLED = 3;
+
   function setUp() public virtual {
     fpmm = new FPMM(false);
     adaptore = IAdaptore(new Adaptore(address(sortedOracles), address(breakerBox), address(marketHoursBreaker)));
@@ -38,7 +41,7 @@ contract FPMMBaseTest is Test {
       IBreakerBox.getRateFeedTradingMode.selector,
       referenceRateFeedID
     );
-    vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(0)); // Set trading mode to bidirectional by default
+    vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(TRADING_MODE_BIDIRECTIONAL));
   }
 
   modifier initializeFPMM_withDecimalTokens(uint8 decimals0, uint8 decimals1) {

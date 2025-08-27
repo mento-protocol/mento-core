@@ -238,7 +238,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(1e18, 1e18)
-    withTradingMode(3)
+    withTradingMode(TRADING_MODE_DISABLED)
     withMarketOpen(true)
     withValidRate(true)
   {
