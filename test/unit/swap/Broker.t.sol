@@ -657,7 +657,6 @@ contract BrokerTest_swap is BrokerTest {
     ITradingLimits.Config memory config;
     config.flags = 1;
     config.timestep0 = 10000;
-    // config.limit0 = 100;
     config.limit0In = 100;
     config.limit0Out = 100;
 
@@ -666,7 +665,7 @@ contract BrokerTest_swap is BrokerTest {
     vm.prank(deployer);
     broker.configureTradingLimit(exchangeId, address(stableAsset), config);
 
-    vm.expectRevert(bytes("L0 Exceeded"));
+    vm.expectRevert(bytes("L0In Exceeded"));
     vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 5e20, 0);
   }
