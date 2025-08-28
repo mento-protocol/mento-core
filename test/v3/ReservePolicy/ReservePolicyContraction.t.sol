@@ -119,7 +119,7 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       incentiveBps: 0       // 0% for clean calculation
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     // Manual calculation:
     // X = (2e18 * 500e18 - 1e18 * 100e18) / (1e18 * 2)
