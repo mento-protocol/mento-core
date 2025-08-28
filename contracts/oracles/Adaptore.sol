@@ -9,6 +9,10 @@ import { IMarketHoursBreaker } from "../interfaces/IMarketHoursBreaker.sol";
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 
 contract Adaptore is IAdaptore, Ownable {
+  // TODO: Make Ownable upgradeable/initializable
+  // Use storage pointer pattern
+  // setters and getters for external contracts
+
   ISortedOracles public sortedOracles;
   IBreakerBox public breakerBox;
   IMarketHoursBreaker public marketHoursBreaker;
