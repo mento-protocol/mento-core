@@ -458,7 +458,7 @@ contract ProtocolTest is Test, WithRegistry {
 
   function setUp_tradingLimits() internal {
     /* ========== Config Trading Limits =============== */
-    ITradingLimits.Config memory config = configL0L1LG(100, 10000, 10000, 10000, 1000, 100000, 100000, 100000, 1000000);
+    ITradingLimits.Config memory config = configL0L1LG(100, 10000, 10000, 1000, 100000, 100000, 1000000);
     broker.configureTradingLimit(pair_cUSD_CELO_ID, address(cUSDToken), config);
     broker.configureTradingLimit(pair_cEUR_CELO_ID, address(cEURToken), config);
     broker.configureTradingLimit(pair_cUSD_bridgedUSDC_ID, address(usdcToken), config);
@@ -469,21 +469,21 @@ contract ProtocolTest is Test, WithRegistry {
 
   function configL0L1LG(
     uint32 timestep0,
-    int48 limit0,
+    // int48 limit0,
     uint48 limit0In,
     uint48 limit0Out,
     uint32 timestep1,
-    int48 limit1,
+    // int48 limit1,
     uint48 limit1In,
     uint48 limit1Out,
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
-    config.limit0 = limit0;
+    // config.limit0 = limit0;
     config.limit0In = limit0In;
     config.limit0Out = limit0Out;
     config.timestep1 = timestep1;
-    config.limit1 = limit1;
+    // config.limit1 = limit1;
     config.limit1In = limit1In;
     config.limit1Out = limit1Out;
     config.limitGlobal = limitGlobal;

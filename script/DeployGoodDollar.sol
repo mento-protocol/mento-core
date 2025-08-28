@@ -142,8 +142,8 @@ contract DeployMento is Script {
     ITradingLimits.Config memory cusdLimits = ITradingLimits.Config({
       timestep0: 7 days, // Weekly timeframe
       timestep1: 30 days, // Monthly timeframe
-      limit0: 40000, // 40K weekly limit
-      limit1: 80000, // 80K monthly limit
+      // limit0: 40000, // 40K weekly limit
+      // limit1: 80000, // 80K monthly limit
       limit0In: 40000, // 40K weekly limit
       limit0Out: 40000, // 40K weekly limit
       limit1In: 80000, // 80K monthly limit

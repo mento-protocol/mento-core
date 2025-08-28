@@ -30,10 +30,10 @@ interface ITradingLimits {
   struct Config {
     uint32 timestep0;
     uint32 timestep1;
-    int48 limit0;
+    // int48 limit0;
     uint48 limit0In;
     uint48 limit0Out;
-    int48 limit1;
+    // int48 limit1;
     uint48 limit1In;
     uint48 limit1Out;
     int48 limitGlobal;

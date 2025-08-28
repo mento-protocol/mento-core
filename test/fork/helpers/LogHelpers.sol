@@ -56,7 +56,7 @@ library LogHelpers {
         "\tL0: %s%d/%d",
         state.netflow0 < 0 ? "-" : "",
         uint256(int256(state.netflow0 < 0 ? state.netflow0 * -1 : state.netflow0)),
-        uint256(int256(config.limit0))
+        uint256(int256(state.getLimit0FromNetflow0(config)))
       );
     }
     if (config.flags & L1 > 0) {
@@ -64,7 +64,7 @@ library LogHelpers {
         "\tL1: %s%d/%d",
         state.netflow1 < 0 ? "-" : "",
         uint256(int256(state.netflow1 < 0 ? state.netflow1 * -1 : state.netflow1)),
-        uint256(int256(config.limit1))
+        uint256(int256(state.getLimit1FromNetflow1(config)))
       );
     }
     if (config.flags & LG > 0) {

@@ -21,7 +21,7 @@ contract TradingLimitsTest is Test {
 
   function configL0(uint32 timestep0, int48 limit0, uint48 limit0In, uint48 limit0Out) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
-    config.limit0 = limit0;
+    // config.limit0 = limit0;
     config.limit0In = limit0In;
     config.limit0Out = limit0Out;
     config.flags = L0;
@@ -29,7 +29,7 @@ contract TradingLimitsTest is Test {
 
   function configL1(uint32 timestep1, int48 limit1, uint48 limit1In, uint48 limit1Out) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep1 = timestep1;
-    config.limit1 = limit1;
+    // config.limit1 = limit1;
     config.limit1In = limit1In;
     config.limit1Out = limit1Out;
     config.flags = L1;
@@ -51,11 +51,11 @@ contract TradingLimitsTest is Test {
     uint48 limit1Out
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
-    config.limit0 = limit0;
+    // config.limit0 = limit0;
     config.limit0In = limit0In;
     config.limit0Out = limit0Out;
     config.timestep1 = timestep1;
-    config.limit1 = limit1;
+    // config.limit1 = limit1;
     config.limit1In = limit1In;
     config.limit1Out = limit1Out;
     config.flags = L0 | L1;
@@ -73,11 +73,11 @@ contract TradingLimitsTest is Test {
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
-    config.limit0 = limit0;
+    // config.limit0 = limit0;
     config.limit0In = limit0In;
     config.limit0Out = limit0Out;
     config.timestep1 = timestep1;
-    config.limit1 = limit1;
+    // config.limit1 = limit1;
     config.limit1In = limit1In;
     config.limit1Out = limit1Out;
     config.limitGlobal = limitGlobal;
@@ -92,7 +92,7 @@ contract TradingLimitsTest is Test {
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep1 = timestep1;
-    config.limit1 = limit1;
+    // config.limit1 = limit1;
     config.limit1In = limit1In;
     config.limit1Out = limit1Out;
     config.limitGlobal = limitGlobal;
@@ -107,7 +107,7 @@ contract TradingLimitsTest is Test {
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
-    config.limit0 = limit0;
+    // config.limit0 = limit0;
     config.limit0In = limit0In;
     config.limit0Out = limit0Out;
     config.limitGlobal = limitGlobal;
@@ -133,7 +133,7 @@ contract TradingLimitsTest is Test {
 
   function test_validate_withL0_withoutLimit0_isNotValid() public {
     ITradingLimits.Config memory config = configL0(100, 0, 0, 0);
-    vm.expectRevert(bytes("limit0 can't be zero if active"));
+    vm.expectRevert(bytes("limit0In can't be zero if active"));
     harness.validate(config);
   }
 
@@ -144,7 +144,7 @@ contract TradingLimitsTest is Test {
 
   function test_validate_withL1_withoutLimit1_isNotValid() public {
     ITradingLimits.Config memory config = configL0L1(100, 1000, 1000, 1000, 1000, 0, 0, 0);
-    vm.expectRevert(bytes("limit1 can't be zero if active"));
+    vm.expectRevert(bytes("limit1In can't be zero if active"));
     harness.validate(config);
   }
 
@@ -156,7 +156,7 @@ contract TradingLimitsTest is Test {
 
   function test_validate_withL0L1_withLimit0LargerLimit1_isNotValid() public {
     ITradingLimits.Config memory config = configL0L1(10000, 10000, 10000, 10000, 1000, 1000, 1000, 1000);
-    vm.expectRevert(bytes("limit1 must be greater than limit0"));
+    vm.expectRevert(bytes("limit1In must be greater than limit0In"));
     harness.validate(config);
   }
 
@@ -168,13 +168,13 @@ contract TradingLimitsTest is Test {
 
   function test_validate_withL0LG_withLimit0LargerLimitGlobal_isNotValid() public {
     ITradingLimits.Config memory config = configL0LG(10000, 10000, 10000, 10000, 1000);
-    vm.expectRevert(bytes("limitGlobal must be greater than limit0"));
+    vm.expectRevert(bytes("limitGlobal must be greater than limit0In"));
     harness.validate(config);
   }
 
   function test_validate_withL1LG_withLimit1LargerLimitGlobal_isNotValid() public {
     ITradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 1000, 10000, 10000, 10000, 10000, 1000);
-    vm.expectRevert(bytes("limitGlobal must be greater than limit1"));
+    vm.expectRevert(bytes("limitGlobal must be greater than limit1In"));
     harness.validate(config);
   }
 

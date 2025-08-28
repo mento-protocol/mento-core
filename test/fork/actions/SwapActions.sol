@@ -105,7 +105,7 @@ contract SwapActions is StdCheats {
      */
 
     ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
-    console.log(unicode"🏷️ [%d] Swap until L0=%d on inflow", block.timestamp, uint256(int256(limitConfig.limit0)));
+    console.log(unicode"🏷️ [%d] Swap until L0In=%d, L0Out=%d on inflow", block.timestamp, uint256(limitConfig.limit0In), uint256(limitConfig.limit0Out));
     uint256 maxPossible;
     uint256 maxPossibleUntilLimit;
     do {
@@ -134,9 +134,9 @@ contract SwapActions is StdCheats {
      */
     ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
     ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
-    console.log(unicode"🏷️ [%d] Swap until L1=%d on inflow", block.timestamp, uint256(int256(limitConfig.limit1)));
-    int48 maxPerSwap = limitConfig.limit0;
-    while (limitState.netflow1 + maxPerSwap <= limitConfig.limit1) {
+    console.log(unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d on inflow", block.timestamp, uint256(limitConfig.limit1In), uint256(limitConfig.limit1Out));
+    int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
+    while (limitState.netflow1 + maxPerSwap <= limitState.getLimit1FromNetflow1(limitConfig)) {
       skip(limitConfig.timestep0 + 1);
       ctx.ensureRateActive(); // needed because otherwise constantSum might revert if the median is stale due to the skip
 
@@ -164,7 +164,7 @@ contract SwapActions is StdCheats {
     console.log(unicode"🏷️ [%d] Swap until LG=%d on inflow", block.timestamp, uint256(int256(limitConfig.limitGlobal)));
 
     if (limitConfig.isLimitEnabled(L1)) {
-      int48 maxPerSwap = limitConfig.limit0;
+      int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
       uint256 it;
       while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
@@ -176,7 +176,7 @@ contract SwapActions is StdCheats {
       }
       skip(limitConfig.timestep1 + 1);
     } else if (limitConfig.isLimitEnabled(L0)) {
-      int48 maxPerSwap = limitConfig.limit0;
+      int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
       uint256 it;
       while (limitState.netflowGlobal + maxPerSwap <= limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
@@ -199,7 +199,7 @@ contract SwapActions is StdCheats {
      */
 
     ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    console.log(unicode"🏷️ [%d] Swap until L0=%d on outflow", block.timestamp, uint256(int256(limitConfig.limit0)));
+    console.log(unicode"🏷️ [%d] Swap until L0In=%d, L0Out=%d on outflow", block.timestamp, uint256(limitConfig.limit0In), uint256(limitConfig.limit0Out));
     uint256 maxPossible;
     uint256 maxPossibleUntilLimit;
     do {
@@ -229,10 +229,10 @@ contract SwapActions is StdCheats {
     ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
-    console.log(unicode"🏷️ [%d] Swap until L1=%d on outflow", block.timestamp, uint48(limitConfig.limit1));
-    int48 maxPerSwap = limitConfig.limit0;
+    console.log(unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d  on outflow", block.timestamp, uint48(limitConfig.limit1In), uint48(limitConfig.limit1Out));
+    int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
     uint256 it;
-    while (limitState.netflow1 - maxPerSwap >= -1 * limitConfig.limit1) {
+    while (limitState.netflow1 - maxPerSwap >= -1 * limitState.getLimit1FromNetflow1(limitConfig)) {
       skip(limitConfig.timestep0 + 1);
       // Check that there's still outflow to trade as sometimes we hit LG while
       // still having a bit of L1 left, which causes an infinite loop.
@@ -260,7 +260,7 @@ contract SwapActions is StdCheats {
     console.log(unicode"🏷️ [%d] Swap until LG=%d on outflow", block.timestamp, uint48(limitConfig.limitGlobal));
 
     if (limitConfig.isLimitEnabled(L1)) {
-      int48 maxPerSwap = limitConfig.limit0;
+    int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
       while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
         swapUntilL1_onOutflow(from, to);
@@ -270,7 +270,7 @@ contract SwapActions is StdCheats {
       }
       skip(limitConfig.timestep1 + 1);
     } else if (limitConfig.isLimitEnabled(L0)) {
-      int48 maxPerSwap = limitConfig.limit0;
+     int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
       while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
         swapUntilL0_onOutflow(from, to);

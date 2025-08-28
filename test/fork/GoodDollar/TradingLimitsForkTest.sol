@@ -68,7 +68,7 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     ITradingLimits.Config memory config = getTradingLimitsConfig(address(reserveToken));
 
     // Get the max amount we can swap in a single transaction before we hit L0
-    uint256 maxPerSwapInWei = uint256(uint48(config.limit0)) * 1e18;
+    uint256 maxPerSwapInWei = uint256(config.limit0Out) * 1e18;
     uint256 inflowRequiredForAmountOut = goodDollarExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
       tokenIn: address(goodDollarToken),
@@ -104,16 +104,16 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     // Get the trading limits config and state for the reserve token
     ITradingLimits.Config memory config = getTradingLimitsConfig(address(reserveToken));
     ITradingLimits.State memory state = getRefreshedTradingLimitsState(address(reserveToken));
-    console.log(unicode"🏷️ [%d] Swap until L1=%d on outflow", block.timestamp, uint48(config.limit1));
+    console.log(unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d on outflow", block.timestamp, uint48(config.limit1In), uint48(config.limit1Out));
 
     // Get the max amount we can swap in a single transaction before we hit L0
-    int48 maxPerSwap = config.limit0;
+    int48 maxPerSwap = state.getLimit0FromNetflow0(config);
 
     // Swap until right before we would hit the L1 limit.
     // We swap in `maxPerSwap` increments and timewarp
     // by `timestep0 + 1` seconds so we avoid hitting L0.
     uint256 i;
-    while (state.netflow1 - maxPerSwap >= -1 * config.limit1) {
+    while (state.netflow1 - maxPerSwap >= -1 * state.getLimit1FromNetflow1(config)) {
       skip(config.timestep0 + 1);
       // Check that there's still outflow to trade as sometimes we hit LG while
       // still having a bit of L1 left, which causes an infinite loop.
@@ -138,7 +138,7 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     ITradingLimits.State memory state = getRefreshedTradingLimitsState(address(reserveToken));
     console.log(unicode"🏷️ [%d] Swap until LG=%d on outflow", block.timestamp, uint48(config.limitGlobal));
 
-    int48 maxPerSwap = config.limit0;
+    int48 maxPerSwap = state.getLimit0FromNetflow0(config);
     uint256 i;
     while (state.netflowGlobal - maxPerSwap >= config.limitGlobal * -1) {
       skip(config.timestep1 + 1);
@@ -159,7 +159,7 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     ITradingLimits.Config memory config = getTradingLimitsConfig(address(reserveToken));
 
     // Get the max amount we can swap in a single transaction before we hit L0
-    uint256 maxPerSwapInWei = uint256(uint48(config.limit0)) * 1e18;
+    uint256 maxPerSwapInWei = uint256(config.limit0In) * 1e18;
     deal({ token: address(reserveToken), to: trader, give: maxPerSwapInWei });
 
     vm.startPrank(trader);
@@ -188,15 +188,15 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     // Get the trading limits config and state for the reserve token
     ITradingLimits.Config memory config = getTradingLimitsConfig(address(reserveToken));
     ITradingLimits.State memory state = getRefreshedTradingLimitsState(address(reserveToken));
-    console.log(unicode"🏷️ [%d] Swap until L1=%d on inflow", block.timestamp, uint48(config.limit1));
+    console.log(unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d on inflow", block.timestamp, uint48(config.limit1In), uint48(config.limit1Out));
 
     // Get the max amount we can swap in a single transaction before we hit L0
-    int48 maxPerSwap = config.limit0;
+    int48 maxPerSwap = state.getLimit0FromNetflow0(config);
 
     // Swap until right before we would hit the L1 limit.
     // We swap in `maxPerSwap` increments and timewarp
     // by `timestep0 + 1` seconds so we avoid hitting L0.
-    while (state.netflow1 + maxPerSwap <= config.limit1) {
+    while (state.netflow1 + maxPerSwap <= state.getLimit1FromNetflow1(config)) {
       skip(config.timestep0 + 1);
       _swapUntilReserveTokenLimit0_onInflow();
       config = getTradingLimitsConfig(address(reserveToken));
@@ -216,7 +216,7 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     ITradingLimits.State memory state = getRefreshedTradingLimitsState(address(reserveToken));
     console.log(unicode"🏷️ [%d] Swap until LG=%d on inflow", block.timestamp, uint48(config.limitGlobal));
 
-    int48 maxPerSwap = config.limit0;
+    int48 maxPerSwap = state.getLimit0FromNetflow0(config);
     uint256 i;
     while (state.netflowGlobal + maxPerSwap <= config.limitGlobal) {
       skip(config.timestep1 + 1);

@@ -638,7 +638,7 @@ contract BrokerTest_swap is BrokerTest {
     ITradingLimits.Config memory config;
     config.flags = 1;
     config.timestep0 = 10000;
-    config.limit0 = 1000;
+    // config.limit0 = 1000;
     config.limit0In = 1000;
     config.limit0Out = 1000;
 
@@ -657,7 +657,7 @@ contract BrokerTest_swap is BrokerTest {
     ITradingLimits.Config memory config;
     config.flags = 1;
     config.timestep0 = 10000;
-    config.limit0 = 100;
+    // config.limit0 = 100;
     config.limit0In = 100;
     config.limit0Out = 100;
 
