@@ -59,7 +59,7 @@ contract RouterTests is FPMMBaseIntegration {
     assertEq(token1, _token1);
 
     // Test reversed order
-    (token0, token1) = router.sortTokens(address(_token1), address(_token0));
+    (token0, token1) = router.sortTokens(_token1, _token0);
     assertEq(token0, _token0);
     assertEq(token1, _token1);
   }
@@ -123,7 +123,7 @@ contract RouterTests is FPMMBaseIntegration {
     _addInitialLiquidity(token0, token1, fpmm);
 
     // Check initial reserves
-    (uint256 reserve0, uint256 reserve1, ) = IFPMM(fpmm).getReserves();
+    (uint256 reserve0, uint256 reserve1) = router.getReserves(token0, token1, address(factory));
     assertEq(reserve0, 1000e18);
     assertEq(reserve1, 1000e18);
 
@@ -135,7 +135,7 @@ contract RouterTests is FPMMBaseIntegration {
     vm.stopPrank();
 
     // Check updated reserves
-    (reserve0, reserve1, ) = IFPMM(fpmm).getReserves();
+    (reserve0, reserve1) = router.getReserves(token0, token1, address(factory));
     assertEq(reserve0, 2000e18);
     assertEq(reserve1, 1500e18);
   }

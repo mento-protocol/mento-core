@@ -109,13 +109,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     factoryCelo = new FPMMFactory(false);
   }
 
-  function test_constructor_whenDifferentContractIsDeployedToCreateXAddress_shouldNotRevert() public {
+  function test_constructor_whenDifferentContractIsDeployedToCreateXAddress_shouldRevert() public {
     deployCodeTo("ERC20", abi.encode("Token 0", "T0"), createX);
     vm.expectRevert("FPMMFactory: CREATEX_BYTECODE_HASH_MISMATCH");
     factoryCelo = new FPMMFactory(false);
   }
 
-  function test_initialize_shouldSetOwner() public {
+  function test_initialize_shouldSetOwnerToGovernance() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
     vm.prank(deployer);
@@ -421,6 +421,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     factoryCelo.setGovernance(newGovernance);
 
     assertEq(factoryCelo.governance(), newGovernance);
+    assertEq(factoryCelo.owner(), newGovernance);
   }
 
   function test_registerImplementation_whenCallerIsNotOwner_shouldRevert() public {

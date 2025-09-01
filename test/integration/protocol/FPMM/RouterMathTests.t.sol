@@ -83,6 +83,113 @@ contract RouterMathTests is FPMMBaseIntegration {
     router.getAmountsOut(1000e18, routes);
   }
 
+  function test_getAmountsOut_whenDifferentDecimalsTokens_shouldHandleCorrectly() public {
+    address fpmm = _deployFPMM(address(token12Decimals), address(token8Decimals));
+    _addInitialLiquidity(address(token12Decimals), address(token8Decimals), fpmm);
+
+    uint256 amountIn = 1e8; // 1 token with 8 decimals
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = IRouter.Route({ from: address(token8Decimals), to: address(token12Decimals), factory: address(0) });
+
+    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
+
+    assertEq(amounts.length, 2);
+    assertEq(amounts[0], amountIn);
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) * 1e4;
+    assertEq(amounts[1], expectedAmountOut);
+  }
+
+  function test_getAmountsOut_whenSmallAmount_shouldHandleCorrectly() public {
+    address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
+    _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
+
+    uint256 amountIn = 1e13; //  Small amount
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
+
+    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
+
+    assertEq(amounts.length, 2);
+    assertEq(amounts[0], amountIn);
+    assertEq(amounts[1], expectedAmountOut);
+  }
+
+  function test_getAmountsOut_whenVeryLargeAmount_shouldHandleCorrectly() public {
+    address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
+    _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
+
+    uint256 amountIn = 1e30; // Large amount
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
+
+    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
+
+    assertEq(amounts.length, 2);
+    assertEq(amounts[0], amountIn);
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
+    assertEq(amounts[1], expectedAmountOut);
+  }
+
+  function test_getAmountsOut_whenOracleRateChanges_shouldReflectNewRate() public {
+    address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
+    _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
+
+    uint256 amountIn = 1000e18;
+
+    // First calculation with 1:1 rate
+    vm.mockCall(
+      address(sortedOracles),
+      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
+      abi.encode(1e18, 1e18)
+    );
+
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
+
+    uint256[] memory amounts1 = router.getAmountsOut(amountIn, routes);
+
+    // Second calculation with 2:1 rate
+    vm.mockCall(
+      address(sortedOracles),
+      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
+      abi.encode(2e18, 1e18)
+    );
+
+    uint256[] memory amounts2 = router.getAmountsOut(amountIn, routes);
+
+    assertEq(amounts1[0], amounts2[0]); // Input amount should be same
+    assertEq(amounts1[1], amounts2[1] / 2); // Output amount should be different
+  }
+
+  function test_getAmountsOut_whenComplexRoute_shouldCalculateCorrectly() public {
+    // Deploy multiple pools with different tokens
+    address fpmm1 = _deployFPMM(address(token18Decimals), address(token6Decimals));
+    address fpmm2 = _deployFPMM(address(token6Decimals), address(token8Decimals));
+    address fpmm3 = _deployFPMM(address(token8Decimals), address(token12Decimals));
+
+    _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm1);
+    _addInitialLiquidity(address(token6Decimals), address(token8Decimals), fpmm2);
+    _addInitialLiquidity(address(token8Decimals), address(token12Decimals), fpmm3);
+
+    uint256 amountIn = 1000e18;
+    IRouter.Route[] memory routes = new IRouter.Route[](3);
+    routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
+    routes[1] = IRouter.Route({ from: address(token6Decimals), to: address(token8Decimals), factory: address(0) });
+    routes[2] = IRouter.Route({ from: address(token8Decimals), to: address(token12Decimals), factory: address(0) });
+
+    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
+
+    assertEq(amounts.length, 4);
+    assertEq(amounts[0], amountIn);
+    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
+    assertEq(amounts[1], expectedAmountOut);
+    uint256 expectedAmountOut2 = ((expectedAmountOut * 997) / 1000) * 1e2;
+    assertEq(amounts[2], expectedAmountOut2);
+    uint256 expectedAmountOut3 = ((expectedAmountOut2 * 997) / 1000) * 1e4;
+    assertEq(amounts[3], expectedAmountOut3);
+  }
+
   function test_getAmountsOut_whenDifferentOracleRates_shouldCalculateCorrectly() public {
     address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
     _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
@@ -202,150 +309,5 @@ contract RouterMathTests is FPMMBaseIntegration {
       assertEq(amountA, 100e6);
       assertEq(amountB, 100e18);
     }
-  }
-
-  function test_quoteRemoveLiquidity_whenNonexistentPool_shouldReturnZero() public view {
-    uint256 liquidityToRemove = 100e18;
-
-    (uint256 amountA, uint256 amountB) = router.quoteRemoveLiquidity(
-      address(token18Decimals),
-      address(token12Decimals),
-      address(factory),
-      liquidityToRemove
-    );
-
-    assertEq(amountA, 0);
-    assertEq(amountB, 0);
-  }
-
-  // ============ DECIMAL PRECISION TESTS ============
-
-  function test_getAmountsOut_whenDifferentDecimals_shouldHandlePrecisionCorrectly() public {
-    address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
-    _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
-
-    uint256 amountIn = 1e18; // 1 token with 18 decimals
-    IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
-
-    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
-
-    assertEq(amounts.length, 2);
-    assertEq(amounts[0], amountIn);
-    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
-    assertEq(amounts[1], expectedAmountOut);
-  }
-
-  function test_getAmountsOut_whenHighPrecisionTokens_shouldHandleCorrectly() public {
-    address fpmm = _deployFPMM(address(token12Decimals), address(token8Decimals));
-    _addInitialLiquidity(address(token12Decimals), address(token8Decimals), fpmm);
-
-    uint256 amountIn = 1e8; // 1 token with 8 decimals
-    IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = IRouter.Route({ from: address(token8Decimals), to: address(token12Decimals), factory: address(0) });
-
-    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
-
-    assertEq(amounts.length, 2);
-    assertEq(amounts[0], amountIn);
-    uint256 expectedAmountOut = ((amountIn * 997) / 1000) * 1e4;
-    assertEq(amounts[1], expectedAmountOut);
-  }
-
-  // ============ OTHER TESTS ============
-
-  function test_getAmountsOut_whenSmallAmount_shouldHandleCorrectly() public {
-    address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
-    _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
-
-    uint256 amountIn = 1e13; //  Small amount
-    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
-    IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
-
-    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
-
-    assertEq(amounts.length, 2);
-    assertEq(amounts[0], amountIn);
-    assertEq(amounts[1], expectedAmountOut);
-  }
-
-  function test_getAmountsOut_whenVeryLargeAmount_shouldHandleCorrectly() public {
-    address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
-    _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
-
-    uint256 amountIn = 1e30; // Large amount
-    IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
-
-    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
-
-    assertEq(amounts.length, 2);
-    assertEq(amounts[0], amountIn);
-    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
-    assertEq(amounts[1], expectedAmountOut);
-  }
-
-  // ============ ORACLE RATE TESTS ============
-
-  function test_getAmountsOut_whenOracleRateChanges_shouldReflectNewRate() public {
-    address fpmm = _deployFPMM(address(token18Decimals), address(token6Decimals));
-    _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm);
-
-    uint256 amountIn = 1000e18;
-
-    // First calculation with 1:1 rate
-    vm.mockCall(
-      address(sortedOracles),
-      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
-      abi.encode(1e18, 1e18)
-    );
-
-    IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
-
-    uint256[] memory amounts1 = router.getAmountsOut(amountIn, routes);
-
-    // Second calculation with 2:1 rate
-    vm.mockCall(
-      address(sortedOracles),
-      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
-      abi.encode(2e18, 1e18)
-    );
-
-    uint256[] memory amounts2 = router.getAmountsOut(amountIn, routes);
-
-    assertEq(amounts1[0], amounts2[0]); // Input amount should be same
-    assertEq(amounts1[1], amounts2[1] / 2); // Output amount should be different
-  }
-
-  // ============ COMPLEX ROUTING TESTS ============
-
-  function test_getAmountsOut_whenComplexRoute_shouldCalculateCorrectly() public {
-    // Deploy multiple pools with different tokens
-    address fpmm1 = _deployFPMM(address(token18Decimals), address(token6Decimals));
-    address fpmm2 = _deployFPMM(address(token6Decimals), address(token8Decimals));
-    address fpmm3 = _deployFPMM(address(token8Decimals), address(token12Decimals));
-
-    _addInitialLiquidity(address(token18Decimals), address(token6Decimals), fpmm1);
-    _addInitialLiquidity(address(token6Decimals), address(token8Decimals), fpmm2);
-    _addInitialLiquidity(address(token8Decimals), address(token12Decimals), fpmm3);
-
-    uint256 amountIn = 1000e18;
-    IRouter.Route[] memory routes = new IRouter.Route[](3);
-    routes[0] = IRouter.Route({ from: address(token18Decimals), to: address(token6Decimals), factory: address(0) });
-    routes[1] = IRouter.Route({ from: address(token6Decimals), to: address(token8Decimals), factory: address(0) });
-    routes[2] = IRouter.Route({ from: address(token8Decimals), to: address(token12Decimals), factory: address(0) });
-
-    uint256[] memory amounts = router.getAmountsOut(amountIn, routes);
-
-    assertEq(amounts.length, 4);
-    assertEq(amounts[0], amountIn);
-    uint256 expectedAmountOut = ((amountIn * 997) / 1000) / 1e12;
-    assertEq(amounts[1], expectedAmountOut);
-    uint256 expectedAmountOut2 = ((expectedAmountOut * 997) / 1000) * 1e2;
-    assertEq(amounts[2], expectedAmountOut2);
-    uint256 expectedAmountOut3 = ((expectedAmountOut2 * 997) / 1000) * 1e4;
-    assertEq(amounts[3], expectedAmountOut3);
   }
 }

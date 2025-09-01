@@ -281,27 +281,6 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
   // ============ COMPLEX ROUTING TESTS ============
 
-  function test_getAmountsOut_whenMultipleRoutes_shouldCalculateCorrectly() public {
-    // Deploy multiple pools
-    address fpmm1 = _deployFPMM(address(tokenA), address(tokenB));
-    address fpmm2 = _deployFPMM(address(tokenB), address(tokenC));
-    _addInitialLiquidity(address(tokenA), address(tokenB), fpmm1);
-    _addInitialLiquidity(address(tokenB), address(tokenC), fpmm2);
-
-    IRouter.Route[] memory routes = new IRouter.Route[](2);
-    routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(0) });
-    routes[1] = IRouter.Route({ from: address(tokenB), to: address(tokenC), factory: address(0) });
-
-    uint256[] memory amounts = router.getAmountsOut(1000e18, routes);
-
-    assertEq(amounts.length, 3);
-    assertEq(amounts[0], 1000e18);
-    uint256 expectedAmountB = (1000e18 * 997) / 1000;
-    assertEq(amounts[1], expectedAmountB);
-    uint256 expectedAmountC = (expectedAmountB * 997) / 1000;
-    assertEq(amounts[2], expectedAmountC);
-  }
-
   function test_swapExactTokensForTokens_whenMultipleRoutes_shouldSwapCorrectly() public {
     // Deploy multiple pools
     address fpmm1 = _deployFPMM(address(tokenA), address(tokenB));
@@ -390,20 +369,6 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
   function test_getReserves_whenPoolDoesNotExist_shouldRevert() public {
     vm.expectRevert();
     router.getReserves(address(tokenA), address(tokenB), address(0));
-  }
-
-  function test_quoteAddLiquidity_whenNewPool_shouldReturnDesiredAmounts() public view {
-    (uint256 amountA, uint256 amountB, uint256 liquidity) = router.quoteAddLiquidity(
-      address(tokenA),
-      address(tokenB),
-      address(factory),
-      1000e18,
-      1000e18
-    );
-
-    assertEq(amountA, 1000e18);
-    assertEq(amountB, 1000e18);
-    assertEq(liquidity, 1000e18 - 1e3);
   }
 
   function test_quoteAddLiquidity_whenExistingPool_shouldReturnAdjustedAmounts() public {

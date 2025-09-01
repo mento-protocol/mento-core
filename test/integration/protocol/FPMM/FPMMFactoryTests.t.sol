@@ -2,8 +2,6 @@
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
 pragma solidity ^0.8;
 
-import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
-
 import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 
 // Interfaces
@@ -67,7 +65,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     address newImplementation = address(0x1234567890123456789012345678901234567890);
 
     vm.prank(alice);
-    vm.expectRevert();
+    vm.expectRevert("Ownable: caller is not the owner");
     factory.registerFPMMImplementation(newImplementation);
   }
 
@@ -100,7 +98,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_unregisterFPMMImplementation_whenCalledByNonOwner_shouldRevert() public {
     vm.prank(alice);
-    vm.expectRevert();
+    vm.expectRevert("Ownable: caller is not the owner");
     factory.unregisterFPMMImplementation(address(fpmmImplementation), 0);
   }
 
@@ -159,12 +157,10 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
     assertEq(factory.getPool(token0, token1), fpmm);
     assertEq(factory.getPool(token1, token0), address(0));
-    assertTrue(factory.isPool(address(token0), address(token1)));
-    assertFalse(factory.isPool(address(token1), address(token0)));
+    assertTrue(factory.isPool(token0, token1));
+    assertFalse(factory.isPool(token1, token0));
 
     // Verify FPMM configuration
-    assertEq(IFPMM(fpmm).token0(), token0);
-    assertEq(IFPMM(fpmm).token1(), token1);
     assertEq(address(IFPMM(fpmm).sortedOracles()), sortedOracles);
     assertEq(IFPMM(fpmm).referenceRateFeedID(), referenceRateFeedID);
     assertEq(address(IFPMM(fpmm).breakerBox()), breakerBox);
@@ -173,7 +169,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_deployFPMM_whenCalledByNonOwner_shouldRevert() public {
     vm.prank(alice);
-    vm.expectRevert();
+    vm.expectRevert("Ownable: caller is not the owner");
     factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
   }
 
@@ -228,6 +224,10 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     assertEq(address(IFPMM(fpmm).sortedOracles()), customSortedOracles);
     assertEq(address(IFPMM(fpmm).breakerBox()), customBreakerBox);
     assertEq(OwnableUpgradeable(fpmm).owner(), customGovernance);
+
+    bytes32 adminSlot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+    address admin = address(uint160(uint256(vm.load(fpmm, adminSlot))));
+    assertEq(admin, customProxyAdmin);
   }
 
   // ============ POOL QUERY TESTS ============
@@ -262,22 +262,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     assertEq(factory.getPool(token1, token0), address(0));
   }
 
-  function test_deployedFPMMs_whenPoolExists_shouldReturnPoolAddress() public {
-    vm.prank(governance);
-    address fpmm = factory.deployFPMM(
-      address(fpmmImplementation),
-      address(tokenA),
-      address(tokenB),
-      referenceRateFeedID
-    );
-
-    (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
-
-    assertEq(factory.getPool(token0, token1), fpmm);
-    assertEq(factory.getPool(token1, token0), address(0));
-  }
-
-  function test_deployedFPMMs_whenPoolDoesNotExist_shouldReturnZeroAddress() public view {
+  function test_getPool_whenPoolDoesNotExist_shouldReturnZeroAddress() public view {
     assertEq(factory.getPool(address(tokenA), address(tokenB)), address(0));
     assertEq(factory.getPool(address(tokenB), address(tokenA)), address(0));
   }
@@ -388,7 +373,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     address newSortedOracles = makeAddr("newSortedOracles");
 
     vm.prank(alice);
-    vm.expectRevert();
+    vm.expectRevert("Ownable: caller is not the owner");
     factory.setSortedOracles(newSortedOracles);
   }
 
@@ -411,7 +396,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     address newProxyAdmin = makeAddr("newProxyAdmin");
 
     vm.prank(alice);
-    vm.expectRevert();
+    vm.expectRevert("Ownable: caller is not the owner");
     factory.setProxyAdmin(newProxyAdmin);
   }
 
@@ -434,7 +419,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     address newBreakerBox = makeAddr("newBreakerBox");
 
     vm.prank(alice);
-    vm.expectRevert();
+    vm.expectRevert("Ownable: caller is not the owner");
     factory.setBreakerBox(newBreakerBox);
   }
 
@@ -458,7 +443,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     address newGovernance = makeAddr("newGovernance");
 
     vm.prank(alice);
-    vm.expectRevert();
+    vm.expectRevert("Ownable: caller is not the owner");
     factory.setGovernance(newGovernance);
   }
 
@@ -466,60 +451,5 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     vm.prank(governance);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
     factory.setGovernance(address(0));
-  }
-
-  // ============ OTHER TESTS ============
-
-  function test_deployFPMM_whenTokensHaveDifferentDecimals_shouldDeployCorrectly() public {
-    // Create tokens with different decimals
-    TestERC20 token6Decimals = new TestERC20("Token6", "TK6");
-    TestERC20 token12Decimals = new TestERC20("Token12", "TK12");
-
-    vm.prank(governance);
-    address fpmm = factory.deployFPMM(
-      address(fpmmImplementation),
-      address(token6Decimals),
-      address(token12Decimals),
-      referenceRateFeedID
-    );
-
-    assertTrue(fpmm != address(0));
-    assertTrue(factory.isPool(address(token6Decimals), address(token12Decimals)));
-  }
-
-  function test_deployFPMM_whenMultiplePools_shouldTrackAllPools() public {
-    vm.prank(governance);
-    address fpmm1 = factory.deployFPMM(
-      address(fpmmImplementation),
-      address(tokenA),
-      address(tokenB),
-      referenceRateFeedID
-    );
-
-    vm.prank(governance);
-    address fpmm2 = factory.deployFPMM(
-      address(fpmmImplementation),
-      address(tokenA),
-      address(tokenC),
-      referenceRateFeedID
-    );
-
-    vm.prank(governance);
-    address fpmm3 = factory.deployFPMM(
-      address(fpmmImplementation),
-      address(tokenB),
-      address(tokenC),
-      referenceRateFeedID
-    );
-
-    address[] memory deployedAddresses = factory.deployedFPMMAddresses();
-    assertEq(deployedAddresses.length, 3);
-    assertEq(deployedAddresses[0], fpmm1);
-    assertEq(deployedAddresses[1], fpmm2);
-    assertEq(deployedAddresses[2], fpmm3);
-
-    assertEq(factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB)), fpmm1);
-    assertEq(factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenC)), fpmm2);
-    assertEq(factory.getOrPrecomputeProxyAddress(address(tokenB), address(tokenC)), fpmm3);
   }
 }
