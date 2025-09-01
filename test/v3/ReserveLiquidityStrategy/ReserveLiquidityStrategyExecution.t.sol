@@ -37,7 +37,7 @@ contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTe
     uint256 debtAmount = 50e18; // inputAmount for expansion
     uint256 collateralAmount = 50e18; // amount1Out for expansion
 
-    _expectRebalanceExecutedEvent(pool1, LQ.Direction.Expand, debtAmount, collateralAmount, incentiveAmount);
+    _expectLiquidityMovedEvent(pool1, LQ.Direction.Expand, debtAmount, collateralAmount, incentiveAmount);
 
     bool result = strategy.execute(action);
 
@@ -59,7 +59,7 @@ contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTe
     uint256 debtAmount = 30e18; // amount0Out for contraction
     uint256 collateralAmount = 30e18; // inputAmount for contraction
 
-    _expectRebalanceExecutedEvent(pool1, LQ.Direction.Contract, debtAmount, collateralAmount, incentiveAmount);
+    _expectLiquidityMovedEvent(pool1, LQ.Direction.Contract, debtAmount, collateralAmount, incentiveAmount);
 
     bool result = strategy.execute(action);
 
@@ -125,7 +125,7 @@ contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTe
       _isToken0Debt: true
     });
 
-    _expectRebalanceExecutedEvent(pool1, LQ.Direction.Expand, 100e18, 100e18, 0);
+    _expectLiquidityMovedEvent(pool1, LQ.Direction.Expand, 100e18, 100e18, 0);
 
     bool result = strategy.execute(action);
 
@@ -144,7 +144,7 @@ contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTe
     });
 
     uint256 incentiveAmount = 100e18; // 100% of input
-    _expectRebalanceExecutedEvent(pool1, LQ.Direction.Contract, 100e18, 100e18, incentiveAmount);
+    _expectLiquidityMovedEvent(pool1, LQ.Direction.Contract, 100e18, 100e18, incentiveAmount);
 
     bool result = strategy.execute(action);
 
