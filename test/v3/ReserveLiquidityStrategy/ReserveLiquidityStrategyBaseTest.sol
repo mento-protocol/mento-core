@@ -90,7 +90,7 @@ contract ReserveLiquidityStrategyBaseTest is Test {
     vm.mockCall(_reserve, transferCalldata, abi.encode(true));
   }
 
-  function _expectRebalanceExecutedEvent(
+  function _expectLiquidityMovedEvent(
     address _pool,
     LQ.Direction _direction,
     uint256 _debtAmount,
@@ -98,14 +98,14 @@ contract ReserveLiquidityStrategyBaseTest is Test {
     uint256 _incentiveAmount
   ) internal {
     vm.expectEmit(true, false, false, true);
-    emit RebalanceExecuted(_pool, _direction, _debtAmount, _collateralAmount, _incentiveAmount);
+    emit LiquidityMoved(_pool, _direction, _debtAmount, _collateralAmount, _incentiveAmount);
   }
 
   /* ============================================================ */
   /* ======================= Events ============================= */
   /* ============================================================ */
 
-  event RebalanceExecuted(
+  event LiquidityMoved(
     address indexed pool,
     LQ.Direction direction,
     uint256 debtAmount,

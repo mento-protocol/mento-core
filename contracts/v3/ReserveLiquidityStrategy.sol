@@ -34,7 +34,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, Ree
   /* ======================== Events ============================ */
   /* ============================================================ */
 
-  event RebalanceExecuted(
+  event LiquidityMoved(
     address indexed pool,
     LQ.Direction direction,
     uint256 debtAmount,
@@ -117,7 +117,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable, Ree
 
     IFPMM(action.pool).rebalance(action.amount0Out, action.amount1Out, hookData);
 
-    emit RebalanceExecuted(
+    emit LiquidityMoved(
       action.pool,
       action.dir,
       action.dir == LQ.Direction.Expand ? action.inputAmount : action.amount0Out + action.amount1Out,
