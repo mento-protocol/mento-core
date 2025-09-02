@@ -189,6 +189,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @inheritdoc IFPMMFactory
   function setGovernance(address _governance) public onlyOwner {
+    // TODO: Discuss why do we need a seperate governance address if the governance is set as the owner?
     require(_governance != address(0), "FPMMFactory: ZERO_ADDRESS");
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     $.governance = _governance;
