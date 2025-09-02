@@ -49,12 +49,12 @@ contract MarketHoursBreakerTest is Test {
     timestamps[1] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 13, 15, 30, 0); // Tuesday 15:30
     timestamps[2] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 14, 12, 0, 0); // Wednesday 12:00
     timestamps[3] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 15, 18, 45, 0); // Thursday 18:45
-    timestamps[4] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 9, 21, 59, 0); // Friday 21:59
-    timestamps[5] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 22, 0, 0); // Sunday 22:00
+    timestamps[4] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 9, 20, 59, 0); // Friday 20:59
+    timestamps[5] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 23, 0, 0); // Sunday 23:00
     timestamps[6] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 12, 24, 23, 59, 59); // Dec 24th
     timestamps[7] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 12, 26, 0, 0, 0); // Dec 26th
     timestamps[8] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 2, 29, 18, 30, 0); // Feb 29th (Thurs)
-    timestamps[9] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 3, 1, 21, 59, 0); // Mar 1st (Fri)
+    timestamps[9] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 3, 1, 20, 59, 0); // Mar 1st (Fri)
 
     return timestamps;
   }
@@ -62,14 +62,14 @@ contract MarketHoursBreakerTest is Test {
   function getClosedMarketHours() public view returns (uint256[] memory) {
     uint256[] memory timestamps = new uint256[](8);
 
-    timestamps[0] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 9, 22, 0, 0); // Friday 22:00
+    timestamps[0] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 9, 21, 0, 0); // Friday 21:00
     timestamps[1] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 9, 23, 0, 0); // Friday 23:00
     timestamps[2] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 10, 0, 0, 0); // Saturday 00:00
     timestamps[3] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 10, 12, 0, 0); // Saturday 12:00
     timestamps[4] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 10, 23, 59, 0); // Saturday 23:59
     timestamps[5] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 0, 0, 0); // Sunday 00:00
     timestamps[6] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 12, 0, 0); // Sunday 12:00
-    timestamps[7] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 21, 59, 0); // Sunday 21:59
+    timestamps[7] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 22, 59, 0); // Sunday 21:59
 
     return timestamps;
   }

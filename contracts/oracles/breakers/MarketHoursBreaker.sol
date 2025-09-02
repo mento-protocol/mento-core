@@ -44,9 +44,9 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
     uint256 dow = BokkyPooBahsDateTimeLibrary.getDayOfWeek(timestamp);
     uint256 hour = BokkyPooBahsDateTimeLibrary.getHour(timestamp);
 
-    bool isFridayEvening = dow == 5 && hour >= 22;
+    bool isFridayEvening = dow == 5 && hour >= 21;
     bool isSaturday = dow == 6;
-    bool isSundayBeforeEvening = dow == 7 && hour < 22;
+    bool isSundayBeforeEvening = dow == 7 && hour < 23;
 
     return isFridayEvening || isSaturday || isSundayBeforeEvening;
   }
