@@ -8,11 +8,22 @@ import { BokkyPooBahsDateTimeLibrary } from "BokkyPooBahsDateTimeLibrary/contrac
 import { WithCooldownV2 } from "./WithCooldownV2.sol";
 
 contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
+  /* ========== CONSTRUCTOR ========== */
+  /**
+   * @notice Contract constructor
+   * @param _cooldownTime The default cooldown time
+   * @param rateFeedIDs The rate feeds to set the cooldown for
+   * @param cooldownTimes The cooldown times for the rate feeds
+   */
   constructor(uint256 _cooldownTime, address[] memory rateFeedIDs, uint256[] memory cooldownTimes) {
     _transferOwnership(msg.sender);
 
     _setDefaultCooldownTime(_cooldownTime);
     _setCooldownTimes(rateFeedIDs, cooldownTimes);
+  }
+
+  function getCooldown(address rateFeedID) public view override(WithCooldownV2, IBreaker) returns (uint256) {
+    return WithCooldownV2.getCooldown(rateFeedID);
   }
 
   function setCooldownTimes(address[] calldata rateFeedIDs, uint256[] calldata cooldownTimes) external onlyOwner {
@@ -21,10 +32,6 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
 
   function setDefaultCooldownTime(uint256 cooldownTime) external onlyOwner {
     _setDefaultCooldownTime(cooldownTime);
-  }
-
-  function getCooldown(address rateFeedID) public view override(WithCooldownV2, IBreaker) returns (uint256) {
-    return WithCooldownV2.getCooldown(rateFeedID);
   }
 
   // solhint-disable-next-line no-unused-vars
@@ -37,10 +44,17 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
   }
 
   function isMarketOpen(uint256 timestamp) public view returns (bool) {
-    return !isWeekendHours(timestamp) && !isHoliday(timestamp);
+    return !_isWeekendHours(timestamp) && !_isHoliday(timestamp);
   }
 
-  function isWeekendHours(uint256 timestamp) internal view returns (bool) {
+  /* ========== INTERNAL FUNCTIONS ========== */
+
+  /**
+   * @notice Check if the timestamp is during FX weekend hours
+   * @param timestamp The timestamp to check
+   * @return True if the timestamp is during FX weekend hours, false otherwise
+   */
+  function _isWeekendHours(uint256 timestamp) internal view returns (bool) {
     uint256 dow = BokkyPooBahsDateTimeLibrary.getDayOfWeek(timestamp);
     uint256 hour = BokkyPooBahsDateTimeLibrary.getHour(timestamp);
 
@@ -51,7 +65,12 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
     return isFridayEvening || isSaturday || isSundayBeforeEvening;
   }
 
-  function isHoliday(uint256 timestamp) internal view returns (bool) {
+  /**
+   * @notice Check if the timestamp is during FX holidays
+   * @param timestamp The timestamp to check
+   * @return True if the timestamp is during FX holidays, false otherwise
+   */
+  function _isHoliday(uint256 timestamp) internal view returns (bool) {
     uint256 month = BokkyPooBahsDateTimeLibrary.getMonth(timestamp);
     uint256 day = BokkyPooBahsDateTimeLibrary.getDay(timestamp);
 
