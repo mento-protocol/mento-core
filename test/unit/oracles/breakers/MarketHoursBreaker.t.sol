@@ -42,7 +42,7 @@ contract MarketHoursBreakerTest is Test {
     breaker = IMarketHoursBreaker(address(new MarketHoursBreaker(defaultCooldownTime, rateFeedIDs, cooldownTimes)));
   }
 
-  function getTsInsideMarketHours() public view returns (uint256[] memory) {
+  function getOpenMarketHours() public view returns (uint256[] memory) {
     uint256[] memory timestamps = new uint256[](10);
 
     timestamps[0] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 12, 9, 0, 0); // Monday 09:00
@@ -59,7 +59,7 @@ contract MarketHoursBreakerTest is Test {
     return timestamps;
   }
 
-  function getTsOutsideMarketHours() public view returns (uint256[] memory) {
+  function getClosedMarketHours() public view returns (uint256[] memory) {
     uint256[] memory timestamps = new uint256[](8);
 
     timestamps[0] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 9, 22, 0, 0); // Friday 22:00
@@ -74,7 +74,7 @@ contract MarketHoursBreakerTest is Test {
     return timestamps;
   }
 
-  function getTsHolidays() public view returns (uint256[] memory) {
+  function getHolidays() public view returns (uint256[] memory) {
     uint256[] memory timestamps = new uint256[](4);
 
     // Christmas
@@ -188,7 +188,7 @@ contract MarketHoursBreakerTest_constructorSettersAndGetters is MarketHoursBreak
 
 contract MarketHoursBreakerTest_shouldTrigger is MarketHoursBreakerTest {
   function test_shouldTrigger_returnsFalseInsideOfMarketHours() public {
-    uint256[] memory ts = getTsInsideMarketHours();
+    uint256[] memory ts = getOpenMarketHours();
 
     for (uint256 i = 0; i < ts.length; i++) {
       vm.warp(ts[i]);
@@ -197,7 +197,7 @@ contract MarketHoursBreakerTest_shouldTrigger is MarketHoursBreakerTest {
   }
 
   function test_shouldTrigger_returnsTrueOutsideOfMarketHours() public {
-    uint256[] memory ts = getTsOutsideMarketHours();
+    uint256[] memory ts = getClosedMarketHours();
 
     for (uint256 i = 0; i < ts.length; i++) {
       vm.warp(ts[i]);
@@ -206,7 +206,7 @@ contract MarketHoursBreakerTest_shouldTrigger is MarketHoursBreakerTest {
   }
 
   function test_shouldTrigger_returnsTrueOnHolidays() public {
-    uint256[] memory ts = getTsHolidays();
+    uint256[] memory ts = getHolidays();
 
     for (uint256 i = 0; i < ts.length; i++) {
       vm.warp(ts[i]);
@@ -217,7 +217,7 @@ contract MarketHoursBreakerTest_shouldTrigger is MarketHoursBreakerTest {
 
 contract MarketHoursBreakerTest_shouldReset is MarketHoursBreakerTest {
   function test_shouldReset_returnsOppositeOfShouldTrigger() public {
-    uint256[] memory outsideMarketHours = getTsOutsideMarketHours();
+    uint256[] memory outsideMarketHours = getClosedMarketHours();
 
     for (uint256 i = 0; i < outsideMarketHours.length; i++) {
       vm.warp(outsideMarketHours[i]);
@@ -225,7 +225,7 @@ contract MarketHoursBreakerTest_shouldReset is MarketHoursBreakerTest {
       assertFalse(breaker.shouldReset(address(0)));
     }
 
-    uint256[] memory holidays = getTsHolidays();
+    uint256[] memory holidays = getHolidays();
 
     for (uint256 i = 0; i < holidays.length; i++) {
       vm.warp(holidays[i]);
@@ -233,7 +233,7 @@ contract MarketHoursBreakerTest_shouldReset is MarketHoursBreakerTest {
       assertFalse(breaker.shouldReset(address(0)));
     }
 
-    uint256[] memory insideMarketHours = getTsInsideMarketHours();
+    uint256[] memory insideMarketHours = getOpenMarketHours();
 
     for (uint256 i = 0; i < insideMarketHours.length; i++) {
       vm.warp(insideMarketHours[i]);
@@ -245,7 +245,7 @@ contract MarketHoursBreakerTest_shouldReset is MarketHoursBreakerTest {
 
 contract MarketHoursBreakerTest_isMarketOpen is MarketHoursBreakerTest {
   function test_isMarketOpen_returnsTrueDuringBusinessHours() public {
-    uint256[] memory ts = getTsInsideMarketHours();
+    uint256[] memory ts = getOpenMarketHours();
 
     for (uint256 i = 0; i < ts.length; i++) {
       assertTrue(breaker.isMarketOpen(ts[i]));
@@ -253,7 +253,7 @@ contract MarketHoursBreakerTest_isMarketOpen is MarketHoursBreakerTest {
   }
 
   function test_isMarketOpen_returnsFalseDuringWeekends() public {
-    uint256[] memory ts = getTsOutsideMarketHours();
+    uint256[] memory ts = getClosedMarketHours();
 
     for (uint256 i = 0; i < ts.length; i++) {
       assertFalse(breaker.isMarketOpen(ts[i]));
@@ -261,7 +261,7 @@ contract MarketHoursBreakerTest_isMarketOpen is MarketHoursBreakerTest {
   }
 
   function test_isMarketOpen_returnsFalseDuringHolidays() public {
-    uint256[] memory ts = getTsHolidays();
+    uint256[] memory ts = getHolidays();
 
     for (uint256 i = 0; i < ts.length; i++) {
       assertFalse(breaker.isMarketOpen(ts[i]));
