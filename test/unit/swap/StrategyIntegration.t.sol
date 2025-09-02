@@ -38,7 +38,8 @@ contract StrategyIntegrationTest is Test {
     reserve = new MockReserve();
     sortedOracles = new MockSortedOracles();
     sortedOracles.setMedianRate(rateFeed, 909884940000000000000000);
-    adaptore = IAdaptore(new Adaptore(address(sortedOracles), address(breakerBox), address(marketHoursBreaker)));
+    adaptore = IAdaptore(new Adaptore(false));
+    adaptore.initialize(address(sortedOracles), breakerBox, marketHoursBreaker);
     pool = new FPMM(false);
     strategy = new ReserveLiquidityStrategy(false);
     strategy.initialize(address(reserve));

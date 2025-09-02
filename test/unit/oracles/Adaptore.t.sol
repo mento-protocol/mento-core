@@ -17,45 +17,48 @@ contract AdaptoreTest is Test {
   address public breakerBox = makeAddr("BreakerBox");
   address public marketHoursBreaker = makeAddr("MarketHoursBreaker");
   address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
+  address public owner = makeAddr("OWNER");
+
   uint256 public blockTs = 1756170702;
 
   function setUp() public {
-    adaptore = new Adaptore(sortedOracles, breakerBox, marketHoursBreaker);
+    adaptore = new Adaptore(false);
   }
 
-  function test_sortedOracles_shouldReturnSortedOracles() public {
+  function test_sortedOracles_shouldReturnSortedOracles() public initialized {
     assertEq(address(adaptore.sortedOracles()), sortedOracles);
   }
 
-  function test_breakerBox_shouldReturnBreakerBox() public {
+  function test_breakerBox_shouldReturnBreakerBox() public initialized {
     assertEq(address(adaptore.breakerBox()), breakerBox);
   }
 
-  function test_marketHoursBreaker_shouldReturnMarketHoursBreaker() public {
+  function test_marketHoursBreaker_shouldReturnMarketHoursBreaker() public initialized {
     assertEq(address(adaptore.marketHoursBreaker()), marketHoursBreaker);
   }
 
-  function test_getRate_returnsRateWith18DecimalsPrecision() public withOracleRate(1e20, 1e18) {
+  function test_getRate_returnsRateWith18DecimalsPrecision() public initialized withOracleRate(1e20, 1e18) {
     (uint256 numerator, uint256 denominator) = adaptore.getRate(referenceRateFeedID);
 
     assertEq(numerator, 1e14);
     assertEq(denominator, 1e12);
   }
 
-  function test_getTradingMode_returnsModeFromBreakerBox() public withTradingMode(1) {
+  function test_getTradingMode_returnsModeFromBreakerBox() public initialized withTradingMode(1) {
     assertEq(adaptore.getTradingMode(referenceRateFeedID), 1);
   }
 
-  function test_isMarketOpen_returnsTrueIfMarketIsOpen() public withMarketOpen(true) {
+  function test_isMarketOpen_returnsTrueIfMarketIsOpen() public initialized withMarketOpen(true) {
     assertTrue(adaptore.isMarketOpen());
   }
 
-  function test_isMarketOpen_returnsFalseIfMarketIsClosed() public withMarketOpen(false) {
+  function test_isMarketOpen_returnsFalseIfMarketIsClosed() public initialized withMarketOpen(false) {
     assertFalse(adaptore.isMarketOpen());
   }
 
   function test_hasValidRate_returnsFalseAfterExpiryTimeFromPastRate()
     public
+    initialized
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs - 6 minutes + 2 seconds)
   {
@@ -72,6 +75,7 @@ contract AdaptoreTest is Test {
 
   function test_hasValidRate_returnsFalseAfterReportExpiryTimeFromCurrentRate()
     public
+    initialized
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs)
   {
@@ -85,6 +89,12 @@ contract AdaptoreTest is Test {
     skip(1 minutes);
 
     assertFalse(adaptore.hasValidRate(referenceRateFeedID));
+  }
+
+  modifier initialized() {
+    adaptore.initialize(sortedOracles, breakerBox, marketHoursBreaker);
+
+    _;
   }
 
   modifier withMarketOpen(bool isMarketOpen) {

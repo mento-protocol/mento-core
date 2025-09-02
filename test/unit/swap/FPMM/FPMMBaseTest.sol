@@ -33,7 +33,8 @@ contract FPMMBaseTest is Test {
 
   function setUp() public virtual {
     fpmm = new FPMM(false);
-    adaptore = IAdaptore(new Adaptore(address(sortedOracles), address(breakerBox), address(marketHoursBreaker)));
+    adaptore = IAdaptore(new Adaptore(false));
+    adaptore.initialize(address(sortedOracles), address(breakerBox), address(marketHoursBreaker));
 
     vm.prank(fpmm.owner());
 
