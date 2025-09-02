@@ -25,6 +25,21 @@ contract AdaptoreTest is Test {
     adaptore = new Adaptore(false);
   }
 
+  function test_initialize_shouldSetAllContracts() public {
+    vm.prank(owner);
+    adaptore.initialize(sortedOracles, breakerBox, marketHoursBreaker);
+
+    assertEq(address(adaptore.sortedOracles()), sortedOracles);
+    assertEq(address(adaptore.breakerBox()), breakerBox);
+    assertEq(address(adaptore.marketHoursBreaker()), marketHoursBreaker);
+    assertEq(adaptore.owner(), owner);
+  }
+
+  function test_initialize_whenCalledTwice_shouldRevert() public initialized {
+    vm.expectRevert("Initializable: contract is already initialized");
+    adaptore.initialize(sortedOracles, breakerBox, marketHoursBreaker);
+  }
+
   function test_sortedOracles_shouldReturnSortedOracles() public initialized {
     assertEq(address(adaptore.sortedOracles()), sortedOracles);
   }
@@ -35,6 +50,51 @@ contract AdaptoreTest is Test {
 
   function test_marketHoursBreaker_shouldReturnMarketHoursBreaker() public initialized {
     assertEq(address(adaptore.marketHoursBreaker()), marketHoursBreaker);
+  }
+
+  function test_setSortedOracles_whenCalledByOwner_shouldUpdateAddress() public initialized {
+    address newOracles = makeAddr("newOracles");
+
+    vm.prank(owner);
+    adaptore.setSortedOracles(newOracles);
+
+    assertEq(address(adaptore.sortedOracles()), newOracles);
+  }
+
+  function test_setSortedOracles_whenCalledByNotOwner_shouldRevert() public initialized {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("NOT_OWNER"));
+    adaptore.setSortedOracles(sortedOracles);
+  }
+
+  function test_setBreakerBox_whenCalledByOwner_shouldUpdateAddress() public initialized {
+    address newBreakerBox = makeAddr("newBreakerBox");
+
+    vm.prank(owner);
+    adaptore.setBreakerBox(newBreakerBox);
+
+    assertEq(address(adaptore.breakerBox()), newBreakerBox);
+  }
+
+  function test_setBreakerBox_whenCalledByNotOwner_shouldRevert() public initialized {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("NOT_OWNER"));
+    adaptore.setBreakerBox(breakerBox);
+  }
+
+  function test_setMarketHoursBreaker_whenCalledByOwner_shouldUpdateAddress() public initialized {
+    address newMarketHoursBreaker = makeAddr("newMarketHoursBreaker");
+
+    vm.prank(owner);
+    adaptore.setMarketHoursBreaker(newMarketHoursBreaker);
+
+    assertEq(address(adaptore.marketHoursBreaker()), newMarketHoursBreaker);
+  }
+
+  function test_setMarketHoursBreaker_whenCalledByNotOwner_shouldRevert() public initialized {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("NOT_OWNER"));
+    adaptore.setMarketHoursBreaker(marketHoursBreaker);
   }
 
   function test_getRate_returnsRateWith18DecimalsPrecision() public initialized withOracleRate(1e20, 1e18) {
@@ -83,15 +143,14 @@ contract AdaptoreTest is Test {
     assertTrue(adaptore.hasValidRate(referenceRateFeedID));
 
     skip(1);
-
     assertFalse(adaptore.hasValidRate(referenceRateFeedID));
 
     skip(1 minutes);
-
     assertFalse(adaptore.hasValidRate(referenceRateFeedID));
   }
 
   modifier initialized() {
+    vm.prank(owner);
     adaptore.initialize(sortedOracles, breakerBox, marketHoursBreaker);
 
     _;
