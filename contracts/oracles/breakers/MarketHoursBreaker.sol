@@ -54,7 +54,8 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
   /**
    * @notice  Check if the timestamp is outside of fx market hours or on a holiday,
    *          in which case the breaker will be triggered.
-   * @param   rateFeedID The rate feed to be checked
+   * @param   rateFeedID The rate feed to be checked. Unused in this implementation as market hours
+   *          in this breaker are not rate feed dependent.
    * @return  triggerBreaker True if the timestamp is outside of fx market hours or on a holiday, false otherwise
    */
   // solhint-disable-next-line no-unused-vars
@@ -65,6 +66,7 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
   /**
    * @notice  Checks whether or not the conditions have been met
    *          for the specifed rate feed to be reset.
+   * @param   rateFeedID The rate feed to be checked
    * @return  resetBreaker A bool indicating whether or not
    *          this breaker can be reset for the given rate feed.
    */
