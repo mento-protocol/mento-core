@@ -45,6 +45,7 @@ contract GoodDollarExpansionControllerTest is Test {
   address public distributionHelper;
   address public reserveAddress;
   address public avatarAddress;
+  address public registryAddress;
 
   bytes32 exchangeId = "ExchangeId";
 
@@ -61,6 +62,10 @@ contract GoodDollarExpansionControllerTest is Test {
     distributionHelper = makeAddr("DistributionHelper");
     reserveAddress = makeAddr("Reserve");
     avatarAddress = makeAddr("Avatar");
+    registryAddress = makeAddr("Registry");
+
+    deployCodeTo("Registry", abi.encode(true), registryAddress);
+    deployCodeTo("Reserve", abi.encode(true), reserveAddress);
 
     pool = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
@@ -81,6 +86,7 @@ contract GoodDollarExpansionControllerTest is Test {
       abi.encodeWithSelector(IReserve(reserveAddress).registry.selector, address(0)),
       abi.encode(address(0))
     );
+    IReserve(reserveAddress).setRegistry(registryAddress);
   }
 
   function initializeGoodDollarExpansionController() internal returns (GoodDollarExpansionController) {

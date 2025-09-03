@@ -37,6 +37,7 @@ contract BancorExchangeProviderTest is Test {
 
   address public reserveAddress;
   address public brokerAddress;
+  address public registryAddress;
   IBancorExchangeProvider.PoolExchange public poolExchange1;
   IBancorExchangeProvider.PoolExchange public poolExchange2;
   IBancorExchangeProvider.PoolExchange public poolExchange3;
@@ -52,6 +53,10 @@ contract BancorExchangeProviderTest is Test {
 
     brokerAddress = makeAddr("Broker");
     reserveAddress = makeAddr("Reserve");
+    registryAddress = makeAddr("Registry");
+
+    deployCodeTo("Registry", abi.encode(true), registryAddress);
+    deployCodeTo("Reserve", abi.encode(true), reserveAddress);
 
     poolExchange1 = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
@@ -124,7 +129,7 @@ contract BancorExchangeProviderTest is Test {
       abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveTokenWith6Decimals)),
       abi.encode(true)
     );
-    IReserve(reserveAddress).setRegistry(address(0));
+    IReserve(reserveAddress).setRegistry(registryAddress);
   }
 
   function initializeBancorExchangeProvider() internal returns (BancorExchangeProvider) {
