@@ -39,7 +39,7 @@ contract MarketHoursBreakerTest is Test {
     cooldownTimes[0] = 10 minutes;
     cooldownTimes[1] = 20 minutes;
 
-    breaker = IMarketHoursBreaker(address(new MarketHoursBreaker(defaultCooldownTime, rateFeedIDs, cooldownTimes)));
+    breaker = IMarketHoursBreaker(address(new MarketHoursBreaker(defaultCooldownTime)));
   }
 
   function getOpenMarketHours() public view returns (uint256[] memory) {
@@ -100,22 +100,6 @@ contract MarketHoursBreakerTest_constructorSettersAndGetters is MarketHoursBreak
     assertEq(breaker.defaultCooldownTime(), defaultCooldownTime);
   }
 
-  function test_constructor_shouldSetRateFeedCooldownTimes() public view {
-    assertEq(breaker.getCooldown(rateFeedIDs[0]), cooldownTimes[0]);
-    assertEq(breaker.getCooldown(rateFeedIDs[1]), cooldownTimes[1]);
-  }
-
-  function test_constructor_withEmptyArrays_shouldSetDefaultCooldown() public {
-    address[] memory emptyRateFeedIDs = new address[](0);
-    uint256[] memory emptyCooldownTimes = new uint256[](0);
-
-    MarketHoursBreaker newBreaker = new MarketHoursBreaker(defaultCooldownTime, emptyRateFeedIDs, emptyCooldownTimes);
-
-    assertEq(newBreaker.defaultCooldownTime(), defaultCooldownTime);
-    assertEq(newBreaker.getCooldown(rateFeedIDs[0]), defaultCooldownTime);
-    assertEq(newBreaker.getCooldown(rateFeedIDs[1]), defaultCooldownTime);
-  }
-
   /* ---------- Setters ---------- */
 
   function test_setDefaultCooldownTime_whenCallerIsNotOwner_shouldRevert() public {
@@ -141,13 +125,13 @@ contract MarketHoursBreakerTest_constructorSettersAndGetters is MarketHoursBreak
   }
 
   function test_setCooldownTimes_whenArraysAreDifferentLengths_shouldRevert() public {
-    address[] memory rateFeedIDs2 = new address[](3);
-    rateFeedIDs2[0] = rateFeedID1;
-    rateFeedIDs2[1] = rateFeedID2;
-    rateFeedIDs2[2] = rateFeedID3;
+    address[] memory newRateFeedIDs = new address[](3);
+    newRateFeedIDs[0] = rateFeedID1;
+    newRateFeedIDs[1] = rateFeedID2;
+    newRateFeedIDs[2] = rateFeedID3;
 
     vm.expectRevert("array length missmatch");
-    breaker.setCooldownTimes(rateFeedIDs2, cooldownTimes);
+    breaker.setCooldownTimes(newRateFeedIDs, cooldownTimes);
   }
 
   function test_setCooldownTimes_whenRateFeedIDIsZero_shouldRevert() public {
@@ -180,7 +164,9 @@ contract MarketHoursBreakerTest_constructorSettersAndGetters is MarketHoursBreak
     assertEq(breaker.getCooldown(rateFeedID3), defaultCooldownTime);
   }
 
-  function test_getCooldown_withSpecific_shouldReturnSpecificCooldown() public view {
+  function test_getCooldown_withSpecific_shouldReturnSpecificCooldown() public {
+    breaker.setCooldownTimes(rateFeedIDs, cooldownTimes);
+
     assertEq(breaker.getCooldown(rateFeedIDs[0]), cooldownTimes[0]);
     assertEq(breaker.getCooldown(rateFeedIDs[1]), cooldownTimes[1]);
   }
@@ -214,6 +200,8 @@ contract MarketHoursBreakerTest_shouldTrigger is MarketHoursBreakerTest {
     }
   }
 }
+
+/* ---------- Public Functions ---------- */
 
 contract MarketHoursBreakerTest_shouldReset is MarketHoursBreakerTest {
   function test_shouldReset_returnsOppositeOfShouldTrigger() public {
