@@ -163,6 +163,34 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
+  function test_rebalance_whenMarketIsClosed_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupRebalancer(18, 18)
+    withOracleRate(1.2e18, 1e18)
+    withMarketOpen(false)
+    withRecentRate(true)
+  {
+    uint256 rebalanceAmount = 10e18;
+    vm.expectRevert("FPMM: MARKET_CLOSED");
+    liquidityStrategy.executeRebalance(0, rebalanceAmount);
+  }
+
+  function test_rebalance_whenRateIsExpired_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupRebalancer(18, 18)
+    withOracleRate(1.2e18, 1e18)
+    withMarketOpen(true)
+    withRecentRate(false)
+  {
+    uint256 rebalanceAmount = 10e18;
+    vm.expectRevert("FPMM: NO_RECENT_RATE");
+    liquidityStrategy.executeRebalance(0, rebalanceAmount);
+  }
+
   function test_rebalance_whenMovingInWrongDirection_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
