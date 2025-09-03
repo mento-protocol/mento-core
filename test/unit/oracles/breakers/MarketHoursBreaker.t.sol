@@ -69,7 +69,7 @@ contract MarketHoursBreakerTest is Test {
     timestamps[4] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 10, 23, 59, 0); // Saturday 23:59
     timestamps[5] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 0, 0, 0); // Sunday 00:00
     timestamps[6] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 12, 0, 0); // Sunday 12:00
-    timestamps[7] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 22, 59, 0); // Sunday 21:59
+    timestamps[7] = BokkyPooBahsDateTimeLibrary.timestampFromDateTime(2024, 8, 11, 22, 59, 0); // Sunday 22:59
 
     return timestamps;
   }
