@@ -470,12 +470,12 @@ contract ProtocolTest is Test, WithRegistry {
   function configL0L1LG(
     uint32 timestep0,
     // int48 limit0,
-    uint48 limit0In,
-    uint48 limit0Out,
+    int48 limit0In,
+    int48 limit0Out,
     uint32 timestep1,
     // int48 limit1,
-    uint48 limit1In,
-    uint48 limit1Out,
+    int48 limit1In,
+    int48 limit1Out,
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;

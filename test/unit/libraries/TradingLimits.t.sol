@@ -19,14 +19,14 @@ contract TradingLimitsTest is Test {
 
   function configEmpty() internal pure returns (ITradingLimits.Config memory config) {}
 
-  function configL0(uint32 timestep0, uint48 limit0In, uint48 limit0Out) internal pure returns (ITradingLimits.Config memory config) {
+  function configL0(uint32 timestep0, int48 limit0In, int48 limit0Out) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0In = limit0In;
     config.limit0Out = limit0Out;
     config.flags = L0;
   }
 
-  function configL1(uint32 timestep1, uint48 limit1In, uint48 limit1Out) internal pure returns (ITradingLimits.Config memory config) {
+  function configL1(uint32 timestep1, int48 limit1In, int48 limit1Out) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep1 = timestep1;
     config.limit1In = limit1In;
     config.limit1Out = limit1Out;
@@ -40,11 +40,11 @@ contract TradingLimitsTest is Test {
 
   function configL0L1(
     uint32 timestep0,
-    uint48 limit0In,
-    uint48 limit0Out,
+    int48 limit0In,
+    int48 limit0Out,
     uint32 timestep1,
-    uint48 limit1In,
-    uint48 limit1Out
+    int48 limit1In,
+    int48 limit1Out
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0In = limit0In;
@@ -57,11 +57,11 @@ contract TradingLimitsTest is Test {
 
   function configL0L1LG(
     uint32 timestep0,
-    uint48 limit0In,
-    uint48 limit0Out,
+    int48 limit0In,
+    int48 limit0Out,
     uint32 timestep1,
-    uint48 limit1In,
-    uint48 limit1Out,
+    int48 limit1In,
+    int48 limit1Out,
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
@@ -76,8 +76,8 @@ contract TradingLimitsTest is Test {
 
   function configL1LG(
     uint32 timestep1,
-    uint48 limit1In,
-    uint48 limit1Out,
+    int48 limit1In,
+    int48 limit1Out,
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep1 = timestep1;
@@ -89,8 +89,8 @@ contract TradingLimitsTest is Test {
 
   function configL0LG(
     uint32 timestep0,
-    uint48 limit0In,
-    uint48 limit0Out,
+    int48 limit0In,
+    int48 limit0Out,
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;

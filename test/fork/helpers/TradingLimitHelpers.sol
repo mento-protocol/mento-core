@@ -110,9 +110,9 @@ library TradingLimitHelpers {
 
   function getLimit(ITradingLimits.Config memory config, uint8 limit) internal pure returns (uint256) {
     if (limit == L0) {
-      return uint256(config.limit0In > config.limit0Out ? config.limit0Out : config.limit0In);
+      return uint48(config.limit0In > config.limit0Out ? config.limit0Out : config.limit0In);
     } else if (limit == L1) {
-      return uint256(config.limit1In > config.limit1Out ? config.limit1Out : config.limit1In);
+      return uint48(config.limit1In > config.limit1Out ? config.limit1Out : config.limit1In);
     } else if (limit == LG) {
       return uint256(int256(config.limitGlobal));
     } else {
