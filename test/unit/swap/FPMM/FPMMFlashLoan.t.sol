@@ -49,7 +49,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 flashLoanAmount = 50e18;
     bytes memory customData = abi.encode("Custom flash loan data");
@@ -78,7 +78,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 flashLoanAmount = 50e18;
     bytes memory customData = abi.encode("Custom flash loan data");
@@ -107,7 +107,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 flashLoanAmount0 = 30e18;
     uint256 flashLoanAmount1 = 40e18;
@@ -138,7 +138,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 flashLoanAmount = 50e18;
 
@@ -157,7 +157,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 flashLoanAmount = 50e18;
     uint256 lessThanRequiredFee0 = (flashLoanAmount * 10_000) / (10_000 - 30) - flashLoanAmount;
@@ -178,7 +178,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 flashLoanAmount = 50e18;
 
@@ -197,7 +197,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     // Try to flash loan the maximum amount
     uint256 maxToken0Amount = fpmm.reserve0() - 1;
@@ -230,7 +230,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 6, ReceiverType.FlashLoanReceiver)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 flashLoanAmount0 = 30e18; // 18 decimals
     uint256 flashLoanAmount1 = 40e6; // 6 decimals
@@ -256,7 +256,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.ReentrancyExploiter)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     address attacker = makeAddr("ATTACKER");
 
@@ -274,7 +274,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     withOracleRate(1e18, 1e18) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     vm.prank(owner);
     fpmm.setProtocolFee(0);
@@ -302,7 +302,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     withOracleRate(1e18, 1e18) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     vm.prank(owner);
     fpmm.setProtocolFee(0);
@@ -330,7 +330,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     withOracleRate(1e18, 1e18) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     vm.prank(owner);
     fpmm.setProtocolFee(0);

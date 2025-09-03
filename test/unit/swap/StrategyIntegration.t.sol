@@ -64,8 +64,8 @@ contract StrategyIntegrationTest is Test {
     bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IAdaptore.isMarketOpen.selector);
     vm.mockCall(address(adaptore), isMarketOpenCalldata, abi.encode(true));
 
-    bytes memory hasValidRateCalldata = abi.encodeWithSelector(IAdaptore.hasValidRate.selector, rateFeed);
-    vm.mockCall(address(adaptore), hasValidRateCalldata, abi.encode(true));
+    bytes memory hasRecentRateCalldata = abi.encodeWithSelector(IAdaptore.hasRecentRate.selector, rateFeed);
+    vm.mockCall(address(adaptore), hasRecentRateCalldata, abi.encode(true));
   }
 
   function test_rebalance_contraction() public {

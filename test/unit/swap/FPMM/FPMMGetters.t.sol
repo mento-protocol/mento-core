@@ -97,7 +97,7 @@ contract FPMMGettersTest is FPMMBaseTest {
     mintInitialLiquidity(18, 6)
     withOracleRate(2e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 amountIn = 10e18;
 
@@ -116,7 +116,7 @@ contract FPMMGettersTest is FPMMBaseTest {
     mintInitialLiquidity(18, 6)
     withOracleRate(2e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 amountIn = 10e6;
 

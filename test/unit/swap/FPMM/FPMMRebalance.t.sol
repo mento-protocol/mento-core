@@ -48,7 +48,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // Set a small price difference
     withOracleRate(2.01e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     // Current internal price: 2 token1 per token0
     // Oracle price: 2.01 token1 per token0
@@ -67,7 +67,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 18)
     withOracleRate(1.2e24, 1e24)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     (
       uint256 oraclePriceNumerator,
@@ -122,7 +122,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 18)
     withOracleRate(1.5e18, 1e18) // Big difference to meet threshold
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     // Try to rebalance - should fail because price isn't improved
     uint256 rebalanceAmount = 20e18;
@@ -156,7 +156,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withOracleRate(1.2e18, 1e18)
     withTradingMode(TRADING_MODE_DISABLED)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
     vm.expectRevert("FPMM: TRADING_SUSPENDED");
@@ -170,7 +170,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 18)
     withOracleRate(3e18, 1e18) // Oracle rate: 1 token0 = 3 token1
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     // Initial reserve price: 2 token1 per token0
     // Oracle price: 3 token1 per token0
@@ -192,7 +192,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 18)
     withOracleRate(1.2e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
     liquidityStrategy.setShouldMovePrice(false);
@@ -207,7 +207,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 18)
     withOracleRate(1.2e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
     liquidityStrategy.setShouldMovePrice(false);
@@ -222,7 +222,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 18)
     withOracleRate(1.2e24, 1e24) // Oracle rate: 1 token0 = 1.2 token1
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     (
       uint256 oraclePriceNumerator,
@@ -265,7 +265,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 18)
     withOracleRate(3e24, 1e24) // Oracle rate: 1 token0 = 3 token1
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     (
       uint256 oraclePriceNumerator,
@@ -307,7 +307,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 6)
     withOracleRate(1.2e24, 1e24)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     (
       uint256 oraclePriceNumerator,
@@ -354,7 +354,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     setupRebalancer(18, 6)
     withOracleRate(1e18, 1e18)
     withMarketOpen(true)
-    withValidRate(true)
+    withRecentRate(true)
   {
     // Alice mints 1000e18 token0 and 20 token1 to a Pool that is 1:1
     vm.startPrank(ALICE);

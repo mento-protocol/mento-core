@@ -117,7 +117,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   }
 
   /// @inheritdoc IAdaptore
-  function hasValidRate(address rateFeedID) external view returns (bool) {
+  function hasRecentRate(address rateFeedID) external view returns (bool) {
     AdaptoreStorage storage $ = _getAdaptoreStorage();
 
     uint256 reportExpiry = $.sortedOracles.getTokenReportExpirySeconds(rateFeedID);

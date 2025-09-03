@@ -91,17 +91,17 @@ interface IAdaptore {
   function setMarketHoursBreaker(address _marketHoursBreaker) external;
 
   /**
-   * @notice Returns true if the market is open
+   * @notice Returns true if the market is open based on FX market hours
    * @return true if the market is open, false otherwise
    */
   function isMarketOpen() external view returns (bool);
 
   /**
-   * @notice Returns true if the rate for a given rate feed ID is valid
+   * @notice Returns true if the rate for a given rate feed ID is recent
    * @param rateFeedID The address of the rate feed
-   * @return true if the rate is valid, false otherwise
+   * @return true if the rate is recent, false otherwise
    */
-  function hasValidRate(address rateFeedID) external view returns (bool);
+  function hasRecentRate(address rateFeedID) external view returns (bool);
 
   /**
    * @notice Returns the exchange rate for a given rate feed ID

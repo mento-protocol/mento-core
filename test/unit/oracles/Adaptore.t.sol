@@ -116,7 +116,7 @@ contract AdaptoreTest is Test {
     assertFalse(adaptore.isMarketOpen());
   }
 
-  function test_hasValidRate_returnsFalseAfterExpiryTimeFromPastRate()
+  function test_hasRecentRate_returnsFalseAfterExpiryTimeFromPastRate()
     public
     initialized
     withReportExpiry(6 minutes)
@@ -124,29 +124,29 @@ contract AdaptoreTest is Test {
   {
     vm.warp(blockTs);
 
-    assertTrue(adaptore.hasValidRate(referenceRateFeedID));
+    assertTrue(adaptore.hasRecentRate(referenceRateFeedID));
 
     skip(1);
-    assertTrue(adaptore.hasValidRate(referenceRateFeedID));
+    assertTrue(adaptore.hasRecentRate(referenceRateFeedID));
 
     skip(1);
-    assertFalse(adaptore.hasValidRate(referenceRateFeedID));
+    assertFalse(adaptore.hasRecentRate(referenceRateFeedID));
   }
 
-  function test_hasValidRate_returnsFalseAfterReportExpiryTimeFromCurrentRate()
+  function test_hasRecentRate_returnsFalseAfterReportExpiryTimeFromCurrentRate()
     public
     initialized
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs)
   {
     vm.warp(blockTs + 6 minutes - 1 seconds);
-    assertTrue(adaptore.hasValidRate(referenceRateFeedID));
+    assertTrue(adaptore.hasRecentRate(referenceRateFeedID));
 
     skip(1);
-    assertFalse(adaptore.hasValidRate(referenceRateFeedID));
+    assertFalse(adaptore.hasRecentRate(referenceRateFeedID));
 
     skip(1 minutes);
-    assertFalse(adaptore.hasValidRate(referenceRateFeedID));
+    assertFalse(adaptore.hasRecentRate(referenceRateFeedID));
   }
 
   modifier initialized() {

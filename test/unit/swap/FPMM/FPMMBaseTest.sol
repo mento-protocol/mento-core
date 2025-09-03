@@ -75,9 +75,9 @@ contract FPMMBaseTest is Test {
     _;
   }
 
-  modifier withValidRate(bool hasValidRate) {
-    bytes memory hasValidRateCalldata = abi.encodeWithSelector(IAdaptore.hasValidRate.selector, referenceRateFeedID);
-    vm.mockCall(address(adaptore), hasValidRateCalldata, abi.encode(hasValidRate));
+  modifier withRecentRate(bool hasRecentRate) {
+    bytes memory hasRecentRateCalldata = abi.encodeWithSelector(IAdaptore.hasRecentRate.selector, referenceRateFeedID);
+    vm.mockCall(address(adaptore), hasRecentRateCalldata, abi.encode(hasRecentRate));
     _;
   }
 
