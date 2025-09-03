@@ -8,6 +8,7 @@ import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transpar
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
 // import { Reserve } from "contracts/swap/Reserve.sol";
+import { Registry } from "contracts/import.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
@@ -19,6 +20,7 @@ contract DeployGoodDollarImplementations is Script {
   // Deployment addresses to be populated
   GoodDollarExchangeProvider public exchangeProvider;
   GoodDollarExpansionController public expansionController;
+  address public registry;
   address public reserve;
   Broker public broker;
 
@@ -38,6 +40,8 @@ contract DeployGoodDollarImplementations is Script {
       salt: keccak256(abi.encodePacked("ExpansionControllerImpl", ""))
     }(true);
 
+    registry = new Registry{ salt: keccak256(abi.encodePacked("RegistryImpl", "")) }(false);
+
     bytes memory reserveCode = vm.getCode("Reserve.sol");
     bytes memory c2Code = abi.encodePacked(
       keccak256(abi.encodePacked("MentoReserveImpl", "")),
@@ -55,6 +59,7 @@ contract DeployGoodDollarImplementations is Script {
     console.log("Deployer:", signer);
     console.log("GoodDollarExchangeProvider deployed to:", address(exchangeProvider));
     console.log("GoodDollarExpansionController  deployed to:", address(expansionController));
+    console.log("Registry impl deployed to:", address(registry));
     console.log("Reserve impl deployed to:", address(reserve));
     console.log("Broker deployed to:", address(broker));
   }
