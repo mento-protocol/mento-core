@@ -184,6 +184,7 @@ contract DeployMento is Script {
     console.log("GoodDollarExchangeProvider Proxy deployed to:", address(exchangeProviderProxy));
     console.log("GoodDollarExpansionController Proxy deployed to:", address(expansionControllerProxy));
     console.log("Registry Proxy deployed to:", address(registryProxy));
+    console.log("Registry impl deployed to:", address(registry));
     console.log("Reserve Proxy deployed to:", address(reserveProxy));
     console.log("Reserve impl deployed to:", address(reserve));
     console.log("Broker Proxy deployed to:", address(brokerProxy));
