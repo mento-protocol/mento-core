@@ -81,11 +81,6 @@ contract GoodDollarExpansionControllerTest is Test {
       abi.encodeWithSelector(IBancorExchangeProvider(exchangeProvider).getPoolExchange.selector),
       abi.encode(pool)
     );
-    vm.mockCall(
-      reserveAddress,
-      abi.encodeWithSelector(IReserve(reserveAddress).registry.selector, address(0)),
-      abi.encode(address(0))
-    );
     IReserve(reserveAddress).setRegistry(registryAddress);
   }
 
