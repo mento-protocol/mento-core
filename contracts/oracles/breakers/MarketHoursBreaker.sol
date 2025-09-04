@@ -94,9 +94,11 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
     uint256 dow = BokkyPooBahsDateTimeLibrary.getDayOfWeek(timestamp);
     uint256 hour = BokkyPooBahsDateTimeLibrary.getHour(timestamp);
 
+    // slither-disable-start incorrect-equality
     bool isFridayEvening = dow == 5 && hour >= 21;
     bool isSaturday = dow == 6;
     bool isSundayBeforeEvening = dow == 7 && hour < 23;
+    // slither-disable-end
 
     return isFridayEvening || isSaturday || isSundayBeforeEvening;
   }
@@ -110,6 +112,7 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
     uint256 month = BokkyPooBahsDateTimeLibrary.getMonth(timestamp);
     uint256 day = BokkyPooBahsDateTimeLibrary.getDay(timestamp);
 
+    // slither-disable-next-line incorrect-equality
     return ((month == 12 && day == 25) || (month == 1 && day == 1));
   }
 }
