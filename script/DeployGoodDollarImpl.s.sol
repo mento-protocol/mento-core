@@ -8,7 +8,7 @@ import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transpar
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
 // import { Reserve } from "contracts/swap/Reserve.sol";
-import { Registry } from "contracts/import.sol";
+// import { Registry } from "contracts/import.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
@@ -40,7 +40,14 @@ contract DeployGoodDollarImplementations is Script {
       salt: keccak256(abi.encodePacked("ExpansionControllerImpl", ""))
     }(true);
 
-    registry = new Registry{ salt: keccak256(abi.encodePacked("RegistryImpl", "")) }(false);
+    // registry = new Registry{ salt: keccak256(abi.encodePacked("RegistryImpl", "")) }(false);
+    bytes memory registryCode = vm.getCode("Registry.sol");
+    bytes memory c2RegistryCode = abi.encodePacked(
+      keccak256(abi.encodePacked("RegistryImpl", "")),
+      abi.encodePacked(registryCode, abi.encode(false))
+    );
+    (, bytes memory resultRegistry) = c2Deployer.call{ value: 0 }(c2RegistryCode);
+    registry = address(bytes20(resultRegistry));
 
     bytes memory reserveCode = vm.getCode("Reserve.sol");
     bytes memory c2Code = abi.encodePacked(

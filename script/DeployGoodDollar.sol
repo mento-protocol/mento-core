@@ -4,15 +4,15 @@ pragma solidity 0.8.18;
 import "forge-std/Script.sol";
 import { TransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
+import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
-// import { Reserve } from "contracts/swap/Reserve.sol";
+import { IRegistry } from "mento-std/interfaces/IRegistry.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { Registry } from "contracts/import.sol";
 
 contract DeployMento is Script {
   // Deployment addresses to be populated
@@ -88,7 +88,7 @@ contract DeployMento is Script {
     );
     Broker brokerProxied = Broker(address(brokerProxy));
     IReserve reserveProxied = IReserve(address(reserveProxy));
-    Registry registryProxied = IReserve(address(registryProxy));
+    Ownable registryProxied = Ownable(address(registryProxy));
     
     // Initialize contracts
     registryProxied.transferOwnership(avatar);
@@ -107,7 +107,7 @@ contract DeployMento is Script {
     console.log("initializing reserve...");
     reserveProxied.initialize(
       // 0x000000000000000000000000000000000000ce10, // registry address
-      registryProxied, // registry address
+      address(registryProxy), // registry address
       3153600000, // tobinTaxStalenessThreshold
       1e24, // spendingRatioForCelo (0.1 in fixidity)
       0, // frozenGold
