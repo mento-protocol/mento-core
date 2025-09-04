@@ -39,8 +39,6 @@ contract FPMMBaseIntegration is Test {
   address public proxyAdmin = makeAddr("proxyAdmin");
   address public governance = makeAddr("governance");
   address public factoryRegistry = makeAddr("factoryRegistry");
-  address public voter = address(0);
-  address public weth = address(0);
   address public forwarder = address(0);
 
   // Test environment
@@ -68,7 +66,7 @@ contract FPMMBaseIntegration is Test {
     factory = new FPMMFactory(false);
     fpmmImplementation = new FPMM(true);
 
-    router = new Router(forwarder, factoryRegistry, address(factory), voter, weth);
+    router = new Router(forwarder, factoryRegistry, address(factory));
 
     factory.initialize(sortedOracles, proxyAdmin, breakerBox, governance, address(fpmmImplementation));
   }

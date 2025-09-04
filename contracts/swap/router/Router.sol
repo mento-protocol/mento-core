@@ -9,15 +9,15 @@ import { Math } from "./utils/Math.sol";
 
 import { IRouter } from "./interfaces/IRouter.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
-import { IWETH } from "./interfaces/IWETH.sol";
 import { IFactoryRegistry } from "./interfaces/IFactoryRegistry.sol";
 import { IFPMMFactory } from "../../interfaces/IFPMMFactory.sol";
 import { IFPMM } from "../../interfaces/IFPMM.sol";
 
 /// @title Protocol Router
-/// @author velodrome.finance, Mento Labs
+/// @author velodrome.finance, @pegahcarter, Mento Labs
 /// @notice Router allows routes through any pools created by any factory adhering to univ2 interface.
 /// @dev This contract is a fork of Velodrome's Router contract.
+/// @dev github.com/aerodrome-finance/contracts/blob/a5fae2e87e490d6b10f133e28cc11bcc58c5346a/contracts/Router.sol
 /// @dev It is modified to support the Mento protocol.
 contract Router is IRouter, ERC2771Context {
   using SafeERC20 for IERC20;
@@ -26,13 +26,8 @@ contract Router is IRouter, ERC2771Context {
   address public immutable factoryRegistry;
   /// @inheritdoc IRouter
   address public immutable defaultFactory;
-  /// @inheritdoc IRouter
-  address public immutable voter;
-  /// @inheritdoc IRouter
-  IWETH public immutable weth;
+
   uint256 internal constant MINIMUM_LIQUIDITY = 10 ** 3;
-  /// @inheritdoc IRouter
-  address public constant ETHER = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   modifier ensure(uint256 deadline) {
     _ensureDeadline(deadline);
@@ -43,21 +38,14 @@ contract Router is IRouter, ERC2771Context {
     if (deadline < block.timestamp) revert Expired();
   }
 
-  constructor(
-    address _forwarder,
-    address _factoryRegistry,
-    address _factory,
-    address _voter,
-    address _weth
-  ) ERC2771Context(_forwarder) {
+  constructor(address _forwarder, address _factoryRegistry, address _factory) ERC2771Context(_forwarder) {
     factoryRegistry = _factoryRegistry;
     defaultFactory = _factory;
-    voter = _voter;
-    weth = IWETH(_weth);
   }
 
   receive() external payable {
-    if (msg.sender != address(weth)) revert OnlyWETH();
+    // We don't accept native tokens
+    revert ETHTransferFailed();
   }
 
   /// @inheritdoc IRouter
@@ -216,32 +204,6 @@ contract Router is IRouter, ERC2771Context {
     liquidity = IFPMM(pool).mint(to);
   }
 
-  /// @inheritdoc IRouter
-  function addLiquidityETH(
-    address token,
-    uint256 amountTokenDesired,
-    uint256 amountTokenMin,
-    uint256 amountETHMin,
-    address to,
-    uint256 deadline
-  ) external payable ensure(deadline) returns (uint256 amountToken, uint256 amountETH, uint256 liquidity) {
-    (amountToken, amountETH) = _addLiquidity(
-      token,
-      address(weth),
-      amountTokenDesired,
-      msg.value,
-      amountTokenMin,
-      amountETHMin
-    );
-    address pool = poolFor(token, address(weth), defaultFactory);
-    _safeTransferFrom(token, _msgSender(), pool, amountToken);
-    weth.deposit{ value: amountETH }();
-    assert(weth.transfer(pool, amountETH));
-    liquidity = IFPMM(pool).mint(to);
-    // refund dust eth, if any
-    if (msg.value > amountETH) _safeTransferETH(_msgSender(), msg.value - amountETH);
-  }
-
   // **** REMOVE LIQUIDITY ****
 
   /// @inheritdoc IRouter
@@ -261,52 +223,6 @@ contract Router is IRouter, ERC2771Context {
     (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
     if (amountA < amountAMin) revert InsufficientAmountA();
     if (amountB < amountBMin) revert InsufficientAmountB();
-  }
-
-  /// @inheritdoc IRouter
-  function removeLiquidityETH(
-    address token,
-    uint256 liquidity,
-    uint256 amountTokenMin,
-    uint256 amountETHMin,
-    address to,
-    uint256 deadline
-  ) public ensure(deadline) returns (uint256 amountToken, uint256 amountETH) {
-    (amountToken, amountETH) = removeLiquidity(
-      token,
-      address(weth),
-      liquidity,
-      amountTokenMin,
-      amountETHMin,
-      address(this),
-      deadline
-    );
-    _safeTransfer(token, to, amountToken);
-    weth.withdraw(amountETH);
-    _safeTransferETH(to, amountETH);
-  }
-
-  // **** REMOVE LIQUIDITY (supporting fee-on-transfer tokens) ****
-  function removeLiquidityETHSupportingFeeOnTransferTokens(
-    address token,
-    uint256 liquidity,
-    uint256 amountTokenMin,
-    uint256 amountETHMin,
-    address to,
-    uint256 deadline
-  ) public ensure(deadline) returns (uint256 amountETH) {
-    (, amountETH) = removeLiquidity(
-      token,
-      address(weth),
-      liquidity,
-      amountTokenMin,
-      amountETHMin,
-      address(this),
-      deadline
-    );
-    _safeTransfer(token, to, IERC20(token).balanceOf(address(this)));
-    weth.withdraw(amountETH);
-    _safeTransferETH(to, amountETH);
   }
 
   // **** SWAP ****
@@ -340,41 +256,6 @@ contract Router is IRouter, ERC2771Context {
       amounts[0]
     );
     _swap(amounts, routes, to);
-  }
-
-  function swapExactETHForTokens(
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external payable ensure(deadline) returns (uint256[] memory amounts) {
-    if (routes[0].from != address(weth)) revert InvalidPath();
-    amounts = getAmountsOut(msg.value, routes);
-    if (amounts[amounts.length - 1] < amountOutMin) revert InsufficientOutputAmount();
-    weth.deposit{ value: amounts[0] }();
-    assert(weth.transfer(poolFor(routes[0].from, routes[0].to, routes[0].factory), amounts[0]));
-    _swap(amounts, routes, to);
-  }
-
-  function swapExactTokensForETH(
-    uint256 amountIn,
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external ensure(deadline) returns (uint256[] memory amounts) {
-    if (routes[routes.length - 1].to != address(weth)) revert InvalidPath();
-    amounts = getAmountsOut(amountIn, routes);
-    if (amounts[amounts.length - 1] < amountOutMin) revert InsufficientOutputAmount();
-    _safeTransferFrom(
-      routes[0].from,
-      _msgSender(),
-      poolFor(routes[0].from, routes[0].to, routes[0].factory),
-      amounts[0]
-    );
-    _swap(amounts, routes, address(this));
-    weth.withdraw(amounts[amounts.length - 1]);
-    _safeTransferETH(to, amounts[amounts.length - 1]);
   }
 
   // **** SWAP (supporting fee-on-transfer tokens) ****
@@ -417,40 +298,6 @@ contract Router is IRouter, ERC2771Context {
   }
 
   /// @inheritdoc IRouter
-  function swapExactETHForTokensSupportingFeeOnTransferTokens(
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external payable ensure(deadline) {
-    if (routes[0].from != address(weth)) revert InvalidPath();
-    uint256 amountIn = msg.value;
-    weth.deposit{ value: amountIn }();
-    assert(weth.transfer(poolFor(routes[0].from, routes[0].to, routes[0].factory), amountIn));
-    uint256 _length = routes.length - 1;
-    uint256 balanceBefore = IERC20(routes[_length].to).balanceOf(to);
-    _swapSupportingFeeOnTransferTokens(routes, to);
-    if (IERC20(routes[_length].to).balanceOf(to) - balanceBefore < amountOutMin) revert InsufficientOutputAmount();
-  }
-
-  /// @inheritdoc IRouter
-  function swapExactTokensForETHSupportingFeeOnTransferTokens(
-    uint256 amountIn,
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external ensure(deadline) {
-    if (routes[routes.length - 1].to != address(weth)) revert InvalidPath();
-    _safeTransferFrom(routes[0].from, _msgSender(), poolFor(routes[0].from, routes[0].to, routes[0].factory), amountIn);
-    _swapSupportingFeeOnTransferTokens(routes, address(this));
-    uint256 amountOut = weth.balanceOf(address(this));
-    if (amountOut < amountOutMin) revert InsufficientOutputAmount();
-    weth.withdraw(amountOut);
-    _safeTransferETH(to, amountOut);
-  }
-
-  /// @inheritdoc IRouter
   function zapIn(
     address tokenIn,
     uint256 amountInA,
@@ -462,15 +309,9 @@ contract Router is IRouter, ERC2771Context {
   ) external payable returns (uint256 liquidity) {
     uint256 amountIn = amountInA + amountInB;
     address _tokenIn = tokenIn;
-    uint256 value = msg.value;
-    if (tokenIn == ETHER) {
-      if (amountIn != value) revert InvalidAmountInForETHDeposit();
-      _tokenIn = address(weth);
-      weth.deposit{ value: value }();
-    } else {
-      if (value != 0) revert InvalidTokenInForETHDeposit();
-      _safeTransferFrom(_tokenIn, _msgSender(), address(this), amountIn);
-    }
+
+    if (msg.value != 0) revert ETHTransferFailed();
+    _safeTransferFrom(_tokenIn, _msgSender(), address(this), amountIn);
 
     _zapSwap(_tokenIn, amountInA, amountInB, zapInPool, routesA, routesB);
     _zapInLiquidity(zapInPool);
@@ -580,18 +421,17 @@ contract Router is IRouter, ERC2771Context {
   ) external {
     address tokenA = zapOutPool.tokenA;
     address tokenB = zapOutPool.tokenB;
-    address _tokenOut = (tokenOut == ETHER) ? address(weth) : tokenOut;
     _zapOutLiquidity(liquidity, zapOutPool);
 
     uint256 balance;
-    if (tokenA != _tokenOut) {
+    if (tokenA != tokenOut) {
       balance = IERC20(tokenA).balanceOf(address(this));
-      if (routesA[routesA.length - 1].to != _tokenOut) revert InvalidRouteA();
+      if (routesA[routesA.length - 1].to != tokenOut) revert InvalidRouteA();
       _internalSwap(tokenA, balance, zapOutPool.amountOutMinA, routesA);
     }
-    if (tokenB != _tokenOut) {
+    if (tokenB != tokenOut) {
       balance = IERC20(tokenB).balanceOf(address(this));
-      if (routesB[routesB.length - 1].to != _tokenOut) revert InvalidRouteB();
+      if (routesB[routesB.length - 1].to != tokenOut) revert InvalidRouteB();
       _internalSwap(tokenB, balance, zapOutPool.amountOutMinB, routesB);
     }
 
@@ -659,22 +499,11 @@ contract Router is IRouter, ERC2771Context {
   }
 
   /// @dev Return residual assets from zapping.
-  /// @param token token to return, put `ETHER` if you want Ether back.
+  /// @param token token to return
   function _returnAssets(address token) internal {
     address sender = _msgSender();
-    uint256 balance;
-    if (token == ETHER) {
-      balance = IERC20(weth).balanceOf(address(this));
-      if (balance > 0) {
-        IWETH(weth).withdraw(balance);
-        _safeTransferETH(sender, balance);
-      }
-    } else {
-      balance = IERC20(token).balanceOf(address(this));
-      if (balance > 0) {
-        IERC20(token).safeTransfer(sender, balance);
-      }
-    }
+    uint256 balance = IERC20(token).balanceOf(address(this));
+    if (balance > 0) IERC20(token).safeTransfer(sender, balance);
   }
 
   function _safeTransferETH(address to, uint256 value) internal {

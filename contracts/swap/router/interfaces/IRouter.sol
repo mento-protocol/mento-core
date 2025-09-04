@@ -38,15 +38,6 @@ interface IRouter {
   /// @notice Address of Protocol PoolFactory.sol
   function defaultFactory() external view returns (address);
 
-  /// @notice Address of Voter.sol
-  function voter() external view returns (address);
-
-  /// @notice Interface of WETH contract used for WETH => ETH wrapping/unwrapping
-  function weth() external view returns (IWETH);
-
-  /// @dev Represents Ether. Used by zapper to determine whether to return assets as ETH/WETH.
-  function ETHER() external view returns (address);
-
   /// @dev Struct containing information necessary to zap in and out of pools
   /// @param tokenA           .
   /// @param tokenB           .
@@ -152,25 +143,6 @@ interface IRouter {
     uint256 deadline
   ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
 
-  /// @notice Add liquidity of a token and WETH (transferred as ETH) to a Pool
-  /// @param token                .
-  /// @param amountTokenDesired   Amount of token desired to deposit
-  /// @param amountTokenMin       Minimum amount of token to deposit
-  /// @param amountETHMin         Minimum amount of ETH to deposit
-  /// @param to                   Recipient of liquidity token
-  /// @param deadline             Deadline to add liquidity
-  /// @return amountToken         Amount of token to actually deposit
-  /// @return amountETH           Amount of tokenETH to actually deposit
-  /// @return liquidity           Amount of liquidity token returned from deposit
-  function addLiquidityETH(
-    address token,
-    uint256 amountTokenDesired,
-    uint256 amountTokenMin,
-    uint256 amountETHMin,
-    address to,
-    uint256 deadline
-  ) external payable returns (uint256 amountToken, uint256 amountETH, uint256 liquidity);
-
   // **** REMOVE LIQUIDITY ****
 
   /// @notice Remove liquidity of two tokens from a Pool
@@ -193,41 +165,6 @@ interface IRouter {
     uint256 deadline
   ) external returns (uint256 amountA, uint256 amountB);
 
-  /// @notice Remove liquidity of a token and WETH (returned as ETH) from a Pool
-  /// @param token            .
-  /// @param liquidity        Amount of liquidity to remove
-  /// @param amountTokenMin   Minimum amount of token to receive
-  /// @param amountETHMin     Minimum amount of ETH to receive
-  /// @param to               Recipient of liquidity token
-  /// @param deadline         Deadline to receive liquidity
-  /// @return amountToken     Amount of token received
-  /// @return amountETH       Amount of ETH received
-  function removeLiquidityETH(
-    address token,
-    uint256 liquidity,
-    uint256 amountTokenMin,
-    uint256 amountETHMin,
-    address to,
-    uint256 deadline
-  ) external returns (uint256 amountToken, uint256 amountETH);
-
-  /// @notice Remove liquidity of a fee-on-transfer token and WETH (returned as ETH) from a Pool
-  /// @param token            .
-  /// @param liquidity        Amount of liquidity to remove
-  /// @param amountTokenMin   Minimum amount of token to receive
-  /// @param amountETHMin     Minimum amount of ETH to receive
-  /// @param to               Recipient of liquidity token
-  /// @param deadline         Deadline to receive liquidity
-  /// @return amountETH       Amount of ETH received
-  function removeLiquidityETHSupportingFeeOnTransferTokens(
-    address token,
-    uint256 liquidity,
-    uint256 amountTokenMin,
-    uint256 amountETHMin,
-    address to,
-    uint256 deadline
-  ) external returns (uint256 amountETH);
-
   // **** SWAP ****
 
   /// @notice Swap one token for another
@@ -245,34 +182,6 @@ interface IRouter {
     uint256 deadline
   ) external returns (uint256[] memory amounts);
 
-  /// @notice Swap ETH for a token
-  /// @param amountOutMin Minimum amount of desired token received
-  /// @param routes       Array of trade routes used in the swap
-  /// @param to           Recipient of the tokens received
-  /// @param deadline     Deadline to receive tokens
-  /// @return amounts     Array of amounts returned per route
-  function swapExactETHForTokens(
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external payable returns (uint256[] memory amounts);
-
-  /// @notice Swap a token for WETH (returned as ETH)
-  /// @param amountIn     Amount of token in
-  /// @param amountOutMin Minimum amount of desired ETH
-  /// @param routes       Array of trade routes used in the swap
-  /// @param to           Recipient of the tokens received
-  /// @param deadline     Deadline to receive tokens
-  /// @return amounts     Array of amounts returned per route
-  function swapExactTokensForETH(
-    uint256 amountIn,
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external returns (uint256[] memory amounts);
-
   // **** SWAP (supporting fee-on-transfer tokens) ****
 
   /// @notice Swap one token for another supporting fee-on-transfer tokens
@@ -282,32 +191,6 @@ interface IRouter {
   /// @param to           Recipient of the tokens received
   /// @param deadline     Deadline to receive tokens
   function swapExactTokensForTokensSupportingFeeOnTransferTokens(
-    uint256 amountIn,
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external;
-
-  /// @notice Swap ETH for a token supporting fee-on-transfer tokens
-  /// @param amountOutMin Minimum amount of desired token received
-  /// @param routes       Array of trade routes used in the swap
-  /// @param to           Recipient of the tokens received
-  /// @param deadline     Deadline to receive tokens
-  function swapExactETHForTokensSupportingFeeOnTransferTokens(
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external payable;
-
-  /// @notice Swap a token for WETH (returned as ETH) supporting fee-on-transfer tokens
-  /// @param amountIn     Amount of token in
-  /// @param amountOutMin Minimum amount of desired ETH
-  /// @param routes       Array of trade routes used in the swap
-  /// @param to           Recipient of the tokens received
-  /// @param deadline     Deadline to receive tokens
-  function swapExactTokensForETHSupportingFeeOnTransferTokens(
     uint256 amountIn,
     uint256 amountOutMin,
     Route[] calldata routes,

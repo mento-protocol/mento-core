@@ -30,9 +30,6 @@ contract RouterTests is FPMMBaseIntegration {
     // Verify factory configuration
     assertEq(router.factoryRegistry(), address(factoryRegistry));
     assertEq(router.defaultFactory(), address(factory));
-    assertEq(router.voter(), address(voter));
-    assertEq(address(router.weth()), address(weth));
-    assertEq(router.ETHER(), 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
   }
 
   // ============ POOL MANAGEMENT TESTS ============
