@@ -231,10 +231,10 @@ library TradingLimitHelpers {
   }
 
   function getLimit0FromNetflow0(ITradingLimits.State memory state, ITradingLimits.Config memory config) internal pure returns (int48){
-    return state.netflow0 < 0 ? -int48(config.limit0Out) : int48(config.limit0In);
+    return state.netflow0 < 0 ? -config.limit0Out : config.limit0In;
   }
   function getLimit1FromNetflow1(ITradingLimits.State memory state, ITradingLimits.Config memory config) internal pure returns (int48){
-    return state.netflow1 < 0 ? -int48(config.limit1Out) : int48(config.limit1In);
+    return state.netflow1 < 0 ? -config.limit1Out : config.limit1In;
   }
 
   function abs(int48 x) internal pure returns (int48) {
