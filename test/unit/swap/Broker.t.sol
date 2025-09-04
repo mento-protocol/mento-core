@@ -466,7 +466,7 @@ contract BrokerTest_swap is BrokerTest {
     vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 3e20, 0);
     
-    // It increments netFlow1.
+    /// @dev It increments netFlow1.
     for(uint i = 0; i < uint48(config.limit1In / config.limit0In); i ++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
@@ -474,7 +474,7 @@ contract BrokerTest_swap is BrokerTest {
     }
 
     skip(config.timestep0 + 1);
-    // Here, netFlow1 should exceed Limit1.
+    /// @dev Here, netFlow1 should exceed Limit1 but netFlow0 does not exceed Limit0
     vm.expectRevert(bytes("L1In Exceeded"));
     vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e20, 0);
@@ -489,7 +489,7 @@ contract BrokerTest_swap is BrokerTest {
     vm.prank(trader);
     broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 3e20, 6e21);   
 
-    // It increments netFlow1.
+    /// @dev It increments netFlow1.
     for(uint i = 0; i < uint48(config.limit1In / config.limit0In); i ++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
@@ -497,7 +497,7 @@ contract BrokerTest_swap is BrokerTest {
     }
 
     skip(config.timestep0 + 1);
-    // Here, netFlow1 should exceed Limit1.
+    /// @dev Here, netFlow1 should exceed Limit1 but netFlow0 does not exceed Limit0
     vm.expectRevert(bytes("L1In Exceeded"));
     vm.prank(trader);
     broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 4e19, 6e21);
@@ -513,14 +513,14 @@ contract BrokerTest_swap is BrokerTest {
     vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 3e20, 0);
 
-    // It increments netFlow1.
+    /// @dev It increments netFlow1.
     for(uint i = 0; i < uint48(config.limit1Out / config.limit0Out); i ++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
       broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 4e19, 0);
     }
     skip(config.timestep0 + 1);
-    // Here, netFlow1 should exceed Limit1.
+    /// @dev Here, netFlow1 should exceed Limit1 but netFlow0 does not exceed Limit0
     vm.expectRevert("L1Out Exceeded");
     vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 4e19, 0);
@@ -535,7 +535,7 @@ contract BrokerTest_swap is BrokerTest {
     vm.prank(trader);
     broker.swapOut(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 3e20, 6e21);
     
-    // It increments netFlow1.
+    /// @dev It increments netFlow1.
     for(uint i = 0; i < uint48(config.limit1Out / config.limit0Out); i ++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
@@ -543,7 +543,7 @@ contract BrokerTest_swap is BrokerTest {
      
     }
     skip(config.timestep0 + 1);
-    // Here, netFlow1 should exceed Limit1.
+    /// @dev Here, netFlow1 should exceed Limit1 but netFlow0 does not exceed Limit0
     vm.expectRevert("L1Out Exceeded");
     vm.prank(trader);
     broker.swapOut(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 1e20, 6e21);
