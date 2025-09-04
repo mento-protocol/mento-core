@@ -55,13 +55,18 @@ contract Emission is OwnableUpgradeable {
    * @param emissionTarget_ The address of the emission target.
    * @param emissionSupply_ The total amount of tokens that can be emitted.
    */
-  function initialize(address mentoToken_, address emissionTarget_, uint256 emissionSupply_) public initializer {
+  function initialize(
+    address mentoToken_,
+    address emissionTarget_,
+    uint256 emissionSupply_,
+    address initialOwner_
+  ) public initializer {
     emissionStartTime = block.timestamp;
     mentoToken = MentoToken(mentoToken_);
     // slither-disable-next-line missing-zero-check
     emissionTarget = emissionTarget_;
     emissionSupply = emissionSupply_;
-    __Ownable_init();
+    _transferOwnership(initialOwner_);
   }
 
   /**

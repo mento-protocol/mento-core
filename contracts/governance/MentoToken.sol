@@ -40,8 +40,10 @@ contract MentoToken is Ownable, Pausable, ERC20Burnable {
     address[] memory allocationRecipients_,
     uint256[] memory allocationAmounts_,
     address emission_,
-    address locking_
+    address locking_,
+    address initialOwner_
   ) ERC20("Mento Token", "MENTO") Ownable() {
+    _transferOwnership(initialOwner_);
     require(emission_ != address(0), "MentoToken: emission is zero address");
     require(locking_ != address(0), "MentoToken: locking is zero address");
     require(
