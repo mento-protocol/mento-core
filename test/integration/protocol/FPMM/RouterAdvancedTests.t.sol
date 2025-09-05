@@ -7,11 +7,11 @@ import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 
 // FPMM contracts
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
-import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 
 // Interfaces
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IFactoryRegistry } from "contracts/swap/router/interfaces/IFactoryRegistry.sol";
+import { IRPoolFactory } from "contracts/swap/router/interfaces/IRPoolFactory.sol";
 
 // Base integration
 import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
@@ -54,14 +54,13 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
       abi.encodeWithSelector(IFactoryRegistry.isPoolFactoryApproved.selector, address(customFactory)),
       abi.encode(true)
     );
-    (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
 
     vm.expectCall(
       address(customFactory),
-      abi.encodeWithSelector(IFPMMFactory.getOrPrecomputeProxyAddress.selector, address(token0), address(token1))
+      abi.encodeWithSelector(IRPoolFactory.getOrPrecomputeProxyAddress.selector, address(tokenA), address(tokenB))
     );
     address pool = router.poolFor(address(tokenA), address(tokenB), address(customFactory));
-    assertTrue(pool != address(0));
+    assert(pool != address(0));
   }
 
   function test_getAmountsOut_whenPoolDoesNotExist_shouldReturnZero() public view {
@@ -371,7 +370,7 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
     router.getReserves(address(tokenA), address(tokenB), address(0));
   }
 
-  function test_quoteAddLiquidity_whenExistingPool_shouldReturnAdjustedAmounts() public {
+  function test_quoteAddLiquidity_whenExistingPool_shouldReturnCorrectAmounts() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
 
@@ -385,7 +384,7 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
     assertEq(amountA, 1000e18);
     assertEq(amountB, 1000e18);
-    assertEq(liquidity, 1000e18 - 1e3);
+    assertEq(liquidity, 1000e18);
   }
 
   function test_quoteRemoveLiquidity_whenPoolExists_shouldReturnCorrectAmounts() public {

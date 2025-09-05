@@ -12,8 +12,8 @@ import { IERC20 } from "./interfaces/IERC20.sol";
 import { IFactoryRegistry } from "./interfaces/IFactoryRegistry.sol";
 import { IFPMM } from "../../interfaces/IFPMM.sol";
 
-import { IRouterFactory } from "./interfaces/IRouterFactory.sol";
-import { IRouterPool } from "./interfaces/IRouterPool.sol";
+import { IRPoolFactory } from "./interfaces/IRPoolFactory.sol";
+import { IRPool } from "./interfaces/IRPool.sol";
 
 /// @title Protocol Router
 /// @author velodrome.finance, @pegahcarter, Mento Labs
@@ -63,9 +63,7 @@ contract Router is IRouter, ERC2771Context {
     address factory = _factory == address(0) ? _defaultFactory : _factory;
     if (!IFactoryRegistry(factoryRegistry).isPoolFactoryApproved(factory)) revert PoolFactoryDoesNotExist();
 
-    (address token0, address token1) = sortTokens(tokenA, tokenB);
-
-    pool = IRouterFactory(factory).getOrPrecomputeProxyAddress(token0, token1);
+    pool = IRPoolFactory(factory).getOrPrecomputeProxyAddress(tokenA, tokenB);
   }
 
   /// @dev given some amount of an asset and pool reserves, returns an equivalent amount of the other asset
@@ -85,7 +83,7 @@ contract Router is IRouter, ERC2771Context {
   ) public view returns (uint256 reserveA, uint256 reserveB) {
     (address token0, ) = sortTokens(tokenA, tokenB);
     // slither-disable-next-line unused-return
-    (uint256 reserve0, uint256 reserve1, ) = IRouterPool(poolFor(tokenA, tokenB, _factory)).getReserves();
+    (uint256 reserve0, uint256 reserve1, ) = IRPool(poolFor(tokenA, tokenB, _factory)).getReserves();
     (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
   }
 
@@ -98,9 +96,8 @@ contract Router is IRouter, ERC2771Context {
     for (uint256 i = 0; i < _length; i++) {
       address factory = routes[i].factory == address(0) ? defaultFactory : routes[i].factory;
       address pool = poolFor(routes[i].from, routes[i].to, factory);
-      (address token0, address token1) = sortTokens(routes[i].from, routes[i].to);
-      if (IRouterFactory(factory).isPool(token0, token1)) {
-        amounts[i + 1] = IRouterPool(pool).getAmountOut(amounts[i], routes[i].from);
+      if (IRPoolFactory(factory).isPool(pool)) {
+        amounts[i + 1] = IRPool(pool).getAmountOut(amounts[i], routes[i].from);
       }
     }
   }
@@ -113,7 +110,7 @@ contract Router is IRouter, ERC2771Context {
     uint256 amountADesired,
     uint256 amountBDesired
   ) public view returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
-    address _pool = IRouterFactory(_factory).getPool(tokenA, tokenB);
+    address _pool = IRPoolFactory(_factory).getPool(tokenA, tokenB);
     (uint256 reserveA, uint256 reserveB) = (0, 0);
     uint256 _totalSupply = 0;
     if (_pool != address(0)) {
@@ -143,7 +140,7 @@ contract Router is IRouter, ERC2771Context {
     address _factory,
     uint256 liquidity
   ) public view returns (uint256 amountA, uint256 amountB) {
-    address _pool = IRouterFactory(_factory).getPool(tokenA, tokenB);
+    address _pool = IRPoolFactory(_factory).getPool(tokenA, tokenB);
 
     if (_pool == address(0)) {
       return (0, 0);
@@ -166,8 +163,8 @@ contract Router is IRouter, ERC2771Context {
   ) internal view returns (uint256 amountA, uint256 amountB) {
     if (amountADesired < amountAMin) revert InsufficientAmountADesired();
     if (amountBDesired < amountBMin) revert InsufficientAmountBDesired();
-    // create the pool if it doesn't exist yet
-    address _pool = IRouterFactory(defaultFactory).getPool(tokenA, tokenB);
+    // we don't create the pool if it doesn't exist yet
+    address _pool = IRPoolFactory(defaultFactory).getPool(tokenA, tokenB);
     if (_pool == address(0)) {
       revert PoolDoesNotExist();
     }
@@ -238,12 +235,7 @@ contract Router is IRouter, ERC2771Context {
         ? (uint256(0), amountOut)
         : (amountOut, uint256(0));
       address to = i < routes.length - 1 ? poolFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].factory) : _to;
-      IRouterPool(poolFor(routes[i].from, routes[i].to, routes[i].factory)).swap(
-        amount0Out,
-        amount1Out,
-        to,
-        new bytes(0)
-      );
+      IRPool(poolFor(routes[i].from, routes[i].to, routes[i].factory)).swap(amount0Out, amount1Out, to, new bytes(0));
     }
   }
 
@@ -280,12 +272,12 @@ contract Router is IRouter, ERC2771Context {
         (uint256 reserveA, ) = getReserves(routes[i].from, routes[i].to, routes[i].factory);
         amountInput = IERC20(routes[i].from).balanceOf(pool) - reserveA;
       }
-      amountOutput = IRouterPool(pool).getAmountOut(amountInput, routes[i].from);
+      amountOutput = IRPool(pool).getAmountOut(amountInput, routes[i].from);
       (uint256 amount0Out, uint256 amount1Out) = routes[i].from == token0
         ? (uint256(0), amountOutput)
         : (amountOutput, uint256(0));
       address to = i < routes.length - 1 ? poolFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].factory) : _to;
-      IRouterPool(pool).swap(amount0Out, amount1Out, to, new bytes(0));
+      IRPool(pool).swap(amount0Out, amount1Out, to, new bytes(0));
     }
   }
 
@@ -347,7 +339,7 @@ contract Router is IRouter, ERC2771Context {
 
     {
       // slither-disable-next-line unused-return
-      (uint256 reserve0, uint256 reserve1, ) = IRouterPool(pool).getReserves();
+      (uint256 reserve0, uint256 reserve1, ) = IRPool(pool).getReserves();
       if (reserve0 <= MINIMUM_LIQUIDITY || reserve1 <= MINIMUM_LIQUIDITY) revert PoolDoesNotExist();
     }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import { IFPMM } from "../interfaces/IFPMM.sol";
+import "../interfaces/IFPMM.sol";
 import { ERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 // solhint-disable-next-line max-line-length
@@ -116,7 +116,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     return ($.token0, $.token1);
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function getReserves() public view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast) {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -264,7 +264,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     );
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -369,7 +369,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   // slither-disable-end reentrancy-no-eth
 
   // slither-disable-start reentrancy-no-eth
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     FPMMStorage storage $ = _getFPMMStorage();
 

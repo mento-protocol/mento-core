@@ -2,11 +2,11 @@
 pragma solidity 0.8.18;
 
 /**
- * @title IRouterPool
+ * @title IRPool
  * @notice Minimal interface for a Pool that the router can use
  * to swap
  */
-interface IRouterPool {
+interface IRPool {
   /**
    * @notice Calculates output amount for a given input
    * @param amountIn Input amount

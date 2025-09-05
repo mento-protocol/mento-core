@@ -953,7 +953,7 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
 
     // Verify the factory mapping uses sorted tokens
     assertEq(factoryCelo.getPool(lowerToken, higherToken), deployedProxy);
-    assertEq(factoryCelo.getPool(higherToken, lowerToken), address(0)); // Should not exist
+    assertEq(factoryCelo.getPool(higherToken, lowerToken), deployedProxy); // Should not exist
   }
 
   function testSortTokens_integrationWithGetOrPrecomputeProxyAddress_shouldUseSortedTokens() public {
@@ -998,9 +998,8 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
       referenceRateFeedID
     );
 
-    // Verify the factory mapping only exists for sorted tokens
     assertEq(factoryCelo.getPool(lowerToken, higherToken), deployedProxy);
-    assertEq(factoryCelo.getPool(higherToken, lowerToken), address(0));
+    assertEq(factoryCelo.getPool(higherToken, lowerToken), deployedProxy);
 
     // Verify deployedFPMMAddresses contains the deployed proxy
     address[] memory deployedAddresses = factoryCelo.deployedFPMMAddresses();
@@ -1029,9 +1028,9 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
     assertEq(factoryCelo.getPool(tokenA, tokenB), proxyAB1);
     assertEq(factoryCelo.getPool(tokenB, tokenC), proxyBC1);
 
-    // Verify reverse mappings don't exist
-    assertEq(factoryCelo.getPool(tokenB, tokenA), address(0));
-    assertEq(factoryCelo.getPool(tokenC, tokenB), address(0));
+    // Verify reverse mappings exist
+    assertEq(factoryCelo.getPool(tokenB, tokenA), proxyAB1);
+    assertEq(factoryCelo.getPool(tokenC, tokenB), proxyBC1);
 
     // Verify deployed addresses list
     address[] memory deployedAddresses = factoryCelo.deployedFPMMAddresses();

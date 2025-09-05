@@ -5,7 +5,7 @@ import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts
 
 import { ICreateX } from "../interfaces/ICreateX.sol";
 
-import { IFPMMFactory } from "../interfaces/IFPMMFactory.sol";
+import "../interfaces/IFPMMFactory.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { FPMMProxy } from "./FPMMProxy.sol";
 
@@ -46,6 +46,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address[] deployedFPMMAddresses;
     // List of registered FPMM implementations.
     address[] registeredImplementations;
+    // Mapping of deployed pools.
+    mapping(address => bool) isPool;
   }
 
   /* ===================================================== */
@@ -128,12 +130,13 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   // slither-disable-start encode-packed-collision
-  /// @inheritdoc IFPMMFactory
+  /// @inheritdoc IRPoolFactory
   function getOrPrecomputeProxyAddress(address token0, address token1) public view returns (address) {
     (token0, token1) = sortTokens(token0, token1);
 
-    if (isPool(token0, token1)) {
-      return getPool(token0, token1);
+    address pool = getPool(token0, token1);
+    if (pool != address(0)) {
+      return pool;
     }
 
     (address precomputedProxyAddress, ) = _computeProxyAddressAndSalt(token0, token1);
@@ -148,15 +151,16 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     require(token0 != address(0), "FPMMFactory: ZERO_ADDRESS");
   }
 
-  /// @inheritdoc IFPMMFactory
-  function isPool(address token0, address token1) public view returns (bool) {
-    return getPool(token0, token1) != address(0);
-  }
-
-  /// @inheritdoc IFPMMFactory
+  /// @inheritdoc IRPoolFactory
   function getPool(address token0, address token1) public view returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     return $.deployedFPMMs[token0][token1];
+  }
+
+  /// @inheritdoc IRPoolFactory
+  function isPool(address pool) public view returns (bool) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return $.isPool[pool];
   }
 
   /* ============================================================ */
@@ -233,16 +237,17 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address token1,
     address referenceRateFeedID
   ) external onlyOwner returns (address) {
-    FPMMFactoryStorage storage $ = _getFPMMStorage();
     (token0, token1) = sortTokens(token0, token1);
+
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
 
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
     require(customSortedOracles != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customProxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customBreakerBox != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customGovernance != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(!isPool(token0, token1), "FPMMFactory: PAIR_ALREADY_EXISTS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
+    require(getPool(token0, token1) == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
 
     address fpmmProxy = _deployFPMMProxy(
       fpmmImplementation,
@@ -268,11 +273,12 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address token1,
     address referenceRateFeedID
   ) external onlyOwner returns (address) {
-    FPMMFactoryStorage storage $ = _getFPMMStorage();
-    require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
     (token0, token1) = sortTokens(token0, token1);
 
-    require(!isPool(token0, token1), "FPMMFactory: PAIR_ALREADY_EXISTS");
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+
+    require(getPool(token0, token1) == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
 
     address fpmmProxy = _deployFPMMProxy(
@@ -338,6 +344,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     );
     address newProxyAddress = ICreateX(CREATEX).deployCreate3(salt, proxyBytecode);
     $.deployedFPMMs[_token0][_token1] = newProxyAddress;
+    $.deployedFPMMs[_token1][_token0] = newProxyAddress; // populate the reverse mapping
+    $.isPool[newProxyAddress] = true;
     $.deployedFPMMAddresses.push(newProxyAddress);
     assert(newProxyAddress == expectedProxyAddress);
     return newProxyAddress;

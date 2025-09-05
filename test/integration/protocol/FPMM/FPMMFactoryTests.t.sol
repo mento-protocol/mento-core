@@ -156,9 +156,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
 
     assertEq(factory.getPool(token0, token1), fpmm);
-    assertEq(factory.getPool(token1, token0), address(0));
-    assertTrue(factory.isPool(token0, token1));
-    assertFalse(factory.isPool(token1, token0));
+    assertEq(factory.getPool(token1, token0), fpmm);
+    assertTrue(factory.isPool(fpmm));
 
     // Verify FPMM configuration
     assertEq(address(IFPMM(fpmm).sortedOracles()), sortedOracles);
@@ -218,7 +217,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
     assertTrue(fpmm != address(0));
     assertEq(factory.getPool(address(tokenA), address(tokenC)), fpmm);
-    assertTrue(factory.isPool(address(tokenA), address(tokenC)));
+    assertTrue(factory.isPool(fpmm));
 
     // Verify custom configuration
     assertEq(address(IFPMM(fpmm).sortedOracles()), customSortedOracles);
@@ -234,17 +233,19 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_isPool_whenPoolExists_shouldReturnTrue() public {
     vm.prank(governance);
-    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+    address fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
 
-    (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
-
-    assertTrue(factory.isPool(token0, token1));
-    assertFalse(factory.isPool(token1, token0));
+    assertTrue(factory.isPool(fpmm));
   }
 
-  function test_isPool_whenPoolDoesNotExist_shouldReturnFalse() public view {
-    assertFalse(factory.isPool(address(tokenA), address(tokenB)));
-    assertFalse(factory.isPool(address(tokenB), address(tokenA)));
+  function test_getPool_whenPoolDoesNotExist_shouldReturnZeroAddress() public view {
+    assert(factory.getPool(address(tokenA), address(tokenB)) == address(0));
+    assert(factory.getPool(address(tokenB), address(tokenA)) == address(0));
   }
 
   function test_getPool_whenPoolExists_shouldReturnPoolAddress() public {
@@ -259,12 +260,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
 
     assertEq(factory.getPool(token0, token1), fpmm);
-    assertEq(factory.getPool(token1, token0), address(0));
-  }
-
-  function test_getPool_whenPoolDoesNotExist_shouldReturnZeroAddress() public view {
-    assertEq(factory.getPool(address(tokenA), address(tokenB)), address(0));
-    assertEq(factory.getPool(address(tokenB), address(tokenA)), address(0));
+    assertEq(factory.getPool(token1, token0), fpmm);
   }
 
   function test_deployedFPMMAddresses_whenPoolsDeployed_shouldReturnAllAddresses() public {
