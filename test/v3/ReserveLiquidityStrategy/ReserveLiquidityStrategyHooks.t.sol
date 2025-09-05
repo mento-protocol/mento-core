@@ -59,6 +59,10 @@ contract ReserveLiquidityStrategyHooksTest is ReserveLiquidityStrategyBaseTest {
     
     // Mock reserve transfers
     _mockReserveTransfer(reserve);
+    
+    // Mock token1 as collateral (for contraction, collateral goes IN)
+    _mockIsCollateralAsset(reserve, token1, true);
+    _mockIsStableAsset(reserve, token1, false);
 
     // Call hook from pool1 as if it's during FPMM rebalance
     vm.prank(pool1);
@@ -169,8 +173,11 @@ contract ReserveLiquidityStrategyHooksTest is ReserveLiquidityStrategyBaseTest {
     );
 
     // Mock the calls
-    _mockDebtTokenBurn(token0);
+    _mockDebtTokenBurn(token0);  // token0 is debt
     _mockReserveTransfer(reserve);
+    // Mock token1 as collateral (for contraction, collateral goes IN)
+    _mockIsCollateralAsset(reserve, token1, true);
+    _mockIsStableAsset(reserve, token1, false);
 
     vm.prank(pool1);
     strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
@@ -200,8 +207,11 @@ contract ReserveLiquidityStrategyHooksTest is ReserveLiquidityStrategyBaseTest {
     );
 
     // Mock the calls
-    _mockDebtTokenBurn(token1);
+    _mockDebtTokenBurn(token1);  // token1 is debt
     _mockReserveTransfer(reserve);
+    // Mock token0 as collateral (for contraction, collateral goes IN)
+    _mockIsCollateralAsset(reserve, token0, true);
+    _mockIsStableAsset(reserve, token0, false);
 
     vm.prank(pool1);
     strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
@@ -219,12 +229,16 @@ contract ReserveLiquidityStrategyHooksTest is ReserveLiquidityStrategyBaseTest {
     // Mock debt burning to succeed
     _mockDebtTokenBurn(token0);
     
+    // Mock token1 as collateral
+    _mockIsCollateralAsset(reserve, token1, true);
+    _mockIsStableAsset(reserve, token1, false);
+    
     // Mock reserve transfer to fail for collateral to pool
-    bytes memory transferCalldata = abi.encodeWithSelector(IReserve.transferExchangeCollateralAsset.selector);
+    bytes memory transferCalldata = abi.encodeWithSelector(IReserve.transferExchangeCollateralAsset.selector, token1, pool1, 57e18);
     vm.mockCall(reserve, transferCalldata, abi.encode(false)); // Return false for failure
 
     vm.prank(pool1);
-    vm.expectRevert("RLS: COLLATERAL_TRANSFER_FAILED");
+    vm.expectRevert("RLS: COLLATERAL_TO_POOL_FAILED");
     strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
   }
 
@@ -239,6 +253,10 @@ contract ReserveLiquidityStrategyHooksTest is ReserveLiquidityStrategyBaseTest {
 
     // Mock debt burning to succeed
     _mockDebtTokenBurn(token0);
+    
+    // Mock token1 as collateral
+    _mockIsCollateralAsset(reserve, token1, true);
+    _mockIsStableAsset(reserve, token1, false);
 
     // Mock first transfer (collateral to pool) to succeed, second (incentive) to fail
     vm.mockCall(
@@ -275,10 +293,7 @@ contract ReserveLiquidityStrategyHooksTest is ReserveLiquidityStrategyBaseTest {
       token0,
       abi.encodeWithSelector(IERC20MintableBurnable.mint.selector, pool1, 100e18)
     );
-    vm.expectCall(
-      token0,
-      abi.encodeWithSelector(IERC20MintableBurnable.mint.selector, address(strategy), 0)
-    );
+    // Note: With zero incentive, no mint call to strategy address should happen
 
     _mockDebtTokenMint(token0);
     _mockCollateralTransfer(token1);
@@ -313,6 +328,10 @@ contract ReserveLiquidityStrategyHooksTest is ReserveLiquidityStrategyBaseTest {
 
     _mockDebtTokenBurn(token0);
     _mockReserveTransfer(reserve);
+    
+    // Mock token1 as collateral (for contraction, collateral goes IN)
+    _mockIsCollateralAsset(reserve, token1, true);
+    _mockIsStableAsset(reserve, token1, false);
 
     vm.prank(pool1);
     strategy.hook(address(strategy), amount0Out, amount1Out, hookData);

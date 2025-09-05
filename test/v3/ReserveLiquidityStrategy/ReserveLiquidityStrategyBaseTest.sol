@@ -73,21 +73,40 @@ contract ReserveLiquidityStrategyBaseTest is Test {
   function _mockDebtTokenMint(address _debtToken) internal {
     bytes memory mintCalldata = abi.encodeWithSelector(IERC20MintableBurnable.mint.selector);
     vm.mockCall(_debtToken, mintCalldata, abi.encode());
+    // Mock that debt tokens are stable assets (not collateral)
+    _mockIsStableAsset(reserve, _debtToken, true);
+    _mockIsCollateralAsset(reserve, _debtToken, false);
   }
 
   function _mockDebtTokenBurn(address _debtToken) internal {
     bytes memory burnCalldata = abi.encodeWithSelector(IERC20MintableBurnable.burn.selector);
     vm.mockCall(_debtToken, burnCalldata, abi.encode());
+    // Mock that debt tokens are stable assets (not collateral)
+    _mockIsStableAsset(reserve, _debtToken, true);
+    _mockIsCollateralAsset(reserve, _debtToken, false);
   }
 
   function _mockCollateralTransfer(address _collateralToken) internal {
     bytes memory transferCalldata = abi.encodeWithSelector(bytes4(keccak256("safeTransfer(address,uint256)")));
     vm.mockCall(_collateralToken, transferCalldata, abi.encode());
+    // Mock that collateral tokens are collateral assets (not stable)
+    _mockIsCollateralAsset(reserve, _collateralToken, true);
+    _mockIsStableAsset(reserve, _collateralToken, false);
   }
 
   function _mockReserveTransfer(address _reserve) internal {
     bytes memory transferCalldata = abi.encodeWithSelector(IReserve.transferExchangeCollateralAsset.selector);
     vm.mockCall(_reserve, transferCalldata, abi.encode(true));
+  }
+  
+  function _mockIsStableAsset(address _reserve, address _token, bool _isStable) internal {
+    bytes memory calldata_ = abi.encodeWithSelector(IReserve.isStableAsset.selector, _token);
+    vm.mockCall(_reserve, calldata_, abi.encode(_isStable));
+  }
+  
+  function _mockIsCollateralAsset(address _reserve, address _token, bool _isCollateral) internal {
+    bytes memory calldata_ = abi.encodeWithSelector(IReserve.isCollateralAsset.selector, _token);
+    vm.mockCall(_reserve, calldata_, abi.encode(_isCollateral));
   }
 
   function _expectLiquidityMovedEvent(
