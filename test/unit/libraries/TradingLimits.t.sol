@@ -19,15 +19,17 @@ contract TradingLimitsTest is Test {
 
   function configEmpty() internal pure returns (ITradingLimits.Config memory config) {}
 
-  function configL0(uint32 timestep0, int48 limit0) internal pure returns (ITradingLimits.Config memory config) {
+  function configL0(uint32 timestep0, int48 limit0In, int48 limit0Out) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
-    config.limit0 = limit0;
+    config.limit0In = limit0In;
+    config.limit0Out = limit0Out;
     config.flags = L0;
   }
 
-  function configL1(uint32 timestep1, int48 limit1) internal pure returns (ITradingLimits.Config memory config) {
+  function configL1(uint32 timestep1, int48 limit1In, int48 limit1Out) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep1 = timestep1;
-    config.limit1 = limit1;
+    config.limit1In = limit1In;
+    config.limit1Out = limit1Out;
     config.flags = L1;
   }
 
@@ -38,50 +40,62 @@ contract TradingLimitsTest is Test {
 
   function configL0L1(
     uint32 timestep0,
-    int48 limit0,
+    int48 limit0In,
+    int48 limit0Out,
     uint32 timestep1,
-    int48 limit1
+    int48 limit1In,
+    int48 limit1Out
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
-    config.limit0 = limit0;
+    config.limit0In = limit0In;
+    config.limit0Out = limit0Out;
     config.timestep1 = timestep1;
-    config.limit1 = limit1;
+    config.limit1In = limit1In;
+    config.limit1Out = limit1Out;
     config.flags = L0 | L1;
   }
 
   function configL0L1LG(
     uint32 timestep0,
-    int48 limit0,
+    int48 limit0In,
+    int48 limit0Out,
     uint32 timestep1,
-    int48 limit1,
+    int48 limit1In,
+    int48 limit1Out,
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
-    config.limit0 = limit0;
+    config.limit0In = limit0In;
+    config.limit0Out = limit0Out;
     config.timestep1 = timestep1;
-    config.limit1 = limit1;
+    config.limit1In = limit1In;
+    config.limit1Out = limit1Out;
     config.limitGlobal = limitGlobal;
     config.flags = L0 | L1 | LG;
   }
 
   function configL1LG(
     uint32 timestep1,
-    int48 limit1,
+    int48 limit1In,
+    int48 limit1Out,
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep1 = timestep1;
-    config.limit1 = limit1;
+    config.limit1In = limit1In;
+    config.limit1Out = limit1Out;
     config.limitGlobal = limitGlobal;
     config.flags = L1 | LG;
   }
 
   function configL0LG(
     uint32 timestep0,
-    int48 limit0,
+    int48 limit0In,
+    int48 limit0Out,
     int48 limitGlobal
   ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
-    config.limit0 = limit0;
+    config.limit0In = limit0In;
+    config.limit0Out = limit0Out;
     config.limitGlobal = limitGlobal;
     config.flags = L0 | LG;
   }
@@ -93,70 +107,70 @@ contract TradingLimitsTest is Test {
   /* ==================== Config#validate ==================== */
 
   function test_validate_withL0_isValid() public view {
-    ITradingLimits.Config memory config = configL0(100, 1000);
+    ITradingLimits.Config memory config = configL0(100, 1000, 1000);
     harness.validate(config);
   }
 
   function test_validate_withL0_withoutTimestep_isNotValid() public {
-    ITradingLimits.Config memory config = configL0(0, 1000);
+    ITradingLimits.Config memory config = configL0(0, 1000, 1000);
     vm.expectRevert(bytes("timestep0 can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0_withoutLimit0_isNotValid() public {
-    ITradingLimits.Config memory config = configL0(100, 0);
-    vm.expectRevert(bytes("limit0 can't be zero if active"));
+    ITradingLimits.Config memory config = configL0(100, 0, 0);
+    vm.expectRevert(bytes("limit0In can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0L1_isValid() public view {
-    ITradingLimits.Config memory config = configL0L1(100, 1000, 1000, 10000);
+    ITradingLimits.Config memory config = configL0L1(100, 1000, 1000, 1000, 10000, 10000);
     harness.validate(config);
   }
 
   function test_validate_withL1_withoutLimit1_isNotValid() public {
-    ITradingLimits.Config memory config = configL0L1(100, 1000, 1000, 0);
-    vm.expectRevert(bytes("limit1 can't be zero if active"));
+    ITradingLimits.Config memory config = configL0L1(100, 1000, 1000, 1000, 0, 0);
+    vm.expectRevert(bytes("limit1In can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0L1_withoutTimestape_isNotValid() public {
-    ITradingLimits.Config memory config = configL0L1(0, 1000, 1000, 10000);
+    ITradingLimits.Config memory config = configL0L1(0, 1000, 1000, 1000, 10000, 10000);
     vm.expectRevert(bytes("timestep0 can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0L1_withLimit0LargerLimit1_isNotValid() public {
-    ITradingLimits.Config memory config = configL0L1(10000, 10000, 1000, 1000);
-    vm.expectRevert(bytes("limit1 must be greater than limit0"));
+    ITradingLimits.Config memory config = configL0L1(10000, 10000, 10000, 1000, 1000, 1000);
+    vm.expectRevert(bytes("limit1In must be greater than limit0In"));
     harness.validate(config);
   }
 
   function test_validate_withLG_withoutLimitGlobal_isNotValid() public {
-    ITradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 0);
+    ITradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 1000, 10000, 10000, 0);
     vm.expectRevert(bytes("limitGlobal can't be zero if active"));
     harness.validate(config);
   }
 
   function test_validate_withL0LG_withLimit0LargerLimitGlobal_isNotValid() public {
-    ITradingLimits.Config memory config = configL0LG(10000, 10000, 1000);
-    vm.expectRevert(bytes("limitGlobal must be greater than limit0"));
+    ITradingLimits.Config memory config = configL0LG(10000, 10000, 10000, 1000);
+    vm.expectRevert(bytes("limitGlobal must be greater than limit0In"));
     harness.validate(config);
   }
 
   function test_validate_withL1LG_withLimit1LargerLimitGlobal_isNotValid() public {
-    ITradingLimits.Config memory config = configL0L1LG(100, 1000, 10000, 10000, 1000);
-    vm.expectRevert(bytes("limitGlobal must be greater than limit1"));
+    ITradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 10000, 10000, 1000);
+    vm.expectRevert(bytes("limitGlobal must be greater than limit1In"));
     harness.validate(config);
   }
 
   function test_validate_withL0L1LG_isValid() public view {
-    ITradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 10000, 100000);
+    ITradingLimits.Config memory config = configL0L1LG(100, 1000, 1000, 1000, 10000, 10000, 100000);
     harness.validate(config);
   }
 
   function test_configure_withL1LG_isNotValid() public {
-    ITradingLimits.Config memory config = configL1LG(1000, 10000, 100000);
+    ITradingLimits.Config memory config = configL1LG(1000, 10000, 10000, 100000);
     vm.expectRevert(bytes("L1 without L0 not allowed"));
     harness.validate(config);
   }
@@ -166,7 +180,7 @@ contract TradingLimitsTest is Test {
   function test_reset_clearsCheckpoints() public {
     state.lastUpdated0 = 123412412;
     state.lastUpdated1 = 123124412;
-    state = harness.reset(state, configL0(500, 1000));
+    state = harness.reset(state, configL0(500, 1000, 1000));
 
     assertEq(uint256(state.lastUpdated0), 0);
     assertEq(uint256(state.lastUpdated1), 0);
@@ -175,7 +189,7 @@ contract TradingLimitsTest is Test {
   function test_reset_resetsNetflowsOnDisabled() public {
     state.netflow1 = 12312;
     state.netflowGlobal = 12312;
-    state = harness.reset(state, configL0(500, 1000));
+    state = harness.reset(state, configL0(500, 1000, 1000));
 
     assertEq(state.netflow1, 0);
     assertEq(state.netflowGlobal, 0);
@@ -185,7 +199,7 @@ contract TradingLimitsTest is Test {
     state.netflow0 = 12312;
     state.netflow1 = 12312;
     state.netflowGlobal = 12312;
-    state = harness.reset(state, configL0LG(500, 1000, 100000));
+    state = harness.reset(state, configL0LG(500, 1000, 1000, 100000));
 
     assertEq(state.netflow0, 12312);
     assertEq(state.netflow1, 0);
@@ -201,36 +215,36 @@ contract TradingLimitsTest is Test {
 
   function test_verify_withL0_butNotMet() public {
     state.netflow0 = 500;
-    harness.verify(state, configL0(500, 1230));
+    harness.verify(state, configL0(500, 1230, 1230));
   }
 
   function test_verify_withL0_andMetPositively() public {
     state.netflow0 = 1231;
-    vm.expectRevert(bytes("L0 Exceeded"));
-    harness.verify(state, configL0(500, 1230));
+    vm.expectRevert(bytes("L0In Exceeded"));
+    harness.verify(state, configL0(500, 1230, 2000));
   }
 
   function test_verify_withL0_andMetNegatively() public {
     state.netflow0 = -1231;
-    vm.expectRevert(bytes("L0 Exceeded"));
-    harness.verify(state, configL0(500, 1230));
+    vm.expectRevert(bytes("L0Out Exceeded"));
+    harness.verify(state, configL0(500, 2000, 1230));
   }
 
   function test_verify_withL0L1_butNoneMet() public {
     state.netflow1 = 500;
-    harness.verify(state, configL0L1(50, 100, 500, 1230));
+    harness.verify(state, configL0L1(50, 100, 100, 500, 500, 1230));
   }
 
   function test_verify_withL0L1_andL1MetPositively() public {
     state.netflow1 = 1231;
-    vm.expectRevert(bytes("L1 Exceeded"));
-    harness.verify(state, configL0L1(50, 100, 500, 1230));
+    vm.expectRevert(bytes("L1In Exceeded"));
+    harness.verify(state, configL0L1(50, 100, 100, 500, 1230, 2000));
   }
 
   function test_verify_withL0L1_andL1MetNegatively() public {
     state.netflow1 = -1231;
-    vm.expectRevert(bytes("L1 Exceeded"));
-    harness.verify(state, configL0L1(50, 100, 500, 1230));
+    vm.expectRevert(bytes("L1Out Exceeded"));
+    harness.verify(state, configL0L1(50, 100, 100, 500, 2000, 1230));
   }
 
   function test_verify_withLG_butNoneMet() public {
@@ -260,27 +274,27 @@ contract TradingLimitsTest is Test {
   }
 
   function test_update_withZeroDeltaFlow_doesNotUpdate() public {
-    state = harness.update(state, configL0L1LG(300, 1000, 1 days, 10000, 1000000), 0, 18);
+    state = harness.update(state, configL0L1LG(300, 1000, 1000, 1 days, 10000, 10000, 1000000), 0, 18);
     assertEq(state.netflow0, 0);
     assertEq(state.netflow1, 0);
     assertEq(state.netflowGlobal, 0);
   }
 
   function test_update_withL0_updatesActive() public {
-    state = harness.update(state, configL0(500, 1000), 100 * 1e18, 18);
+    state = harness.update(state, configL0(500, 1000, 1000), 100 * 1e18, 18);
     assertEq(state.netflow0, 100);
     assertEq(state.netflowGlobal, 0);
   }
 
   function test_update_withL0L1_updatesActive() public {
-    state = harness.update(state, configL0L1(500, 1000, 5000, 500000), 100 * 1e18, 18);
+    state = harness.update(state, configL0L1(500, 1000, 1000, 5000, 500000, 500000), 100 * 1e18, 18);
     assertEq(state.netflow0, 100);
     assertEq(state.netflow1, 100);
     assertEq(state.netflowGlobal, 0);
   }
 
   function test_update_withL0LG_updatesActive() public {
-    state = harness.update(state, configL0LG(500, 1000, 500000), 100 * 1e18, 18);
+    state = harness.update(state, configL0LG(500, 1000, 1000, 500000), 100 * 1e18, 18);
     assertEq(state.netflow0, 100);
     assertEq(state.netflow1, 0);
     assertEq(state.netflowGlobal, 100);

@@ -56,12 +56,22 @@ library TradingLimits {
     require(self.flags & L1 == 0 || self.flags & L0 != 0, "L1 without L0 not allowed");
     require(self.flags & L0 == 0 || self.timestep0 > 0, "timestep0 can't be zero if active");
     require(self.flags & L1 == 0 || self.timestep1 > 0, "timestep1 can't be zero if active");
-    require(self.flags & L0 == 0 || self.limit0 > 0, "limit0 can't be zero if active");
-    require(self.flags & L1 == 0 || self.limit1 > 0, "limit1 can't be zero if active");
+    // require(self.flags & L0 == 0 || self.limit0 > 0, "limit0 can't be zero if active");
+    require(self.flags & L0 == 0 || self.limit0In > 0, "limit0In can't be zero if active");
+    require(self.flags & L0 == 0 || self.limit0Out > 0, "limit0Out can't be zero if active");
+    // require(self.flags & L1 == 0 || self.limit1 > 0, "limit1 can't be zero if active");
+    require(self.flags & L1 == 0 || self.limit1In > 0, "limit1In can't be zero if active");
+    require(self.flags & L1 == 0 || self.limit1Out > 0, "limit1Out can't be zero if active");
     require(self.flags & LG == 0 || self.limitGlobal > 0, "limitGlobal can't be zero if active");
-    require(self.flags & (L0 | L1) != 3 || self.limit0 < self.limit1, "limit1 must be greater than limit0");
-    require(self.flags & (L1 | LG) != 6 || self.limit1 < self.limitGlobal, "limitGlobal must be greater than limit1");
-    require(self.flags & (L0 | LG) != 5 || self.limit0 < self.limitGlobal, "limitGlobal must be greater than limit0");
+    // require(self.flags & (L0 | L1) != 3 || self.limit0 < self.limit1, "limit1 must be greater than limit0");
+    require(self.flags & (L0 | L1) != 3 || self.limit0In < self.limit1In, "limit1In must be greater than limit0In");
+    require(self.flags & (L0 | L1) != 3 || self.limit0Out < self.limit1Out, "limit1Out must be greater than limit0Out");
+    // require(self.flags & (L1 | LG) != 6 || self.limit1 < self.limitGlobal, "limitGlobal must be greater than limit1");
+    // require(self.flags & (L0 | LG) != 5 || self.limit0 < self.limitGlobal, "limitGlobal must be greater than limit0");
+    require(self.flags & (L1 | LG) != 6 || self.limit1In < self.limitGlobal, "limitGlobal must be greater than limit1In");
+    require(self.flags & (L1 | LG) != 6 || self.limit1Out < self.limitGlobal, "limitGlobal must be greater than limit1Out");
+    require(self.flags & (L0 | LG) != 5 || self.limit0In < self.limitGlobal, "limitGlobal must be greater than limit0In");
+    require(self.flags & (L0 | LG) != 5 || self.limit0Out < self.limitGlobal, "limitGlobal must be greater than limit0Out");
   }
 
   /**
@@ -71,11 +81,21 @@ library TradingLimits {
    * @param config the trading limit Config to check against.
    */
   function verify(ITradingLimits.State memory self, ITradingLimits.Config memory config) internal pure {
-    if ((config.flags & L0) > 0 && (-1 * config.limit0 > self.netflow0 || self.netflow0 > config.limit0)) {
-      revert("L0 Exceeded");
+    if ((config.flags & L0) > 0) {
+      if((-1 * config.limit0Out) > self.netflow0) {
+        revert("L0Out Exceeded");
+      }
+      if(self.netflow0 > config.limit0In) {
+        revert("L0In Exceeded");
+      }
     }
-    if ((config.flags & L1) > 0 && (-1 * config.limit1 > self.netflow1 || self.netflow1 > config.limit1)) {
-      revert("L1 Exceeded");
+    if ((config.flags & L1) > 0) {
+      if(-1 * config.limit1Out > self.netflow1) {
+        revert("L1Out Exceeded");
+      }
+      if(self.netflow1 > config.limit1In) {
+        revert("L1In Exceeded");
+      }
     }
     if (
       (config.flags & LG) > 0 &&
