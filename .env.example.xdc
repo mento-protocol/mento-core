@@ -1,0 +1,15 @@
+CELOSCAN_API_KEY=
+CELO_MAINNET_RPC_URL=https://forno.celo.org
+ALFAJORES_RPC_URL=https://alfajores-forno.celo-testnet.org
+
+PRIVATE_KEY=your_private_key_here
+AVATAR=0xYourAvatarAddress
+CUSD=0xYourCUSDAddress
+GOODDOLLAR=0xYourGoodDollarAddress
+ENV=your_environment_name
+DISTRIBUTION_HELPER=0xYourDistributionHelperAddress
+EXCHANGEPROVIDER_IMPL=0xYourExchangeProviderImplAddress
+EXPANSIONCONTROLLER_IMPL=0xYourExpansionControllerImplAddress
+REGISTRY_IMPL=0xYourReserveImplAddress
+RESERVE_IMPL=0xYourReserveImplAddress
+BROKER_IMPL=0xYourBrokerImplAddress

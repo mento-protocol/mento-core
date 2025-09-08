@@ -4,10 +4,11 @@ pragma solidity 0.8.18;
 import "forge-std/Script.sol";
 import { TransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
+import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
-// import { Reserve } from "contracts/swap/Reserve.sol";
+import { IRegistry } from "mento-std/interfaces/IRegistry.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
@@ -20,11 +21,13 @@ contract DeployMento is Script {
   address public expansionController = vm.envAddress("EXPANSIONCONTROLLER_IMPL");
   address public reserve = vm.envAddress("RESERVE_IMPL");
   address public broker = vm.envAddress("BROKER_IMPL");
+  address public registry = vm.envAddress("REGISTRY_IMPL");
   address distHelper = vm.envAddress("DISTRIBUTION_HELPER");
 
   // Proxy addresses
   TransparentUpgradeableProxy public exchangeProviderProxy;
   TransparentUpgradeableProxy public expansionControllerProxy;
+  TransparentUpgradeableProxy public registryProxy;
   TransparentUpgradeableProxy public reserveProxy;
   TransparentUpgradeableProxy public brokerProxy;
 
@@ -43,6 +46,11 @@ contract DeployMento is Script {
     proxyAdmin = new ProxyAdmin();
     proxyAdmin.transferOwnership(avatar);
 
+    registryProxy = new TransparentUpgradeableProxy{ salt: keccak256(abi.encodePacked("Registry", env)) }(
+      address(registry),
+      address(proxyAdmin),
+      ""
+    );
     reserveProxy = new TransparentUpgradeableProxy{ salt: keccak256(abi.encodePacked("MentoGDReserve", env)) }(
       address(reserve),
       address(proxyAdmin),
@@ -80,8 +88,10 @@ contract DeployMento is Script {
     );
     Broker brokerProxied = Broker(address(brokerProxy));
     IReserve reserveProxied = IReserve(address(reserveProxy));
-
+    Ownable registryProxied = Ownable(address(registryProxy));
+    
     // Initialize contracts
+    registryProxied.transferOwnership(avatar);
 
     bytes32[] memory assets = new bytes32[](2);
     assets[0] = "cUSD";
@@ -96,7 +106,8 @@ contract DeployMento is Script {
 
     console.log("initializing reserve...");
     reserveProxied.initialize(
-      0x000000000000000000000000000000000000ce10, // registry address
+      // 0x000000000000000000000000000000000000ce10, // registry address
+      address(registryProxy), // registry address
       3153600000, // tobinTaxStalenessThreshold
       1e24, // spendingRatioForCelo (0.1 in fixidity)
       0, // frozenGold
@@ -172,6 +183,8 @@ contract DeployMento is Script {
     console.log("ProxyAdmin deployed to:", address(proxyAdmin));
     console.log("GoodDollarExchangeProvider Proxy deployed to:", address(exchangeProviderProxy));
     console.log("GoodDollarExpansionController Proxy deployed to:", address(expansionControllerProxy));
+    console.log("Registry Proxy deployed to:", address(registryProxy));
+    console.log("Registry impl deployed to:", address(registry));
     console.log("Reserve Proxy deployed to:", address(reserveProxy));
     console.log("Reserve impl deployed to:", address(reserve));
     console.log("Broker Proxy deployed to:", address(brokerProxy));

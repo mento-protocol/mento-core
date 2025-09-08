@@ -16,6 +16,7 @@ This guide will walk you through deploying the implementation contracts and then
    DISTRIBUTION_HELPER=0xYourDistributionHelperAddress
    EXCHANGEPROVIDER_IMPL=0xYourExchangeProviderImplAddress
    EXPANSIONCONTROLLER_IMPL=0xYourExpansionControllerImplAddress
+   REGISTRY_IMPL=0xYourReserveImplAddress
    RESERVE_IMPL=0xYourReserveImplAddress
    BROKER_IMPL=0xYourBrokerImplAddress
    ```
@@ -33,6 +34,7 @@ This guide will walk you through deploying the implementation contracts and then
    This script will deploy the following contracts:
    - `GoodDollarExchangeProvider`
    - `GoodDollarExpansionController`
+   - `Registry`
    - `Reserve`
    - `Broker`
 
@@ -49,6 +51,7 @@ This guide will walk you through deploying the implementation contracts and then
    This script will deploy the following proxies:
    - `GoodDollarExchangeProviderProxy`
    - `GoodDollarExpansionControllerProxy`
+   - `RegistryProxy`
    - `ReserveProxy`
    - `BrokerProxy`
 

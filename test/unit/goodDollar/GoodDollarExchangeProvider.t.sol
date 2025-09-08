@@ -36,6 +36,7 @@ contract GoodDollarExchangeProviderTest is Test {
   address public brokerAddress;
   address public avatarAddress;
   address public expansionControllerAddress;
+  address public registryAddress;
 
   IBancorExchangeProvider.PoolExchange public poolExchange1;
   IBancorExchangeProvider.PoolExchange public poolExchange2;
@@ -50,6 +51,10 @@ contract GoodDollarExchangeProviderTest is Test {
     brokerAddress = makeAddr("Broker");
     avatarAddress = makeAddr("Avatar");
     expansionControllerAddress = makeAddr("ExpansionController");
+    registryAddress = makeAddr("Registry");
+
+    deployCodeTo("Registry", abi.encode(true), registryAddress);
+    deployCodeTo("Reserve", abi.encode(true), reserveAddress);
 
     poolExchange1 = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
@@ -93,6 +98,7 @@ contract GoodDollarExchangeProviderTest is Test {
       abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveToken)),
       abi.encode(true)
     );
+    IReserve(reserveAddress).setRegistry(registryAddress);
   }
 
   function initializeGoodDollarExchangeProvider() internal returns (GoodDollarExchangeProvider) {
