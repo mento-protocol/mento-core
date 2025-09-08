@@ -8,12 +8,14 @@ auto_detect_solc = true
 bytecode_hash = "none"
 fuzz_runs = 256
 gas_reports = ["*"]
-optimizer = false
+optimizer = true
+optimizer_runs = 200
 legacy = true
 no_match_contract = "ForkTest"
 gas_limit = 9223372036854775807
 evm_version = "cancun"
 cbor_metadata = false
+gas_price = 12500000000
 
 allow_paths = ["node_modules/@celo"]
 
