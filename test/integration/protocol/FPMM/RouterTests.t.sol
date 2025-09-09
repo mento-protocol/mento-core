@@ -542,6 +542,33 @@ contract RouterTests is FPMMBaseIntegration {
     vm.stopPrank();
   }
 
+  function test_swapExactTokensForTokens_whenMultiHop_shouldSwapTokens() public {
+    address aToB = _deployFPMM(address(tokenA), address(tokenB));
+    _addInitialLiquidity(address(tokenA), address(tokenB), aToB);
+
+    address bToC = _deployFPMM(address(tokenB), address(tokenC));
+    _addInitialLiquidity(address(tokenB), address(tokenC), bToC);
+
+    IRouter.Route[] memory routes = new IRouter.Route[](2);
+    routes[0] = _createRoute(address(tokenA), address(tokenB));
+    routes[1] = _createRoute(address(tokenB), address(tokenC));
+
+    uint256 amountIn = 10e18;
+    uint256 expectedAmountOut = (amountIn * 997 * 997) / 1e6;
+
+    vm.startPrank(alice);
+
+    uint256 balanceBefore = tokenC.balanceOf(alice);
+
+    router.swapExactTokensForTokens(amountIn, 0, routes, alice, block.timestamp);
+
+    uint256 balanceAfter = tokenC.balanceOf(alice);
+    assertEq(balanceAfter - balanceBefore, expectedAmountOut);
+    assertEq(tokenA.balanceOf(alice), 1000e18 - amountIn);
+
+    vm.stopPrank();
+  }
+
   function test_swapExactTokensForTokens_whenInsufficientOutput_shouldRevert() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
