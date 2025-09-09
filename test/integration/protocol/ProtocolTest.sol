@@ -364,7 +364,6 @@ contract ProtocolTest is Test, WithRegistry {
     reserves[0] = address(reserve);
 
     broker.initialize(exchangeProviders, reserves);
-    registry.setAddressFor("Broker", address(broker));
     reserve.addExchangeSpender(address(broker));
     biPoolManager.setPricingModules(pricingModuleIdentifiers, pricingModules);
 
@@ -453,7 +452,6 @@ contract ProtocolTest is Test, WithRegistry {
     /* ========== Deploy Freezer =============== */
 
     freezer = IFreezer(deployCode("Freezer", abi.encode(true)));
-    registry.setAddressFor("Freezer", address(freezer));
   }
 
   function setUp_tradingLimits() internal {
