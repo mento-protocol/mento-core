@@ -7,7 +7,7 @@ import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";
 
 contract VirtualPoolSimpleTest is VirtualPoolBaseIntegration {
-  function test_deployVirtualPool_shouldWork() public {
+  function test_mixedSwapRoutes_shouldWork() public {
     address celoToCUSD = _deployFPMM(address(celoToken), address(cUSDToken), cUSD_CELO_referenceRateFeedID);
     _addInitialLiquidity(address(celoToken), address(cUSDToken), celoToCUSD);
 

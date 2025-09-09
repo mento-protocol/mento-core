@@ -12,6 +12,7 @@ contract VirtualPoolFactory is IRPoolFactory, Ownable {
   mapping(address token0 => mapping(address token1 => address poolAddress)) internal _pools;
   mapping(address pool => bool exists) internal _isPool;
 
+  /// TODO: Determine whether we use Create2, Create3, Clone
   /**
    * @notice Deploys a virtual pool contract.
    * @param _broker Address of the Broker contract.

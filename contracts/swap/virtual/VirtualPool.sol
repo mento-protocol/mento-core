@@ -5,7 +5,7 @@ import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";
-import { IFPMMCallee } from "contracts/interfaces/IFPMMCallee.sol";
+import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
 
 /**
@@ -116,7 +116,7 @@ contract VirtualPool is IRPool, ReentrancyGuard {
   }
 
   /// @inheritdoc IRPool
-  function protocolFee() external pure returns (uint256) {
+  function protocolFee() external view returns (uint256) {
     IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(EXCHANGE_PROVIDER).exchanges(EXCHANGE_ID);
     FixidityLib.Fraction memory spread = exchange.config.spread;
     return spread.value / 1e20;
@@ -137,6 +137,8 @@ contract VirtualPool is IRPool, ReentrancyGuard {
     require(amount0Out | amount1Out != 0, "VirtualPool: INSUFFICIENT_OUTPUT_AMOUNT");
     // Swaps that go through the router seem to always have one of the 2 amounts be zero.
     require(amount0Out == 0 || amount1Out == 0, "VirtualPool: Must swap through Router");
+    // Flash swaps are not supported.
+    require(data.length == 0, "VirtualPool: Must swap through Router");
     require(to != TOKEN0 && to != TOKEN1, "VirtualPool: INVALID_TO_ADDRESS");
 
     (address tokenIn, address tokenOut) = amount0Out == 0 ? (TOKEN0, TOKEN1) : (TOKEN1, TOKEN0);
@@ -144,7 +146,6 @@ contract VirtualPool is IRPool, ReentrancyGuard {
 
     uint256 amountOut = BROKER.swapIn(EXCHANGE_PROVIDER, EXCHANGE_ID, tokenIn, tokenOut, amountIn, 0);
     IERC20(tokenOut).transfer(to, amountOut);
-    if (data.length > 0) IFPMMCallee(to).hook(msg.sender, amount0Out, amount1Out, data);
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */
