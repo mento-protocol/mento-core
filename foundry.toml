@@ -36,3 +36,4 @@ match_contract = "ForkTest"
 [rpc_endpoints]
 celo = "${CELO_MAINNET_RPC_URL}"
 alfajores = "${ALFAJORES_RPC_URL}"
+xdc = "${XDC_RPC_URL}"

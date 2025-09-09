@@ -62,18 +62,16 @@ library TradingLimitHelpers {
 
   function tradingLimitsConfig(ExchangeForkTest ctx, address asset) public view returns (ITradingLimits.Config memory) {
     ITradingLimits.Config memory limitConfig;
-    {
-      (
-        limitConfig.timestep0,
-        limitConfig.timestep1,
-        limitConfig.limit0In,
-        limitConfig.limit0Out,
-        limitConfig.limit1In,
-        limitConfig.limit1Out,
-        limitConfig.limitGlobal,
-        limitConfig.flags
-      ) = Broker(address(ctx.broker())).tradingLimitsConfig(ctx.exchangeId() ^ bytes32(uint256(uint160(asset))));
-    }
+    (
+      limitConfig.timestep0,
+      limitConfig.timestep1,
+      limitConfig.limit0In,
+      limitConfig.limit0Out,
+      limitConfig.limit1In,
+      limitConfig.limit1Out,
+      limitConfig.limitGlobal,
+      limitConfig.flags
+    ) = Broker(address(ctx.broker())).tradingLimitsConfig(ctx.exchangeId() ^ bytes32(uint256(uint160(asset))));
     return limitConfig;
   }
 

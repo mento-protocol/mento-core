@@ -23,6 +23,9 @@ import { Broker } from "contracts/swap/Broker.sol";
 import { TradingLimitsHarness } from "test/utils/harnesses/TradingLimitsHarness.sol";
 import { toRateFeed } from "./helpers/misc.sol";
 
+import "forge-std/console.sol";
+
+uint256 constant XDC_ID = 50;
 interface IMint {
   function mint(address, uint256) external;
 }
@@ -72,33 +75,47 @@ abstract contract BaseForkTest is Test {
   mapping(address rateFeed => uint8 count) rateFeedDependenciesCount;
 
   function setUp() public virtual {
-    fork(targetChainId);
-    /// @dev Updating the target fork block every 200 blocks, about ~8 min.
-    /// This means that, when running locally, RPC calls will be cached.
-    fork(targetChainId, (block.number / 100) * 100);
-    // The precompile handler needs to be reinitialized after forking.
-    __CeloPrecompiles_init();
+    // uint256 forkId;
+    // if(targetChainId == XDC_ID) {
+    //   console.log("Mike1 : ");
+    //   forkId = vm.createFork("https://rpc.ankr.com/xdc", (block.number / 100) * 100);
+    //   vm.selectFork(forkId);
+    //   console.log("Mike : ", forkId);
+    // }
+    if(targetChainId != XDC_ID)  {
+      fork(targetChainId);
+      /// @dev Updating the target fork block every 200 blocks, about ~8 min.
+      /// This means that, when running locally, RPC calls will be cached.
+      fork(targetChainId, (block.number / 100) * 100);
+      // The precompile handler needs to be reinitialized after forking.
+      __CeloPrecompiles_init();
 
-    tradingLimits = new TradingLimitsHarness();
+      tradingLimits = new TradingLimitsHarness();
 
-    broker = IBroker(lookup("Broker"));
-    biPoolManager = IBiPoolManager(broker.exchangeProviders(0));
-    sortedOracles = ISortedOracles(lookup("SortedOracles"));
-    governance = lookup("Governance");
-    breakerBox = IBreakerBox(address(sortedOracles.breakerBox()));
-    vm.label(address(breakerBox), "BreakerBox");
-    trader = makeAddr("trader");
-    mentoReserve = IReserve(lookup("Reserve"));
+      console.log("Mike3 : ");
+      broker = IBroker(lookup("Broker"));
+      console.log("Mike31 : ");
+      biPoolManager = IBiPoolManager(broker.exchangeProviders(0));
+      console.log("Mike32 : ");
+      sortedOracles = ISortedOracles(lookup("SortedOracles"));
+      console.log("Mike33 : ");
+      governance = lookup("Governance");
+      breakerBox = IBreakerBox(address(sortedOracles.breakerBox()));
+      vm.label(address(breakerBox), "BreakerBox");
+      trader = makeAddr("trader");
+      mentoReserve = IReserve(lookup("Reserve"));
+      console.log("Mike4 : ");
 
-    setUpBroker();
+      setUpBroker();
 
-    /// @dev Hardcoded number of dependencies for each rate feed.
-    /// Should be updated when they change, there is a test that
-    /// will validate that.
-    rateFeedDependenciesCount[lookup("StableTokenXOF")] = 2;
-    rateFeedDependenciesCount[toRateFeed("EUROCXOF")] = 2;
-    rateFeedDependenciesCount[toRateFeed("USDCEUR")] = 1;
-    rateFeedDependenciesCount[toRateFeed("USDCBRL")] = 1;
+      /// @dev Hardcoded number of dependencies for each rate feed.
+      /// Should be updated when they change, there is a test that
+      /// will validate that.
+      rateFeedDependenciesCount[lookup("StableTokenXOF")] = 2;
+      rateFeedDependenciesCount[toRateFeed("EUROCXOF")] = 2;
+      rateFeedDependenciesCount[toRateFeed("USDCEUR")] = 1;
+      rateFeedDependenciesCount[toRateFeed("USDCBRL")] = 1;
+    }
   }
 
   // TODO: Broker setup can be removed after the Broker changes have been deployed to Mainnet
