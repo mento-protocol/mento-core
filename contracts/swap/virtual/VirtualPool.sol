@@ -115,10 +115,13 @@ contract VirtualPool is IRPool, ReentrancyGuard {
     return exchange.bucket1;
   }
 
-  /// TODO: decide how we want to store this (state / immutable / external call) and how we want to use it.
+  /// @inheritdoc IRPool
   function protocolFee() external pure returns (uint256) {
-    return 30;
+    IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(EXCHANGE_PROVIDER).exchanges(EXCHANGE_ID);
+    FixidityLib.Fraction memory spread = exchange.config.spread;
+    return spread.value / 1e20;
   }
+
   /// @inheritdoc IRPool
   function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256) {
     require(tokenIn == TOKEN0 || tokenIn == TOKEN1, "VirtualPool: INVALID_TOKEN");
