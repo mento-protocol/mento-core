@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 
 import "../interfaces/IFPMM.sol";
+import "./router/interfaces/IRPool.sol";
 import { ERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 // solhint-disable-next-line max-line-length
@@ -26,7 +27,7 @@ import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
  * 3. Rebalance moves the price difference towards 0
  * 4. Rebalance does not change the direction of the price difference
  */
-contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
+contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
 
   /* ========== CONSTANTS ========== */
@@ -96,7 +97,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
   /* ========== VIEW FUNCTIONS ========== */
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function metadata()
     external
     view
@@ -107,7 +108,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     return ($.decimals0, $.decimals1, $.reserve0, $.reserve1, $.token0, $.token1);
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function tokens() external view returns (address, address) {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -123,37 +124,37 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     _blockTimestampLast = $.blockTimestampLast;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function token0() external view returns (address) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.token0;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function token1() external view returns (address) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.token1;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function decimals0() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.decimals0;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function decimals1() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.decimals1;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function reserve0() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.reserve0;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function reserve1() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.reserve1;
