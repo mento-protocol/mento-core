@@ -60,7 +60,12 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
    */
   // solhint-disable-next-line no-unused-vars
   function shouldTrigger(address rateFeedID) public returns (bool triggerBreaker) {
-    return !isMarketOpen(block.timestamp);
+    require(isMarketOpen(block.timestamp), "bad");
+
+    // Broker
+    // there won't be a rate on the weekends based on this, although not a "standard" breaker
+
+    return false;
   }
 
   /**

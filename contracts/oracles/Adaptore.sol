@@ -94,20 +94,57 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
 
   /// @inheritdoc IAdaptore
   function isMarketOpen() external view returns (bool) {
+    return _getIsMarketOpen();
+  }
+
+  /// @inheritdoc IAdaptore
+  function getTradingMode(address rateFeedID) external view returns (uint8) {
+    return _getTradingMode(rateFeedID);
+  }
+
+  /// @inheritdoc IAdaptore
+  function getRate(address rateFeedID) external view returns (RateInfo memory) {
+    RateInfo memory rateInfo;
+
+    (uint256 numerator, uint256 denominator) = _getOracleRate(rateFeedID);
+
+    rateInfo.numerator = numerator;
+    rateInfo.denominator = denominator;
+    rateInfo.tradingMode = _getTradingMode(rateFeedID);
+    rateInfo.isRecent = _hasRecentRate(rateFeedID);
+    rateInfo.isMarketOpen = _getIsMarketOpen();
+
+    return rateInfo;
+  }
+
+  function getRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator) {
+    require(_getIsMarketOpen(), "Adaptore: MARKET_CLOSED");
+    require(_hasRecentRate(rateFeedID), "Adaptore: NO_RECENT_RATE");
+    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "Adaptore: TRADING_SUSPENDED");
+
+    return _getOracleRate(rateFeedID);
+  }
+
+  /// @inheritdoc IAdaptore
+  function hasRecentRate(address rateFeedID) external view returns (bool) {
+    return _hasRecentRate(rateFeedID);
+  }
+
+  /* ========== INTERNAL FUNCTIONS ========== */
+
+  function _getIsMarketOpen() private view returns (bool) {
     AdaptoreStorage storage $ = _getAdaptoreStorage();
 
     return $.marketHoursBreaker.isMarketOpen(block.timestamp);
   }
 
-  /// @inheritdoc IAdaptore
-  function getTradingMode(address rateFeedID) external view returns (uint8) {
+  function _getTradingMode(address rateFeedID) private view returns (uint8) {
     AdaptoreStorage storage $ = _getAdaptoreStorage();
 
     return $.breakerBox.getRateFeedTradingMode(rateFeedID);
   }
 
-  /// @inheritdoc IAdaptore
-  function getRate(address rateFeedID) external view returns (uint256 numerator, uint256 denominator) {
+  function _getOracleRate(address rateFeedID) private view returns (uint256 numerator, uint256 denominator) {
     AdaptoreStorage storage $ = _getAdaptoreStorage();
 
     (numerator, denominator) = $.sortedOracles.medianRate(rateFeedID);
@@ -116,8 +153,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
     denominator = denominator / 1e6;
   }
 
-  /// @inheritdoc IAdaptore
-  function hasRecentRate(address rateFeedID) external view returns (bool) {
+  function _hasRecentRate(address rateFeedID) private view returns (bool) {
     AdaptoreStorage storage $ = _getAdaptoreStorage();
 
     uint256 reportExpiry = $.sortedOracles.getTokenReportExpirySeconds(rateFeedID);
@@ -125,8 +161,6 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
 
     return reportTs > block.timestamp - reportExpiry;
   }
-
-  /* ========== INTERNAL FUNCTIONS ========== */
 
   /**
    * @notice Returns the pointer to the AdaptoreStorage struct.
