@@ -107,9 +107,9 @@ library TradingLimitHelpers {
 
   function getLimit(ITradingLimits.Config memory config, uint8 limit) internal pure returns (uint256) {
     if (limit == L0) {
-      return uint48(config.limit0In > config.limit0Out ? config.limit0Out : config.limit0In);
+      return uint256(uint48(config.limit0In > config.limit0Out ? config.limit0Out : config.limit0In));
     } else if (limit == L1) {
-      return uint48(config.limit1In > config.limit1Out ? config.limit1Out : config.limit1In);
+      return uint256(uint48(config.limit1In > config.limit1Out ? config.limit1Out : config.limit1In));
     } else if (limit == LG) {
       return uint256(int256(config.limitGlobal));
     } else {
@@ -129,11 +129,11 @@ library TradingLimitHelpers {
     }
   }
 
-  function revertReason(uint8 limit) internal pure returns (string memory) {
+  function revertReason(uint8 limit, bool isIn) internal pure returns (string memory) {
     if (limit == L0) {
-      return "L0 Exceeded";
+      return string(abi.encodePacked("L0", (isIn ? "In" : "Out"), " Exceeded"));
     } else if (limit == L1) {
-      return "L1 Exceeded";
+      return string(abi.encodePacked("L1", (isIn ? "In" : "Out"), " Exceeded"));
     } else if (limit == LG) {
       return "LG Exceeded";
     } else {
@@ -233,7 +233,7 @@ library TradingLimitHelpers {
   function getLimit1FromNetflow1(ITradingLimits.State memory state, ITradingLimits.Config memory config) internal pure returns (int48){
     return state.netflow1 < 0 ? config.limit1Out : config.limit1In;
   }
-
+  
   function abs(int48 x) internal pure returns (int48) {
       return x >= 0 ? x : -x;
   }

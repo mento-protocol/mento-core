@@ -31,32 +31,32 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
 
   function test_tradingLimitsAreEnforced_reserveTokenOutflowLimit0() public {
     _swapUntilReserveTokenLimit0_onOutflow();
-    _swapGoodDollarForReserveToken(bytes(L0.revertReason()));
+    _swapGoodDollarForReserveToken(bytes(L0.revertReason(false)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenOutflowLimit1() public {
     _swapUntilReserveTokenLimit1_onOutflow();
-    _swapGoodDollarForReserveToken(bytes(L1.revertReason()));
+    _swapGoodDollarForReserveToken(bytes(L1.revertReason(false)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenOutflowLimitGlobal() public {
     _swapUntilReserveTokenGlobalLimit_onOutflow();
-    _swapGoodDollarForReserveToken(bytes(LG.revertReason()));
+    _swapGoodDollarForReserveToken(bytes(LG.revertReason(false)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenInflowLimit0() public {
     _swapUntilReserveTokenLimit0_onInflow();
-    _swapReserveTokenForGoodDollar(bytes(L0.revertReason()));
+    _swapReserveTokenForGoodDollar(bytes(L0.revertReason(true)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenInflowLimit1() public {
     _swapUntilReserveTokenLimit1_onInflow();
-    _swapReserveTokenForGoodDollar(bytes(L1.revertReason()));
+    _swapReserveTokenForGoodDollar(bytes(L1.revertReason(true)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenInflowGlobalLimit() public {
     _swapUntilReserveTokenGlobalLimit_onInflow();
-    _swapReserveTokenForGoodDollar(bytes(LG.revertReason()));
+    _swapReserveTokenForGoodDollar(bytes(LG.revertReason(true)));
   }
 
   /**
@@ -68,7 +68,7 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     ITradingLimits.Config memory config = getTradingLimitsConfig(address(reserveToken));
 
     // Get the max amount we can swap in a single transaction before we hit L0
-    uint256 maxPerSwapInWei = uint48(config.limit0Out) * 1e18;
+    uint256 maxPerSwapInWei = uint256(uint48(config.limit0Out)) * 1e18;
     uint256 inflowRequiredForAmountOut = goodDollarExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
       tokenIn: address(goodDollarToken),
@@ -159,7 +159,7 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     ITradingLimits.Config memory config = getTradingLimitsConfig(address(reserveToken));
 
     // Get the max amount we can swap in a single transaction before we hit L0
-    uint256 maxPerSwapInWei = uint48(config.limit0In) * 1e18;
+    uint256 maxPerSwapInWei = uint256(uint48(config.limit0In)) * 1e18;
     deal({ token: address(reserveToken), to: trader, give: maxPerSwapInWei });
 
     vm.startPrank(trader);
