@@ -62,8 +62,6 @@ library TradingLimitHelpers {
 
   function tradingLimitsConfig(ExchangeForkTest ctx, address asset) public view returns (ITradingLimits.Config memory) {
     ITradingLimits.Config memory limitConfig;
-    bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
-    bytes32 limitId = ctx.exchangeId() ^ assetBytes32;
 
     (
       limitConfig.timestep0,
@@ -74,7 +72,7 @@ library TradingLimitHelpers {
       limitConfig.limit1Out,
       limitConfig.limitGlobal,
       limitConfig.flags
-    ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);
+    ) = Broker(address(ctx.broker())).tradingLimitsConfig(ctx.exchangeId() ^ bytes32(uint256(uint160(asset))));
     return limitConfig;
   }
 
@@ -110,9 +108,9 @@ library TradingLimitHelpers {
 
   function getLimit(ITradingLimits.Config memory config, uint8 limit) internal pure returns (uint256) {
     if (limit == L0) {
-      return uint48(config.limit0In > config.limit0Out ? config.limit0Out : config.limit0In);
+      return uint256(uint48(config.limit0In > config.limit0Out ? config.limit0Out : config.limit0In));
     } else if (limit == L1) {
-      return uint48(config.limit1In > config.limit1Out ? config.limit1Out : config.limit1In);
+      return uint256(uint48(config.limit1In > config.limit1Out ? config.limit1Out : config.limit1In));
     } else if (limit == LG) {
       return uint256(int256(config.limitGlobal));
     } else {
