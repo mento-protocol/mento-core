@@ -31,32 +31,32 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
 
   function test_tradingLimitsAreEnforced_reserveTokenOutflowLimit0() public {
     _swapUntilReserveTokenLimit0_onOutflow();
-    _swapGoodDollarForReserveToken(bytes(L0.revertReason()));
+    _swapGoodDollarForReserveToken(bytes(L0.revertReason(false)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenOutflowLimit1() public {
     _swapUntilReserveTokenLimit1_onOutflow();
-    _swapGoodDollarForReserveToken(bytes(L1.revertReason()));
+    _swapGoodDollarForReserveToken(bytes(L1.revertReason(false)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenOutflowLimitGlobal() public {
     _swapUntilReserveTokenGlobalLimit_onOutflow();
-    _swapGoodDollarForReserveToken(bytes(LG.revertReason()));
+    _swapGoodDollarForReserveToken(bytes(LG.revertReason(false)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenInflowLimit0() public {
     _swapUntilReserveTokenLimit0_onInflow();
-    _swapReserveTokenForGoodDollar(bytes(L0.revertReason()));
+    _swapReserveTokenForGoodDollar(bytes(L0.revertReason(true)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenInflowLimit1() public {
     _swapUntilReserveTokenLimit1_onInflow();
-    _swapReserveTokenForGoodDollar(bytes(L1.revertReason()));
+    _swapReserveTokenForGoodDollar(bytes(L1.revertReason(true)));
   }
 
   function test_tradingLimitsAreEnforced_reserveTokenInflowGlobalLimit() public {
     _swapUntilReserveTokenGlobalLimit_onInflow();
-    _swapReserveTokenForGoodDollar(bytes(LG.revertReason()));
+    _swapReserveTokenForGoodDollar(bytes(LG.revertReason(true)));
   }
 
   /**

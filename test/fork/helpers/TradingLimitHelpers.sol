@@ -130,11 +130,11 @@ library TradingLimitHelpers {
     }
   }
 
-  function revertReason(uint8 limit) internal pure returns (string memory) {
+  function revertReason(uint8 limit, bool isIn) internal pure returns (string memory) {
     if (limit == L0) {
-      return "L0 Exceeded";
+      return string(abi.encodePacked("L0", (isIn ? "In" : "Out"), " Exceeded"));
     } else if (limit == L1) {
-      return "L1 Exceeded";
+      return string(abi.encodePacked("L1", (isIn ? "In" : "Out"), " Exceeded"));
     } else if (limit == LG) {
       return "LG Exceeded";
     } else {

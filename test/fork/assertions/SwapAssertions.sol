@@ -181,7 +181,7 @@ contract SwapAssertions is StdAssertions, Actions {
     if (limit != LG && ctx.atInflowLimit(from, LG)) {
       console.log(unicode"🚨 Cannot validate limit %s as LG is already reached.", limit.toString());
     } else {
-      assert_swapInFails(from, to, inflowRequiredUnits.toSubunits(from), limit.revertReason());
+      assert_swapInFails(from, to, inflowRequiredUnits.toSubunits(from), limit.revertReason(true));
     }
   }
 
@@ -214,7 +214,7 @@ contract SwapAssertions is StdAssertions, Actions {
     if (limit != LG && ctx.atOutflowLimit(from, LG)) {
       console.log(unicode"🚨 Cannot validate limit %s as LG is already reached.", limit.toString());
     } else {
-      assert_swapOutFails(from, to, outflowRequiredUnits.toSubunits(to), limit.revertReason());
+      assert_swapOutFails(from, to, outflowRequiredUnits.toSubunits(to), limit.revertReason(true));
     }
   }
 }
