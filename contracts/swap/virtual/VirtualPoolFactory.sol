@@ -26,9 +26,11 @@ contract VirtualPoolFactory is IRPoolFactory, Ownable {
   ) external onlyOwner returns (address) {
     IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(_exchangeProvider).exchanges(_exchangeId);
     (address token0, address token1) = _sortTokens(exchange.asset0, exchange.asset1);
+    // slither-disable-next-line reentrancy-benign
     address pool = address(new VirtualPool(_broker, _exchangeProvider, _exchangeId, token0, token1));
     _pools[token0][token1] = pool;
     _isPool[pool] = true;
+    // slither-disable-next-line reentrancy-events
     emit VirtualPoolDeployed(pool, token0, token1);
     return pool;
   }

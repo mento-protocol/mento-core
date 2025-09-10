@@ -3,10 +3,18 @@ pragma solidity 0.8.18;
 
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IBroker } from "contracts/interfaces/IBroker.sol";
-import { IERC20 } from "contracts/interfaces/IERC20.sol";
+import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
+import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+
+interface IERC20Metadata {
+  /**
+   * @dev Returns the decimals places of the token.
+   */
+  function decimals() external view returns (uint8);
+}
 
 /**
  * @title Virtual Pool (Broker Wrapper pre-configured with an immutable pair of assets).
@@ -15,6 +23,7 @@ import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/
  * and routes trades via the Broker contract.
  */
 contract VirtualPool is IRPool, ReentrancyGuard {
+  using SafeERC20 for IERC20;
   /* ========== IMMUTABLES ========== */
 
   /// @dev Address of the Broker contract.
@@ -54,10 +63,10 @@ contract VirtualPool is IRPool, ReentrancyGuard {
     EXCHANGE_ID = exchangeId;
     TOKEN0 = _token0;
     TOKEN1 = _token1;
-    DECIMALS0 = IERC20(_token0).decimals();
-    DECIMALS1 = IERC20(_token1).decimals();
-    IERC20(_token0).approve(broker, type(uint256).max);
-    IERC20(_token1).approve(broker, type(uint256).max);
+    DECIMALS0 = IERC20Metadata(_token0).decimals();
+    DECIMALS1 = IERC20Metadata(_token1).decimals();
+    IERC20(_token0).safeApprove(broker, type(uint256).max);
+    IERC20(_token1).safeApprove(broker, type(uint256).max);
   }
 
   /* ========== VIEW FUNCTIONS ========== */
@@ -145,7 +154,7 @@ contract VirtualPool is IRPool, ReentrancyGuard {
     uint256 amountIn = IERC20(tokenIn).balanceOf(address(this));
 
     uint256 amountOut = BROKER.swapIn(EXCHANGE_PROVIDER, EXCHANGE_ID, tokenIn, tokenOut, amountIn, 0);
-    IERC20(tokenOut).transfer(to, amountOut);
+    IERC20(tokenOut).safeTransfer(to, amountOut);
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */

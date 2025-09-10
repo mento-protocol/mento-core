@@ -32,8 +32,8 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   // Test environment
   uint256 public celoFork = vm.createFork("https://forno.celo.org");
 
-  function setUp() public override {
-    vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp
+  function setUp() public virtual override {
+    vm.warp(10 days); // Start at a non-zero timestamp
     vm.selectFork(vm.createFork("https://forno.celo.org"));
 
     super.setUp();
@@ -79,6 +79,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   }
 
   function _fundTestAccounts() internal {
+    deal(address(celoToken), address(reserve), 2.5e25);
     deal(address(celoToken), alice, 1000e18);
 
     deal(address(usdcToken), bob, 1000e18);
