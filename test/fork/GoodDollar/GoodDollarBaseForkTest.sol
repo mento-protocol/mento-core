@@ -327,7 +327,11 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   }
 
   function test_init_isDeployedAndInitializedCorrectly() public view {
-    assertEq(goodDollarExchangeProvider.owner(), ownerAddress);
+    if(targetChainId != XDC_ID)
+      assertEq(goodDollarExchangeProvider.owner(), ownerAddress);
+    else 
+      assertEq(goodDollarExchangeProvider.owner(), AVATAR_ADDRESS);
+
     assertEq(goodDollarExchangeProvider.broker(), address(broker));
     assertEq(address(goodDollarExchangeProvider.reserve()), address(goodDollarReserve));
 
