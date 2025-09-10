@@ -78,10 +78,13 @@ abstract contract BaseForkTest is Test {
     // uint256 forkId;
     // if(targetChainId == XDC_ID) {
     //   console.log("Mike1 : ");
-    //   forkId = vm.createFork("https://rpc.ankr.com/xdc", (block.number / 100) * 100);
+    //   forkId = vm.createFork("https://rpc.xinfin.network");
     //   vm.selectFork(forkId);
     //   console.log("Mike : ", forkId);
     // }
+
+    tradingLimits = new TradingLimitsHarness();
+    trader = makeAddr("trader");
     if(targetChainId != XDC_ID)  {
       fork(targetChainId);
       /// @dev Updating the target fork block every 200 blocks, about ~8 min.
@@ -89,8 +92,6 @@ abstract contract BaseForkTest is Test {
       fork(targetChainId, (block.number / 100) * 100);
       // The precompile handler needs to be reinitialized after forking.
       __CeloPrecompiles_init();
-
-      tradingLimits = new TradingLimitsHarness();
 
       console.log("Mike3 : ");
       broker = IBroker(lookup("Broker"));
@@ -102,7 +103,6 @@ abstract contract BaseForkTest is Test {
       governance = lookup("Governance");
       breakerBox = IBreakerBox(address(sortedOracles.breakerBox()));
       vm.label(address(breakerBox), "BreakerBox");
-      trader = makeAddr("trader");
       mentoReserve = IReserve(lookup("Reserve"));
       console.log("Mike4 : ");
 

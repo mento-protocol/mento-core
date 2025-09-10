@@ -72,13 +72,10 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   /* ======================================== */
 
   function setUp() public virtual override {
-    console.log("mike1");
     super.setUp();
-    console.log("mike2");
     // Tokens
     reserveToken = IStableTokenV2(CUSD_ADDRESS);
     goodDollarToken = IGoodDollar(GOOD_DOLLAR_ADDRESS);
-    console.log("mike3");
 
     // Contracts
     goodDollarExchangeProvider = GoodDollarExchangeProvider(EXCHANGEPROVIDER_ADDRESS);
@@ -86,23 +83,18 @@ contract GoodDollarBaseForkTest is BaseForkTest {
     // deployCode() hack to deploy solidity v0.5 reserve contract from a v0.8 contract
     goodDollarReserve = IReserve(RESERVE_ADDRESS);
     broker = Broker(BROKER_ADDRESS);
-    console.log("mike4");
 
     // Addresses
     // ownerAddress = makeAddr("owner");
 
     // Initialize GoodDollarExchangeProvider
     configureReserve();
-    console.log("mike41");
-    if(targetChainId != XDC_ID)
+    if(targetChainId != XDC_ID) {
       configureBroker();
-    console.log("mike5");
+    }
     configureGoodDollarExchangeProvider();
-    console.log("mike51");
     configureTokens();
-    console.log("mike6");
     configureExpansionController();
-    console.log("mike7");
     configureTradingLimits();
   }
 
@@ -173,9 +165,7 @@ contract GoodDollarBaseForkTest is BaseForkTest {
 
   function configureBroker() public {
     vm.prank(Broker(address(broker)).owner());
-    console.log("Mikee 1");
     broker.addExchangeProvider(address(goodDollarExchangeProvider), address(goodDollarReserve));
-    console.log("Mikee 2");
 
     require(
       broker.isExchangeProvider(address(goodDollarExchangeProvider)),

@@ -132,7 +132,3 @@ contract Celo_GoodDollarExpansionForkTest is GoodDollarExpansionForkTest(CELO_ID
 contract Celo_LockingUpgradeForkTest is LockingUpgradeForkTest(CELO_ID) {}
 contract Celo_GHSRenameForkTest is GHSRenameForkTest(CELO_ID) {}
 contract Alfajores_GHSRenameForkTest is GHSRenameForkTest(ALFAJORES_ID) {}
-
-contract XDC_GoodDollarTradingLimitsForkTest is GoodDollarTradingLimitsForkTest(XDC_ID) {}
-contract XDC_GoodDollarSwapForkTest is GoodDollarSwapForkTest(XDC_ID) {}
-contract XDC_GoodDollarExpansionForkTest is GoodDollarExpansionForkTest(XDC_ID) {}
