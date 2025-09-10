@@ -78,7 +78,7 @@ abstract contract BaseForkTest is Test {
     // uint256 forkId;
     // if(targetChainId == XDC_ID) {
     //   console.log("Mike1 : ");
-    //   forkId = vm.createFork("https://rpc.xinfin.network");
+    //   forkId = vm.createFork("https://erpc.xinfin.network");
     //   vm.selectFork(forkId);
     //   console.log("Mike : ", forkId);
     // }

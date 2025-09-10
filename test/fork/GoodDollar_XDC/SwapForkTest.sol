@@ -59,6 +59,7 @@ contract XDC_GoodDollarSwapForkTest is GoodDollarBaseForkTest(50) {
 
     assertEq(expectedAmountOut, goodDollarToken.balanceOf(trader));
     assertEq(reserveBalanceBefore + amountIn, reserveBalanceAfter);
+    // assertTrue(priceBefore < priceAfter);
   }
 
   function test_swapIn_goodDollarToReserveToken() public {
