@@ -10,7 +10,7 @@ import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangePro
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 
 // Contracts
-import { GoodDollarBaseForkTest } from "../GoodDollar/GoodDollarBaseForkTest.sol";
+import { GoodDollarBaseForkTest } from "../GoodDollar_XDC/GoodDollarBaseForkTest.sol";
 
 contract XDC_GoodDollarExpansionForkTest is GoodDollarBaseForkTest(50) {
   using TradingLimitHelpers for *;
@@ -60,7 +60,7 @@ contract XDC_GoodDollarExpansionForkTest is GoodDollarBaseForkTest(50) {
 
     assertEq(reserveBalanceAfter, reserveBalanceBefore + reserveInterest);
     assertEq(interestCollectorBalanceAfter, interestCollectorBalanceBefore - reserveInterest);
-    // assertTrue(distributionHelperBalanceBefore < distributionHelperBalanceAfter);
+    assertTrue(distributionHelperBalanceBefore < distributionHelperBalanceAfter);
     assertEq(priceBefore, priceAfter);
   }
 }

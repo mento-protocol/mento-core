@@ -9,7 +9,7 @@ import { TradingLimitHelpers } from "../helpers/TradingLimitHelpers.sol";
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
 
 // Contracts
-import { GoodDollarBaseForkTest } from "../GoodDollar/GoodDollarBaseForkTest.sol";
+import { GoodDollarBaseForkTest } from "../GoodDollar_XDC/GoodDollarBaseForkTest.sol";
 
 contract XDC_GoodDollarSwapForkTest is GoodDollarBaseForkTest(50) {
   using TradingLimitHelpers for *;
@@ -22,10 +22,10 @@ contract XDC_GoodDollarSwapForkTest is GoodDollarBaseForkTest(50) {
   }
 
   function test_swapIn_reserveTokenToGoodDollar() public {
-    uint256 amountIn = 1000 * 1e6;
+    uint256 amountIn = 5000 * 1e6;
 
     uint256 reserveBalanceBefore = reserveToken.balanceOf(address(goodDollarReserve));
-    // uint256 priceBefore = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 priceBefore = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
 
     // Calculate the expected amount of G$ to receive for `amountIn` cUSD
     uint256 expectedAmountOut = broker.getAmountOut(
@@ -54,19 +54,19 @@ contract XDC_GoodDollarSwapForkTest is GoodDollarBaseForkTest(50) {
     });
     vm.stopPrank();
 
-    // uint256 priceAfter = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 priceAfter = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
     uint256 reserveBalanceAfter = reserveToken.balanceOf(address(goodDollarReserve));
 
     assertEq(expectedAmountOut, goodDollarToken.balanceOf(trader));
     assertEq(reserveBalanceBefore + amountIn, reserveBalanceAfter);
-    // assertTrue(priceBefore < priceAfter);
+    assertTrue(priceBefore < priceAfter);
   }
 
   function test_swapIn_goodDollarToReserveToken() public {
-    uint256 amountIn = 1000 * 1e6;
+    uint256 amountIn = 1000 * 1e18;
 
     uint256 reserveBalanceBefore = reserveToken.balanceOf(address(goodDollarReserve));
-    // uint256 priceBefore = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 priceBefore = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
     uint256 expectedAmountOut = broker.getAmountOut(
       address(goodDollarExchangeProvider),
       exchangeId,
@@ -87,18 +87,18 @@ contract XDC_GoodDollarSwapForkTest is GoodDollarBaseForkTest(50) {
       amountIn,
       expectedAmountOut
     );
-    // uint256 priceAfter = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 priceAfter = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
     uint256 reserveBalanceAfter = reserveToken.balanceOf(address(goodDollarReserve));
 
     assertEq(expectedAmountOut, reserveToken.balanceOf(trader));
     assertEq(reserveBalanceBefore - expectedAmountOut, reserveBalanceAfter);
-    // assertTrue(priceAfter < priceBefore);
+    assertTrue(priceAfter < priceBefore);
   }
 
   function test_swapOut_reserveTokenToGoodDollar() public {
-    uint256 amountOut = 1000 * 1e6;
+    uint256 amountOut = 40000000 * 1e18;
     uint256 reserveBalanceBefore = reserveToken.balanceOf(address(goodDollarReserve));
-    // uint256 priceBefore = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 priceBefore = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
     uint256 expectedAmountIn = broker.getAmountIn(
       address(goodDollarExchangeProvider),
       exchangeId,
@@ -119,12 +119,12 @@ contract XDC_GoodDollarSwapForkTest is GoodDollarBaseForkTest(50) {
       amountOut,
       expectedAmountIn
     );
-    // uint256 priceAfter = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 priceAfter = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
     uint256 reserveBalanceAfter = reserveToken.balanceOf(address(goodDollarReserve));
 
     assertEq(amountOut, goodDollarToken.balanceOf(trader));
     assertEq(reserveBalanceBefore + expectedAmountIn, reserveBalanceAfter);
-    // assertTrue(priceBefore < priceAfter);
+    assertTrue(priceBefore < priceAfter);
   }
 
   function test_swapOut_goodDollarToReserveToken() public {
