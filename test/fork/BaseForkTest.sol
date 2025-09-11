@@ -80,9 +80,7 @@ abstract contract BaseForkTest is Test {
       forkId = vm.createFork(vm.envString("XDC_RPC_URL"));
       vm.selectFork(forkId);
     }
-    tradingLimits = new TradingLimitsHarness();
-    trader = makeAddr("trader");
-    if(targetChainId != XDC_ID)  {
+    else {
       fork(targetChainId);
       /// @dev Updating the target fork block every 200 blocks, about ~8 min.
       /// This means that, when running locally, RPC calls will be cached.
@@ -108,6 +106,8 @@ abstract contract BaseForkTest is Test {
       rateFeedDependenciesCount[toRateFeed("USDCEUR")] = 1;
       rateFeedDependenciesCount[toRateFeed("USDCBRL")] = 1;
     }
+    tradingLimits = new TradingLimitsHarness();
+    trader = makeAddr("trader");
   }
 
   // TODO: Broker setup can be removed after the Broker changes have been deployed to Mainnet
