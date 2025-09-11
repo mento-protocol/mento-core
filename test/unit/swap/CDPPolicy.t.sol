@@ -7,10 +7,13 @@ import { ICollateralRegistry } from "contracts/v3/Interfaces/ICollateralRegistry
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 import { console } from "forge-std/console.sol";
-
+import { uints, addresses } from "mento-std/Array.sol";
 import { Test } from "forge-std/Test.sol";
 
 contract CDPPolicyTest is Test {
+  error CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH();
+  error CDPPolicy_INVALID_MAX_REDEMPTION_FEE();
+
   CDPPolicy public policy;
 
   MockERC20 public debtToken6;
@@ -24,7 +27,7 @@ contract CDPPolicyTest is Test {
   address fpmm = makeAddr("fpmm");
 
   function setUp() public {
-    policy = new CDPPolicy();
+    policy = new CDPPolicy(new address[](0), new address[](0), new address[](0), new uint256[](0));
     debtToken6 = new MockERC20("DebtToken6", "DT6", 6);
     collateralToken6 = new MockERC20("CollateralToken6", "CT6", 6);
     debtToken18 = new MockERC20("DebtToken18", "DT18", 18);
@@ -46,6 +49,68 @@ contract CDPPolicyTest is Test {
       abi.encode(redemptionRate)
     );
   }
+
+  function test_constructor_whenArrayLengthsMismatch_shouldRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH.selector));
+    policy = new CDPPolicy(new address[](2), new address[](0), new address[](0), new uint256[](0));
+  }
+
+  function test_constructor_shouldSetCorrectState() public {
+    address[] memory debtTokens = addresses(address(debtToken6), address(debtToken18));
+    address[] memory stabilityPools = addresses(stabilityPool, stabilityPool);
+    address[] memory collateralRegistries = addresses(collateralRegistry, collateralRegistry);
+    uint256[] memory maxRedemptionFees = uints(1e16, 1e17);
+    policy = new CDPPolicy(debtTokens, stabilityPools, collateralRegistries, maxRedemptionFees);
+    assertEq(policy.deptTokenStabilityPool(address(debtToken6)), stabilityPool);
+    assertEq(policy.deptTokenMaxRedemptionFee(address(debtToken6)), 1e16);
+    assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), collateralRegistry);
+    assertEq(policy.deptTokenStabilityPool(address(debtToken18)), stabilityPool);
+    assertEq(policy.deptTokenMaxRedemptionFee(address(debtToken18)), 1e17);
+    assertEq(policy.deptTokenCollateralRegistry(address(debtToken18)), collateralRegistry);
+  }
+
+  function test_setDeptTokenStabilityPool_whenNotOwneri_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("notOwner"));
+    policy.setDeptTokenStabilityPool(address(debtToken6), stabilityPool);
+  }
+
+  function test_setDeptTokenStabilityPool_whenCalledByOwner_shouldSucceed() public {
+    policy.setDeptTokenStabilityPool(address(debtToken6), makeAddr("newStabilityPool"));
+    assertEq(policy.deptTokenStabilityPool(address(debtToken6)), makeAddr("newStabilityPool"));
+  }
+
+  function test_setDeptTokenMaxRedemptionFee_whenNotOwner_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("notOwner"));
+    policy.setDeptTokenMaxRedemptionFee(address(debtToken6), 1e16);
+  }
+
+  function test_setDeptTokenMaxRedemptionFee_whenCalledByOwner_shouldSucceed() public {
+    policy.setDeptTokenMaxRedemptionFee(address(debtToken6), 1e15);
+    assertEq(policy.deptTokenMaxRedemptionFee(address(debtToken6)), 1e15);
+  }
+
+  function test_setDeptTokenMaxRedemptionFee_whenInvalidMaxRedemptionFee_shouldRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_INVALID_MAX_REDEMPTION_FEE.selector));
+    policy.setDeptTokenMaxRedemptionFee(address(debtToken6), 0);
+
+    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_INVALID_MAX_REDEMPTION_FEE.selector));
+    policy.setDeptTokenMaxRedemptionFee(address(debtToken6), 1e19);
+  }
+
+  function test_setDeptTokenCollateralRegistry_whenNotOwner_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("notOwner"));
+    policy.setDeptTokenCollateralRegistry(address(debtToken6), collateralRegistry);
+  }
+
+  function test_setDeptTokenCollateralRegistry_whenCalledByOwner_shouldSucceed() public {
+    policy.setDeptTokenCollateralRegistry(address(debtToken6), makeAddr("newCollateralRegistry"));
+    assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), makeAddr("newCollateralRegistry"));
+  }
+
+
 
   function test_whenPoolPriceAbove() public {
     /*
@@ -162,4 +227,6 @@ contract CDPPolicyTest is Test {
     // console.log("reserve0", reserve0);
     // console.log("reserve1", reserve1 * 1e12);
   }
+
+  function test_fuzz_amountCalculationWhenToken0IsDebt(uint256 reserve0, uint256 reserve1, uint256 oracleNum) public {
 }

@@ -2,20 +2,37 @@
 pragma solidity 0.8.24;
 
 import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
-import { ILiquidityPolicy } from "./Interfaces/ILiquidityPolicy.sol";
+import { ICDPPolicy } from "./Interfaces/ICDPPolicy.sol";
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { ICollateralRegistry } from "./Interfaces/ICollateralRegistry.sol";
 
 import { console } from "forge-std/console.sol";
 
-contract CDPPolicy is ILiquidityPolicy, Ownable {
+contract CDPPolicy is ICDPPolicy, Ownable {
   mapping(address => address) public deptTokenStabilityPool;
   mapping(address => address) public deptTokenCollateralRegistry;
   // Fees are in 18 decimals in LiquityV2 1e18 = 100%
   mapping(address => uint256) public deptTokenMaxRedemptionFee;
 
-  constructor() Ownable() {}
+  constructor(
+    address[] memory debtTokens,
+    address[] memory stabilityPools,
+    address[] memory collateralRegistries,
+    uint256[] memory maxRedemptionFees
+  ) Ownable() {
+    if (
+      debtTokens.length != stabilityPools.length ||
+      debtTokens.length != collateralRegistries.length ||
+      debtTokens.length != maxRedemptionFees.length
+    ) revert CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH();
+
+    for (uint256 i = 0; i < debtTokens.length; i++) {
+      _setDeptTokenStabilityPool(debtTokens[i], stabilityPools[i]);
+      _setDeptTokenMaxRedemptionFee(debtTokens[i], maxRedemptionFees[i]);
+      _setDeptTokenCollateralRegistry(debtTokens[i], collateralRegistries[i]);
+    }
+  }
 
   /* ============================================================ */
   /* ===================== View Functions ======================= */
@@ -30,15 +47,15 @@ contract CDPPolicy is ILiquidityPolicy, Ownable {
   /* ============================================================ */
 
   function setDeptTokenStabilityPool(address debtToken, address stabilityPool) external onlyOwner {
-    deptTokenStabilityPool[debtToken] = stabilityPool;
+    _setDeptTokenStabilityPool(debtToken, stabilityPool);
   }
 
   function setDeptTokenMaxRedemptionFee(address debtToken, uint256 maxRedemptionFee) external onlyOwner {
-    deptTokenMaxRedemptionFee[debtToken] = maxRedemptionFee;
+    _setDeptTokenMaxRedemptionFee(debtToken, maxRedemptionFee);
   }
 
   function setDeptTokenCollateralRegistry(address debtToken, address collateralRegistry) external onlyOwner {
-    deptTokenCollateralRegistry[debtToken] = collateralRegistry;
+    _setDeptTokenCollateralRegistry(debtToken, collateralRegistry);
   }
 
   function determineAction(LQ.Context memory ctx) external view returns (bool shouldAct, LQ.Action memory action) {
@@ -52,6 +69,19 @@ contract CDPPolicy is ILiquidityPolicy, Ownable {
   /* ============================================================ */
   /* =================== Internal Functions ===================== */
   /* ============================================================ */
+
+  function _setDeptTokenStabilityPool(address debtToken, address stabilityPool) internal {
+    deptTokenStabilityPool[debtToken] = stabilityPool;
+  }
+
+  function _setDeptTokenMaxRedemptionFee(address debtToken, uint256 maxRedemptionFee) internal {
+    if (maxRedemptionFee > 1e18 || maxRedemptionFee == 0) revert CDPPolicy_INVALID_MAX_REDEMPTION_FEE();
+    deptTokenMaxRedemptionFee[debtToken] = maxRedemptionFee;
+  }
+
+  function _setDeptTokenCollateralRegistry(address debtToken, address collateralRegistry) internal {
+    deptTokenCollateralRegistry[debtToken] = collateralRegistry;
+  }
 
   function _handlePoolPriceAbove(
     LQ.Context memory ctx
@@ -158,70 +188,28 @@ contract CDPPolicy is ILiquidityPolicy, Ownable {
   /// take dept token from fpmm for colateral token from stabilityPool/redemptions
   function _handleContraction(
     LQ.Context memory ctx,
-    uint256 amountIn, // collateral token
+    uint256 amountIn, // collateral tokken
     uint256 amountOut // debt token
   ) internal view returns (LQ.Action memory action) {
     address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
-    address collateralToken = ctx.isToken0Debt ? ctx.token1 : ctx.token0;
-    address stabilityPool = deptTokenStabilityPool[debtToken];
     address collateralRegistry = deptTokenCollateralRegistry[debtToken];
 
-    // TODO: check if call StabilityPool.getCollateralBalance() is needed instead
-
-    // First we get the amount in for the fpmm of collateral in the stability pool
-    uint256 amountInFromStabilityPool = IERC20(collateralToken).balanceOf(address(stabilityPool));
-    uint256 amountInFromRedemption;
-
-    if (amountInFromStabilityPool >= amountIn) {
-      amountInFromStabilityPool = amountIn;
-      amountInFromRedemption = 0;
-    } else {
-      // if the collateral amount in the stabilityPool is less than our target amountIn we try to get additional collateral by redeeming debt tokens
-      amountInFromRedemption = amountIn - amountInFromStabilityPool;
-    }
-
-    console.log("amountInFromStabilityPool", amountInFromStabilityPool);
-    console.log("amountInFromRedemption", amountInFromRedemption);
-
-    uint256 amountOutForStabilityPool; // amount of stable to pay to the stability pool
-    if (amountInFromStabilityPool > 0) {
-      if (ctx.isToken0Debt) {
-        // token1 to token0
-        amountOutForStabilityPool = (amountInFromStabilityPool * ctx.prices.oracleDen) / ctx.prices.oracleNum;
-        amountOutForStabilityPool = LQ.scaleFromTo(amountOutForStabilityPool, ctx.token1Dec, ctx.token0Dec);
-      } else {
-        // token0 to token1
-        amountOutForStabilityPool = (amountInFromStabilityPool * ctx.prices.oracleNum) / ctx.prices.oracleDen;
-        amountOutForStabilityPool = LQ.scaleFromTo(amountOutForStabilityPool, ctx.token0Dec, ctx.token1Dec);
-      }
-      // TODO: Double check the order of operations here, and when does the incentive needs to be applied
-      amountOutForStabilityPool =
-        (amountOutForStabilityPool * (LQ.BASIS_POINTS_DENOMINATOR + ctx.incentiveBps)) /
-        LQ.BASIS_POINTS_DENOMINATOR;
-    }
-
-    uint256 targetAmountOutForRedemption = amountOut - amountOutForStabilityPool;
-    uint256 amountToRedeem;
-    if (amountInFromRedemption > 0) {
-      amountToRedeem = calculateAmountToRedeem(targetAmountOutForRedemption, debtToken, collateralRegistry);
-    }
-
-    amountOut = amountOutForStabilityPool + amountToRedeem;
+    uint256 amountToRedeem = calculateAmountToRedeem(amountOut, debtToken, collateralRegistry);
 
     action.pool = ctx.pool;
     action.dir = LQ.Direction.Expand;
     action.liquiditySource = LQ.LiquiditySource.CDP;
 
     if (ctx.isToken0Debt) {
-      action.amount0Out = amountOut;
+      action.amount0Out = amountToRedeem;
       action.amount1Out = 0;
     } else {
       action.amount0Out = 0;
-      action.amount1Out = amountOut;
+      action.amount1Out = amountToRedeem;
     }
-    action.inputAmount = amountIn; // this value is not 100% accurate as of now as it is the target amount and not updated based on what the conversion rate for redemptions is
+    action.inputAmount = amountIn; // this value is not accurate as of now as it is the target amount and not updated based on what the conversion rate for redemptions is
     action.incentiveBps = ctx.incentiveBps;
-    action.data = abi.encode(""); // TODO: add data so the Strategy knows how much is payed to the stability Pool etc.might be derivable from the amount taken from the fpmm for the stability pool rest is for redmption
+    action.data = abi.encode("");
   }
 
   function calculateAmountToRedeem(
@@ -231,17 +219,14 @@ contract CDPPolicy is ILiquidityPolicy, Ownable {
   ) internal view returns (uint256 amountToRedeem) {
     // TODO: for this calculation we need a parameter uint256 constant REDEMPTION_BETA = 1; from the Constants.sol file
     // Since this value is currently set to 1 we can ignore it but we should add a way of querying it.
+    // TODO: this depends on how upgradeability on the liquityV2 contract will be implemented
     // formula for max amount that can be redeemed given the max fee we are willing to pay:
     // amountToRedeem = totalSupply * REDEMPTION_BETA * (maxFee - decayedBaseFee)
     uint256 decayedBaseFee = ICollateralRegistry(collateralRegistry).getRedemptionRateWithDecay();
-    console.log("decayedBaseFee", decayedBaseFee);
     uint256 totalDebtTokenSupply = IERC20(debtToken).totalSupply();
-    console.log("totalDebtTokenSupply", totalDebtTokenSupply);
 
     uint256 maxRedemptionFee = deptTokenMaxRedemptionFee[debtToken];
-    console.log("maxRedemptionFee", maxRedemptionFee);
     uint256 maxAmountToRedeem = (totalDebtTokenSupply * (maxRedemptionFee - decayedBaseFee)) / 1e18;
-    console.log("maxAmountToRedeem", maxAmountToRedeem);
 
     if (targetAmountOutForRedemption > maxAmountToRedeem) {
       amountToRedeem = maxAmountToRedeem;
