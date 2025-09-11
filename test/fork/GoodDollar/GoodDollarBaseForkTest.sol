@@ -29,20 +29,11 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   using TradingLimitHelpers for *;
 
   // Addresses
-  // address constant AVATAR_ADDRESS = 0x495d133B938596C9984d462F007B676bDc57eCEC;
-  // address constant CUSD_ADDRESS = 0x765DE816845861e75A25fCA122bb6898B8B1282a;
-  // address constant GOOD_DOLLAR_ADDRESS = 0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A;
-  // address constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
-  address AVATAR_ADDRESS = vm.envAddress("AVATAR");
-  address CUSD_ADDRESS = vm.envAddress("CUSD");
-  address GOOD_DOLLAR_ADDRESS = vm.envAddress("GOODDOLLAR");
-  address REGISTRY_ADDRESS = vm.envAddress("REGISTRY");
-  address EXCHANGEPROVIDER_ADDRESS = vm.envAddress("EXCHANGEPROVIDER");
-  address EXPANSIONCONTROLLER_ADDRESS = vm.envAddress("EXPANSIONCONTROLLER");
-  address RESERVE_ADDRESS = vm.envAddress("RESERVE");
-  address BROKER_ADDRESS = vm.envAddress("BROKER");
-
-  address ownerAddress = vm.envAddress("PUBLICK_KEY");
+  address constant AVATAR_ADDRESS = 0x495d133B938596C9984d462F007B676bDc57eCEC;
+  address constant CUSD_ADDRESS = 0x765DE816845861e75A25fCA122bb6898B8B1282a;
+  address constant GOOD_DOLLAR_ADDRESS = 0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A;
+  address constant REGISTRY_ADDRESS = 0x000000000000000000000000000000000000ce10;
+  address ownerAddress;
   address distributionHelperAddress = makeAddr("distributionHelper");
 
   // GoodDollar Relaunch Config
@@ -78,20 +69,17 @@ contract GoodDollarBaseForkTest is BaseForkTest {
     goodDollarToken = IGoodDollar(GOOD_DOLLAR_ADDRESS);
 
     // Contracts
-    goodDollarExchangeProvider = GoodDollarExchangeProvider(EXCHANGEPROVIDER_ADDRESS);
-    expansionController = GoodDollarExpansionController(EXPANSIONCONTROLLER_ADDRESS);
+    goodDollarExchangeProvider = new GoodDollarExchangeProvider(false);
+    expansionController = new GoodDollarExpansionController(false);
     // deployCode() hack to deploy solidity v0.5 reserve contract from a v0.8 contract
-    goodDollarReserve = IReserve(RESERVE_ADDRESS);
-    broker = Broker(BROKER_ADDRESS);
+    goodDollarReserve = IReserve(deployCode("Reserve", abi.encode(true)));
 
     // Addresses
-    // ownerAddress = makeAddr("owner");
+    ownerAddress = makeAddr("owner");
 
     // Initialize GoodDollarExchangeProvider
     configureReserve();
-    if(targetChainId != XDC_ID) {
-      configureBroker();
-    }
+    configureBroker();
     configureGoodDollarExchangeProvider();
     configureTokens();
     configureExpansionController();

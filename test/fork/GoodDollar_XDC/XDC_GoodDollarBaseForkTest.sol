@@ -23,7 +23,7 @@ import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarEx
 import { TradingLimitHelpers } from "../../fork/helpers/TradingLimitHelpers.sol";
 
 uint256 constant XDC_ID = 50;
-contract GoodDollarBaseForkTest is BaseForkTest {
+contract XDC_GoodDollarBaseForkTest is BaseForkTest {
   using FixidityLib for FixidityLib.Fraction;
   using TokenHelpers for *;
   using TradingLimitHelpers for *;

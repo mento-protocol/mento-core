@@ -75,14 +75,11 @@ abstract contract BaseForkTest is Test {
   mapping(address rateFeed => uint8 count) rateFeedDependenciesCount;
 
   function setUp() public virtual {
-    // uint256 forkId;
-    // if(targetChainId == XDC_ID) {
-    //   console.log("Mike1 : ");
-    //   forkId = vm.createFork("https://erpc.xinfin.network");
-    //   vm.selectFork(forkId);
-    //   console.log("Mike : ", forkId);
-    // }
-
+    uint256 forkId;
+    if(targetChainId == XDC_ID) {
+      forkId = vm.createFork(vm.envString("XDC_RPC_URL"));
+      vm.selectFork(forkId);
+    }
     tradingLimits = new TradingLimitsHarness();
     trader = makeAddr("trader");
     if(targetChainId != XDC_ID)  {
@@ -93,18 +90,13 @@ abstract contract BaseForkTest is Test {
       // The precompile handler needs to be reinitialized after forking.
       __CeloPrecompiles_init();
 
-      console.log("Mike3 : ");
       broker = IBroker(lookup("Broker"));
-      console.log("Mike31 : ");
       biPoolManager = IBiPoolManager(broker.exchangeProviders(0));
-      console.log("Mike32 : ");
       sortedOracles = ISortedOracles(lookup("SortedOracles"));
-      console.log("Mike33 : ");
       governance = lookup("Governance");
       breakerBox = IBreakerBox(address(sortedOracles.breakerBox()));
       vm.label(address(breakerBox), "BreakerBox");
       mentoReserve = IReserve(lookup("Reserve"));
-      console.log("Mike4 : ");
 
       setUpBroker();
 

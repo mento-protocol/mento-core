@@ -11,9 +11,9 @@ import { TradingLimitHelpers } from "../helpers/TradingLimitHelpers.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 
 // Contracts
-import { GoodDollarBaseForkTest } from "../GoodDollar/GoodDollarBaseForkTest.sol";
+import { XDC_GoodDollarBaseForkTest, XDC_ID } from "../GoodDollar_XDC/XDC_GoodDollarBaseForkTest.sol";
 
-contract XDC_GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest(50) {
+contract XDC_GoodDollarTradingLimitsForkTest is XDC_GoodDollarBaseForkTest(XDC_ID) {
   using TradingLimitHelpers for *;
   using TokenHelpers for *;
 
