@@ -18,7 +18,7 @@ contract ReserveLiquidityStrategyHooksTest is ReserveLiquidityStrategyBaseTest {
     strategy.setTrustedPool(pool1, true);
     
     // Setup token metadata mock
-    _mockFPMMMetadata(pool1, token0, token1);
+    _mockFPMMTokens(pool1, token0, token1);
   }
 
   /* ============================================================ */
