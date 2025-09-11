@@ -36,7 +36,7 @@ or run all tests for a chain:
 - `$ env FOUNDRY_PROFILE=fork-tests forge test --match-contract Alfajores`
 */
 
-import { CELO_ID, ALFAJORES_ID} from "mento-std/Constants.sol";
+import { CELO_ID, ALFAJORES_ID } from "mento-std/Constants.sol";
 import { uints } from "mento-std/Array.sol";
 import { ChainForkTest } from "./ChainForkTest.sol";
 import { ExchangeForkTest } from "./ExchangeForkTest.sol";
@@ -46,8 +46,6 @@ import { GoodDollarSwapForkTest } from "./GoodDollar/SwapForkTest.sol";
 import { GoodDollarExpansionForkTest } from "./GoodDollar/ExpansionForkTest.sol";
 import { LockingUpgradeForkTest } from "./upgrades/LockingUpgradeForkTest.sol";
 import { GHSRenameForkTest } from "./GHSRenameForkTest.sol";
-
-uint256 constant XDC_ID = 50;
 
 contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(17)) {}
 

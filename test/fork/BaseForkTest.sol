@@ -23,8 +23,6 @@ import { Broker } from "contracts/swap/Broker.sol";
 import { TradingLimitsHarness } from "test/utils/harnesses/TradingLimitsHarness.sol";
 import { toRateFeed } from "./helpers/misc.sol";
 
-import "forge-std/console.sol";
-
 uint256 constant XDC_ID = 50;
 interface IMint {
   function mint(address, uint256) external;

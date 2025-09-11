@@ -16,13 +16,12 @@ import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 
 // Contracts
-import { BaseForkTest } from "../BaseForkTest.sol";
+import { BaseForkTest, XDC_ID } from "../BaseForkTest.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
 import { TradingLimitHelpers } from "../../fork/helpers/TradingLimitHelpers.sol";
 
-uint256 constant XDC_ID = 50;
 contract GoodDollarBaseForkTest is BaseForkTest {
   using FixidityLib for FixidityLib.Fraction;
   using TokenHelpers for *;
@@ -104,38 +103,31 @@ contract GoodDollarBaseForkTest is BaseForkTest {
     uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
     collateralAssetDailySpendingRatios[0] = 1e24;
 
-    if(targetChainId != XDC_ID) {
-      vm.startPrank(ownerAddress);  
-    }
-    else {
-      vm.startPrank(AVATAR_ADDRESS);  
-    }
-    if(targetChainId != XDC_ID) {
-      goodDollarReserve.initialize({
-        registryAddress: REGISTRY_ADDRESS,
-        _tobinTaxStalenessThreshold: 600, // deprecated
-        _spendingRatioForCelo: 1000000000000000000000000,
-        _frozenGold: 0,
-        _frozenDays: 0,
-        _assetAllocationSymbols: initialAssetAllocationSymbols,
-        _assetAllocationWeights: initialAssetAllocationWeights,
-        _tobinTax: tobinTax,
-        _tobinTaxReserveRatio: tobinTaxReserveRatio,
-        _collateralAssets: collateralAssets,
-        _collateralAssetDailySpendingRatios: collateralAssetDailySpendingRatios
-      });
-      goodDollarReserve.addToken(address(goodDollarToken));
-      goodDollarReserve.addExchangeSpender(address(broker));
-      require(
-        goodDollarReserve.isStableAsset(address(goodDollarToken)),
-        "GoodDollar is not a stable token in the reserve"
-      );
-      require(
-        goodDollarReserve.isCollateralAsset(address(reserveToken)),
-        "ReserveToken is not a collateral asset in the reserve"
-      );
-    }
+    vm.startPrank(ownerAddress);  
+    goodDollarReserve.initialize({
+      registryAddress: REGISTRY_ADDRESS,
+      _tobinTaxStalenessThreshold: 600, // deprecated
+      _spendingRatioForCelo: 1000000000000000000000000,
+      _frozenGold: 0,
+      _frozenDays: 0,
+      _assetAllocationSymbols: initialAssetAllocationSymbols,
+      _assetAllocationWeights: initialAssetAllocationWeights,
+      _tobinTax: tobinTax,
+      _tobinTaxReserveRatio: tobinTaxReserveRatio,
+      _collateralAssets: collateralAssets,
+      _collateralAssetDailySpendingRatios: collateralAssetDailySpendingRatios
+    });
+    goodDollarReserve.addToken(address(goodDollarToken));
+    goodDollarReserve.addExchangeSpender(address(broker));
     vm.stopPrank();
+    require(
+      goodDollarReserve.isStableAsset(address(goodDollarToken)),
+      "GoodDollar is not a stable token in the reserve"
+    );
+    require(
+      goodDollarReserve.isCollateralAsset(address(reserveToken)),
+      "ReserveToken is not a collateral asset in the reserve"
+    );
   }
 
   function configureTokens() public {
@@ -166,15 +158,13 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   }
 
   function configureGoodDollarExchangeProvider() public {
-    if(targetChainId != XDC_ID) {
-      vm.prank(ownerAddress);
-      goodDollarExchangeProvider.initialize(
-        address(broker),
-        address(goodDollarReserve),
-        address(expansionController),
-        AVATAR_ADDRESS
-      );
-    }
+    vm.prank(ownerAddress);
+    goodDollarExchangeProvider.initialize(
+      address(broker),
+      address(goodDollarReserve),
+      address(expansionController),
+      AVATAR_ADDRESS
+    );
 
     poolExchange = IBancorExchangeProvider.PoolExchange({
       reserveAsset: address(reserveToken),
@@ -190,15 +180,13 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   }
 
   function configureExpansionController() public {
-    if(targetChainId != XDC_ID) {
-      vm.prank(ownerAddress);
-      expansionController.initialize({
-        _goodDollarExchangeProvider: address(goodDollarExchangeProvider),
-        _distributionHelper: distributionHelperAddress,
-        _reserve: address(goodDollarReserve),
-        _avatar: AVATAR_ADDRESS
-      });
-    }
+    vm.prank(ownerAddress);
+    expansionController.initialize({
+      _goodDollarExchangeProvider: address(goodDollarExchangeProvider),
+      _distributionHelper: distributionHelperAddress,
+      _reserve: address(goodDollarReserve),
+      _avatar: AVATAR_ADDRESS
+    });
 
     vm.prank(AVATAR_ADDRESS);
     expansionController.setExpansionConfig({
