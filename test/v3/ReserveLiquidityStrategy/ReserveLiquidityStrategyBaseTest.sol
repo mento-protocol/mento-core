@@ -65,6 +65,11 @@ contract ReserveLiquidityStrategyBaseTest is Test {
     vm.mockCall(_pool, metadataCalldata, abi.encode(1e18, 1e18, 100e18, 200e18, _token0, _token1));
   }
 
+  function _mockFPMMTokens(address _pool, address _token0, address _token1) internal {
+    bytes memory metadataCalldata = abi.encodeWithSelector(IFPMM.tokens.selector);
+    vm.mockCall(_pool, metadataCalldata, abi.encode(_token0, _token1));
+  }
+
   function _mockFPMMRebalance(address _pool) internal {
     bytes memory rebalanceCalldata = abi.encodeWithSelector(IFPMM.rebalance.selector);
     vm.mockCall(_pool, rebalanceCalldata, abi.encode());

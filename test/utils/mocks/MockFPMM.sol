@@ -33,6 +33,10 @@ contract MockFPMM {
     return (1e18, 1e18, 1e18, 1e18, diffBps, poolAbove);
   }
 
+  function tokens() external view returns (address, address) {
+    return (token0, token1);
+  }
+
   function setDiffBps(uint256 _diffBps, bool _poolAbove) external {
     diffBps = _diffBps;
     poolAbove = _poolAbove;

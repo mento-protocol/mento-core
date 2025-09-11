@@ -175,7 +175,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
     LQ.Direction direction,
     bool isToken0Debt
   ) internal {
-    (, , , , address token0, address token1) = IFPMM(pool).metadata();
+    (address token0, address token1) = IFPMM(pool).tokens();
     
     address tokenIn;
     address tokenOut;
