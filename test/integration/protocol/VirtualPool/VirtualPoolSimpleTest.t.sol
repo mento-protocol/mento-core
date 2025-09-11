@@ -17,8 +17,8 @@ contract VirtualPoolSimpleTest is VirtualPoolBaseIntegration {
     fpmm = IRPool(_deployFPMM(address(celoToken), address(cUSDToken), cUSD_CELO_referenceRateFeedID));
     _addInitialLiquidity(address(celoToken), address(cUSDToken), address(fpmm));
 
-    cUSD_cEUR_vp = IRPool(vpFactory.deployVirtualPool(address(broker), address(biPoolManager), pair_cUSD_cEUR_ID));
-    cUSD_celo_vp = IRPool(vpFactory.deployVirtualPool(address(broker), address(biPoolManager), pair_cUSD_CELO_ID));
+    cUSD_cEUR_vp = IRPool(vpFactory.deployVirtualPool(address(biPoolManager), pair_cUSD_cEUR_ID));
+    cUSD_celo_vp = IRPool(vpFactory.deployVirtualPool(address(biPoolManager), pair_cUSD_CELO_ID));
   }
 
   function test_mixedSwapRoutesV3V2_shouldWork() public {
