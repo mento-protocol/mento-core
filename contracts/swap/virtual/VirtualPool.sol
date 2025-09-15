@@ -89,7 +89,7 @@ contract VirtualPool is IRPool, ReentrancyGuard {
   /// @inheritdoc IRPool
   function getReserves() public view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast) {
     IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(EXCHANGE_PROVIDER).exchanges(EXCHANGE_ID);
-    return (exchange.bucket0, exchange.bucket1, block.timestamp);
+    return (exchange.bucket0, exchange.bucket1, exchange.lastBucketUpdate);
   }
 
   /// @inheritdoc IRPool
@@ -144,31 +144,18 @@ contract VirtualPool is IRPool, ReentrancyGuard {
   /// @inheritdoc IRPool
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     require(amount0Out | amount1Out != 0, "VirtualPool: INSUFFICIENT_OUTPUT_AMOUNT");
-    // Swaps that go through the router seem to always have one of the 2 amounts be zero.
-    require(amount0Out == 0 || amount1Out == 0, "VirtualPool: Must swap through Router");
     // Flash swaps are not supported.
-    require(data.length == 0, "VirtualPool: Must swap through Router");
-    require(to != TOKEN0 && to != TOKEN1, "VirtualPool: INVALID_TO_ADDRESS");
+    require(data.length == 0 && (amount0Out == 0 || amount1Out == 0), "VirtualPool: MUST_SWAP_THROUGH_ROUTER");
+    require(to != TOKEN0 && to != TOKEN1 && to != address(this), "VirtualPool: INVALID_TO_ADDRESS");
 
-    (address tokenIn, address tokenOut) = amount0Out == 0 ? (TOKEN0, TOKEN1) : (TOKEN1, TOKEN0);
-    uint256 amountIn = IERC20(tokenIn).balanceOf(address(this));
+    uint256 amount0In = IERC20(TOKEN0).balanceOf(address(this));
+    uint256 amount1In = IERC20(TOKEN1).balanceOf(address(this));
+    (address tokenIn, address tokenOut, uint256 amountInMax, uint256 amountOut) = amount0Out == 0
+      ? (TOKEN0, TOKEN1, amount0In, amount1Out)
+      : (TOKEN1, TOKEN0, amount1In, amount0Out);
 
-    uint256 amountOut = BROKER.swapIn(EXCHANGE_PROVIDER, EXCHANGE_ID, tokenIn, tokenOut, amountIn, 0);
+    BROKER.swapOut(EXCHANGE_PROVIDER, EXCHANGE_ID, tokenIn, tokenOut, amountOut, amountInMax);
     IERC20(tokenOut).safeTransfer(to, amountOut);
-  }
-
-  /* ========== INTERNAL FUNCTIONS ========== */
-
-  /**
-   * @notice Sorts two tokens by their address value.
-   * @param tokenA The address of one token (needs to be different from address(0)).
-   * @param tokenB The address of the other token (needs to be different from tokenA and address(0)).
-   * @return _token0 The address of the first token.
-   * @return _token1 The address of the second token.
-   */
-  function _sortTokens(address tokenA, address tokenB) public pure returns (address _token0, address _token1) {
-    require(tokenA != tokenB, "VirtualPool: IDENTICAL_TOKEN_ADDRESSES");
-    (_token0, _token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-    require(_token0 != address(0), "VirtualPool: ZERO_ADDRESS");
+    emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
   }
 }

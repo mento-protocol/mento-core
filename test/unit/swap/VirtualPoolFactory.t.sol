@@ -2,7 +2,6 @@
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
-import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { VirtualPoolFactory } from "contracts/swap/virtual/VirtualPoolFactory.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
@@ -101,11 +100,6 @@ contract VirtualPoolFactoryTest is Test {
 
   function _bpsToFraction(uint256 bps) internal pure returns (FixidityLib.Fraction memory) {
     return FixidityLib.newFixedFraction(bps, 10000);
-  }
-
-  function _mockBrokerOutput(uint256 amountOut) internal {
-    vm.mockCall(broker, abi.encodeWithSelector(IBroker.getAmountOut.selector), abi.encode(amountOut));
-    vm.mockCall(broker, abi.encodeWithSelector(IBroker.swapIn.selector), abi.encode(amountOut));
   }
 
   function _setupMocks() internal {

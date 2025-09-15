@@ -67,24 +67,6 @@ interface IFPMM is IRPool {
   /* ========== EVENTS ========== */
 
   /**
-   * @notice Emitted when tokens are swapped
-   * @param sender Address that initiated the swap
-   * @param amount0In Amount of token0 sent to the pool
-   * @param amount1In Amount of token1 sent to the pool
-   * @param amount0Out Amount of token0 sent to the receiver
-   * @param amount1Out Amount of token1 sent to the receiver
-   * @param to Address receiving the output tokens
-   */
-  event Swap(
-    address indexed sender,
-    uint256 amount0In,
-    uint256 amount1In,
-    uint256 amount0Out,
-    uint256 amount1Out,
-    address indexed to
-  );
-
-  /**
    * @notice Emitted when liquidity is added to the pool
    * @param sender Address that initiated the mint
    * @param amount0 Amount of token0 added
