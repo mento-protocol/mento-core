@@ -5,8 +5,6 @@ pragma solidity ^0.8;
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 
 contract FPMMGetAmountOutTest is FPMMBaseTest {
-  address public protocolFeeRecipient = makeAddr("PROTOCOL_FEE_RECIPIENT");
-
   function setUp() public override {
     super.setUp();
   }

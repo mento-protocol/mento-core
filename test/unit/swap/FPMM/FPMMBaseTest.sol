@@ -21,6 +21,7 @@ contract FPMMBaseTest is Test {
   address public breakerBox = makeAddr("BreakerBox");
   address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
   address public owner = makeAddr("OWNER");
+  address public protocolFeeRecipient = makeAddr("PROTOCOL_FEE_RECIPIENT");
 
   function setUp() public virtual {
     fpmm = new FPMM(false);
@@ -43,6 +44,13 @@ contract FPMMBaseTest is Test {
     deal(token1, ALICE, 1_000 * 10 ** decimals1);
     deal(token0, BOB, 1_000 * 10 ** decimals0);
     deal(token1, BOB, 1_000 * 10 ** decimals1);
+
+    _;
+  }
+
+  modifier withProtocolFee(uint256 _protocolFee, address _protocolFeeRecipient) {
+    vm.prank(owner);
+    fpmm.setProtocolFee(_protocolFee, _protocolFeeRecipient);
 
     _;
   }

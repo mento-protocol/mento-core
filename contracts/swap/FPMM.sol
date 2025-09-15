@@ -15,6 +15,8 @@ import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 
+import { console } from "forge-std/console.sol";
+
 /**
  * @title Fixed Price Market Maker (FPMM)
  * @author Mento Labs
@@ -408,8 +410,23 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateDenominator
     );
 
+    console.log("\n");
+    console.log("=== Before sending tokens out ===");
+    console.log("reserve0", IERC20($.token0).balanceOf(address(this)));
+    console.log("reserve1", IERC20($.token1).balanceOf(address(this)));
+    console.log("initialReserveValue", swapData.initialReserveValue);
+    console.log("amount0Out", amount0Out);
+    console.log("amount1Out", amount1Out);
+    console.log("\n");
+
     if (amount0Out > 0) IERC20($.token0).safeTransfer(to, amount0Out);
     if (amount1Out > 0) IERC20($.token1).safeTransfer(to, amount1Out);
+
+    console.log("\n");
+    console.log("=== After sending tokens out, before pay back ===");
+    console.log("reserve0", IERC20($.token0).balanceOf(address(this)));
+    console.log("reserve1", IERC20($.token1).balanceOf(address(this)));
+    console.log("\n");
 
     if (data.length > 0) IFPMMCallee(to).hook(msg.sender, amount0Out, amount1Out, data);
 
@@ -424,9 +441,22 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       : 0;
     require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
 
+    console.log("actual amount0In", swapData.amount0In);
+    console.log("actual amount1In", swapData.amount1In);
+
+    console.log("=== After loan repayment, before paying fees ===");
+    console.log("reserve0", IERC20($.token0).balanceOf(address(this)));
+    console.log("reserve1", IERC20($.token1).balanceOf(address(this)));
+    console.log("\n");
+
     if ($.protocolFee > 0) {
       _transferProtocolFee(swapData.amount0In, swapData.amount1In);
     }
+
+    console.log("=== After paying fees ===");
+    console.log("reserve0", IERC20($.token0).balanceOf(address(this)));
+    console.log("reserve1", IERC20($.token1).balanceOf(address(this)));
+    console.log("\n");
 
     _update();
 
@@ -640,11 +670,13 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     if (amount0In > 0) {
       uint256 feeAmount = (amount0In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
+      console.log("\t > protocol fee in amount0 = ", feeAmount);
       IERC20($.token0).safeTransfer($.protocolFeeRecipient, feeAmount);
     }
 
     if (amount1In > 0) {
       uint256 feeAmount = (amount1In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
+      console.log("\t > protocol fee in amount1", feeAmount);
       IERC20($.token1).safeTransfer($.protocolFeeRecipient, feeAmount);
     }
   }
@@ -749,6 +781,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateNumerator
     );
 
+    console.log("==expectedAmount0In", expectedAmount0In);
+
     // TODO: think about rounding here
     uint256 expectedAmount1In = convertWithRate(
       swapData.amount0Out,
@@ -758,12 +792,17 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateDenominator
     );
 
+    console.log("==expectedAmount1In", expectedAmount1In);
+
     uint256 fee0 = (expectedAmount0In * BASIS_POINTS_DENOMINATOR) /
       (BASIS_POINTS_DENOMINATOR - $.lpFee) -
       expectedAmount0In;
     uint256 fee1 = (expectedAmount1In * BASIS_POINTS_DENOMINATOR) /
       (BASIS_POINTS_DENOMINATOR - $.lpFee) -
       expectedAmount1In;
+
+    console.log("==fee0", fee0);
+    console.log("==fee1", fee1);
 
     uint256 fee0InToken1 = convertWithRate(
       fee0,
@@ -772,12 +811,24 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateNumerator,
       swapData.rateDenominator
     );
+    console.log("== fee0InToken1", fee0InToken1);
     uint256 totalFeeInToken1 = fee0InToken1 + fee1;
+    console.log("== totalFeeInToken1", totalFeeInToken1);
     // convert to 18 decimals
     totalFeeInToken1 = totalFeeInToken1 * (1e18 / $.decimals1);
+    console.log("== totalFeeInToken1In18Decimals", totalFeeInToken1);
 
     // Check the reserve value is not decreased
     uint256 expectedReserveValue = swapData.initialReserveValue + totalFeeInToken1;
+    console.log("\n=== checks ===");
+    console.log("\t > initialReserveValue = ", swapData.initialReserveValue);
+    console.log("\t > expectedReserveValue = ", expectedReserveValue);
+    console.log("\t > newReserveValue = ", newReserveValue);
+    if (newReserveValue < expectedReserveValue) {
+      console.log("\t > missing additional = ", expectedReserveValue - newReserveValue);
+    } else {
+      console.log("\t > surplus additional = ", newReserveValue - expectedReserveValue);
+    }
     require(newReserveValue >= expectedReserveValue, "FPMM: RESERVE_VALUE_DECREASED");
   }
 }

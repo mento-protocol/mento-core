@@ -8,6 +8,8 @@ import { ReentrancyExploiter } from "./helpers/ReentrancyExploiter.sol";
 import { MockExchange } from "./helpers/MockExchange.sol";
 import { ArbitrageFlashLoanReceiver } from "./helpers/ArbitrageFlashLoanReceiver.sol";
 
+import { console2 as console } from "forge-std/console2.sol";
+
 contract FPMMFlashLoanTest is FPMMBaseTest {
   address public flashLoanReceiver;
   MockExchange public exchange;
@@ -53,6 +55,43 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     bytes memory customData = abi.encode("Custom flash loan data");
 
     uint256 swapFee0 = (flashLoanAmount * 10_000) / (10_000 - 30) - flashLoanAmount;
+
+    // Set to repay with extra fee
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee0, 0);
+
+    fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), customData);
+
+    assertEq(FlashLoanReceiver(flashLoanReceiver).sender(), address(this));
+    assertEq(FlashLoanReceiver(flashLoanReceiver).amount0Received(), flashLoanAmount);
+    assertEq(FlashLoanReceiver(flashLoanReceiver).amount1Received(), 0);
+    assertEq(FlashLoanReceiver(flashLoanReceiver).receivedData(), customData);
+
+    // Verify FPMM reserves increased by the extra repaid amount
+    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
+    assertEq(fpmm.reserve1(), 200e18); // Unchanged
+  }
+
+  function test_swap_whenBorrowingToken0WithProtocolFee_shouldTransferAndRepayWithFee()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withProtocolFee(20, protocolFeeRecipient)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    setupMockOracleRate(1e18, 1e18)
+  {
+    uint256 flashLoanAmount = 50e18;
+    bytes memory customData = abi.encode("Custom flash loan data");
+
+    uint256 swapFee0 = (flashLoanAmount * 10_000) / (10_000 - 30) - flashLoanAmount;
+    uint256 protocolFee0 = (flashLoanAmount * 10_000) / (10_000 - 20) - flashLoanAmount;
+    uint256 combinedFee = (flashLoanAmount * 10_000) / (10_000 - 50) - flashLoanAmount;
+    console.log("\tfeeAmount0", swapFee0);
+    console.log("\tprotocolFee0", protocolFee0);
+    console.log("\ttotal to pay in fees", swapFee0 + protocolFee0);
+    console.log("\tcombinedFee", combinedFee);
+
+    // console.log("LPFEE extra in", swapFee0);
+    // console.log("Protocol fee extra in", protocolFee0);
 
     // Set to repay with extra fee
     FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee0, 0);
@@ -124,6 +163,36 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
     assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
   }
+
+  // function test_swap_whenBorrowingBothTokensWithProtocolFee_shouldTransferAndRepayWithFee()
+  //   public
+  //   initializeFPMM_withDecimalTokens(18, 18)
+  //   mintInitialLiquidity(18, 18)
+  //   withProtocolFee(20, protocolFeeRecipient)
+  //   setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+  //   setupMockOracleRate(1e18, 1e18)
+  // {
+  //   uint256 flashLoanAmount0 = 30e18;
+  //   uint256 flashLoanAmount1 = 40e18;
+  //   bytes memory customData = abi.encode("Custom flash loan data");
+
+  //   uint256 swapFee0 = (flashLoanAmount0 * 10_000) / (10_000 - 30) - flashLoanAmount0;
+  //   uint256 swapFee1 = (flashLoanAmount1 * 10_000) / (10_000 - 30) - flashLoanAmount1;
+
+  //   // Set to repay with extra fee
+  //   FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee0, swapFee1);
+
+  //   fpmm.swap(flashLoanAmount0, flashLoanAmount1, address(flashLoanReceiver), customData);
+
+  //   assertEq(FlashLoanReceiver(flashLoanReceiver).sender(), address(this));
+  //   assertEq(FlashLoanReceiver(flashLoanReceiver).amount0Received(), flashLoanAmount0);
+  //   assertEq(FlashLoanReceiver(flashLoanReceiver).amount1Received(), flashLoanAmount1);
+  //   assertEq(FlashLoanReceiver(flashLoanReceiver).receivedData(), customData);
+
+  //   // Verify FPMM reserves increased by the extra repaid amount
+  //   assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
+  //   assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
+  // }
 
   function test_swap_whenLoanNotRepaid_shouldRevert()
     public
