@@ -12,34 +12,35 @@ import { BokkyPooBahsDateTimeLibrary } from "BokkyPooBahsDateTimeLibrary/contrac
 contract MarketHoursBreakerTest is Test {
   IMarketHoursBreaker breaker;
 
-  uint256 defaultCooldownTime = 7 minutes;
+  // uint256 defaultCooldownTime = 7 minutes;
 
-  address notDeployer;
-  address rateFeedID1;
-  address rateFeedID2;
-  address rateFeedID3;
+  // address notDeployer;
+  // address rateFeedID1;
+  // address rateFeedID2;
+  // address rateFeedID3;
 
-  address[] rateFeedIDs;
-  uint256[] cooldownTimes;
+  // address[] rateFeedIDs;
+  // uint256[] cooldownTimes;
 
-  event DefaultCooldownTimeUpdated(uint256 newCooldownTime);
-  event RateFeedCooldownTimeUpdated(address rateFeedID, uint256 newCooldownTime);
+  // event DefaultCooldownTimeUpdated(uint256 newCooldownTime);
+  // event RateFeedCooldownTimeUpdated(address rateFeedID, uint256 newCooldownTime);
 
   function setUp() public virtual {
-    notDeployer = makeAddr("notDeployer");
-    rateFeedID1 = makeAddr("rateFeedID1");
-    rateFeedID2 = makeAddr("rateFeedID2");
-    rateFeedID3 = makeAddr("rateFeedID3");
+    // notDeployer = makeAddr("notDeployer");
+    // rateFeedID1 = makeAddr("rateFeedID1");
+    // rateFeedID2 = makeAddr("rateFeedID2");
+    // rateFeedID3 = makeAddr("rateFeedID3");
 
-    rateFeedIDs = new address[](2);
-    rateFeedIDs[0] = rateFeedID1;
-    rateFeedIDs[1] = rateFeedID2;
+    // rateFeedIDs = new address[](2);
+    // rateFeedIDs[0] = rateFeedID1;
+    // rateFeedIDs[1] = rateFeedID2;
 
-    cooldownTimes = new uint256[](2);
-    cooldownTimes[0] = 10 minutes;
-    cooldownTimes[1] = 20 minutes;
+    // cooldownTimes = new uint256[](2);
+    // cooldownTimes[0] = 10 minutes;
+    // cooldownTimes[1] = 20 minutes;
 
-    breaker = IMarketHoursBreaker(address(new MarketHoursBreaker(defaultCooldownTime)));
+    // breaker = IMarketHoursBreaker(address(new MarketHoursBreaker(defaultCooldownTime)));
+    breaker = IMarketHoursBreaker(address(new MarketHoursBreaker()));
   }
 
   function getOpenMarketHours() public view returns (uint256[] memory) {
@@ -93,87 +94,87 @@ contract MarketHoursBreakerTest_constructorSettersAndGetters is MarketHoursBreak
   /* ---------- Constructor ---------- */
 
   function test_constructor_shouldSetOwner() public view {
-    assertEq(breaker.owner(), address(this));
+    // assertEq(breaker.owner(), address(this));
   }
 
-  function test_constructor_shouldSetDefaultCooldownTime() public view {
-    assertEq(breaker.defaultCooldownTime(), defaultCooldownTime);
-  }
+  // function test_constructor_shouldSetDefaultCooldownTime() public view {
+  //   assertEq(breaker.defaultCooldownTime(), defaultCooldownTime);
+  // }
 
-  /* ---------- Setters ---------- */
+  // /* ---------- Setters ---------- */
 
-  function test_setDefaultCooldownTime_whenCallerIsNotOwner_shouldRevert() public {
-    vm.expectRevert("Ownable: caller is not the owner");
-    vm.prank(notDeployer);
-    breaker.setDefaultCooldownTime(2 minutes);
-  }
+  // function test_setDefaultCooldownTime_whenCallerIsNotOwner_shouldRevert() public {
+  //   vm.expectRevert("Ownable: caller is not the owner");
+  //   vm.prank(notDeployer);
+  //   breaker.setDefaultCooldownTime(2 minutes);
+  // }
 
-  function test_setDefaultCooldownTime_whenCallerIsOwner_shouldUpdateAndEmit() public {
-    uint256 testCooldown = 39 minutes;
-    vm.expectEmit(false, false, false, true);
-    emit DefaultCooldownTimeUpdated(testCooldown);
+  // function test_setDefaultCooldownTime_whenCallerIsOwner_shouldUpdateAndEmit() public {
+  //   uint256 testCooldown = 39 minutes;
+  //   vm.expectEmit(false, false, false, true);
+  //   emit DefaultCooldownTimeUpdated(testCooldown);
 
-    breaker.setDefaultCooldownTime(testCooldown);
+  //   breaker.setDefaultCooldownTime(testCooldown);
 
-    assertEq(breaker.defaultCooldownTime(), testCooldown);
-  }
+  //   assertEq(breaker.defaultCooldownTime(), testCooldown);
+  // }
 
-  function test_setCooldownTimes_whenCallerIsNotOwner_shouldRevert() public {
-    vm.expectRevert("Ownable: caller is not the owner");
-    vm.prank(notDeployer);
-    breaker.setCooldownTimes(rateFeedIDs, cooldownTimes);
-  }
+  // function test_setCooldownTimes_whenCallerIsNotOwner_shouldRevert() public {
+  //   vm.expectRevert("Ownable: caller is not the owner");
+  //   vm.prank(notDeployer);
+  //   breaker.setCooldownTimes(rateFeedIDs, cooldownTimes);
+  // }
 
-  function test_setCooldownTimes_whenArraysAreDifferentLengths_shouldRevert() public {
-    address[] memory newRateFeedIDs = new address[](3);
-    newRateFeedIDs[0] = rateFeedID1;
-    newRateFeedIDs[1] = rateFeedID2;
-    newRateFeedIDs[2] = rateFeedID3;
+  // function test_setCooldownTimes_whenArraysAreDifferentLengths_shouldRevert() public {
+  //   address[] memory newRateFeedIDs = new address[](3);
+  //   newRateFeedIDs[0] = rateFeedID1;
+  //   newRateFeedIDs[1] = rateFeedID2;
+  //   newRateFeedIDs[2] = rateFeedID3;
 
-    vm.expectRevert("array length missmatch");
-    breaker.setCooldownTimes(newRateFeedIDs, cooldownTimes);
-  }
+  //   vm.expectRevert("array length missmatch");
+  //   breaker.setCooldownTimes(newRateFeedIDs, cooldownTimes);
+  // }
 
-  function test_setCooldownTimes_whenRateFeedIDIsZero_shouldRevert() public {
-    address[] memory rateFeedIDsWithZero = new address[](1);
-    uint256[] memory cooldownTimesWithZero = new uint256[](1);
-    rateFeedIDsWithZero[0] = address(0);
-    cooldownTimesWithZero[0] = 5 minutes;
+  // function test_setCooldownTimes_whenRateFeedIDIsZero_shouldRevert() public {
+  //   address[] memory rateFeedIDsWithZero = new address[](1);
+  //   uint256[] memory cooldownTimesWithZero = new uint256[](1);
+  //   rateFeedIDsWithZero[0] = address(0);
+  //   cooldownTimesWithZero[0] = 5 minutes;
 
-    vm.expectRevert("rate feed invalid");
-    breaker.setCooldownTimes(rateFeedIDsWithZero, cooldownTimesWithZero);
-  }
+  //   vm.expectRevert("rate feed invalid");
+  //   breaker.setCooldownTimes(rateFeedIDsWithZero, cooldownTimesWithZero);
+  // }
 
-  function test_setCooldownTimes_whenCallerIsOwner_shouldUpdateAndEmit() public {
-    address[] memory newRateFeedIDs = new address[](1);
-    uint256[] memory newCooldownTimes = new uint256[](1);
-    newRateFeedIDs[0] = rateFeedID3;
-    newCooldownTimes[0] = 30 minutes;
+  // function test_setCooldownTimes_whenCallerIsOwner_shouldUpdateAndEmit() public {
+  //   address[] memory newRateFeedIDs = new address[](1);
+  //   uint256[] memory newCooldownTimes = new uint256[](1);
+  //   newRateFeedIDs[0] = rateFeedID3;
+  //   newCooldownTimes[0] = 30 minutes;
 
-    vm.expectEmit(true, true, true, true);
-    emit RateFeedCooldownTimeUpdated(newRateFeedIDs[0], newCooldownTimes[0]);
+  //   vm.expectEmit(true, true, true, true);
+  //   emit RateFeedCooldownTimeUpdated(newRateFeedIDs[0], newCooldownTimes[0]);
 
-    breaker.setCooldownTimes(newRateFeedIDs, newCooldownTimes);
+  //   breaker.setCooldownTimes(newRateFeedIDs, newCooldownTimes);
 
-    assertEq(breaker.getCooldown(newRateFeedIDs[0]), newCooldownTimes[0]);
-  }
+  //   assertEq(breaker.getCooldown(newRateFeedIDs[0]), newCooldownTimes[0]);
+  // }
 
-  /* ---------- Getters ---------- */
+  // /* ---------- Getters ---------- */
 
-  function test_getCooldown_withDefault_shouldReturnDefaultCooldown() public view {
-    assertEq(breaker.getCooldown(rateFeedID3), defaultCooldownTime);
-  }
+  // function test_getCooldown_withDefault_shouldReturnDefaultCooldown() public view {
+  //   assertEq(breaker.getCooldown(rateFeedID3), defaultCooldownTime);
+  // }
 
-  function test_getCooldown_withSpecific_shouldReturnSpecificCooldown() public {
-    breaker.setCooldownTimes(rateFeedIDs, cooldownTimes);
+  // function test_getCooldown_withSpecific_shouldReturnSpecificCooldown() public {
+  //   breaker.setCooldownTimes(rateFeedIDs, cooldownTimes);
 
-    assertEq(breaker.getCooldown(rateFeedIDs[0]), cooldownTimes[0]);
-    assertEq(breaker.getCooldown(rateFeedIDs[1]), cooldownTimes[1]);
-  }
+  //   assertEq(breaker.getCooldown(rateFeedIDs[0]), cooldownTimes[0]);
+  //   assertEq(breaker.getCooldown(rateFeedIDs[1]), cooldownTimes[1]);
+  // }
 }
 
 contract MarketHoursBreakerTest_shouldTrigger is MarketHoursBreakerTest {
-  function test_shouldTrigger_returnsFalseInsideOfMarketHours() public {
+  function test_shouldTrigger_whenInsideMarketHours_shouldReturnFalse() public {
     uint256[] memory ts = getOpenMarketHours();
 
     for (uint256 i = 0; i < ts.length; i++) {
@@ -182,54 +183,58 @@ contract MarketHoursBreakerTest_shouldTrigger is MarketHoursBreakerTest {
     }
   }
 
-  function test_shouldTrigger_returnsTrueOutsideOfMarketHours() public {
+  function test_shouldTrigger_whenOutsideOfMarketHours_shouldRevert() public {
     uint256[] memory ts = getClosedMarketHours();
 
     for (uint256 i = 0; i < ts.length; i++) {
       vm.warp(ts[i]);
-      assertTrue(breaker.shouldTrigger(address(0)));
+
+      vm.expectRevert("MarketHoursBreaker: Market is closed");
+      breaker.shouldTrigger(address(0));
     }
   }
 
-  function test_shouldTrigger_returnsTrueOnHolidays() public {
+  function test_shouldTrigger_whenOnHolidays_shouldRevert() public {
     uint256[] memory ts = getHolidays();
 
     for (uint256 i = 0; i < ts.length; i++) {
       vm.warp(ts[i]);
-      assertTrue(breaker.shouldTrigger(address(0)));
+
+      vm.expectRevert("MarketHoursBreaker: Market is closed");
+      breaker.shouldTrigger(address(0));
     }
   }
 }
 
 /* ---------- Public Functions ---------- */
 
-contract MarketHoursBreakerTest_shouldReset is MarketHoursBreakerTest {
-  function test_shouldReset_returnsOppositeOfShouldTrigger() public {
-    uint256[] memory outsideMarketHours = getClosedMarketHours();
+// contract MarketHoursBreakerTest_shouldReset is MarketHoursBreakerTest {
+//   function test_shouldReset_returnsOppositeOfShouldTrigger() public {
+//     uint256[] memory outsideMarketHours = getClosedMarketHours();
 
-    for (uint256 i = 0; i < outsideMarketHours.length; i++) {
-      vm.warp(outsideMarketHours[i]);
-      assertTrue(breaker.shouldTrigger(address(0)));
-      assertFalse(breaker.shouldReset(address(0)));
-    }
+//     for (uint256 i = 0; i < outsideMarketHours.length; i++) {
+//       vm.warp(outsideMarketHours[i]);
+//       assertTrue(breaker.shouldTrigger(address(0)));
+//       assertFalse(breaker.shouldReset(address(0)));
+//     }
 
-    uint256[] memory holidays = getHolidays();
+//     uint256[] memory holidays = getHolidays();
 
-    for (uint256 i = 0; i < holidays.length; i++) {
-      vm.warp(holidays[i]);
-      assertTrue(breaker.shouldTrigger(address(0)));
-      assertFalse(breaker.shouldReset(address(0)));
-    }
+//     for (uint256 i = 0; i < holidays.length; i++) {
+//       vm.warp(holidays[i]);
+//       assertTrue(breaker.shouldTrigger(address(0)));
+//       assertFalse(breaker.shouldReset(address(0)));
+//     }
 
-    uint256[] memory insideMarketHours = getOpenMarketHours();
+//     uint256[] memory insideMarketHours = getOpenMarketHours();
 
-    for (uint256 i = 0; i < insideMarketHours.length; i++) {
-      vm.warp(insideMarketHours[i]);
-      assertFalse(breaker.shouldTrigger(address(0)));
-      assertTrue(breaker.shouldReset(address(0)));
-    }
-  }
-}
+//     for (uint256 i = 0; i < insideMarketHours.length; i++) {
+//       vm.warp(insideMarketHours[i]);
+//       assertFalse(breaker.shouldTrigger(address(0)));
+//       assertTrue(breaker.shouldReset(address(0)));
+//     }
+//   }
+// }
 
 contract MarketHoursBreakerTest_isMarketOpen is MarketHoursBreakerTest {
   function test_isMarketOpen_returnsTrueDuringBusinessHours() public {

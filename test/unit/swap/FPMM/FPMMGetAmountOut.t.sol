@@ -146,7 +146,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     withMarketOpen(false)
     withRecentRate(true)
   {
-    vm.expectRevert("FPMM: MARKET_CLOSED");
+    vm.expectRevert("Adaptore: MARKET_CLOSED");
     fpmm.getAmountOut(100e18, token0);
   }
 
@@ -157,7 +157,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     withMarketOpen(true)
     withRecentRate(false)
   {
-    vm.expectRevert("FPMM: NO_RECENT_RATE");
+    vm.expectRevert("Adaptore: NO_RECENT_RATE");
     fpmm.getAmountOut(100e18, token0);
   }
 
@@ -169,7 +169,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     withMarketOpen(true)
     withRecentRate(true)
   {
-    vm.expectRevert("FPMM: TRADING_SUSPENDED");
+    vm.expectRevert("Adaptore: TRADING_SUSPENDED");
     fpmm.getAmountOut(100e18, token0);
   }
 }

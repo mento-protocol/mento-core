@@ -9,6 +9,7 @@ import { Adaptore } from "contracts/oracles/Adaptore.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
+import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
 
 contract AdaptoreTest is Test {
   Adaptore adaptore;
@@ -97,11 +98,77 @@ contract AdaptoreTest is Test {
     adaptore.setMarketHoursBreaker(marketHoursBreaker);
   }
 
-  function test_getRate_returnsRateWith18DecimalsPrecision() public initialized withOracleRate(1e20, 1e18) {
-    (uint256 numerator, uint256 denominator) = adaptore.getRate(referenceRateFeedID);
+  function test_getRateIfValid_whenMarketIsClosed_shouldRevert() public initialized withMarketOpen(false) {
+    vm.expectRevert("Adaptore: MARKET_CLOSED");
+    adaptore.getRateIfValid(referenceRateFeedID);
+  }
 
-    assertEq(numerator, 1e14);
-    assertEq(denominator, 1e12);
+  function test_getRateIfValid_whenTradingIsSuspended_shouldRevert()
+    public
+    initialized
+    withMarketOpen(true)
+    withTradingMode(1)
+  {
+    vm.expectRevert("Adaptore: TRADING_SUSPENDED");
+    adaptore.getRateIfValid(referenceRateFeedID);
+  }
+
+  function test_getRateIfValid_whenNoRecentRate_shouldRevert()
+    public
+    initialized
+    withOracleRate(1e20, 1e18)
+    withMarketOpen(true)
+    withTradingMode(0)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs - 6 minutes + 1 seconds)
+  {
+    vm.warp(blockTs);
+
+    adaptore.getRateIfValid(referenceRateFeedID);
+
+    skip(1);
+
+    vm.expectRevert("Adaptore: NO_RECENT_RATE");
+    adaptore.getRateIfValid(referenceRateFeedID);
+  }
+
+  function test_getRate_returnsCorrectRateInfo_whenAllChecksValid()
+    public
+    initialized
+    withOracleRate(1e20, 1e18)
+    withMarketOpen(true)
+    withTradingMode(0)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs - 5 minutes)
+  {
+    vm.warp(blockTs);
+
+    IAdaptore.RateInfo memory rateInfo = adaptore.getRate(referenceRateFeedID);
+
+    assertEq(rateInfo.numerator, 1e14);
+    assertEq(rateInfo.denominator, 1e12);
+    assertEq(rateInfo.tradingMode, 0);
+    assertEq(rateInfo.isRecent, true);
+    assertEq(rateInfo.isMarketOpen, true);
+  }
+
+  function test_getRate_returnsCorrectRateInfo_whenSomeChecksInvalid()
+    public
+    initialized
+    withOracleRate(1e20, 1e18)
+    withMarketOpen(false)
+    withTradingMode(1)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs - 7 minutes)
+  {
+    vm.warp(blockTs);
+
+    IAdaptore.RateInfo memory rateInfo = adaptore.getRate(referenceRateFeedID);
+    assertEq(rateInfo.numerator, 1e14);
+    assertEq(rateInfo.denominator, 1e12);
+    assertEq(rateInfo.tradingMode, 1);
+    assertEq(rateInfo.isRecent, false);
+    assertEq(rateInfo.isMarketOpen, false);
   }
 
   function test_getTradingMode_returnsModeFromBreakerBox() public initialized withTradingMode(1) {
@@ -157,10 +224,7 @@ contract AdaptoreTest is Test {
   }
 
   modifier withMarketOpen(bool isMarketOpen) {
-    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(
-      IMarketHoursBreaker.isMarketOpen.selector,
-      block.timestamp
-    );
+    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isMarketOpen.selector);
     vm.mockCall(marketHoursBreaker, isMarketOpenCalldata, abi.encode(isMarketOpen));
 
     _;

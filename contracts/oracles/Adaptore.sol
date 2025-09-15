@@ -11,6 +11,8 @@ import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts
 contract Adaptore is IAdaptore, OwnableUpgradeable {
   /* ========== CONSTANTS ========== */
 
+  uint256 public constant TRADING_MODE_BIDIRECTIONAL = 0;
+
   // keccak256(abi.encode(uint256(keccak256("mento.storage.Adaptore")) - 1)) & ~bytes32(uint256(0xff))
   bytes32 private constant _ADAPTORE_STORAGE_LOCATION =
     0xd880fc8796ff7fc4b20c6242198b153ac9d227642be16c844e981c5031096c00;
@@ -94,7 +96,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
 
   /// @inheritdoc IAdaptore
   function isMarketOpen() external view returns (bool) {
-    return _getIsMarketOpen();
+    return _isMarketOpen();
   }
 
   /// @inheritdoc IAdaptore
@@ -112,15 +114,15 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
     rateInfo.denominator = denominator;
     rateInfo.tradingMode = _getTradingMode(rateFeedID);
     rateInfo.isRecent = _hasRecentRate(rateFeedID);
-    rateInfo.isMarketOpen = _getIsMarketOpen();
+    rateInfo.isMarketOpen = _isMarketOpen();
 
     return rateInfo;
   }
 
   function getRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator) {
-    require(_getIsMarketOpen(), "Adaptore: MARKET_CLOSED");
-    require(_hasRecentRate(rateFeedID), "Adaptore: NO_RECENT_RATE");
+    require(_isMarketOpen(), "Adaptore: MARKET_CLOSED");
     require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "Adaptore: TRADING_SUSPENDED");
+    require(_hasRecentRate(rateFeedID), "Adaptore: NO_RECENT_RATE");
 
     return _getOracleRate(rateFeedID);
   }
@@ -132,7 +134,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
 
   /* ========== INTERNAL FUNCTIONS ========== */
 
-  function _getIsMarketOpen() private view returns (bool) {
+  function _isMarketOpen() private view returns (bool) {
     AdaptoreStorage storage $ = _getAdaptoreStorage();
 
     return $.marketHoursBreaker.isMarketOpen(block.timestamp);

@@ -242,7 +242,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     withMarketOpen(true)
     withRecentRate(true)
   {
-    vm.expectRevert("FPMM: TRADING_SUSPENDED");
+    vm.expectRevert("Adaptore: TRADING_SUSPENDED");
     fpmm.swap(0, 10e18, BOB, "");
   }
 
@@ -254,7 +254,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     withMarketOpen(false)
     withRecentRate(true)
   {
-    vm.expectRevert("FPMM: MARKET_CLOSED");
+    vm.expectRevert("Adaptore: MARKET_CLOSED");
     fpmm.swap(0, 10e18, BOB, "");
   }
 
@@ -266,7 +266,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     withMarketOpen(true)
     withRecentRate(false)
   {
-    vm.expectRevert("FPMM: NO_RECENT_RATE");
+    vm.expectRevert("Adaptore: NO_RECENT_RATE");
     fpmm.swap(0, 10e18, BOB, "");
   }
 }

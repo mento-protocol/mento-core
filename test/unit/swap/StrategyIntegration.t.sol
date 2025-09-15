@@ -9,6 +9,8 @@ import { Adaptore } from "contracts/oracles/Adaptore.sol";
 import { ReserveLiquidityStrategy } from "contracts/swap/ReserveLiquidityStrategy.sol";
 import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { MockReserve } from "test/utils/mocks/MockReserve.sol";
 import { MockSortedOracles } from "test/utils/mocks/MockSortedOracles.sol";
@@ -38,6 +40,8 @@ contract StrategyIntegrationTest is Test {
     reserve = new MockReserve();
     sortedOracles = new MockSortedOracles();
     sortedOracles.setMedianRate(rateFeed, 909884940000000000000000);
+    sortedOracles.setTokenReportExpirySeconds(rateFeed, 0);
+    sortedOracles.setMedianTimestamp(rateFeed, block.timestamp + 1 hours);
     adaptore = IAdaptore(new Adaptore(false));
     adaptore.initialize(address(sortedOracles), breakerBox, marketHoursBreaker);
     pool = new FPMM(false);
@@ -58,14 +62,7 @@ contract StrategyIntegrationTest is Test {
     pool.mint(trader);
     vm.stopPrank();
 
-    bytes memory tradingModeCalldata = abi.encodeWithSelector(IBreakerBox.getRateFeedTradingMode.selector, rateFeed);
-    vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(0));
-
-    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IAdaptore.isMarketOpen.selector);
-    vm.mockCall(address(adaptore), isMarketOpenCalldata, abi.encode(true));
-
-    bytes memory hasRecentRateCalldata = abi.encodeWithSelector(IAdaptore.hasRecentRate.selector, rateFeed);
-    vm.mockCall(address(adaptore), hasRecentRateCalldata, abi.encode(true));
+    _mockAdaptoreRequirements();
   }
 
   function test_rebalance_contraction() public {
@@ -86,5 +83,13 @@ contract StrategyIntegrationTest is Test {
     vm.stopPrank();
 
     strategy.rebalance(address(pool));
+  }
+
+  function _mockAdaptoreRequirements() private {
+    bytes memory tradingModeCalldata = abi.encodeWithSelector(IBreakerBox.getRateFeedTradingMode.selector, rateFeed);
+    vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(0));
+
+    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isMarketOpen.selector);
+    vm.mockCall(address(marketHoursBreaker), isMarketOpenCalldata, abi.encode(true));
   }
 }

@@ -159,7 +159,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("FPMM: TRADING_SUSPENDED");
+    vm.expectRevert("Adaptore: TRADING_SUSPENDED");
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
@@ -173,7 +173,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("FPMM: MARKET_CLOSED");
+    vm.expectRevert("Adaptore: MARKET_CLOSED");
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
@@ -187,7 +187,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(false)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("FPMM: NO_RECENT_RATE");
+    vm.expectRevert("Adaptore: NO_RECENT_RATE");
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 

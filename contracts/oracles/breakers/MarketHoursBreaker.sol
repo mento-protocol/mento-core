@@ -1,52 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
-import { IBreaker } from "../../interfaces/IBreaker.sol";
+// import { IBreaker } from "../../interfaces/IBreaker.sol";
+import { IMarketHoursBreaker } from "../../interfaces/IMarketHoursBreaker.sol";
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 
 import { BokkyPooBahsDateTimeLibrary } from "BokkyPooBahsDateTimeLibrary/contracts/BokkyPooBahsDateTimeLibrary.sol";
-import { WithCooldownV2 } from "./WithCooldownV2.sol";
+// import { WithCooldownV2 } from "./WithCooldownV2.sol";
 
-contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
+contract MarketHoursBreaker is IMarketHoursBreaker {
   /* ========== CONSTRUCTOR ========== */
   /**
    * @notice Contract constructor
-   * @param _defaultCooldownTime The default cooldown time
    */
-  constructor(uint256 _defaultCooldownTime) {
-    _transferOwnership(msg.sender);
-
-    _setDefaultCooldownTime(_defaultCooldownTime);
+  constructor() {
+    // _transferOwnership(msg.sender);
   }
 
   /* ========== VIEW FUNCTIONS ========== */
 
   /**
-   * @notice Get the cooldown time for a rate feed
-   * @param rateFeedID The rate feed to get the cooldown for
-   * @return The cooldown time for the rate feed
+   * @notice Check if the timestamp is inside fx market hours
+   * @param timestamp The timestamp to check
+   * @return True if the timestamp is inside fx market hours, false otherwise
    */
-  function getCooldown(address rateFeedID) public view override(WithCooldownV2, IBreaker) returns (uint256) {
-    return WithCooldownV2.getCooldown(rateFeedID);
-  }
-
-  /* ========== ADMIN FUNCTIONS ========== */
-
-  /**
-   * @notice Set the cooldown time for a list of rate feeds
-   * @param rateFeedIDs The rate feeds to set the cooldown for
-   * @param cooldownTimes The cooldown times for the rate feeds
-   */
-  function setCooldownTimes(address[] calldata rateFeedIDs, uint256[] calldata cooldownTimes) external onlyOwner {
-    _setCooldownTimes(rateFeedIDs, cooldownTimes);
-  }
-
-  /**
-   * @notice Set the default cooldown time
-   * @param cooldownTime The default cooldown time
-   */
-  function setDefaultCooldownTime(uint256 cooldownTime) external onlyOwner {
-    _setDefaultCooldownTime(cooldownTime);
+  function isMarketOpen(uint256 timestamp) public view returns (bool) {
+    return !_isWeekendHours(timestamp) && !_isHoliday(timestamp);
   }
 
   /* ========== EXTERNAL FUNCTIONS ========== */
@@ -60,32 +39,9 @@ contract MarketHoursBreaker is IBreaker, WithCooldownV2, Ownable {
    */
   // solhint-disable-next-line no-unused-vars
   function shouldTrigger(address rateFeedID) public returns (bool triggerBreaker) {
-    require(isMarketOpen(block.timestamp), "bad");
-
-    // Broker
-    // there won't be a rate on the weekends based on this, although not a "standard" breaker
+    require(isMarketOpen(block.timestamp), "MarketHoursBreaker: Market is closed");
 
     return false;
-  }
-
-  /**
-   * @notice  Checks whether or not the conditions have been met
-   *          for the specifed rate feed to be reset.
-   * @param   rateFeedID The rate feed to be checked
-   * @return  resetBreaker A bool indicating whether or not
-   *          this breaker can be reset for the given rate feed.
-   */
-  function shouldReset(address rateFeedID) external returns (bool resetBreaker) {
-    return !shouldTrigger(rateFeedID);
-  }
-
-  /**
-   * @notice Check if the timestamp is inside fx market hours
-   * @param timestamp The timestamp to check
-   * @return True if the timestamp is inside fx market hours, false otherwise
-   */
-  function isMarketOpen(uint256 timestamp) public view returns (bool) {
-    return !_isWeekendHours(timestamp) && !_isHoliday(timestamp);
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */

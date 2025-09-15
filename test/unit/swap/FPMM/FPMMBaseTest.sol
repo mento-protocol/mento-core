@@ -8,6 +8,7 @@ import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
 
 import { Adaptore } from "contracts/oracles/Adaptore.sol";
 
@@ -70,14 +71,36 @@ contract FPMMBaseTest is Test {
   }
 
   modifier withMarketOpen(bool isMarketOpen) {
-    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IAdaptore.isMarketOpen.selector);
-    vm.mockCall(address(adaptore), isMarketOpenCalldata, abi.encode(isMarketOpen));
+    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isMarketOpen.selector);
+    vm.mockCall(marketHoursBreaker, isMarketOpenCalldata, abi.encode(isMarketOpen));
     _;
+
+    //     modifier withMarketOpen(bool isMarketOpen) {
+    //   bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isMarketOpen.selector);
+    //   vm.mockCall(marketHoursBreaker, isMarketOpenCalldata, abi.encode(isMarketOpen));
+
+    //   _;
+    // }
   }
 
   modifier withRecentRate(bool hasRecentRate) {
-    bytes memory hasRecentRateCalldata = abi.encodeWithSelector(IAdaptore.hasRecentRate.selector, referenceRateFeedID);
-    vm.mockCall(address(adaptore), hasRecentRateCalldata, abi.encode(hasRecentRate));
+    // bytes memory hasRecentRateCalldata = abi.encodeWithSelector(IAdaptore.hasRecentRate.selector, referenceRateFeedID);
+    // vm.mockCall(address(adaptore), hasRecentRateCalldata, abi.encode(hasRecentRate));
+    // _;
+
+    /*
+        uint256 reportExpiry = $.sortedOracles.getTokenReportExpirySeconds(rateFeedID);
+    uint256 reportTs = $.sortedOracles.medianTimestamp(rateFeedID);
+
+    return reportTs > block.timestamp - reportExpiry;
+    */
+
+    if (hasRecentRate) {
+      _mockRecentRate();
+    } else {
+      _mockExpiredRate();
+    }
+
     _;
   }
 
@@ -96,5 +119,33 @@ contract FPMMBaseTest is Test {
     vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(tradingMode));
 
     _;
+  }
+
+  function _mockRecentRate() private {
+    bytes memory reportExpiryCalldata = abi.encodeWithSelector(
+      ISortedOracles.getTokenReportExpirySeconds.selector,
+      referenceRateFeedID
+    );
+    vm.mockCall(sortedOracles, reportExpiryCalldata, abi.encode(0));
+
+    bytes memory medianTimestampCalldata = abi.encodeWithSelector(
+      ISortedOracles.medianTimestamp.selector,
+      referenceRateFeedID
+    );
+    vm.mockCall(sortedOracles, medianTimestampCalldata, abi.encode(block.timestamp + 1 hours));
+  }
+
+  function _mockExpiredRate() private {
+    bytes memory reportExpiryCalldata = abi.encodeWithSelector(
+      ISortedOracles.getTokenReportExpirySeconds.selector,
+      referenceRateFeedID
+    );
+    vm.mockCall(sortedOracles, reportExpiryCalldata, abi.encode(0));
+
+    bytes memory medianTimestampCalldata = abi.encodeWithSelector(
+      ISortedOracles.medianTimestamp.selector,
+      referenceRateFeedID
+    );
+    vm.mockCall(sortedOracles, medianTimestampCalldata, abi.encode(0));
   }
 }

@@ -261,9 +261,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     if (amountIn == 0) return 0;
 
-    require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
-    require($.adaptore.hasRecentRate($.referenceRateFeedID), "FPMM: NO_RECENT_RATE");
-    require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
+    // require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
+    // require($.adaptore.hasRecentRate($.referenceRateFeedID), "FPMM: NO_RECENT_RATE");
+    // require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
 
     (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
@@ -365,9 +365,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
     require(to != $.token0 && to != $.token1, "FPMM: INVALID_TO_ADDRESS");
 
-    require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
-    require($.adaptore.hasRecentRate($.referenceRateFeedID), "FPMM: NO_RECENT_RATE");
-    require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
+    // require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
+    // require($.adaptore.hasRecentRate($.referenceRateFeedID), "FPMM: NO_RECENT_RATE");
+    // require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
 
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
@@ -417,9 +417,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require((amount0Out > 0) != (amount1Out > 0), "FPMM: ONE_OUTPUT_AMOUNT_REQUIRED");
     require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
 
-    require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
-    require($.adaptore.hasRecentRate($.referenceRateFeedID), "FPMM: NO_RECENT_RATE");
-    require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
+    // require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
+    // require($.adaptore.hasRecentRate($.referenceRateFeedID), "FPMM: NO_RECENT_RATE");
+    // require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
 
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
@@ -599,7 +599,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function _getRateFeed() private view returns (uint256 rateNumerator, uint256 rateDenominator) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    (rateNumerator, rateDenominator) = $.adaptore.getRate($.referenceRateFeedID);
+    (rateNumerator, rateDenominator) = $.adaptore.getRateIfValid($.referenceRateFeedID);
 
     if ($.revertRateFeed) {
       (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);

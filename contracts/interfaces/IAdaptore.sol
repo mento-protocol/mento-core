@@ -19,6 +19,7 @@ interface IAdaptore {
     IMarketHoursBreaker marketHoursBreaker;
   }
 
+  /// @notice Struct to store info over a rate
   struct RateInfo {
     uint256 numerator;
     uint256 denominator;
@@ -113,11 +114,20 @@ interface IAdaptore {
 
   /**
    * @notice Returns the exchange rate for a given rate feed ID
-   * with 18 decimals of precision
+   * with 18 decimals of precision, along with other info
    * @param rateFeedID The address of the rate feed
    * @return rateInfo The rate info
    */
   function getRate(address rateFeedID) external view returns (RateInfo memory);
+
+  /**
+   * @notice Returns the exchange rate for a given rate feed ID
+   * with 18 decimals of precision
+   * @param rateFeedID The address of the rate feed
+   * @return numerator The numerator of the rate
+   * @return denominator The denominator of the rate
+   */
+  function getRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator);
 
   /**
    * @notice Returns the trading mode for a given rate feed ID
