@@ -126,4 +126,21 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     uint256 expectedAmountOutToken1 = 4587492706645056726094; // (1000e18 *  1234e18 / 5678e18) * (997 / 1000)
     assertEq(amountOutToken1, expectedAmountOutToken1);
   }
+
+  function test_getAmountOut_whenProtocolFeeEnabled_shouldCalculateCorrectly()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    setupMockOracleRate(1e18, 1e18)
+  {
+    vm.prank(owner);
+    fpmm.setProtocolFee(20, address(this));
+
+    uint256 amountIn = 100e18;
+    uint256 expectedAmountOut = 99.5e18; // 100e18 - 0.3% lpFee + 0.2% protocolFee
+    uint256 amountOut = fpmm.getAmountOut(amountIn, token0);
+    assertEq(amountOut, expectedAmountOut);
+
+    amountOut = fpmm.getAmountOut(amountIn, token1);
+    assertEq(amountOut, expectedAmountOut);
+  }
 }

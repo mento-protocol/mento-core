@@ -38,6 +38,8 @@ interface IFPMM {
     uint256 lpFee;
     // fee taken from the swap for the protocol
     uint256 protocolFee;
+    // recipient of the protocol fee
+    address protocolFeeRecipient;
     // incentive percentage for rebalancing the pool
     uint256 rebalanceIncentive;
     // threshold for rebalancing the pool when reserve price > oracle price
@@ -113,8 +115,10 @@ interface IFPMM {
    * @notice Emitted when the protocol fee is updated
    * @param oldFee Previous fee in basis points
    * @param newFee New fee in basis points
+   * @param oldRecipient Previous recipient of the protocol fee
+   * @param newRecipient New recipient of the protocol fee
    */
-  event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
+  event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee, address oldRecipient, address newRecipient);
 
   /**
    * @notice Emitted when the rebalance incentive is updated
@@ -280,6 +284,12 @@ interface IFPMM {
   function protocolFee() external view returns (uint256);
 
   /**
+   * @notice Returns the recipient of the protocol fee
+   * @return Recipient of the protocol fee
+   */
+  function protocolFeeRecipient() external view returns (address);
+
+  /**
    * @notice Returns the slippage allowed for rebalance operations in basis points
    * @return Rebalance incentive in basis points
    */
@@ -443,8 +453,9 @@ interface IFPMM {
   /**
    * @notice Sets protocol fee
    * @param _protocolFee New fee in basis points
+   * @param _protocolFeeRecipient The recipient of the protocol fee
    */
-  function setProtocolFee(uint256 _protocolFee) external;
+  function setProtocolFee(uint256 _protocolFee, address _protocolFeeRecipient) external;
 
   /**
    * @notice Sets rebalance incentive

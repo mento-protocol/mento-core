@@ -204,6 +204,12 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
+  function protocolFeeRecipient() external view returns (address) {
+    FPMMStorage storage $ = _getFPMMStorage();
+    return $.protocolFeeRecipient;
+  }
+
+  /// @inheritdoc IFPMM
   function rebalanceIncentive() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.rebalanceIncentive;
@@ -509,14 +515,19 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function setProtocolFee(uint256 _protocolFee) public onlyOwner {
+  function setProtocolFee(uint256 _protocolFee, address _protocolFeeRecipient) public onlyOwner {
+    require(_protocolFee == 0 || _protocolFeeRecipient != address(0), "FPMM: PROTOCOL_FEE_RECIPIENT_REQUIRED");
+
     FPMMStorage storage $ = _getFPMMStorage();
 
     require(_protocolFee + $.lpFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1% combined
 
     uint256 oldFee = $.protocolFee;
+    address oldRecipient = $.protocolFeeRecipient;
+
     $.protocolFee = _protocolFee;
-    emit ProtocolFeeUpdated(oldFee, _protocolFee);
+    $.protocolFeeRecipient = _protocolFeeRecipient;
+    emit ProtocolFeeUpdated(oldFee, _protocolFee, oldRecipient, _protocolFeeRecipient);
   }
 
   /// @inheritdoc IFPMM
@@ -623,12 +634,12 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     if (amount0In > 0) {
       uint256 feeAmount = (amount0In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
-      IERC20($.token0).safeTransfer(owner(), feeAmount);
+      IERC20($.token0).safeTransfer($.protocolFeeRecipient, feeAmount);
     }
 
     if (amount1In > 0) {
       uint256 feeAmount = (amount1In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
-      IERC20($.token1).safeTransfer(owner(), feeAmount);
+      IERC20($.token1).safeTransfer($.protocolFeeRecipient, feeAmount);
     }
   }
 
