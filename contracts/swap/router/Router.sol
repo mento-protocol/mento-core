@@ -45,11 +45,6 @@ contract Router is IRouter, ERC2771Context {
     defaultFactory = _factory;
   }
 
-  receive() external payable {
-    // We don't accept native tokens
-    revert ETHTransferFailed();
-  }
-
   /// @inheritdoc IRouter
   function sortTokens(address tokenA, address tokenB) public pure returns (address token0, address token1) {
     if (tokenA == tokenB) revert SameAddresses();
