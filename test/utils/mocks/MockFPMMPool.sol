@@ -96,7 +96,7 @@ contract MockFPMMPool is Test {
     return 1e18;
   }
 
-  function protocolFee() external pure returns (uint256) {
+  function lpFee() external pure returns (uint256) {
     return 9000;
   }
 

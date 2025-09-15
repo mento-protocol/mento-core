@@ -257,7 +257,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
   {
     vm.prank(owner);
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
 
     uint256 flashLoanAmount = 50e18;
     ArbitrageFlashLoanReceiver(flashLoanReceiver).executeArbitrage(true, flashLoanAmount); // Borrow token0
@@ -283,7 +283,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
   {
     vm.prank(owner);
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
 
     uint256 flashLoanAmount = 50e18;
     ArbitrageFlashLoanReceiver(flashLoanReceiver).executeArbitrage(false, flashLoanAmount); // Borrow token1
@@ -309,7 +309,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
   {
     vm.prank(owner);
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
 
     // Execute first arbitrage with favorable conditions
     ArbitrageFlashLoanReceiver(flashLoanReceiver).executeArbitrage(true, 50e18); // Borrow token0

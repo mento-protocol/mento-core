@@ -35,7 +35,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_whenProtocolFeeChanges_shouldRespectProtocolFee()
+  function test_getAmountOut_whenLPFeeChanges_shouldRespectLPFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     setupMockOracleRate(10e18, 100e18)
@@ -44,13 +44,13 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
 
     // Change fee to 1%
     vm.prank(owner);
-    fpmm.setProtocolFee(100); // 100 basis points = 1%
+    fpmm.setLPFee(100); // 100 basis points = 1%
     uint256 expectedAmountOut = 9.9e18; // 10e18 - 1% fee
     assertEq(fpmm.getAmountOut(amountIn, token0), expectedAmountOut);
 
     // Change fee to 0%
     vm.prank(owner);
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
     expectedAmountOut = 10e18; // No fee
     assertEq(fpmm.getAmountOut(amountIn, token0), expectedAmountOut);
   }

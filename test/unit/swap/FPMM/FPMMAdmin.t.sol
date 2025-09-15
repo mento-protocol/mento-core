@@ -12,10 +12,10 @@ contract FPMMAdminTest is FPMMBaseTest {
     vm.stopPrank();
   }
 
-  function test_setProtocolFee_whenNotOwner_shouldRevert() public {
+  function test_setLPFee_whenNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert("Ownable: caller is not the owner");
-    fpmm.setProtocolFee(10);
+    fpmm.setLPFee(10);
   }
 
   function test_setRebalanceIncentive_whenNotOwner_shouldRevert() public {

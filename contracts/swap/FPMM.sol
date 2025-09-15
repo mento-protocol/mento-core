@@ -85,7 +85,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     $.decimals0 = 10 ** ERC20Upgradeable(_token0).decimals();
     $.decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
 
-    setProtocolFee(30); // .3% fee (30 basis points)
+    setLPFee(30); // .3% fee (30 basis points)
     setRebalanceIncentive(50); // Default .5% incentive tolerance (50 basis points)
     setRebalanceThresholds(500, 500); // Default 5% rebalance threshold (500 basis points)
 
@@ -192,9 +192,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function protocolFee() external view returns (uint256) {
+  function lpFee() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
-    return $.protocolFee;
+    return $.lpFee;
   }
 
   /// @inheritdoc IFPMM
@@ -277,7 +277,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
-    uint256 amountInAfterFee = amountIn - ((amountIn * $.protocolFee) / BASIS_POINTS_DENOMINATOR);
+    uint256 amountInAfterFee = amountIn - ((amountIn * $.lpFee) / BASIS_POINTS_DENOMINATOR);
 
     if (tokenIn == $.token0) {
       return convertWithRate(amountInAfterFee, $.decimals0, $.decimals1, rateNumerator, rateDenominator);
@@ -487,13 +487,13 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   /* ========== ADMIN FUNCTIONS ========== */
 
   /// @inheritdoc IFPMM
-  function setProtocolFee(uint256 _protocolFee) public onlyOwner {
-    require(_protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1%
+  function setLPFee(uint256 _lpFee) public onlyOwner {
+    require(_lpFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1%
     FPMMStorage storage $ = _getFPMMStorage();
 
-    uint256 oldFee = $.protocolFee;
-    $.protocolFee = _protocolFee;
-    emit ProtocolFeeUpdated(oldFee, _protocolFee);
+    uint256 oldFee = $.lpFee;
+    $.lpFee = _lpFee;
+    emit LPFeeUpdated(oldFee, _lpFee);
   }
 
   /// @inheritdoc IFPMM
@@ -705,10 +705,10 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     );
 
     uint256 fee0 = (expectedAmount0In * BASIS_POINTS_DENOMINATOR) /
-      (BASIS_POINTS_DENOMINATOR - $.protocolFee) -
+      (BASIS_POINTS_DENOMINATOR - $.lpFee) -
       expectedAmount0In;
     uint256 fee1 = (expectedAmount1In * BASIS_POINTS_DENOMINATOR) /
-      (BASIS_POINTS_DENOMINATOR - $.protocolFee) -
+      (BASIS_POINTS_DENOMINATOR - $.lpFee) -
       expectedAmount1In;
 
     uint256 fee0InToken1 = convertWithRate(

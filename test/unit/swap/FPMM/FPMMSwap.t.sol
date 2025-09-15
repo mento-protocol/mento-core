@@ -146,7 +146,7 @@ contract FPMMSwapTest is FPMMBaseTest {
   {
     // Change fee to 1%
     vm.prank(fpmm.owner());
-    fpmm.setProtocolFee(100);
+    fpmm.setLPFee(100);
 
     uint256 amount0In = 100e18;
     uint256 amount1Out = 99e18;
@@ -160,7 +160,7 @@ contract FPMMSwapTest is FPMMBaseTest {
 
     // Change fee to 0%
     vm.prank(fpmm.owner());
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
 
     uint256 amount1In = 100e18;
     uint256 amount0Out = 100e18;
