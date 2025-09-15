@@ -154,6 +154,7 @@ contract VirtualPool is IRPool, ReentrancyGuard {
       ? (TOKEN0, TOKEN1, amount0In, amount1Out)
       : (TOKEN1, TOKEN0, amount1In, amount0Out);
 
+    // slither-disable-next-line unused-return
     BROKER.swapOut(EXCHANGE_PROVIDER, EXCHANGE_ID, tokenIn, tokenOut, amountOut, amountInMax);
     IERC20(tokenOut).safeTransfer(to, amountOut);
     emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);

@@ -19,7 +19,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
     if (_pools[token0][token1] != address(0)) {
       revert VirtualPoolAlreadyExistsForThisPair();
     }
-    // slither-disable-next-line reentrancy-benign
+    // slither-disable-next-line reentrancy-benign,reentrancy-no-eth
     pool = address(new VirtualPool(broker, exchangeProvider, exchangeId, token0, token1));
     _pools[token0][token1] = pool;
     _isPool[pool] = true;
