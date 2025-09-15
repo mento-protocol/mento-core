@@ -630,6 +630,11 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     emit UpdateReserves($.reserve0, $.reserve1, $.blockTimestampLast);
   }
 
+  /**
+   * @notice Transfers the protocol fee to the protocol fee recipient
+   * @param amount0In Amount of token0 in from swap
+   * @param amount1In Amount of token1 in from swap
+   */
   function _transferProtocolFee(uint256 amount0In, uint256 amount1In) private {
     FPMMStorage storage $ = _getFPMMStorage();
 
