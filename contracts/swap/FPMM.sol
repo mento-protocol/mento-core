@@ -198,6 +198,12 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
+  function protocolFee() external view returns (uint256) {
+    FPMMStorage storage $ = _getFPMMStorage();
+    return $.protocolFee;
+  }
+
+  /// @inheritdoc IFPMM
   function rebalanceIncentive() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.rebalanceIncentive;
@@ -277,7 +283,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
-    uint256 amountInAfterFee = amountIn - ((amountIn * $.lpFee) / BASIS_POINTS_DENOMINATOR);
+    uint256 totalFee = $.lpFee + $.protocolFee;
+    uint256 amountInAfterFee = amountIn - ((amountIn * totalFee) / BASIS_POINTS_DENOMINATOR);
 
     if (tokenIn == $.token0) {
       return convertWithRate(amountInAfterFee, $.decimals0, $.decimals1, rateNumerator, rateDenominator);
@@ -410,6 +417,10 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       : 0;
     require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
 
+    if ($.protocolFee > 0) {
+      _transferProtocolFee(swapData.amount0In, swapData.amount1In);
+    }
+
     _update();
 
     _swapCheck(swapData);
@@ -488,12 +499,24 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
   /// @inheritdoc IFPMM
   function setLPFee(uint256 _lpFee) public onlyOwner {
-    require(_lpFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1%
     FPMMStorage storage $ = _getFPMMStorage();
+
+    require(_lpFee + $.protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1% combined
 
     uint256 oldFee = $.lpFee;
     $.lpFee = _lpFee;
     emit LPFeeUpdated(oldFee, _lpFee);
+  }
+
+  /// @inheritdoc IFPMM
+  function setProtocolFee(uint256 _protocolFee) public onlyOwner {
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    require(_protocolFee + $.lpFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1% combined
+
+    uint256 oldFee = $.protocolFee;
+    $.protocolFee = _protocolFee;
+    emit ProtocolFeeUpdated(oldFee, _protocolFee);
   }
 
   /// @inheritdoc IFPMM
@@ -593,6 +616,20 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     $.blockTimestampLast = block.timestamp;
 
     emit UpdateReserves($.reserve0, $.reserve1, $.blockTimestampLast);
+  }
+
+  function _transferProtocolFee(uint256 amount0In, uint256 amount1In) private {
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    if (amount0In > 0) {
+      uint256 feeAmount = (amount0In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
+      IERC20($.token0).safeTransfer(owner(), feeAmount);
+    }
+
+    if (amount1In > 0) {
+      uint256 feeAmount = (amount1In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
+      IERC20($.token1).safeTransfer(owner(), feeAmount);
+    }
   }
 
   /**
