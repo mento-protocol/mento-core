@@ -86,6 +86,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     $.decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
 
     setLPFee(30); // .3% fee (30 basis points)
+    // TODO: add protocol fee + recipient
     setRebalanceIncentive(50); // Default .5% incentive tolerance (50 basis points)
     setRebalanceThresholds(500, 500); // Default 5% rebalance threshold (500 basis points)
 
