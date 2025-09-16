@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 // Interfaces
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
 import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 
 // Base integration
@@ -139,8 +139,8 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     // First calculation with 1:1 rate
     vm.mockCall(
-      address(sortedOracles),
-      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
+      address(adaptore),
+      abi.encodeWithSelector(IAdaptore.getRateIfValid.selector, referenceRateFeedID),
       abi.encode(1e18, 1e18)
     );
 
@@ -151,8 +151,8 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     // Second calculation with 2:1 rate
     vm.mockCall(
-      address(sortedOracles),
-      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
+      address(adaptore),
+      abi.encodeWithSelector(IAdaptore.getRateIfValid.selector, referenceRateFeedID),
       abi.encode(2e18, 1e18)
     );
 
@@ -196,8 +196,8 @@ contract RouterMathTests is FPMMBaseIntegration {
 
     // Mock different oracle rates
     vm.mockCall(
-      address(sortedOracles),
-      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
+      address(adaptore),
+      abi.encodeWithSelector(IAdaptore.getRateIfValid.selector, referenceRateFeedID),
       abi.encode(2e18, 1e18) // 2:1 rate
     );
 

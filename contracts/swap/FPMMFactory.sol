@@ -30,12 +30,10 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @custom:storage-location erc7201:mento.storage.FPMMFactory
   struct FPMMFactoryStorage {
-    // Address of the sorted oracles contract.
-    address sortedOracles;
+    // Address of the adaptore contract.
+    address adaptore;
     // Address of the proxy admin contract.
     address proxyAdmin;
-    // Address of the breaker box contract.
-    address breakerBox;
     // Address of the governance contract.
     address governance;
     // Mapping of deployed FPMMs.
@@ -69,16 +67,14 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @inheritdoc IFPMMFactory
   function initialize(
-    address _sortedOracles,
+    address _adaptore,
     address _proxyAdmin,
-    address _breakerBox,
     address _governance,
     address _fpmmImplementation
   ) external initializer {
     __Ownable_init();
     setProxyAdmin(_proxyAdmin);
-    setSortedOracles(_sortedOracles);
-    setBreakerBox(_breakerBox);
+    setAdaptore(_adaptore);
     registerFPMMImplementation(_fpmmImplementation);
     setGovernance(_governance);
   }
@@ -88,21 +84,15 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /* ======================================================== */
 
   /// @inheritdoc IFPMMFactory
-  function sortedOracles() public view returns (address) {
+  function adaptore() public view returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    return $.sortedOracles;
+    return $.adaptore;
   }
 
   /// @inheritdoc IFPMMFactory
   function proxyAdmin() public view returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     return $.proxyAdmin;
-  }
-
-  /// @inheritdoc IFPMMFactory
-  function breakerBox() public view returns (address) {
-    FPMMFactoryStorage storage $ = _getFPMMStorage();
-    return $.breakerBox;
   }
 
   /// @inheritdoc IFPMMFactory
@@ -168,11 +158,11 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /* ============================================================ */
 
   /// @inheritdoc IFPMMFactory
-  function setSortedOracles(address _sortedOracles) public onlyOwner {
-    require(_sortedOracles != address(0), "FPMMFactory: ZERO_ADDRESS");
+  function setAdaptore(address _adaptore) public onlyOwner {
+    require(_adaptore != address(0), "FPMMFactory: ZERO_ADDRESS");
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    $.sortedOracles = _sortedOracles;
-    emit SortedOraclesSet(_sortedOracles);
+    $.adaptore = _adaptore;
+    emit AdaptoreSet(_adaptore);
   }
 
   /// @inheritdoc IFPMMFactory
@@ -181,14 +171,6 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     $.proxyAdmin = _proxyAdmin;
     emit ProxyAdminSet(_proxyAdmin);
-  }
-
-  /// @inheritdoc IFPMMFactory
-  function setBreakerBox(address _breakerBox) public onlyOwner {
-    require(_breakerBox != address(0), "FPMMFactory: ZERO_ADDRESS");
-    FPMMFactoryStorage storage $ = _getFPMMStorage();
-    $.breakerBox = _breakerBox;
-    emit BreakerBoxSet(_breakerBox);
   }
 
   /// @inheritdoc IFPMMFactory
@@ -229,9 +211,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /// @inheritdoc IFPMMFactory
   function deployFPMM(
     address fpmmImplementation,
-    address customSortedOracles,
+    address customAdaptore,
     address customProxyAdmin,
-    address customBreakerBox,
     address customGovernance,
     address token0,
     address token1,
@@ -242,18 +223,16 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
 
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
-    require(customSortedOracles != address(0), "FPMMFactory: ZERO_ADDRESS");
+    require(customAdaptore != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customProxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(customBreakerBox != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customGovernance != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(getPool(token0, token1) == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
 
     address fpmmProxy = _deployFPMMProxy(
       fpmmImplementation,
-      customSortedOracles,
+      customAdaptore,
       customProxyAdmin,
-      customBreakerBox,
       customGovernance,
       token0,
       token1,
@@ -283,9 +262,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
     address fpmmProxy = _deployFPMMProxy(
       fpmmImplementation,
-      $.sortedOracles,
+      $.adaptore,
       $.proxyAdmin,
-      $.breakerBox,
       $.governance,
       token0,
       token1,
@@ -304,9 +282,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /**
    * @notice Deploys the FPMM proxy contract.
    * @param _fpmmImplementation The address of the FPMM implementation
-   * @param _sortedOracles The address of the sorted oracles contract
+   * @param _adaptore The address of the adaptore contract
    * @param _proxyAdmin The address of the proxy admin contract
-   * @param _breakerBox The address of the breaker box contract
    * @param _governance The address of the governance contract
    * @param _token0 The address of the first token
    * @param _token1 The address of the second token
@@ -318,9 +295,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-start encode-packed-collision
   function _deployFPMMProxy(
     address _fpmmImplementation,
-    address _sortedOracles,
+    address _adaptore,
     address _proxyAdmin,
-    address _breakerBox,
     address _governance,
     address _token0,
     address _token1,
@@ -332,10 +308,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       IFPMM.initialize.selector,
       _token0,
       _token1,
-      _sortedOracles,
+      _adaptore,
       _referenceRateFeedID,
       false, // revertRateFeed
-      _breakerBox,
       _governance
     );
     bytes memory proxyBytecode = abi.encodePacked(

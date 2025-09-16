@@ -4,8 +4,7 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
-import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { Router } from "contracts/swap/router/Router.sol";
@@ -34,8 +33,7 @@ contract FPMMBaseIntegration is Test {
 
   // External addresses TODO: should be replaced with real contracts
   address public referenceRateFeedID = makeAddr("referenceRateFeedID");
-  address public sortedOracles = makeAddr("sortedOracles");
-  address public breakerBox = makeAddr("breakerBox");
+  address public adaptore = makeAddr("adaptore");
   address public proxyAdmin = makeAddr("proxyAdmin");
   address public governance = makeAddr("governance");
   address public factoryRegistry = makeAddr("factoryRegistry");
@@ -68,22 +66,15 @@ contract FPMMBaseIntegration is Test {
 
     router = new Router(forwarder, factoryRegistry, address(factory));
 
-    factory.initialize(sortedOracles, proxyAdmin, breakerBox, governance, address(fpmmImplementation));
+    factory.initialize(adaptore, proxyAdmin, governance, address(fpmmImplementation));
   }
 
   function _setupMocks() internal {
-    // Mock sorted oracles to return a rate
+    // Mock adaptore to return a rate
     vm.mockCall(
-      address(sortedOracles),
-      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
+      address(adaptore),
+      abi.encodeWithSelector(IAdaptore.getRateIfValid.selector, referenceRateFeedID),
       abi.encode(1e18, 1e18)
-    );
-
-    // Mock breaker box to return a trading mode
-    vm.mockCall(
-      address(breakerBox),
-      abi.encodeWithSelector(IBreakerBox.getRateFeedTradingMode.selector, referenceRateFeedID),
-      abi.encode(0) // TRADING_MODE_BIDIRECTIONAL
     );
 
     // Mock factory registry to approve our pool factory

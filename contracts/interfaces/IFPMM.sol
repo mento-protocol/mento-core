@@ -31,7 +31,7 @@ interface IFPMM is IRPool {
     // true if the rate feed should be reverted
     bool revertRateFeed;
     // identifier for the reference rate feed
-    // required for sorted oracles and breaker box
+    // required for querying the adaptore
     address referenceRateFeedID;
     // fee taken from the swap
     uint256 protocolFee;
@@ -239,7 +239,7 @@ interface IFPMM is IRPool {
   function revertRateFeed() external view returns (bool);
 
   /**
-   * @notice Returns the reference rate feed ID for oracle price
+   * @notice Returns the reference rate feed ID to query for oracle price
    * @return Address of the reference rate feed ID
    */
   function referenceRateFeedID() external view returns (address);
