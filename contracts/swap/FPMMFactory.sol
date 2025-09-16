@@ -64,7 +64,12 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     if (disable) {
       _disableInitializers();
     }
-    require(keccak256(CREATEX.code) == CREATEX_BYTECODE_HASH, "FPMMFactory: CREATEX_BYTECODE_HASH_MISMATCH");
+    bytes32 createXCodeHash;
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      createXCodeHash := extcodehash(CREATEX)
+    }
+    require(createXCodeHash == CREATEX_BYTECODE_HASH, "FPMMFactory: CREATEX_BYTECODE_HASH_MISMATCH");
   }
 
   /// @inheritdoc IFPMMFactory
@@ -396,7 +401,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @return hash The keccak256 hash of the two values
    */
   function _efficientHash(bytes32 a, bytes32 b) internal pure returns (bytes32 hash) {
-    // Warniing ignored, because this is a helper function and copied from CREATEX contract
+    // Warning ignored, because this is a helper function and copied from CREATEX contract
     // solhint-disable-next-line no-inline-assembly
     assembly ("memory-safe") {
       mstore(0x00, a)
