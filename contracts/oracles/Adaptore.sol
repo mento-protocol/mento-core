@@ -43,17 +43,17 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   /* ========== VIEW FUNCTIONS ========== */
 
   function sortedOracles() external view returns (ISortedOracles) {
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
     return $.sortedOracles;
   }
 
   function breakerBox() external view returns (IBreakerBox) {
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
     return $.breakerBox;
   }
 
   function marketHoursBreaker() external view returns (IMarketHoursBreaker) {
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
     return $.marketHoursBreaker;
   }
 
@@ -63,7 +63,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   function setSortedOracles(address _sortedOracles) public onlyOwner {
     require(_sortedOracles != address(0), "Adaptore: ZERO_ADDRESS");
 
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
     address oldSortedOracles = address($.sortedOracles);
     $.sortedOracles = ISortedOracles(_sortedOracles);
 
@@ -74,7 +74,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   function setBreakerBox(address _breakerBox) public onlyOwner {
     require(_breakerBox != address(0), "Adaptore: ZERO_ADDRESS");
 
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
     address oldBreakerBox = address($.breakerBox);
     $.breakerBox = IBreakerBox(_breakerBox);
 
@@ -85,7 +85,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   function setMarketHoursBreaker(address _marketHoursBreaker) public onlyOwner {
     require(_marketHoursBreaker != address(0), "Adaptore: ZERO_ADDRESS");
 
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
     address oldMarketHoursBreaker = address($.marketHoursBreaker);
     $.marketHoursBreaker = IMarketHoursBreaker(_marketHoursBreaker);
 
@@ -135,19 +135,19 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   /* ========== INTERNAL FUNCTIONS ========== */
 
   function _isMarketOpen() private view returns (bool) {
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
 
     return $.marketHoursBreaker.isMarketOpen(block.timestamp);
   }
 
   function _getTradingMode(address rateFeedID) private view returns (uint8) {
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
 
     return $.breakerBox.getRateFeedTradingMode(rateFeedID);
   }
 
   function _getOracleRate(address rateFeedID) private view returns (uint256 numerator, uint256 denominator) {
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
 
     (numerator, denominator) = $.sortedOracles.medianRate(rateFeedID);
 
@@ -156,7 +156,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   }
 
   function _hasRecentRate(address rateFeedID) private view returns (bool) {
-    AdaptoreStorage storage $ = _getAdaptoreStorage();
+    AdaptoreStorage storage $ = _getStorage();
 
     uint256 reportExpiry = $.sortedOracles.getTokenReportExpirySeconds(rateFeedID);
     uint256 reportTs = $.sortedOracles.medianTimestamp(rateFeedID);
@@ -168,7 +168,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
    * @notice Returns the pointer to the AdaptoreStorage struct.
    * @return $ The pointer to the AdaptoreStorage struct
    */
-  function _getAdaptoreStorage() private pure returns (AdaptoreStorage storage $) {
+  function _getStorage() private pure returns (AdaptoreStorage storage $) {
     // solhint-disable-next-line no-inline-assembly
     assembly {
       $.slot := _ADAPTORE_STORAGE_LOCATION
