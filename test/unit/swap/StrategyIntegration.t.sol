@@ -10,7 +10,6 @@ import { ReserveLiquidityStrategy } from "contracts/swap/ReserveLiquidityStrateg
 import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { MockReserve } from "test/utils/mocks/MockReserve.sol";
 import { MockSortedOracles } from "test/utils/mocks/MockSortedOracles.sol";

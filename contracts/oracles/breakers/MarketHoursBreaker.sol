@@ -3,6 +3,7 @@ pragma solidity 0.8.24;
 
 import { IMarketHoursBreaker } from "../../interfaces/IMarketHoursBreaker.sol";
 
+// solhint-disable-next-line max-line-length
 import { BokkyPooBahsDateTimeLibrary as DateTimeLibrary } from "BokkyPooBahsDateTimeLibrary/contracts/BokkyPooBahsDateTimeLibrary.sol";
 
 /**

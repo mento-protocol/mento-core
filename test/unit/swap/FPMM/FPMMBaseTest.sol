@@ -74,27 +74,9 @@ contract FPMMBaseTest is Test {
     bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isMarketOpen.selector);
     vm.mockCall(marketHoursBreaker, isMarketOpenCalldata, abi.encode(isMarketOpen));
     _;
-
-    //     modifier withMarketOpen(bool isMarketOpen) {
-    //   bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isMarketOpen.selector);
-    //   vm.mockCall(marketHoursBreaker, isMarketOpenCalldata, abi.encode(isMarketOpen));
-
-    //   _;
-    // }
   }
 
   modifier withRecentRate(bool hasRecentRate) {
-    // bytes memory hasRecentRateCalldata = abi.encodeWithSelector(IAdaptore.hasRecentRate.selector, referenceRateFeedID);
-    // vm.mockCall(address(adaptore), hasRecentRateCalldata, abi.encode(hasRecentRate));
-    // _;
-
-    /*
-        uint256 reportExpiry = $.sortedOracles.getTokenReportExpirySeconds(rateFeedID);
-    uint256 reportTs = $.sortedOracles.medianTimestamp(rateFeedID);
-
-    return reportTs > block.timestamp - reportExpiry;
-    */
-
     if (hasRecentRate) {
       _mockRecentRate();
     } else {

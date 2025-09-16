@@ -7,6 +7,8 @@ import { Test } from "mento-std/Test.sol";
 
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
 import { MarketHoursBreaker } from "contracts/oracles/breakers/MarketHoursBreaker.sol";
+
+// solhint-disable-next-line max-line-length
 import { BokkyPooBahsDateTimeLibrary as DateTimeLibrary } from "BokkyPooBahsDateTimeLibrary/contracts/BokkyPooBahsDateTimeLibrary.sol";
 
 contract MarketHoursBreakerTest is Test {

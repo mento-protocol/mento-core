@@ -261,10 +261,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     if (amountIn == 0) return 0;
 
-    // require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
-    // require($.adaptore.hasRecentRate($.referenceRateFeedID), "FPMM: NO_RECENT_RATE");
-    // require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
-
     (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
     uint256 amountInAfterFee = amountIn - ((amountIn * $.protocolFee) / BASIS_POINTS_DENOMINATOR);
@@ -365,10 +361,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
     require(to != $.token0 && to != $.token1, "FPMM: INVALID_TO_ADDRESS");
 
-    // require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
-    // require($.adaptore.hasRecentRate($.referenceRateFeedID), "FPMM: NO_RECENT_RATE");
-    // require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
-
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
     SwapData memory swapData;
@@ -416,10 +408,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require($.liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
     require((amount0Out > 0) != (amount1Out > 0), "FPMM: ONE_OUTPUT_AMOUNT_REQUIRED");
     require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
-
-    // require($.adaptore.isMarketOpen(), "FPMM: MARKET_CLOSED");
-    // require($.adaptore.hasRecentRate($.referenceRateFeedID), "FPMM: NO_RECENT_RATE");
-    // require($.adaptore.getTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL, "FPMM: TRADING_SUSPENDED");
 
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
