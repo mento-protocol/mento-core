@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.24;
+pragma solidity 0.8.18;
 
 import { IAdaptore } from "../interfaces/IAdaptore.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
