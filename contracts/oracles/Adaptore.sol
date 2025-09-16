@@ -106,6 +106,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
 
   /// @inheritdoc IAdaptore
   function getRate(address rateFeedID) external view returns (RateInfo memory) {
+    // slither-disable-next-line uninitialized-local
     RateInfo memory rateInfo;
 
     (uint256 numerator, uint256 denominator) = _getOracleRate(rateFeedID);
