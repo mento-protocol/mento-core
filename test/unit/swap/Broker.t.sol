@@ -467,7 +467,7 @@ contract BrokerTest_swap is BrokerTest {
     broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 3e20, 0);
 
     /// @dev It increments netFlow1.
-    for (uint i = 0; i < uint48(config.limit1In / config.limit0In); i++) {
+    for (uint48 i = 0; i < uint48(config.limit1In / config.limit0In); i++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
       broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e20, 0);
@@ -490,7 +490,7 @@ contract BrokerTest_swap is BrokerTest {
     broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 3e20, 6e21);
 
     /// @dev It increments netFlow1.
-    for (uint i = 0; i < uint48(config.limit1In / config.limit0In); i++) {
+    for (uint48 i = 0; i < uint48(config.limit1In / config.limit0In); i++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
       broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 4e19, 6e21);
@@ -514,7 +514,7 @@ contract BrokerTest_swap is BrokerTest {
     broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 3e20, 0);
 
     /// @dev It increments netFlow1.
-    for (uint i = 0; i < uint48(config.limit1Out / config.limit0Out); i++) {
+    for (uint48 i = 0; i < uint48(config.limit1Out / config.limit0Out); i++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
       broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 4e19, 0);
@@ -536,7 +536,7 @@ contract BrokerTest_swap is BrokerTest {
     broker.swapOut(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 3e20, 6e21);
 
     /// @dev It increments netFlow1.
-    for (uint i = 0; i < uint48(config.limit1Out / config.limit0Out); i++) {
+    for (uint48 i = 0; i < uint48(config.limit1Out / config.limit0Out); i++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
       broker.swapOut(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 1e20, 6e21);

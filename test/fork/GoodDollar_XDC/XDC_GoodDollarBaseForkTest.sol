@@ -16,7 +16,7 @@ import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 
 // Contracts
-import { BaseForkTest, XDC_ID } from "../BaseForkTest.sol";
+import { BaseForkTest } from "../BaseForkTest.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
@@ -99,8 +99,8 @@ contract XDC_GoodDollarBaseForkTest is BaseForkTest {
     initialAssetAllocationWeights[0] = FixidityLib.newFixedFraction(1, 2).unwrap();
     initialAssetAllocationWeights[1] = FixidityLib.newFixedFraction(1, 2).unwrap();
 
-    uint256 tobinTax = FixidityLib.newFixedFraction(5, 1000).unwrap();
-    uint256 tobinTaxReserveRatio = FixidityLib.newFixedFraction(2, 1).unwrap();
+    // uint256 tobinTax = FixidityLib.newFixedFraction(5, 1000).unwrap();
+    // uint256 tobinTaxReserveRatio = FixidityLib.newFixedFraction(2, 1).unwrap();
 
     address[] memory collateralAssets = new address[](1);
     collateralAssets[0] = address(reserveToken);
