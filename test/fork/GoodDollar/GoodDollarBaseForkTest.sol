@@ -20,10 +20,12 @@ import { BaseForkTest } from "../BaseForkTest.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
+import { TradingLimitHelpers } from "../../fork/helpers/TradingLimitHelpers.sol";
 
 contract GoodDollarBaseForkTest is BaseForkTest {
   using FixidityLib for FixidityLib.Fraction;
   using TokenHelpers for *;
+  using TradingLimitHelpers for *;
 
   // Addresses
   address constant AVATAR_ADDRESS = 0x495d133B938596C9984d462F007B676bDc57eCEC;
@@ -199,10 +201,14 @@ contract GoodDollarBaseForkTest is BaseForkTest {
     ITradingLimits.Config memory config = ITradingLimits.Config({
       // No more than 5,000 cUSD outflow within 5 minutes
       timestep0: 300,
-      limit0: 5_000,
+      // limit0: 5_000,
+      limit0In: 5_000,
+      limit0Out: 5_000,
       // No more than 50,000 cUSD outflow within 1 day
       timestep1: 86_400,
-      limit1: 50_000,
+      // limit1: 50_000,
+      limit1In: 50_000,
+      limit1Out: 50_000,
       // No more than 100,000 cUSD outflow in total
       limitGlobal: 100_000,
       flags: 1 | 2 | 4 // L0 = 1, L1 = 2, LG = 4
@@ -239,7 +245,7 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   function getTradingLimitsConfig(address tokenAddress) public view returns (ITradingLimits.Config memory config) {
     bytes32 limitId = getTradingLimitId(tokenAddress);
     ITradingLimits.Config memory _config;
-    (_config.timestep0, _config.timestep1, _config.limit0, _config.limit1, _config.limitGlobal, _config.flags) = Broker(
+    (_config.timestep0, _config.timestep1, _config.limit0In, _config.limit0Out, _config.limit1In, _config.limit1Out, _config.limitGlobal, _config.flags) = Broker(
       address(broker)
     ).tradingLimitsConfig(limitId);
 
@@ -270,8 +276,8 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   function maxOutflow(address tokenAddress) internal view returns (int48) {
     ITradingLimits.Config memory config = getTradingLimitsConfig(tokenAddress);
     ITradingLimits.State memory state = getRefreshedTradingLimitsState(tokenAddress);
-    int48 maxOutflowL0 = config.limit0 + state.netflow0;
-    int48 maxOutflowL1 = config.limit1 + state.netflow1;
+    int48 maxOutflowL0 = state.getLimit0FromNetflow0(config) + state.netflow0;
+    int48 maxOutflowL1 = state.getLimit1FromNetflow1(config) + state.netflow1;
     int48 maxOutflowLG = config.limitGlobal + state.netflowGlobal;
 
     if (config.flags == L0 | L1 | LG) {

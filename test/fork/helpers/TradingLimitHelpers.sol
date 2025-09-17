@@ -19,8 +19,10 @@ library TradingLimitHelpers {
     (
       limitConfig.timestep0,
       limitConfig.timestep1,
-      limitConfig.limit0,
-      limitConfig.limit1,
+      limitConfig.limit0In,
+      limitConfig.limit0Out,
+      limitConfig.limit1In,
+      limitConfig.limit1Out,
       limitConfig.limitGlobal,
       limitConfig.flags
     ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);
@@ -35,8 +37,10 @@ library TradingLimitHelpers {
     (
       limitConfig.timestep0,
       limitConfig.timestep1,
-      limitConfig.limit0,
-      limitConfig.limit1,
+      limitConfig.limit0In,
+      limitConfig.limit0Out,
+      limitConfig.limit1In,
+      limitConfig.limit1Out,
       limitConfig.limitGlobal,
       limitConfig.flags
     ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);
@@ -58,17 +62,17 @@ library TradingLimitHelpers {
 
   function tradingLimitsConfig(ExchangeForkTest ctx, address asset) public view returns (ITradingLimits.Config memory) {
     ITradingLimits.Config memory limitConfig;
-    bytes32 assetBytes32 = bytes32(uint256(uint160(asset)));
-    bytes32 limitId = ctx.exchangeId() ^ assetBytes32;
 
     (
       limitConfig.timestep0,
       limitConfig.timestep1,
-      limitConfig.limit0,
-      limitConfig.limit1,
+      limitConfig.limit0In,
+      limitConfig.limit0Out,
+      limitConfig.limit1In,
+      limitConfig.limit1Out,
       limitConfig.limitGlobal,
       limitConfig.flags
-    ) = Broker(address(ctx.broker())).tradingLimitsConfig(limitId);
+    ) = Broker(address(ctx.broker())).tradingLimitsConfig(ctx.exchangeId() ^ bytes32(uint256(uint160(asset))));
     return limitConfig;
   }
 
@@ -104,9 +108,9 @@ library TradingLimitHelpers {
 
   function getLimit(ITradingLimits.Config memory config, uint8 limit) internal pure returns (uint256) {
     if (limit == L0) {
-      return uint256(int256(config.limit0));
+      return uint256(uint48(config.limit0In > config.limit0Out ? config.limit0Out : config.limit0In));
     } else if (limit == L1) {
-      return uint256(int256(config.limit1));
+      return uint256(uint48(config.limit1In > config.limit1Out ? config.limit1Out : config.limit1In));
     } else if (limit == LG) {
       return uint256(int256(config.limitGlobal));
     } else {
@@ -126,11 +130,11 @@ library TradingLimitHelpers {
     }
   }
 
-  function revertReason(uint8 limit) internal pure returns (string memory) {
+  function revertReason(uint8 limit, bool isIn) internal pure returns (string memory) {
     if (limit == L0) {
-      return "L0 Exceeded";
+      return string(abi.encodePacked("L0", (isIn ? "In" : "Out"), " Exceeded"));
     } else if (limit == L1) {
-      return "L1 Exceeded";
+      return string(abi.encodePacked("L1", (isIn ? "In" : "Out"), " Exceeded"));
     } else if (limit == LG) {
       return "LG Exceeded";
     } else {
@@ -186,8 +190,8 @@ library TradingLimitHelpers {
   function maxInflow(ExchangeForkTest ctx, address from) internal view returns (int48) {
     ITradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, from);
     ITradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, from);
-    int48 maxInflowL0 = limitConfig.limit0 - limitState.netflow0;
-    int48 maxInflowL1 = limitConfig.limit1 - limitState.netflow1;
+    int48 maxInflowL0 = getLimit0FromNetflow0(limitState, limitConfig) - limitState.netflow0;
+    int48 maxInflowL1 = getLimit1FromNetflow1(limitState, limitConfig) - limitState.netflow1;
     int48 maxInflowLG = limitConfig.limitGlobal - limitState.netflowGlobal;
 
     if (limitConfig.flags == L0 | L1 | LG) {
@@ -206,8 +210,9 @@ library TradingLimitHelpers {
   function maxOutflow(ExchangeForkTest ctx, address to) internal view returns (int48) {
     ITradingLimits.Config memory limitConfig = tradingLimitsConfig(ctx, to);
     ITradingLimits.State memory limitState = refreshedTradingLimitsState(ctx, to);
-    int48 maxOutflowL0 = limitConfig.limit0 + limitState.netflow0;
-    int48 maxOutflowL1 = limitConfig.limit1 + limitState.netflow1;
+    int48 maxOutflowL0 = getLimit0FromNetflow0(limitState, limitConfig) + limitState.netflow0;
+    int48 maxOutflowL1 = getLimit1FromNetflow1(limitState, limitConfig) + limitState.netflow1;
+
     int48 maxOutflowLG = limitConfig.limitGlobal + limitState.netflowGlobal;
 
     if (limitConfig.flags == L0 | L1 | LG) {
@@ -221,5 +226,16 @@ library TradingLimitHelpers {
     } else {
       revert("Unexpected limit config");
     }
+  }
+
+  function getLimit0FromNetflow0(ITradingLimits.State memory state, ITradingLimits.Config memory config) internal pure returns (int48){
+    return state.netflow0 < 0 ? config.limit0Out : config.limit0In;
+  }
+  function getLimit1FromNetflow1(ITradingLimits.State memory state, ITradingLimits.Config memory config) internal pure returns (int48){
+    return state.netflow1 < 0 ? config.limit1Out : config.limit1In;
+  }
+  
+  function abs(int48 x) internal pure returns (int48) {
+      return x >= 0 ? x : -x;
   }
 }
