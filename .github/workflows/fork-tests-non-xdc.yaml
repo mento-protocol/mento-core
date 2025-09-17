@@ -1,4 +1,4 @@
-name: "ForkTests"
+name: "ForkTests for non-XDC chains"
 
 env:
   FOUNDRY_PROFILE: "fork-tests"
