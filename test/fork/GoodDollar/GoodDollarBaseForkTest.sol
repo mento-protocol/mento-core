@@ -103,7 +103,7 @@ contract GoodDollarBaseForkTest is BaseForkTest {
     uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
     collateralAssetDailySpendingRatios[0] = 1e24;
 
-    vm.startPrank(ownerAddress);  
+    vm.startPrank(ownerAddress);
     goodDollarReserve.initialize({
       registryAddress: REGISTRY_ADDRESS,
       _tobinTaxStalenessThreshold: 600, // deprecated
@@ -244,9 +244,16 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   function getTradingLimitsConfig(address tokenAddress) public view returns (ITradingLimits.Config memory config) {
     bytes32 limitId = getTradingLimitId(tokenAddress);
     ITradingLimits.Config memory _config;
-    (_config.timestep0, _config.timestep1, _config.limit0In, _config.limit0Out, _config.limit1In, _config.limit1Out, _config.limitGlobal, _config.flags) = Broker(
-      address(broker)
-    ).tradingLimitsConfig(limitId);
+    (
+      _config.timestep0,
+      _config.timestep1,
+      _config.limit0In,
+      _config.limit0Out,
+      _config.limit1In,
+      _config.limit1Out,
+      _config.limitGlobal,
+      _config.flags
+    ) = Broker(address(broker)).tradingLimitsConfig(limitId);
 
     return _config;
   }
@@ -293,10 +300,8 @@ contract GoodDollarBaseForkTest is BaseForkTest {
   }
 
   function test_init_isDeployedAndInitializedCorrectly() public view {
-    if(targetChainId != XDC_ID)
-      assertEq(goodDollarExchangeProvider.owner(), ownerAddress);
-    else 
-      assertEq(goodDollarExchangeProvider.owner(), AVATAR_ADDRESS);
+    if (targetChainId != XDC_ID) assertEq(goodDollarExchangeProvider.owner(), ownerAddress);
+    else assertEq(goodDollarExchangeProvider.owner(), AVATAR_ADDRESS);
 
     assertEq(goodDollarExchangeProvider.broker(), address(broker));
     assertEq(address(goodDollarExchangeProvider.reserve()), address(goodDollarReserve));

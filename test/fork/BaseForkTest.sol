@@ -74,11 +74,10 @@ abstract contract BaseForkTest is Test {
 
   function setUp() public virtual {
     uint256 forkId;
-    if(targetChainId == XDC_ID) {
+    if (targetChainId == XDC_ID) {
       forkId = vm.createFork(vm.envString("XDC_RPC_URL"));
       vm.selectFork(forkId);
-    }
-    else {
+    } else {
       fork(targetChainId);
       /// @dev Updating the target fork block every 200 blocks, about ~8 min.
       /// This means that, when running locally, RPC calls will be cached.

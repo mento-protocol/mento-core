@@ -32,6 +32,7 @@ This guide will walk you through deploying the implementation contracts and then
    ```
 
    This script will deploy the following contracts:
+
    - `GoodDollarExchangeProvider`
    - `GoodDollarExpansionController`
    - `Registry`
@@ -49,6 +50,7 @@ This guide will walk you through deploying the implementation contracts and then
    ```
 
    This script will deploy the following proxies:
+
    - `GoodDollarExchangeProviderProxy`
    - `GoodDollarExpansionControllerProxy`
    - `RegistryProxy`

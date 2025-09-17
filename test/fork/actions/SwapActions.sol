@@ -105,7 +105,12 @@ contract SwapActions is StdCheats {
      */
 
     ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
-    console.log(unicode"🏷️ [%d] Swap until L0In=%d, L0Out=%d on inflow", block.timestamp, uint48(limitConfig.limit0In), uint48(limitConfig.limit0Out));
+    console.log(
+      unicode"🏷️ [%d] Swap until L0In=%d, L0Out=%d on inflow",
+      block.timestamp,
+      uint48(limitConfig.limit0In),
+      uint48(limitConfig.limit0Out)
+    );
     uint256 maxPossible;
     uint256 maxPossibleUntilLimit;
     do {
@@ -134,7 +139,12 @@ contract SwapActions is StdCheats {
      */
     ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(from);
     ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(from);
-    console.log(unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d on inflow", block.timestamp, uint48(limitConfig.limit1In), uint48(limitConfig.limit1Out));
+    console.log(
+      unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d on inflow",
+      block.timestamp,
+      uint48(limitConfig.limit1In),
+      uint48(limitConfig.limit1Out)
+    );
     int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
     while (limitState.netflow1 + maxPerSwap <= limitState.getLimit1FromNetflow1(limitConfig)) {
       skip(limitConfig.timestep0 + 1);
@@ -199,7 +209,12 @@ contract SwapActions is StdCheats {
      */
 
     ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
-    console.log(unicode"🏷️ [%d] Swap until L0In=%d, L0Out=%d on outflow", block.timestamp, uint48(limitConfig.limit0In), uint48(limitConfig.limit0Out));
+    console.log(
+      unicode"🏷️ [%d] Swap until L0In=%d, L0Out=%d on outflow",
+      block.timestamp,
+      uint48(limitConfig.limit0In),
+      uint48(limitConfig.limit0Out)
+    );
     uint256 maxPossible;
     uint256 maxPossibleUntilLimit;
     do {
@@ -229,7 +244,12 @@ contract SwapActions is StdCheats {
     ITradingLimits.Config memory limitConfig = ctx.tradingLimitsConfig(to);
     ITradingLimits.State memory limitState = ctx.refreshedTradingLimitsState(to);
 
-    console.log(unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d  on outflow", block.timestamp, uint48(limitConfig.limit1In), uint48(limitConfig.limit1Out));
+    console.log(
+      unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d  on outflow",
+      block.timestamp,
+      uint48(limitConfig.limit1In),
+      uint48(limitConfig.limit1Out)
+    );
     int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
     uint256 it;
     while (limitState.netflow1 - maxPerSwap >= -1 * limitState.getLimit1FromNetflow1(limitConfig)) {
@@ -260,7 +280,7 @@ contract SwapActions is StdCheats {
     console.log(unicode"🏷️ [%d] Swap until LG=%d on outflow", block.timestamp, uint48(limitConfig.limitGlobal));
 
     if (limitConfig.isLimitEnabled(L1)) {
-    int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
+      int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
       while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep1 + 1);
         swapUntilL1_onOutflow(from, to);
@@ -270,7 +290,7 @@ contract SwapActions is StdCheats {
       }
       skip(limitConfig.timestep1 + 1);
     } else if (limitConfig.isLimitEnabled(L0)) {
-     int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
+      int48 maxPerSwap = limitState.getLimit0FromNetflow0(limitConfig);
       while (limitState.netflowGlobal - maxPerSwap >= -1 * limitConfig.limitGlobal) {
         skip(limitConfig.timestep0 + 1);
         swapUntilL0_onOutflow(from, to);

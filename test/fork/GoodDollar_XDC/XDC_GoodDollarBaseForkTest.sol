@@ -207,9 +207,16 @@ contract XDC_GoodDollarBaseForkTest is BaseForkTest {
   function getTradingLimitsConfig(address tokenAddress) public view returns (ITradingLimits.Config memory config) {
     bytes32 limitId = getTradingLimitId(tokenAddress);
     ITradingLimits.Config memory _config;
-    (_config.timestep0, _config.timestep1, _config.limit0In, _config.limit0Out, _config.limit1In, _config.limit1Out, _config.limitGlobal, _config.flags) = Broker(
-      address(broker)
-    ).tradingLimitsConfig(limitId);
+    (
+      _config.timestep0,
+      _config.timestep1,
+      _config.limit0In,
+      _config.limit0Out,
+      _config.limit1In,
+      _config.limit1Out,
+      _config.limitGlobal,
+      _config.flags
+    ) = Broker(address(broker)).tradingLimitsConfig(limitId);
 
     return _config;
   }

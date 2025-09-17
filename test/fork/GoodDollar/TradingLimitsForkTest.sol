@@ -104,7 +104,12 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     // Get the trading limits config and state for the reserve token
     ITradingLimits.Config memory config = getTradingLimitsConfig(address(reserveToken));
     ITradingLimits.State memory state = getRefreshedTradingLimitsState(address(reserveToken));
-    console.log(unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d on outflow", block.timestamp, uint48(config.limit1In), uint48(config.limit1Out));
+    console.log(
+      unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d on outflow",
+      block.timestamp,
+      uint48(config.limit1In),
+      uint48(config.limit1Out)
+    );
 
     // Get the max amount we can swap in a single transaction before we hit L0
     int48 maxPerSwap = state.getLimit0FromNetflow0(config);
@@ -188,7 +193,12 @@ contract GoodDollarTradingLimitsForkTest is GoodDollarBaseForkTest {
     // Get the trading limits config and state for the reserve token
     ITradingLimits.Config memory config = getTradingLimitsConfig(address(reserveToken));
     ITradingLimits.State memory state = getRefreshedTradingLimitsState(address(reserveToken));
-    console.log(unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d on inflow", block.timestamp, uint48(config.limit1In), uint48(config.limit1Out));
+    console.log(
+      unicode"🏷️ [%d] Swap until L1In=%d, L1Out=%d on inflow",
+      block.timestamp,
+      uint48(config.limit1In),
+      uint48(config.limit1Out)
+    );
 
     // Get the max amount we can swap in a single transaction before we hit L0
     int48 maxPerSwap = state.getLimit0FromNetflow0(config);

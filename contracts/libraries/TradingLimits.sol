@@ -68,10 +68,22 @@ library TradingLimits {
     require(self.flags & (L0 | L1) != 3 || self.limit0Out < self.limit1Out, "limit1Out must be greater than limit0Out");
     // require(self.flags & (L1 | LG) != 6 || self.limit1 < self.limitGlobal, "limitGlobal must be greater than limit1");
     // require(self.flags & (L0 | LG) != 5 || self.limit0 < self.limitGlobal, "limitGlobal must be greater than limit0");
-    require(self.flags & (L1 | LG) != 6 || self.limit1In < self.limitGlobal, "limitGlobal must be greater than limit1In");
-    require(self.flags & (L1 | LG) != 6 || self.limit1Out < self.limitGlobal, "limitGlobal must be greater than limit1Out");
-    require(self.flags & (L0 | LG) != 5 || self.limit0In < self.limitGlobal, "limitGlobal must be greater than limit0In");
-    require(self.flags & (L0 | LG) != 5 || self.limit0Out < self.limitGlobal, "limitGlobal must be greater than limit0Out");
+    require(
+      self.flags & (L1 | LG) != 6 || self.limit1In < self.limitGlobal,
+      "limitGlobal must be greater than limit1In"
+    );
+    require(
+      self.flags & (L1 | LG) != 6 || self.limit1Out < self.limitGlobal,
+      "limitGlobal must be greater than limit1Out"
+    );
+    require(
+      self.flags & (L0 | LG) != 5 || self.limit0In < self.limitGlobal,
+      "limitGlobal must be greater than limit0In"
+    );
+    require(
+      self.flags & (L0 | LG) != 5 || self.limit0Out < self.limitGlobal,
+      "limitGlobal must be greater than limit0Out"
+    );
   }
 
   /**
@@ -82,18 +94,18 @@ library TradingLimits {
    */
   function verify(ITradingLimits.State memory self, ITradingLimits.Config memory config) internal pure {
     if ((config.flags & L0) > 0) {
-      if((-1 * config.limit0Out) > self.netflow0) {
+      if ((-1 * config.limit0Out) > self.netflow0) {
         revert("L0Out Exceeded");
       }
-      if(self.netflow0 > config.limit0In) {
+      if (self.netflow0 > config.limit0In) {
         revert("L0In Exceeded");
       }
     }
     if ((config.flags & L1) > 0) {
-      if(-1 * config.limit1Out > self.netflow1) {
+      if (-1 * config.limit1Out > self.netflow1) {
         revert("L1Out Exceeded");
       }
-      if(self.netflow1 > config.limit1In) {
+      if (self.netflow1 > config.limit1In) {
         revert("L1In Exceeded");
       }
     }

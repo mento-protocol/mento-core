@@ -456,7 +456,7 @@ contract BrokerTest_swap is BrokerTest {
     broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e16, 1e15);
   }
 
-  function test_swapIn_whenAmountLimitInMet_shouldRevert() public {    
+  function test_swapIn_whenAmountLimitInMet_shouldRevert() public {
     ITradingLimits.Config memory config = configureTradeLimit();
 
     vm.prank(trader);
@@ -465,9 +465,9 @@ contract BrokerTest_swap is BrokerTest {
     vm.expectRevert(bytes("L0In Exceeded"));
     vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 3e20, 0);
-    
+
     /// @dev It increments netFlow1.
-    for(uint i = 0; i < uint48(config.limit1In / config.limit0In); i ++) {
+    for (uint i = 0; i < uint48(config.limit1In / config.limit0In); i++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
       broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e20, 0);
@@ -479,7 +479,7 @@ contract BrokerTest_swap is BrokerTest {
     vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 1e20, 0);
   }
-  function test_swapOut_whenAmountLimitInMet_shouldRevert() public {    
+  function test_swapOut_whenAmountLimitInMet_shouldRevert() public {
     ITradingLimits.Config memory config = configureTradeLimit();
 
     vm.prank(trader);
@@ -487,10 +487,10 @@ contract BrokerTest_swap is BrokerTest {
 
     vm.expectRevert(bytes("L0In Exceeded"));
     vm.prank(trader);
-    broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 3e20, 6e21);   
+    broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 3e20, 6e21);
 
     /// @dev It increments netFlow1.
-    for(uint i = 0; i < uint48(config.limit1In / config.limit0In); i ++) {
+    for (uint i = 0; i < uint48(config.limit1In / config.limit0In); i++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
       broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 4e19, 6e21);
@@ -503,7 +503,7 @@ contract BrokerTest_swap is BrokerTest {
     broker.swapOut(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 4e19, 6e21);
   }
 
-  function test_swapIn_whenAmountLimitOutMet_shouldRevert() public {    
+  function test_swapIn_whenAmountLimitOutMet_shouldRevert() public {
     ITradingLimits.Config memory config = configureTradeLimit();
 
     vm.prank(trader);
@@ -514,7 +514,7 @@ contract BrokerTest_swap is BrokerTest {
     broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 3e20, 0);
 
     /// @dev It increments netFlow1.
-    for(uint i = 0; i < uint48(config.limit1Out / config.limit0Out); i ++) {
+    for (uint i = 0; i < uint48(config.limit1Out / config.limit0Out); i++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
       broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 4e19, 0);
@@ -525,7 +525,7 @@ contract BrokerTest_swap is BrokerTest {
     vm.prank(trader);
     broker.swapIn(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 4e19, 0);
   }
-  function test_swapOut_whenAmountLimitOutMet_shouldRevert() public {    
+  function test_swapOut_whenAmountLimitOutMet_shouldRevert() public {
     ITradingLimits.Config memory config = configureTradeLimit();
 
     vm.prank(trader);
@@ -534,13 +534,12 @@ contract BrokerTest_swap is BrokerTest {
     vm.expectRevert("L0Out Exceeded");
     vm.prank(trader);
     broker.swapOut(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 3e20, 6e21);
-    
+
     /// @dev It increments netFlow1.
-    for(uint i = 0; i < uint48(config.limit1Out / config.limit0Out); i ++) {
+    for (uint i = 0; i < uint48(config.limit1Out / config.limit0Out); i++) {
       skip(config.timestep0 + 1);
       vm.prank(trader);
       broker.swapOut(address(exchangeProvider), exchangeId, address(collateralAsset), address(stableAsset), 1e20, 6e21);
-     
     }
     skip(config.timestep0 + 1);
     /// @dev Here, netFlow1 should exceed Limit1 but netFlow0 does not exceed Limit0
@@ -761,7 +760,7 @@ contract BrokerTest_swap is BrokerTest {
     broker.swapIn(address(exchangeProvider), exchangeId, address(stableAsset), address(collateralAsset), 5e20, 0);
   }
 
-  function configureTradeLimit() public returns (ITradingLimits.Config memory config){
+  function configureTradeLimit() public returns (ITradingLimits.Config memory config) {
     config.flags = 3;
     config.timestep0 = 1_000_000;
     config.limit0In = 100;
@@ -776,9 +775,16 @@ contract BrokerTest_swap is BrokerTest {
   function getTradingLimitsConfig(address tokenAddress) public view returns (ITradingLimits.Config memory config) {
     bytes32 limitId = getTradingLimitId(tokenAddress);
     ITradingLimits.Config memory _config;
-    (_config.timestep0, _config.timestep1, _config.limit0In, _config.limit0Out, _config.limit1In, _config.limit1Out, _config.limitGlobal, _config.flags) = Broker(
-      address(broker)
-    ).tradingLimitsConfig(limitId);
+    (
+      _config.timestep0,
+      _config.timestep1,
+      _config.limit0In,
+      _config.limit0Out,
+      _config.limit1In,
+      _config.limit1Out,
+      _config.limitGlobal,
+      _config.flags
+    ) = Broker(address(broker)).tradingLimitsConfig(limitId);
 
     return _config;
   }

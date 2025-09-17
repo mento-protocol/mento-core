@@ -19,14 +19,22 @@ contract TradingLimitsTest is Test {
 
   function configEmpty() internal pure returns (ITradingLimits.Config memory config) {}
 
-  function configL0(uint32 timestep0, int48 limit0In, int48 limit0Out) internal pure returns (ITradingLimits.Config memory config) {
+  function configL0(
+    uint32 timestep0,
+    int48 limit0In,
+    int48 limit0Out
+  ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep0 = timestep0;
     config.limit0In = limit0In;
     config.limit0Out = limit0Out;
     config.flags = L0;
   }
 
-  function configL1(uint32 timestep1, int48 limit1In, int48 limit1Out) internal pure returns (ITradingLimits.Config memory config) {
+  function configL1(
+    uint32 timestep1,
+    int48 limit1In,
+    int48 limit1Out
+  ) internal pure returns (ITradingLimits.Config memory config) {
     config.timestep1 = timestep1;
     config.limit1In = limit1In;
     config.limit1Out = limit1Out;
