@@ -110,8 +110,6 @@ contract CDPPolicyTest is Test {
     assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), makeAddr("newCollateralRegistry"));
   }
 
-
-
   function test_whenPoolPriceAbove() public {
     /*
       struct Context {
@@ -228,5 +226,101 @@ contract CDPPolicyTest is Test {
     // console.log("reserve1", reserve1 * 1e12);
   }
 
-  function test_fuzz_amountCalculationWhenToken0IsDebt(uint256 reserve0, uint256 reserve1, uint256 oracleNum) public {
+  function poolPriceAbove(
+    uint256 oracleNum,
+    uint256 oracleDen,
+    uint256 reserveNum,
+    uint256 reserveDen,
+    uint256 incentive
+  ) public returns (uint256 token1OutRaw) {
+    uint256 numerator = oracleDen * reserveNum - oracleNum * reserveDen;
+    uint256 denominator = (oracleDen * (2 * 10_000 - incentive)) / 10_000;
+
+    uint256 token1InRaw = numerator / denominator;
+    return token1InRaw;
+  }
+
+  function poolPriceBelow(
+    uint256 oracleNum,
+    uint256 oracleDen,
+    uint256 reserveNum,
+    uint256 reserveDen,
+    uint256 incentive
+  ) public returns (uint256 token1InRaw) {
+    uint256 numerator = oracleNum * reserveDen - oracleDen * reserveNum;
+    uint256 denominator = (oracleDen * (2 * 10_000 - incentive)) / 10_000;
+
+    uint256 token1InRaw = numerator / denominator;
+    return token1InRaw;
+  }
+
+  function convertWithRate(
+    uint256 amount,
+    uint256 oracleNum,
+    uint256 oracleDen,
+    bool isToken0
+  ) public returns (uint256) {
+    if (isToken0) {
+      return (amount * oracleNum) / oracleDen;
+    } else {
+      return (amount * oracleDen) / oracleNum;
+    }
+  }
+
+  function convertWithRate(
+    uint256 amount,
+    uint256 fromDec,
+    uint256 toDec,
+    uint256 oracleNum,
+    uint256 oracleDen,
+    bool isToken0
+  ) public returns (uint256) {
+    if (isToken0) {
+      return (amount * oracleNum * toDec) / (oracleDen * fromDec);
+    } else {
+      return (amount * oracleDen * toDec) / (oracleNum * fromDec);
+    }
+  }
+
+  function takeFee(uint256 amount, uint256 fee) public returns (uint256) {
+    return (amount * (10_000 - fee)) / 10_000;
+  }
+
+  function addFee(uint256 amount, uint256 fee) public returns (uint256) {
+    return (amount * (10_000 + fee)) / 10_000;
+  }
+
+  function scaleFromTo(uint256 amount, uint256 fromDec, uint256 toDec) internal pure returns (uint256) {
+    return (amount * toDec) / fromDec;
+  }
+
+  function test_precision_whenPoolPriceAbove() public {
+    uint256 oracleNum = 957567259832341203;
+    uint256 oracleDen = 1957567259832341203;
+    uint256 reserveNum = 1_500_000 * 1e18; // reserve 1
+    uint256 token1Dec = 1e6;
+    uint256 reserveDen = 1_000_000 * 1e18; // reserve 0
+    uint256 token0Dec = 1e18;
+    uint256 incentive = 50;
+
+    // policy calculation
+    uint256 token1OutRaw = poolPriceAbove(oracleNum, oracleDen, reserveNum, reserveDen, incentive);
+    uint256 token1Out = scaleFromTo(token1OutRaw, 1e18, token1Dec);
+
+    console.log("token1Out", token1Out);
+
+    uint256 token0In = convertWithRate(token1Out, oracleNum, oracleDen, false);
+    token0In = takeFee(token0In, incentive);
+    token0In = scaleFromTo(token0In, token1Dec, token0Dec);
+    console.log("token0InAfterFee", token0In);
+
+    // fpmm calculation
+    console.log("-------------fpmm calculation-------------");
+    console.log("token1Out", token1Out);
+    uint256 expectedtoken0In = convertWithRate(token1Out, token1Dec, token0Dec, oracleNum, oracleDen, false);
+    console.log("expectedtoken0In before fee ", expectedtoken0In);
+
+    expectedtoken0In = expectedtoken0In - ((expectedtoken0In * incentive) / 10_000);
+    console.log("expectedtoken0InAfterFee", expectedtoken0In);
+  }
 }
