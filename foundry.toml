@@ -15,7 +15,6 @@ no_match_contract = "ForkTest"
 gas_limit = 9223372036854775807
 evm_version = "cancun"
 cbor_metadata = false
-gas_price = 12500000000
 
 allow_paths = ["node_modules/@celo"]
 
@@ -24,6 +23,11 @@ fs_permissions = [{ access = "read", path = "out" }]
 [profile.ci]
 fuzz_runs = 1_000
 verbosity = 3
+
+[profile.xdc]
+optimizer = true
+optimizer_runs = 200
+gas_price = 12500000000
 
 [profile.optimized]
 optimizer = true
