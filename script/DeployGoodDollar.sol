@@ -8,12 +8,14 @@ import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.so
 
 import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
 import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
-import { IRegistry } from "mento-std/interfaces/IRegistry.sol";
 import { Broker } from "contracts/swap/Broker.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-
+interface IRegistry {
+    function initialize() external;
+    function transferOwnership(address newOwner) external;
+}
 contract DeployMento is Script {
   // Deployment addresses to be populated
   ProxyAdmin public proxyAdmin;
