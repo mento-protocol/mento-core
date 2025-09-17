@@ -3,10 +3,8 @@ pragma solidity ^0.8.0;
 
 interface IFactoryRegistry {
   error FallbackFactory();
-  error InvalidFactoriesToPoolFactory();
   error PathAlreadyApproved();
   error PathNotApproved();
-  error SameAddress();
   error ZeroAddress();
 
   event Approve(address indexed poolFactory);

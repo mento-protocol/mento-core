@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.19;
+pragma solidity 0.8.18;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { IFactoryRegistry } from "../interfaces/IFactoryRegistry.sol";
@@ -12,15 +12,35 @@ contract FactoryRegistry is IFactoryRegistry, OwnableUpgradeable {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   /// @dev The protocol will always have a usable poolFactory.
-  address public immutable FALLBACK_POOL_FACTORY;
+  address public fallbackPoolFactory;
 
   /// @dev Array of poolFactories used to create a gauge and votingRewards
   EnumerableSet.AddressSet private _poolFactories;
 
-  constructor(address _fallbackPoolFactory) {
-    FALLBACK_POOL_FACTORY = _fallbackPoolFactory;
+  /**
+   * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
+   * Call this with disable=false during testing, when used without a proxy.
+   * @param disable Set to true to run `_disableInitializers()` inherited from
+   * openzeppelin-contracts-upgradeable/Initializable.sol
+   */
+  constructor(bool disable) {
+    if (disable) {
+      _disableInitializers();
+    }
+  }
 
-    approve(_fallbackPoolFactory);
+  /// @notice Initialize the registry with a fallback pool factory (auto-approved).
+  /// @param fallbackFactory Address of the fallback pool factory
+  /// @param governance Address of the governance (which will be the owner of this instance)
+  function initialize(address fallbackFactory, address governance) external initializer {
+    if (fallbackFactory == address(0)) revert ZeroAddress();
+
+    __Ownable_init();
+    transferOwnership(governance);
+
+    fallbackPoolFactory = fallbackFactory;
+    _poolFactories.add(fallbackFactory);
+    emit Approve(fallbackFactory);
   }
 
   /// @inheritdoc IFactoryRegistry
@@ -34,8 +54,9 @@ contract FactoryRegistry is IFactoryRegistry, OwnableUpgradeable {
 
   /// @inheritdoc IFactoryRegistry
   function unapprove(address poolFactory) external onlyOwner {
-    if (poolFactory == FALLBACK_POOL_FACTORY) revert FallbackFactory();
+    if (poolFactory == fallbackPoolFactory) revert FallbackFactory();
     if (!_poolFactories.contains(poolFactory)) revert PathNotApproved();
+
     _poolFactories.remove(poolFactory);
     emit Unapprove(poolFactory);
   }
