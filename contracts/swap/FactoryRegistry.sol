@@ -33,12 +33,11 @@ contract FactoryRegistry is IFactoryRegistry, OwnableUpgradeable {
   /// @param fallbackFactory Address of the fallback pool factory
   /// @param governance Address of the governance (which will be the owner of this instance)
   function initialize(address fallbackFactory, address governance) external initializer {
-    if (fallbackFactory == address(0)) revert ZeroAddress();
-
     __Ownable_init();
     transferOwnership(governance);
 
     fallbackPoolFactory = fallbackFactory;
+    // slither-disable-next-line unused-return
     _poolFactories.add(fallbackFactory);
     emit Approve(fallbackFactory);
   }
@@ -46,18 +45,16 @@ contract FactoryRegistry is IFactoryRegistry, OwnableUpgradeable {
   /// @inheritdoc IFactoryRegistry
   function approve(address poolFactory) public onlyOwner {
     if (poolFactory == address(0)) revert ZeroAddress();
-    if (_poolFactories.contains(poolFactory)) revert PathAlreadyApproved();
+    if (!_poolFactories.add(poolFactory)) revert PathAlreadyApproved();
 
-    _poolFactories.add(poolFactory);
     emit Approve(poolFactory);
   }
 
   /// @inheritdoc IFactoryRegistry
   function unapprove(address poolFactory) external onlyOwner {
     if (poolFactory == fallbackPoolFactory) revert FallbackFactory();
-    if (!_poolFactories.contains(poolFactory)) revert PathNotApproved();
+    if (!_poolFactories.remove(poolFactory)) revert PathNotApproved();
 
-    _poolFactories.remove(poolFactory);
     emit Unapprove(poolFactory);
   }
 
