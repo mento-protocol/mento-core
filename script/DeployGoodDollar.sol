@@ -88,9 +88,10 @@ contract DeployMento is Script {
     );
     Broker brokerProxied = Broker(address(brokerProxy));
     IReserve reserveProxied = IReserve(address(reserveProxy));
-    Ownable registryProxied = Ownable(address(registryProxy));
+    IRegistry registryProxied = IRegistry(address(registryProxy));
     
     // Initialize contracts
+    registryProxied.initialize();
     registryProxied.transferOwnership(avatar);
 
     bytes32[] memory assets = new bytes32[](2);
