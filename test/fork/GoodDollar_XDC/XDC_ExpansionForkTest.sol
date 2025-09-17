@@ -10,7 +10,8 @@ import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangePro
 import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
 
 // Contracts
-import { XDC_GoodDollarBaseForkTest, XDC_ID } from "../GoodDollar_XDC/XDC_GoodDollarBaseForkTest.sol";
+import { XDC_ID } from "../BaseForkTest.sol";
+import { XDC_GoodDollarBaseForkTest } from "../GoodDollar_XDC/XDC_GoodDollarBaseForkTest.sol";
 
 contract XDC_GoodDollarExpansionForkTest is XDC_GoodDollarBaseForkTest(XDC_ID) {
   using TradingLimitHelpers for *;
