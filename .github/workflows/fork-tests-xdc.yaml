@@ -36,7 +36,7 @@ jobs:
         run: "forge config"
 
       - name: "Run the tests"
-        run: "forge test"
+        run: "forge test --match-contract XDC"
 
       - name: "Add test summary"
         run: |
