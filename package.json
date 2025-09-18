@@ -18,7 +18,7 @@
     "lint-staged": "^13.0.3",
     "prettier": "3.3.3",
     "prettier-plugin-solidity": "1.4.1",
-    "solhint": "5.0.3",
+    "solhint": "6.0.1",
     "solhint-plugin-prettier": "0.1.0"
   },
   "keywords": [
@@ -45,6 +45,11 @@
   },
   "dependencies": {
     "@celo/contracts": "^11.0.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn lint && yarn prettier"
+    }
   },
   "packageManager": "yarn@4.9.4"
 }
