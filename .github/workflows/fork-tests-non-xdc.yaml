@@ -1,4 +1,4 @@
-name: "ForkTests"
+name: "ForkTests for non-XDC chains"
 
 env:
   FOUNDRY_PROFILE: "fork-tests"
@@ -36,7 +36,7 @@ jobs:
         run: "forge config"
 
       - name: "Run the tests"
-        run: "forge test"
+        run: "forge test --no-match-contract XDC"
 
       - name: "Add test summary"
         run: |
