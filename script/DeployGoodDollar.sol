@@ -15,12 +15,6 @@ import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 
-interface IRegistry {
-  function initialize() external;
-
-  function transferOwnership(address newOwner) external;
-}
-
 contract DeployMento is Script {
   // Deployment addresses to be populated
   ProxyAdmin public proxyAdmin;
