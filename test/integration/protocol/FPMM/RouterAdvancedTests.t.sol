@@ -10,7 +10,6 @@ import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 
 // Interfaces
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IRPoolFactory } from "contracts/swap/router/interfaces/IRPoolFactory.sol";
 
 // Base integration
@@ -32,28 +31,17 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
   // ============ ERROR CONDITION TESTS ============
 
   function test_poolFor_whenFactoryNotApproved_shouldRevert() public {
-    // Mock factory registry to not approve our pool factory
-    vm.mockCall(
-      factoryRegistry,
-      abi.encodeWithSelector(IFactoryRegistry.isPoolFactoryApproved.selector, address(factory)),
-      abi.encode(false)
-    );
-
     vm.expectRevert(IRouter.PoolFactoryDoesNotExist.selector);
-    router.poolFor(address(tokenA), address(tokenB), address(factory));
+    router.poolFor(address(tokenA), address(tokenB), makeAddr("unknownFactory"));
   }
 
   function test_poolFor_whenCustomFactoryProvided_shouldUseCustomFactory() public {
     FPMMFactory customFactory = new FPMMFactory(false);
 
-    customFactory.initialize(oracleAdapter, proxyAdmin, governance, address(fpmmImplementation));
+    customFactory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation));
 
-    // Mock factory registry to approve custom factory
-    vm.mockCall(
-      factoryRegistry,
-      abi.encodeWithSelector(IFactoryRegistry.isPoolFactoryApproved.selector, address(customFactory)),
-      abi.encode(true)
-    );
+    vm.prank(governance);
+    factoryRegistry.approve(address(customFactory));
 
     vm.expectCall(
       address(customFactory),

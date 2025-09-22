@@ -8,10 +8,10 @@ import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { Router } from "contracts/swap/router/Router.sol";
 import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 import { VirtualPoolFactory } from "contracts/swap/virtual/VirtualPoolFactory.sol";
-import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
+import { FactoryRegistry } from "contracts/swap/FactoryRegistry.sol";
 
 contract VirtualPoolBaseIntegration is ProtocolTest {
   FPMMFactory public fpmmFactory;
@@ -19,6 +19,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   FPMM public fpmmImplementation;
   VirtualPoolFactory public vpFactory;
   OracleAdapter public oracleAdapter;
+  FactoryRegistry public factoryRegistry;
 
   // Test accounts
   address public alice = makeAddr("alice");
@@ -29,7 +30,6 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   address public referenceRateFeedID = makeAddr("referenceRateFeedID");
   address public proxyAdmin = makeAddr("proxyAdmin");
   address public governance = makeAddr("governance");
-  address public factoryRegistry = makeAddr("factoryRegistry");
   address public marketHoursBreaker = makeAddr("marketHoursBreaker");
   address public forwarder = address(0);
 
@@ -59,23 +59,16 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
 
     oracleAdapter = new OracleAdapter(false);
     oracleAdapter.initialize(address(sortedOracles), address(breakerBox), marketHoursBreaker);
-    router = new Router(forwarder, factoryRegistry, address(fpmmFactory));
+    factoryRegistry = new FactoryRegistry(false);
+    factoryRegistry.initialize(address(fpmmFactory), governance);
+    vm.prank(governance);
+    factoryRegistry.approve(address(vpFactory));
+    router = new Router(forwarder, address(factoryRegistry), address(fpmmFactory));
 
     fpmmFactory.initialize(address(oracleAdapter), proxyAdmin, governance, address(fpmmImplementation));
   }
 
   function _setupMocks() internal {
-    // Mock factory registry to approve our pool factories
-    vm.mockCall(
-      factoryRegistry,
-      abi.encodeWithSelector(IFactoryRegistry.isPoolFactoryApproved.selector, address(fpmmFactory)),
-      abi.encode(true)
-    );
-    vm.mockCall(
-      factoryRegistry,
-      abi.encodeWithSelector(IFactoryRegistry.isPoolFactoryApproved.selector, address(vpFactory)),
-      abi.encode(true)
-    );
     vm.mockCall(
       marketHoursBreaker,
       abi.encodeWithSelector(IMarketHoursBreaker.isFXMarketOpen.selector),
