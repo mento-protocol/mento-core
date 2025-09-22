@@ -95,16 +95,14 @@ library TradingLimits {
    */
   function verify(ITradingLimits.State memory self, ITradingLimits.Config memory config) internal pure {
     if ((config.flags & L0) > 0) {
-
-      if((-1 * config.limit0Out) > self.netflow0) {
+      if ((-1 * config.limit0Out) > self.netflow0) {
         revert("L0Out Exceeded");
       }
-      if(self.netflow0 > config.limit0In) {
+      if (self.netflow0 > config.limit0In) {
         revert("L0In Exceeded");
       }
     }
     if ((config.flags & L1) > 0) {
-
       if (-1 * config.limit1Out > self.netflow1) {
         revert("L1Out Exceeded");
       }
