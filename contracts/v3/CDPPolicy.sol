@@ -240,8 +240,6 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     if (amountIn > availableSPAmount) {
       amountIn = availableSPAmount;
       if (ctx.isToken0Debt) {
-        // uint256 amountOutRaw = (amountIn * ctx.prices.oracleNum) / ctx.prices.oracleDen;
-        // amountOut = LQ.scaleFromTo(amountOutRaw, ctx.token0Dec, ctx.token1Dec);
         amountOut = LQ.convertWithRateScalingAndFee(
           amountIn,
           ctx.token0Dec,
@@ -252,8 +250,6 @@ contract CDPPolicy is ICDPPolicy, Ownable {
           LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps
         );
       } else {
-        // uint256 amountOutRaw = (amountIn * ctx.prices.oracleDen) / ctx.prices.oracleNum;
-        // amountOut = LQ.scaleFromTo(amountOutRaw, ctx.token1Dec, ctx.token0Dec);
         amountOut = LQ.convertWithRateScalingAndFee(
           amountIn,
           ctx.token1Dec,
