@@ -12,9 +12,9 @@ import { ILiquidityStrategy } from "./Interfaces/ILiquidityStrategy.sol";
 
 /**
  * @title   ReserveLiquidityStrategy
- * @notice  Implements a liquidity strategy that sources liquidity directly from the Reserve.
+ * @notice  Implements a rebalance strategy that sources liquidity directly from the Reserve.
  */
-contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
+abstract contract ReserveRebalancer is ILiquidityStrategy, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
   /* ============================================================ */
@@ -140,15 +140,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
       (uint256, uint256, LQ.Direction, bool)
     );
 
-    _handleRebalanceCallback(
-      msg.sender,
-      amount0Out,
-      amount1Out,
-      inputAmount,
-      incentiveAmount,
-      direction,
-      isToken0Debt
-    );
+    _handleRebalanceCallback(msg.sender, amount0Out, amount1Out, inputAmount, incentiveAmount, direction, isToken0Debt);
   }
 
   /* ============================================================ */
@@ -176,21 +168,21 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
     bool isToken0Debt
   ) internal {
     (address token0, address token1) = IFPMM(pool).tokens();
-    
+
     address tokenIn;
     address tokenOut;
     uint256 amountOut;
-    
+
     if (direction == LQ.Direction.Expand) {
       // Expansion: Pool price > oracle price
       // Reserve provides debt to pool, receives collateral from pool
-      tokenIn = isToken0Debt ? token0 : token1;  // debt
+      tokenIn = isToken0Debt ? token0 : token1; // debt
       tokenOut = isToken0Debt ? token1 : token0; // collateral
       amountOut = isToken0Debt ? amount1Out : amount0Out;
     } else {
       // Contraction: Pool price < oracle price
       // Reserve provides collateral to pool, receives debt from pool
-      tokenIn = isToken0Debt ? token1 : token0;  // collateral
+      tokenIn = isToken0Debt ? token1 : token0; // collateral
       tokenOut = isToken0Debt ? token0 : token1; // debt
       amountOut = isToken0Debt ? amount0Out : amount1Out;
     }
@@ -198,7 +190,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
     // Handle token going INTO the pool
     uint256 amountToPool = inputAmount - incentiveAmount;
     _transferTokenIn(tokenIn, pool, amountToPool, incentiveAmount);
-    
+
     // Handle token coming OUT of the pool
     _transferTokenOut(tokenOut, amountOut);
   }
@@ -210,12 +202,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
    * @param amountToPool Amount to send to the pool
    * @param incentiveAmount Incentive amount to send to this contract
    */
-  function _transferTokenIn(
-    address token,
-    address pool,
-    uint256 amountToPool,
-    uint256 incentiveAmount
-  ) internal {
+  function _transferTokenIn(address token, address pool, uint256 amountToPool, uint256 incentiveAmount) internal {
     if (reserve.isStableAsset(token)) {
       // Mint stable assets directly
       IERC20MintableBurnable(token).mint(pool, amountToPool);
@@ -246,7 +233,7 @@ contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
    */
   function _transferTokenOut(address token, uint256 amount) internal {
     if (amount == 0) return;
-    
+
     if (reserve.isStableAsset(token)) {
       // Burn stable assets received from pool
       IERC20MintableBurnable(token).burn(amount);
