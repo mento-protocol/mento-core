@@ -12,7 +12,6 @@ import { Test } from "forge-std/Test.sol";
 
 contract CDPPolicyTest is Test {
   error CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH();
-  error CDPPolicy_INVALID_MAX_REDEMPTION_FEE();
 
   CDPPolicy public policy;
 
@@ -59,14 +58,14 @@ contract CDPPolicyTest is Test {
     address[] memory debtTokens = addresses(address(debtToken6), address(debtToken18));
     address[] memory stabilityPools = addresses(stabilityPool, stabilityPool);
     address[] memory collateralRegistries = addresses(collateralRegistry, collateralRegistry);
-    uint256[] memory maxRedemptionFees = uints(1e16, 1e17);
-    policy = new CDPPolicy(debtTokens, stabilityPools, collateralRegistries, maxRedemptionFees);
+    uint256[] memory redemptionBetas = uints(1, 2);
+    policy = new CDPPolicy(debtTokens, stabilityPools, collateralRegistries, redemptionBetas);
     assertEq(policy.deptTokenStabilityPool(address(debtToken6)), stabilityPool);
-    assertEq(policy.deptTokenMaxRedemptionFee(address(debtToken6)), 1e16);
     assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), collateralRegistry);
     assertEq(policy.deptTokenStabilityPool(address(debtToken18)), stabilityPool);
-    assertEq(policy.deptTokenMaxRedemptionFee(address(debtToken18)), 1e17);
     assertEq(policy.deptTokenCollateralRegistry(address(debtToken18)), collateralRegistry);
+    assertEq(policy.deptTokenRedemptionBeta(address(debtToken6)), 1);
+    assertEq(policy.deptTokenRedemptionBeta(address(debtToken18)), 2);
   }
 
   function test_setDeptTokenStabilityPool_whenNotOwneri_shouldRevert() public {
@@ -80,25 +79,6 @@ contract CDPPolicyTest is Test {
     assertEq(policy.deptTokenStabilityPool(address(debtToken6)), makeAddr("newStabilityPool"));
   }
 
-  function test_setDeptTokenMaxRedemptionFee_whenNotOwner_shouldRevert() public {
-    vm.expectRevert("Ownable: caller is not the owner");
-    vm.prank(makeAddr("notOwner"));
-    policy.setDeptTokenMaxRedemptionFee(address(debtToken6), 1e16);
-  }
-
-  function test_setDeptTokenMaxRedemptionFee_whenCalledByOwner_shouldSucceed() public {
-    policy.setDeptTokenMaxRedemptionFee(address(debtToken6), 1e15);
-    assertEq(policy.deptTokenMaxRedemptionFee(address(debtToken6)), 1e15);
-  }
-
-  function test_setDeptTokenMaxRedemptionFee_whenInvalidMaxRedemptionFee_shouldRevert() public {
-    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_INVALID_MAX_REDEMPTION_FEE.selector));
-    policy.setDeptTokenMaxRedemptionFee(address(debtToken6), 0);
-
-    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_INVALID_MAX_REDEMPTION_FEE.selector));
-    policy.setDeptTokenMaxRedemptionFee(address(debtToken6), 1e19);
-  }
-
   function test_setDeptTokenCollateralRegistry_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("notOwner"));
@@ -108,6 +88,17 @@ contract CDPPolicyTest is Test {
   function test_setDeptTokenCollateralRegistry_whenCalledByOwner_shouldSucceed() public {
     policy.setDeptTokenCollateralRegistry(address(debtToken6), makeAddr("newCollateralRegistry"));
     assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), makeAddr("newCollateralRegistry"));
+  }
+
+  function test_setDeptTokenRedemptionBeta_whenNotOwner_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("notOwner"));
+    policy.setDeptTokenRedemptionBeta(address(debtToken6), 1);
+  }
+
+  function test_setDeptTokenRedemptionBeta_whenCalledByOwner_shouldSucceed() public {
+    policy.setDeptTokenRedemptionBeta(address(debtToken6), 1);
+    assertEq(policy.deptTokenRedemptionBeta(address(debtToken6)), 1);
   }
 
   function test_whenPoolPriceAbove() public {
@@ -129,9 +120,7 @@ contract CDPPolicyTest is Test {
     ctx.pool = fpmm;
 
     uint256 reserve0 = 1_000_000 * 1e18; // usdfx
-    console.log("reserve0", reserve0);
     uint256 reserve1 = 1_500_000 * 1e6; // usdc
-    console.log("reserve1", reserve1);
     ctx.reserves = LQ.Reserves({
       reserveNum: reserve1 * 1e12, // reserve token 1 (1M) USDC
       reserveDen: reserve0 // reserve token 0 (1.5M) usdfx
@@ -153,24 +142,18 @@ contract CDPPolicyTest is Test {
 
     policy.setDeptTokenStabilityPool(address(debtToken18), stabilityPool);
     policy.setDeptTokenCollateralRegistry(address(debtToken18), collateralRegistry);
-    policy.setDeptTokenMaxRedemptionFee(address(debtToken18), 100); // 1%
 
     setStabilityPoolBalance(address(debtToken18), 100_000 * 1e18);
 
     (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
 
-    console.log("shouldAct", shouldAct);
-    console.log("action.dir", uint256(action.dir));
-    console.log("action.liquiditySource", uint256(action.liquiditySource));
     console.log("action.amount0Out", action.amount0Out);
     console.log("action.amount1Out", action.amount1Out);
     console.log("action.inputAmount", action.inputAmount);
-    console.log("action.incentiveBps", action.incentiveBps);
 
     reserve0 -= action.amount0Out;
     reserve1 -= action.amount1Out;
-    uint256 inputAmount = (action.inputAmount * (10_000 - action.incentiveBps)) / 10_000;
-    reserve0 += inputAmount;
+    reserve0 += action.inputAmount;
 
     console.log("reserve0", reserve0);
     console.log("reserve1", reserve1 * 1e12);
@@ -205,9 +188,9 @@ contract CDPPolicyTest is Test {
 
     policy.setDeptTokenStabilityPool(address(debtToken18), stabilityPool);
     policy.setDeptTokenCollateralRegistry(address(debtToken18), collateralRegistry);
-    policy.setDeptTokenMaxRedemptionFee(address(debtToken18), 1e17); // 10%
+    policy.setDeptTokenRedemptionBeta(address(debtToken18), 1);
     setTokenTotalSupply(address(debtToken18), 10_000_000 * 1e18);
-    mockGetRedemptionRateWithDecay(5e16); // 5%
+    mockGetRedemptionRateWithDecay(3e15); // 0.3%
 
     setStabilityPoolBalance(address(collateralToken6), 100_000 * 1e6);
 
@@ -223,7 +206,7 @@ contract CDPPolicyTest is Test {
     reserve0 += inputAmount;
 
     // console.log("reserve0", reserve0);
-    // console.log("reserve1", reserve1 * 1e12);
+    console.log("reserve1", reserve1 * 1e12);
   }
 
   function poolPriceAbove(
@@ -308,10 +291,14 @@ contract CDPPolicyTest is Test {
     uint256 token1Out = scaleFromTo(token1OutRaw, 1e18, token1Dec);
 
     console.log("token1Out", token1Out);
+    console.log("-------------Test calculation-------------");
+    // uint256 token0In = scaleFromTo(token1Out, token1Dec, token0Dec);
+    // console.log("token0In", token0In);
 
-    uint256 token0In = convertWithRate(token1Out, oracleNum, oracleDen, false);
+    // token0In = convertWithRate(token0In, oracleNum, oracleDen, false);
+    uint256 token0In = (token1Out * token0Dec * oracleDen) / (token1Dec * oracleNum);
     token0In = takeFee(token0In, incentive);
-    token0In = scaleFromTo(token0In, token1Dec, token0Dec);
+    // token0In = scaleFromTo(token0In, token1Dec, token0Dec);
     console.log("token0InAfterFee", token0In);
 
     // fpmm calculation
@@ -319,8 +306,41 @@ contract CDPPolicyTest is Test {
     console.log("token1Out", token1Out);
     uint256 expectedtoken0In = convertWithRate(token1Out, token1Dec, token0Dec, oracleNum, oracleDen, false);
     console.log("expectedtoken0In before fee ", expectedtoken0In);
+    console.log("incentive", incentive);
 
+    console.log("expectedtoken0In after fee 2.0 ", (expectedtoken0In * (10_000 - incentive)) / 10_000);
     expectedtoken0In = expectedtoken0In - ((expectedtoken0In * incentive) / 10_000);
     console.log("expectedtoken0InAfterFee", expectedtoken0In);
   }
+  function test_basics() public {
+    uint256 ON = 999884980000000000;
+    uint256 OD = 1e18;
+    uint256 RN = 1_500_000 * 1e18;
+    uint256 RD = 1_000_000 * 1e18;
+    uint256 incentive = 50;
+
+    uint256 numerator = OD * RN - ON * RD;
+    uint256 denominator = (OD * (2 * 10_000 - incentive)) / 10_000;
+    uint256 token1Out = (numerator * 1e6) / (denominator * 1e18);
+
+    console.log("token1Out", token1Out);
+
+    uint256 token1Incentive = (token1Out * incentive) / 10_000;
+    console.log("token1Incentive", token1Incentive);
+
+    uint256 token1OutAfterIncentive = token1Out - token1Incentive;
+    console.log("token1OutAfterIncentive", token1OutAfterIncentive);
+
+    uint256 token0In = (token1OutAfterIncentive * OD * 1e18) / (ON * 1e6);
+    console.log("token0In", token0In);
+
+    RN = RN - token1Out * 1e12;
+    console.log("RN", RN);
+
+    RD = RD + token0In;
+    console.log("RD", RD);
+  }
 }
+
+//249459492279802022828665
+//249459492279423533179498

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
+import { console } from "forge-std/console.sol";
 /**
  * @title LiquidityTypes
  * @author Mento Labs
@@ -107,6 +108,28 @@ library LiquidityTypes {
 
   function scaleFromTo(uint256 amount, uint256 fromDec, uint256 toDec) internal pure returns (uint256) {
     return (amount * toDec) / fromDec;
+  }
+
+  function convertWithRateScaling(
+    uint256 amount,
+    uint256 fromDec,
+    uint256 toDec,
+    uint256 oracleNum,
+    uint256 oracleDen
+  ) internal pure returns (uint256) {
+    return (amount * oracleNum * toDec) / (fromDec * oracleDen);
+  }
+
+  function convertWithRateScalingAndAddFee(
+    uint256 amount,
+    uint256 fromDec,
+    uint256 toDec,
+    uint256 oracleNum,
+    uint256 oracleDen,
+    uint256 incentiveNum,
+    uint256 incentiveDen
+  ) internal pure returns (uint256) {
+    return (amount * oracleNum * toDec * incentiveDen) / (fromDec * oracleDen * incentiveNum);
   }
 
   /// @notice Calc an amount in bps.

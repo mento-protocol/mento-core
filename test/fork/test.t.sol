@@ -16,7 +16,12 @@ contract RedemptionCalculatorTest is Test {
   }
 
   function testRedemptionFeeCalc() public {
-    uint256 amountToRedeem = 100_000 * 1e18;
+    address redeemer = makeAddr("redeemer");
+
+    uint256 amountToRedeem = 1_000 * 1e18;
+    deal(address(bolt), redeemer, amountToRedeem);
+    console.log("balance of redeemer", bolt.balanceOf(redeemer));
+
     uint256 supply = bolt.totalSupply();
     uint256 expectedFee = collateralRegistry.getRedemptionRateForRedeemedAmount(amountToRedeem);
 
