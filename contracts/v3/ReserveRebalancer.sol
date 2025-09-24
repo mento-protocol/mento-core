@@ -12,9 +12,9 @@ import { ILiquidityStrategy } from "./Interfaces/ILiquidityStrategy.sol";
 
 /**
  * @title   ReserveLiquidityStrategy
- * @notice  Implements a liquidity strategy that sources liquidity directly from the Reserve.
+ * @notice  Implements a rebalance strategy that sources liquidity directly from the Reserve.
  */
-contract ReserveLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
+abstract contract ReserveRebalancer is ILiquidityStrategy, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
   /* ============================================================ */

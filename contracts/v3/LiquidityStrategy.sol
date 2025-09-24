@@ -20,7 +20,7 @@ import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
  * @notice Orchestrates per-pool policy pipelines and executes actions via liquidity source-specific strategies.
  *         Also stores per-pool FPMM config (cooldown, incentive cap, lastRebalance, tokens).
  */
-contract LiquidityController is ILiquidityController, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable, ReentrancyGuardUpgradeable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using SafeERC20 for IERC20Upgradeable;
 
@@ -30,12 +30,6 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
 
   EnumerableSetUpgradeable.AddressSet private pools;
   mapping(address => PoolConfig) public poolConfigs;
-
-  // Pool -> ordered policy pipeline (e.g., [ReservePolicy, CDPPolicy] || [ReservePolicy])
-  mapping(address => ILiquidityPolicy[]) public pipelines;
-
-  // LiquiditySource → Strategy. Links a policy to its execution strategy.
-  mapping(LQ.LiquiditySource => ILiquidityStrategy) public strategies;
 
   /* ============================================================ */
   /* ==================== Initialization ======================== */
@@ -88,7 +82,6 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
   function removePool(address pool) external onlyOwner {
     require(pools.remove(pool), "LC: POOL_NOT_FOUND");
     delete poolConfigs[pool];
-    delete pipelines[pool];
     emit PoolRemoved(pool);
   }
 
@@ -109,27 +102,22 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
   }
 
   /* ============================================================ */
-  /* ======== Admin Functions - Pipelines  & Strategies ========= */
+  /* ==================== Abstract Functions ==================== */
   /* ============================================================ */
 
-  /// @inheritdoc ILiquidityController
-  function setPoolPipeline(address pool, ILiquidityPolicy[] calldata policies) external onlyOwner {
-    _ensurePool(pool);
-    delete pipelines[pool];
-    address[] memory policyAddresses = new address[](policies.length);
-    for (uint256 i = 0; i < policies.length; i++) {
-      pipelines[pool].push(policies[i]);
-      policyAddresses[i] = address(policies[i]);
-    }
-    emit PipelineSet(pool, policyAddresses);
-  }
+  function _buildExpansionAction(
+    LQ.Context memory ctx,
+    uint256 amountIn,
+    uint256 amountOut
+  ) internal view virtual returns (LQ.Action memory action);
 
-  /// @inheritdoc ILiquidityController
-  function setLiquiditySourceStrategy(LQ.LiquiditySource source, ILiquidityStrategy strategy) external onlyOwner {
-    require(address(strategy) != address(0), "LC: STRATEGY_ADDRESS_IS_ZERO");
-    strategies[source] = strategy;
-    emit StrategySet(source, address(strategy));
-  }
+  function _buildContractionAction(
+    LQ.Context memory ctx,
+    uint256 amountIn,
+    uint256 amountOut
+  ) internal view virtual returns (LQ.Action memory action);
+
+  function _execute(LQ.Action memory action) internal virtual returns (bool);
 
   /* ============================================================ */
   /* ==================== External Functions ==================== */
@@ -145,25 +133,16 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
     (LQ.Context memory ctx, bool inRange, uint256 diffBefore) = _readCtx(pool, config);
     require(!inRange, "LC: POOL_PRICE_IN_RANGE");
 
-    ILiquidityPolicy[] memory policies = pipelines[pool];
-    require(policies.length > 0, "LC: NO_POLICIES_IN_PIPELINE");
-
     bool acted = false;
 
-    for (uint256 i = 0; i < policies.length; i++) {
-      (bool shouldAct, LQ.Action memory action) = policies[i].determineAction(ctx);
-      if (!shouldAct) continue;
+    (bool shouldAct, LQ.Action memory action) = _determineAction(ctx);
 
-      ILiquidityStrategy strategy = strategies[action.liquiditySource];
-      require(address(strategy) != address(0), "LC: NO_STRATEGY_FOR_LIQUIDITY_SOURCE");
-
-      bool ok = strategy.execute(action);
+    if (shouldAct) {
+      bool ok = _execute(action);
       require(ok, "LC: STRATEGY_EXECUTION_FAILED");
       acted = true;
-
       // refresh after action execution, stop early if price in range
       (ctx, inRange, ) = _readCtx(pool, config);
-      if (inRange) break;
     }
 
     require(acted, "LC: NO_ACTION_TAKEN");
@@ -289,5 +268,73 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
   /// @dev Order tokens based on size
   function _orderTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
     (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+  }
+
+  /* ============================================================ */
+  /* ================= Internal Policy Functions ================ */
+  /* ============================================================ */
+
+  function _determineAction(LQ.Context memory ctx) internal view returns (bool shouldAct, LQ.Action memory action) {
+    if (ctx.prices.poolPriceAbove) {
+      return _handlePoolPriceAbove(ctx);
+    } else {
+      return _handlePoolPriceBelow(ctx);
+    }
+  }
+
+  /* ============================================================ */
+  /* =================== Internal Functions ===================== */
+  /* ============================================================ */
+
+  function _handlePoolPriceAbove(
+    LQ.Context memory ctx
+  ) internal view returns (bool shouldAct, LQ.Action memory action) {
+    uint256 numerator = ctx.prices.oracleDen * ctx.reserves.reserveNum - ctx.prices.oracleNum * ctx.reserves.reserveDen;
+    uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+      LQ.BASIS_POINTS_DENOMINATOR;
+
+    uint256 token1OutRaw = numerator / denominator;
+    uint256 token1Out = LQ.scaleFromTo(token1OutRaw, 1e18, ctx.token1Dec);
+    uint256 token0InRaw = (token1Out * ctx.prices.oracleDen) / ctx.prices.oracleNum;
+
+    uint256 token0In = LQ.scaleFromTo(token0InRaw, ctx.token1Dec, ctx.token0Dec);
+
+    if (ctx.isToken0Debt) {
+      // ON/OD < RN/RD
+      // ON/OD < CollR/DebtR
+      action = _buildExpansionAction(ctx, token0In, token1Out);
+    } else {
+      // ON/OD < RN/RD
+      // ON/OD < DebtR/CollR
+      action = _buildContractionAction(ctx, token0In, token1Out);
+    }
+    // TODO: add what need to go here
+    return (true, action);
+  }
+
+  function _handlePoolPriceBelow(
+    LQ.Context memory ctx
+  ) internal view returns (bool shouldAct, LQ.Action memory action) {
+    uint256 numerator = ctx.prices.oracleNum * ctx.reserves.reserveDen - ctx.prices.oracleDen * ctx.reserves.reserveNum;
+    uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+      LQ.BASIS_POINTS_DENOMINATOR;
+
+    uint256 token1InRaw = numerator / denominator;
+    uint256 token1In = LQ.scaleFromTo(token1InRaw, 1e18, ctx.token1Dec);
+
+    uint256 token0OutRaw = (token1In * ctx.prices.oracleDen) / ctx.prices.oracleNum;
+    uint256 token0Out = LQ.scaleFromTo(token0OutRaw, ctx.token1Dec, ctx.token0Dec);
+
+    if (ctx.isToken0Debt) {
+      // ON/OD > RN/RD
+      // ON/OD > CollR/DebtR
+      action = _buildContractionAction(ctx, token1In, token0Out);
+    } else {
+      // ON/OD > RN/RD
+      // ON/OD > DebtR/CollR
+      action = _buildExpansionAction(ctx, token1In, token0Out);
+    }
+
+    return (true, action);
   }
 }

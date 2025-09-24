@@ -8,7 +8,7 @@ import { ILiquidityPolicy } from "./Interfaces/ILiquidityPolicy.sol";
  * @title ReservePolicy
  * @notice Policy that determines rebalance actions using the Reserve as liquidity source.
  */
-contract ReservePolicy is ILiquidityPolicy {
+abstract contract ReservePolicy is ILiquidityPolicy {
   /* ============================================================ */
   /* ===================== View Functions ======================= */
   /* ============================================================ */
@@ -18,21 +18,15 @@ contract ReservePolicy is ILiquidityPolicy {
   }
 
   /* ============================================================ */
-  /* ================== External Functions ====================== */
+  /* ===================== External Functions =================== */
   /* ============================================================ */
 
-  /**
-   * @notice Determine how the policy should act and return the action to take
-   * @param ctx The current pool context
-   * @return shouldAct True if policy should take action
-   * @return action The action to execute
-   */
   function determineAction(LQ.Context memory ctx) external pure returns (bool shouldAct, LQ.Action memory action) {
     (uint256 amount0Out, uint256 amount1Out, uint256 amount0In, uint256 amount1In) = _calculateRebalanceAmounts(ctx);
 
-    // Check if action is needed
+    // Check if any rebalancing is needed
     if (amount0Out == 0 && amount1Out == 0 && amount0In == 0 && amount1In == 0) {
-      return (false, _emptyAction(ctx.pool));
+      return (false, action);
     }
 
     // Determine direction based on debt/collateral flows
@@ -41,6 +35,7 @@ contract ReservePolicy is ILiquidityPolicy {
     // Contract: Reserve contracts debt supply (receives debt from pool, provides collateral)
     LQ.Direction direction;
     uint256 inputAmount;
+
     if (ctx.isToken0Debt) {
       // Token0 is debt, Token1 is collateral
       if (amount0In > 0) {
@@ -64,6 +59,7 @@ contract ReservePolicy is ILiquidityPolicy {
         inputAmount = amount0In;
       }
     }
+
     bytes memory callbackData = abi.encode(LQ.incentiveAmount(inputAmount, ctx.incentiveBps), ctx.isToken0Debt);
 
     action = LQ.Action({
@@ -124,6 +120,7 @@ contract ReservePolicy is ILiquidityPolicy {
     if (denominator == 0) {
       return (0, 0, 0, 0);
     }
+
     if (poolPriceNumerator > oraclePriceNumerator) {
       // PP > OP: Pool price above oracle (RN/RD > ON/OD)
       // X = (OD * RN - ON * RD) / (OD * (2 - i))
@@ -162,9 +159,6 @@ contract ReservePolicy is ILiquidityPolicy {
     }
   }
 
-  /**
-   * @notice Create an empty action
-   */
   function _emptyAction(address pool) internal pure returns (LQ.Action memory) {
     return
       LQ.Action({
