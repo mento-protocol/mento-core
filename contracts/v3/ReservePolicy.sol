@@ -88,13 +88,15 @@ contract ReservePolicy is ILiquidityPolicy {
 
   /**
    * @notice Calculate rebalance amounts
-   * @dev When PP > OP: X = (OD * RN - ON * RD) / (OD * (2 - i))
+   * @dev When PP > OP: 
+   *      - X = (OD * RN - ON * RD) / (OD * (2 - i))
    *      - X = token1 to REMOVE from pool
-   *      - Y = X * OD/ON represents token0 to ADD to pool
-   *      
-   *      When PP < OP: X = (ON * RD - OD * RN) / (OD * (2 - i))
-   *      - X = token1 to ADD to pool
-   *      - Y = X * OD/ON represents token0 to REMOVE from pool
+   *      - Y = X * OD/ON = token0 to ADD to pool
+   *
+   *      When PP < OP:
+   *      - Y = (ON * RD - OD * RN) / (ON * (2 - i))
+   *      - Y = token0 to REMOVE from pool
+   *      - X = Y * (ON/OD) * (1 - i) = token1 to ADD to pool
    *      
    *      The direction depends on which token is debt/collateral:
    *      - If token1 is debt and PP > OP: Contract (remove debt from pool)
@@ -117,7 +119,7 @@ contract ReservePolicy is ILiquidityPolicy {
       return (0, 0, 0, 0);
     }
     
-    // OD * (2 - i)
+    // OD * (2 - i) for PP > OP case
     uint256 denominator = ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps);
     
     // Prevent division by zero
@@ -139,11 +141,18 @@ contract ReservePolicy is ILiquidityPolicy {
       amount1In = 0;
     } else {
       // PP < OP: Pool price below oracle (RN/RD < ON/OD)
-      // X = (ON * RD - OD * RN) / (OD * (2 - i))
-      // X is token1 to ADD to pool
-      // Y = X * OD/ON is token0 to REMOVE from pool
-      uint256 token1ToAdd18 = ((oraclePriceNumerator - poolPriceNumerator) * LQ.BASIS_POINTS_DENOMINATOR) / denominator;
-      uint256 token0ToRemove18 = (token1ToAdd18 * ctx.prices.oracleDen) / ctx.prices.oracleNum;
+      // Y = (ON * RD - OD * RN) / (ON * (2 - i))
+      // Y is token0 to REMOVE from pool
+      // X = Y * (ON/OD) * (1 - i) is token1 to ADD to pool
+      uint256 contractionDenominator = ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps);
+      
+      // Prevent division by zero
+      if (contractionDenominator == 0) {
+        return (0, 0, 0, 0);
+      }
+      
+      uint256 token0ToRemove18 = ((oraclePriceNumerator - poolPriceNumerator) * LQ.BASIS_POINTS_DENOMINATOR) / contractionDenominator;
+      uint256 token1ToAdd18 = (token0ToRemove18 * ctx.prices.oracleNum * (LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) / (ctx.prices.oracleDen * LQ.BASIS_POINTS_DENOMINATOR);
       
       amount0Out = LQ.from1e18(token0ToRemove18, ctx.token0Dec);
       amount1Out = 0;
