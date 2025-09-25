@@ -292,8 +292,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
-    uint256 totalFee = $.lpFee + $.protocolFee;
-    uint256 amountInAfterFee = amountIn - ((amountIn * totalFee) / BASIS_POINTS_DENOMINATOR);
+    uint256 totalFeeBps = $.lpFee + $.protocolFee;
+    uint256 amountInAfterFee = amountIn - ((amountIn * totalFeeBps) / BASIS_POINTS_DENOMINATOR);
 
     if (tokenIn == $.token0) {
       return convertWithRate(amountInAfterFee, $.decimals0, $.decimals1, rateNumerator, rateDenominator);
@@ -771,7 +771,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       (BASIS_POINTS_DENOMINATOR - totalFeeBps) -
       expectedAmount1In;
 
-    // Only take the LPs portion of the fees
+    // Only LP portion of the fees goes into the reserves
     fee0 = totalFeeBps > 0 ? (fee0 * $.lpFee) / totalFeeBps : 0;
     fee1 = totalFeeBps > 0 ? (fee1 * $.lpFee) / totalFeeBps : 0;
 
