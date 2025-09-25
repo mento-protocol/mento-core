@@ -34,32 +34,37 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
     // X = 100e18 / 1.95, but let's use integer approximation
     // Just verify that there's output for decimal conversion test
     assertTrue(action.amount1Out > 0, "Should have token1 output");
-    
+
     // For 6 decimal collateral, amount should be around 50e6 (approx 51.282e6 with 5% incentive)
     assertLt(action.amount1Out, 1e9, "Token1 out should be in 6 decimal range");
     assertGt(action.amount1Out, 1e6, "Token1 out should be meaningful in 6 decimals");
     assertGt(action.inputAmount, 1e12, "Debt input should be in 18 decimal units");
-    
+
     // Verify Y = X * OD/ON relationship holds across decimal conversions
     // Convert collateral back to 18 decimals for comparison
     uint256 collateralOut18 = action.amount1Out * 1e12;
     // Allow for small rounding errors in decimal conversion
-    assertApproxEqRel(action.inputAmount, collateralOut18, 1e15, "Y should approximately equal X when oracle ratio is 1:1"); // 0.1% tolerance
+    assertApproxEqRel(
+      action.inputAmount,
+      collateralOut18,
+      1e15,
+      "Y should approximately equal X when oracle ratio is 1:1"
+    ); // 0.1% tolerance
   }
 
   function test_decimalPrecision_multipleDecimalCombinations() public view {
     // Test multiple decimal combinations
     DecimalTest[4] memory tests = [
-      DecimalTest(1e18, 1e6, 1e12),  // 18 dec debt, 6 dec collateral
-      DecimalTest(1e6, 1e18, 1),     // 6 dec debt, 18 dec collateral (factor is 1/1e12 but in reverse)
-      DecimalTest(1e8, 1e6, 100),    // 8 dec debt, 6 dec collateral
-      DecimalTest(1e18, 1e8, 1e10)   // 18 dec debt, 8 dec collateral
+      DecimalTest(1e18, 1e6, 1e12), // 18 dec debt, 6 dec collateral
+      DecimalTest(1e6, 1e18, 1), // 6 dec debt, 18 dec collateral (factor is 1/1e12 but in reverse)
+      DecimalTest(1e8, 1e6, 100), // 8 dec debt, 6 dec collateral
+      DecimalTest(1e18, 1e8, 1e10) // 18 dec debt, 8 dec collateral
     ];
-    
-    for (uint i = 0; i < tests.length; i++) {
+
+    for (uint256 i = 0; i < tests.length; i++) {
       LQ.Context memory ctx = _createContextWithDecimals({
-        reserveDen: 100e18,  // token0 reserves
-        reserveNum: 200e18,  // token1 reserves
+        reserveDen: 100e18, // token0 reserves
+        reserveNum: 200e18, // token1 reserves
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
@@ -69,7 +74,7 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
       });
 
       (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
-      
+
       if (shouldAct) {
         // For token0 (debt) - should be scaled by debtDec
         if (action.inputAmount > 0 || action.amount0Out > 0) {
@@ -82,7 +87,7 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
             assertLt(amount0, maxReasonableValue, "Token0 should be in reasonable decimal scale");
           }
         }
-        
+
         // For token1 (collateral) - should be scaled by collateralDec
         if (action.inputAmount > 0 || action.amount1Out > 0) {
           uint256 amount1 = action.amount1Out > 0 ? action.amount1Out : action.inputAmount;
@@ -101,30 +106,31 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
   function test_precision_highDecimalVariations() public view {
     // Test with high precision decimals (up to 18)
     uint256[4] memory decimals = [uint256(1e6), 1e8, 1e12, 1e18];
-    
-    for (uint i = 0; i < decimals.length; i++) {
-      for (uint j = 0; j < decimals.length; j++) {
+
+    for (uint256 i = 0; i < decimals.length; i++) {
+      for (uint256 j = 0; j < decimals.length; j++) {
         if (i == j) continue; // Skip same decimals
-        
+
         LQ.Context memory ctx = _createContextWithDecimals({
-          reserveDen: 1000e18,   // Large reserves for better precision testing
-          reserveNum: 2000e18,   // 2:1 ratio
+          reserveDen: 1000e18, // Large reserves for better precision testing
+          reserveNum: 2000e18, // 2:1 ratio
           oracleNum: 1e18,
           oracleDen: 1e18,
           poolPriceAbove: true,
-          incentiveBps: 250,     // 2.5%
+          incentiveBps: 250, // 2.5%
           token0Dec: decimals[i],
           token1Dec: decimals[j]
         });
 
         (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
-        
+
         if (shouldAct) {
           assertGt(action.amount1Out, 0, "Should have meaningful output for all decimal combinations");
           assertGt(action.inputAmount, 0, "Should have meaningful input for all decimal combinations");
-          
+
           // Verify no precision loss causes zero amounts for reasonable reserves
-          if (decimals[j] >= 1e6) { // Only check for reasonable decimal precision
+          if (decimals[j] >= 1e6) {
+            // Only check for reasonable decimal precision
             assertGt(action.amount1Out, decimals[j] / 1e6, "Should have at least micro-unit output");
           }
         }
@@ -135,11 +141,11 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
   function test_precision_rounding_consistency() public view {
     // Test that similar inputs produce proportionally similar outputs
     uint256[3] memory baseAmounts = [uint256(100e18), 1000e18, 10000e18];
-    
-    for (uint i = 0; i < baseAmounts.length - 1; i++) {
+
+    for (uint256 i = 0; i < baseAmounts.length - 1; i++) {
       LQ.Context memory ctx1 = _createContextWithDecimals({
         reserveDen: baseAmounts[i],
-        reserveNum: baseAmounts[i] * 15 / 10,  // 1.5x ratio
+        reserveNum: (baseAmounts[i] * 15) / 10, // 1.5x ratio
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
@@ -147,10 +153,10 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
         token0Dec: 1e18,
         token1Dec: 1e6
       });
-      
+
       LQ.Context memory ctx2 = _createContextWithDecimals({
         reserveDen: baseAmounts[i + 1],
-        reserveNum: baseAmounts[i + 1] * 15 / 10,  // Same 1.5x ratio
+        reserveNum: (baseAmounts[i + 1] * 15) / 10, // Same 1.5x ratio
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
@@ -161,12 +167,12 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
 
       (bool shouldAct1, LQ.Action memory action1) = reservePolicy.determineAction(ctx1);
       (bool shouldAct2, LQ.Action memory action2) = reservePolicy.determineAction(ctx2);
-      
+
       if (shouldAct1 && shouldAct2 && action1.amount1Out > 0 && action2.amount1Out > 0) {
         // The ratio should be approximately the same as the base amount ratio
         uint256 expectedRatio = baseAmounts[i + 1] / baseAmounts[i];
         uint256 actualRatio = action2.amount1Out / action1.amount1Out;
-        
+
         // Allow for some rounding differences (within 1% tolerance)
         assertApproxEqRel(actualRatio, expectedRatio, 1e16, "Proportional scaling should be consistent");
       }

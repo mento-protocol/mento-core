@@ -14,8 +14,8 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
   function test_determineAction_whenPoolPriceBelowOracle_shouldReturnContractAction() public view {
     // Pool has excess token0: 200 token0 vs 100 token1 at 1:1 oracle price
     LQ.Context memory ctx = _createContext({
-      reserveDen: 200e18,  // token0 reserves (debt)
-      reserveNum: 100e18,  // token1 reserves (collateral)
+      reserveDen: 200e18, // token0 reserves (debt)
+      reserveNum: 100e18, // token1 reserves (collateral)
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
@@ -38,8 +38,8 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
     // Test with 6 decimal token1 and 18 decimal token0
     // Reserves are normalized to 18 decimals: 100 token1 = 100e18 normalized
     LQ.Context memory ctx = _createContextWithDecimals({
-      reserveDen: 200e18,  // token0 reserves
-      reserveNum: 100e18,  // token1 reserves normalized to 18 decimals
+      reserveDen: 200e18, // token0 reserves
+      reserveNum: 100e18, // token1 reserves normalized to 18 decimals
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
@@ -59,8 +59,8 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
 
   function test_determineAction_whenPoolPriceBelowOracleWithZeroIncentive_shouldReturnCorrectAmounts() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 200e18,  // token0 reserves
-      reserveNum: 100e18,  // token1 reserves
+      reserveDen: 200e18, // token0 reserves
+      reserveNum: 100e18, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
@@ -82,8 +82,8 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
 
   function test_determineAction_whenPoolPriceBelowOracleWithMaxIncentive_shouldReturnCorrectAmounts() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 200e18,  // token0 reserves
-      reserveNum: 100e18,  // token1 reserves
+      reserveDen: 200e18, // token0 reserves
+      reserveNum: 100e18, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
@@ -111,12 +111,12 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
     // PP < OP: Y = (ON * RD - OD * RN) / (ON * (2 - i))
     // Test with specific values that give clean division: RN=100, RD=500, ON=2, OD=1, i=0
     LQ.Context memory ctx = _createContext({
-      reserveDen: 500e18,   // RD (token0)
-      reserveNum: 100e18,   // RN (token1)
-      oracleNum: 2e18,      // ON
-      oracleDen: 1e18,      // OD
+      reserveDen: 500e18, // RD (token0)
+      reserveNum: 100e18, // RN (token1)
+      oracleNum: 2e18, // ON
+      oracleDen: 1e18, // OD
       poolPriceAbove: false,
-      incentiveBps: 0       // 0% for clean calculation
+      incentiveBps: 0 // 0% for clean calculation
     });
 
     (, LQ.Action memory action) = reservePolicy.determineAction(ctx);
@@ -127,7 +127,7 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
     uint256 expectedY = 225e18;
     assertEq(action.amount0Out, expectedY, "Y calculation should match formula (token0 out)");
     // For PP < OP, token1 flows in via inputAmount and token0 flows out
-    
+
     // X = Y * (ON/OD) * (1 - i) = 225e18 * (2e18/1e18) * 1 = 450e18
     uint256 expectedX = 450e18;
     assertEq(action.inputAmount, expectedX, "X should equal Y * (ON/OD) * (1 - i)");
@@ -136,11 +136,11 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
   function test_YRelationship_shouldAlwaysHoldForContraction() public view {
     // Test X = Y * (ON/OD) * (1 - i) relationship for contraction (PP < OP)
     uint256[3] memory incentives = [uint256(0), 1500, 5000];
-    
-    for (uint i = 0; i < incentives.length; i++) {
+
+    for (uint256 i = 0; i < incentives.length; i++) {
       LQ.Context memory ctx = _createContext({
-        reserveDen: 450e18,  // token0 reserves
-        reserveNum: 150e18,  // token1 reserves
+        reserveDen: 450e18, // token0 reserves
+        reserveNum: 150e18, // token1 reserves
         oracleNum: 3e18,
         oracleDen: 2e18,
         poolPriceAbove: false,
@@ -148,10 +148,11 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       });
 
       (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
-      
+
       if (shouldAct && action.inputAmount > 0) {
         // X/Y should equal (ON/OD) * (1 - i) (X is inputAmount, Y is amount0Out) within precision limits
-        uint256 calculatedRatio = (action.inputAmount * ctx.prices.oracleDen * LQ.BASIS_POINTS_DENOMINATOR) / (action.amount0Out * ctx.prices.oracleNum);
+        uint256 calculatedRatio = (action.inputAmount * ctx.prices.oracleDen * LQ.BASIS_POINTS_DENOMINATOR) /
+          (action.amount0Out * ctx.prices.oracleNum);
         uint256 expectedRatio = LQ.BASIS_POINTS_DENOMINATOR - incentives[i];
         // Allow for rounding errors (1 wei difference)
         assertApproxEqAbs(calculatedRatio, expectedRatio, 1, "X/Y ratio should approximately equal (ON/OD) * (1 - i)");

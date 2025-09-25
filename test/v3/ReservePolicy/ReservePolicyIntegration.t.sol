@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
+// solhint-disable max-line-length
 pragma solidity ^0.8;
 
 import { ReservePolicyBaseTest } from "./ReservePolicyBaseTest.sol";
@@ -29,7 +30,11 @@ contract ReservePolicyIntegrationTest is ReservePolicyBaseTest {
     // When token1 is debt and PP > OP, we still need to contract (remove excess debt)
     // Pool has 200 debt (token1) vs 100 collateral (token0) at 1:1 oracle, so pool price > oracle
     // This means too much debt relative to collateral, so we contract
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract when excess debt relative to collateral");
+    assertEq(
+      uint256(action.dir),
+      uint256(LQ.Direction.Contract),
+      "Should contract when excess debt relative to collateral"
+    );
     assertEq(action.amount0Out, 0, "No collateral (token0) should flow out");
     assertGt(action.amount1Out, 0, "Should have debt (token1) flowing out");
     assertGt(action.inputAmount, 0, "Should have collateral input amount");
@@ -38,7 +43,7 @@ contract ReservePolicyIntegrationTest is ReservePolicyBaseTest {
   function test_determineAction_whenToken0IsCollateral_shouldHandleExpansionCorrectly() public view {
     // Test expansion scenario when token0 is collateral (token1 is debt)
     LQ.Context memory ctx = _createContextWithTokenOrder({
-      reserveDen: 200e18, // token0 (collateral) reserves  
+      reserveDen: 200e18, // token0 (collateral) reserves
       reserveNum: 100e18, // token1 (debt) reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
@@ -95,10 +100,10 @@ contract ReservePolicyIntegrationTest is ReservePolicyBaseTest {
     (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act");
-    
+
     // Decode callback data
     (uint256 incentiveAmount, bool isToken0Debt) = abi.decode(action.data, (uint256, bool));
-    
+
     // Verify incentive amount is correct (10% of input amount)
     uint256 expectedIncentive = (action.inputAmount * 1000) / 10000;
     assertEq(incentiveAmount, expectedIncentive, "Incentive amount should be 10% of input");
@@ -120,10 +125,10 @@ contract ReservePolicyIntegrationTest is ReservePolicyBaseTest {
     (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act");
-    
+
     // Decode callback data
     (uint256 incentiveAmount, bool isToken0Debt) = abi.decode(action.data, (uint256, bool));
-    
+
     // Verify incentive amount is correct (7.5% of input amount)
     uint256 expectedIncentive = (action.inputAmount * 750) / 10000;
     assertEq(incentiveAmount, expectedIncentive, "Incentive amount should be 7.5% of input");
@@ -132,8 +137,8 @@ contract ReservePolicyIntegrationTest is ReservePolicyBaseTest {
 
   function test_determineAction_callbackDataEncoding_withDifferentIncentives_shouldScaleCorrectly() public view {
     uint256[4] memory incentives = [uint256(100), 500, 1500, 5000]; // 1%, 5%, 15%, 50%
-    
-    for (uint i = 0; i < incentives.length; i++) {
+
+    for (uint256 i = 0; i < incentives.length; i++) {
       LQ.Context memory ctx = _createContext({
         reserveDen: 100e18,
         reserveNum: 150e18,
@@ -144,16 +149,16 @@ contract ReservePolicyIntegrationTest is ReservePolicyBaseTest {
       });
 
       (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
-      
+
       if (shouldAct) {
         // Decode callback data
         (uint256 incentiveAmount, bool isToken0Debt) = abi.decode(action.data, (uint256, bool));
-        
+
         // Verify incentive scaling
         uint256 expectedIncentive = (action.inputAmount * incentives[i]) / 10000;
         assertEq(incentiveAmount, expectedIncentive, "Incentive should scale proportionally");
         assertTrue(isToken0Debt, "Should correctly identify token0 as debt");
-        
+
         // Verify incentive is less than input amount (except for very high incentives)
         if (incentives[i] < 10000) {
           assertLt(incentiveAmount, action.inputAmount, "Incentive should be less than input amount");
@@ -171,10 +176,10 @@ contract ReservePolicyIntegrationTest is ReservePolicyBaseTest {
     bool[2] memory tokenOrders = [true, false]; // isToken0Debt variations
     bool[2] memory pricePositions = [true, false]; // poolPriceAbove variations
     uint256[3] memory incentiveValues = [uint256(0), 500, 2000]; // 0%, 5%, 20%
-    
-    for (uint i = 0; i < tokenOrders.length; i++) {
-      for (uint j = 0; j < pricePositions.length; j++) {
-        for (uint k = 0; k < incentiveValues.length; k++) {
+
+    for (uint256 i = 0; i < tokenOrders.length; i++) {
+      for (uint256 j = 0; j < pricePositions.length; j++) {
+        for (uint256 k = 0; k < incentiveValues.length; k++) {
           LQ.Context memory ctx = _createContextWithTokenOrder({
             reserveDen: 120e18,
             reserveNum: 180e18,
@@ -186,7 +191,7 @@ contract ReservePolicyIntegrationTest is ReservePolicyBaseTest {
           });
 
           (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
-          
+
           if (shouldAct) {
             // Verify basic action properties
             assertTrue(
@@ -195,14 +200,14 @@ contract ReservePolicyIntegrationTest is ReservePolicyBaseTest {
             );
             assertEq(uint256(action.liquiditySource), uint256(LQ.LiquiditySource.Reserve), "Should use Reserve");
             assertEq(action.incentiveBps, incentiveValues[k], "Should preserve incentive");
-            
+
             // Verify callback data consistency
             (uint256 incentiveAmount, bool callbackIsToken0Debt) = abi.decode(action.data, (uint256, bool));
             assertEq(callbackIsToken0Debt, tokenOrders[i], "Callback should preserve token order");
-            
+
             uint256 expectedIncentive = (action.inputAmount * incentiveValues[k]) / 10000;
             assertEq(incentiveAmount, expectedIncentive, "Callback incentive should be correct");
-            
+
             // Verify token flow consistency with direction and token order
             if (action.dir == LQ.Direction.Expand) {
               // In expansion, debt flows in (inputAmount), collateral flows out

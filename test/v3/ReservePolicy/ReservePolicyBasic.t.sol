@@ -23,8 +23,8 @@ contract ReservePolicyBasicTest is ReservePolicyBaseTest {
     // Oracle price is 2:1 (2 token1 per 1 token0)
     // Pool has 100 token0 and 100 token1, so it needs more token1
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 100e18,  // token1 reserves
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 100e18, // token1 reserves
       oracleNum: 2e18, // 2 token1 per token0
       oracleDen: 1e18,
       poolPriceAbove: false, // Pool price below oracle (needs more token1)
@@ -43,8 +43,8 @@ contract ReservePolicyBasicTest is ReservePolicyBaseTest {
     // Oracle price is 1:2 (0.5 token1 per 1 token0)
     // Pool has 100 token0 and 100 token1, so it has excess token1
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 100e18,  // token1 reserves
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 100e18, // token1 reserves
       oracleNum: 1e18, // 0.5 token1 per token0
       oracleDen: 2e18,
       poolPriceAbove: true, // Pool price above oracle (excess token1)
@@ -103,8 +103,8 @@ contract ReservePolicyBasicTest is ReservePolicyBaseTest {
 
   function test_determineAction_whenZeroReserves_shouldNotAct() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 0,  // token0 reserves
-      reserveNum: 0,  // token1 reserves
+      reserveDen: 0, // token0 reserves
+      reserveNum: 0, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -121,8 +121,8 @@ contract ReservePolicyBasicTest is ReservePolicyBaseTest {
 
   function test_determineAction_whenZeroToken0Reserve_shouldHandleCorrectly() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 0,  // token0 reserves
-      reserveNum: 100e18,  // token1 reserves
+      reserveDen: 0, // token0 reserves
+      reserveNum: 100e18, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -138,8 +138,8 @@ contract ReservePolicyBasicTest is ReservePolicyBaseTest {
 
   function test_determineAction_whenZeroToken1Reserve_shouldHandleCorrectly() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 0,  // token1 reserves
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 0, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
@@ -159,12 +159,12 @@ contract ReservePolicyBasicTest is ReservePolicyBaseTest {
 
   function test_determineAction_withRealisticPriceDifference_shouldReturnProportionalAmounts() public view {
     // This simulates a real scenario where pool price deviates by 2%
-    
+
     // Set reserves to create a 2% price difference
     // Pool price = reserveNum/reserveDen = 102/100 = 1.02
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 102e18,  // token1 reserves (2% more to create price difference)
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 102e18, // token1 reserves (2% more to create price difference)
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -175,7 +175,7 @@ contract ReservePolicyBasicTest is ReservePolicyBaseTest {
 
     assertTrue(shouldAct, "Policy should act with 2% price difference");
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
-    
+
     // With 2% difference and 1% incentive, amounts should be reasonable
     // X = (1e18 * 102e18 - 1e18 * 100e18) / (1e18 * (20000 - 100) / 10000)
     // X = 2e18 / 1.99 ≈ 1.005e18
@@ -187,8 +187,8 @@ contract ReservePolicyBasicTest is ReservePolicyBaseTest {
     // Test multiple realistic price deviations with appropriate incentives
     uint256[3] memory priceDiffs = [uint256(101e18), 105e18, 110e18]; // 1%, 5%, 10% above
     uint256[3] memory incentives = [uint256(50), 200, 500]; // 0.5%, 2%, 5% incentives
-    
-    for (uint i = 0; i < priceDiffs.length; i++) {
+
+    for (uint256 i = 0; i < priceDiffs.length; i++) {
       LQ.Context memory ctx = _createContext({
         reserveDen: 100e18,
         reserveNum: priceDiffs[i],
@@ -199,22 +199,22 @@ contract ReservePolicyBasicTest is ReservePolicyBaseTest {
       });
 
       (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
-      
+
       assertTrue(shouldAct, "Policy should act for all realistic scenarios");
       assertGt(action.amount1Out, 0, "Should have token1 output");
       assertGt(action.inputAmount, 0, "Should have token0 input");
-      
+
       // Verify amounts increase with price difference
       if (i > 0) {
         LQ.Context memory prevCtx = _createContext({
           reserveDen: 100e18,
-          reserveNum: priceDiffs[i-1],
+          reserveNum: priceDiffs[i - 1],
           oracleNum: 1e18,
           oracleDen: 1e18,
           poolPriceAbove: true,
-          incentiveBps: incentives[i-1]
+          incentiveBps: incentives[i - 1]
         });
-        
+
         (, LQ.Action memory prevAction) = reservePolicy.determineAction(prevCtx);
         assertGt(action.amount1Out, prevAction.amount1Out, "Larger price diff should yield larger rebalance");
       }

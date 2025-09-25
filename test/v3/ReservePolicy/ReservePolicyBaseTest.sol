@@ -29,8 +29,8 @@ contract ReservePolicyBaseTest is Test {
   /* ============================================================ */
 
   function _createContext(
-    uint256 reserveDen,  // token0 reserves (denominator in pool price)
-    uint256 reserveNum,  // token1 reserves (numerator in pool price)
+    uint256 reserveDen, // token0 reserves (denominator in pool price)
+    uint256 reserveNum, // token1 reserves (numerator in pool price)
     uint256 oracleNum,
     uint256 oracleDen,
     bool poolPriceAbove,
@@ -50,8 +50,8 @@ contract ReservePolicyBaseTest is Test {
   }
 
   function _createContextWithDecimals(
-    uint256 reserveDen,  // token0 reserves (denominator in pool price)
-    uint256 reserveNum,  // token1 reserves (numerator in pool price) 
+    uint256 reserveDen, // token0 reserves (denominator in pool price)
+    uint256 reserveNum, // token1 reserves (numerator in pool price)
     uint256 oracleNum,
     uint256 oracleDen,
     bool poolPriceAbove,
@@ -91,12 +91,7 @@ contract ReservePolicyBaseTest is Test {
       LQ.Context({
         pool: POOL,
         reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
-        prices: LQ.Prices({
-          oracleNum: oracleNum,
-          oracleDen: oracleDen,
-          poolPriceAbove: poolPriceAbove,
-          diffBps: 0
-        }),
+        prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
         incentiveBps: uint128(incentiveBps),
         token0Dec: 1e18,
         token1Dec: 1e18,

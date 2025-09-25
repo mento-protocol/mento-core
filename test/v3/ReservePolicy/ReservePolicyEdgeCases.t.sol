@@ -36,8 +36,8 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
     uint256 largeAmount = type(uint128).max; // Use uint128 max to avoid overflow in calculations
 
     LQ.Context memory ctx = _createContext({
-      reserveDen: largeAmount / 2,  // token0 reserves
-      reserveNum: largeAmount,  // token1 reserves
+      reserveDen: largeAmount / 2, // token0 reserves
+      reserveNum: largeAmount, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -57,8 +57,8 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
 
   function test_determineAction_whenOraclePriceVerySmall_shouldHandleCorrectly() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 200e18,  // token1 reserves
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 200e18, // token1 reserves
       oracleNum: 1, // Very small numerator
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -74,8 +74,8 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
 
   function test_determineAction_whenOraclePriceVeryLarge_shouldHandleCorrectly() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 1e18,  // token1 reserves (small)
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 1e18, // token1 reserves (small)
       oracleNum: 1e18,
       oracleDen: 1, // Very small denominator (large price)
       poolPriceAbove: false,
@@ -96,8 +96,8 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
   function test_determineAction_whenIncentiveNearlyMaximum_shouldNotCauseDivisionByZero() public view {
     // Test with incentive very close to maximum (near 20000 bps which would cause division by zero)
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 200e18,  // token1 reserves
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 200e18, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -117,8 +117,8 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
   function test_edgeCase_whenIncentiveAt20000_shouldReturnZero() public view {
     // Test with incentive at exactly 20000 bps (200%) - theoretical maximum
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 200e18,  // token1 reserves
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 200e18, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -136,11 +136,11 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
   function test_edgeCase_verySmallDenominator_shouldHandleGracefully() public view {
     // Test various incentive values that create very small denominators
     uint256[3] memory incentiveBps = [uint256(19990), 19995, 19998];
-    
-    for (uint i = 0; i < incentiveBps.length; i++) {
+
+    for (uint256 i = 0; i < incentiveBps.length; i++) {
       LQ.Context memory ctx = _createContext({
-        reserveDen: 10e18,  // token0 reserves
-        reserveNum: 20e18,  // token1 reserves
+        reserveDen: 10e18, // token0 reserves
+        reserveNum: 20e18, // token1 reserves
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
@@ -148,12 +148,12 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
       });
 
       (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
-      
+
       if (shouldAct) {
         // Verify no overflow occurred
         assertLe(action.amount1Out, type(uint256).max / 2, "Should not overflow");
         assertLe(action.inputAmount, type(uint256).max / 2, "Should not overflow");
-        
+
         // Verify Y = X * OD/ON relationship still holds
         if (action.amount1Out > 0) {
           uint256 calculatedY = (action.amount1Out * ctx.prices.oracleDen) / ctx.prices.oracleNum;

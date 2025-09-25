@@ -103,12 +103,12 @@ contract ReserveLiquidityStrategyBaseTest is Test {
     bytes memory transferCalldata = abi.encodeWithSelector(IReserve.transferExchangeCollateralAsset.selector);
     vm.mockCall(_reserve, transferCalldata, abi.encode(true));
   }
-  
+
   function _mockIsStableAsset(address _reserve, address _token, bool _isStable) internal {
     bytes memory calldata_ = abi.encodeWithSelector(IReserve.isStableAsset.selector, _token);
     vm.mockCall(_reserve, calldata_, abi.encode(_isStable));
   }
-  
+
   function _mockIsCollateralAsset(address _reserve, address _token, bool _isCollateral) internal {
     bytes memory calldata_ = abi.encodeWithSelector(IReserve.isCollateralAsset.selector, _token);
     vm.mockCall(_reserve, calldata_, abi.encode(_isCollateral));

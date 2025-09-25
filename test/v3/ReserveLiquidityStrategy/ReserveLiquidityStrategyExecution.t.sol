@@ -7,14 +7,13 @@ import { ReserveLiquidityStrategyBaseTest } from "./ReserveLiquidityStrategyBase
 import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
 
 contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTest {
-
   function setUp() public override {
     super.setUp();
-    
+
     // Set pool1 as trusted for execution tests
     vm.prank(owner);
     strategy.setTrustedPool(pool1, true);
-    
+
     _mockFPMMRebalance(pool1);
   }
 
@@ -27,9 +26,9 @@ contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTe
       _pool: pool1,
       _direction: LQ.Direction.Expand,
       _amount0Out: 0,
-      _amount1Out: 50e18,  // Collateral out
+      _amount1Out: 50e18, // Collateral out
       _inputAmount: 50e18, // Debt in
-      _incentiveBps: 500,  // 5%
+      _incentiveBps: 500, // 5%
       _isToken0Debt: true
     });
 
@@ -76,7 +75,7 @@ contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTe
       _incentiveBps: 500,
       _isToken0Debt: true
     });
-    
+
     // Set to wrong liquidity source
     action.liquiditySource = LQ.LiquiditySource.CDP;
 
@@ -151,7 +150,6 @@ contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTe
     assertTrue(result, "Execute should succeed with max incentive");
   }
 
-
   /* ============================================================ */
   /* ================= Callback Data ====================== */
   /* ============================================================ */
@@ -175,7 +173,7 @@ contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTe
     uint256 expectedIncentiveAmount = (inputAmount * incentiveBps) / 10000;
 
     bytes memory expectedHookData = abi.encode(inputAmount, expectedIncentiveAmount, direction, isToken0Debt);
-    
+
     vm.expectCall(
       pool1,
       abi.encodeWithSelector(
@@ -188,5 +186,4 @@ contract ReserveLiquidityStrategyExecutionTest is ReserveLiquidityStrategyBaseTe
 
     strategy.execute(action);
   }
-
 }

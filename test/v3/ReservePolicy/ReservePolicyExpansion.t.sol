@@ -13,8 +13,8 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
 
   function test_determineAction_whenPoolPriceAboveOracle_shouldReturnExpandAction() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 200e18,  // token1 reserves
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 200e18, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -52,13 +52,16 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
     assertTrue(shouldAct, "Policy should act with different decimals");
     assertTrue(action.amount0Out > 0 || action.amount1Out > 0, "Should have token output in raw units");
     assertGt(action.inputAmount, 0, "Should have debt input in raw units");
-    assertTrue(action.amount0Out < 1e12 || action.amount1Out < 1e12, "Token out should be in appropriate decimal scale");
+    assertTrue(
+      action.amount0Out < 1e12 || action.amount1Out < 1e12,
+      "Token out should be in appropriate decimal scale"
+    );
   }
 
   function test_determineAction_whenPoolPriceAboveOracleWithZeroIncentive_shouldReturnCorrectAmounts() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 200e18,  // token1 reserves
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 200e18, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -80,8 +83,8 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
 
   function test_determineAction_whenPoolPriceAboveOracleWithMaxIncentive_shouldReturnCorrectAmounts() public view {
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,  // token0 reserves
-      reserveNum: 200e18,  // token1 reserves
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 200e18, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
@@ -107,24 +110,24 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
 
   function test_formulaValidation_whenPPGreaterThanOP_shouldFollowExactFormula() public view {
     // PP > OP: X = (OD * RN - ON * RD) / (OD * (2 - i))
-    // Test with specific values that give clean division: RN=400, RD=100, ON=2, OD=1, i=0 
+    // Test with specific values that give clean division: RN=400, RD=100, ON=2, OD=1, i=0
     LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,   // RD (token0)
-      reserveNum: 400e18,   // RN (token1)
-      oracleNum: 2e18,      // ON
-      oracleDen: 1e18,      // OD
+      reserveDen: 100e18, // RD (token0)
+      reserveNum: 400e18, // RN (token1)
+      oracleNum: 2e18, // ON
+      oracleDen: 1e18, // OD
       poolPriceAbove: true,
-      incentiveBps: 0       // 0% for clean calculation
+      incentiveBps: 0 // 0% for clean calculation
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     // Manual calculation:
     // X = (1e18 * 400e18 - 2e18 * 100e18) / (1e18 * 2)
     // X = (400e18 - 200e18) / 2 = 200e18 / 2 = 100e18
     uint256 expectedX = 100e18;
     assertEq(action.amount1Out, expectedX, "X calculation should match formula");
-    
+
     // Y = X * OD/ON = 100e18 * 1e18/2e18 = 50e18
     uint256 expectedY = 50e18;
     assertEq(action.inputAmount, expectedY, "Y should equal X * OD/ON");
@@ -133,11 +136,11 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
   function test_YRelationship_shouldAlwaysHoldForExpansion() public view {
     // Test Y = X * OD/ON relationship for expansion (PP > OP)
     uint256[3] memory incentives = [uint256(0), 500, 2000];
-    
-    for (uint i = 0; i < incentives.length; i++) {
+
+    for (uint256 i = 0; i < incentives.length; i++) {
       LQ.Context memory ctx = _createContext({
-        reserveDen: 150e18,  // token0 reserves
-        reserveNum: 450e18,  // token1 reserves
+        reserveDen: 150e18, // token0 reserves
+        reserveNum: 450e18, // token1 reserves
         oracleNum: 3e18,
         oracleDen: 2e18,
         poolPriceAbove: true,
@@ -145,7 +148,7 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       });
 
       (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
-      
+
       if (shouldAct && action.amount1Out > 0) {
         // Y/X should equal OD/ON (Y is inputAmount, X is amount1Out) within precision limits
         uint256 calculatedRatio = (action.inputAmount * ctx.prices.oracleNum) / action.amount1Out;
