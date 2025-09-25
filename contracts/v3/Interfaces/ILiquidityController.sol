@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
-import { LiquidityTypes as LQ } from "../libraries/LiquidityTypes.sol";
-import { ILiquidityPolicy } from "./ILiquidityPolicy.sol";
-import { ILiquidityStrategy } from "./ILiquidityStrategy.sol";
+import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
 
 interface ILiquidityController {
   /* ============================================================ */
@@ -35,8 +33,6 @@ interface ILiquidityController {
   event PoolRemoved(address indexed pool);
   event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
   event RebalanceIncentiveSet(address indexed pool, uint32 incentiveBps);
-  event PipelineSet(address indexed pool, address[] policies);
-  event StrategySet(LQ.LiquiditySource indexed source, address strategy);
   event RebalanceExecuted(address indexed pool, uint256 diffBeforeBps, uint256 diffAfterBps);
 
   /* ============================================================ */
@@ -78,20 +74,6 @@ interface ILiquidityController {
    * @param incentiveBps The new incentive in basis points.
    */
   function setRebalanceIncentive(address pool, uint32 incentiveBps) external;
-
-  /**
-   * @notice Sets the policy pipeline for a given liquidity pool.
-   * @param pool The address of the pool to update.
-   * @param policies The ordered array of liquidity policies to apply.
-   */
-  function setPoolPipeline(address pool, ILiquidityPolicy[] calldata policies) external;
-
-  /**
-   * @notice Sets the strategy for a given liquidity source.
-   * @param source The liquidity source enum value.
-   * @param strategy The strategy contract to use for this source.
-   */
-  function setLiquiditySourceStrategy(LQ.LiquiditySource source, ILiquidityStrategy strategy) external;
 
   /**
    * @notice Executes a rebalance for the specified pool using its configured policy pipeline.

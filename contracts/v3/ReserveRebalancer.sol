@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
-import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { IERC20MintableBurnable } from "../common/IERC20MintableBurnable.sol";
+
 import { IReserve } from "../interfaces/IReserve.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
-import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
-import { ILiquidityStrategy } from "./Interfaces/ILiquidityStrategy.sol";
+import { LiquidityStrategyTypes as LQ } from "./libraries/LiquidityStrategyTypes.sol";
 
 /**
  * @title   ReserveLiquidityStrategy
  * @notice  Implements a rebalance strategy that sources liquidity directly from the Reserve.
  */
-abstract contract ReserveRebalancer is ILiquidityStrategy, OwnableUpgradeable {
+abstract contract ReserveRebalancer is Ownable {
+  using LQ for LQ.Context;
   using SafeERC20 for IERC20;
 
   /* ============================================================ */
@@ -24,8 +25,13 @@ abstract contract ReserveRebalancer is ILiquidityStrategy, OwnableUpgradeable {
   /// @notice The reserve contract that holds collateral
   IReserve public reserve;
 
-  /// @notice Mapping of trusted liquidity pools
-  mapping(address => bool) public trustedPools;
+  /// @notice Constructor
+  /// @param _reserve the Mento Protocol Reserve contract
+  /// TODO: Maybe add a pool => reserve mapping if it makes sense.
+  constructor(address _reserve) {
+    reserve = IReserve(_reserve);
+    emit ReserveSet(address(0), _reserve);
+  }
 
   /* ============================================================ */
   /* ======================== Events ============================ */
@@ -41,27 +47,6 @@ abstract contract ReserveRebalancer is ILiquidityStrategy, OwnableUpgradeable {
 
   event ReserveSet(address indexed oldReserve, address indexed newReserve);
   event TrustedPoolUpdated(address indexed pool, bool isTrusted);
-
-  /* ============================================================ */
-  /* ==================== Initialization ======================== */
-  /* ============================================================ */
-
-  /**
-   * @notice Initialize the strategy with reserve address and owner
-   * @param _reserve The reserve contract address
-   * @param _owner The owner of the strategy
-   */
-  function initialize(address _reserve, address _owner) external initializer {
-    __Ownable_init();
-
-    require(_reserve != address(0), "RLS: INVALID_RESERVE");
-    require(_owner != address(0), "RLS: INVALID_OWNER");
-
-    reserve = IReserve(_reserve);
-    _transferOwnership(_owner);
-
-    emit ReserveSet(address(0), _reserve);
-  }
 
   /* ============================================================ */
   /* ====================== Admin Functions ===================== */
@@ -80,16 +65,11 @@ abstract contract ReserveRebalancer is ILiquidityStrategy, OwnableUpgradeable {
     emit ReserveSet(oldReserve, _reserve);
   }
 
-  /**
-   * @notice Set a trusted liquidity pool
-   * @param pool The address of the liquidity pool
-   * @param isTrusted Whether the pool is trusted or not
-   */
-  function setTrustedPool(address pool, bool isTrusted) external onlyOwner {
-    require(pool != address(0), "RLS: INVALID_POOL");
-    trustedPools[pool] = isTrusted;
-    emit TrustedPoolUpdated(pool, isTrusted);
-  }
+  /* =========================================================== */
+  /* ===================== Virtual Functions =================== */
+  /* =========================================================== */
+
+  function _ensurePool(address pool) internal view virtual;
 
   /* ============================================================ */
   /* ===================== External Functions =================== */
@@ -100,16 +80,14 @@ abstract contract ReserveRebalancer is ILiquidityStrategy, OwnableUpgradeable {
    * @param action The action to execute
    * @return ok True if execution succeeded
    */
-  function execute(LQ.Action calldata action) external returns (bool ok) {
-    require(action.liquiditySource == LQ.LiquiditySource.Reserve, "RLS: WRONG_SOURCE");
-    require(action.pool != address(0), "RLS: INVALID_POOL");
-    require(trustedPools[action.pool], "RLS: UNTRUSTED_POOL");
+  function _execute(LQ.Context memory ctx, LQ.Action memory action) internal virtual returns (bool ok) {
+    _ensurePool(action.pool);
 
     // Decode callback data from action
-    (uint256 incentiveAmount, bool isToken0Debt) = abi.decode(action.data, (uint256, bool));
+    uint256 incentiveAmount = LQ.incentiveAmount(action.inputAmount, ctx.incentiveBps);
 
     // Combine and encode necessary callback data for the hook
-    bytes memory hookData = abi.encode(action.inputAmount, incentiveAmount, action.dir, isToken0Debt);
+    bytes memory hookData = abi.encode(action.inputAmount, incentiveAmount, action.dir, ctx.isToken0Debt);
 
     IFPMM(action.pool).rebalance(action.amount0Out, action.amount1Out, hookData);
 
@@ -132,8 +110,8 @@ abstract contract ReserveRebalancer is ILiquidityStrategy, OwnableUpgradeable {
    * @param data Encoded callback data
    */
   function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
-    require(trustedPools[msg.sender], "RLS: UNTRUSTED_POOL");
     require(sender == address(this), "RLS: INVALID_SENDER");
+    _ensurePool(msg.sender);
 
     (uint256 inputAmount, uint256 incentiveAmount, LQ.Direction direction, bool isToken0Debt) = abi.decode(
       data,

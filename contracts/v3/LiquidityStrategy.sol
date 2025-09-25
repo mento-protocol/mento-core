@@ -2,43 +2,38 @@
 pragma solidity 0.8.24;
 // solhint-disable max-line-length
 
-import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import { ReentrancyGuardUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
-import { EnumerableSetUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
-import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
+import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
+import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
+import { EnumerableSet } from "openzeppelin-contracts-next/contracts/utils/structs/EnumerableSet.sol";
+import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20Upgradeable as SafeERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import { IFPMM } from "../interfaces/IFPMM.sol"; // TODO: Confirm location
-import { ILiquidityPolicy } from "./Interfaces/ILiquidityPolicy.sol";
-import { ILiquidityStrategy } from "./Interfaces/ILiquidityStrategy.sol";
 import { ILiquidityController } from "./Interfaces/ILiquidityController.sol";
 
-import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
+import { LiquidityStrategyTypes as LQ } from "./libraries/LiquidityStrategyTypes.sol";
 
 /**
  * @title LiquidityController
  * @notice Orchestrates per-pool policy pipelines and executes actions via liquidity source-specific strategies.
  *         Also stores per-pool FPMM config (cooldown, incentive cap, lastRebalance, tokens).
  */
-abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable, ReentrancyGuardUpgradeable {
-  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-  using SafeERC20 for IERC20Upgradeable;
+abstract contract LiquidityStrategy is ILiquidityController, Ownable, ReentrancyGuard {
+  using LQ for LQ.Context;
+  using EnumerableSet for EnumerableSet.AddressSet;
+  using SafeERC20 for IERC20;
 
   /* ============================================================ */
   /* ==================== State Variables ======================= */
   /* ============================================================ */
 
-  EnumerableSetUpgradeable.AddressSet private pools;
-  mapping(address => PoolConfig) public poolConfigs;
+  EnumerableSet.AddressSet private pools;
+  mapping(address => PoolConfig) private poolConfigs;
 
-  /* ============================================================ */
-  /* ==================== Initialization ======================== */
-  /* ============================================================ */
-
-  function initialize(address owner_) external initializer {
-    __Ownable_init();
-    __ReentrancyGuard_init();
-    transferOwnership(owner_);
+  /// @notice Constructor
+  /// @param _initialOwner the initial owner of the contract
+  constructor(address _initialOwner) Ownable() ReentrancyGuard() {
+    _transferOwnership(_initialOwner);
   }
 
   /* ============================================================ */
@@ -52,7 +47,7 @@ abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable,
     address collateralToken,
     uint64 cooldown,
     uint32 incentiveBps
-  ) external onlyOwner {
+  ) public onlyOwner {
     require(pool != address(0), "LC: POOL_MUST_BE_SET");
     require(debtToken != address(0) && collateralToken != address(0), "LC: TOKENS_MUST_BE_SET");
     require(debtToken != collateralToken, "LC: TOKENS_MUST_BE_DIFFERENT");
@@ -79,7 +74,7 @@ abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable,
   }
 
   /// @inheritdoc ILiquidityController
-  function removePool(address pool) external onlyOwner {
+  function removePool(address pool) public virtual onlyOwner {
     require(pools.remove(pool), "LC: POOL_NOT_FOUND");
     delete poolConfigs[pool];
     emit PoolRemoved(pool);
@@ -101,9 +96,9 @@ abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable,
     emit RebalanceIncentiveSet(pool, incentiveBps);
   }
 
-  /* ============================================================ */
-  /* ==================== Abstract Functions ==================== */
-  /* ============================================================ */
+  /* =========================================================== */
+  /* ==================== Virtual Functions ==================== */
+  /* =========================================================== */
 
   function _buildExpansionAction(
     LQ.Context memory ctx,
@@ -117,7 +112,7 @@ abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable,
     uint256 amountOut
   ) internal view virtual returns (LQ.Action memory action);
 
-  function _execute(LQ.Action memory action) internal virtual returns (bool);
+  function _execute(LQ.Context memory ctx, LQ.Action memory action) internal virtual returns (bool);
 
   /* ============================================================ */
   /* ==================== External Functions ==================== */
@@ -138,7 +133,7 @@ abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable,
     (bool shouldAct, LQ.Action memory action) = _determineAction(ctx);
 
     if (shouldAct) {
-      bool ok = _execute(action);
+      bool ok = _execute(ctx, action);
       require(ok, "LC: STRATEGY_EXECUTION_FAILED");
       acted = true;
       // refresh after action execution, stop early if price in range
@@ -170,7 +165,7 @@ abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable,
   /* ==================== Internal Functions ==================== */
   /* ============================================================ */
 
-  function _ensurePool(address pool) internal view {
+  function _ensurePool(address pool) internal view virtual {
     require(pools.contains(pool), "LC: POOL_NOT_FOUND");
   }
 
@@ -303,13 +298,13 @@ abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable,
       // ON/OD < RN/RD
       // ON/OD < CollR/DebtR
       action = _buildExpansionAction(ctx, token0In, token1Out);
+      shouldAct = true;
     } else {
       // ON/OD < RN/RD
       // ON/OD < DebtR/CollR
       action = _buildContractionAction(ctx, token0In, token1Out);
+      shouldAct = true;
     }
-    // TODO: add what need to go here
-    return (true, action);
   }
 
   function _handlePoolPriceBelow(
@@ -329,12 +324,12 @@ abstract contract LiquidityStrategy is ILiquidityController, OwnableUpgradeable,
       // ON/OD > RN/RD
       // ON/OD > CollR/DebtR
       action = _buildContractionAction(ctx, token1In, token0Out);
+      shouldAct = true;
     } else {
       // ON/OD > RN/RD
       // ON/OD > DebtR/CollR
       action = _buildExpansionAction(ctx, token1In, token0Out);
+      shouldAct = true;
     }
-
-    return (true, action);
   }
 }
