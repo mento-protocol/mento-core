@@ -9,8 +9,6 @@ import { MockExchange } from "./helpers/MockExchange.sol";
 import { ArbitrageFlashLoanReceiver } from "./helpers/ArbitrageFlashLoanReceiver.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
-import { console2 as console } from "forge-std/console2.sol";
-
 contract FPMMFlashLoanTest is FPMMBaseTest {
   address public flashLoanReceiver;
   MockExchange public exchange;
