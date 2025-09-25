@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.24;
+pragma solidity 0.8.18;
 
-interface IFPMMFactory {
+import { IRPoolFactory } from "../swap/router/interfaces/IRPoolFactory.sol";
+
+interface IFPMMFactory is IRPoolFactory {
   /* ========================================== */
   /* ================= Events ================= */
   /* ========================================== */
@@ -80,14 +82,6 @@ interface IFPMMFactory {
   function governance() external view returns (address);
 
   /**
-   * @notice Gets the address of the deployed FPMM for a token pair.
-   * @param token0 The address of the first token
-   * @param token1 The address of the second token
-   * @return The address of the deployed FPMM for the token pair
-   */
-  function deployedFPMMs(address token0, address token1) external view returns (address);
-
-  /**
    * @notice Gets the list of deployed FPMM addresses.
    * @return The list of deployed FPMM addresses
    */
@@ -107,12 +101,13 @@ interface IFPMMFactory {
   function registeredImplementations() external view returns (address[] memory);
 
   /**
-   * @notice Gets the precomputed or current proxy address for a token pair.
-   * @param token0 The address of the first token
-   * @param token1 The address of the second token
-   * @return The address of the FPMM proxy for the token pair
+   * @notice Sorts two tokens by their address value.
+   * @param tokenA The address of the first token
+   * @param tokenB The address of the second token
+   * @return token0 The address of the first token
+   * @return token1 The address of the second token
    */
-  function getOrPrecomputeProxyAddress(address token0, address token1) external view returns (address);
+  function sortTokens(address tokenA, address tokenB) external pure returns (address token0, address token1);
 
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */

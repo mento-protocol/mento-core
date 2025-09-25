@@ -5,7 +5,9 @@ pragma solidity ^0.8.0;
 import { ISortedOracles } from "./ISortedOracles.sol";
 import { IBreakerBox } from "./IBreakerBox.sol";
 
-interface IFPMM {
+import { IRPool } from "../swap/router/interfaces/IRPool.sol";
+
+interface IFPMM is IRPool {
   /* ========== STRUCTS ========== */
 
   /// @notice Struct to store FPMM contract state
@@ -357,14 +359,6 @@ interface IFPMM {
   function tokens() external view returns (address, address);
 
   /**
-   * @notice Returns current reserves and timestamp
-   * @return _reserve0 Current reserve of token0
-   * @return _reserve1 Current reserve of token1
-   * @return _blockTimestampLast Timestamp of last reserve update
-   */
-  function getReserves() external view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast);
-
-  /**
    * @notice Gets current oracle and reserve prices
    * @return oraclePriceNumerator The numerator of the oracle price.
    * @return oraclePriceDenominator The denominator of the oracle price.
@@ -385,14 +379,6 @@ interface IFPMM {
       uint256 priceDifference,
       bool reservePriceAboveOraclePrice
     );
-
-  /**
-   * @notice Calculates output amount for a given input
-   * @param amountIn Input amount
-   * @param tokenIn Address of input token
-   * @return amountOut Output amount after fees
-   */
-  function getAmountOut(uint256 amountIn, address tokenIn) external view returns (uint256 amountOut);
 
   /**
    * @notice Converts token amount using the provided exchange rate and adjusts for decimals
@@ -425,15 +411,6 @@ interface IFPMM {
    * @return amount1 Amount of token1 withdrawn
    */
   function burn(address to) external returns (uint256 amount0, uint256 amount1);
-
-  /**
-   * @notice Swaps tokens based on oracle price
-   * @param amount0Out Amount of token0 to output
-   * @param amount1Out Amount of token1 to output
-   * @param to Address receiving output tokens
-   * @param data Optional callback data
-   */
-  function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
 
   /**
    * @notice Rebalances the pool to align with oracle price

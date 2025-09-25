@@ -23,12 +23,3 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "lib/Solady"]
-	path = lib/Solady
-	url = https://github.com/Vectorized/Solady
-[submodule "lib/V2-gov"]
-	path = lib/V2-gov
-	url = https://github.com/liquity/V2-gov
-[submodule "lib/openzeppelin-contracts-v4.9.5"]
-	path = lib/openzeppelin-contracts-v4.9.5
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts

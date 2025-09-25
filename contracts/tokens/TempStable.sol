@@ -11,6 +11,7 @@ import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.so
  */
 contract TempStable is Ownable {
   // slot 0 = Ownable._owner
+  // slither-disable-next-line constable-states
   address public slot1; // slot 1
   string private _name; // slot 2
 

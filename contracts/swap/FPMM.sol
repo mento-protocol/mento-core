@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.24;
+pragma solidity 0.8.18;
 
-import { IFPMM } from "../interfaces/IFPMM.sol";
+import "../interfaces/IFPMM.sol";
 import { ERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 // solhint-disable-next-line max-line-length
@@ -117,7 +117,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     return ($.token0, $.token1);
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function getReserves() public view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast) {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -254,8 +254,10 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     (oraclePriceNumerator, oraclePriceDenominator) = _getRateFeed();
 
+    // slither-disable-start divide-before-multiply
     reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
     reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
+    // slither-disable-end divide-before-multiply
 
     uint256 oracleCrossProduct = oraclePriceNumerator * reservePriceDenominator;
     uint256 reserveCrossProduct = reservePriceNumerator * oraclePriceDenominator;
@@ -275,7 +277,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     );
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -381,7 +383,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   // slither-disable-end reentrancy-no-eth
 
   // slither-disable-start reentrancy-no-eth
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -666,6 +668,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     FPMMStorage storage $ = _getFPMMStorage();
 
     uint256 token0ValueInToken1 = convertWithRate(amount0, $.decimals0, 1e18, rateNumerator, rateDenominator);
+    // slither-disable-next-line divide-before-multiply
     amount1 = amount1 * (1e18 / $.decimals1);
     return token0ValueInToken1 + amount1;
   }
@@ -720,6 +723,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
         swapData.rateNumerator,
         swapData.rateDenominator
       );
+      // slither-disable-next-line divide-before-multiply
       expectedAmount1In = expectedAmount1In / (1e18 / $.decimals1);
       uint256 minAmount1In = expectedAmount1In - (expectedAmount1In * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
       require(swapData.amount1In >= minAmount1In, "FPMM: INSUFFICIENT_AMOUNT_1_IN");
@@ -780,6 +784,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     );
     uint256 totalFeeInToken1 = fee0InToken1 + fee1;
     // convert to 18 decimals
+    // slither-disable-next-line divide-before-multiply
     totalFeeInToken1 = totalFeeInToken1 * (1e18 / $.decimals1);
 
     // Check the reserve value is not decreased
