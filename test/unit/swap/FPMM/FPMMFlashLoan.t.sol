@@ -7,6 +7,7 @@ import { FlashLoanReceiver } from "./helpers/FlashLoanReceiver.sol";
 import { ReentrancyExploiter } from "./helpers/ReentrancyExploiter.sol";
 import { MockExchange } from "./helpers/MockExchange.sol";
 import { ArbitrageFlashLoanReceiver } from "./helpers/ArbitrageFlashLoanReceiver.sol";
+import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
 import { console2 as console } from "forge-std/console2.sol";
 
@@ -71,7 +72,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e18); // Unchanged
   }
 
-  function test_swap_whenBorrowingToken0WithProtocolFee_shouldTransferAndRepayWithFee()
+  function test_swap_whenBorrowingToken0WithProtocolFee_shouldCorrectlyHandleFees()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -79,33 +80,60 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
     setupMockOracleRate(1e18, 1e18)
   {
-    uint256 flashLoanAmount = 50e18;
-    bytes memory customData = abi.encode("Custom flash loan data");
+    uint256 loan = 50e18;
+    uint256 fee = (loan * 10_000) / (10_000 - 50) - loan; // 50bps fee (30bps LP fee + 20bps protocol fee)
+    uint256 lpFeeCut = (fee * (30)) / 50;
+    uint256 protocolFeeCut = fee - lpFeeCut;
 
-    uint256 swapFee0 = (flashLoanAmount * 10_000) / (10_000 - 30) - flashLoanAmount;
-    uint256 protocolFee0 = (flashLoanAmount * 10_000) / (10_000 - 20) - flashLoanAmount;
-    uint256 combinedFee = (flashLoanAmount * 10_000) / (10_000 - 50) - flashLoanAmount;
-    console.log("\tfeeAmount0", swapFee0);
-    console.log("\tprotocolFee0", protocolFee0);
-    console.log("\ttotal to pay in fees", swapFee0 + protocolFee0);
-    console.log("\tcombinedFee", combinedFee);
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
 
-    // console.log("LPFEE extra in", swapFee0);
-    // console.log("Protocol fee extra in", protocolFee0);
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
 
-    // Set to repay with extra fee
-    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee0, 0);
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, fee, 0);
+    fpmm.swap(loan, 0, address(flashLoanReceiver), bytes("flash loan data"));
 
-    fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), customData);
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), protocolFeeCut);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+    assertEq(fpmm.reserve0(), beforeReserve0 + lpFeeCut);
+    assertEq(fpmm.reserve1(), beforeReserve1);
+  }
 
-    assertEq(FlashLoanReceiver(flashLoanReceiver).sender(), address(this));
-    assertEq(FlashLoanReceiver(flashLoanReceiver).amount0Received(), flashLoanAmount);
-    assertEq(FlashLoanReceiver(flashLoanReceiver).amount1Received(), 0);
-    assertEq(FlashLoanReceiver(flashLoanReceiver).receivedData(), customData);
+  function test_swap_whenBorrowingToken0WithProtocolFee_shouldAllowFeeToBeRepaidInBothTokens()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withProtocolFee(20, protocolFeeRecipient)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    setupMockOracleRate(1e18, 1e18)
+  {
+    uint256 loan = 50e18;
+    uint256 fee = (loan * 10_000) / (10_000 - 50) - loan;
+    uint256 lpFeeCut = (fee * (30)) / 50;
+    uint256 protocolFeeCut = fee - lpFeeCut;
 
-    // Verify FPMM reserves increased by the extra repaid amount
-    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
-    assertEq(fpmm.reserve1(), 200e18); // Unchanged
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+
+    uint256 halfFee = fee / 2;
+    uint256 remainingFee = fee - halfFee;
+
+    // Repay the loan and fees in both tokens:
+    uint256 token0Payback = loan + halfFee;
+    uint256 token1Payback = remainingFee;
+    FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(token0Payback, token1Payback);
+    fpmm.swap(loan, 0, address(flashLoanReceiver), bytes("flash loan data"));
+
+    uint256 protocolFeeCutInToken0 = ((token0Payback) * (20)) / 10_000;
+    uint256 protocolFeeCutInToken1 = protocolFeeCut - protocolFeeCutInToken0;
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), protocolFeeCutInToken0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), protocolFeeCutInToken1);
+    assertEq(fpmm.reserve0() + fpmm.reserve1(), beforeReserve0 + beforeReserve1 + lpFeeCut);
   }
 
   function test_swap_whenBorrowingToken1_shouldTransferAndRepayWithFee()
@@ -133,6 +161,34 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     // Verify FPMM reserves increased by the extra repaid amount
     assertEq(fpmm.reserve0(), 100e18); // Unchanged
     assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
+  }
+
+  function test_swap_whenBorrowingToken1WithProtocolFee_shouldCorrectlyHandleFees()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withProtocolFee(70, protocolFeeRecipient)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    setupMockOracleRate(1e18, 1e18)
+  {
+    uint256 loan = 74e17;
+    uint256 fee = (loan * 10_000) / (10_000 - 100) - loan; // 100bps fee (30bps LP fee + 70bps protocol fee)
+    uint256 lpFeeCut = (fee * (30)) / 100;
+    uint256 protocolFeeCut = fee - lpFeeCut;
+
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
+
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, 0, fee);
+    fpmm.swap(0, loan, address(flashLoanReceiver), bytes("flash loan data"));
+
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), protocolFeeCut);
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(fpmm.reserve0(), beforeReserve0);
+    assertEq(fpmm.reserve1(), beforeReserve1 + lpFeeCut);
   }
 
   function test_swap_whenBorrowingBothTokens_shouldTransferAndRepayWithFee()
@@ -164,35 +220,37 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
   }
 
-  // function test_swap_whenBorrowingBothTokensWithProtocolFee_shouldTransferAndRepayWithFee()
-  //   public
-  //   initializeFPMM_withDecimalTokens(18, 18)
-  //   mintInitialLiquidity(18, 18)
-  //   withProtocolFee(20, protocolFeeRecipient)
-  //   setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-  //   setupMockOracleRate(1e18, 1e18)
-  // {
-  //   uint256 flashLoanAmount0 = 30e18;
-  //   uint256 flashLoanAmount1 = 40e18;
-  //   bytes memory customData = abi.encode("Custom flash loan data");
+  function test_swap_whenBorrowingBothTokensWithProtocolFee_shouldCorrectlyHandleFees()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withProtocolFee(20, protocolFeeRecipient)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    setupMockOracleRate(1e18, 1e18)
+  {
+    uint256 loan0 = 30e18;
+    uint256 loan1 = 40e18;
+    uint256 fee0 = (loan0 * 10_000) / (10_000 - 50) - loan0;
+    uint256 fee1 = (loan1 * 10_000) / (10_000 - 50) - loan1;
+    uint256 lpFeeCut0 = (fee0 * (30)) / 50;
+    uint256 lpFeeCut1 = (fee1 * (30)) / 50;
+    uint256 protocolFeeCut0 = fee0 - lpFeeCut0;
+    uint256 protocolFeeCut1 = fee1 - lpFeeCut1;
 
-  //   uint256 swapFee0 = (flashLoanAmount0 * 10_000) / (10_000 - 30) - flashLoanAmount0;
-  //   uint256 swapFee1 = (flashLoanAmount1 * 10_000) / (10_000 - 30) - flashLoanAmount1;
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
 
-  //   // Set to repay with extra fee
-  //   FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, swapFee0, swapFee1);
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
 
-  //   fpmm.swap(flashLoanAmount0, flashLoanAmount1, address(flashLoanReceiver), customData);
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, fee0, fee1);
+    fpmm.swap(loan0, loan1, address(flashLoanReceiver), bytes("flash loan data"));
 
-  //   assertEq(FlashLoanReceiver(flashLoanReceiver).sender(), address(this));
-  //   assertEq(FlashLoanReceiver(flashLoanReceiver).amount0Received(), flashLoanAmount0);
-  //   assertEq(FlashLoanReceiver(flashLoanReceiver).amount1Received(), flashLoanAmount1);
-  //   assertEq(FlashLoanReceiver(flashLoanReceiver).receivedData(), customData);
-
-  //   // Verify FPMM reserves increased by the extra repaid amount
-  //   assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
-  //   assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
-  // }
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), protocolFeeCut0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), protocolFeeCut1);
+    assertEq(fpmm.reserve0(), beforeReserve0 + lpFeeCut0);
+    assertEq(fpmm.reserve1(), beforeReserve1 + lpFeeCut1);
+  }
 
   function test_swap_whenLoanNotRepaid_shouldRevert()
     public
