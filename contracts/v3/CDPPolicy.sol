@@ -1,244 +1,126 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
-import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
-import { ICDPPolicy } from "./Interfaces/ICDPPolicy.sol";
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 
-/**
- * @title CDPPolicy
- * @notice Implements a policy that determines the action to take based on the pool price and the oracle price.
- */
-contract CDPPolicy is ICDPPolicy, Ownable {
-  /* ========== VARIABLES ========== */
+import { LiquidityStrategyTypes as LQ } from "./libraries/LiquidityStrategyTypes.sol";
+import { ICDPPolicy } from "./Interfaces/ICDPPolicy.sol";
 
-  /// @inheritdoc ICDPPolicy
-  mapping(address => address) public deptTokenStabilityPool;
+import { console } from "forge-std/console.sol";
 
-  /// @inheritdoc ICDPPolicy
-  mapping(address => address) public deptTokenCollateralRegistry;
+abstract contract CDPPolicy is ICDPPolicy, Ownable {
+  using LQ for LQ.Context;
 
-  // For now stored in a mapping as it is not readable from the collateral registry
-  /// @inheritdoc ICDPPolicy
-  mapping(address => uint256) public deptTokenRedemptionBeta;
-
-  /// @inheritdoc ICDPPolicy
-  mapping(address => uint256) public deptTokenStabilityPoolPercentage;
-
-  /// @inheritdoc ICDPPolicy
-  uint256 public constant BPS_TO_FEE_SCALER = 1e14;
-
-  /// @inheritdoc ICDPPolicy
-  uint256 public constant BPS_DENOMINATOR = 10_000;
-
-  /* ========== INITIALIZATION ========== */
-
-  /**
-   * @notice Constructor
-   * @param initialOwner The owner of the policy
-   * @param debtTokens The addresses of the debt tokens
-   * @param stabilityPools The addresses of the stability pools
-   * @param collateralRegistries The addresses of the collateral registries
-   * @param redemptionBetas The redemption betas
-   * @param stabilityPoolPercentages The stability pool percentages
-   */
-  constructor(
-    address initialOwner,
-    address[] memory debtTokens,
-    address[] memory stabilityPools,
-    address[] memory collateralRegistries,
-    uint256[] memory redemptionBetas,
-    uint256[] memory stabilityPoolPercentages
-  ) {
-    Ownable(initialOwner);
-    if (
-      debtTokens.length != stabilityPools.length ||
-      debtTokens.length != collateralRegistries.length ||
-      debtTokens.length != redemptionBetas.length ||
-      debtTokens.length != stabilityPoolPercentages.length
-    ) revert CDPPolicy_ConstructorArrayLengthMismatch();
-
-    for (uint256 i = 0; i < debtTokens.length; i++) {
-      _setDeptTokenStabilityPool(debtTokens[i], stabilityPools[i]);
-      _setDeptTokenCollateralRegistry(debtTokens[i], collateralRegistries[i]);
-      _setDeptTokenRedemptionBeta(debtTokens[i], redemptionBetas[i]);
-      _setDeptTokenStabilityPoolPercentage(debtTokens[i], stabilityPoolPercentages[i]);
-    }
+  struct CDPLSPoolConfig {
+    address stabilityPool;
+    address collateralRegistry;
+    uint256 redemptionBeta;
+    uint256 stabilityPoolPercentage;
   }
+
+  uint256 constant BPS_TO_FEE_SCALER = 1e14;
+  uint256 constant BPS_DENOMINATOR = 10_000;
+
+  mapping(address => CDPLSPoolConfig) private poolConfigs;
 
   /* ============================================================ */
-  /* ===================== View Functions ======================= */
+  /* ================ Admin Functions - Pools =================== */
   /* ============================================================ */
 
-  /// @inheritdoc ICDPPolicy
-  function name() external pure returns (string memory) {
-    return "CDPPolicy";
+  function addPool(
+    address pool,
+    address stabilityPool,
+    address collateralRegistry,
+    uint256 redemptionBeta,
+    uint256 stabilityPoolPercentage
+  ) internal virtual {
+    poolConfigs[pool] = CDPLSPoolConfig({
+      stabilityPool: stabilityPool,
+      collateralRegistry: collateralRegistry,
+      redemptionBeta: redemptionBeta,
+      stabilityPoolPercentage: stabilityPoolPercentage
+    });
   }
 
-  /* ============================================================ */
-  /* ===================== External Functions =================== */
-  /* ============================================================ */
-
-  /// @inheritdoc ICDPPolicy
-  function setDeptTokenStabilityPool(address debtToken, address stabilityPool) external onlyOwner {
-    _setDeptTokenStabilityPool(debtToken, stabilityPool);
+  function removePool(address pool) public virtual {
+    delete poolConfigs[pool];
   }
 
-  /// @inheritdoc ICDPPolicy
-  function setDeptTokenCollateralRegistry(address debtToken, address collateralRegistry) external onlyOwner {
-    _setDeptTokenCollateralRegistry(debtToken, collateralRegistry);
+  function setDeptTokenStabilityPool(address pool, address stabilityPool) external onlyOwner {
+    _ensurePool(pool);
+    _setDeptTokenStabilityPool(pool, stabilityPool);
   }
 
-  /// @inheritdoc ICDPPolicy
-  function setDeptTokenRedemptionBeta(address debtToken, uint256 redemptionBeta) external onlyOwner {
-    _setDeptTokenRedemptionBeta(debtToken, redemptionBeta);
+  function setDeptTokenCollateralRegistry(address pool, address collateralRegistry) external onlyOwner {
+    _ensurePool(pool);
+    _setDeptTokenCollateralRegistry(pool, collateralRegistry);
   }
 
-  /// @inheritdoc ICDPPolicy
-  function setDeptTokenStabilityPoolPercentage(address debtToken, uint256 stabilityPoolPercentage) external onlyOwner {
-    _setDeptTokenStabilityPoolPercentage(debtToken, stabilityPoolPercentage);
+  function setDeptTokenRedemptionBeta(address pool, uint256 redemptionBeta) external onlyOwner {
+    _ensurePool(pool);
+    _setDeptTokenRedemptionBeta(pool, redemptionBeta);
   }
 
-  /// @inheritdoc ICDPPolicy
-  function determineAction(LQ.Context memory ctx) external view returns (bool shouldAct, LQ.Action memory action) {
-    if (ctx.prices.poolPriceAbove) {
-      return _handlePoolPriceAbove(ctx);
-    } else {
-      return _handlePoolPriceBelow(ctx);
-    }
+  function setDeptTokenStabilityPoolPercentage(address pool, uint256 stabilityPoolPercentage) external onlyOwner {
+    _ensurePool(pool);
+    _setDeptTokenStabilityPoolPercentage(pool, stabilityPoolPercentage);
+  }
+
+  /* =========================================================== */
+  /* =================== Virtual Functions ===================== */
+  /* =========================================================== */
+
+  function _ensurePool(address pool) internal view virtual;
+
+  function _getStabilityPool(address pool) internal view returns (address) {
+    return poolConfigs[pool].stabilityPool;
+  }
+
+  function _getCollateralRegistry(address pool) internal view returns (address) {
+    return poolConfigs[pool].collateralRegistry;
   }
 
   /* ============================================================ */
   /* =================== Internal Functions ===================== */
   /* ============================================================ */
 
-  function _setDeptTokenStabilityPool(address debtToken, address stabilityPool) internal {
-    deptTokenStabilityPool[debtToken] = stabilityPool;
+  function _setDeptTokenStabilityPool(address pool, address _stabilityPool) internal {
+    poolConfigs[pool].stabilityPool = _stabilityPool;
   }
 
-  function _setDeptTokenCollateralRegistry(address debtToken, address collateralRegistry) internal {
-    deptTokenCollateralRegistry[debtToken] = collateralRegistry;
+  function _setDeptTokenCollateralRegistry(address pool, address _collateralRegistry) internal {
+    poolConfigs[pool].collateralRegistry = _collateralRegistry;
   }
 
-  function _setDeptTokenRedemptionBeta(address debtToken, uint256 redemptionBeta) internal {
-    deptTokenRedemptionBeta[debtToken] = redemptionBeta;
+  function _setDeptTokenRedemptionBeta(address pool, uint256 _redemptionBeta) internal {
+    poolConfigs[pool].redemptionBeta = _redemptionBeta;
   }
 
-  function _setDeptTokenStabilityPoolPercentage(address debtToken, uint256 stabilityPoolPercentage) internal {
-    if (!(0 < stabilityPoolPercentage && stabilityPoolPercentage < BPS_DENOMINATOR))
-      revert CDPPolicy_InvalidStabilityPoolPercentage();
-    deptTokenStabilityPoolPercentage[debtToken] = stabilityPoolPercentage;
+  function _setDeptTokenStabilityPoolPercentage(address pool, uint256 _stabilityPoolPercentage) internal {
+    if (!(0 < _stabilityPoolPercentage && _stabilityPoolPercentage < BPS_DENOMINATOR))
+      revert CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE();
+    poolConfigs[pool].stabilityPoolPercentage = _stabilityPoolPercentage;
   }
 
-  /**
-   * @notice Handles the case where the pool price is above the oracle price
-   * calculates the target amount of token1 to be taken out from the pool and the amount of token0
-   * to be added to the pool in order to bring the pool price back to the oracle price.
-   * Formulas:
-   * token1Out = (OD * RN - ON * RD) / (OD * (2 - i))
-   * token0In = (token1Out * OD * (1 - i) )/ ON
-   *
-   * @param ctx The context containing pool, reserves, prices, and other relevant data.
-   * @return shouldAct True if the policy should take action, false otherwise.
-   * @return action The action to be taken if shouldAct is true.
-   */
-  function _handlePoolPriceAbove(
-    LQ.Context memory ctx
-  ) internal view returns (bool shouldAct, LQ.Action memory action) {
-    uint256 numerator = ctx.prices.oracleDen * ctx.reserves.reserveNum - ctx.prices.oracleNum * ctx.reserves.reserveDen;
-    // slither-disable-start divide-before-multiply
-    uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
-      LQ.BASIS_POINTS_DENOMINATOR;
-
-    uint256 token1Out = (numerator * ctx.token1Dec) / (denominator * 1e18);
-    // slither-disable-end divide-before-multiply
-
-    uint256 token0In = LQ.convertWithRateScalingAndFee(
-      token1Out,
-      ctx.token1Dec,
-      ctx.token0Dec,
-      ctx.prices.oracleDen,
-      ctx.prices.oracleNum,
-      LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
-      LQ.BASIS_POINTS_DENOMINATOR
-    );
-
-    if (ctx.isToken0Debt) {
-      action = _handleExpansion(ctx, token0In, token1Out);
-      shouldAct = true;
-    } else {
-      action = _handleContraction(ctx, token1Out);
-      shouldAct = true;
-    }
-    return (shouldAct, action);
-  }
-
-  /**
-   * @notice Handles the case where the pool price is below the oracle price.
-   * Calculates the target amount of token0 to be taken out from the pool and the amount of token1
-   * to be added to the pool in order to bring the pool price back to the oracle price.
-   * Formulas:
-   * token0Out = (ON * RD - OD * RN) / (ON * (2 - i))
-   * token1In = (token0Out * ON * (1 - i) )/ OD
-   *
-   * @param ctx The context containing pool, reserves, prices, and other relevant data.
-   * @return shouldAct True if the policy should take action, false otherwise.
-   * @return action The action to be taken if shouldAct is true.
-   */
-  function _handlePoolPriceBelow(
-    LQ.Context memory ctx
-  ) internal view returns (bool shouldAct, LQ.Action memory action) {
-    uint256 numerator = ctx.prices.oracleNum * ctx.reserves.reserveDen - ctx.prices.oracleDen * ctx.reserves.reserveNum;
-    // slither-disable-start divide-before-multiply
-    uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
-      LQ.BASIS_POINTS_DENOMINATOR;
-
-    uint256 token0Out = (numerator * ctx.token0Dec) / (denominator * 1e18);
-    // slither-disable-end divide-before-multiply
-
-    uint256 token1In = LQ.convertWithRateScalingAndFee(
-      token0Out,
-      ctx.token0Dec,
-      ctx.token1Dec,
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
-      LQ.BASIS_POINTS_DENOMINATOR
-    );
-
-    if (ctx.isToken0Debt) {
-      action = _handleContraction(ctx, token0Out);
-      shouldAct = true;
-    } else {
-      action = _handleExpansion(ctx, token1In, token0Out);
-      shouldAct = true;
-    }
-
-    return (shouldAct, action);
-  }
-
-  /**
-   * @notice Handles the expansion of the pool, takes collateral from the fpmm and swaps it for
-   * debt token from the stability pool. This operation is limited by the available balance in the stability pool.
-   * The incentive is paid to the stability pool.
-   * @param ctx The context containing pool, reserves, prices, and other relevant data.
-   * @param amountIn The target amount of debt token to be taken out from the fpmm
-   * @param amountOut The target amount of collateral to be added to the stability pool
-   * @return action The action to be taken.
-   */
-  function _handleExpansion(
+  /// add debt token from stabilityPool balance to FPMM
+  /// take collateral from FPMM and send to stabilityPool including incentive
+  function _buildExpansionAction(
     LQ.Context memory ctx,
     uint256 amountIn,
     uint256 amountOut
-  ) internal view returns (LQ.Action memory action) {
-    (address debtToken, address collToken) = ctx.isToken0Debt ? (ctx.token0, ctx.token1) : (ctx.token1, ctx.token0);
-    address stabilityPool = deptTokenStabilityPool[debtToken];
-    uint256 availableSPAmount = _calculateAvailablePoolBalance(stabilityPool, debtToken);
+  ) internal view virtual returns (LQ.Action memory action) {
+    console.log("amountIn", amountIn);
+    console.log("amountOut", amountOut);
+    address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
+    address stabilityPool = poolConfigs[ctx.pool].stabilityPool;
+    uint256 availableSPAmount = _calculateAvailablePoolBalance(stabilityPool, debtToken, ctx.pool);
+
     if (amountIn > availableSPAmount) {
       amountIn = availableSPAmount;
+
       if (ctx.isToken0Debt) {
         amountOut = LQ.convertWithRateScalingAndFee(
           amountIn,
@@ -268,7 +150,6 @@ contract CDPPolicy is ICDPPolicy, Ownable {
 
     action.pool = ctx.pool;
     action.dir = LQ.Direction.Expand;
-    action.liquiditySource = LQ.LiquiditySource.CDP;
 
     if (ctx.isToken0Debt) {
       action.amount0Out = 0;
@@ -278,26 +159,17 @@ contract CDPPolicy is ICDPPolicy, Ownable {
       action.amount1Out = 0;
     }
     action.inputAmount = amountIn;
-    action.incentiveBps = ctx.incentiveBps;
-    action.data = abi.encode(debtToken, collToken, stabilityPool);
     return action;
   }
 
-  /**
-   * @notice Handles the contraction of the pool, takes debt tokens from the fpmm and redeems them for
-   * collateral through the collateral registry. This operation is limited by the Liquityv2 redemption fee.
-   * If the redemption fee is larger than the rebalance incentive, less debt will be redeemed.
-   * @param ctx The context containing pool, reserves, prices, and other relevant data.
-   * @param amountOut The target amount of debt tokens to be redeemed.
-   * @return action The action to be taken.
-   */
-  function _handleContraction(
+  /// take dept token from fpmm for colateral token from stabilityPool/redemptions
+  function _buildContractionAction(
     LQ.Context memory ctx,
-    uint256 amountOut
-  ) internal view returns (LQ.Action memory action) {
+    uint256, // collateral token
+    uint256 amountOut // debt token
+  ) internal view virtual returns (LQ.Action memory action) {
     address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
-    address collToken = ctx.isToken0Debt ? ctx.token1 : ctx.token0;
-    address collateralRegistry = deptTokenCollateralRegistry[debtToken];
+    address collateralRegistry = poolConfigs[ctx.pool].collateralRegistry;
     (uint256 amountToRedeem, uint256 amountReceived) = _calculateAmountToRedeem(
       amountOut,
       debtToken,
@@ -309,8 +181,8 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     if (amountReceived == 0) revert CDPPolicy_AmountInIs0();
 
     action.pool = ctx.pool;
-    action.dir = LQ.Direction.Contract;
-    action.liquiditySource = LQ.LiquiditySource.CDP;
+    action.dir = LQ.Direction.Expand;
+
     if (ctx.isToken0Debt) {
       action.amount0Out = amountToRedeem;
       action.amount1Out = 0;
@@ -319,8 +191,6 @@ contract CDPPolicy is ICDPPolicy, Ownable {
       action.amount1Out = amountToRedeem;
     }
     action.inputAmount = amountReceived;
-    action.incentiveBps = ctx.incentiveBps;
-    action.data = abi.encode(debtToken, collToken, collateralRegistry);
   }
 
   /**
@@ -334,14 +204,15 @@ contract CDPPolicy is ICDPPolicy, Ownable {
    */
   function _calculateAvailablePoolBalance(
     address stabilityPool,
-    address debtToken
+    address debtToken,
+    address pool
   ) internal view returns (uint256 availableAmount) {
     uint256 stabilityPoolBalance = IERC20(debtToken).balanceOf(stabilityPool);
     uint256 stabilityPoolMinBalance = IStabilityPool(stabilityPool).MIN_BOLD_AFTER_REBALANCE();
 
     if (stabilityPoolBalance <= stabilityPoolMinBalance) revert CDPPolicy_StabilityPoolBalanceTooLow();
 
-    uint256 stabilityPoolPercentage = (stabilityPoolBalance * deptTokenStabilityPoolPercentage[debtToken]) /
+    uint256 stabilityPoolPercentage = (stabilityPoolBalance * poolConfigs[pool].stabilityPoolPercentage) /
       BPS_DENOMINATOR;
     uint256 availableAmountAfterMinBalance = stabilityPoolBalance - stabilityPoolMinBalance;
 
@@ -371,8 +242,7 @@ contract CDPPolicy is ICDPPolicy, Ownable {
 
     uint256 totalDebtTokenSupply = IERC20(debtToken).totalSupply();
     uint256 maxRedemptionFee = ctx.incentiveBps * BPS_TO_FEE_SCALER;
-    require(maxRedemptionFee > decayedBaseFee, "CDPPolicy: REDEMPTION_FEE_TOO_LARGE");
-    uint256 redemptionBeta = deptTokenRedemptionBeta[debtToken];
+    uint256 redemptionBeta = poolConfigs[ctx.pool].redemptionBeta;
 
     uint256 maxAmountToRedeem = (totalDebtTokenSupply * redemptionBeta * (maxRedemptionFee - decayedBaseFee)) / 1e18;
 

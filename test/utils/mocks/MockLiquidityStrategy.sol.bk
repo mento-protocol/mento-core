@@ -31,11 +31,11 @@ contract MockLiquidityStrategy is ILiquidityStrategy {
     lastInputAmount = _action.inputAmount;
 
     // Decode action data if present
-    if (_action.data.length > 0) {
-      (uint256 incentiveAmount, bool isToken0Debt) = abi.decode(_action.data, (uint256, bool));
-      lastIncentiveAmount = incentiveAmount;
-      lastIsToken0Debt = isToken0Debt;
-    }
+    // if (_action.data.length > 0) {
+    //   (uint256 incentiveAmount, bool isToken0Debt) = abi.decode(_action.data, (uint256, bool));
+    //   lastIncentiveAmount = incentiveAmount;
+    //   lastIsToken0Debt = isToken0Debt;
+    // }
 
     // Execute callback if set (to simulate price changes after execution)
     if (executionCallback.length > 0) {

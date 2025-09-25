@@ -2,15 +2,10 @@
 pragma solidity ^0.8.0;
 // solhint-disable func-name-mixedcase
 
-import { ILiquidityPolicy } from "./ILiquidityPolicy.sol";
-import { LiquidityTypes as LQ } from "../libraries/LiquidityTypes.sol";
-
-interface ICDPPolicy is ILiquidityPolicy {
-  error CDPPolicy_ConstructorArrayLengthMismatch();
-  error CDPPolicy_StabilityPoolBalanceTooLow();
-  error CDPPolicy_InvalidStabilityPoolPercentage();
-  error CDPPolicy_AmountOutIs0();
-  error CDPPolicy_AmountInIs0();
+interface ICDPPolicy {
+  error CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH();
+  error CDPPolicy_STABILITY_POOL_BALANCE_TOO_LOW();
+  error CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE();
 
   /**
    * @notice Returns the name of the CDP policy
@@ -66,11 +61,6 @@ interface ICDPPolicy is ILiquidityPolicy {
    */
   function setDeptTokenStabilityPool(address debtToken, address stabilityPool) external;
 
-  /**
-   * @notice Sets the collateral registry address for a given debt token
-   * @param debtToken The debt token address
-   * @param collateralRegistry The collateral registry address
-   */
   function setDeptTokenCollateralRegistry(address debtToken, address collateralRegistry) external;
 
   /**

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { ILiquidityStrategy } from "./ILiquidityStrategy.sol";
-import { LiquidityTypes as LQ } from "../libraries/LiquidityTypes.sol";
+import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
 
 interface ICDPLiquidityStrategy is ILiquidityStrategy {
   error CDPLiquidityStrategy_InvalidPool();
