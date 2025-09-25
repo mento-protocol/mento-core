@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
-import { CDPLiquidityStrategy } from "contracts/v3/CDPLiquidityStrategy.sol";
 import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
 import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { Test } from "forge-std/Test.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
-import { LiquidityController } from "contracts/v3/LiquidityController.sol";
+import { CDPLiquidityStrategy } from "contracts/v3/CDPLiquidityStrategy.sol";
 
 import { console } from "forge-std/console.sol";
 
 contract CDPLiquidityStrategyTest is Test {
   CDPLiquidityStrategy public cdpLiquidityStrategy;
-  CDPPolicy public cdpPolicy;
   FPMM public fpmm;
-  LiquidityController public liquidityController;
   address public liquiditySource;
   address public debtToken;
   address public collToken;

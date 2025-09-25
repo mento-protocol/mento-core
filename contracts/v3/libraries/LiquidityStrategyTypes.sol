@@ -2,12 +2,13 @@
 pragma solidity 0.8.24;
 
 import { console } from "forge-std/console.sol";
+
 /**
- * @title LiquidityTypes
+ * @title LiquidityStrategyTypes ()
  * @author Mento Labs
  * @notice Shared types and helpers for the Liquidity Controller, Policies & Strategies.
  */
-library LiquidityTypes {
+library LiquidityStrategyTypes {
   /* ============================================================ */
   /* ====================== Constants =========================== */
   /* ============================================================ */
@@ -29,12 +30,6 @@ library LiquidityTypes {
   enum Direction {
     Expand,
     Contract
-  }
-
-  /// @notice Indicates where the liquidity comes from
-  enum LiquiditySource {
-    Reserve,
-    CDP
   }
 
   /* ============================================================ */
@@ -66,19 +61,66 @@ library LiquidityTypes {
     uint64 token0Dec;
     uint64 token1Dec;
     bool isToken0Debt;
+    Action action;
   }
 
   /// @notice A single rebalance step produced by a policy
   struct Action {
     address pool;
     Direction dir;
-    LiquiditySource liquiditySource;
     uint256 amount0Out; // amount of token0 to move out of pool
     uint256 amount1Out; // amount of token1 to move out of pool
     uint256 inputAmount; // amount moved into pool (pre-incentive)
-    uint256 incentiveBps; // incentive bps applied to inputAmount
-    bytes data; // strategy-specific data (optional)
   }
+
+  /* ============================================================ */
+  /* ================== Context Functions ======================= */
+  /* ============================================================ */
+
+  function debtToken(Context memory self) internal pure returns (address) {
+    return self.isToken0Debt ? self.token0 : self.token1;
+  }
+
+  function collateralToken(Context memory self) internal pure returns (address) {
+    return self.isToken0Debt ? self.token1 : self.token0;
+  }
+
+  function tokens(Context memory self) internal pure returns (address, address) {
+    return self.isToken0Debt ? (self.token0, self.token1) : (self.token1, self.token0);
+  }
+
+  function debtTokenDecimals(Context memory self) internal pure returns (uint64) {
+    return self.isToken0Debt ? self.token0Dec : self.token1Dec;
+  }
+
+  function collateralTokenDecimals(Context memory self) internal pure returns (uint64) {
+    return self.isToken0Debt ? self.token1Dec : self.token0Dec;
+  }
+
+  function collateralToDebtPrice(Context memory self) internal pure returns (uint256, uint256) {
+    return
+      self.isToken0Debt
+        ? (self.prices.oracleNum, self.prices.oracleDen)
+        : (self.prices.oracleDen, self.prices.oracleNum);
+  }
+
+  function convertToDebtToken(Context memory self, uint256 collateralBalance) internal pure returns (uint256) {
+    (uint256 numerator, uint256 denominator) = collateralToDebtPrice(self);
+    return
+      convertWithRateScalingAndAddFee(
+        collateralBalance,
+        collateralTokenDecimals(self),
+        debtTokenDecimals(self),
+        numerator,
+        denominator,
+        self.incentiveBps + BASIS_POINTS_DENOMINATOR,
+        BASIS_POINTS_DENOMINATOR
+      );
+  }
+
+  /* =========================================================== */
+  /* ================== ACtion Functions ======================= */
+  /* =========================================================== */
 
   /* ============================================================ */
   /* =================== Helper Functions ======================= */
