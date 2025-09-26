@@ -4,9 +4,10 @@ pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 
-import { IFPMM } from "contracts/interfaces/IFPMM.sol";
-
 contract FPMMAdminTest is FPMMBaseTest {
+  event LPFeeUpdated(uint256 oldFee, uint256 newFee);
+  event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee, address oldRecipient, address newRecipient);
+
   address public notOwner = makeAddr("NOT_OWNER");
   address public feeRecipient = makeAddr("FEE_RECIPIENT");
 
@@ -24,7 +25,7 @@ contract FPMMAdminTest is FPMMBaseTest {
   function test_setLPFee_whenOwner_shouldSetLPFee() public initializeFPMM_withDecimalTokens(18, 18) {
     vm.prank(owner);
     vm.expectEmit();
-    emit IFPMM.LPFeeUpdated(30, 50);
+    emit LPFeeUpdated(30, 50);
     fpmm.setLPFee(50);
 
     assertEq(fpmm.lpFee(), 50);
@@ -59,7 +60,7 @@ contract FPMMAdminTest is FPMMBaseTest {
   function test_setProtocolFee_whenOwner_shouldSetProtocolFee() public initializeFPMM_withDecimalTokens(18, 18) {
     vm.prank(owner);
     vm.expectEmit();
-    emit IFPMM.ProtocolFeeUpdated(0, 50, address(0), feeRecipient);
+    emit ProtocolFeeUpdated(0, 50, address(0), feeRecipient);
     fpmm.setProtocolFee(50, feeRecipient);
 
     assertEq(fpmm.protocolFee(), 50);
