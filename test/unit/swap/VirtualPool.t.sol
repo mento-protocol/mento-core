@@ -46,7 +46,7 @@ contract VirtualPoolTest is Test {
       abi.encode(_makeExchange(token0, token1, BUCKET0, BUCKET1, _bpsToFraction(30))) // 30 bps
     );
 
-    pool = new VirtualPool(broker, exchangeProvider, EXCHANGE_ID, token0, token1);
+    pool = new VirtualPool(broker, exchangeProvider, EXCHANGE_ID, token0, token1, true);
   }
 
   function test_tokens_shouldBeSorted() public view {
@@ -59,16 +59,16 @@ contract VirtualPoolTest is Test {
 
   function test_metadata_shouldMatch() public view {
     (uint256 dec0, uint256 dec1, uint256 r0, uint256 r1, address t0, address t1) = pool.metadata();
-    assertEq(dec0, 18);
-    assertEq(dec1, 6);
+    assertEq(dec0, 1e18);
+    assertEq(dec1, 1e6);
     assertEq(r0, BUCKET0);
     assertEq(r1, BUCKET1);
     assertEq(t0, token0);
     assertEq(t1, token1);
     assertEq(pool.token0(), token0);
     assertEq(pool.token1(), token1);
-    assertEq(pool.decimals0(), 18);
-    assertEq(pool.decimals1(), 6);
+    assertEq(pool.decimals0(), 1e18);
+    assertEq(pool.decimals1(), 1e6);
   }
 
   function test_reserves_shouldMatch() public {
@@ -107,7 +107,7 @@ contract VirtualPoolTest is Test {
   }
 
   function test_getAmountOut_invalidToken_shouldRevert() public {
-    vm.expectRevert(bytes("VirtualPool: INVALID_TOKEN"));
+    vm.expectRevert("VirtualPool: INVALID_TOKEN");
     pool.getAmountOut(1, makeAddr("notATokenInThisPair"));
   }
 
@@ -152,29 +152,29 @@ contract VirtualPoolTest is Test {
   }
 
   function test_swap_whenBothOutZero_shouldRevert() public {
-    vm.expectRevert(bytes("VirtualPool: INSUFFICIENT_OUTPUT_AMOUNT"));
-    pool.swap(0, 0, makeAddr("to"), bytes(""));
+    vm.expectRevert("VirtualPool: INSUFFICIENT_OUTPUT_AMOUNT");
+    pool.swap(0, 0, makeAddr("to"), "");
   }
 
   function test_swap_whenBothOutNonZero_shouldRevert() public {
-    vm.expectRevert(bytes("VirtualPool: MUST_SWAP_THROUGH_ROUTER"));
-    pool.swap(1, 1, makeAddr("to"), bytes(""));
+    vm.expectRevert("VirtualPool: ONE_AMOUNT_MUST_BE_ZERO");
+    pool.swap(1, 1, makeAddr("to"), "");
   }
 
   function test_swap_whenDataNonEmpty_shouldRevert() public {
-    vm.expectRevert(bytes("VirtualPool: MUST_SWAP_THROUGH_ROUTER"));
-    pool.swap(0, 1, makeAddr("to"), bytes("flash? no.")); // flash swaps forbidden
+    vm.expectRevert("VirtualPool: ONE_AMOUNT_MUST_BE_ZERO");
+    pool.swap(0, 1, makeAddr("to"), "flash? no."); // flash swaps forbidden
   }
 
   function test_swap_whenToIsTokenAddress_shouldRevert() public {
-    vm.expectRevert(bytes("VirtualPool: INVALID_TO_ADDRESS"));
-    pool.swap(0, 1, token0, bytes(""));
-    vm.expectRevert(bytes("VirtualPool: INVALID_TO_ADDRESS"));
-    pool.swap(1, 0, token1, bytes(""));
+    vm.expectRevert("VirtualPool: INVALID_TO_ADDRESS");
+    pool.swap(0, 1, token0, "");
+    vm.expectRevert("VirtualPool: INVALID_TO_ADDRESS");
+    pool.swap(1, 0, token1, "");
   }
 
   function test_swap_whenToIsPoolItself_shouldRevert() public {
-    vm.expectRevert(bytes("VirtualPool: INVALID_TO_ADDRESS"));
+    vm.expectRevert("VirtualPool: INVALID_TO_ADDRESS");
     pool.swap(0, 1, address(pool), "");
   }
 

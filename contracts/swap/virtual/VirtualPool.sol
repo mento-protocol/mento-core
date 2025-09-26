@@ -42,10 +42,13 @@ contract VirtualPool is IRPool, ReentrancyGuard {
   address internal immutable TOKEN1;
 
   /// @dev Decimals of the first token.
-  uint8 internal immutable DECIMALS0;
+  uint256 internal immutable DECIMALS0;
 
   /// @dev Decimals of the second token.
-  uint8 internal immutable DECIMALS1;
+  uint256 internal immutable DECIMALS1;
+
+  /// @dev Whether the token orders is the same as on the ExchangeProvider
+  bool internal immutable SAME_TOKEN_ORDER;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -57,14 +60,22 @@ contract VirtualPool is IRPool, ReentrancyGuard {
    * @param _token0 Address of the first token.
    * @param _token1 Address of the second token.
    */
-  constructor(address broker, address exchangeProvider, bytes32 exchangeId, address _token0, address _token1) {
+  constructor(
+    address broker,
+    address exchangeProvider,
+    bytes32 exchangeId,
+    address _token0,
+    address _token1,
+    bool sameOrder
+  ) {
     BROKER = IBroker(broker);
     EXCHANGE_PROVIDER = exchangeProvider;
     EXCHANGE_ID = exchangeId;
     TOKEN0 = _token0;
     TOKEN1 = _token1;
-    DECIMALS0 = IERC20Metadata(_token0).decimals();
-    DECIMALS1 = IERC20Metadata(_token1).decimals();
+    DECIMALS0 = 10 ** uint256(IERC20Metadata(_token0).decimals());
+    DECIMALS1 = 10 ** uint256(IERC20Metadata(_token1).decimals());
+    SAME_TOKEN_ORDER = sameOrder;
     IERC20(_token0).safeApprove(broker, type(uint256).max);
     IERC20(_token1).safeApprove(broker, type(uint256).max);
   }
@@ -78,7 +89,10 @@ contract VirtualPool is IRPool, ReentrancyGuard {
     returns (uint256 dec0, uint256 dec1, uint256 r0, uint256 r1, address t0, address t1)
   {
     IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(EXCHANGE_PROVIDER).exchanges(EXCHANGE_ID);
-    return (DECIMALS0, DECIMALS1, exchange.bucket0, exchange.bucket1, TOKEN0, TOKEN1);
+    (uint256 bucket0, uint256 bucket1) = SAME_TOKEN_ORDER
+      ? (exchange.bucket0, exchange.bucket1)
+      : (exchange.bucket1, exchange.bucket0);
+    return (DECIMALS0, DECIMALS1, bucket0, bucket1, TOKEN0, TOKEN1);
   }
 
   /// @inheritdoc IRPool
@@ -89,7 +103,10 @@ contract VirtualPool is IRPool, ReentrancyGuard {
   /// @inheritdoc IRPool
   function getReserves() public view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast) {
     IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(EXCHANGE_PROVIDER).exchanges(EXCHANGE_ID);
-    return (exchange.bucket0, exchange.bucket1, exchange.lastBucketUpdate);
+    (uint256 bucket0, uint256 bucket1) = SAME_TOKEN_ORDER
+      ? (exchange.bucket0, exchange.bucket1)
+      : (exchange.bucket1, exchange.bucket0);
+    return (bucket0, bucket1, exchange.lastBucketUpdate);
   }
 
   /// @inheritdoc IRPool
@@ -115,13 +132,13 @@ contract VirtualPool is IRPool, ReentrancyGuard {
   /// @inheritdoc IRPool
   function reserve0() external view returns (uint256) {
     IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(EXCHANGE_PROVIDER).exchanges(EXCHANGE_ID);
-    return exchange.bucket0;
+    return SAME_TOKEN_ORDER ? exchange.bucket0 : exchange.bucket1;
   }
 
   /// @inheritdoc IRPool
   function reserve1() external view returns (uint256) {
     IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(EXCHANGE_PROVIDER).exchanges(EXCHANGE_ID);
-    return exchange.bucket1;
+    return SAME_TOKEN_ORDER ? exchange.bucket1 : exchange.bucket0;
   }
 
   /// @inheritdoc IRPool
@@ -145,7 +162,7 @@ contract VirtualPool is IRPool, ReentrancyGuard {
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     require(amount0Out | amount1Out != 0, "VirtualPool: INSUFFICIENT_OUTPUT_AMOUNT");
     // Flash swaps are not supported.
-    require(data.length == 0 && (amount0Out == 0 || amount1Out == 0), "VirtualPool: MUST_SWAP_THROUGH_ROUTER");
+    require(data.length == 0 && (amount0Out == 0 || amount1Out == 0), "VirtualPool: ONE_AMOUNT_MUST_BE_ZERO");
     require(to != TOKEN0 && to != TOKEN1 && to != address(this), "VirtualPool: INVALID_TO_ADDRESS");
 
     uint256 amount0In = IERC20(TOKEN0).balanceOf(address(this));

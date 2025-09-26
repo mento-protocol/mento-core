@@ -15,12 +15,12 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
   /// @inheritdoc IVirtualPoolFactory
   function deployVirtualPool(address exchangeProvider, bytes32 exchangeId) external onlyOwner returns (address pool) {
     address broker = _getExchangeBroker(exchangeProvider);
-    (address token0, address token1) = _getExchangeTokens(exchangeProvider, exchangeId);
+    (address token0, address token1, bool sameOrder) = _getExchangeTokens(exchangeProvider, exchangeId);
     if (_pools[token0][token1] != address(0)) {
       revert VirtualPoolAlreadyExistsForThisPair();
     }
     // slither-disable-next-line reentrancy-benign,reentrancy-no-eth
-    pool = address(new VirtualPool(broker, exchangeProvider, exchangeId, token0, token1));
+    pool = address(new VirtualPool(broker, exchangeProvider, exchangeId, token0, token1, sameOrder));
     _pools[token0][token1] = pool;
     _isPool[pool] = true;
     // slither-disable-next-line reentrancy-events
@@ -30,6 +30,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
   /// @inheritdoc IRPoolFactory
   function getOrPrecomputeProxyAddress(address tokenA, address tokenB) external view returns (address) {
     (address token0, address token1) = _sortTokens(tokenA, tokenB);
+    // TODO: Precompute the address
     return _pools[token0][token1];
   }
 
@@ -51,7 +52,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
    * @return token0 The address of the first token (of which the address is the smaller uint160).
    * @return token1 The address of the second token (of which the address is the bigger uint160).
    */
-  function _sortTokens(address a, address b) public pure returns (address, address) {
+  function _sortTokens(address a, address b) private pure returns (address, address) {
     return (a < b) ? (a, b) : (b, a);
   }
 
@@ -83,7 +84,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
   function _getExchangeTokens(
     address exchangeProvider,
     bytes32 exchangeId
-  ) internal view returns (address token0, address token1) {
+  ) internal view returns (address token0, address token1, bool sameOrder) {
     (bool success, bytes memory exchangeData) = exchangeProvider.staticcall(
       abi.encodeCall(IBiPoolManager.exchanges, exchangeId)
     );
@@ -93,6 +94,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
     }
     IBiPoolManager.PoolExchange memory exchange = abi.decode(exchangeData, (IBiPoolManager.PoolExchange));
     (token0, token1) = _sortTokens(exchange.asset0, exchange.asset1);
+    sameOrder = token0 == exchange.asset0;
     if (token0 == address(0)) {
       revert InvalidExchangeId();
     }
