@@ -41,14 +41,14 @@ contract VirtualPoolFactoryTest is Test {
 
   function test_deployPool_whenWrongExchangeProvider_noBrokerSelector_shouldRevert() public {
     address wrongExchangeProvider = makeAddr("wrongExchangeProvider");
-    vm.expectRevert(IVirtualPoolFactory.InvalidExchangeProvider.selector);
+    vm.expectRevert();
     factory.deployVirtualPool(wrongExchangeProvider, bytes32(0));
   }
 
   function test_deployPool_whenWrongExchangeProvider_noBroker_shouldRevert() public {
     address wrongExchangeProvider = makeAddr("wrongExchangeProvider");
     vm.mockCall(wrongExchangeProvider, abi.encodeWithSelector(IBiPoolManager.broker.selector), abi.encode(address(0)));
-    vm.expectRevert(IVirtualPoolFactory.InvalidExchangeProvider.selector);
+    vm.expectRevert();
     factory.deployVirtualPool(wrongExchangeProvider, bytes32(0));
   }
 
@@ -56,7 +56,7 @@ contract VirtualPoolFactoryTest is Test {
     address wrongExchangeProvider = makeAddr("wrongExchangeProvider");
     address fakeBroker = makeAddr("fakeBroker");
     vm.mockCall(wrongExchangeProvider, abi.encodeWithSelector(IBiPoolManager.broker.selector), abi.encode(fakeBroker));
-    vm.expectRevert(IVirtualPoolFactory.InvalidExchangeProvider.selector);
+    vm.expectRevert();
     factory.deployVirtualPool(wrongExchangeProvider, bytes32(0));
   }
 

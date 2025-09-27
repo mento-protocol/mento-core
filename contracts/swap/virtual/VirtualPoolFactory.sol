@@ -14,7 +14,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
   /// TODO: Determine whether we use Create2, Create3, Clone
   /// @inheritdoc IVirtualPoolFactory
   function deployVirtualPool(address exchangeProvider, bytes32 exchangeId) external onlyOwner returns (address pool) {
-    address broker = _getExchangeBroker(exchangeProvider);
+    address broker = IBiPoolManager(exchangeProvider).broker();
     (address token0, address token1, bool sameOrder) = _getExchangeTokens(exchangeProvider, exchangeId);
     if (_pools[token0][token1] != address(0)) {
       revert VirtualPoolAlreadyExistsForThisPair();
@@ -22,14 +22,14 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
     // slither-disable-next-line reentrancy-benign,reentrancy-no-eth
     pool = address(new VirtualPool(broker, exchangeProvider, exchangeId, token0, token1, sameOrder));
     _pools[token0][token1] = pool;
+    _pools[token1][token0] = pool;
     _isPool[pool] = true;
     // slither-disable-next-line reentrancy-events
     emit VirtualPoolDeployed(pool, token0, token1);
   }
 
   /// @inheritdoc IRPoolFactory
-  function getOrPrecomputeProxyAddress(address tokenA, address tokenB) external view returns (address) {
-    (address token0, address token1) = _sortTokens(tokenA, tokenB);
+  function getOrPrecomputeProxyAddress(address token0, address token1) external view returns (address) {
     // TODO: Precompute the address
     return _pools[token0][token1];
   }
@@ -40,8 +40,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
   }
 
   /// @inheritdoc IRPoolFactory
-  function getPool(address tokenA, address tokenB) external view returns (address) {
-    (address token0, address token1) = _sortTokens(tokenA, tokenB);
+  function getPool(address token0, address token1) external view returns (address) {
     return _pools[token0][token1];
   }
 
@@ -59,24 +58,6 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
   /**
    * @notice Gets the broker address from an exchange provider and gracefully handles errors.
    * @param exchangeProvider The address of the Exchange Provider.
-   * @return broker Address of the broker.
-   */
-  function _getExchangeBroker(address exchangeProvider) internal view returns (address) {
-    (bool success, bytes memory brokerData) = exchangeProvider.staticcall(abi.encodeCall(IBiPoolManager.broker, ()));
-    if (!success) revert InvalidExchangeProvider();
-    if (brokerData.length != 32) {
-      revert InvalidExchangeProvider();
-    }
-    address broker = abi.decode(brokerData, (address));
-    if (broker == address(0)) {
-      revert InvalidExchangeProvider();
-    }
-    return broker;
-  }
-
-  /**
-   * @notice Gets the broker address from an exchange provider and gracefully handles errors.
-   * @param exchangeProvider The address of the Exchange Provider.
    * @param exchangeId Exchange ID for this pair.
    * @return token0 Address of the first token.
    * @return token1 Address of the second token.
@@ -85,14 +66,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
     address exchangeProvider,
     bytes32 exchangeId
   ) internal view returns (address token0, address token1, bool sameOrder) {
-    (bool success, bytes memory exchangeData) = exchangeProvider.staticcall(
-      abi.encodeCall(IBiPoolManager.exchanges, exchangeId)
-    );
-    if (!success) revert InvalidExchangeProvider();
-    if (exchangeData.length != 352) {
-      revert InvalidExchangeProvider();
-    }
-    IBiPoolManager.PoolExchange memory exchange = abi.decode(exchangeData, (IBiPoolManager.PoolExchange));
+    IBiPoolManager.PoolExchange memory exchange = IBiPoolManager(exchangeProvider).exchanges(exchangeId);
     (token0, token1) = _sortTokens(exchange.asset0, exchange.asset1);
     sameOrder = token0 == exchange.asset0;
     if (token0 == address(0)) {
