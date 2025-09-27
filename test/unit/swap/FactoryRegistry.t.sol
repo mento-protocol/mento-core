@@ -82,6 +82,14 @@ contract FactoryRegistryTest is Test {
     factoryRegistry.unapprove(makeAddr("unknown"));
   }
 
+  function test_approve_whenKnownPath_shouldRevert() public afterInit {
+    vm.startPrank(governance);
+    factoryRegistry.approve(makeAddr("known"));
+    vm.expectRevert(IFactoryRegistry.PathAlreadyApproved.selector);
+    factoryRegistry.approve(makeAddr("known"));
+    vm.stopPrank();
+  }
+
   function test_approve_shouldEmitEventsAndUpdateState() public afterInit {
     assert(!factoryRegistry.isPoolFactoryApproved(poolFactory1));
     assert(!factoryRegistry.isPoolFactoryApproved(poolFactory2));

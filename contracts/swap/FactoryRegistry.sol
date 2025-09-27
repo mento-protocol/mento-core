@@ -3,19 +3,21 @@ pragma solidity 0.8.18;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { IFactoryRegistry } from "../interfaces/IFactoryRegistry.sol";
-import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+// solhint-disable-next-line max-line-length
+import { EnumerableSetUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
 
 /// @title Protocol Factory Registry
 /// @author Modified from Carter Carlson (@pegahcarter)
+/// @dev https://github.com/aerodrome-finance/contracts/blob/d5e48b3b36a08726abd74432974c5bcdb4507bc9
 /// @notice Protocol Factory Registry to swap and create gauges
 contract FactoryRegistry is IFactoryRegistry, OwnableUpgradeable {
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
   /// @dev The protocol will always have a usable poolFactory.
   address public fallbackPoolFactory;
 
   /// @dev Array of poolFactories used to create a gauge and votingRewards
-  EnumerableSet.AddressSet private _poolFactories;
+  EnumerableSetUpgradeable.AddressSet private _poolFactories;
 
   /**
    * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
