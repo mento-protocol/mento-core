@@ -47,16 +47,20 @@ contract FactoryRegistry is IFactoryRegistry, OwnableUpgradeable {
   /// @inheritdoc IFactoryRegistry
   function approve(address poolFactory) public onlyOwner {
     if (poolFactory == address(0)) revert ZeroAddress();
-    if (!_poolFactories.add(poolFactory)) revert PathAlreadyApproved();
+    if (_poolFactories.contains(poolFactory)) revert PathAlreadyApproved();
 
+    // slither-disable-next-line unused-return
+    _poolFactories.add(poolFactory);
     emit Approve(poolFactory);
   }
 
   /// @inheritdoc IFactoryRegistry
   function unapprove(address poolFactory) external onlyOwner {
     if (poolFactory == fallbackPoolFactory) revert FallbackFactory();
-    if (!_poolFactories.remove(poolFactory)) revert PathNotApproved();
+    if (!_poolFactories.contains(poolFactory)) revert PathNotApproved();
 
+    // slither-disable-next-line unused-return
+    _poolFactories.remove(poolFactory);
     emit Unapprove(poolFactory);
   }
 

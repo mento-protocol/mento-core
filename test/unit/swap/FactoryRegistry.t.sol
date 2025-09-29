@@ -90,19 +90,42 @@ contract FactoryRegistryTest is Test {
     vm.stopPrank();
   }
 
+  function test_approve_whenFallbackFactory_shouldRevert() public afterInit {
+    vm.startPrank(governance);
+    vm.expectRevert(IFactoryRegistry.PathAlreadyApproved.selector);
+    factoryRegistry.approve(fallbackFactory);
+    vm.stopPrank();
+  }
+
   function test_approve_shouldEmitEventsAndUpdateState() public afterInit {
     assert(!factoryRegistry.isPoolFactoryApproved(poolFactory1));
     assert(!factoryRegistry.isPoolFactoryApproved(poolFactory2));
+    address[] memory factories = factoryRegistry.poolFactories();
+    assertEq(factories.length, 1);
+    assertEq(factoryRegistry.poolFactoriesLength(), 1);
+
     vm.startPrank(governance);
     vm.expectEmit(true, false, false, false, address(factoryRegistry));
     emit Approve(poolFactory1);
     factoryRegistry.approve(poolFactory1);
     assert(factoryRegistry.isPoolFactoryApproved(poolFactory1));
     assert(!factoryRegistry.isPoolFactoryApproved(poolFactory2));
+    factories = factoryRegistry.poolFactories();
+    assertEq(factories.length, 2);
+    assertEq(factories[0], fallbackFactory);
+    assertEq(factories[1], poolFactory1);
+    assertEq(factoryRegistry.poolFactoriesLength(), 2);
+
     vm.expectEmit(true, false, false, false, address(factoryRegistry));
     emit Approve(poolFactory2);
     factoryRegistry.approve(poolFactory2);
     assert(factoryRegistry.isPoolFactoryApproved(poolFactory1));
     assert(factoryRegistry.isPoolFactoryApproved(poolFactory2));
+    factories = factoryRegistry.poolFactories();
+    assertEq(factories.length, 3);
+    assertEq(factories[0], fallbackFactory);
+    assertEq(factories[1], poolFactory1);
+    assertEq(factories[2], poolFactory2);
+    assertEq(factoryRegistry.poolFactoriesLength(), 3);
   }
 }

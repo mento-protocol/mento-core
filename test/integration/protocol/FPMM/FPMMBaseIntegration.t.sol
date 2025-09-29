@@ -9,7 +9,7 @@ import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { Router } from "contracts/swap/router/Router.sol";
-import { IFactoryRegistry } from "contracts/swap/router/interfaces/IFactoryRegistry.sol";
+import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 
 /**
  * @title FPMMBaseIntegration
