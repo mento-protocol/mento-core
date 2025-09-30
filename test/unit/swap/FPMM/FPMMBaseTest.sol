@@ -49,8 +49,17 @@ contract FPMMBaseTest is Test {
   }
 
   modifier withProtocolFee(uint256 _protocolFee, address _protocolFeeRecipient) {
+    vm.startPrank(owner);
+    fpmm.setProtocolFeeRecipient(_protocolFeeRecipient);
+    fpmm.setProtocolFee(_protocolFee);
+    vm.stopPrank();
+
+    _;
+  }
+
+  modifier withProtocolFeeRecipient(address _protocolFeeRecipient) {
     vm.prank(owner);
-    fpmm.setProtocolFee(_protocolFee, _protocolFeeRecipient);
+    fpmm.setProtocolFeeRecipient(_protocolFeeRecipient);
 
     _;
   }

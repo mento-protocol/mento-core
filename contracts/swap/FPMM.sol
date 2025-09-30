@@ -518,19 +518,26 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function setProtocolFee(uint256 _protocolFee, address _protocolFeeRecipient) public onlyOwner {
-    require(_protocolFee == 0 || _protocolFeeRecipient != address(0), "FPMM: PROTOCOL_FEE_RECIPIENT_REQUIRED");
-
+  function setProtocolFee(uint256 _protocolFee) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
+    require(_protocolFee == 0 || $.protocolFeeRecipient != address(0), "FPMM: PROTOCOL_FEE_RECIPIENT_REQUIRED");
     require(_protocolFee + $.lpFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1% combined
 
     uint256 oldFee = $.protocolFee;
-    address oldRecipient = $.protocolFeeRecipient;
-
     $.protocolFee = _protocolFee;
+    emit ProtocolFeeUpdated(oldFee, _protocolFee);
+  }
+
+  /// @inheritdoc IFPMM
+  function setProtocolFeeRecipient(address _protocolFeeRecipient) public onlyOwner {
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    require(_protocolFeeRecipient != address(0), "FPMM: ZERO_ADDRESS");
+
+    address oldRecipient = $.protocolFeeRecipient;
     $.protocolFeeRecipient = _protocolFeeRecipient;
-    emit ProtocolFeeUpdated(oldFee, _protocolFee, oldRecipient, _protocolFeeRecipient);
+    emit ProtocolFeeRecipientUpdated(oldRecipient, _protocolFeeRecipient);
   }
 
   /// @inheritdoc IFPMM

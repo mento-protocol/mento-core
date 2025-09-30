@@ -117,10 +117,15 @@ interface IFPMM is IRPool {
    * @notice Emitted when the protocol fee is updated
    * @param oldFee Previous fee in basis points
    * @param newFee New fee in basis points
+   */
+  event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
+
+  /**
+   * @notice Emitted when the protocol fee recipient is updated
    * @param oldRecipient Previous recipient of the protocol fee
    * @param newRecipient New recipient of the protocol fee
    */
-  event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee, address oldRecipient, address newRecipient);
+  event ProtocolFeeRecipientUpdated(address oldRecipient, address newRecipient);
 
   /**
    * @notice Emitted when the rebalance incentive is updated
@@ -430,9 +435,14 @@ interface IFPMM is IRPool {
   /**
    * @notice Sets protocol fee
    * @param _protocolFee New fee in basis points
+   */
+  function setProtocolFee(uint256 _protocolFee) external;
+
+  /**
+   * @notice Sets protocol fee recipient
    * @param _protocolFeeRecipient The recipient of the protocol fee
    */
-  function setProtocolFee(uint256 _protocolFee, address _protocolFeeRecipient) external;
+  function setProtocolFeeRecipient(address _protocolFeeRecipient) external;
 
   /**
    * @notice Sets rebalance incentive
