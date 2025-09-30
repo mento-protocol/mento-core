@@ -74,9 +74,8 @@ contract TradingLimitsV2Test is Test {
     harness.validate(config);
   }
 
-  function test_validate_withL1_withoutL0_isNotValid() public {
+  function test_validate_withL1_withoutL0_isValid() public view {
     ITradingLimitsV2.Config memory config = configL1(10000);
-    vm.expectRevert(bytes("L1 without L0 not allowed"));
     harness.validate(config);
   }
 
@@ -134,6 +133,23 @@ contract TradingLimitsV2Test is Test {
   function test_verify_withDifferentDecimals_24decimals_passes() public {
     state.netflow0 = 500 * 1e15; // 500 scaled to 15 decimals
     harness.verify(state, configL0(500 * 1e24), 24); // 500 in 24 decimals
+  }
+
+  function test_verify_withL1Only_withinLimit_passes() public {
+    state.netflow1 = 500 * 1e15; // 500 scaled to 15 decimals
+    harness.verify(state, configL1(1000 * 1e18), 18); // 1000 in 18 decimals
+  }
+
+  function test_verify_withL1Only_exceedsPositiveLimit_reverts() public {
+    state.netflow1 = 1001 * 1e15; // 1001 scaled to 15 decimals
+    vm.expectRevert(bytes("L1 Exceeded"));
+    harness.verify(state, configL1(1000 * 1e18), 18); // 1000 in 18 decimals
+  }
+
+  function test_verify_withL1Only_exceedsNegativeLimit_reverts() public {
+    state.netflow1 = -1001 * 1e15; // -1001 scaled to 15 decimals
+    vm.expectRevert(bytes("L1 Exceeded"));
+    harness.verify(state, configL1(1000 * 1e18), 18); // 1000 in 18 decimals
   }
 
   /* ==================== State#reset ==================== */
@@ -198,6 +214,12 @@ contract TradingLimitsV2Test is Test {
     assertEq(state.netflow1, 100 * 1e15); // Scaled to 15 decimals
   }
 
+  function test_update_withL1Only_updatesL1() public {
+    state = harness.update(state, configL1(10000 * 1e18), 100 * 1e18, 18);
+    assertEq(state.netflow0, 0); // L0 not active
+    assertEq(state.netflow1, 100 * 1e15); // L1 should be updated
+  }
+
   function test_update_withSmallAmount_doesNotRoundUp() public {
     // In V2, small amounts that scale to 0 are ignored (no rounding)
     state = harness.update(state, configL0(1000 * 1e18), 1, 18); // 1 wei (positive)
@@ -254,6 +276,35 @@ contract TradingLimitsV2Test is Test {
     state = harness.update(state, configL0(1000 * 1e18), 50 * 1e18, 18);
 
     assertEq(state.netflow0, 150 * 1e15); // Should accumulate
+  }
+
+  function test_update_L1Only_resetsAfter1Day() public {
+    // Test that L1 resets after 1 day when used without L0
+    vm.warp(1 days + 1000);
+    state = harness.update(state, configL1(10000 * 1e18), 100 * 1e18, 18);
+    assertEq(state.netflow1, 100 * 1e15);
+    assertEq(state.lastUpdated1, 1 days + 1000);
+
+    // Move forward 1 day + 1 second
+    vm.warp(1 days + 1000 + 1 days + 1);
+    state = harness.update(state, configL1(10000 * 1e18), 50 * 1e18, 18);
+
+    // L1 should be reset
+    assertEq(state.netflow1, 50 * 1e15); // Should be reset to just new amount
+    assertEq(state.lastUpdated1, 1 days + 1000 + 1 days + 1);
+    assertEq(state.netflow0, 0); // L0 should remain 0
+  }
+
+  function test_update_L1Only_accumulatesWithinTimeWindow() public {
+    vm.warp(1000);
+    state = harness.update(state, configL1(10000 * 1e18), 100 * 1e18, 18);
+
+    // Move forward less than 1 day
+    vm.warp(1000 + 12 hours);
+    state = harness.update(state, configL1(10000 * 1e18), 50 * 1e18, 18);
+
+    assertEq(state.netflow1, 150 * 1e15); // Should accumulate
+    assertEq(state.netflow0, 0); // L0 should remain 0
   }
 
   /* ==================== Scaling Functions ==================== */
@@ -418,5 +469,39 @@ contract TradingLimitsV2Test is Test {
     // Both should be reset to just the new amount
     assertEq(state.netflow0, 1000 * 1e15);
     assertEq(state.netflow1, 1000 * 1e15);
+  }
+
+  function test_integration_fullWorkflow_L1Only() public {
+    ITradingLimitsV2.Config memory config = configL1(10000 * 1e18);
+
+    // Validate config (should pass now)
+    harness.validate(config);
+
+    // Update with some flow
+    vm.warp(1000);
+    state = harness.update(state, config, 5000 * 1e18, 18);
+
+    // Verify within limits
+    harness.verify(state, config, 18);
+    assertEq(state.netflow0, 0); // L0 not active
+    assertEq(state.netflow1, 5000 * 1e15); // L1 active
+
+    // Update more and verify still within limits
+    state = harness.update(state, config, 4000 * 1e18, 18);
+    harness.verify(state, config, 18);
+    assertEq(state.netflow1, 9000 * 1e15);
+
+    // Update to exceed L1 limit
+    state = harness.update(state, config, 2000 * 1e18, 18);
+    vm.expectRevert(bytes("L1 Exceeded"));
+    harness.verify(state, config, 18);
+
+    // Move forward 1 day to reset L1
+    vm.warp(1000 + 1 days + 1);
+    state = harness.update(state, config, 5000 * 1e18, 18);
+
+    // L1 should be reset to just the new amount
+    assertEq(state.netflow1, 5000 * 1e15);
+    harness.verify(state, config, 18); // Should pass
   }
 }

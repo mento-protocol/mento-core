@@ -43,7 +43,6 @@ library TradingLimitsV2 {
    * @param self the Config struct to check.
    */
   function validate(ITradingLimitsV2.Config memory self) internal pure {
-    require(self.flags & L1 == 0 || self.flags & L0 != 0, "L1 without L0 not allowed");
     require(self.flags & L0 == 0 || self.limit0 > 0, "limit0 can't be zero if active");
     require(self.flags & L1 == 0 || self.limit1 > 0, "limit1 can't be zero if active");
     require(self.flags & (L0 | L1) != 3 || self.limit0 < self.limit1, "limit1 must be greater than limit0");
@@ -136,14 +135,14 @@ library TradingLimitsV2 {
         self.lastUpdated0 = uint32(block.timestamp);
       }
       self.netflow0 = safeAdd(self.netflow0, scaledDelta);
+    }
 
-      if (config.flags & L1 > 0) {
-        if (block.timestamp > self.lastUpdated1 + TIMESTEP1) {
-          self.netflow1 = 0;
-          self.lastUpdated1 = uint32(block.timestamp);
-        }
-        self.netflow1 = safeAdd(self.netflow1, scaledDelta);
+    if (config.flags & L1 > 0) {
+      if (block.timestamp > self.lastUpdated1 + TIMESTEP1) {
+        self.netflow1 = 0;
+        self.lastUpdated1 = uint32(block.timestamp);
       }
+      self.netflow1 = safeAdd(self.netflow1, scaledDelta);
     }
 
     return self;
