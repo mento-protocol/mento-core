@@ -74,6 +74,13 @@ contract MockERC20 is IERC20 {
     emit Transfer(msg.sender, address(0), amount);
   }
 
+  function burn(address account, uint256 amount) external {
+    emit BurnCalled(account, amount);
+    balanceOf[account] -= amount;
+    totalSupply -= amount;
+    emit Transfer(account, address(0), amount);
+  }
+
   function setBalance(address account, uint256 amount) external {
     balanceOf[account] = amount;
   }

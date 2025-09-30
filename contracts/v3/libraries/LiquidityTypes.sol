@@ -120,7 +120,7 @@ library LiquidityTypes {
     return (amount * oracleNum * toDec) / (fromDec * oracleDen);
   }
 
-  function convertWithRateScalingAndAddFee(
+  function convertWithRateScalingAndFee(
     uint256 amount,
     uint256 fromDec,
     uint256 toDec,
@@ -129,7 +129,7 @@ library LiquidityTypes {
     uint256 incentiveNum,
     uint256 incentiveDen
   ) internal pure returns (uint256) {
-    return (amount * oracleNum * toDec * incentiveDen) / (fromDec * oracleDen * incentiveNum);
+    return (amount * oracleNum * toDec * incentiveNum) / (fromDec * oracleDen * incentiveDen);
   }
 
   /// @notice Calc an amount in bps.

@@ -14,6 +14,7 @@ import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
+import { console } from "forge-std/console.sol";
 
 /**
  * @title Fixed Price Market Maker (FPMM)
@@ -240,8 +241,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require($.reserve0 > 0 && $.reserve1 > 0, "FPMM: RESERVES_EMPTY");
 
     (oraclePriceNumerator, oraclePriceDenominator) = _getRateFeed();
-
+    console.log("$.reserve1", $.reserve1);
     reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
+    console.log("reservePriceNumerator", reservePriceNumerator);
     reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
 
     uint256 oracleCrossProduct = oraclePriceNumerator * reservePriceDenominator;
@@ -297,6 +299,18 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   ) public pure returns (uint256) {
     // TODO: need overflow check
     return (amount * numerator * toDecimals) / (denominator * fromDecimals);
+  }
+
+  function convertWithRateAndFee(
+    uint256 amount,
+    uint256 fromDecimals,
+    uint256 toDecimals,
+    uint256 numerator,
+    uint256 denominator,
+    uint256 incentiveNum,
+    uint256 incentiveDen
+  ) public pure returns (uint256) {
+    return (amount * numerator * toDecimals * incentiveNum) / (denominator * fromDecimals * incentiveDen);
   }
   // slither-disable-end divide-before-multiply
 
@@ -631,36 +645,40 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     bool reservePriceAboveOraclePrice;
     (, , , , newPriceDifference, reservePriceAboveOraclePrice) = getPrices();
-
     // Ensure price difference is smaller than before
     require(newPriceDifference < swapData.initialPriceDifference, "FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
     // slither-disable-next-line incorrect-equality
+    // we allow the price difference to be moved in the wrong direction but not by more than the rebalance incentive
+    // this is due to the dynamic rebalance fee on redemptions.
     require(
-      reservePriceAboveOraclePrice == swapData.reservePriceAboveOraclePrice || newPriceDifference == 0,
+      reservePriceAboveOraclePrice == swapData.reservePriceAboveOraclePrice ||
+        newPriceDifference <= (swapData.initialPriceDifference * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR,
       "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION"
     );
 
     if (swapData.amount0In > 0) {
-      uint256 expectedAmount0In = convertWithRate(
+      uint256 minAmount0In = convertWithRateAndFee(
         swapData.amount1Out,
         $.decimals1,
-        1e18,
+        $.decimals0,
         swapData.rateDenominator,
-        swapData.rateNumerator
+        swapData.rateNumerator,
+        BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
+        BASIS_POINTS_DENOMINATOR
       );
-      uint256 minAmount0In = expectedAmount0In - (expectedAmount0In * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
-
       require(swapData.amount0In >= minAmount0In, "FPMM: INSUFFICIENT_AMOUNT_0_IN");
     } else {
-      uint256 expectedAmount1In = convertWithRate(
+      uint256 minAmount1In = convertWithRateAndFee(
         swapData.amount0Out,
         $.decimals0,
-        1e18,
+        $.decimals1,
         swapData.rateNumerator,
-        swapData.rateDenominator
+        swapData.rateDenominator,
+        BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
+        BASIS_POINTS_DENOMINATOR
       );
-      expectedAmount1In = expectedAmount1In / (1e18 / $.decimals1);
-      uint256 minAmount1In = expectedAmount1In - (expectedAmount1In * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
+      console.log("minAmount1In", minAmount1In);
+      console.log("swapData.amount1In", swapData.amount1In);
       require(swapData.amount1In >= minAmount1In, "FPMM: INSUFFICIENT_AMOUNT_1_IN");
     }
   }

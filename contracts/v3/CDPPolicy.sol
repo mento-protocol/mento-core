@@ -64,8 +64,10 @@ contract CDPPolicy is ICDPPolicy, Ownable {
 
   function determineAction(LQ.Context memory ctx) external view returns (bool shouldAct, LQ.Action memory action) {
     if (ctx.prices.poolPriceAbove) {
+      console.log("handlePoolPriceAbove");
       return _handlePoolPriceAbove(ctx);
     } else {
+      console.log("handlePoolPriceBelow");
       return _handlePoolPriceBelow(ctx);
     }
   }
@@ -93,19 +95,19 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
-    // uint256 token1Out = (numerator * ctx.token1Dec) / (denominator * 1e18);
     uint256 token1Out = LQ.convertWithRateScaling(1, 1e18, ctx.token1Dec, numerator, denominator);
 
-    uint256 token1OutIncentive = (token1Out * ctx.incentiveBps) / 10_000;
-    uint256 tokenOutAfterIncentive = token1Out - token1OutIncentive;
-
-    uint256 token0In = LQ.convertWithRateScaling(
-      tokenOutAfterIncentive,
+    uint256 token0In = LQ.convertWithRateScalingAndFee(
+      token1Out,
       ctx.token1Dec,
       ctx.token0Dec,
       ctx.prices.oracleDen,
-      ctx.prices.oracleNum
+      ctx.prices.oracleNum,
+      LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+      LQ.BASIS_POINTS_DENOMINATOR
     );
+    console.log("token0In", token0In);
+    console.log("token1Out", token1Out);
 
     if (ctx.isToken0Debt) {
       // ON/OD < RN/RD
@@ -113,6 +115,7 @@ contract CDPPolicy is ICDPPolicy, Ownable {
       action = _handleExpansion(ctx, token0In, token1Out);
       shouldAct = true;
     } else {
+      console.log("handleContraction");
       // ON/OD < RN/RD
       // ON/OD < DebtR/CollR
       action = _handleContraction(ctx, token0In, token1Out);
@@ -125,14 +128,22 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     LQ.Context memory ctx
   ) internal view returns (bool shouldAct, LQ.Action memory action) {
     uint256 numerator = ctx.prices.oracleNum * ctx.reserves.reserveDen - ctx.prices.oracleDen * ctx.reserves.reserveNum;
-    uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+    uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
-    uint256 token1InRaw = numerator / denominator;
-    uint256 token1In = LQ.scaleFromTo(token1InRaw, 1e18, ctx.token1Dec);
+    uint256 token0Out = LQ.convertWithRateScaling(1, 1e18, ctx.token0Dec, numerator, denominator);
 
-    uint256 token0OutRaw = (token1In * ctx.prices.oracleDen) / ctx.prices.oracleNum;
-    uint256 token0Out = LQ.scaleFromTo(token0OutRaw, ctx.token1Dec, ctx.token0Dec);
+    uint256 token1In = LQ.convertWithRateScalingAndFee(
+      token0Out,
+      ctx.token0Dec,
+      ctx.token1Dec,
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+      LQ.BASIS_POINTS_DENOMINATOR
+    );
+    console.log("token1In", token1In);
+    console.log("token0Out", token0Out);
 
     if (ctx.isToken0Debt) {
       // ON/OD > RN/RD
@@ -156,8 +167,6 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     uint256 amountIn,
     uint256 amountOut
   ) internal view returns (LQ.Action memory action) {
-    console.log("amountIn", amountIn);
-    console.log("amountOut", amountOut);
     address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
     address collToken = ctx.isToken0Debt ? ctx.token1 : ctx.token0;
     address stabilityPool = deptTokenStabilityPool[debtToken];
@@ -228,7 +237,7 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     );
 
     action.pool = ctx.pool;
-    action.dir = LQ.Direction.Expand;
+    action.dir = LQ.Direction.Contract;
     action.liquiditySource = LQ.LiquiditySource.CDP;
 
     if (ctx.isToken0Debt) {
@@ -253,6 +262,7 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     // amountToRedeem = totalSupply * REDEMPTION_BETA * (maxFee - decayedBaseFee)
     uint256 decayedBaseFee = ICollateralRegistry(collateralRegistry).getRedemptionRateWithDecay();
     uint256 totalDebtTokenSupply = IERC20(debtToken).totalSupply();
+    console.log("totalDebtTokenSupply", totalDebtTokenSupply);
 
     uint256 maxRedemptionFee = ctx.incentiveBps * bpsToFeeScaler;
     uint256 redemptionBeta = deptTokenRedemptionBeta[debtToken];
@@ -282,8 +292,13 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     uint256 totalDebtTokenSupply,
     LQ.Context memory ctx
   ) internal view returns (uint256 amountReceived) {
+    (uint256 debtTokenDec, uint256 collTokenDec) = ctx.isToken0Debt
+      ? (ctx.token0Dec, ctx.token1Dec)
+      : (ctx.token1Dec, ctx.token0Dec);
+
+    // need to scale the redeemed debt fraction to 1e18 since fees are in 1e18
     uint256 redeemedDebtFraction = (amountToRedeem * 1e18) / totalDebtTokenSupply;
-    uint256 redemptionFee = decayedBaseFee + redeemedDebtFraction / redemptionBeta;
+    uint256 redemptionFee = decayedBaseFee + redeemedDebtFraction;
 
     // redemption fee is capped at 100%
     redemptionFee = redemptionFee > 1e18 ? 1e18 : redemptionFee;
@@ -291,13 +306,16 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     (uint256 numerator, uint256 denominator) = ctx.isToken0Debt
       ? (ctx.prices.oracleNum, ctx.prices.oracleDen)
       : (ctx.prices.oracleDen, ctx.prices.oracleNum);
-    amountReceived = (amountToRedeem * (1e18 - redemptionFee) * numerator) / (denominator * 1e18);
 
     return
-      LQ.scaleFromTo(
-        amountReceived,
-        ctx.isToken0Debt ? ctx.token0Dec : ctx.token1Dec,
-        ctx.isToken0Debt ? ctx.token1Dec : ctx.token0Dec
+      LQ.convertWithRateScalingAndFee(
+        amountToRedeem,
+        debtTokenDec,
+        collTokenDec,
+        numerator,
+        denominator,
+        1e18 - redemptionFee,
+        1e18
       );
   }
 

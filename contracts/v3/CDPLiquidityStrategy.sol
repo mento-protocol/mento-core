@@ -8,9 +8,10 @@ import { IFPMM } from "../interfaces/IFPMM.sol";
 import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { ICollateralRegistry } from "./Interfaces/ICollateralRegistry.sol";
+import { console } from "forge-std/console.sol";
 
 interface IStabilityPool {
-  function swapCollateralForStable(uint256 amountStableOut, uint256 amountCollIn) external;
+  function swapCollateralForStable(uint256 amountCollIn, uint256 amountStableOut) external;
 }
 
 contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
@@ -19,11 +20,16 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
   constructor(bool disable) {
     if (disable) {
       _disableInitializers();
+      _transferOwnership(msg.sender);
     }
   }
 
   function initialize() external initializer {
     __Ownable_init();
+  }
+
+  function setTrustedPools(address pool, bool isTrusted) external onlyOwner {
+    trustedPools[pool] = isTrusted;
   }
 
   function execute(LQ.Action memory action) external override returns (bool ok) {
@@ -39,6 +45,9 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
       collToken,
       liquiditySource
     );
+    console.log("action.amount0Out", action.amount0Out);
+    console.log("action.amount1Out", action.amount1Out);
+
     IFPMM(action.pool).rebalance(action.amount0Out, action.amount1Out, hookData);
     return true;
   }
@@ -91,8 +100,12 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
     address liquiditySource
   ) internal {
     uint256 collAmount = amount0Out > 0 ? amount0Out : amount1Out;
+    // send collateral to stability pool
+    SafeERC20.safeTransfer(IERC20(collToken), liquiditySource, collAmount);
+    // swap collateral for debt
     IStabilityPool(liquiditySource).swapCollateralForStable(collAmount, inputAmount);
-    SafeERC20.safeTransfer(IERC20(debtToken), sender, inputAmount);
+    // send debt to fpmm
+    SafeERC20.safeTransfer(IERC20(debtToken), msg.sender, inputAmount);
   }
 
   function _handleContractionCallback(
@@ -110,6 +123,6 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
 
     uint256 collateralBalance = IERC20(collToken).balanceOf(address(this));
     require(collateralBalance >= inputAmount, "CDPLiquidityStrategy: INSUFFICIENT_COLLATERAL_FROM_REDEMPTION");
-    SafeERC20.safeTransfer(IERC20(collToken), sender, inputAmount);
+    SafeERC20.safeTransfer(IERC20(collToken), msg.sender, inputAmount);
   }
 }
