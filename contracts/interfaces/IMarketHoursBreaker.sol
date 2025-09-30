@@ -5,7 +5,7 @@ interface IMarketHoursBreaker {
   /**
    * @notice Check if the timestamp is inside FX market hours
    * @param timestamp The timestamp to check
-   * @return True if the timestamp is inside fx market hours, false otherwise
+   * @return True if the timestamp is inside FX market hours, false otherwise
    */
   function isFXMarketOpen(uint256 timestamp) external pure returns (bool);
 

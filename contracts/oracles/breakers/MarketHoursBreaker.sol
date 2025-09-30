@@ -8,7 +8,7 @@ import { BokkyPooBahsDateTimeLibrary as DateTimeLibrary } from "BokkyPooBahsDate
 
 /**
  * @title MarketHoursBreaker
- * @notice A special type of breaker that reverts if called outside of fx market hours or on holidays.
+ * @notice A special type of breaker that reverts if called outside of FX market hours or on holidays.
  *         Used to enforce that FX rates are only being reported during valid trading hours.
  */
 contract MarketHoursBreaker is IMarketHoursBreaker {
