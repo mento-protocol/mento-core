@@ -24,7 +24,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 amountIn = 100e18;
@@ -41,7 +41,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     withOracleRate(10e18, 100e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 amountIn = 100e18;
@@ -63,7 +63,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     withOracleRate(2e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 amountIn = 100e18;
@@ -83,7 +83,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     // token0 (18 decimals) to token1 (6 decimals)
@@ -103,7 +103,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     withOracleRate(10e18, 100e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     // token0 (18 decimals) to token1 (6 decimals)
@@ -123,7 +123,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     withOracleRate(1234e18, 5678e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 amountIn = 1000e18;
@@ -143,7 +143,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(false)
+    withFXMarketOpen(false)
     withRecentRate(true)
   {
     vm.expectRevert("OracleAdapter: MARKET_CLOSED");
@@ -154,7 +154,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(false)
   {
     vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
@@ -166,7 +166,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     withOracleRate(1e18, 1e18)
     withTradingMode(TRADING_MODE_DISABLED)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");

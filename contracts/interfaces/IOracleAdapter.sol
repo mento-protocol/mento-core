@@ -25,7 +25,7 @@ interface IOracleAdapter {
     uint256 denominator;
     uint8 tradingMode;
     bool isRecent;
-    bool isMarketOpen;
+    bool isFXMarketOpen;
   }
 
   /* ========== EVENTS ========== */
@@ -103,7 +103,7 @@ interface IOracleAdapter {
    * @notice Returns true if the market is open based on FX market hours
    * @return true if the market is open, false otherwise
    */
-  function isMarketOpen() external view returns (bool);
+  function isFXMarketOpen() external view returns (bool);
 
   /**
    * @notice Returns true if the rate for a given rate feed ID is recent

@@ -81,7 +81,7 @@ contract MarketHoursBreakerTest_shouldTrigger is MarketHoursBreakerTest {
     for (uint256 i = 0; i < ts.length; i++) {
       vm.warp(ts[i]);
 
-      vm.expectRevert("MarketHoursBreaker: Market is closed");
+      vm.expectRevert("MarketHoursBreaker: FX market is closed");
       breaker.shouldTrigger(address(0));
     }
   }
@@ -92,34 +92,34 @@ contract MarketHoursBreakerTest_shouldTrigger is MarketHoursBreakerTest {
     for (uint256 i = 0; i < ts.length; i++) {
       vm.warp(ts[i]);
 
-      vm.expectRevert("MarketHoursBreaker: Market is closed");
+      vm.expectRevert("MarketHoursBreaker: FX market is closed");
       breaker.shouldTrigger(address(0));
     }
   }
 }
 
-contract MarketHoursBreakerTest_isMarketOpen is MarketHoursBreakerTest {
-  function test_isMarketOpen_returnsTrueDuringBusinessHours() public view {
+contract MarketHoursBreakerTest_isFXMarketOpen is MarketHoursBreakerTest {
+  function test_isFXMarketOpen_returnsTrueDuringBusinessHours() public view {
     uint256[] memory ts = getOpenMarketHours();
 
     for (uint256 i = 0; i < ts.length; i++) {
-      assertTrue(breaker.isMarketOpen(ts[i]));
+      assertTrue(breaker.isFXMarketOpen(ts[i]));
     }
   }
 
-  function test_isMarketOpen_returnsFalseDuringWeekends() public view {
+  function test_isFXMarketOpen_returnsFalseDuringWeekends() public view {
     uint256[] memory ts = getClosedMarketHours();
 
     for (uint256 i = 0; i < ts.length; i++) {
-      assertFalse(breaker.isMarketOpen(ts[i]));
+      assertFalse(breaker.isFXMarketOpen(ts[i]));
     }
   }
 
-  function test_isMarketOpen_returnsFalseDuringHolidays() public view {
+  function test_isFXMarketOpen_returnsFalseDuringHolidays() public view {
     uint256[] memory ts = getHolidays();
 
     for (uint256 i = 0; i < ts.length; i++) {
-      assertFalse(breaker.isMarketOpen(ts[i]));
+      assertFalse(breaker.isFXMarketOpen(ts[i]));
     }
   }
 }

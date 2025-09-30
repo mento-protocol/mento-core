@@ -70,9 +70,9 @@ contract FPMMBaseTest is Test {
     _;
   }
 
-  modifier withMarketOpen(bool isMarketOpen) {
-    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isMarketOpen.selector);
-    vm.mockCall(marketHoursBreaker, isMarketOpenCalldata, abi.encode(isMarketOpen));
+  modifier withFXMarketOpen(bool isFXMarketOpen) {
+    bytes memory isFXMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isFXMarketOpen.selector);
+    vm.mockCall(marketHoursBreaker, isFXMarketOpenCalldata, abi.encode(isFXMarketOpen));
     _;
   }
 

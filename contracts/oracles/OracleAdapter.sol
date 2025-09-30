@@ -94,8 +94,8 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   /* ========== EXTERNAL FUNCTIONS ========== */
 
   /// @inheritdoc IOracleAdapter
-  function isMarketOpen() external view returns (bool) {
-    return _isMarketOpen();
+  function isFXMarketOpen() external view returns (bool) {
+    return _isFXMarketOpen();
   }
 
   /// @inheritdoc IOracleAdapter
@@ -114,14 +114,14 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     rateInfo.denominator = denominator;
     rateInfo.tradingMode = _getTradingMode(rateFeedID);
     rateInfo.isRecent = _hasRecentRate(rateFeedID);
-    rateInfo.isMarketOpen = _isMarketOpen();
+    rateInfo.isFXMarketOpen = _isFXMarketOpen();
 
     return rateInfo;
   }
 
   /// @inheritdoc IOracleAdapter
   function getRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator) {
-    require(_isMarketOpen(), "OracleAdapter: MARKET_CLOSED");
+    require(_isFXMarketOpen(), "OracleAdapter: MARKET_CLOSED");
     require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
     require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
 
@@ -135,10 +135,10 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
   /* ========== INTERNAL FUNCTIONS ========== */
 
-  function _isMarketOpen() private view returns (bool) {
+  function _isFXMarketOpen() private view returns (bool) {
     OracleAdapterStorage storage $ = _getStorage();
 
-    return $.marketHoursBreaker.isMarketOpen(block.timestamp);
+    return $.marketHoursBreaker.isFXMarketOpen(block.timestamp);
   }
 
   function _getTradingMode(address rateFeedID) private view returns (uint8) {

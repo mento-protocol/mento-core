@@ -88,7 +88,7 @@ contract StrategyIntegrationTest is Test {
     bytes memory tradingModeCalldata = abi.encodeWithSelector(IBreakerBox.getRateFeedTradingMode.selector, rateFeed);
     vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(0));
 
-    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isMarketOpen.selector);
-    vm.mockCall(address(marketHoursBreaker), isMarketOpenCalldata, abi.encode(true));
+    bytes memory isFXMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isFXMarketOpen.selector);
+    vm.mockCall(address(marketHoursBreaker), isFXMarketOpenCalldata, abi.encode(true));
   }
 }

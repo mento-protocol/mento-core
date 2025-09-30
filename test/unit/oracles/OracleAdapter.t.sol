@@ -98,7 +98,7 @@ contract OracleAdapterTest is Test {
     oracleAdapter.setMarketHoursBreaker(marketHoursBreaker);
   }
 
-  function test_getRateIfValid_whenMarketIsClosed_shouldRevert() public initialized withMarketOpen(false) {
+  function test_getRateIfValid_whenFXMarketIsClosed_shouldRevert() public initialized withFXMarketOpen(false) {
     vm.expectRevert("OracleAdapter: MARKET_CLOSED");
     oracleAdapter.getRateIfValid(referenceRateFeedID);
   }
@@ -106,7 +106,7 @@ contract OracleAdapterTest is Test {
   function test_getRateIfValid_whenTradingIsSuspended_shouldRevert()
     public
     initialized
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withTradingMode(1)
   {
     vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
@@ -117,7 +117,7 @@ contract OracleAdapterTest is Test {
     public
     initialized
     withOracleRate(1e20, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withTradingMode(0)
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs - 6 minutes + 1 seconds)
@@ -136,7 +136,7 @@ contract OracleAdapterTest is Test {
     public
     initialized
     withOracleRate(1e20, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withTradingMode(0)
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs - 5 minutes)
@@ -149,14 +149,14 @@ contract OracleAdapterTest is Test {
     assertEq(rateInfo.denominator, 1e12);
     assertEq(rateInfo.tradingMode, 0);
     assertEq(rateInfo.isRecent, true);
-    assertEq(rateInfo.isMarketOpen, true);
+    assertEq(rateInfo.isFXMarketOpen, true);
   }
 
   function test_getRate_returnsCorrectRateInfo_whenSomeChecksInvalid()
     public
     initialized
     withOracleRate(1e20, 1e18)
-    withMarketOpen(false)
+    withFXMarketOpen(false)
     withTradingMode(1)
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs - 7 minutes)
@@ -168,19 +168,19 @@ contract OracleAdapterTest is Test {
     assertEq(rateInfo.denominator, 1e12);
     assertEq(rateInfo.tradingMode, 1);
     assertEq(rateInfo.isRecent, false);
-    assertEq(rateInfo.isMarketOpen, false);
+    assertEq(rateInfo.isFXMarketOpen, false);
   }
 
   function test_getTradingMode_returnsModeFromBreakerBox() public initialized withTradingMode(1) {
     assertEq(oracleAdapter.getTradingMode(referenceRateFeedID), 1);
   }
 
-  function test_isMarketOpen_returnsTrueIfMarketIsOpen() public initialized withMarketOpen(true) {
-    assertTrue(oracleAdapter.isMarketOpen());
+  function test_isFXMarketOpen_returnsTrueIfFXMarketIsOpen() public initialized withFXMarketOpen(true) {
+    assertTrue(oracleAdapter.isFXMarketOpen());
   }
 
-  function test_isMarketOpen_returnsFalseIfMarketIsClosed() public initialized withMarketOpen(false) {
-    assertFalse(oracleAdapter.isMarketOpen());
+  function test_isFXMarketOpen_returnsFalseIfFXMarketIsClosed() public initialized withFXMarketOpen(false) {
+    assertFalse(oracleAdapter.isFXMarketOpen());
   }
 
   function test_hasRecentRate_returnsFalseAfterExpiryTimeFromPastRate()
@@ -223,9 +223,9 @@ contract OracleAdapterTest is Test {
     _;
   }
 
-  modifier withMarketOpen(bool isMarketOpen) {
-    bytes memory isMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isMarketOpen.selector);
-    vm.mockCall(marketHoursBreaker, isMarketOpenCalldata, abi.encode(isMarketOpen));
+  modifier withFXMarketOpen(bool isFXMarketOpen) {
+    bytes memory isFXMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isFXMarketOpen.selector);
+    vm.mockCall(marketHoursBreaker, isFXMarketOpenCalldata, abi.encode(isFXMarketOpen));
 
     _;
   }

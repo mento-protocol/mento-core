@@ -15,14 +15,14 @@ contract MarketHoursBreaker is IMarketHoursBreaker {
   /* ========== VIEW FUNCTIONS ========== */
 
   /// @inheritdoc IMarketHoursBreaker
-  function isMarketOpen(uint256 timestamp) public pure returns (bool) {
+  function isFXMarketOpen(uint256 timestamp) public pure returns (bool) {
     return !_isWeekendHours(timestamp) && !_isHoliday(timestamp);
   }
 
   /// @inheritdoc IMarketHoursBreaker
   // solhint-disable-next-line no-unused-vars
   function shouldTrigger(address rateFeedID) public view returns (bool triggerBreaker) {
-    require(isMarketOpen(block.timestamp), "MarketHoursBreaker: Market is closed");
+    require(isFXMarketOpen(block.timestamp), "MarketHoursBreaker: FX market is closed");
 
     return false;
   }

@@ -39,7 +39,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     deal(token0, address(this), 100e18);
@@ -54,7 +54,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 amount0In = 100e18;
@@ -79,7 +79,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 amount1In = 100e18;
@@ -104,7 +104,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(2e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     // Swap 100 token0 for 199.4 token1 (after 0.3% fee)
@@ -123,7 +123,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     // Swap 100 token0 (18 decimals) for 99.7 token1 (6 decimals)
@@ -153,7 +153,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     // Change fee to 1%
@@ -190,7 +190,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(1234e18, 5678e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 amountIn = 100e18;
@@ -210,7 +210,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 initialTimestamp;
@@ -239,7 +239,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     mintInitialLiquidity(18, 18)
     withOracleRate(1e18, 1e18)
     withTradingMode(TRADING_MODE_DISABLED)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(true)
   {
     vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
@@ -251,7 +251,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(false)
+    withFXMarketOpen(false)
     withRecentRate(true)
   {
     vm.expectRevert("OracleAdapter: MARKET_CLOSED");
@@ -263,7 +263,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     withOracleRate(1e18, 1e18)
-    withMarketOpen(true)
+    withFXMarketOpen(true)
     withRecentRate(false)
   {
     vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
