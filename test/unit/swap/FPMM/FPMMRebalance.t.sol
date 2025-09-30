@@ -173,7 +173,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("OracleAdapter: MARKET_CLOSED");
+    vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 

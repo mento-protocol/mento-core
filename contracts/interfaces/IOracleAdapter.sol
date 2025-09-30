@@ -123,12 +123,22 @@ interface IOracleAdapter {
   /**
    * @notice Returns the exchange rate for a given rate feed ID
    * with 18 decimals of precision if considered valid, based on
-   * market hours, trading mode, and recent rate, otherwise reverts
+   * trading mode, and recent rate, otherwise reverts
    * @param rateFeedID The address of the rate feed
    * @return numerator The numerator of the rate
    * @return denominator The denominator of the rate
    */
   function getRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator);
+
+  /**
+   * @notice Returns the exchange rate for a given rate feed ID
+   * with 18 decimals of precision if considered valid, based on
+   * fx market hours, trading mode, and recent rate, otherwise reverts
+   * @param rateFeedID The address of the rate feed
+   * @return numerator The numerator of the rate
+   * @return denominator The denominator of the rate
+   */
+  function getFXRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator);
 
   /**
    * @notice Returns the trading mode for a given rate feed ID

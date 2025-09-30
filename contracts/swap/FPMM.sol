@@ -590,7 +590,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function _getRateFeed() private view returns (uint256 rateNumerator, uint256 rateDenominator) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    (rateNumerator, rateDenominator) = $.oracleAdapter.getRateIfValid($.referenceRateFeedID);
+    (rateNumerator, rateDenominator) = $.oracleAdapter.getFXRateIfValid($.referenceRateFeedID);
 
     if ($.revertRateFeed) {
       (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);

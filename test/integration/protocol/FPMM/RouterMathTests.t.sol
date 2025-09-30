@@ -140,7 +140,7 @@ contract RouterMathTests is FPMMBaseIntegration {
     // First calculation with 1:1 rate
     vm.mockCall(
       address(oracleAdapter),
-      abi.encodeWithSelector(IOracleAdapter.getRateIfValid.selector, referenceRateFeedID),
+      abi.encodeWithSelector(IOracleAdapter.getFXRateIfValid.selector, referenceRateFeedID),
       abi.encode(1e18, 1e18)
     );
 
@@ -152,7 +152,7 @@ contract RouterMathTests is FPMMBaseIntegration {
     // Second calculation with 2:1 rate
     vm.mockCall(
       address(oracleAdapter),
-      abi.encodeWithSelector(IOracleAdapter.getRateIfValid.selector, referenceRateFeedID),
+      abi.encodeWithSelector(IOracleAdapter.getFXRateIfValid.selector, referenceRateFeedID),
       abi.encode(2e18, 1e18)
     );
 
@@ -197,7 +197,7 @@ contract RouterMathTests is FPMMBaseIntegration {
     // Mock different oracle rates
     vm.mockCall(
       address(oracleAdapter),
-      abi.encodeWithSelector(IOracleAdapter.getRateIfValid.selector, referenceRateFeedID),
+      abi.encodeWithSelector(IOracleAdapter.getFXRateIfValid.selector, referenceRateFeedID),
       abi.encode(2e18, 1e18) // 2:1 rate
     );
 

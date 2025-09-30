@@ -146,7 +146,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     withFXMarketOpen(false)
     withRecentRate(true)
   {
-    vm.expectRevert("OracleAdapter: MARKET_CLOSED");
+    vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
     fpmm.getAmountOut(100e18, token0);
   }
 

@@ -72,7 +72,7 @@ contract FPMMBaseIntegration is Test {
   function _setupMocks() internal {
     vm.mockCall(
       address(oracleAdapter),
-      abi.encodeWithSelector(IOracleAdapter.getRateIfValid.selector, referenceRateFeedID),
+      abi.encodeWithSelector(IOracleAdapter.getFXRateIfValid.selector, referenceRateFeedID),
       abi.encode(1e18, 1e18)
     );
 

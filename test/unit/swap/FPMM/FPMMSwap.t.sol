@@ -254,7 +254,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     withFXMarketOpen(false)
     withRecentRate(true)
   {
-    vm.expectRevert("OracleAdapter: MARKET_CLOSED");
+    vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
     fpmm.swap(0, 10e18, BOB, "");
   }
 

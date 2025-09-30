@@ -98,11 +98,6 @@ contract OracleAdapterTest is Test {
     oracleAdapter.setMarketHoursBreaker(marketHoursBreaker);
   }
 
-  function test_getRateIfValid_whenFXMarketIsClosed_shouldRevert() public initialized withFXMarketOpen(false) {
-    vm.expectRevert("OracleAdapter: MARKET_CLOSED");
-    oracleAdapter.getRateIfValid(referenceRateFeedID);
-  }
-
   function test_getRateIfValid_whenTradingIsSuspended_shouldRevert()
     public
     initialized
@@ -130,6 +125,41 @@ contract OracleAdapterTest is Test {
 
     vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
     oracleAdapter.getRateIfValid(referenceRateFeedID);
+  }
+
+
+  function test_getFXRateIfValid_whenFXMarketIsClosed_shouldRevert() public initialized withFXMarketOpen(false) {
+    vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
+    oracleAdapter.getFXRateIfValid(referenceRateFeedID);
+  }
+
+  function test_getFXRateIfValid_whenTradingIsSuspended_shouldRevert()
+    public
+    initialized
+    withFXMarketOpen(true)
+    withTradingMode(1)
+  {
+    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    oracleAdapter.getFXRateIfValid(referenceRateFeedID);
+  }
+
+  function test_getFXRateIfValid_whenNoRecentRate_shouldRevert()
+    public
+    initialized
+    withOracleRate(1e20, 1e18)
+    withFXMarketOpen(true)
+    withTradingMode(0)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs - 6 minutes + 1 seconds)
+  {
+    vm.warp(blockTs);
+
+    oracleAdapter.getFXRateIfValid(referenceRateFeedID);
+
+    skip(1);
+
+    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    oracleAdapter.getFXRateIfValid(referenceRateFeedID);
   }
 
   function test_getRate_returnsCorrectRateInfo_whenAllChecksValid()
