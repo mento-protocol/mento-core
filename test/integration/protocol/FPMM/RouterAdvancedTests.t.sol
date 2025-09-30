@@ -10,7 +10,7 @@ import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 
 // Interfaces
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { IFactoryRegistry } from "contracts/swap/router/interfaces/IFactoryRegistry.sol";
+import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IRPoolFactory } from "contracts/swap/router/interfaces/IRPoolFactory.sol";
 
 // Base integration

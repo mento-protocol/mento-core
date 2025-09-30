@@ -9,7 +9,7 @@ import { Math } from "./utils/Math.sol";
 
 import { IRouter } from "./interfaces/IRouter.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
-import { IFactoryRegistry } from "./interfaces/IFactoryRegistry.sol";
+import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IFPMM } from "../../interfaces/IFPMM.sol";
 
 import { IRPoolFactory } from "./interfaces/IRPoolFactory.sol";
