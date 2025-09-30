@@ -14,7 +14,8 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   uint256 public constant TRADING_MODE_BIDIRECTIONAL = 0;
 
   // keccak256(abi.encode(uint256(keccak256("mento.storage.OracleAdapter")) - 1)) & ~bytes32(uint256(0xff))
-  bytes32 private constant _ORACLE_ADAPTER_STORAGE_LOCATION = 0x04e664c42d77958a8a4a4091eaa097623a29a223ec89dc71155113e263f9c400;
+  bytes32 private constant _ORACLE_ADAPTER_STORAGE_LOCATION =
+    0x04e664c42d77958a8a4a4091eaa097623a29a223ec89dc71155113e263f9c400;
 
   /* ========== CONSTRUCTOR ========== */
 

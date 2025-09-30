@@ -127,7 +127,6 @@ contract OracleAdapterTest is Test {
     oracleAdapter.getRateIfValid(referenceRateFeedID);
   }
 
-
   function test_getFXRateIfValid_whenFXMarketIsClosed_shouldRevert() public initialized withFXMarketOpen(false) {
     vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
     oracleAdapter.getFXRateIfValid(referenceRateFeedID);
