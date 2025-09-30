@@ -29,7 +29,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_initialize_whenCalledByOwner_shouldSetCorrectValues() public view {
     // Verify factory configuration
-    assertEq(factory.adaptore(), adaptore);
+    assertEq(factory.oracleAdapter(), oracleAdapter);
     assertEq(factory.proxyAdmin(), proxyAdmin);
     assertEq(factory.governance(), governance);
     assertEq(factory.owner(), governance);
@@ -43,7 +43,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_initialize_whenCalledTwice_shouldRevert() public {
     vm.expectRevert("Initializable: contract is already initialized");
-    factory.initialize(adaptore, proxyAdmin, governance, address(fpmmImplementation));
+    factory.initialize(oracleAdapter, proxyAdmin, governance, address(fpmmImplementation));
   }
 
   // ============ IMPLEMENTATION MANAGEMENT TESTS ============
@@ -159,7 +159,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     assertTrue(factory.isPool(fpmm));
 
     // Verify FPMM configuration
-    assertEq(address(IFPMM(fpmm).adaptore()), adaptore);
+    assertEq(address(IFPMM(fpmm).oracleAdapter()), oracleAdapter);
     assertEq(IFPMM(fpmm).referenceRateFeedID(), referenceRateFeedID);
     assertEq(OwnableUpgradeable(fpmm).owner(), governance);
   }
@@ -196,14 +196,14 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
   }
 
   function test_deployFPMM_whenCustomParameters_shouldDeployWithCustomConfig() public {
-    address customAdaptore = makeAddr("customAdaptore");
+    address customOracleAdapter = makeAddr("customOracleAdapter");
     address customProxyAdmin = makeAddr("customProxyAdmin");
     address customGovernance = makeAddr("customGovernance");
 
     vm.prank(governance);
     address fpmm = factory.deployFPMM(
       address(fpmmImplementation),
-      customAdaptore,
+      customOracleAdapter,
       customProxyAdmin,
       customGovernance,
       address(tokenA),
@@ -216,7 +216,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     assertTrue(factory.isPool(fpmm));
 
     // Verify custom configuration
-    assertEq(address(IFPMM(fpmm).adaptore()), customAdaptore);
+    assertEq(address(IFPMM(fpmm).oracleAdapter()), customOracleAdapter);
     assertEq(OwnableUpgradeable(fpmm).owner(), customGovernance);
 
     bytes32 adminSlot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
@@ -351,27 +351,27 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   // ============ ADMIN FUNCTION TESTS ============
 
-  function test_setAdaptore_whenCalledByOwner_shouldUpdateAddress() public {
-    address newAdaptore = makeAddr("newAdaptore");
+  function test_setOracleAdapter_whenCalledByOwner_shouldUpdateAddress() public {
+    address newOracleAdapter = makeAddr("newOracleAdapter");
 
     vm.prank(governance);
-    factory.setAdaptore(newAdaptore);
+    factory.setOracleAdapter(newOracleAdapter);
 
-    assertEq(factory.adaptore(), newAdaptore);
+    assertEq(factory.oracleAdapter(), newOracleAdapter);
   }
 
-  function test_setAdaptore_whenCalledByNonOwner_shouldRevert() public {
-    address newAdaptore = makeAddr("newAdaptore");
+  function test_setOracleAdapter_whenCalledByNonOwner_shouldRevert() public {
+    address newOracleAdapter = makeAddr("newOracleAdapter");
 
     vm.prank(alice);
     vm.expectRevert("Ownable: caller is not the owner");
-    factory.setAdaptore(newAdaptore);
+    factory.setOracleAdapter(newOracleAdapter);
   }
 
-  function test_setAdaptore_whenZeroAddress_shouldRevert() public {
+  function test_setOracleAdapter_whenZeroAddress_shouldRevert() public {
     vm.prank(governance);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factory.setAdaptore(address(0));
+    factory.setOracleAdapter(address(0));
   }
 
   function test_setProxyAdmin_whenCalledByOwner_shouldUpdateAddress() public {

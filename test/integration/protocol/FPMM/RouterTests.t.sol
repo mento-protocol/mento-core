@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 
 // Interfaces
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
-import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 
@@ -96,8 +96,8 @@ contract RouterTests is FPMMBaseIntegration {
 
     // Mock oracle rate
     vm.mockCall(
-      address(adaptore),
-      abi.encodeWithSelector(IAdaptore.getRateIfValid.selector, referenceRateFeedID),
+      address(oracleAdapter),
+      abi.encodeWithSelector(IOracleAdapter.getRateIfValid.selector, referenceRateFeedID),
       abi.encode(1e18, 2e18)
     );
 
@@ -517,8 +517,8 @@ contract RouterTests is FPMMBaseIntegration {
 
     // Mock oracle rate for 10% higher price
     vm.mockCall(
-      address(adaptore),
-      abi.encodeWithSelector(IAdaptore.getRateIfValid.selector, referenceRateFeedID),
+      address(oracleAdapter),
+      abi.encodeWithSelector(IOracleAdapter.getRateIfValid.selector, referenceRateFeedID),
       abi.encode(1e18, 1.1e18)
     );
 

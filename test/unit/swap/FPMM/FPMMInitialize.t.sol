@@ -23,7 +23,7 @@ contract FPMMInitializeTest is FPMMBaseTest {
 
     assertEq(fpmm.token0(), token0);
     assertEq(fpmm.token1(), token1);
-    assertEq(address(fpmm.adaptore()), address(adaptore));
+    assertEq(address(fpmm.oracleAdapter()), address(oracleAdapter));
     assertEq(fpmm.referenceRateFeedID(), referenceRateFeedID);
     assertEq(fpmm.owner(), owner);
 
@@ -33,7 +33,7 @@ contract FPMMInitializeTest is FPMMBaseTest {
 
   function test_initialize_whenCalledTwice_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     vm.expectRevert("Initializable: contract is already initialized");
-    fpmm.initialize(token0, token1, address(adaptore), referenceRateFeedID, false, owner);
+    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner);
   }
 
   function test_initialize_whenTokensHaveDifferentDecimals_shouldSetCorrectDecimalScalingFactors()

@@ -5,9 +5,9 @@
 pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 
-import { Adaptore } from "contracts/oracles/Adaptore.sol";
+import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { ReserveLiquidityStrategy } from "contracts/swap/ReserveLiquidityStrategy.sol";
-import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
@@ -19,7 +19,7 @@ contract StrategyIntegrationTest is Test {
   MockERC20 public token0;
   MockERC20 public token1;
   MockReserve public reserve;
-  IAdaptore public adaptore;
+  IOracleAdapter public oracleAdapter;
   MockSortedOracles public sortedOracles;
   FPMM public pool;
   ReserveLiquidityStrategy public strategy;
@@ -41,12 +41,12 @@ contract StrategyIntegrationTest is Test {
     sortedOracles.setMedianRate(rateFeed, 909884940000000000000000);
     sortedOracles.setTokenReportExpirySeconds(rateFeed, 0);
     sortedOracles.setMedianTimestamp(rateFeed, block.timestamp + 1 hours);
-    adaptore = IAdaptore(new Adaptore(false));
-    adaptore.initialize(address(sortedOracles), breakerBox, marketHoursBreaker);
+    oracleAdapter = IOracleAdapter(new OracleAdapter(false));
+    oracleAdapter.initialize(address(sortedOracles), breakerBox, marketHoursBreaker);
     pool = new FPMM(false);
     strategy = new ReserveLiquidityStrategy(false);
     strategy.initialize(address(reserve));
-    pool.initialize(address(token0), address(token1), address(adaptore), rateFeed, true, address(this));
+    pool.initialize(address(token0), address(token1), address(oracleAdapter), rateFeed, true, address(this));
     pool.setLiquidityStrategy(address(strategy), true);
     strategy.addPool(address(pool), 0, 50);
 
@@ -61,7 +61,7 @@ contract StrategyIntegrationTest is Test {
     pool.mint(trader);
     vm.stopPrank();
 
-    _mockAdaptoreRequirements();
+    _mockOracleAdapterRequirements();
   }
 
   function test_rebalance_contraction() public {
@@ -84,7 +84,7 @@ contract StrategyIntegrationTest is Test {
     strategy.rebalance(address(pool));
   }
 
-  function _mockAdaptoreRequirements() private {
+  function _mockOracleAdapterRequirements() private {
     bytes memory tradingModeCalldata = abi.encodeWithSelector(IBreakerBox.getRateFeedTradingMode.selector, rateFeed);
     vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(0));
 

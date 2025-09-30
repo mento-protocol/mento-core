@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
-import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { Router } from "contracts/swap/router/Router.sol";
@@ -33,7 +33,7 @@ contract FPMMBaseIntegration is Test {
 
   // External addresses TODO: should be replaced with real contracts
   address public referenceRateFeedID = makeAddr("referenceRateFeedID");
-  address public adaptore = makeAddr("adaptore");
+  address public oracleAdapter = makeAddr("oracleAdapter");
   address public proxyAdmin = makeAddr("proxyAdmin");
   address public governance = makeAddr("governance");
   address public factoryRegistry = makeAddr("factoryRegistry");
@@ -66,18 +66,16 @@ contract FPMMBaseIntegration is Test {
 
     router = new Router(forwarder, factoryRegistry, address(factory));
 
-    factory.initialize(adaptore, proxyAdmin, governance, address(fpmmImplementation));
+    factory.initialize(oracleAdapter, proxyAdmin, governance, address(fpmmImplementation));
   }
 
   function _setupMocks() internal {
-    // Mock adaptore to return a rate
     vm.mockCall(
-      address(adaptore),
-      abi.encodeWithSelector(IAdaptore.getRateIfValid.selector, referenceRateFeedID),
+      address(oracleAdapter),
+      abi.encodeWithSelector(IOracleAdapter.getRateIfValid.selector, referenceRateFeedID),
       abi.encode(1e18, 1e18)
     );
 
-    // Mock factory registry to approve our pool factory
     vm.mockCall(
       factoryRegistry,
       abi.encodeWithSelector(IFactoryRegistry.isPoolFactoryApproved.selector, address(factory)),

@@ -5,14 +5,14 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 
-import { Adaptore } from "contracts/oracles/Adaptore.sol";
+import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
-import { IAdaptore } from "contracts/interfaces/IAdaptore.sol";
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 
-contract AdaptoreTest is Test {
-  Adaptore adaptore;
+contract OracleAdapterTest is Test {
+  OracleAdapter oracleAdapter;
 
   address public sortedOracles = makeAddr("SortedOracles");
   address public breakerBox = makeAddr("BreakerBox");
@@ -23,84 +23,84 @@ contract AdaptoreTest is Test {
   uint256 public blockTs = 1756170702;
 
   function setUp() public {
-    adaptore = new Adaptore(false);
+    oracleAdapter = new OracleAdapter(false);
   }
 
   function test_initialize_shouldSetAllContracts() public {
     vm.prank(owner);
-    adaptore.initialize(sortedOracles, breakerBox, marketHoursBreaker);
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker);
 
-    assertEq(address(adaptore.sortedOracles()), sortedOracles);
-    assertEq(address(adaptore.breakerBox()), breakerBox);
-    assertEq(address(adaptore.marketHoursBreaker()), marketHoursBreaker);
-    assertEq(adaptore.owner(), owner);
+    assertEq(address(oracleAdapter.sortedOracles()), sortedOracles);
+    assertEq(address(oracleAdapter.breakerBox()), breakerBox);
+    assertEq(address(oracleAdapter.marketHoursBreaker()), marketHoursBreaker);
+    assertEq(oracleAdapter.owner(), owner);
   }
 
   function test_initialize_whenCalledTwice_shouldRevert() public initialized {
     vm.expectRevert("Initializable: contract is already initialized");
-    adaptore.initialize(sortedOracles, breakerBox, marketHoursBreaker);
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker);
   }
 
   function test_sortedOracles_shouldReturnSortedOracles() public initialized {
-    assertEq(address(adaptore.sortedOracles()), sortedOracles);
+    assertEq(address(oracleAdapter.sortedOracles()), sortedOracles);
   }
 
   function test_breakerBox_shouldReturnBreakerBox() public initialized {
-    assertEq(address(adaptore.breakerBox()), breakerBox);
+    assertEq(address(oracleAdapter.breakerBox()), breakerBox);
   }
 
   function test_marketHoursBreaker_shouldReturnMarketHoursBreaker() public initialized {
-    assertEq(address(adaptore.marketHoursBreaker()), marketHoursBreaker);
+    assertEq(address(oracleAdapter.marketHoursBreaker()), marketHoursBreaker);
   }
 
   function test_setSortedOracles_whenCalledByOwner_shouldUpdateAddress() public initialized {
     address newOracles = makeAddr("newOracles");
 
     vm.prank(owner);
-    adaptore.setSortedOracles(newOracles);
+    oracleAdapter.setSortedOracles(newOracles);
 
-    assertEq(address(adaptore.sortedOracles()), newOracles);
+    assertEq(address(oracleAdapter.sortedOracles()), newOracles);
   }
 
   function test_setSortedOracles_whenCalledByNotOwner_shouldRevert() public initialized {
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("NOT_OWNER"));
-    adaptore.setSortedOracles(sortedOracles);
+    oracleAdapter.setSortedOracles(sortedOracles);
   }
 
   function test_setBreakerBox_whenCalledByOwner_shouldUpdateAddress() public initialized {
     address newBreakerBox = makeAddr("newBreakerBox");
 
     vm.prank(owner);
-    adaptore.setBreakerBox(newBreakerBox);
+    oracleAdapter.setBreakerBox(newBreakerBox);
 
-    assertEq(address(adaptore.breakerBox()), newBreakerBox);
+    assertEq(address(oracleAdapter.breakerBox()), newBreakerBox);
   }
 
   function test_setBreakerBox_whenCalledByNotOwner_shouldRevert() public initialized {
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("NOT_OWNER"));
-    adaptore.setBreakerBox(breakerBox);
+    oracleAdapter.setBreakerBox(breakerBox);
   }
 
   function test_setMarketHoursBreaker_whenCalledByOwner_shouldUpdateAddress() public initialized {
     address newMarketHoursBreaker = makeAddr("newMarketHoursBreaker");
 
     vm.prank(owner);
-    adaptore.setMarketHoursBreaker(newMarketHoursBreaker);
+    oracleAdapter.setMarketHoursBreaker(newMarketHoursBreaker);
 
-    assertEq(address(adaptore.marketHoursBreaker()), newMarketHoursBreaker);
+    assertEq(address(oracleAdapter.marketHoursBreaker()), newMarketHoursBreaker);
   }
 
   function test_setMarketHoursBreaker_whenCalledByNotOwner_shouldRevert() public initialized {
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("NOT_OWNER"));
-    adaptore.setMarketHoursBreaker(marketHoursBreaker);
+    oracleAdapter.setMarketHoursBreaker(marketHoursBreaker);
   }
 
   function test_getRateIfValid_whenMarketIsClosed_shouldRevert() public initialized withMarketOpen(false) {
-    vm.expectRevert("Adaptore: MARKET_CLOSED");
-    adaptore.getRateIfValid(referenceRateFeedID);
+    vm.expectRevert("OracleAdapter: MARKET_CLOSED");
+    oracleAdapter.getRateIfValid(referenceRateFeedID);
   }
 
   function test_getRateIfValid_whenTradingIsSuspended_shouldRevert()
@@ -109,8 +109,8 @@ contract AdaptoreTest is Test {
     withMarketOpen(true)
     withTradingMode(1)
   {
-    vm.expectRevert("Adaptore: TRADING_SUSPENDED");
-    adaptore.getRateIfValid(referenceRateFeedID);
+    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    oracleAdapter.getRateIfValid(referenceRateFeedID);
   }
 
   function test_getRateIfValid_whenNoRecentRate_shouldRevert()
@@ -124,12 +124,12 @@ contract AdaptoreTest is Test {
   {
     vm.warp(blockTs);
 
-    adaptore.getRateIfValid(referenceRateFeedID);
+    oracleAdapter.getRateIfValid(referenceRateFeedID);
 
     skip(1);
 
-    vm.expectRevert("Adaptore: NO_RECENT_RATE");
-    adaptore.getRateIfValid(referenceRateFeedID);
+    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    oracleAdapter.getRateIfValid(referenceRateFeedID);
   }
 
   function test_getRate_returnsCorrectRateInfo_whenAllChecksValid()
@@ -143,7 +143,7 @@ contract AdaptoreTest is Test {
   {
     vm.warp(blockTs);
 
-    IAdaptore.RateInfo memory rateInfo = adaptore.getRate(referenceRateFeedID);
+    IOracleAdapter.RateInfo memory rateInfo = oracleAdapter.getRate(referenceRateFeedID);
 
     assertEq(rateInfo.numerator, 1e14);
     assertEq(rateInfo.denominator, 1e12);
@@ -163,7 +163,7 @@ contract AdaptoreTest is Test {
   {
     vm.warp(blockTs);
 
-    IAdaptore.RateInfo memory rateInfo = adaptore.getRate(referenceRateFeedID);
+    IOracleAdapter.RateInfo memory rateInfo = oracleAdapter.getRate(referenceRateFeedID);
     assertEq(rateInfo.numerator, 1e14);
     assertEq(rateInfo.denominator, 1e12);
     assertEq(rateInfo.tradingMode, 1);
@@ -172,15 +172,15 @@ contract AdaptoreTest is Test {
   }
 
   function test_getTradingMode_returnsModeFromBreakerBox() public initialized withTradingMode(1) {
-    assertEq(adaptore.getTradingMode(referenceRateFeedID), 1);
+    assertEq(oracleAdapter.getTradingMode(referenceRateFeedID), 1);
   }
 
   function test_isMarketOpen_returnsTrueIfMarketIsOpen() public initialized withMarketOpen(true) {
-    assertTrue(adaptore.isMarketOpen());
+    assertTrue(oracleAdapter.isMarketOpen());
   }
 
   function test_isMarketOpen_returnsFalseIfMarketIsClosed() public initialized withMarketOpen(false) {
-    assertFalse(adaptore.isMarketOpen());
+    assertFalse(oracleAdapter.isMarketOpen());
   }
 
   function test_hasRecentRate_returnsFalseAfterExpiryTimeFromPastRate()
@@ -191,13 +191,13 @@ contract AdaptoreTest is Test {
   {
     vm.warp(blockTs);
 
-    assertTrue(adaptore.hasRecentRate(referenceRateFeedID));
+    assertTrue(oracleAdapter.hasRecentRate(referenceRateFeedID));
 
     skip(1);
-    assertTrue(adaptore.hasRecentRate(referenceRateFeedID));
+    assertTrue(oracleAdapter.hasRecentRate(referenceRateFeedID));
 
     skip(1);
-    assertFalse(adaptore.hasRecentRate(referenceRateFeedID));
+    assertFalse(oracleAdapter.hasRecentRate(referenceRateFeedID));
   }
 
   function test_hasRecentRate_returnsFalseAfterReportExpiryTimeFromCurrentRate()
@@ -207,18 +207,18 @@ contract AdaptoreTest is Test {
     withMedianTimestamp(blockTs)
   {
     vm.warp(blockTs + 6 minutes - 1 seconds);
-    assertTrue(adaptore.hasRecentRate(referenceRateFeedID));
+    assertTrue(oracleAdapter.hasRecentRate(referenceRateFeedID));
 
     skip(1);
-    assertFalse(adaptore.hasRecentRate(referenceRateFeedID));
+    assertFalse(oracleAdapter.hasRecentRate(referenceRateFeedID));
 
     skip(1 minutes);
-    assertFalse(adaptore.hasRecentRate(referenceRateFeedID));
+    assertFalse(oracleAdapter.hasRecentRate(referenceRateFeedID));
   }
 
   modifier initialized() {
     vm.prank(owner);
-    adaptore.initialize(sortedOracles, breakerBox, marketHoursBreaker);
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker);
 
     _;
   }

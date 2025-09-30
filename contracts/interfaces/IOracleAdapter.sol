@@ -5,12 +5,12 @@ import { IBreakerBox } from "./IBreakerBox.sol";
 import { ISortedOracles } from "./ISortedOracles.sol";
 import { IMarketHoursBreaker } from "./IMarketHoursBreaker.sol";
 
-interface IAdaptore {
+interface IOracleAdapter {
   /* ========== STRUCTS ========== */
 
-  /// @notice Struct to store Adaptore contract state
-  /// @custom:storage-location erc7201:mento.storage.Adaptore
-  struct AdaptoreStorage {
+  /// @notice Struct to store OracleAdapter contract state
+  /// @custom:storage-location erc7201:mento.storage.OracleAdapter
+  struct OracleAdapterStorage {
     // Contract for querying oracle price feeds
     ISortedOracles sortedOracles;
     // Contract for checking trading modes
@@ -74,7 +74,7 @@ interface IAdaptore {
   /* ========== FUNCTIONS ========== */
 
   /**
-   * @notice Initializes the Adaptore contract
+   * @notice Initializes the OracleAdapter contract
    * @param _sortedOracles The address of the sorted oracles contract
    * @param _breakerBox The address of the breaker box contract
    * @param _marketHoursBreaker The address of the market hours breaker contract

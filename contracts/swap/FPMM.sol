@@ -11,7 +11,7 @@ import { MathUpgradeable as Math } from "openzeppelin-contracts-upgradeable/cont
 import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 // solhint-disable-next-line max-line-length
 import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
-import { IAdaptore } from "../interfaces/IAdaptore.sol";
+import { IOracleAdapter } from "../interfaces/IOracleAdapter.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
 
 /**
@@ -61,7 +61,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function initialize(
     address _token0,
     address _token1,
-    address _adaptore,
+    address _oracleAdapter,
     address _referenceRateFeedID,
     bool _revertRateFeed,
     address owner_
@@ -87,7 +87,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     setRebalanceIncentive(50); // Default .5% incentive tolerance (50 basis points)
     setRebalanceThresholds(500, 500); // Default 5% rebalance threshold (500 basis points)
 
-    setAdaptore(_adaptore);
+    setOracleAdapter(_oracleAdapter);
     setReferenceRateFeedID(_referenceRateFeedID);
     setRevertRateFeed(_revertRateFeed);
     transferOwnership(owner_);
@@ -165,9 +165,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function adaptore() external view returns (IAdaptore) {
+  function oracleAdapter() external view returns (IOracleAdapter) {
     FPMMStorage storage $ = _getFPMMStorage();
-    return $.adaptore;
+    return $.oracleAdapter;
   }
 
   /// @inheritdoc IFPMM
@@ -514,13 +514,13 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function setAdaptore(address _adaptore) public onlyOwner {
-    require(_adaptore != address(0), "FPMM: ADAPTORE_ADDRESS_MUST_BE_SET");
+  function setOracleAdapter(address _oracleAdapter) public onlyOwner {
+    require(_oracleAdapter != address(0), "FPMM: ORACLE_ADAPTER_ADDRESS_MUST_BE_SET");
     FPMMStorage storage $ = _getFPMMStorage();
 
-    address oldAdaptore = address($.adaptore);
-    $.adaptore = IAdaptore(_adaptore);
-    emit AdaptoreUpdated(oldAdaptore, _adaptore);
+    address oldOracleAdapter = address($.oracleAdapter);
+    $.oracleAdapter = IOracleAdapter(_oracleAdapter);
+    emit OracleAdapterUpdated(oldOracleAdapter, _oracleAdapter);
   }
 
   function setRevertRateFeed(bool _revertRateFeed) public onlyOwner {
@@ -590,7 +590,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function _getRateFeed() private view returns (uint256 rateNumerator, uint256 rateDenominator) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    (rateNumerator, rateDenominator) = $.adaptore.getRateIfValid($.referenceRateFeedID);
+    (rateNumerator, rateDenominator) = $.oracleAdapter.getRateIfValid($.referenceRateFeedID);
 
     if ($.revertRateFeed) {
       (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 // solhint-disable func-name-mixedcase
 
-import { IAdaptore } from "./IAdaptore.sol";
+import { IOracleAdapter } from "./IOracleAdapter.sol";
 
 import { IRPool } from "../swap/router/interfaces/IRPool.sol";
 
@@ -27,11 +27,11 @@ interface IFPMM is IRPool {
     // timestamp of the last reserve update
     uint256 blockTimestampLast;
     // contract for querying oracle price feeds and trading modes
-    IAdaptore adaptore;
+    IOracleAdapter oracleAdapter;
     // true if the rate feed should be reverted
     bool revertRateFeed;
     // identifier for the reference rate feed
-    // required for querying the adaptore
+    // required for querying the oracle adapter
     address referenceRateFeedID;
     // fee taken from the swap
     uint256 protocolFee;
@@ -142,11 +142,11 @@ interface IFPMM is IRPool {
   event ReferenceRateFeedIDUpdated(address oldRateFeedID, address newRateFeedID);
 
   /**
-   * @notice Emitted when the Adaptore contract is updated
-   * @param oldAdaptore Previous Adaptore address
-   * @param newAdaptore New Adaptore address
+   * @notice Emitted when the OracleAdapter contract is updated
+   * @param oldOracleAdapter Previous OracleAdapter address
+   * @param newOracleAdapter New OracleAdapter address
    */
-  event AdaptoreUpdated(address oldAdaptore, address newAdaptore);
+  event OracleAdapterUpdated(address oldOracleAdapter, address newOracleAdapter);
 
   /**
    * @notice Emitted when a successful rebalance operation occurs
@@ -227,10 +227,10 @@ interface IFPMM is IRPool {
   function blockTimestampLast() external view returns (uint256);
 
   /**
-   * @notice Returns the Adaptore contract
-   * @return Address of the Adaptore contract
+   * @notice Returns the OracleAdapter contract
+   * @return Address of the OracleAdapter contract
    */
-  function adaptore() external view returns (IAdaptore);
+  function oracleAdapter() external view returns (IOracleAdapter);
 
   /**
    * @notice Returns the revert rate feed flag
@@ -281,7 +281,7 @@ interface IFPMM is IRPool {
    * @notice Initializes the FPMM contract
    * @param _token0 Address of the first token
    * @param _token1 Address of the second token
-   * @param _adaptore Address of the Adaptore contract
+   * @param _oracleAdapter Address of the OracleAdapter contract
    * @param _referenceRateFeedID Address of the reference rate feed ID
    * @param _revertRateFeed Whether to revert the rate feed
    * @param _owner Address of the owner
@@ -289,7 +289,7 @@ interface IFPMM is IRPool {
   function initialize(
     address _token0,
     address _token1,
-    address _adaptore,
+    address _oracleAdapter,
     address _referenceRateFeedID,
     bool _revertRateFeed,
     address _owner
@@ -405,10 +405,10 @@ interface IFPMM is IRPool {
   function setLiquidityStrategy(address strategy, bool state) external;
 
   /**
-   * @notice Sets the Adaptore contract
-   * @param _adaptore Address of the Adaptore contract
+   * @notice Sets the OracleAdapter contract
+   * @param _oracleAdapter Address of the OracleAdapter contract
    */
-  function setAdaptore(address _adaptore) external;
+  function setOracleAdapter(address _oracleAdapter) external;
 
   /**
    * @notice Sets the reference rate feed ID

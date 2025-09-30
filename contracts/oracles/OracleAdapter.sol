@@ -1,21 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.18;
 
-import { IAdaptore } from "../interfaces/IAdaptore.sol";
+import { IOracleAdapter } from "../interfaces/IOracleAdapter.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IMarketHoursBreaker } from "../interfaces/IMarketHoursBreaker.sol";
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
-contract Adaptore is IAdaptore, OwnableUpgradeable {
+contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   /* ========== CONSTANTS ========== */
 
   uint256 public constant TRADING_MODE_BIDIRECTIONAL = 0;
 
-  // keccak256(abi.encode(uint256(keccak256("mento.storage.Adaptore")) - 1)) & ~bytes32(uint256(0xff))
-  bytes32 private constant _ADAPTORE_STORAGE_LOCATION =
-    0xd880fc8796ff7fc4b20c6242198b153ac9d227642be16c844e981c5031096c00;
+  // keccak256(abi.encode(uint256(keccak256("mento.storage.OracleAdapter")) - 1)) & ~bytes32(uint256(0xff))
+  bytes32 private constant _ORACLE_ADAPTER_STORAGE_LOCATION = 0x04e664c42d77958a8a4a4091eaa097623a29a223ec89dc71155113e263f9c400;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -31,7 +30,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
 
   /* ========== INITIALIZATION ========== */
 
-  /// @inheritdoc IAdaptore
+  /// @inheritdoc IOracleAdapter
   function initialize(address _sortedOracles, address _breakerBox, address _marketHoursBreaker) external initializer {
     __Ownable_init();
 
@@ -43,49 +42,49 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   /* ========== VIEW FUNCTIONS ========== */
 
   function sortedOracles() external view returns (ISortedOracles) {
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
     return $.sortedOracles;
   }
 
   function breakerBox() external view returns (IBreakerBox) {
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
     return $.breakerBox;
   }
 
   function marketHoursBreaker() external view returns (IMarketHoursBreaker) {
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
     return $.marketHoursBreaker;
   }
 
   /* ========== ADMIN FUNCTIONS ========== */
 
-  /// @inheritdoc IAdaptore
+  /// @inheritdoc IOracleAdapter
   function setSortedOracles(address _sortedOracles) public onlyOwner {
-    require(_sortedOracles != address(0), "Adaptore: ZERO_ADDRESS");
+    require(_sortedOracles != address(0), "OracleAdapter: ZERO_ADDRESS");
 
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
     address oldSortedOracles = address($.sortedOracles);
     $.sortedOracles = ISortedOracles(_sortedOracles);
 
     emit SortedOraclesUpdated(oldSortedOracles, _sortedOracles);
   }
 
-  /// @inheritdoc IAdaptore
+  /// @inheritdoc IOracleAdapter
   function setBreakerBox(address _breakerBox) public onlyOwner {
-    require(_breakerBox != address(0), "Adaptore: ZERO_ADDRESS");
+    require(_breakerBox != address(0), "OracleAdapter: ZERO_ADDRESS");
 
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
     address oldBreakerBox = address($.breakerBox);
     $.breakerBox = IBreakerBox(_breakerBox);
 
     emit BreakerBoxUpdated(oldBreakerBox, _breakerBox);
   }
 
-  /// @inheritdoc IAdaptore
+  /// @inheritdoc IOracleAdapter
   function setMarketHoursBreaker(address _marketHoursBreaker) public onlyOwner {
-    require(_marketHoursBreaker != address(0), "Adaptore: ZERO_ADDRESS");
+    require(_marketHoursBreaker != address(0), "OracleAdapter: ZERO_ADDRESS");
 
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
     address oldMarketHoursBreaker = address($.marketHoursBreaker);
     $.marketHoursBreaker = IMarketHoursBreaker(_marketHoursBreaker);
 
@@ -94,17 +93,17 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
 
   /* ========== EXTERNAL FUNCTIONS ========== */
 
-  /// @inheritdoc IAdaptore
+  /// @inheritdoc IOracleAdapter
   function isMarketOpen() external view returns (bool) {
     return _isMarketOpen();
   }
 
-  /// @inheritdoc IAdaptore
+  /// @inheritdoc IOracleAdapter
   function getTradingMode(address rateFeedID) external view returns (uint8) {
     return _getTradingMode(rateFeedID);
   }
 
-  /// @inheritdoc IAdaptore
+  /// @inheritdoc IOracleAdapter
   function getRate(address rateFeedID) external view returns (RateInfo memory) {
     // slither-disable-next-line uninitialized-local
     RateInfo memory rateInfo;
@@ -120,15 +119,16 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
     return rateInfo;
   }
 
+  /// @inheritdoc IOracleAdapter
   function getRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator) {
-    require(_isMarketOpen(), "Adaptore: MARKET_CLOSED");
-    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "Adaptore: TRADING_SUSPENDED");
-    require(_hasRecentRate(rateFeedID), "Adaptore: NO_RECENT_RATE");
+    require(_isMarketOpen(), "OracleAdapter: MARKET_CLOSED");
+    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
+    require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
 
     return _getOracleRate(rateFeedID);
   }
 
-  /// @inheritdoc IAdaptore
+  /// @inheritdoc IOracleAdapter
   function hasRecentRate(address rateFeedID) external view returns (bool) {
     return _hasRecentRate(rateFeedID);
   }
@@ -136,19 +136,19 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   /* ========== INTERNAL FUNCTIONS ========== */
 
   function _isMarketOpen() private view returns (bool) {
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
 
     return $.marketHoursBreaker.isMarketOpen(block.timestamp);
   }
 
   function _getTradingMode(address rateFeedID) private view returns (uint8) {
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
 
     return $.breakerBox.getRateFeedTradingMode(rateFeedID);
   }
 
   function _getOracleRate(address rateFeedID) private view returns (uint256 numerator, uint256 denominator) {
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
 
     (numerator, denominator) = $.sortedOracles.medianRate(rateFeedID);
 
@@ -157,7 +157,7 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   }
 
   function _hasRecentRate(address rateFeedID) private view returns (bool) {
-    AdaptoreStorage storage $ = _getStorage();
+    OracleAdapterStorage storage $ = _getStorage();
 
     uint256 reportExpiry = $.sortedOracles.getTokenReportExpirySeconds(rateFeedID);
     uint256 reportTs = $.sortedOracles.medianTimestamp(rateFeedID);
@@ -166,13 +166,13 @@ contract Adaptore is IAdaptore, OwnableUpgradeable {
   }
 
   /**
-   * @notice Returns the pointer to the AdaptoreStorage struct.
-   * @return $ The pointer to the AdaptoreStorage struct
+   * @notice Returns the pointer to the OracleAdapterStorage struct.
+   * @return $ The pointer to the OracleAdapterStorage struct
    */
-  function _getStorage() private pure returns (AdaptoreStorage storage $) {
+  function _getStorage() private pure returns (OracleAdapterStorage storage $) {
     // solhint-disable-next-line no-inline-assembly
     assembly {
-      $.slot := _ADAPTORE_STORAGE_LOCATION
+      $.slot := _ORACLE_ADAPTER_STORAGE_LOCATION
     }
   }
 }

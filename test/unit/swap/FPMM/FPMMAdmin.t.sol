@@ -36,10 +36,10 @@ contract FPMMAdminTest is FPMMBaseTest {
     fpmm.setLiquidityStrategy(address(0), true);
   }
 
-  function test_setAdaptore_whenNotOwner_shouldRevert() public {
+  function test_setOracleAdapter_whenNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert("Ownable: caller is not the owner");
-    fpmm.setAdaptore(address(0));
+    fpmm.setOracleAdapter(address(0));
   }
 
   function test_setReferenceRateFeedID_whenNotOwner_shouldRevert() public {

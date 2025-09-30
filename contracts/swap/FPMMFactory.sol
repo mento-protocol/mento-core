@@ -30,8 +30,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @custom:storage-location erc7201:mento.storage.FPMMFactory
   struct FPMMFactoryStorage {
-    // Address of the adaptore contract.
-    address adaptore;
+    // Address of the oracle adapter contract.
+    address oracleAdapter;
     // Address of the proxy admin contract.
     address proxyAdmin;
     // Address of the governance contract.
@@ -67,14 +67,14 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @inheritdoc IFPMMFactory
   function initialize(
-    address _adaptore,
+    address _oracleAdapter,
     address _proxyAdmin,
     address _governance,
     address _fpmmImplementation
   ) external initializer {
     __Ownable_init();
     setProxyAdmin(_proxyAdmin);
-    setAdaptore(_adaptore);
+    setOracleAdapter(_oracleAdapter);
     registerFPMMImplementation(_fpmmImplementation);
     setGovernance(_governance);
   }
@@ -84,9 +84,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /* ======================================================== */
 
   /// @inheritdoc IFPMMFactory
-  function adaptore() public view returns (address) {
+  function oracleAdapter() public view returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    return $.adaptore;
+    return $.oracleAdapter;
   }
 
   /// @inheritdoc IFPMMFactory
@@ -158,11 +158,11 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /* ============================================================ */
 
   /// @inheritdoc IFPMMFactory
-  function setAdaptore(address _adaptore) public onlyOwner {
-    require(_adaptore != address(0), "FPMMFactory: ZERO_ADDRESS");
+  function setOracleAdapter(address _oracleAdapter) public onlyOwner {
+    require(_oracleAdapter != address(0), "FPMMFactory: ZERO_ADDRESS");
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    $.adaptore = _adaptore;
-    emit AdaptoreSet(_adaptore);
+    $.oracleAdapter = _oracleAdapter;
+    emit OracleAdapterSet(_oracleAdapter);
   }
 
   /// @inheritdoc IFPMMFactory
@@ -211,7 +211,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /// @inheritdoc IFPMMFactory
   function deployFPMM(
     address fpmmImplementation,
-    address customAdaptore,
+    address customOracleAdapter,
     address customProxyAdmin,
     address customGovernance,
     address token0,
@@ -223,7 +223,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
 
     require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
-    require(customAdaptore != address(0), "FPMMFactory: ZERO_ADDRESS");
+    require(customOracleAdapter != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customProxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(customGovernance != address(0), "FPMMFactory: ZERO_ADDRESS");
     require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
@@ -231,7 +231,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
     address fpmmProxy = _deployFPMMProxy(
       fpmmImplementation,
-      customAdaptore,
+      customOracleAdapter,
       customProxyAdmin,
       customGovernance,
       token0,
@@ -262,7 +262,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
     address fpmmProxy = _deployFPMMProxy(
       fpmmImplementation,
-      $.adaptore,
+      $.oracleAdapter,
       $.proxyAdmin,
       $.governance,
       token0,
@@ -282,7 +282,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /**
    * @notice Deploys the FPMM proxy contract.
    * @param _fpmmImplementation The address of the FPMM implementation
-   * @param _adaptore The address of the adaptore contract
+   * @param _oracleAdapter The address of the oracle adapter contract
    * @param _proxyAdmin The address of the proxy admin contract
    * @param _governance The address of the governance contract
    * @param _token0 The address of the first token
@@ -295,7 +295,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-start encode-packed-collision
   function _deployFPMMProxy(
     address _fpmmImplementation,
-    address _adaptore,
+    address _oracleAdapter,
     address _proxyAdmin,
     address _governance,
     address _token0,
@@ -308,7 +308,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       IFPMM.initialize.selector,
       _token0,
       _token1,
-      _adaptore,
+      _oracleAdapter,
       _referenceRateFeedID,
       false, // revertRateFeed
       _governance

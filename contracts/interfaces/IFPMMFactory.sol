@@ -36,10 +36,10 @@ interface IFPMMFactory is IRPoolFactory {
   event ProxyAdminSet(address indexed proxyAdmin);
 
   /**
-   * @notice Emitted when the adaptore address is set.
-   * @param adaptore The address of the new adaptore contract
+   * @notice Emitted when the oracle adapter address is set.
+   * @param oracleAdapter The address of the new oracle adapter contract
    */
-  event AdaptoreSet(address indexed adaptore);
+  event OracleAdapterSet(address indexed oracleAdapter);
 
   /**
    * @notice Emitted when the governance address is set.
@@ -52,10 +52,10 @@ interface IFPMMFactory is IRPoolFactory {
   /* ======================================================== */
 
   /**
-   * @notice Gets the address of the adaptore contract.
-   * @return The address of the adaptore contract
+   * @notice Gets the address of the oracle adapter contract.
+   * @return The address of the oracle adapter contract
    */
-  function adaptore() external view returns (address);
+  function oracleAdapter() external view returns (address);
 
   /**
    * @notice Gets the address of the proxy admin contract.
@@ -103,23 +103,23 @@ interface IFPMMFactory is IRPoolFactory {
 
   /**
    * @notice Initializes the factory with required addresses.
-   * @param _adaptore The address of the adaptore contract
+   * @param _oracleAdapter The address of the oracle adapter contract
    * @param _proxyAdmin The address of the proxy admin contract
    * @param _governance The address of the governance contract
    * @param _fpmmImplementation The address of the FPMM implementation
    */
   function initialize(
-    address _adaptore,
+    address _oracleAdapter,
     address _proxyAdmin,
     address _governance,
     address _fpmmImplementation
   ) external;
 
   /**
-   * @notice Sets the address of the adaptore contract.
-   * @param _adaptore The new address of the adaptore contract
+   * @notice Sets the address of the oracle adapter contract.
+   * @param _oracleAdapter The new address of the oracle adapter contract
    */
-  function setAdaptore(address _adaptore) external;
+  function setOracleAdapter(address _oracleAdapter) external;
 
   /**
    * @notice Sets the address of the proxy admin contract.
@@ -164,7 +164,7 @@ interface IFPMMFactory is IRPoolFactory {
   /**
    * @notice Deploys a new FPMM for a token pair using custom parameters.
    * @param fpmmImplementation The address of the FPMM implementation
-   * @param customAdaptore The address of the custom adaptore contract
+   * @param customOracleAdapter The address of the custom oracle adapter contract
    * @param customProxyAdmin The address of the custom proxy admin contract
    * @param customGovernance The address of the custom governance contract
    * @param token0 The address of the first token
@@ -174,7 +174,7 @@ interface IFPMMFactory is IRPoolFactory {
    */
   function deployFPMM(
     address fpmmImplementation,
-    address customAdaptore,
+    address customOracleAdapter,
     address customProxyAdmin,
     address customGovernance,
     address token0,
