@@ -426,9 +426,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       : 0;
     require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
 
-    if ($.protocolFee > 0) {
-      _transferProtocolFee(swapData.amount0In, swapData.amount1In);
-    }
+    _transferProtocolFee(swapData.amount0In, swapData.amount1In);
 
     _update();
 
@@ -647,13 +645,16 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function _transferProtocolFee(uint256 amount0In, uint256 amount1In) private {
     FPMMStorage storage $ = _getFPMMStorage();
 
+    uint256 fee = $.protocolFee;
+    if (fee == 0) return;
+
     if (amount0In > 0) {
-      uint256 feeAmount = (amount0In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
+      uint256 feeAmount = (amount0In * fee) / BASIS_POINTS_DENOMINATOR;
       IERC20($.token0).safeTransfer($.protocolFeeRecipient, feeAmount);
     }
 
     if (amount1In > 0) {
-      uint256 feeAmount = (amount1In * $.protocolFee) / BASIS_POINTS_DENOMINATOR;
+      uint256 feeAmount = (amount1In * fee) / BASIS_POINTS_DENOMINATOR;
       IERC20($.token1).safeTransfer($.protocolFeeRecipient, feeAmount);
     }
   }
@@ -769,7 +770,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateDenominator
     );
 
-    uint256 totalFeeBps = $.lpFee + $.protocolFee;
+    uint256 lpFee = $.lpFee;
+    uint256 totalFeeBps = lpFee + $.protocolFee;
 
     uint256 fee0 = (expectedAmount0In * BASIS_POINTS_DENOMINATOR) /
       (BASIS_POINTS_DENOMINATOR - totalFeeBps) -
@@ -779,8 +781,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       expectedAmount1In;
 
     // Only LP portion of the fees goes into the reserves
-    fee0 = totalFeeBps > 0 ? (fee0 * $.lpFee) / totalFeeBps : 0;
-    fee1 = totalFeeBps > 0 ? (fee1 * $.lpFee) / totalFeeBps : 0;
+    fee0 = totalFeeBps > 0 ? (fee0 * lpFee) / totalFeeBps : 0;
+    fee1 = totalFeeBps > 0 ? (fee1 * lpFee) / totalFeeBps : 0;
 
     uint256 fee0InToken1 = convertWithRate(
       fee0,
