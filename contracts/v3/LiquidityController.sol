@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
+// solhint-disable max-line-length
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
@@ -64,7 +65,7 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
 
     // Verify LC token ordering matches FPMM ordering
     (address expectedToken0, address expectedToken1) = _orderTokens(debtToken, collateralToken);
-    (, , , , address actualT0, address actualT1) = IFPMM(pool).metadata();
+    (address actualT0, address actualT1) = IFPMM(pool).tokens();
     require(actualT0 == expectedToken0 && actualT1 == expectedToken1, "LC: FPMM_TOKEN_ORDER_MISMATCH");
 
     // Verify incentive
@@ -165,10 +166,9 @@ contract LiquidityController is ILiquidityController, OwnableUpgradeable, Reentr
       if (inRange) break;
     }
 
-    if (acted) {
-      poolConfigs[pool].lastRebalance = uint128(block.timestamp);
-    }
+    require(acted, "LC: NO_ACTION_TAKEN");
 
+    poolConfigs[pool].lastRebalance = uint128(block.timestamp);
     (, , , , uint256 diffAfter, ) = IFPMM(pool).getPrices();
     emit RebalanceExecuted(pool, diffBefore, diffAfter);
   }

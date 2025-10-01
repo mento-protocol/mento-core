@@ -36,7 +36,7 @@ contract MockCollateralRegistry {
 
     uint256 totalSupply = MockERC20(debtToken).totalSupply();
     uint256 redemptionFee = redemptionRateWithDecay + ((_boldamount * 1e18) / totalSupply);
-    
+
     uint256 returnNumerator = _boldamount * oracleNumerator * collateralDecimals * (1e18 - redemptionFee);
     uint256 returnDenominator = oracleDenominator * debtDecimals * 1e18;
     uint256 returnAmount = returnNumerator / returnDenominator;

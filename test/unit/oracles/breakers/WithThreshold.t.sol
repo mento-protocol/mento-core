@@ -13,7 +13,7 @@ contract WithThresholdTest is Test {
   IWithThresholdHarness harness;
 
   function setUp() public virtual {
-    harness = IWithThresholdHarness(deployCode("WithThresholdHarness"));
+    harness = IWithThresholdHarness(deployCode("out/WithThresholdHarness.sol/WithThresholdHarness.json"));
   }
 
   function test_setDefaultRateChangeThreshold() public {

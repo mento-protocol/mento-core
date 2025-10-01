@@ -3,7 +3,7 @@ pragma solidity 0.8.24;
 
 import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
 import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
-import { ICollateralRegistry } from "contracts/v3/Interfaces/ICollateralRegistry.sol";
+import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 import { console } from "forge-std/console.sol";

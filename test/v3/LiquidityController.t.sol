@@ -4,7 +4,6 @@
 pragma solidity ^0.8;
 
 import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
-import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 
 import { Test } from "mento-std/Test.sol";
 import { MockLiquidityPolicy } from "test/utils/mocks/MockLiquidityPolicy.sol";
@@ -12,13 +11,9 @@ import { MockFPMM } from "test/utils/mocks/MockFPMM.sol";
 import { MockLiquidityStrategy } from "test/utils/mocks/MockLiquidityStrategy.sol";
 
 import { LiquidityController } from "contracts/v3/LiquidityController.sol";
-import { ILiquidityController } from "contracts/v3/Interfaces/ILiquidityController.sol";
 import { ILiquidityPolicy } from "contracts/v3/Interfaces/ILiquidityPolicy.sol";
 import { ILiquidityStrategy } from "contracts/v3/Interfaces/ILiquidityStrategy.sol";
 import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
-import { IFPMM } from "contracts/interfaces/IFPMM.sol";
-
-import { console } from "forge-std/console.sol";
 
 contract LiquidityControllerTest is Test {
   LiquidityController public liquidityController;
@@ -33,7 +28,6 @@ contract LiquidityControllerTest is Test {
   address public ALICE = makeAddr("ALICE");
   address public BOB = makeAddr("BOB");
   address public NOT_OWNER = makeAddr("NOT_OWNER");
-  
   bool public isToken0Debt;
 
   event PoolAdded(address indexed pool, address debt, address collateral, uint64 cooldown, uint32 incentiveBps);
@@ -57,7 +51,6 @@ contract LiquidityControllerTest is Test {
 
     debtToken = address(new ERC20DecimalsMock("DebtToken", "DEBT", 18));
     collateralToken = address(new ERC20DecimalsMock("CollateralToken", "COLL", 18));
-    
     // Calculate token ordering once
     isToken0Debt = debtToken < collateralToken;
 
@@ -404,9 +397,9 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-    
+
     (uint256 amount0Out, uint256 amount1Out) = LQ.toTokenOrder(0, 100e18, isToken0Debt);
-    
+
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
@@ -460,9 +453,9 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-    
+
     (uint256 amount0Out, uint256 amount1Out) = LQ.toTokenOrder(0, 100e18, isToken0Debt);
-    
+
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
@@ -493,8 +486,6 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-    
-    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
@@ -526,8 +517,6 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-    
-    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
@@ -568,7 +557,6 @@ contract LiquidityControllerTest is Test {
     vm.stopPrank();
 
     mockPool.setDiffBps(600, true);
-
 
     mockPolicy.setShouldAct(false);
     policy2.setShouldAct(true);
@@ -615,7 +603,6 @@ contract LiquidityControllerTest is Test {
 
     // Set initial price out of range (600 bps difference, above threshold of 500)
     mockPool.setDiffBps(600, true);
-
 
     // Configure policy1 to act and bring price closer to range
     policy1.setShouldAct(true);
@@ -705,8 +692,6 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-    
-    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
@@ -793,8 +778,6 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-    
-    
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),

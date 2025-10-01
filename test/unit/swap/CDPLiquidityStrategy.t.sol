@@ -14,7 +14,7 @@ import { LiquidityController } from "contracts/v3/LiquidityController.sol";
 import { ILiquidityPolicy } from "contracts/v3/Interfaces/ILiquidityPolicy.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
-import { ICollateralRegistry } from "contracts/v3/Interfaces/ICollateralRegistry.sol";
+import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
 
 import { console } from "forge-std/console.sol";

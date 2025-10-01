@@ -3,8 +3,8 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ICollateralRegistry } from "contracts/v3/interfaces/ICollateralRegistry.sol";
-import { IBoldToken } from "contracts/v3/interfaces/IBoldToken.sol";
+import { ICollateralRegistry } from "bold/interfaces/ICollateralRegistry.sol";
+import { IBoldToken } from "bold/interfaces/IBoldToken.sol";
 import { console } from "forge-std/console.sol";
 
 contract RedemptionCalculatorTest is Test {

@@ -7,7 +7,7 @@ import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { ICollateralRegistry } from "./Interfaces/ICollateralRegistry.sol";
+import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { console } from "forge-std/console.sol";
 
 interface IStabilityPool {

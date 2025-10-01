@@ -5,7 +5,7 @@ import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
 import { ICDPPolicy } from "./Interfaces/ICDPPolicy.sol";
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
-import { ICollateralRegistry } from "./Interfaces/ICollateralRegistry.sol";
+import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 
 import { console } from "forge-std/console.sol";
 
