@@ -14,7 +14,7 @@ contract WithRegistry is Test {
   IRegistry public registry = IRegistry(CELO_REGISTRY_ADDRESS);
 
   constructor() {
-    deployCodeTo("out/Registry.sol/Registry.json", abi.encode(true), CELO_REGISTRY_ADDRESS);
+    deployCodeTo("Registry", abi.encode(true), CELO_REGISTRY_ADDRESS);
     IRegistryInit(CELO_REGISTRY_ADDRESS).initialize();
   }
 }

@@ -13,7 +13,7 @@ contract WithCooldownTest is Test {
   IWithCooldownHarness harness;
 
   function setUp() public {
-    harness = IWithCooldownHarness(deployCode("out/WithCooldownHarness.sol/WithCooldownHarness.json"));
+    harness = IWithCooldownHarness(deployCode("WithCooldownHarness"));
   }
 
   function test_setDefaultCooldownTime() public {
