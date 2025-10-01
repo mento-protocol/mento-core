@@ -33,8 +33,12 @@ interface IFPMM is IRPool {
     // identifier for the reference rate feed
     // required for querying the oracle adapter
     address referenceRateFeedID;
-    // fee taken from the swap
+    // fee taken from the swap for liquidity providers
+    uint256 lpFee;
+    // fee taken from the swap for the protocol
     uint256 protocolFee;
+    // recipient of the protocol fee
+    address protocolFeeRecipient;
     // incentive percentage for rebalancing the pool
     uint256 rebalanceIncentive;
     // threshold for rebalancing the pool when reserve price > oracle price
@@ -100,11 +104,25 @@ interface IFPMM is IRPool {
   event Burn(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity, address indexed to);
 
   /**
+   * @notice Emitted when the LP fee is updated
+   * @param oldFee Previous fee in basis points
+   * @param newFee New fee in basis points
+   */
+  event LPFeeUpdated(uint256 oldFee, uint256 newFee);
+
+  /**
    * @notice Emitted when the protocol fee is updated
    * @param oldFee Previous fee in basis points
    * @param newFee New fee in basis points
    */
   event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
+
+  /**
+   * @notice Emitted when the protocol fee recipient is updated
+   * @param oldRecipient Previous recipient of the protocol fee
+   * @param newRecipient New recipient of the protocol fee
+   */
+  event ProtocolFeeRecipientUpdated(address oldRecipient, address newRecipient);
 
   /**
    * @notice Emitted when the rebalance incentive is updated
@@ -245,10 +263,22 @@ interface IFPMM is IRPool {
   function referenceRateFeedID() external view returns (address);
 
   /**
+   * @notice Returns the LP fee in basis points (1 basis point = .01%)
+   * @return LP fee in basis points
+   */
+  function lpFee() external view returns (uint256);
+
+  /**
    * @notice Returns the protocol fee in basis points (1 basis point = .01%)
    * @return Protocol fee in basis points
    */
   function protocolFee() external view returns (uint256);
+
+  /**
+   * @notice Returns the recipient of the protocol fee
+   * @return Recipient of the protocol fee
+   */
+  function protocolFeeRecipient() external view returns (address);
 
   /**
    * @notice Returns the slippage allowed for rebalance operations in basis points
@@ -379,10 +409,22 @@ interface IFPMM is IRPool {
   function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external;
 
   /**
+   * @notice Sets LP fee
+   * @param _lpFee New fee in basis points
+   */
+  function setLPFee(uint256 _lpFee) external;
+
+  /**
    * @notice Sets protocol fee
    * @param _protocolFee New fee in basis points
    */
   function setProtocolFee(uint256 _protocolFee) external;
+
+  /**
+   * @notice Sets protocol fee recipient
+   * @param _protocolFeeRecipient The recipient of the protocol fee
+   */
+  function setProtocolFeeRecipient(address _protocolFeeRecipient) external;
 
   /**
    * @notice Sets rebalance incentive

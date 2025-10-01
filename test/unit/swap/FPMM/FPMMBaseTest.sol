@@ -28,6 +28,7 @@ contract FPMMBaseTest is Test {
   address public marketHoursBreaker = makeAddr("MarketHoursBreaker");
   address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
   address public owner = makeAddr("OWNER");
+  address public protocolFeeRecipient = makeAddr("PROTOCOL_FEE_RECIPIENT");
 
   uint256 public constant TRADING_MODE_BIDIRECTIONAL = 0;
   uint256 public constant TRADING_MODE_DISABLED = 3;
@@ -56,6 +57,22 @@ contract FPMMBaseTest is Test {
     deal(token1, ALICE, 1_000 * 10 ** decimals1);
     deal(token0, BOB, 1_000 * 10 ** decimals0);
     deal(token1, BOB, 1_000 * 10 ** decimals1);
+
+    _;
+  }
+
+  modifier withProtocolFee(uint256 _protocolFee, address _protocolFeeRecipient) {
+    vm.startPrank(owner);
+    fpmm.setProtocolFeeRecipient(_protocolFeeRecipient);
+    fpmm.setProtocolFee(_protocolFee);
+    vm.stopPrank();
+
+    _;
+  }
+
+  modifier withProtocolFeeRecipient(address _protocolFeeRecipient) {
+    vm.prank(owner);
+    fpmm.setProtocolFeeRecipient(_protocolFeeRecipient);
 
     _;
   }

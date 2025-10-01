@@ -37,7 +37,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_whenProtocolFeeChanges_shouldRespectProtocolFee()
+  function test_getAmountOut_whenLPFeeChanges_shouldRespectLPFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     withOracleRate(10e18, 100e18)
@@ -48,13 +48,13 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
 
     // Change fee to 1%
     vm.prank(owner);
-    fpmm.setProtocolFee(100); // 100 basis points = 1%
+    fpmm.setLPFee(100); // 100 basis points = 1%
     uint256 expectedAmountOut = 9.9e18; // 10e18 - 1% fee
     assertEq(fpmm.getAmountOut(amountIn, token0), expectedAmountOut);
 
     // Change fee to 0%
     vm.prank(owner);
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
     expectedAmountOut = 10e18; // No fee
     assertEq(fpmm.getAmountOut(amountIn, token0), expectedAmountOut);
   }
@@ -137,6 +137,43 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     uint256 amountOutToken1 = fpmm.getAmountOut(amountIn, token1);
     uint256 expectedAmountOutToken1 = 4587492706645056726094; // (1000e18 *  1234e18 / 5678e18) * (997 / 1000)
     assertEq(amountOutToken1, expectedAmountOutToken1);
+  }
+
+  function test_getAmountOut_whenProtocolFeeEnabled_shouldCalculateCorrectly()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withOracleRate(1e18, 1e18)
+    withProtocolFee(20, protocolFeeRecipient)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 amountIn = 100e18;
+    uint256 expectedAmountOut = 99.5e18; // 100e18 - 0.3% lpFee - 0.2% protocolFee
+    uint256 amountOut = fpmm.getAmountOut(amountIn, token0);
+    assertEq(amountOut, expectedAmountOut);
+
+    amountOut = fpmm.getAmountOut(amountIn, token1);
+    assertEq(amountOut, expectedAmountOut);
+  }
+
+  function test_getAmountOut_whenLPFeeDisabledAndProtocolFeeEnabled_shouldCalculateCorrectly()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withOracleRate(1e18, 1e18)
+    withProtocolFeeRecipient(protocolFeeRecipient)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    vm.prank(owner);
+    fpmm.setLPFee(0);
+
+    uint256 amountIn = 100e18;
+    assertEq(fpmm.getAmountOut(amountIn, token0), amountIn); // No fee as of now
+
+    vm.prank(owner);
+    fpmm.setProtocolFee(100); // Max fee of 100bps / 1%
+
+    assertEq(fpmm.getAmountOut(amountIn, token0), 99e18);
   }
 
   function test_getAmountOut_whenMarketIsClosed_shouldRevert()

@@ -74,6 +74,36 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), initialReserve1 - amount1Out);
   }
 
+  function test_swap_whenSwappingToken0ForToken1WithProtocolFee_shouldSucceed()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withProtocolFee(20, protocolFeeRecipient)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 amount0In = 100e18;
+    uint256 amount1Out = 99.50e18; // 1:1 rate, 0.3% LP fee, 0.2% protocol fee
+    uint256 protocolFee = (amount0In * 20) / 10000; // 0.2% protocol fee
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+
+    uint256 initialReserve0 = fpmm.reserve0();
+    uint256 initialReserve1 = fpmm.reserve1();
+
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), amount0In);
+    fpmm.swap(0, amount1Out, CHARLIE, "");
+    vm.stopPrank();
+
+    assertEq(IERC20(token1).balanceOf(CHARLIE), amount1Out);
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), protocolFee);
+
+    assertEq(fpmm.reserve0(), initialReserve0 + amount0In - protocolFee); // Protocol fee never goes to the reserve
+    assertEq(fpmm.reserve1(), initialReserve1 - amount1Out);
+  }
+
   function test_swap_whenSwappingToken1ForToken0_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
@@ -97,6 +127,34 @@ contract FPMMSwapTest is FPMMBaseTest {
 
     assertEq(fpmm.reserve0(), initialReserve0 - amount0Out);
     assertEq(fpmm.reserve1(), initialReserve1 + amount1In);
+  }
+
+  function test_swap_whenSwappingToken1ForToken0WithProtocolFee_shouldSucceed()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withProtocolFee(70, protocolFeeRecipient)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 amount1In = 100e18;
+    uint256 amount0Out = 99e18; // 1:1 rate, 0.3% LP fee, 0.7% protocol fee
+    uint256 protocolFee = (amount1In * 70) / 10000; // 0.7% protocol fee
+
+    uint256 initialReserve0 = fpmm.reserve0();
+    uint256 initialReserve1 = fpmm.reserve1();
+
+    vm.startPrank(ALICE);
+    IERC20(token1).transfer(address(fpmm), amount1In);
+    fpmm.swap(amount0Out, 0, CHARLIE, "");
+    vm.stopPrank();
+
+    assertEq(IERC20(token0).balanceOf(CHARLIE), amount0Out);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), protocolFee);
+
+    assertEq(fpmm.reserve0(), initialReserve0 - amount0Out);
+    assertEq(fpmm.reserve1(), initialReserve1 + amount1In - protocolFee);
   }
 
   function test_swap_whenUsingDifferentExchangeRate_shouldSucceed()
@@ -158,7 +216,7 @@ contract FPMMSwapTest is FPMMBaseTest {
   {
     // Change fee to 1%
     vm.prank(fpmm.owner());
-    fpmm.setProtocolFee(100);
+    fpmm.setLPFee(100);
 
     uint256 amount0In = 100e18;
     uint256 amount1Out = 99e18;
@@ -172,7 +230,7 @@ contract FPMMSwapTest is FPMMBaseTest {
 
     // Change fee to 0%
     vm.prank(fpmm.owner());
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
 
     uint256 amount1In = 100e18;
     uint256 amount0Out = 100e18;

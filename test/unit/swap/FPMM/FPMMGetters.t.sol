@@ -101,7 +101,7 @@ contract FPMMGettersTest is FPMMBaseTest {
   {
     uint256 amountIn = 10e18;
 
-    uint256 amountInAfterFee = amountIn - ((amountIn * fpmm.protocolFee()) / 10000);
+    uint256 amountInAfterFee = amountIn - ((amountIn * fpmm.lpFee()) / 10000);
 
     uint256 expectedOut = fpmm.convertWithRate(amountInAfterFee, 1e18, 1e6, 2e18, 1e18);
 
@@ -120,7 +120,7 @@ contract FPMMGettersTest is FPMMBaseTest {
   {
     uint256 amountIn = 10e6;
 
-    uint256 amountInAfterFee = amountIn - ((amountIn * fpmm.protocolFee()) / 10000);
+    uint256 amountInAfterFee = amountIn - ((amountIn * fpmm.lpFee()) / 10000);
     uint256 expectedOut = fpmm.convertWithRate(amountInAfterFee, 1e6, 1e18, 1e18, 2e18);
     uint256 actualOut = fpmm.getAmountOut(amountIn, token1);
 

@@ -7,6 +7,7 @@ import { FlashLoanReceiver } from "./helpers/FlashLoanReceiver.sol";
 import { ReentrancyExploiter } from "./helpers/ReentrancyExploiter.sol";
 import { MockExchange } from "./helpers/MockExchange.sol";
 import { ArbitrageFlashLoanReceiver } from "./helpers/ArbitrageFlashLoanReceiver.sol";
+import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
 contract FPMMFlashLoanTest is FPMMBaseTest {
   address public flashLoanReceiver;
@@ -71,6 +72,116 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e18); // Unchanged
   }
 
+  function test_swap_whenBorrowingToken0WithProtocolFee_shouldCorrectlyHandleFees()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withProtocolFee(20, protocolFeeRecipient)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 loan = 50e18;
+    uint256 fee = (loan * 10_000) / (10_000 - 50) - loan; // 50bps fee (30bps LP fee + 20bps protocol fee)
+    uint256 lpFeeCut = (fee * (30)) / 50;
+    uint256 protocolFeeCut = fee - lpFeeCut;
+
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, fee, 0);
+    fpmm.swap(loan, 0, address(flashLoanReceiver), bytes("flash loan data"));
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), protocolFeeCut);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+    assertEq(fpmm.reserve0(), beforeReserve0 + lpFeeCut);
+    assertEq(fpmm.reserve1(), beforeReserve1);
+  }
+
+  function test_swap_whenLoanRepaidOnTokenWithDifferentExchangeRate_shouldCorrectlyHandleFees()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    withOracleRate(1e18, 2e18)
+    withProtocolFee(20, protocolFeeRecipient)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 loan = 50e18;
+    uint256 fee = (loan * 10_000) / (10_000 - 50) - loan;
+    uint256 feeInToken1 = fee / 2; // Repay in token1 which has a 2:1 exchange rate
+
+    uint256 expectedLpFeeT0 = (fee * (30)) / 50;
+    uint256 expectedProtocolFeeT0 = fee - expectedLpFeeT0;
+
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+
+    // try to pay back slightly less than expected at the 2:1 rate
+    FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(loan, feeInToken1 - 1);
+    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    fpmm.swap(loan, 0, address(flashLoanReceiver), bytes("flash loan data"));
+
+    FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(loan, feeInToken1);
+    fpmm.swap(loan, 0, address(flashLoanReceiver), bytes("flash loan data"));
+
+    uint256 takenProtocolFeeT0 = (loan * 20) / 10_000;
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), takenProtocolFeeT0);
+    assertEq(fpmm.reserve0(), beforeReserve0 - takenProtocolFeeT0);
+
+    uint256 expectedProtocolFeeT1 = (expectedProtocolFeeT0 - takenProtocolFeeT0) / 2;
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), expectedProtocolFeeT1);
+
+    uint256 expectedLpFeeT1 = feeInToken1 - expectedProtocolFeeT1;
+    assertEq(fpmm.reserve1(), beforeReserve1 + expectedLpFeeT1);
+  }
+
+  function test_swap_whenBorrowingToken0WithProtocolFee_shouldAllowFeeToBeRepaidInBothTokens()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withProtocolFee(20, protocolFeeRecipient)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 loan = 50e18;
+    uint256 fee = (loan * 10_000) / (10_000 - 50) - loan;
+    uint256 lpFeeCut = (fee * (30)) / 50;
+    uint256 protocolFeeCut = fee - lpFeeCut;
+
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+
+    uint256 halfFee = fee / 2;
+    uint256 remainingFee = fee - halfFee;
+
+    // Repay the loan and fees in both tokens:
+    uint256 token0Payback = loan + halfFee;
+    uint256 token1Payback = remainingFee;
+    FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(token0Payback, token1Payback);
+    fpmm.swap(loan, 0, address(flashLoanReceiver), bytes("flash loan data"));
+
+    uint256 protocolFeeCutInToken0 = ((token0Payback) * (20)) / 10_000;
+    uint256 protocolFeeCutInToken1 = protocolFeeCut - protocolFeeCutInToken0;
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), protocolFeeCutInToken0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), protocolFeeCutInToken1);
+    assertEq(fpmm.reserve0() + fpmm.reserve1(), beforeReserve0 + beforeReserve1 + lpFeeCut);
+  }
+
   function test_swap_whenBorrowingToken1_shouldTransferAndRepayWithFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
@@ -98,6 +209,36 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     // Verify FPMM reserves increased by the extra repaid amount
     assertEq(fpmm.reserve0(), 100e18); // Unchanged
     assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
+  }
+
+  function test_swap_whenBorrowingToken1WithProtocolFee_shouldCorrectlyHandleFees()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withProtocolFee(70, protocolFeeRecipient)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 loan = 74e17;
+    uint256 fee = (loan * 10_000) / (10_000 - 100) - loan; // 100bps fee (30bps LP fee + 70bps protocol fee)
+    uint256 lpFeeCut = (fee * (30)) / 100;
+    uint256 protocolFeeCut = fee - lpFeeCut;
+
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
+
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, 0, fee);
+    fpmm.swap(0, loan, address(flashLoanReceiver), bytes("flash loan data"));
+
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), protocolFeeCut);
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(fpmm.reserve0(), beforeReserve0);
+    assertEq(fpmm.reserve1(), beforeReserve1 + lpFeeCut);
   }
 
   function test_swap_whenBorrowingBothTokens_shouldTransferAndRepayWithFee()
@@ -129,6 +270,40 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     // Verify FPMM reserves increased by the extra repaid amount
     assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
     assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
+  }
+
+  function test_swap_whenBorrowingBothTokensWithProtocolFee_shouldCorrectlyHandleFees()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withProtocolFee(20, protocolFeeRecipient)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 loan0 = 30e18;
+    uint256 loan1 = 40e18;
+    uint256 fee0 = (loan0 * 10_000) / (10_000 - 50) - loan0;
+    uint256 fee1 = (loan1 * 10_000) / (10_000 - 50) - loan1;
+    uint256 lpFeeCut0 = (fee0 * (30)) / 50;
+    uint256 lpFeeCut1 = (fee1 * (30)) / 50;
+    uint256 protocolFeeCut0 = fee0 - lpFeeCut0;
+    uint256 protocolFeeCut1 = fee1 - lpFeeCut1;
+
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, fee0, fee1);
+    fpmm.swap(loan0, loan1, address(flashLoanReceiver), bytes("flash loan data"));
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), protocolFeeCut0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), protocolFeeCut1);
+    assertEq(fpmm.reserve0(), beforeReserve0 + lpFeeCut0);
+    assertEq(fpmm.reserve1(), beforeReserve1 + lpFeeCut1);
   }
 
   function test_swap_whenLoanNotRepaid_shouldRevert()
@@ -167,6 +342,27 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, lessThanRequiredFee0, 0);
 
     // Flash loan should fail because it's not repaid correctly
+    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), "data");
+  }
+
+  function test_swap_whenNotEnoughCombinedFeeRepaid_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
+    withOracleRate(1e18, 1e18)
+    withProtocolFee(20, protocolFeeRecipient)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 flashLoanAmount = 50e18;
+    uint256 combinedFeeBps = 50;
+    uint256 fee = (flashLoanAmount * 10_000) / (10_000 - combinedFeeBps) - flashLoanAmount;
+    uint256 almostFullFee = fee - 1;
+
+    FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, almostFullFee, 0);
+
     vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
     fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), "data");
   }
@@ -249,6 +445,83 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), 200e6 + swapFee1); // Initial + fee
   }
 
+  function test_swap_whenLoanRepaidInTokenWithDifferentDecimals_shouldHandleCorrectly()
+    public
+    initializeFPMM_withDecimalTokens(18, 6)
+    mintInitialLiquidity(18, 6)
+    setupFlashLoanReceiver(18, 6, ReceiverType.FlashLoanReceiver)
+    withOracleRate(1e18, 1e18)
+    withProtocolFee(20, protocolFeeRecipient)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 loan = 30e18;
+    uint256 scaledLoan = loan / 1e12;
+    uint256 fee = (loan * 10_000) / (10_000 - 50) - loan;
+    uint256 feeScaled = fee / 1e12;
+
+    uint256 expectedProtocolFee = (feeScaled * 20) / 50;
+
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+
+    // There's a small loss of precision here on the lpFee side, so we end up paying slightly less than expected
+    uint256 expectedRepayInT1 = scaledLoan + feeScaled - 1;
+
+    FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(0, expectedRepayInT1 - 1);
+    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    fpmm.swap(loan, 0, address(flashLoanReceiver), "loan");
+
+    FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(0, expectedRepayInT1);
+    fpmm.swap(loan, 0, address(flashLoanReceiver), "loan");
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), expectedProtocolFee);
+    assertEq(fpmm.reserve0(), beforeReserve0 - loan);
+    assertEq(fpmm.reserve1(), beforeReserve1 + expectedRepayInT1 - expectedProtocolFee);
+  }
+
+  function test_swap_whenLoanRepaidInDifferentRateAndDecimals_shouldHandleCorrectly()
+    public
+    initializeFPMM_withDecimalTokens(18, 6)
+    mintInitialLiquidity(18, 6)
+    setupFlashLoanReceiver(18, 6, ReceiverType.FlashLoanReceiver)
+    withOracleRate(1e18, 2.5e18)
+    withProtocolFee(20, protocolFeeRecipient)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 loan = 50e18;
+    uint256 scaledLoan = loan / 2.5e12;
+    uint256 fee = (loan * 10_000) / (10_000 - 50) - loan;
+    uint256 scaledFee = fee / 2.5e12;
+
+    uint256 expectedRepaymentT1 = scaledLoan + scaledFee;
+    uint256 expectedProtocolFeeT1 = (expectedRepaymentT1 * 20) / 10_000;
+    uint256 expectedLpFeeT1 = scaledFee - expectedProtocolFeeT1;
+
+    uint256 beforeReserve0 = fpmm.reserve0();
+    uint256 beforeReserve1 = fpmm.reserve1();
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
+
+    FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(0, expectedRepaymentT1 - 1);
+    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    fpmm.swap(loan, 0, address(flashLoanReceiver), "loan");
+
+    FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(0, expectedRepaymentT1);
+    fpmm.swap(loan, 0, address(flashLoanReceiver), "loan");
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), expectedProtocolFeeT1);
+    assertEq(fpmm.reserve0(), beforeReserve0 - loan);
+    assertEq(fpmm.reserve1(), beforeReserve1 + scaledLoan + expectedLpFeeT1);
+  }
+
   function test_swap_whenExploitingReentrancy_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
@@ -270,14 +543,14 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    setupMockExchange(1.2e18) // rate = 1:1.2
+    setupMockExchange(1.2e18) // rate = 1:1.2, 18 decimals
     withOracleRate(1e18, 1e18) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
     vm.prank(owner);
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
 
     uint256 flashLoanAmount = 50e18;
     ArbitrageFlashLoanReceiver(flashLoanReceiver).executeArbitrage(true, flashLoanAmount); // Borrow token0
@@ -305,7 +578,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     withRecentRate(true)
   {
     vm.prank(owner);
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
 
     uint256 flashLoanAmount = 50e18;
     ArbitrageFlashLoanReceiver(flashLoanReceiver).executeArbitrage(false, flashLoanAmount); // Borrow token1
@@ -333,7 +606,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     withRecentRate(true)
   {
     vm.prank(owner);
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
 
     // Execute first arbitrage with favorable conditions
     ArbitrageFlashLoanReceiver(flashLoanReceiver).executeArbitrage(true, 50e18); // Borrow token0
