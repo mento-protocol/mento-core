@@ -770,8 +770,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateDenominator
     );
 
-    uint256 lpFee = $.lpFee;
-    uint256 totalFeeBps = lpFee + $.protocolFee;
+    uint256 lpFeeBps = $.lpFee;
+    uint256 totalFeeBps = lpFeeBps + $.protocolFee;
 
     uint256 fee0 = (expectedAmount0In * BASIS_POINTS_DENOMINATOR) /
       (BASIS_POINTS_DENOMINATOR - totalFeeBps) -
@@ -780,9 +780,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       (BASIS_POINTS_DENOMINATOR - totalFeeBps) -
       expectedAmount1In;
 
-    // Only LP portion of the fees goes into the reserves
-    fee0 = totalFeeBps > 0 ? (fee0 * lpFee) / totalFeeBps : 0;
-    fee1 = totalFeeBps > 0 ? (fee1 * lpFee) / totalFeeBps : 0;
+    fee0 = totalFeeBps > 0 ? (fee0 * lpFeeBps) / totalFeeBps : 0;
+    fee1 = totalFeeBps > 0 ? (fee1 * lpFeeBps) / totalFeeBps : 0;
 
     uint256 fee0InToken1 = convertWithRate(
       fee0,
