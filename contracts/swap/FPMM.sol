@@ -63,7 +63,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     address _token1,
     address _oracleAdapter,
     address _referenceRateFeedID,
-    bool _revertRateFeed,
+    bool _invertRateFeed,
     address owner_
   ) external initializer {
     FPMMStorage storage $ = _getFPMMStorage();
@@ -90,7 +90,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     setOracleAdapter(_oracleAdapter);
     setReferenceRateFeedID(_referenceRateFeedID);
-    setRevertRateFeed(_revertRateFeed);
+    setInvertRateFeed(_invertRateFeed);
     transferOwnership(owner_);
   }
 
@@ -172,9 +172,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function revertRateFeed() external view returns (bool) {
+  function invertRateFeed() external view returns (bool) {
     FPMMStorage storage $ = _getFPMMStorage();
-    return $.revertRateFeed;
+    return $.invertRateFeed;
   }
 
   /// @inheritdoc IFPMM
@@ -563,9 +563,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     emit OracleAdapterUpdated(oldOracleAdapter, _oracleAdapter);
   }
 
-  function setRevertRateFeed(bool _revertRateFeed) public onlyOwner {
+  function setInvertRateFeed(bool _invertRateFeed) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
-    $.revertRateFeed = _revertRateFeed;
+    $.invertRateFeed = _invertRateFeed;
   }
 
   /// @inheritdoc IFPMM
@@ -654,7 +654,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     (rateNumerator, rateDenominator) = $.oracleAdapter.getFXRateIfValid($.referenceRateFeedID);
 
-    if ($.revertRateFeed) {
+    if ($.invertRateFeed) {
       (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);
     }
   }

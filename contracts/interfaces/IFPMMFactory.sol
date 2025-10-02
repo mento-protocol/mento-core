@@ -152,13 +152,15 @@ interface IFPMMFactory is IRPoolFactory {
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
+   * @param invertRateFeed Wether to invert the rate feed so that the base is asset0 and quote is asset1
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
     address fpmmImplementation,
     address token0,
     address token1,
-    address referenceRateFeedID
+    address referenceRateFeedID,
+    bool invertRateFeed
   ) external returns (address proxy);
 
   /**
@@ -170,6 +172,7 @@ interface IFPMMFactory is IRPoolFactory {
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
+   * @param invertRateFeed Wether to invert the rate feed so that the base is asset0 and quote is asset1
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
@@ -179,6 +182,7 @@ interface IFPMMFactory is IRPoolFactory {
     address customGovernance,
     address token0,
     address token1,
-    address referenceRateFeedID
+    address referenceRateFeedID,
+    bool invertRateFeed
   ) external returns (address proxy);
 }

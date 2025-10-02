@@ -28,8 +28,8 @@ interface IFPMM is IRPool {
     uint256 blockTimestampLast;
     // contract for querying oracle price feeds and trading modes
     IOracleAdapter oracleAdapter;
-    // true if the rate feed should be reverted
-    bool revertRateFeed;
+    // true if the rate feed should be inverted
+    bool invertRateFeed;
     // identifier for the reference rate feed
     // required for querying the oracle adapter
     address referenceRateFeedID;
@@ -251,10 +251,10 @@ interface IFPMM is IRPool {
   function oracleAdapter() external view returns (IOracleAdapter);
 
   /**
-   * @notice Returns the revert rate feed flag
-   * @return Revert rate feed flag
+   * @notice Returns the invert rate feed flag
+   * @return Invert rate feed flag
    */
-  function revertRateFeed() external view returns (bool);
+  function invertRateFeed() external view returns (bool);
 
   /**
    * @notice Returns the reference rate feed ID to query for oracle price
@@ -313,7 +313,7 @@ interface IFPMM is IRPool {
    * @param _token1 Address of the second token
    * @param _oracleAdapter Address of the OracleAdapter contract
    * @param _referenceRateFeedID Address of the reference rate feed ID
-   * @param _revertRateFeed Whether to revert the rate feed
+   * @param _invertRateFeed Whether to invert the rate feed
    * @param _owner Address of the owner
    */
   function initialize(
@@ -321,7 +321,7 @@ interface IFPMM is IRPool {
     address _token1,
     address _oracleAdapter,
     address _referenceRateFeedID,
-    bool _revertRateFeed,
+    bool _invertRateFeed,
     address _owner
   ) external;
 

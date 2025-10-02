@@ -136,7 +136,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     assertTrue(fpmm != address(0));
@@ -167,7 +168,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
   function test_deployFPMM_whenCalledByNonOwner_shouldRevert() public {
     vm.prank(alice);
     vm.expectRevert("Ownable: caller is not the owner");
-    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID, false);
   }
 
   function test_deployFPMM_whenImplementationNotRegistered_shouldRevert() public {
@@ -175,24 +176,24 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
     vm.prank(governance);
     vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
-    factory.deployFPMM(nonRegisteredImplementation, address(tokenA), address(tokenB), referenceRateFeedID);
+    factory.deployFPMM(nonRegisteredImplementation, address(tokenA), address(tokenB), referenceRateFeedID, false);
   }
 
   function test_deployFPMM_whenPoolAlreadyExists_shouldRevert() public {
     // Deploy first pool
     vm.prank(governance);
-    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID, false);
 
     // Try to deploy again
     vm.prank(governance);
     vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
-    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID, false);
   }
 
   function test_deployFPMM_whenZeroReferenceRateFeedID_shouldRevert() public {
     vm.prank(governance);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), address(0));
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), address(0), false);
   }
 
   function test_deployFPMM_whenCustomParameters_shouldDeployWithCustomConfig() public {
@@ -208,7 +209,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       customGovernance,
       address(tokenA),
       address(tokenC),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     assertTrue(fpmm != address(0));
@@ -232,7 +234,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     assertTrue(factory.isPool(fpmm));
@@ -249,7 +252,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
@@ -264,7 +268,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     vm.prank(governance);
@@ -272,7 +277,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenC),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     address[] memory deployedAddresses = factory.deployedFPMMAddresses();
@@ -289,7 +295,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     address computedAddress = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
@@ -308,7 +315,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
     assertEq(precomputedAddress, fpmm);
   }

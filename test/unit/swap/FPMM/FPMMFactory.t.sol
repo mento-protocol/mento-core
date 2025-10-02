@@ -387,7 +387,8 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       address(fpmmImplementationCelo),
       token0Celo,
       token1Celo,
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     assertEq(deployedProxy, precomputedProxy);
@@ -549,9 +550,9 @@ contract FPMMFactoryTest_DeployFPMMStandard is FPMMFactoryTest_DeployFPMM {
 
   function deploy(string memory chain) internal override returns (address) {
     if (keccak256(abi.encode(chain)) == keccak256(abi.encode("celo"))) {
-      return factoryCelo.deployFPMM(fpmmImplementationCeloAddress, token0Celo, token1Celo, referenceRateFeedID);
+      return factoryCelo.deployFPMM(fpmmImplementationCeloAddress, token0Celo, token1Celo, referenceRateFeedID, false);
     } else if (keccak256(abi.encode(chain)) == keccak256(abi.encode("op"))) {
-      return factoryOp.deployFPMM(fpmmImplementationOpAddress, token0Op, token1Op, referenceRateFeedID);
+      return factoryOp.deployFPMM(fpmmImplementationOpAddress, token0Op, token1Op, referenceRateFeedID, false);
     } else {
       return address(0);
     }
@@ -581,7 +582,8 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
           expectedGovernance,
           token0Celo,
           token1Celo,
-          referenceRateFeedID
+          referenceRateFeedID,
+          false
         );
     } else if (keccak256(abi.encode(chain)) == keccak256(abi.encode("op"))) {
       return
@@ -592,7 +594,8 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
           expectedGovernance,
           token0Op,
           token1Op,
-          referenceRateFeedID
+          referenceRateFeedID,
+          false
         );
     } else {
       return address(0);
@@ -687,7 +690,8 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
       address(fpmmImplementationCelo),
       higherToken, // token0 (higher address)
       lowerToken, // token1 (lower address)
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     // Verify the FPMM was deployed with sorted tokens
@@ -716,7 +720,8 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
       address(fpmmImplementationCelo),
       lowerToken,
       higherToken,
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     // Verify both addresses match
@@ -739,7 +744,8 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
       address(fpmmImplementationCelo),
       higherToken, // token0 (higher address)
       lowerToken, // token1 (lower address)
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     assertEq(factoryCelo.getPool(lowerToken, higherToken), deployedProxy);
@@ -762,11 +768,11 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
 
     // Deploy pair A-B with A first
     vm.prank(governanceCelo);
-    address proxyAB1 = factoryCelo.deployFPMM(address(fpmmImplementationCelo), tokenA, tokenB, referenceRateFeedID);
+    address proxyAB1 = factoryCelo.deployFPMM(address(fpmmImplementationCelo), tokenA, tokenB, referenceRateFeedID, false);
 
     // Deploy pair B-C with B first
     vm.prank(governanceCelo);
-    address proxyBC1 = factoryCelo.deployFPMM(address(fpmmImplementationCelo), tokenB, tokenC, referenceRateFeedID);
+    address proxyBC1 = factoryCelo.deployFPMM(address(fpmmImplementationCelo), tokenB, tokenC, referenceRateFeedID, false);
 
     // Verify mappings use sorted tokens
     assertEq(factoryCelo.getPool(tokenA, tokenB), proxyAB1);
@@ -803,7 +809,8 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
       address(fpmmImplementationCelo),
       higherToken, // Deploy with reverse order
       lowerToken,
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     // Verify the deployed address matches both precomputed addresses
