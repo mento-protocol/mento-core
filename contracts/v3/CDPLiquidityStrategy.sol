@@ -8,7 +8,6 @@ import { IFPMM } from "../interfaces/IFPMM.sol";
 import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
-import { console } from "forge-std/console.sol";
 
 interface IStabilityPool {
   function swapCollateralForStable(uint256 amountCollIn, uint256 amountStableOut) external;
@@ -45,8 +44,6 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
       collToken,
       liquiditySource
     );
-    console.log("action.amount0Out", action.amount0Out);
-    console.log("action.amount1Out", action.amount1Out);
 
     IFPMM(action.pool).rebalance(action.amount0Out, action.amount1Out, hookData);
     return true;
@@ -65,43 +62,23 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
       address liquiditySource
     ) = abi.decode(data, (uint256, uint256, LQ.Direction, address, address, address));
     if (dir == LQ.Direction.Expand) {
-      _handleExpansionCallback(
-        sender,
-        debtToken,
-        collToken,
-        amount0Out,
-        amount1Out,
-        inputAmount,
-        incentiveBps,
-        liquiditySource
-      );
+      _handleExpansionCallback(debtToken, collToken, amount0Out, amount1Out, inputAmount, liquiditySource);
     } else {
-      _handleContractionCallback(
-        sender,
-        debtToken,
-        collToken,
-        amount0Out,
-        amount1Out,
-        inputAmount,
-        incentiveBps,
-        liquiditySource
-      );
+      _handleContractionCallback(collToken, amount0Out, amount1Out, inputAmount, incentiveBps, liquiditySource);
     }
   }
 
   function _handleExpansionCallback(
-    address sender,
     address debtToken,
     address collToken,
     uint256 amount0Out,
     uint256 amount1Out,
     uint256 inputAmount,
-    uint256 incentiveBps,
     address liquiditySource
   ) internal {
     uint256 collAmount = amount0Out > 0 ? amount0Out : amount1Out;
     // send collateral to stability pool
-    SafeERC20.safeTransfer(IERC20(collToken), liquiditySource, collAmount);
+    SafeERC20.safeApprove(IERC20(collToken), liquiditySource, collAmount);
     // swap collateral for debt
     IStabilityPool(liquiditySource).swapCollateralForStable(collAmount, inputAmount);
     // send debt to fpmm
@@ -109,8 +86,6 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
   }
 
   function _handleContractionCallback(
-    address sender,
-    address debtToken,
     address collToken,
     uint256 amount0Out,
     uint256 amount1Out,

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
+// solhint-disable max-line-length
 
 import { CDPLiquidityStrategy } from "contracts/v3/CDPLiquidityStrategy.sol";
 import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
@@ -14,10 +15,7 @@ import { LiquidityController } from "contracts/v3/LiquidityController.sol";
 import { ILiquidityPolicy } from "contracts/v3/Interfaces/ILiquidityPolicy.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
-import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
-
-import { console } from "forge-std/console.sol";
 
 contract CDPLiquidityStrategyTest is Test {
   CDPLiquidityStrategy public cdpLiquidityStrategy;
@@ -50,7 +48,7 @@ contract CDPLiquidityStrategyTest is Test {
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
 
     // deploy stability pool mock
-    mockStabilityPool = new MockStabilityPool(debtToken);
+    mockStabilityPool = new MockStabilityPool(debtToken, collToken);
 
     // initialize fpmm and set liquidity strategy
     fpmm.initialize(debtToken, collToken, sortedOracles, referenceRateFeedID, false, breakerBox, address(this));
@@ -90,7 +88,7 @@ contract CDPLiquidityStrategyTest is Test {
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
 
     // deploy stability pool mock
-    mockStabilityPool = new MockStabilityPool(debtToken);
+    mockStabilityPool = new MockStabilityPool(debtToken, collToken);
 
     // initialize fpmm and set liquidity strategy
     fpmm.initialize(collToken, debtToken, sortedOracles, referenceRateFeedID, false, breakerBox, address(this));
@@ -133,8 +131,6 @@ contract CDPLiquidityStrategyTest is Test {
     // COP USD rate
     oracleNumerator = 255050000000000000000;
     oracleDenominator = 1e24;
-    // 4_704_949_844_000_000
-    // 3_920_799_843
 
     // 3_920_799_843 COP.m in 12 decimals and 1_000_000 USD.m in 18 decimals
     provideFPMMReserves(3_920_799_843e12, 1_000_000e18, true);
@@ -151,33 +147,11 @@ contract CDPLiquidityStrategyTest is Test {
 
     // debalance fpmm by swaping 200_000$ worth of COP into the pool
     swapIn(debtToken, 784_150_001e12);
-    //   reserve1:  1000000000000000000000000
-    //   reserve0:  3920799843000000000000
-    //   reserve1:  800602534618215150000000
-    //   reserve0:  4704949844000000000000
-    //   reserve1:  1000142853558808882907263
-    //   reserve0:  3920013727794990613173
-    //   --------------------------------
-    // reserve1Before 800602534618215150000000
-    // reserve0Before 4704949844000000000000000000
-    // reserve0After 1000142853558808882907263
-    // reserve1After 3920013727794990613173000000
-    // rateNumerator 255050000000000
-    // rateDenominator 1000000000000000000
-
-    //totalReserveValueBefore 20_013_849_800_657_068_800_000
-    //totalReserveValueAfter  199_88821855265486193835
-    // --------------------------------
 
     // Snapshot before the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1Before,
-      uint256 reserve0Before,
-      uint256 priceDifferenceBefore,
-      bool reservePriceAboveOraclePriceBefore
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
 
     // pool price is below oracle price
     assertTrue(!reservePriceAboveOraclePriceBefore);
@@ -187,14 +161,9 @@ contract CDPLiquidityStrategyTest is Test {
     liquidityController.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1After,
-      uint256 reserve0After,
-      uint256 priceDifferenceAfter,
-      bool reservePriceAboveOraclePriceAfter
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
 
     // we allow the price difference to be moved in the wrong direction but not by more than the rebalance incentive
     // this is due to the dynamic rebalance fee that is taken from the swap
@@ -202,8 +171,9 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(reservePriceAboveOraclePriceAfter);
     assertTrue(reserve0Before > reserve0After);
     assertTrue(reserve1Before < reserve1After);
-    assertReserveValueIncentives(reserve0Before, reserve1Before);
-    // assertRebalanceAmountIncentives(reserve1Before - reserve1After, reserve0After - reserve0Before, false, false);
+
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
+    assertRebalanceAmountIncentives(reserve0Before - reserve0After, reserve1After - reserve1Before, true, true);
   }
 
   function test_rebalance_whenToken0DebtAndPoolPriceBelowOraclePriceAndRedemptionFeeLargerIncentive_shouldContractAndBringPriceCloserToOraclePrice()
@@ -233,14 +203,9 @@ contract CDPLiquidityStrategyTest is Test {
     swapIn(debtToken, 784_150_001e12);
 
     // Snapshot before the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1Before,
-      uint256 reserve0Before,
-      uint256 priceDifferenceBefore,
-      bool reservePriceAboveOraclePriceBefore
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
 
     assertTrue(!reservePriceAboveOraclePriceBefore);
     assertTrue(priceDifferenceBefore > 0);
@@ -248,15 +213,9 @@ contract CDPLiquidityStrategyTest is Test {
     liquidityController.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1After,
-      uint256 reserve0After,
-      uint256 priceDifferenceAfter,
-      bool reservePriceAboveOraclePriceAfter
-    ) = fpmm.getPrices();
-
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
     // price difference is less than before
     assertTrue(priceDifferenceAfter < priceDifferenceBefore);
     // price is still below oracle price
@@ -264,7 +223,9 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(reserve0Before > reserve0After);
     assertTrue(reserve1Before < reserve1After);
     // reserve0 should be 0.25% of the total supply less than before due to the redemption fee
-    assertTrue(reserve0Before - reserve0After == ((totalSupply * 25) / 10_000) * 1e6);
+    assertTrue(reserve0Before - reserve0After == ((totalSupply * 25) / 10_000));
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
+    assertRebalanceAmountIncentives(reserve0Before - reserve0After, reserve1After - reserve1Before, true, false);
   }
 
   function test_rebalance_whenToken0DebtAndPoolPriceBelowOraclePriceAndRedemptionFeeIsEqualToIncentive_shouldContractAndBringBackToOraclePrice()
@@ -296,14 +257,9 @@ contract CDPLiquidityStrategyTest is Test {
     swapIn(debtToken, 784_150_001e12);
 
     // Snapshot before the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1Before,
-      uint256 reserve0Before,
-      uint256 priceDifferenceBefore,
-      bool reservePriceAboveOraclePriceBefore
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
 
     // pool price is below oracle price
     assertTrue(!reservePriceAboveOraclePriceBefore);
@@ -313,14 +269,10 @@ contract CDPLiquidityStrategyTest is Test {
     liquidityController.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1After,
-      uint256 reserve0After,
-      uint256 priceDifferenceAfter,
-      bool reservePriceAboveOraclePriceAfter
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
 
     // price difference is 0
     assertTrue(priceDifferenceAfter == 0);
@@ -328,6 +280,8 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(!reservePriceAboveOraclePriceAfter);
     assertTrue(reserve0Before > reserve0After);
     assertTrue(reserve1Before < reserve1After);
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
+    assertRebalanceAmountIncentives(reserve0Before - reserve0After, reserve1After - reserve1Before, true, false);
   }
 
   /* ============================================================ */
@@ -359,14 +313,9 @@ contract CDPLiquidityStrategyTest is Test {
     swapIn(debtToken, 5_000e18);
 
     // Snapshot before the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1Before,
-      uint256 reserve0Before,
-      uint256 priceDifferenceBefore,
-      bool reservePriceAboveOraclePriceBefore
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
 
     // pool price is above oracle price
     assertTrue(reservePriceAboveOraclePriceBefore);
@@ -376,14 +325,9 @@ contract CDPLiquidityStrategyTest is Test {
     liquidityController.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1After,
-      uint256 reserve0After,
-      uint256 priceDifferenceAfter,
-      bool reservePriceAboveOraclePriceAfter
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
 
     // we allow the price difference to be moved in the wrong direction but not by more than the rebalance incentive
     // this is due to the dynamic rebalance fee that is taken from the swap
@@ -392,6 +336,8 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(!reservePriceAboveOraclePriceAfter);
     assertTrue(reserve0Before < reserve0After);
     assertTrue(reserve1Before > reserve1After);
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
+    assertRebalanceAmountIncentives(reserve1Before - reserve1After, reserve0After - reserve0Before, false, true);
   }
 
   function test_rebalance_whenToken1DebtAndPoolPriceAboveOraclePriceAndRedemptionFeeLargerIncentive_shouldContractAndBringPriceCloserToOraclePrice()
@@ -422,14 +368,9 @@ contract CDPLiquidityStrategyTest is Test {
     swapIn(debtToken, 5000e18);
 
     // Snapshot before the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1Before,
-      uint256 reserve0Before,
-      uint256 priceDifferenceBefore,
-      bool reservePriceAboveOraclePriceBefore
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
 
     // pool price is above oracle price
     assertTrue(reservePriceAboveOraclePriceBefore);
@@ -439,14 +380,9 @@ contract CDPLiquidityStrategyTest is Test {
     liquidityController.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1After,
-      uint256 reserve0After,
-      uint256 priceDifferenceAfter,
-      bool reservePriceAboveOraclePriceAfter
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
 
     // price difference is less than before
     assertTrue(priceDifferenceAfter < priceDifferenceBefore);
@@ -456,6 +392,8 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(reserve1Before > reserve1After);
     // reserve1 should be 2_500e18 less than before due to the redemption fee 0.25% * 1_000_000 = 2_500
     assertTrue(reserve1Before - reserve1After == 2_500e18);
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
+    assertRebalanceAmountIncentives(reserve1Before - reserve1After, reserve0After - reserve0Before, false, false);
   }
 
   function test_rebalance_whenToken1DebtAndPoolPriceAboveOraclePriceAndRedemptionFeeIsEqualToIncentive_shouldContractAndBringBackToOraclePrice()
@@ -487,14 +425,9 @@ contract CDPLiquidityStrategyTest is Test {
     swapIn(debtToken, 5000e18);
 
     // Snapshot before the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1Before,
-      uint256 reserve0Before,
-      uint256 priceDifferenceBefore,
-      bool reservePriceAboveOraclePriceBefore
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
 
     // pool price is above oracle price
     assertTrue(reservePriceAboveOraclePriceBefore);
@@ -504,14 +437,9 @@ contract CDPLiquidityStrategyTest is Test {
     liquidityController.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1After,
-      uint256 reserve0After,
-      uint256 priceDifferenceAfter,
-      bool reservePriceAboveOraclePriceAfter
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
 
     // price difference is 0
     assertTrue(priceDifferenceAfter == 0);
@@ -519,8 +447,7 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(reservePriceAboveOraclePriceAfter);
     assertTrue(reserve0Before < reserve0After);
     assertTrue(reserve1Before > reserve1After);
-
-    assertReserveValueIncentives(reserve0Before, reserve1Before);
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
     assertRebalanceAmountIncentives(reserve1Before - reserve1After, reserve0After - reserve0Before, false, false);
   }
 
@@ -528,7 +455,7 @@ contract CDPLiquidityStrategyTest is Test {
   /* ================= Expansion Token 0 Debt =================== */
   /* ============================================================ */
 
-  function test_whenToken0DebtEnoughFundsInStabilityPoolAndPoolPriceAboveOraclePrice_shouldExpandAndBringPriceBacktoOraclePrice()
+  function test_whenToken0DebtEnoughFundsInStabilityPoolAndPoolPriceAboveOraclePrice_shouldExpandAndBringPriceBackToOraclePrice()
     public
     fpmmToken0Debt(12, 6)
   {
@@ -547,14 +474,9 @@ contract CDPLiquidityStrategyTest is Test {
     setStabilityPoolBalance(debtToken, 100_000_000e12);
 
     // Snapshot before the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1Before,
-      uint256 reserve0Before,
-      uint256 priceDifferenceBefore,
-      bool reservePriceAboveOraclePriceBefore
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
     uint256 stabilityPoolDebtBalanceBefore = MockERC20(debtToken).balanceOf(address(mockStabilityPool));
     uint256 stabilityPoolCollBalanceBefore = MockERC20(collToken).balanceOf(address(mockStabilityPool));
 
@@ -563,27 +485,24 @@ contract CDPLiquidityStrategyTest is Test {
 
     liquidityController.rebalance(address(fpmm));
 
-    (
-      ,
-      ,
-      uint256 reserve1After,
-      uint256 reserve0After,
-      uint256 priceDifferenceAfter,
-      bool reservePriceAboveOraclePriceAfter
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
     uint256 stabilityPoolDebtBalanceAfter = MockERC20(debtToken).balanceOf(address(mockStabilityPool));
     uint256 stabilityPoolCollBalanceAfter = MockERC20(collToken).balanceOf(address(mockStabilityPool));
 
     assertTrue(reservePriceAboveOraclePriceAfter);
     assertEq(priceDifferenceAfter, 0);
-    assertEq(stabilityPoolDebtBalanceBefore - (reserve0After - reserve0Before) / 1e6, stabilityPoolDebtBalanceAfter);
-    assertEq(stabilityPoolCollBalanceBefore + (reserve1Before - reserve1After) / 1e12, stabilityPoolCollBalanceAfter);
+    assertEq(stabilityPoolDebtBalanceBefore - (reserve0After - reserve0Before), stabilityPoolDebtBalanceAfter);
+    assertEq(stabilityPoolCollBalanceBefore + (reserve1Before - reserve1After), stabilityPoolCollBalanceAfter);
     assertTrue(reservePriceAboveOraclePriceAfter);
     assertTrue(reserve0Before < reserve0After);
     assertTrue(reserve1Before > reserve1After);
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
+    assertRebalanceAmountIncentives(reserve1Before - reserve1After, reserve0After - reserve0Before, false, false);
   }
 
-  function test_whenToken0DebtNotEnoughFundsInStabilityPoolAndPoolPriceAboveOraclePrice_shouldExpandAndBringPriceClosertoOraclePrice()
+  function test_whenToken0DebtNotEnoughFundsInStabilityPoolAndPoolPriceAboveOraclePrice_shouldExpandAndBringPriceCloserToOraclePrice()
     public
     fpmmToken0Debt(12, 6)
   {
@@ -602,14 +521,9 @@ contract CDPLiquidityStrategyTest is Test {
     setStabilityPoolBalance(debtToken, 5_000_000e12);
 
     // Snapshot before the rebalance
-    (
-      ,
-      ,
-      uint256 reserve1Before,
-      uint256 reserve0Before,
-      uint256 priceDifferenceBefore,
-      bool reservePriceAboveOraclePriceBefore
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
     uint256 stabilityPoolDebtBalanceBefore = MockERC20(debtToken).balanceOf(address(mockStabilityPool));
     uint256 stabilityPoolCollBalanceBefore = MockERC20(collToken).balanceOf(address(mockStabilityPool));
 
@@ -618,53 +532,49 @@ contract CDPLiquidityStrategyTest is Test {
 
     liquidityController.rebalance(address(fpmm));
 
-    (
-      ,
-      ,
-      uint256 reserve1After,
-      uint256 reserve0After,
-      uint256 priceDifferenceAfter,
-      bool reservePriceAboveOraclePriceAfter
-    ) = fpmm.getPrices();
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
     uint256 stabilityPoolDebtBalanceAfter = MockERC20(debtToken).balanceOf(address(mockStabilityPool));
     uint256 stabilityPoolCollBalanceAfter = MockERC20(collToken).balanceOf(address(mockStabilityPool));
 
     assertTrue(reservePriceAboveOraclePriceAfter);
     assertTrue(priceDifferenceBefore > priceDifferenceAfter);
-    assertEq(stabilityPoolDebtBalanceBefore - (reserve0After - reserve0Before) / 1e6, stabilityPoolDebtBalanceAfter);
-    assertEq(stabilityPoolCollBalanceBefore + (reserve1Before - reserve1After) / 1e12, stabilityPoolCollBalanceAfter);
+    assertEq(stabilityPoolDebtBalanceBefore - (reserve0After - reserve0Before), stabilityPoolDebtBalanceAfter);
+    assertEq(stabilityPoolCollBalanceBefore + (reserve1Before - reserve1After), stabilityPoolCollBalanceAfter);
     assertTrue(reservePriceAboveOraclePriceAfter);
     assertTrue(reserve0Before < reserve0After);
     assertTrue(reserve1Before > reserve1After);
     assertTrue(stabilityPoolDebtBalanceAfter == 1e18);
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
+    assertRebalanceAmountIncentives(reserve1Before - reserve1After, reserve0After - reserve0Before, false, false);
   }
 
   /* ============================================================ */
   /* ================= Expansion Token 1 Debt =================== */
   /* ============================================================ */
 
-  function test_rebalance_whenToken1DebtEnoughFundsInStabilityPoolAndPoolPriceBelowOraclePrice_shouldExpand()
+  function test_rebalance_whenToken1DebtEnoughFundsInStabilityPoolAndPoolPriceBelowOraclePrice_shouldExpandAndBringPriceBackToOraclePrice()
     public
     fpmmToken1Debt(18, 6)
   {
+    // USDC USD rate
     oracleNumerator = 999884980000000000000000;
     oracleDenominator = 1e24;
 
+    // provide roughly 10_000$ to both reserves
     provideFPMMReserves(10000e6, 10000e18, false);
     setOracleRate(oracleNumerator, oracleDenominator);
 
-    // debalance fpmm
+    // debalance fpmm by swaping 5k$ worth of USDC into the pool
     swapIn(collToken, 5000e6);
-    setStabilityPoolBalance(debtToken, 100000e18);
+    // set stability pool balance to 100_000$ enough to cover the expansion
+    setStabilityPoolBalance(debtToken, 100_000e18);
 
-    (
-      ,
-      ,
-      uint256 reserve1Before,
-      uint256 reserve0Before,
-      uint256 priceDifferenceBefore,
-      bool reservePriceAboveOraclePriceBefore
-    ) = fpmm.getPrices();
+    // Snapshot before the rebalance
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
 
     uint256 stabilityPoolDebtBalanceBefore = MockERC20(debtToken).balanceOf(address(mockStabilityPool));
     uint256 stabilityPoolCollBalanceBefore = MockERC20(collToken).balanceOf(address(mockStabilityPool));
@@ -674,14 +584,10 @@ contract CDPLiquidityStrategyTest is Test {
 
     liquidityController.rebalance(address(fpmm));
 
-    (
-      ,
-      ,
-      uint256 reserve1After,
-      uint256 reserve0After,
-      uint256 priceDifferenceAfter,
-      bool reservePriceAboveOraclePriceAfter
-    ) = fpmm.getPrices();
+    // Snapshot after the rebalance
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
 
     uint256 stabilityPoolDebtBalanceAfter = MockERC20(debtToken).balanceOf(address(mockStabilityPool));
     uint256 stabilityPoolCollBalanceAfter = MockERC20(collToken).balanceOf(address(mockStabilityPool));
@@ -689,7 +595,53 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(!reservePriceAboveOraclePriceAfter);
     assertEq(priceDifferenceAfter, 0);
     assertEq(stabilityPoolDebtBalanceAfter, stabilityPoolDebtBalanceBefore - (reserve1After - reserve1Before));
-    assertEq(stabilityPoolCollBalanceAfter, stabilityPoolCollBalanceBefore + (reserve0Before - reserve0After) / 1e12);
+    assertEq(stabilityPoolCollBalanceAfter, stabilityPoolCollBalanceBefore + (reserve0Before - reserve0After));
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
+    assertRebalanceAmountIncentives(reserve0Before - reserve0After, reserve1After - reserve1Before, true, false);
+  }
+
+  function test_whenToken1DebtNotEnoughFundsInStabilityPoolAndPoolPriceBelowOraclePrice_shouldExpandAndBringPriceCloserToOraclePrice()
+    public
+    fpmmToken1Debt(18, 6)
+  {
+    // USDC USD rate
+    oracleNumerator = 999884980000000000000000;
+    oracleDenominator = 1e24;
+
+    // provide roughly 100_000$ to both reserves
+    provideFPMMReserves(100_000e6, 100_000e18, false);
+    setOracleRate(oracleNumerator, oracleDenominator);
+
+    // debalance fpmm by swaping 30k$ worth of USDC into the pool
+    swapIn(collToken, 30_000e6);
+    // set stability pool balance to 25_000$ less than the full expansion amount
+    setStabilityPoolBalance(debtToken, 25_000e18);
+
+    // Snapshot before the rebalance
+    (, , , , uint256 priceDifferenceBefore, bool reservePriceAboveOraclePriceBefore) = fpmm.getPrices();
+    uint256 reserve0Before = fpmm.reserve0();
+    uint256 reserve1Before = fpmm.reserve1();
+    uint256 stabilityPoolDebtBalanceBefore = MockERC20(debtToken).balanceOf(address(mockStabilityPool));
+    uint256 stabilityPoolCollBalanceBefore = MockERC20(collToken).balanceOf(address(mockStabilityPool));
+
+    assertTrue(!reservePriceAboveOraclePriceBefore);
+    assertTrue(priceDifferenceBefore > 0);
+
+    liquidityController.rebalance(address(fpmm));
+
+    // Snapshot after the rebalance
+    (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
+    uint256 reserve0After = fpmm.reserve0();
+    uint256 reserve1After = fpmm.reserve1();
+    uint256 stabilityPoolDebtBalanceAfter = MockERC20(debtToken).balanceOf(address(mockStabilityPool));
+    uint256 stabilityPoolCollBalanceAfter = MockERC20(collToken).balanceOf(address(mockStabilityPool));
+
+    assertTrue(!reservePriceAboveOraclePriceAfter);
+    assertTrue(priceDifferenceBefore > priceDifferenceAfter);
+    assertEq(stabilityPoolDebtBalanceAfter, stabilityPoolDebtBalanceBefore - (reserve1After - reserve1Before));
+    assertEq(stabilityPoolCollBalanceAfter, stabilityPoolCollBalanceBefore + (reserve0Before - reserve0After));
+    assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
+    assertRebalanceAmountIncentives(reserve0Before - reserve0After, reserve1After - reserve1Before, true, false);
   }
 
   /**
@@ -790,9 +742,7 @@ contract CDPLiquidityStrategyTest is Test {
    */
   function swapIn(address tokenIn, uint256 amountIn) public {
     uint256 expectedOut = fpmm.getAmountOut(amountIn, tokenIn);
-    address tokenOut = fpmm.token1() == tokenIn ? fpmm.token0() : fpmm.token1();
-    MockERC20(tokenIn).mint(address(this), amountIn);
-    MockERC20(tokenIn).transfer(address(fpmm), amountIn);
+    MockERC20(tokenIn).mint(address(fpmm), amountIn);
     if (fpmm.token0() == tokenIn) {
       fpmm.swap(0, expectedOut, address(this), "");
     } else {
@@ -800,38 +750,69 @@ contract CDPLiquidityStrategyTest is Test {
     }
   }
 
-  function assertReserveValueIncentives(uint256 reserve0Before, uint256 reserve1Before) public {
-    (uint256 rateNumerator, uint256 rateDenominator, uint256 reserve1After, uint256 reserve0After, , ) = fpmm
-      .getPrices();
+  function convertWithRateAndScale(
+    uint256 amount,
+    uint256 rateNumerator,
+    uint256 rateDenominator,
+    uint256 fromDec,
+    uint256 toDec
+  ) public returns (uint256) {
+    return (amount * rateNumerator * toDec) / (rateDenominator * fromDec);
+  }
 
-    MockERC20 token0 = MockERC20(fpmm.token0());
-    MockERC20 token1 = MockERC20(fpmm.token1());
+  /**
+   * @notice Assert the reserve value change is within the incentive
+   * @param reserve0Before Reserve of token0 before the rebalance
+   * @param reserve1Before Reserve of token1 before the rebalance
+   * @param reserve0After Reserve of token0 after the rebalance
+   * @param reserve1After Reserve of token1 after the rebalance
+   */
+  function assertReserveValueIncentives(
+    uint256 reserve0Before,
+    uint256 reserve1Before,
+    uint256 reserve0After,
+    uint256 reserve1After
+  ) public {
+    (uint256 rateNumerator, uint256 rateDenominator, , , , ) = fpmm.getPrices();
 
-    uint256 token0Scaler = 10 ** token0.decimals();
-    uint256 token1Scaler = 10 ** token1.decimals();
+    uint256 token0Scaler = 10 ** MockERC20(fpmm.token0()).decimals();
+    uint256 token1Scaler = 10 ** MockERC20(fpmm.token1()).decimals();
 
     uint256 totalReserveValueBefore;
     uint256 totalReserveValueAfter;
-    if (token0.decimals() > token1.decimals()) {
-      // calculate total reserve value in debt token decimals
-      totalReserveValueBefore = reserve0Before + ((reserve1Before * rateDenominator) / (rateNumerator));
-      totalReserveValueAfter = reserve0After + ((reserve1After * rateDenominator) / (rateNumerator));
+    if (token0Scaler > token1Scaler) {
+      // calculate total reserve value token0
+      totalReserveValueBefore =
+        reserve0Before +
+        convertWithRateAndScale(reserve1Before, rateDenominator, rateNumerator, token1Scaler, token0Scaler);
+
+      totalReserveValueAfter =
+        reserve0After +
+        convertWithRateAndScale(reserve1After, rateDenominator, rateNumerator, token1Scaler, token0Scaler);
     } else {
-      // calculate total reserve value in collateral token decimals
-      totalReserveValueBefore = reserve1Before + ((reserve0Before * rateNumerator) / (rateDenominator));
-      totalReserveValueAfter = reserve1After + ((reserve0After * rateNumerator) / (rateDenominator));
+      // calculate total reserve value token1
+      totalReserveValueBefore =
+        reserve1Before +
+        convertWithRateAndScale(reserve0Before, rateNumerator, rateDenominator, token0Scaler, token1Scaler);
+      totalReserveValueAfter =
+        reserve1After +
+        convertWithRateAndScale(reserve0After, rateNumerator, rateDenominator, token0Scaler, token1Scaler);
     }
-    console.log("--------------------------------");
-    console.log("totalReserveValueBefore", totalReserveValueBefore);
-    console.log("totalReserveValueAfter", totalReserveValueAfter);
-    console.log("--------------------------------");
     uint256 reserveValueDifference = ((totalReserveValueBefore - totalReserveValueAfter) * 10_000) /
       totalReserveValueBefore;
-    // Since we allow the incentive to be up to 50 bps of the amount takenOut off the fppm and the max amount that makes sense for a
-    // rebalance is taking out 50% of the reserves, we allow the incentive to be up to 0.25% of the total reserve value
+    // Since we allow the incentive to be up to 50 bps of the amount taken out off the fppm
+    // and the max amount that makes sense for a rebalance is taking out 50% of the reserves,
+    // we allow the reserve value difference to be up to 0.25% of the total reserve value
     assertTrue(reserveValueDifference <= 25); // 0.25%
   }
 
+  /**
+   * @notice Assert the rebalance amounts are within the incentive
+   * @param amountTakenOut Amount of the token taken out
+   * @param amountAdded Amount of the token added
+   * @param isToken0Out True if the token taken out is token0, false otherwise
+   * @param isCheapContraction True if the rebalance is a cheap contraction (contraction with less than 50bps)
+   */
   function assertRebalanceAmountIncentives(
     uint256 amountTakenOut,
     uint256 amountAdded,
@@ -840,20 +821,23 @@ contract CDPLiquidityStrategyTest is Test {
   ) public {
     (uint256 rateNumerator, uint256 rateDenominator, , , , ) = fpmm.getPrices();
 
+    uint256 token0Scaler = 10 ** MockERC20(fpmm.token0()).decimals();
+    uint256 token1Scaler = 10 ** MockERC20(fpmm.token1()).decimals();
+
     uint256 amountInInTokenOut;
     if (isToken0Out) {
-      amountInInTokenOut = (amountAdded * rateDenominator) / rateNumerator;
+      amountInInTokenOut = ((amountAdded * rateDenominator * token0Scaler) / (rateNumerator * token1Scaler));
     } else {
-      amountInInTokenOut = (amountAdded * rateNumerator) / rateDenominator;
+      amountInInTokenOut = ((amountAdded * rateNumerator * token1Scaler) / (rateDenominator * token0Scaler));
     }
     uint256 bpsDifference = ((amountTakenOut - amountInInTokenOut) * 10_000) / amountTakenOut;
+
     // 50 bps is the max but for contractions the amount can be less depending on the redemption rate
     if (isCheapContraction) {
       assertTrue(bpsDifference < 50); // 0.5%
     } else {
-      assertTrue(bpsDifference == 50); // 0.5%
+      // we allow for a difference of 1 due to rounding when token decimals differ
+      assertApproxEqAbs(bpsDifference, 50, 1); // 0.5%
     }
   }
-
-  function assertStabilityPoolIncentives() public {}
 }

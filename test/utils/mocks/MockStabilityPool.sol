@@ -5,12 +5,15 @@ import { MockERC20 } from "./MockERC20.sol";
 
 contract MockStabilityPool {
   address public debtToken;
+  address public collToken;
 
-  constructor(address _debtToken) {
+  constructor(address _debtToken, address _collToken) {
     debtToken = _debtToken;
+    collToken = _collToken;
   }
 
   function swapCollateralForStable(uint256 amountCollIn, uint256 amountStableOut) external {
+    MockERC20(collToken).transferFrom(msg.sender, address(this), amountCollIn);
     require(
       MockERC20(debtToken).balanceOf(address(this)) >= amountStableOut,
       "StabilityPoolMock: Insufficient balance"

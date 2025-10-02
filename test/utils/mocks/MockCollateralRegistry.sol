@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
+// solhint-disable no-unused-vars
 
 import { MockERC20 } from "./MockERC20.sol";
-import { console } from "forge-std/console.sol";
 
 contract MockCollateralRegistry {
   MockERC20 public debtToken;

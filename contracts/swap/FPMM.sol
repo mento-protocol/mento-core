@@ -14,7 +14,6 @@ import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
-import { console } from "forge-std/console.sol";
 
 /**
  * @title Fixed Price Market Maker (FPMM)
@@ -244,7 +243,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     // slither-disable-start divide-before-multiply
     reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
-    console.log("reservePriceNumerator", reservePriceNumerator);
     reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
     // slither-disable-end divide-before-multiply
 

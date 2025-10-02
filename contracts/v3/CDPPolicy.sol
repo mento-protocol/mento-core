@@ -7,8 +7,6 @@ import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.so
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 
-import { console } from "forge-std/console.sol";
-
 contract CDPPolicy is ICDPPolicy, Ownable {
   mapping(address => address) public deptTokenStabilityPool;
 
@@ -17,7 +15,7 @@ contract CDPPolicy is ICDPPolicy, Ownable {
   // For now stored in a mapping as it is not readable in the collateral registry
   mapping(address => uint256) public deptTokenRedemptionBeta;
 
-  uint256 constant bpsToFeeScaler = 1e14;
+  uint256 public constant BPS_TO_FEE_SCALER = 1e14;
 
   constructor(
     address[] memory debtTokens,
@@ -64,10 +62,8 @@ contract CDPPolicy is ICDPPolicy, Ownable {
 
   function determineAction(LQ.Context memory ctx) external view returns (bool shouldAct, LQ.Action memory action) {
     if (ctx.prices.poolPriceAbove) {
-      console.log("handlePoolPriceAbove");
       return _handlePoolPriceAbove(ctx);
     } else {
-      console.log("handlePoolPriceBelow");
       return _handlePoolPriceBelow(ctx);
     }
   }
@@ -106,8 +102,6 @@ contract CDPPolicy is ICDPPolicy, Ownable {
       LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
       LQ.BASIS_POINTS_DENOMINATOR
     );
-    console.log("token0In", token0In);
-    console.log("token1Out", token1Out);
 
     if (ctx.isToken0Debt) {
       // ON/OD < RN/RD
@@ -115,10 +109,9 @@ contract CDPPolicy is ICDPPolicy, Ownable {
       action = _handleExpansion(ctx, token0In, token1Out);
       shouldAct = true;
     } else {
-      console.log("handleContraction");
       // ON/OD < RN/RD
       // ON/OD < DebtR/CollR
-      action = _handleContraction(ctx, token0In, token1Out);
+      action = _handleContraction(ctx, token1Out);
       shouldAct = true;
     }
     return (shouldAct, action);
@@ -142,13 +135,11 @@ contract CDPPolicy is ICDPPolicy, Ownable {
       LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
       LQ.BASIS_POINTS_DENOMINATOR
     );
-    console.log("token1In", token1In);
-    console.log("token0Out", token0Out);
 
     if (ctx.isToken0Debt) {
       // ON/OD > RN/RD
       // ON/OD > CollR/DebtR
-      action = _handleContraction(ctx, token1In, token0Out);
+      action = _handleContraction(ctx, token0Out);
       shouldAct = true;
     } else {
       // ON/OD > RN/RD
@@ -178,29 +169,31 @@ contract CDPPolicy is ICDPPolicy, Ownable {
 
     if (amountIn > stabilityPoolBalance) {
       amountIn = stabilityPoolBalance;
-
       if (ctx.isToken0Debt) {
         // uint256 amountOutRaw = (amountIn * ctx.prices.oracleNum) / ctx.prices.oracleDen;
         // amountOut = LQ.scaleFromTo(amountOutRaw, ctx.token0Dec, ctx.token1Dec);
-        amountOut = LQ.convertWithRateScaling(
+        amountOut = LQ.convertWithRateScalingAndFee(
           amountIn,
           ctx.token0Dec,
           ctx.token1Dec,
           ctx.prices.oracleNum,
-          ctx.prices.oracleDen
+          ctx.prices.oracleDen,
+          LQ.BASIS_POINTS_DENOMINATOR,
+          LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps
         );
       } else {
         // uint256 amountOutRaw = (amountIn * ctx.prices.oracleDen) / ctx.prices.oracleNum;
         // amountOut = LQ.scaleFromTo(amountOutRaw, ctx.token1Dec, ctx.token0Dec);
-        amountOut = LQ.convertWithRateScaling(
+        amountOut = LQ.convertWithRateScalingAndFee(
           amountIn,
           ctx.token1Dec,
           ctx.token0Dec,
           ctx.prices.oracleDen,
-          ctx.prices.oracleNum
+          ctx.prices.oracleNum,
+          LQ.BASIS_POINTS_DENOMINATOR,
+          LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps
         );
       }
-      amountOut = (amountOut * (LQ.BASIS_POINTS_DENOMINATOR + ctx.incentiveBps)) / LQ.BASIS_POINTS_DENOMINATOR;
     }
 
     action.pool = ctx.pool;
@@ -223,7 +216,6 @@ contract CDPPolicy is ICDPPolicy, Ownable {
   /// take dept token from fpmm for colateral token from stabilityPool/redemptions
   function _handleContraction(
     LQ.Context memory ctx,
-    uint256 amountIn, // collateral tokken
     uint256 amountOut // debt token
   ) internal view returns (LQ.Action memory action) {
     address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
@@ -239,7 +231,6 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     action.pool = ctx.pool;
     action.dir = LQ.Direction.Contract;
     action.liquiditySource = LQ.LiquiditySource.CDP;
-
     if (ctx.isToken0Debt) {
       action.amount0Out = amountToRedeem;
       action.amount1Out = 0;
@@ -262,9 +253,8 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     // amountToRedeem = totalSupply * REDEMPTION_BETA * (maxFee - decayedBaseFee)
     uint256 decayedBaseFee = ICollateralRegistry(collateralRegistry).getRedemptionRateWithDecay();
     uint256 totalDebtTokenSupply = IERC20(debtToken).totalSupply();
-    console.log("totalDebtTokenSupply", totalDebtTokenSupply);
 
-    uint256 maxRedemptionFee = ctx.incentiveBps * bpsToFeeScaler;
+    uint256 maxRedemptionFee = ctx.incentiveBps * BPS_TO_FEE_SCALER;
     uint256 redemptionBeta = deptTokenRedemptionBeta[debtToken];
 
     require(maxRedemptionFee > decayedBaseFee, "CDPPolicy: REDEMPTION_FEE_TOO_LARGE");
@@ -296,8 +286,10 @@ contract CDPPolicy is ICDPPolicy, Ownable {
       ? (ctx.token0Dec, ctx.token1Dec)
       : (ctx.token1Dec, ctx.token0Dec);
 
+    // Redemption fee formula from CollateralRegistry.sol
+    // redemptionFee := decayedBaseFee + (amountToRedeem * redemptionBeta) / totalDebtTokenSupply * 1e18
     // need to scale the redeemed debt fraction to 1e18 since fees are in 1e18
-    uint256 redeemedDebtFraction = (amountToRedeem * 1e18) / totalDebtTokenSupply;
+    uint256 redeemedDebtFraction = (amountToRedeem * 1e18 * redemptionBeta) / totalDebtTokenSupply;
     uint256 redemptionFee = decayedBaseFee + redeemedDebtFraction;
 
     // redemption fee is capped at 100%
