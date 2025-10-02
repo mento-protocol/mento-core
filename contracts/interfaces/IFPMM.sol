@@ -356,23 +356,6 @@ interface IFPMM is IRPool {
     );
 
   /**
-   * @notice Converts token amount using the provided exchange rate and adjusts for decimals
-   * @param amount Amount to convert
-   * @param fromDecimals Source token decimal scaling factor, 10^fromDecimals
-   * @param toDecimals Destination token decimal scaling factor, 10^toDecimals
-   * @param numerator Rate numerator,
-   * @param denominator Rate denominator,
-   * @return Converted amount
-   */
-  function convertWithRate(
-    uint256 amount,
-    uint256 fromDecimals,
-    uint256 toDecimals,
-    uint256 numerator,
-    uint256 denominator
-  ) external pure returns (uint256);
-
-  /**
    * @notice Mints LP tokens by providing liquidity to the pool
    * @param to Address to receive LP tokens
    * @return liquidity Amount of LP tokens minted

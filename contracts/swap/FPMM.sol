@@ -279,40 +279,30 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
-    uint256 amountInAfterFee = amountIn - ((amountIn * $.protocolFee) / BASIS_POINTS_DENOMINATOR);
-
     if (tokenIn == $.token0) {
-      return convertWithRate(amountInAfterFee, $.decimals0, $.decimals1, rateNumerator, rateDenominator);
+      return
+        convertWithRateAndFee(
+          amountIn,
+          $.decimals0,
+          $.decimals1,
+          rateNumerator,
+          rateDenominator,
+          BASIS_POINTS_DENOMINATOR - $.protocolFee,
+          BASIS_POINTS_DENOMINATOR
+        );
     } else {
-      return convertWithRate(amountInAfterFee, $.decimals1, $.decimals0, rateDenominator, rateNumerator);
+      return
+        convertWithRateAndFee(
+          amountIn,
+          $.decimals1,
+          $.decimals0,
+          rateDenominator,
+          rateNumerator,
+          BASIS_POINTS_DENOMINATOR - $.protocolFee,
+          BASIS_POINTS_DENOMINATOR
+        );
     }
   }
-
-  // slither-disable-start divide-before-multiply
-  /// @inheritdoc IFPMM
-  function convertWithRate(
-    uint256 amount,
-    uint256 fromDecimals,
-    uint256 toDecimals,
-    uint256 numerator,
-    uint256 denominator
-  ) public pure returns (uint256) {
-    // TODO: need overflow check
-    return (amount * numerator * toDecimals) / (denominator * fromDecimals);
-  }
-
-  function convertWithRateAndFee(
-    uint256 amount,
-    uint256 fromDecimals,
-    uint256 toDecimals,
-    uint256 numerator,
-    uint256 denominator,
-    uint256 incentiveNum,
-    uint256 incentiveDen
-  ) public pure returns (uint256) {
-    return (amount * numerator * toDecimals * incentiveNum) / (denominator * fromDecimals * incentiveDen);
-  }
-  // slither-disable-end divide-before-multiply
 
   /* ========== EXTERNAL FUNCTIONS ========== */
 
@@ -736,5 +726,27 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     // Check the reserve value is not decreased
     uint256 expectedReserveValue = swapData.initialReserveValue + totalFeeInToken1;
     require(newReserveValue >= expectedReserveValue, "FPMM: RESERVE_VALUE_DECREASED");
+  }
+
+  function convertWithRate(
+    uint256 amount,
+    uint256 fromDecimals,
+    uint256 toDecimals,
+    uint256 numerator,
+    uint256 denominator
+  ) internal pure returns (uint256) {
+    return (amount * numerator * toDecimals) / (denominator * fromDecimals);
+  }
+
+  function convertWithRateAndFee(
+    uint256 amount,
+    uint256 fromDecimals,
+    uint256 toDecimals,
+    uint256 numerator,
+    uint256 denominator,
+    uint256 incentiveNum,
+    uint256 incentiveDen
+  ) public pure returns (uint256) {
+    return (amount * numerator * toDecimals * incentiveNum) / (denominator * fromDecimals * incentiveDen);
   }
 }

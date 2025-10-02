@@ -52,45 +52,6 @@ contract FPMMGettersTest is FPMMBaseTest {
     assertEq(t1, token1);
   }
 
-  function test_convertWithRate_whenSameDecimals_shouldConvertCorrectly()
-    public
-    initializeFPMM_withDecimalTokens(18, 18)
-  {
-    uint256 amount = 100e18;
-    uint256 numerator = 2e18; // 2:1 rate
-    uint256 denominator = 1e18;
-
-    uint256 convertedAmount = fpmm.convertWithRate(amount, 1e18, 1e18, numerator, denominator);
-
-    assertEq(convertedAmount, 200e18); // 100 * 2 = 200
-  }
-
-  function test_convertWithRate_whenFromDecimalsLarger_shouldConvertCorrectly()
-    public
-    initializeFPMM_withDecimalTokens(18, 6)
-  {
-    uint256 amount = 100e18; // 100 of token0 (18 decimals)
-    uint256 numerator = 2e18; // 2:1 rate
-    uint256 denominator = 1e18;
-
-    uint256 convertedAmount = fpmm.convertWithRate(amount, 1e18, 1e6, numerator, denominator);
-
-    assertEq(convertedAmount, 200e6); // 100 * 2 / 10^12 = 200 * 10^6
-  }
-
-  function test_convertWithRate_whenFromDecimalsSmaller_shouldConvertCorrectly()
-    public
-    initializeFPMM_withDecimalTokens(6, 18)
-  {
-    uint256 amount = 100e6; // 100 of token0 (6 decimals)
-    uint256 numerator = 2e18; // 2:1 rate
-    uint256 denominator = 1e18;
-
-    uint256 convertedAmount = fpmm.convertWithRate(amount, 1e6, 1e18, numerator, denominator);
-
-    assertEq(convertedAmount, 200e18); // 100 * 2 * 10^12 = 200 * 10^18
-  }
-
   function test_getAmountOut_whenToken0Input_shouldCalculateCorrectAmount()
     public
     initializeFPMM_withDecimalTokens(18, 6)
@@ -98,10 +59,10 @@ contract FPMMGettersTest is FPMMBaseTest {
     setupMockOracleRate(2e18, 1e18)
   {
     uint256 amountIn = 10e18;
-
-    uint256 amountInAfterFee = amountIn - ((amountIn * fpmm.protocolFee()) / 10000);
-
-    uint256 expectedOut = fpmm.convertWithRate(amountInAfterFee, 1e18, 1e6, 2e18, 1e18);
+    // formula from FPMM.sol
+    // amountOut = amountIn * rate * (1 - fee)
+    // amountOut =  10 * 2 * 0.997 = 19.994
+    uint256 expectedOut = 19.94e6;
 
     uint256 actualOut = fpmm.getAmountOut(amountIn, token0);
 
@@ -115,9 +76,11 @@ contract FPMMGettersTest is FPMMBaseTest {
     setupMockOracleRate(2e18, 1e18)
   {
     uint256 amountIn = 10e6;
+    // formula from FPMM.sol
+    // amountOut = amountIn * rate * (1 - fee)
+    // amountOut =  10 * 1/2 * 0.997 = 4.985
+    uint256 expectedOut = 4.985e18;
 
-    uint256 amountInAfterFee = amountIn - ((amountIn * fpmm.protocolFee()) / 10000);
-    uint256 expectedOut = fpmm.convertWithRate(amountInAfterFee, 1e6, 1e18, 1e18, 2e18);
     uint256 actualOut = fpmm.getAmountOut(amountIn, token1);
 
     assertEq(actualOut, expectedOut);
