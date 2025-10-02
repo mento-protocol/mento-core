@@ -212,11 +212,7 @@ contract OracleAdapterTest is Test {
     assertTrue(oracleAdapter.isTradingSuspended(referenceRateFeedID));
   }
 
-  function test_isTradingSuspended_returnsFalseWhenTradingModeIsBidirectional()
-    public
-    initialized
-    withTradingMode(0)
-  {
+  function test_isTradingSuspended_returnsFalseWhenTradingModeIsBidirectional() public initialized withTradingMode(0) {
     assertFalse(oracleAdapter.isTradingSuspended(referenceRateFeedID));
   }
 

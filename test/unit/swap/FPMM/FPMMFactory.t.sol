@@ -768,11 +768,23 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
 
     // Deploy pair A-B with A first
     vm.prank(governanceCelo);
-    address proxyAB1 = factoryCelo.deployFPMM(address(fpmmImplementationCelo), tokenA, tokenB, referenceRateFeedID, false);
+    address proxyAB1 = factoryCelo.deployFPMM(
+      address(fpmmImplementationCelo),
+      tokenA,
+      tokenB,
+      referenceRateFeedID,
+      false
+    );
 
     // Deploy pair B-C with B first
     vm.prank(governanceCelo);
-    address proxyBC1 = factoryCelo.deployFPMM(address(fpmmImplementationCelo), tokenB, tokenC, referenceRateFeedID, false);
+    address proxyBC1 = factoryCelo.deployFPMM(
+      address(fpmmImplementationCelo),
+      tokenB,
+      tokenC,
+      referenceRateFeedID,
+      false
+    );
 
     // Verify mappings use sorted tokens
     assertEq(factoryCelo.getPool(tokenA, tokenB), proxyAB1);
