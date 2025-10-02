@@ -204,6 +204,22 @@ contract OracleAdapterTest is Test {
     assertEq(oracleAdapter.getTradingMode(referenceRateFeedID), 1);
   }
 
+  function test_isTradingSuspended_returnsTrueWhenTradingModeIsNotBidirectional()
+    public
+    initialized
+    withTradingMode(3)
+  {
+    assertTrue(oracleAdapter.isTradingSuspended(referenceRateFeedID));
+  }
+
+  function test_isTradingSuspended_returnsFalseWhenTradingModeIsBidirectional()
+    public
+    initialized
+    withTradingMode(0)
+  {
+    assertFalse(oracleAdapter.isTradingSuspended(referenceRateFeedID));
+  }
+
   function test_isFXMarketOpen_returnsTrueIfFXMarketIsOpen() public initialized withFXMarketOpen(true) {
     assertTrue(oracleAdapter.isFXMarketOpen());
   }

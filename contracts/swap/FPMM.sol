@@ -307,6 +307,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       return (amount * numerator) / denominator;
     }
   }
+
   // slither-disable-end divide-before-multiply
 
   /* ========== EXTERNAL FUNCTIONS ========== */
@@ -365,6 +366,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     emit Burn(msg.sender, amount0, amount1, liquidity, to);
   }
+
   // slither-disable-end reentrancy-benign
   // slither-disable-end reentrancy-no-eth
 
@@ -416,6 +418,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     emit Swap(msg.sender, swapData.amount0In, swapData.amount1In, amount0Out, amount1Out, to);
   }
+
   // slither-disable-end reentrancy-no-eth
 
   // slither-disable-start reentrancy-no-eth
@@ -478,6 +481,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     uint256 newPriceDifference = _rebalanceCheck(swapData);
     emit Rebalanced(msg.sender, swapData.initialPriceDifference, newPriceDifference);
   }
+
   // slither-disable-end reentrancy-no-eth
 
   /* ========== ADMIN FUNCTIONS ========== */
@@ -584,7 +588,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
    * @notice Returns the storage pointer for the FPMM contract
    * @return $ Pointer to the FPMM storage
    */
-  function _getFPMMStorage() private pure returns (FPMMStorage storage $) {
+  function _getFPMMStorage() internal pure returns (FPMMStorage storage $) {
     // solhint-disable-next-line no-inline-assembly
     assembly {
       $.slot := _FPMM_STORAGE_LOCATION
@@ -649,7 +653,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     return token0ValueInToken1 + amount1;
   }
 
-  function _getRateFeed() private view returns (uint256 rateNumerator, uint256 rateDenominator) {
+  function _getRateFeed() internal view virtual returns (uint256 rateNumerator, uint256 rateDenominator) {
     FPMMStorage storage $ = _getFPMMStorage();
 
     (rateNumerator, rateDenominator) = $.oracleAdapter.getFXRateIfValid($.referenceRateFeedID);

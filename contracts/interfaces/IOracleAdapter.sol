@@ -146,4 +146,11 @@ interface IOracleAdapter {
    * @return The trading mode
    */
   function getTradingMode(address rateFeedID) external view returns (uint8);
+
+  /**
+   * @notice Returns whether trading is suspended for a given rate feed ID
+   * @param rateFeedID The address of the rate feed
+   * @return True if trading is suspended, false otherwise
+   */
+  function isTradingSuspended(address rateFeedID) external view returns (bool);
 }

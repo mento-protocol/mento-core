@@ -142,6 +142,11 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     return _hasRecentRate(rateFeedID);
   }
 
+  /// @inheritdoc IOracleAdapter
+  function isTradingSuspended(address rateFeedID) external view returns (bool) {
+    return _getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL;
+  }
+
   /* ========== INTERNAL FUNCTIONS ========== */
 
   function _isFXMarketOpen() private view returns (bool) {
