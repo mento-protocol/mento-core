@@ -13,8 +13,8 @@ contract OneToOneFPMM is FPMM {
   function _getRateFeed() internal view override returns (uint256 rateNumerator, uint256 rateDenominator) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    // Check if trading is suspended via breaker box
-    require(!$.oracleAdapter.isTradingSuspended($.referenceRateFeedID), "OracleAdapter: TRADING_SUSPENDED");
+    // Ensure rate feed is valid (checks trading mode and rate freshness)
+    $.oracleAdapter.ensureRateValid($.referenceRateFeedID);
 
     // Always return 1:1 rate for stablecoin swaps
     return (1e18, 1e18);

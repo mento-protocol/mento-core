@@ -143,8 +143,9 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   }
 
   /// @inheritdoc IOracleAdapter
-  function isTradingSuspended(address rateFeedID) external view returns (bool) {
-    return _getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL;
+  function ensureRateValid(address rateFeedID) external view {
+    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
+    require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */

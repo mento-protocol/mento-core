@@ -185,7 +185,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     assertEq(IERC20(token1).balanceOf(CHARLIE), amount1Out);
   }
 
-  function test_swap_whenRateIsExpired_shouldStillWork()
+  function test_swap_whenRateIsExpired_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
@@ -193,16 +193,10 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     withFXMarketOpen(true)
     withRecentRate(false)
   {
-    // OneToOneFPMM only checks breaker box, not rate freshness
-    // Stablecoin swaps can work even with stale oracle data
-    uint256 amount0In = 100e18;
-    uint256 amount1Out = 99.70e18;
+    // OneToOneFPMM checks rate freshness via ensureRateValid
+    deal(token0, address(fpmm), 100e18);
 
-    vm.startPrank(ALICE);
-    IERC20(token0).transfer(address(fpmm), amount0In);
-    fpmm.swap(0, amount1Out, CHARLIE, "");
-    vm.stopPrank();
-
-    assertEq(IERC20(token1).balanceOf(CHARLIE), amount1Out);
+    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    fpmm.swap(0, 10e18, BOB, "");
   }
 }

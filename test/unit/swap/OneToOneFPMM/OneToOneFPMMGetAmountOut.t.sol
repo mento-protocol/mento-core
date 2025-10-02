@@ -160,19 +160,15 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_whenRateIsExpired_shouldStillWork()
+  function test_getAmountOut_whenRateIsExpired_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     withOracleRate(1e18, 1e18)
     withFXMarketOpen(true)
     withRecentRate(false)
   {
-    // OneToOneFPMM only checks breaker box, not rate freshness
-    // Stablecoin swaps can work even with stale oracle data
-    uint256 amountIn = 100e18;
-    uint256 expectedAmountOut = 99.7e18; // 1:1 rate minus 0.3% fee
-
-    uint256 amountOut = fpmm.getAmountOut(amountIn, token0);
-    assertEq(amountOut, expectedAmountOut);
+    // OneToOneFPMM checks rate freshness via ensureRateValid
+    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    fpmm.getAmountOut(100e18, token0);
   }
 }
