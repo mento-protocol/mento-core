@@ -191,7 +191,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /// @inheritdoc IFPMM
-  function protocolFee() external view returns (uint256) {
+  function protocolFee() external view override(IFPMM, IRPool) returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.protocolFee;
   }

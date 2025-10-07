@@ -8,7 +8,8 @@ import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { Router } from "contracts/swap/router/Router.sol";
 import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 import { VirtualPoolFactory } from "contracts/swap/virtual/VirtualPoolFactory.sol";
-import { IFactoryRegistry } from "contracts/swap/router/interfaces/IFactoryRegistry.sol";
+import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
+import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 
 contract VirtualPoolBaseIntegration is ProtocolTest {
@@ -16,6 +17,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   Router public router;
   FPMM public fpmmImplementation;
   VirtualPoolFactory public vpFactory;
+  OracleAdapter public oracleAdapter;
 
   // Test accounts
   address public alice = makeAddr("alice");
@@ -27,6 +29,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   address public proxyAdmin = makeAddr("proxyAdmin");
   address public governance = makeAddr("governance");
   address public factoryRegistry = makeAddr("factoryRegistry");
+  address public marketHoursBreaker = makeAddr("marketHoursBreaker");
   address public forwarder = address(0);
 
   // Test environment
@@ -34,7 +37,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
 
   function setUp() public virtual override {
     vm.warp(10 days); // Start at a non-zero timestamp
-    vm.selectFork(vm.createFork("https://forno.celo.org"));
+    vm.selectFork(celoFork);
 
     super.setUp();
 
@@ -53,15 +56,11 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
     fpmmFactory = new FPMMFactory(false);
     fpmmImplementation = new FPMM(true);
 
+    oracleAdapter = new OracleAdapter(false);
+    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), marketHoursBreaker);
     router = new Router(forwarder, factoryRegistry, address(fpmmFactory));
 
-    fpmmFactory.initialize(
-      address(sortedOracles),
-      proxyAdmin,
-      address(breakerBox),
-      governance,
-      address(fpmmImplementation)
-    );
+    fpmmFactory.initialize(address(oracleAdapter), proxyAdmin, governance, address(fpmmImplementation));
   }
 
   function _setupMocks() internal {
