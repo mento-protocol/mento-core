@@ -11,6 +11,9 @@ contract FlashLoanReceiver is IFPMMCallee {
   address public token0;
   address public token1;
   bool public shouldRepay;
+  bool public shouldRepayExactAmounts;
+  uint256 public repayExactAmount0;
+  uint256 public repayExactAmount1;
   uint256 public repayExtra0;
   uint256 public repayExtra1;
   address public sender;
@@ -38,6 +41,12 @@ contract FlashLoanReceiver is IFPMMCallee {
     shouldRevert = _shouldRevert;
   }
 
+  function enableRepayExactAmounts(uint256 _repayExactAmount0, uint256 _repayExactAmount1) external {
+    shouldRepayExactAmounts = true;
+    repayExactAmount0 = _repayExactAmount0;
+    repayExactAmount1 = _repayExactAmount1;
+  }
+
   function hook(address _sender, uint256 _amount0, uint256 _amount1, bytes calldata _data) external override {
     require(msg.sender == address(fpmm), "Not called by FPMM");
 
@@ -53,17 +62,28 @@ contract FlashLoanReceiver is IFPMMCallee {
 
     // Repay the flash loan if configured to do so
     if (shouldRepay) {
-      if (amount0Received > 0) {
-        // Get tokens to repay (either by having them already or through some other means)
-        // In a real scenario, this would be arbitrage or other operations
-        uint256 repayAmount = amount0Received + repayExtra0;
-        IERC20(token0).transfer(address(fpmm), repayAmount);
+      if (shouldRepayExactAmounts) {
+        repayExactAmounts();
+      } else {
+        repayWithExtra();
       }
+    }
+  }
 
-      if (amount1Received > 0) {
-        uint256 repayAmount = amount1Received + repayExtra1;
-        IERC20(token1).transfer(address(fpmm), repayAmount);
-      }
+  function repayWithExtra() internal {
+    uint256 repayAmount0 = amount0Received + repayExtra0;
+    uint256 repayAmount1 = amount1Received + repayExtra1;
+
+    IERC20(token0).transfer(address(fpmm), repayAmount0);
+    IERC20(token1).transfer(address(fpmm), repayAmount1);
+  }
+
+  function repayExactAmounts() internal {
+    if (repayExactAmount0 > 0) {
+      IERC20(token0).transfer(address(fpmm), repayExactAmount0);
+    }
+    if (repayExactAmount1 > 0) {
+      IERC20(token1).transfer(address(fpmm), repayExactAmount1);
     }
   }
 }

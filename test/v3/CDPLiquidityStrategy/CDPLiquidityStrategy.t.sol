@@ -13,8 +13,8 @@ import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { LiquidityController } from "contracts/v3/LiquidityController.sol";
 import { ILiquidityPolicy } from "contracts/v3/Interfaces/ILiquidityPolicy.sol";
-import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
-import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
+
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
 
 contract CDPLiquidityStrategyTest is Test {
@@ -27,9 +27,8 @@ contract CDPLiquidityStrategyTest is Test {
   address public liquiditySource;
   address public debtToken;
   address public collToken;
-  address public sortedOracles = makeAddr("sortedOracles");
+  address public oracleAdapter = makeAddr("oracleAdapter");
   address public referenceRateFeedID = makeAddr("referenceRateFeedID");
-  address public breakerBox = makeAddr("breakerBox");
   uint256 public oracleNumerator;
   uint256 public oracleDenominator;
 
@@ -51,7 +50,7 @@ contract CDPLiquidityStrategyTest is Test {
     mockStabilityPool = new MockStabilityPool(debtToken, collToken);
 
     // initialize fpmm and set liquidity strategy
-    fpmm.initialize(debtToken, collToken, sortedOracles, referenceRateFeedID, false, breakerBox, address(this));
+    fpmm.initialize(debtToken, collToken, oracleAdapter, referenceRateFeedID, false, address(this));
     fpmm.setLiquidityStrategy(address(cdpLiquidityStrategy), true);
 
     // deploy cdp policy
@@ -83,8 +82,6 @@ contract CDPLiquidityStrategyTest is Test {
     liquidityController.setPoolPipeline(address(fpmm), policies);
     liquidityController.setLiquiditySourceStrategy(LQ.LiquiditySource.CDP, cdpLiquidityStrategy);
 
-    // mock breaker box trading mode to trading allowed
-    mockBreakerBoxTradingMode(false);
     _;
   }
 
@@ -99,7 +96,7 @@ contract CDPLiquidityStrategyTest is Test {
     mockStabilityPool = new MockStabilityPool(debtToken, collToken);
 
     // initialize fpmm and set liquidity strategy
-    fpmm.initialize(collToken, debtToken, sortedOracles, referenceRateFeedID, false, breakerBox, address(this));
+    fpmm.initialize(collToken, debtToken, oracleAdapter, referenceRateFeedID, false, address(this));
     fpmm.setLiquidityStrategy(address(cdpLiquidityStrategy), true);
 
     // deploy cdp policy
@@ -130,9 +127,6 @@ contract CDPLiquidityStrategyTest is Test {
     liquidityController.addPool(address(fpmm), debtToken, collToken, 0 seconds, 50);
     liquidityController.setPoolPipeline(address(fpmm), policies);
     liquidityController.setLiquiditySourceStrategy(LQ.LiquiditySource.CDP, cdpLiquidityStrategy);
-
-    // mock breaker box trading mode to trading allowed
-    mockBreakerBoxTradingMode(false);
     _;
   }
 
@@ -145,8 +139,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken0Debt(12, 18)
   {
     // COP USD rate
-    oracleNumerator = 255050000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 255050000000000;
+    oracleDenominator = 1e18;
 
     // 3_920_799_843 COP.m in 12 decimals and 1_000_000 USD.m in 18 decimals
     provideFPMMReserves(3_920_799_843e12, 1_000_000e18, true);
@@ -159,7 +153,7 @@ contract CDPLiquidityStrategyTest is Test {
     // payed redemption fee is base rate + redeemedAmount/totalSupply
     // setting total supply to 1_000_000_000_000 in 12 decimals to ensure total redemption fee is less than 0.5%
     setDebtTokenTotalSupply(totalSupply);
-    mockCollateralRegistry.setOracleRate(oracleNumerator / 1e6, oracleDenominator / 1e6);
+    mockCollateralRegistry.setOracleRate(oracleNumerator, oracleDenominator);
 
     // debalance fpmm by swaping 200_000$ worth of COP into the pool
     swapIn(debtToken, 784_150_001e12);
@@ -197,8 +191,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken0Debt(12, 18)
   {
     // COP USD rate
-    oracleNumerator = 255050000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 255050000000000;
+    oracleDenominator = 1e18;
 
     // 3_920_799_843 COP.m in 12 decimals and 1_000_000 USD.m in 18 decimals
     provideFPMMReserves(3_920_799_843e12, 1_000_000e18, true);
@@ -213,7 +207,7 @@ contract CDPLiquidityStrategyTest is Test {
     // This results in maximum amount that can be redeemed is 0.25% of the total supply.
     // or 250_000_000e12 which is less than the amount required to bring the pool price fully back to the oracle price.
     setDebtTokenTotalSupply(totalSupply);
-    mockCollateralRegistry.setOracleRate(oracleNumerator / 1e6, oracleDenominator / 1e6);
+    mockCollateralRegistry.setOracleRate(oracleNumerator, oracleDenominator);
 
     // debalance fpmm by swaping 200_000$ worth of COP into the pool
     swapIn(debtToken, 784_150_001e12);
@@ -249,8 +243,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken0Debt(12, 18)
   {
     // COP USD rate
-    oracleNumerator = 255050000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 255050000000000;
+    oracleDenominator = 1e18;
 
     // 3_920_799_843 COP.m in 12 decimals and 1_000_000 USD.m in 18 decimals
     provideFPMMReserves(3920799843e12, 1000000e18, true);
@@ -267,7 +261,7 @@ contract CDPLiquidityStrategyTest is Test {
     uint256 targetSupply = (targetAmountToRedeem * 1e18) / (50 * 1e14 - baseRate);
 
     setDebtTokenTotalSupply(targetSupply);
-    mockCollateralRegistry.setOracleRate(oracleNumerator / 1e6, oracleDenominator / 1e6);
+    mockCollateralRegistry.setOracleRate(oracleNumerator, oracleDenominator);
 
     // debalance fpmm
     swapIn(debtToken, 784_150_001e12);
@@ -308,8 +302,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken1Debt(18, 6)
   {
     // USDC USD rate
-    oracleNumerator = 999884980000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 999884980000000000;
+    oracleDenominator = 1e18;
 
     provideFPMMReserves(10_000e6, 10_000e18, false);
     setOracleRate(oracleNumerator, oracleDenominator);
@@ -323,7 +317,7 @@ contract CDPLiquidityStrategyTest is Test {
     // setting total supply to 10_000_000 in 18 decimals to ensure total redemption fee is less than 0.5%
     setDebtTokenTotalSupply(totalSupply);
     // since token1 is debt token oracle rate is inverted and scaled to 18 decimals
-    mockCollateralRegistry.setOracleRate(oracleDenominator / 1e6, oracleNumerator / 1e6);
+    mockCollateralRegistry.setOracleRate(oracleDenominator, oracleNumerator);
 
     // debalance fpmm by swaping 5_000$ worth of USD.m into the pool
     swapIn(debtToken, 5_000e18);
@@ -361,8 +355,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken1Debt(18, 6)
   {
     // USDC USD rate
-    oracleNumerator = 999884980000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 999884980000000000;
+    oracleDenominator = 1e18;
 
     provideFPMMReserves(10000e6, 10000e18, false);
     setOracleRate(oracleNumerator, oracleDenominator);
@@ -378,7 +372,7 @@ contract CDPLiquidityStrategyTest is Test {
     // or 2_500e18 which is less than the 5_000e18 to bring the pool price fully back to the oracle price.
     setDebtTokenTotalSupply(totalSupply);
     // since token1 is debt token oracle rate is inverted and scaled to 18 decimals
-    mockCollateralRegistry.setOracleRate(oracleDenominator / 1e6, oracleNumerator / 1e6);
+    mockCollateralRegistry.setOracleRate(oracleDenominator, oracleNumerator);
 
     // debalance fpmm
     swapIn(debtToken, 5000e18);
@@ -417,8 +411,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken1Debt(18, 6)
   {
     // USDC USD rate
-    oracleNumerator = 999884980000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 999884980000000000;
+    oracleDenominator = 1e18;
 
     provideFPMMReserves(10_000e6, 10_000e18, false);
     setOracleRate(oracleNumerator, oracleDenominator);
@@ -435,7 +429,7 @@ contract CDPLiquidityStrategyTest is Test {
 
     setDebtTokenTotalSupply(targetSupply);
     // since token1 is debt token oracle rate is inverted and scaled to 18 decimals
-    mockCollateralRegistry.setOracleRate(oracleDenominator / 1e6, oracleNumerator / 1e6);
+    mockCollateralRegistry.setOracleRate(oracleDenominator, oracleNumerator);
 
     // debalance fpmm
     swapIn(debtToken, 5000e18);
@@ -476,8 +470,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken0Debt(12, 6)
   {
     // JPY USD rate
-    oracleNumerator = 6755340000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 6755340000000000;
+    oracleDenominator = 1e18;
 
     // provide roughly 550_000$ to both reserves
     provideFPMMReserves(81_419_800e12, 550_000e6, true);
@@ -523,8 +517,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken0Debt(12, 6)
   {
     // JPY USD rate
-    oracleNumerator = 6755340000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 6755340000000000;
+    oracleDenominator = 1e18;
 
     setOracleRate(oracleNumerator, oracleDenominator);
     // provide roughly 550_000$ to both reserves
@@ -577,8 +571,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken1Debt(18, 6)
   {
     // USDC USD rate
-    oracleNumerator = 999884980000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 999884980000000000;
+    oracleDenominator = 1e18;
 
     // provide roughly 10_000$ to both reserves
     provideFPMMReserves(10000e6, 10000e18, false);
@@ -623,8 +617,8 @@ contract CDPLiquidityStrategyTest is Test {
     fpmmToken1Debt(18, 6)
   {
     // USDC USD rate
-    oracleNumerator = 999884980000000000000000;
-    oracleDenominator = 1e24;
+    oracleNumerator = 999884980000000000;
+    oracleDenominator = 1e18;
 
     // provide roughly 100_000$ to both reserves
     provideFPMMReserves(100_000e6, 100_000e18, false);
@@ -711,30 +705,10 @@ contract CDPLiquidityStrategyTest is Test {
    */
   function setOracleRate(uint256 numerator, uint256 denominator) public {
     vm.mockCall(
-      sortedOracles,
-      abi.encodeWithSelector(ISortedOracles.medianRate.selector, referenceRateFeedID),
+      oracleAdapter,
+      abi.encodeWithSelector(IOracleAdapter.getFXRateIfValid.selector, referenceRateFeedID),
       abi.encode(numerator, denominator)
     );
-  }
-
-  /**
-   * @notice Mock the breaker box trading mode
-   * @param shouldBreak True if the breaker box should break, false otherwise
-   */
-  function mockBreakerBoxTradingMode(bool shouldBreak) public {
-    if (shouldBreak) {
-      vm.mockCall(
-        breakerBox,
-        abi.encodeWithSelector(IBreakerBox.getRateFeedTradingMode.selector, referenceRateFeedID),
-        abi.encode(3)
-      );
-    } else {
-      vm.mockCall(
-        breakerBox,
-        abi.encodeWithSelector(IBreakerBox.getRateFeedTradingMode.selector, referenceRateFeedID),
-        abi.encode(0)
-      );
-    }
   }
 
   /**

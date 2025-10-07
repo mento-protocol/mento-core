@@ -2,8 +2,7 @@
 pragma solidity ^0.8.0;
 // solhint-disable func-name-mixedcase
 
-import { ISortedOracles } from "./ISortedOracles.sol";
-import { IBreakerBox } from "./IBreakerBox.sol";
+import { IOracleAdapter } from "./IOracleAdapter.sol";
 
 import { IRPool } from "../swap/router/interfaces/IRPool.sol";
 
@@ -27,17 +26,19 @@ interface IFPMM is IRPool {
     uint256 reserve1;
     // timestamp of the last reserve update
     uint256 blockTimestampLast;
-    // contract for oracle price feeds(to be replaced)
-    ISortedOracles sortedOracles;
+    // contract for querying oracle price feeds and trading modes
+    IOracleAdapter oracleAdapter;
     // true if the rate feed should be reverted
     bool revertRateFeed;
-    // onchain circuit breaker
-    IBreakerBox breakerBox;
     // identifier for the reference rate feed
-    // required for sorted oracles and breaker box
+    // required for querying the oracle adapter
     address referenceRateFeedID;
-    // fee taken from the swap
+    // fee taken from the swap for liquidity providers
+    uint256 lpFee;
+    // fee taken from the swap for the protocol
     uint256 protocolFee;
+    // recipient of the protocol fee
+    address protocolFeeRecipient;
     // incentive percentage for rebalancing the pool
     uint256 rebalanceIncentive;
     // threshold for rebalancing the pool when reserve price > oracle price
@@ -103,11 +104,25 @@ interface IFPMM is IRPool {
   event Burn(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity, address indexed to);
 
   /**
+   * @notice Emitted when the LP fee is updated
+   * @param oldFee Previous fee in basis points
+   * @param newFee New fee in basis points
+   */
+  event LPFeeUpdated(uint256 oldFee, uint256 newFee);
+
+  /**
    * @notice Emitted when the protocol fee is updated
    * @param oldFee Previous fee in basis points
    * @param newFee New fee in basis points
    */
   event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
+
+  /**
+   * @notice Emitted when the protocol fee recipient is updated
+   * @param oldRecipient Previous recipient of the protocol fee
+   * @param newRecipient New recipient of the protocol fee
+   */
+  event ProtocolFeeRecipientUpdated(address oldRecipient, address newRecipient);
 
   /**
    * @notice Emitted when the rebalance incentive is updated
@@ -145,18 +160,11 @@ interface IFPMM is IRPool {
   event ReferenceRateFeedIDUpdated(address oldRateFeedID, address newRateFeedID);
 
   /**
-   * @notice Emitted when the SortedOracles contract is updated
-   * @param oldSortedOracles Previous SortedOracles address
-   * @param newSortedOracles New SortedOracles address
+   * @notice Emitted when the OracleAdapter contract is updated
+   * @param oldOracleAdapter Previous OracleAdapter address
+   * @param newOracleAdapter New OracleAdapter address
    */
-  event SortedOraclesUpdated(address oldSortedOracles, address newSortedOracles);
-
-  /**
-   * @notice Emitted when the BreakerBox contract is updated
-   * @param oldBreakerBox Previous BreakerBox address
-   * @param newBreakerBox New BreakerBox address
-   */
-  event BreakerBoxUpdated(address oldBreakerBox, address newBreakerBox);
+  event OracleAdapterUpdated(address oldOracleAdapter, address newOracleAdapter);
 
   /**
    * @notice Emitted when a successful rebalance operation occurs
@@ -237,10 +245,10 @@ interface IFPMM is IRPool {
   function blockTimestampLast() external view returns (uint256);
 
   /**
-   * @notice Returns the contract for oracle price feeds
-   * @return Address of the SortedOracles contract
+   * @notice Returns the OracleAdapter contract
+   * @return Address of the OracleAdapter contract
    */
-  function sortedOracles() external view returns (ISortedOracles);
+  function oracleAdapter() external view returns (IOracleAdapter);
 
   /**
    * @notice Returns the revert rate feed flag
@@ -249,22 +257,28 @@ interface IFPMM is IRPool {
   function revertRateFeed() external view returns (bool);
 
   /**
-   * @notice Returns the circuit breaker contract to enable/disable trading
-   * @return Address of the BreakerBox contract
-   */
-  function breakerBox() external view returns (IBreakerBox);
-
-  /**
-   * @notice Returns the reference rate feed ID for oracle price
+   * @notice Returns the reference rate feed ID to query for oracle price
    * @return Address of the reference rate feed ID
    */
   function referenceRateFeedID() external view returns (address);
+
+  /**
+   * @notice Returns the LP fee in basis points (1 basis point = .01%)
+   * @return LP fee in basis points
+   */
+  function lpFee() external view returns (uint256);
 
   /**
    * @notice Returns the protocol fee in basis points (1 basis point = .01%)
    * @return Protocol fee in basis points
    */
   function protocolFee() external view returns (uint256);
+
+  /**
+   * @notice Returns the recipient of the protocol fee
+   * @return Recipient of the protocol fee
+   */
+  function protocolFeeRecipient() external view returns (address);
 
   /**
    * @notice Returns the slippage allowed for rebalance operations in basis points
@@ -297,19 +311,17 @@ interface IFPMM is IRPool {
    * @notice Initializes the FPMM contract
    * @param _token0 Address of the first token
    * @param _token1 Address of the second token
-   * @param _sortedOracles Address of the SortedOracles contract
+   * @param _oracleAdapter Address of the OracleAdapter contract
    * @param _referenceRateFeedID Address of the reference rate feed ID
    * @param _revertRateFeed Whether to revert the rate feed
-   * @param _breakerBox Address of the BreakerBox contract
    * @param _owner Address of the owner
    */
   function initialize(
     address _token0,
     address _token1,
-    address _sortedOracles,
+    address _oracleAdapter,
     address _referenceRateFeedID,
     bool _revertRateFeed,
-    address _breakerBox,
     address _owner
   ) external;
 
@@ -380,10 +392,22 @@ interface IFPMM is IRPool {
   function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external;
 
   /**
+   * @notice Sets LP fee
+   * @param _lpFee New fee in basis points
+   */
+  function setLPFee(uint256 _lpFee) external;
+
+  /**
    * @notice Sets protocol fee
    * @param _protocolFee New fee in basis points
    */
   function setProtocolFee(uint256 _protocolFee) external;
+
+  /**
+   * @notice Sets protocol fee recipient
+   * @param _protocolFeeRecipient The recipient of the protocol fee
+   */
+  function setProtocolFeeRecipient(address _protocolFeeRecipient) external;
 
   /**
    * @notice Sets rebalance incentive
@@ -406,16 +430,10 @@ interface IFPMM is IRPool {
   function setLiquidityStrategy(address strategy, bool state) external;
 
   /**
-   * @notice Sets the SortedOracles contract
-   * @param _sortedOracles Address of the SortedOracles contract
+   * @notice Sets the OracleAdapter contract
+   * @param _oracleAdapter Address of the OracleAdapter contract
    */
-  function setSortedOracles(address _sortedOracles) external;
-
-  /**
-   * @notice Sets the BreakerBox contract
-   * @param _breakerBox Address of the BreakerBox contract
-   */
-  function setBreakerBox(address _breakerBox) external;
+  function setOracleAdapter(address _oracleAdapter) external;
 
   /**
    * @notice Sets the reference rate feed ID

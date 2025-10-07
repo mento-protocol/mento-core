@@ -11,6 +11,7 @@ contract MockSortedOracles {
   mapping(address => uint256) public numRates;
   mapping(address => bool) public expired;
   mapping(address => address[]) public oracles;
+  mapping(address => uint256) public reportExpiry;
 
   function setMedianRate(address token, uint256 numerator) external returns (bool) {
     numerators[token] = numerator;
@@ -19,6 +20,10 @@ contract MockSortedOracles {
 
   function setMedianTimestamp(address token, uint256 timestamp) external {
     medianTimestamp[token] = timestamp;
+  }
+
+  function setTokenReportExpirySeconds(address token, uint256 expiry) external {
+    reportExpiry[token] = expiry;
   }
 
   function setMedianTimestampToNow(address token) external {
@@ -47,6 +52,10 @@ contract MockSortedOracles {
 
   function getTimestamps(address) external pure returns (address[] memory, uint256[] memory, uint256[] memory) {
     return (new address[](1), new uint256[](1), new uint256[](1));
+  }
+
+  function getTokenReportExpirySeconds(address token) external view returns (uint256) {
+    return reportExpiry[token];
   }
 
   function previousMedianRate(address) public pure returns (uint256) {

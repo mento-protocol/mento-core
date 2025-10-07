@@ -11,9 +11,8 @@ import { MathUpgradeable as Math } from "openzeppelin-contracts-upgradeable/cont
 import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 // solhint-disable-next-line max-line-length
 import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
-import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
+import { IOracleAdapter } from "../interfaces/IOracleAdapter.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
-import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 
 /**
  * @title Fixed Price Market Maker (FPMM)
@@ -62,10 +61,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function initialize(
     address _token0,
     address _token1,
-    address _sortedOracles,
+    address _oracleAdapter,
     address _referenceRateFeedID,
     bool _revertRateFeed,
-    address _breakerBox,
     address owner_
   ) external initializer {
     FPMMStorage storage $ = _getFPMMStorage();
@@ -85,12 +83,12 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     $.decimals0 = 10 ** ERC20Upgradeable(_token0).decimals();
     $.decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
 
-    setProtocolFee(30); // .3% fee (30 basis points)
+    setLPFee(30); // .3% fee (30 basis points)
+    // TODO: add protocol fee + recipient
     setRebalanceIncentive(50); // Default .5% incentive tolerance (50 basis points)
     setRebalanceThresholds(500, 500); // Default 5% rebalance threshold (500 basis points)
 
-    setSortedOracles(_sortedOracles);
-    setBreakerBox(_breakerBox);
+    setOracleAdapter(_oracleAdapter);
     setReferenceRateFeedID(_referenceRateFeedID);
     setRevertRateFeed(_revertRateFeed);
     transferOwnership(owner_);
@@ -168,9 +166,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function sortedOracles() external view returns (ISortedOracles) {
+  function oracleAdapter() external view returns (IOracleAdapter) {
     FPMMStorage storage $ = _getFPMMStorage();
-    return $.sortedOracles;
+    return $.oracleAdapter;
   }
 
   /// @inheritdoc IFPMM
@@ -180,21 +178,27 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function breakerBox() external view returns (IBreakerBox) {
-    FPMMStorage storage $ = _getFPMMStorage();
-    return $.breakerBox;
-  }
-
-  /// @inheritdoc IFPMM
   function referenceRateFeedID() external view returns (address) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.referenceRateFeedID;
   }
 
   /// @inheritdoc IFPMM
+  function lpFee() external view returns (uint256) {
+    FPMMStorage storage $ = _getFPMMStorage();
+    return $.lpFee;
+  }
+
+  /// @inheritdoc IFPMM
   function protocolFee() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.protocolFee;
+  }
+
+  /// @inheritdoc IFPMM
+  function protocolFeeRecipient() external view returns (address) {
+    FPMMStorage storage $ = _getFPMMStorage();
+    return $.protocolFeeRecipient;
   }
 
   /// @inheritdoc IFPMM
@@ -268,11 +272,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(
-      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
-      "FPMM: TRADING_SUSPENDED"
-    );
-
     require(tokenIn == $.token0 || tokenIn == $.token1, "FPMM: INVALID_TOKEN");
 
     if (amountIn == 0) return 0;
@@ -287,7 +286,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
           $.decimals1,
           rateNumerator,
           rateDenominator,
-          BASIS_POINTS_DENOMINATOR - $.protocolFee,
+          BASIS_POINTS_DENOMINATOR - ($.lpFee + $.protocolFee),
           BASIS_POINTS_DENOMINATOR
         );
     } else {
@@ -298,7 +297,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
           $.decimals0,
           rateDenominator,
           rateNumerator,
-          BASIS_POINTS_DENOMINATOR - $.protocolFee,
+          BASIS_POINTS_DENOMINATOR - ($.lpFee + $.protocolFee),
           BASIS_POINTS_DENOMINATOR
         );
     }
@@ -371,10 +370,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
     require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
     require(to != $.token0 && to != $.token1, "FPMM: INVALID_TO_ADDRESS");
-    require(
-      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
-      "FPMM: TRADING_SUSPENDED"
-    );
 
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
@@ -407,6 +402,8 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       : 0;
     require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
 
+    _transferProtocolFee(swapData.amount0In, swapData.amount1In);
+
     _update();
 
     _swapCheck(swapData);
@@ -423,10 +420,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require($.liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
     require((amount0Out > 0) != (amount1Out > 0), "FPMM: ONE_OUTPUT_AMOUNT_REQUIRED");
     require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
-    require(
-      $.breakerBox.getRateFeedTradingMode($.referenceRateFeedID) == TRADING_MODE_BIDIRECTIONAL,
-      "FPMM: TRADING_SUSPENDED"
-    );
 
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
@@ -484,13 +477,37 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   /* ========== ADMIN FUNCTIONS ========== */
 
   /// @inheritdoc IFPMM
-  function setProtocolFee(uint256 _protocolFee) public onlyOwner {
-    require(_protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1%
+  function setLPFee(uint256 _lpFee) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
+
+    require(_lpFee + $.protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1% combined
+
+    uint256 oldFee = $.lpFee;
+    $.lpFee = _lpFee;
+    emit LPFeeUpdated(oldFee, _lpFee);
+  }
+
+  /// @inheritdoc IFPMM
+  function setProtocolFee(uint256 _protocolFee) public onlyOwner {
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    require(_protocolFee == 0 || $.protocolFeeRecipient != address(0), "FPMM: PROTOCOL_FEE_RECIPIENT_REQUIRED");
+    require(_protocolFee + $.lpFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1% combined
 
     uint256 oldFee = $.protocolFee;
     $.protocolFee = _protocolFee;
     emit ProtocolFeeUpdated(oldFee, _protocolFee);
+  }
+
+  /// @inheritdoc IFPMM
+  function setProtocolFeeRecipient(address _protocolFeeRecipient) public onlyOwner {
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    require(_protocolFeeRecipient != address(0), "FPMM: ZERO_ADDRESS");
+
+    address oldRecipient = $.protocolFeeRecipient;
+    $.protocolFeeRecipient = _protocolFeeRecipient;
+    emit ProtocolFeeRecipientUpdated(oldRecipient, _protocolFeeRecipient);
   }
 
   /// @inheritdoc IFPMM
@@ -531,28 +548,18 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function setSortedOracles(address _sortedOracles) public onlyOwner {
-    require(_sortedOracles != address(0), "FPMM: SORTED_ORACLES_ADDRESS_MUST_BE_SET");
+  function setOracleAdapter(address _oracleAdapter) public onlyOwner {
+    require(_oracleAdapter != address(0), "FPMM: ORACLE_ADAPTER_ADDRESS_MUST_BE_SET");
     FPMMStorage storage $ = _getFPMMStorage();
 
-    address oldSortedOracles = address($.sortedOracles);
-    $.sortedOracles = ISortedOracles(_sortedOracles);
-    emit SortedOraclesUpdated(oldSortedOracles, _sortedOracles);
+    address oldOracleAdapter = address($.oracleAdapter);
+    $.oracleAdapter = IOracleAdapter(_oracleAdapter);
+    emit OracleAdapterUpdated(oldOracleAdapter, _oracleAdapter);
   }
 
   function setRevertRateFeed(bool _revertRateFeed) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
     $.revertRateFeed = _revertRateFeed;
-  }
-
-  /// @inheritdoc IFPMM
-  function setBreakerBox(address _breakerBox) public onlyOwner {
-    require(_breakerBox != address(0), "FPMM: BREAKER_BOX_ADDRESS_MUST_BE_SET");
-    FPMMStorage storage $ = _getFPMMStorage();
-
-    address oldBreakerBox = address($.breakerBox);
-    $.breakerBox = IBreakerBox(_breakerBox);
-    emit BreakerBoxUpdated(oldBreakerBox, _breakerBox);
   }
 
   /// @inheritdoc IFPMM
@@ -593,6 +600,28 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /**
+   * @notice Transfers the protocol fee to the protocol fee recipient
+   * @param amount0In Amount of token0 in from swap
+   * @param amount1In Amount of token1 in from swap
+   */
+  function _transferProtocolFee(uint256 amount0In, uint256 amount1In) private {
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    uint256 fee = $.protocolFee;
+    if (fee == 0) return;
+
+    if (amount0In > 0) {
+      uint256 feeAmount = (amount0In * fee) / BASIS_POINTS_DENOMINATOR;
+      IERC20($.token0).safeTransfer($.protocolFeeRecipient, feeAmount);
+    }
+
+    if (amount1In > 0) {
+      uint256 feeAmount = (amount1In * fee) / BASIS_POINTS_DENOMINATOR;
+      IERC20($.token1).safeTransfer($.protocolFeeRecipient, feeAmount);
+    }
+  }
+
+  /**
    * @notice Calculates total value of a given amount of tokens in terms of token1 scaled to 18 decimals
    * @param amount0 Amount of token0
    * @param amount1 Amount of token1
@@ -616,9 +645,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
   function _getRateFeed() private view returns (uint256 rateNumerator, uint256 rateDenominator) {
     FPMMStorage storage $ = _getFPMMStorage();
-    (rateNumerator, rateDenominator) = $.sortedOracles.medianRate($.referenceRateFeedID);
-    rateNumerator = rateNumerator / 1e6;
-    rateDenominator = rateDenominator / 1e6;
+
+    (rateNumerator, rateDenominator) = $.oracleAdapter.getFXRateIfValid($.referenceRateFeedID);
+
     if ($.revertRateFeed) {
       (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);
     }
@@ -704,12 +733,18 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       swapData.rateDenominator
     );
 
+    uint256 lpFeeBps = $.lpFee;
+    uint256 totalFeeBps = lpFeeBps + $.protocolFee;
+
     uint256 fee0 = (expectedAmount0In * BASIS_POINTS_DENOMINATOR) /
-      (BASIS_POINTS_DENOMINATOR - $.protocolFee) -
+      (BASIS_POINTS_DENOMINATOR - totalFeeBps) -
       expectedAmount0In;
     uint256 fee1 = (expectedAmount1In * BASIS_POINTS_DENOMINATOR) /
-      (BASIS_POINTS_DENOMINATOR - $.protocolFee) -
+      (BASIS_POINTS_DENOMINATOR - totalFeeBps) -
       expectedAmount1In;
+
+    fee0 = totalFeeBps > 0 ? (fee0 * lpFeeBps) / totalFeeBps : 0;
+    fee1 = totalFeeBps > 0 ? (fee1 * lpFeeBps) / totalFeeBps : 0;
 
     uint256 fee0InToken1 = convertWithRate(
       fee0,

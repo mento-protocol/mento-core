@@ -38,7 +38,9 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    setupMockOracleRate(1e18, 1e18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     deal(token0, address(this), 100e18);
     IERC20(token0).transfer(address(fpmm), 100e18);
@@ -51,7 +53,9 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    setupMockOracleRate(1e18, 1e18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     uint256 amount0In = 100e18;
     uint256 amount1Out = 99.70e18;
@@ -70,11 +74,43 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), initialReserve1 - amount1Out);
   }
 
+  function test_swap_whenSwappingToken0ForToken1WithProtocolFee_shouldSucceed()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withProtocolFee(20, protocolFeeRecipient)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 amount0In = 100e18;
+    uint256 amount1Out = 99.50e18; // 1:1 rate, 0.3% LP fee, 0.2% protocol fee
+    uint256 protocolFee = (amount0In * 20) / 10000; // 0.2% protocol fee
+
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
+
+    uint256 initialReserve0 = fpmm.reserve0();
+    uint256 initialReserve1 = fpmm.reserve1();
+
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), amount0In);
+    fpmm.swap(0, amount1Out, CHARLIE, "");
+    vm.stopPrank();
+
+    assertEq(IERC20(token1).balanceOf(CHARLIE), amount1Out);
+    assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), protocolFee);
+
+    assertEq(fpmm.reserve0(), initialReserve0 + amount0In - protocolFee); // Protocol fee never goes to the reserve
+    assertEq(fpmm.reserve1(), initialReserve1 - amount1Out);
+  }
+
   function test_swap_whenSwappingToken1ForToken0_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    setupMockOracleRate(1e18, 1e18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     uint256 amount1In = 100e18;
     uint256 amount0Out = 99.7e18;
@@ -93,11 +129,41 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(fpmm.reserve1(), initialReserve1 + amount1In);
   }
 
+  function test_swap_whenSwappingToken1ForToken0WithProtocolFee_shouldSucceed()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withProtocolFee(70, protocolFeeRecipient)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    uint256 amount1In = 100e18;
+    uint256 amount0Out = 99e18; // 1:1 rate, 0.3% LP fee, 0.7% protocol fee
+    uint256 protocolFee = (amount1In * 70) / 10000; // 0.7% protocol fee
+
+    uint256 initialReserve0 = fpmm.reserve0();
+    uint256 initialReserve1 = fpmm.reserve1();
+
+    vm.startPrank(ALICE);
+    IERC20(token1).transfer(address(fpmm), amount1In);
+    fpmm.swap(amount0Out, 0, CHARLIE, "");
+    vm.stopPrank();
+
+    assertEq(IERC20(token0).balanceOf(CHARLIE), amount0Out);
+    assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), protocolFee);
+
+    assertEq(fpmm.reserve0(), initialReserve0 - amount0Out);
+    assertEq(fpmm.reserve1(), initialReserve1 + amount1In - protocolFee);
+  }
+
   function test_swap_whenUsingDifferentExchangeRate_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    setupMockOracleRate(2e18, 1e18)
+    withOracleRate(2e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     // Swap 100 token0 for 199.4 token1 (after 0.3% fee)
     uint256 amount0In = 100e18;
@@ -114,7 +180,9 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
-    setupMockOracleRate(1e18, 1e18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     // Swap 100 token0 (18 decimals) for 99.7 token1 (6 decimals)
     uint256 amount0In = 100e18;
@@ -142,11 +210,13 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    setupMockOracleRate(1e18, 1e18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     // Change fee to 1%
     vm.prank(fpmm.owner());
-    fpmm.setProtocolFee(100);
+    fpmm.setLPFee(100);
 
     uint256 amount0In = 100e18;
     uint256 amount1Out = 99e18;
@@ -160,7 +230,7 @@ contract FPMMSwapTest is FPMMBaseTest {
 
     // Change fee to 0%
     vm.prank(fpmm.owner());
-    fpmm.setProtocolFee(0);
+    fpmm.setLPFee(0);
 
     uint256 amount1In = 100e18;
     uint256 amount0Out = 100e18;
@@ -177,7 +247,9 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    setupMockOracleRate(1234e18, 5678e18)
+    withOracleRate(1234e18, 5678e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     uint256 amountIn = 100e18;
 
@@ -195,7 +267,9 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    setupMockOracleRate(1e18, 1e18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     uint256 initialTimestamp;
     (, , initialTimestamp) = fpmm.getReserves();
@@ -221,9 +295,36 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    setupMockBreakerBox(3)
+    withOracleRate(1e18, 1e18)
+    withTradingMode(TRADING_MODE_DISABLED)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
-    vm.expectRevert("FPMM: TRADING_SUSPENDED");
+    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    fpmm.swap(0, 10e18, BOB, "");
+  }
+
+  function test_swap_whenMarketIsClosed_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(false)
+    withRecentRate(true)
+  {
+    vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
+    fpmm.swap(0, 10e18, BOB, "");
+  }
+
+  function test_swap_whenRateIsExpired_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(false)
+  {
+    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
     fpmm.swap(0, 10e18, BOB, "");
   }
 }

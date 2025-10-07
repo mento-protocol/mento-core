@@ -26,3 +26,6 @@
 [submodule "lib/bold"]
 	path = lib/bold
 	url = https://github.com/mento-protocol/bold.git
+[submodule "lib/BokkyPooBahsDateTimeLibrary"]
+	path = lib/BokkyPooBahsDateTimeLibrary
+	url = https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary

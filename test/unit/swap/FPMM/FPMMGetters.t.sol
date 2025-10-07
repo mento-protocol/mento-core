@@ -56,10 +56,11 @@ contract FPMMGettersTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
-    setupMockOracleRate(2e18, 1e18)
+    withOracleRate(2e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     uint256 amountIn = 10e18;
-    // formula from FPMM.sol
     // amountOut = amountIn * rate * (1 - fee)
     // amountOut =  10 * 2 * 0.997 = 19.994
     uint256 expectedOut = 19.94e6;
@@ -73,14 +74,14 @@ contract FPMMGettersTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
-    setupMockOracleRate(2e18, 1e18)
+    withOracleRate(2e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     uint256 amountIn = 10e6;
-    // formula from FPMM.sol
     // amountOut = amountIn * rate * (1 - fee)
     // amountOut =  10 * 1/2 * 0.997 = 4.985
     uint256 expectedOut = 4.985e18;
-
     uint256 actualOut = fpmm.getAmountOut(amountIn, token1);
 
     assertEq(actualOut, expectedOut);
@@ -90,7 +91,9 @@ contract FPMMGettersTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
-    setupMockOracleRate(2e24, 1e24)
+    withOracleRate(2e24, 1e24)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
     // FPMM scales the oracle rate down to 18 decimals
     uint256 expectedOraclePriceNumerator = 2e18;
