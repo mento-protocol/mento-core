@@ -230,7 +230,9 @@ contract ProtocolTest is Test, WithRegistry {
       eXOF_bridgedEUROC_referenceRateFeedID
     );
 
-    breakerBox = IBreakerBox(deployCode("BreakerBox", abi.encode(rateFeedIDs, ISortedOracles(address(sortedOracles)))));
+    breakerBox = IBreakerBox(
+      deployCode("BreakerBox", abi.encode(rateFeedIDs, ISortedOracles(address(sortedOracles)), address(this)))
+    );
     sortedOracles.setBreakerBox(breakerBox);
 
     // set rate feed dependencies
@@ -278,7 +280,8 @@ contract ProtocolTest is Test, WithRegistry {
           address(breakerBox),
           medianDeltaBreakerRateFeedIDs,
           medianDeltaBreakerRateChangeThresholds,
-          medianDeltaBreakerCooldownTimes
+          medianDeltaBreakerCooldownTimes,
+          address(this)
         )
       )
     );
@@ -320,7 +323,8 @@ contract ProtocolTest is Test, WithRegistry {
           ISortedOracles(address(sortedOracles)),
           valueDeltaBreakerRateFeedIDs,
           valueDeltaBreakerRateChangeThresholds,
-          valueDeltaBreakerCooldownTimes
+          valueDeltaBreakerCooldownTimes,
+          address(this)
         )
       )
     );
