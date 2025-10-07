@@ -11,6 +11,7 @@ import { VirtualPoolFactory } from "contracts/swap/virtual/VirtualPoolFactory.so
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
+import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
 
 contract VirtualPoolBaseIntegration is ProtocolTest {
   FPMMFactory public fpmmFactory;
@@ -73,6 +74,11 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
     vm.mockCall(
       factoryRegistry,
       abi.encodeWithSelector(IFactoryRegistry.isPoolFactoryApproved.selector, address(vpFactory)),
+      abi.encode(true)
+    );
+    vm.mockCall(
+      marketHoursBreaker,
+      abi.encodeWithSelector(IMarketHoursBreaker.isFXMarketOpen.selector),
       abi.encode(true)
     );
   }
