@@ -28,7 +28,7 @@ interface IFPMM is IRPool {
     uint256 blockTimestampLast;
     // contract for querying oracle price feeds and trading modes
     IOracleAdapter oracleAdapter;
-    // true if the rate feed should be inverted
+    // true if the rate feed should be inverted to quote asset0/asset1
     bool invertRateFeed;
     // identifier for the reference rate feed
     // required for querying the oracle adapter
