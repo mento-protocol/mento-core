@@ -90,8 +90,11 @@ contract ProtocolTest is Test, WithRegistry {
     /* ===== Deploy collateral and stable assets ===== */
 
     celoToken = new TestERC20("Celo", "cGLD");
+    vm.label(address(celoToken), "Celo");
     usdcToken = new USDC("bridgedUSDC", "bridgedUSDC");
+    vm.label(address(usdcToken), "USDC");
     eurocToken = new USDC("bridgedEUROC", "bridgedEUROC");
+    vm.label(address(eurocToken), "EUROC");
 
     address[] memory initialAddresses = new address[](0);
     uint256[] memory initialBalances = new uint256[](0);
@@ -364,7 +367,6 @@ contract ProtocolTest is Test, WithRegistry {
     reserves[0] = address(reserve);
 
     broker.initialize(exchangeProviders, reserves);
-    registry.setAddressFor("Broker", address(broker));
     reserve.addExchangeSpender(address(broker));
     biPoolManager.setPricingModules(pricingModuleIdentifiers, pricingModules);
 
@@ -453,7 +455,6 @@ contract ProtocolTest is Test, WithRegistry {
     /* ========== Deploy Freezer =============== */
 
     freezer = IFreezer(deployCode("Freezer", abi.encode(true)));
-    registry.setAddressFor("Freezer", address(freezer));
   }
 
   function setUp_tradingLimits() internal {

@@ -369,7 +369,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /**
    * @notice Hashes two bytes32 values efficiently.
-   * @dev copied from CREATEX contract to precaluclated deployment addresses
+   * @dev copied from CREATEX contract to precalculated deployment addresses
    *      see https://github.com/pcaversaccio/createx/blob/7ab1e452b8803cae1467efd455dee1530660373b/src/CreateX.sol#L952
    * @param a The first bytes32 value
    * @param b The second bytes32 value
