@@ -121,14 +121,13 @@ contract GovernanceFactory is Ownable {
 
     PrecalculatedAddresses memory addr = getPrecalculatedAddresses();
 
-    deployProxyAdmin();
+    deployProxyAdmin(addr.governanceTimelock);
     deployMentoToken(allocationParams, addr);
     deployEmission(addr);
     deployAirgrab(airgrabRoot, fractalSigner, addr);
     deployLocking(addr);
     deployTimelock(addr);
     deployMentoGovernor(addr);
-    transferOwnership();
 
     emit GovernanceCreated(
       address(proxyAdmin),
@@ -144,11 +143,11 @@ contract GovernanceFactory is Ownable {
   /**
    * @notice Deploys the ProxyAdmin contract.
    */
-  function deployProxyAdmin() internal {
+  function deployProxyAdmin(address owner) internal {
     // =========================================
     // ========== Deploy 1: ProxyAdmin =========
     // =========================================
-    proxyAdmin = ProxyDeployerLib.deployAdmin(); // NONCE:1
+    proxyAdmin = ProxyDeployerLib.deployAdmin(owner); // NONCE:1
   }
 
   /**
@@ -330,19 +329,6 @@ contract GovernanceFactory is Ownable {
     // slither-disable-next-line reentrancy-benign
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
     assert(address(mentoGovernor) == addr.mentoGovernor);
-  }
-
-  /**
-   * @notice Transfers the ownership of the contracts to the governance timelock.
-   */
-  function transferOwnership() internal {
-    // =============================================
-    // =========== Configure Ownership =============
-    // =============================================
-    emission.transferOwnership(address(governanceTimelock));
-    locking.transferOwnership(address(governanceTimelock));
-    proxyAdmin.transferOwnership(address(governanceTimelock));
-    mentoToken.transferOwnership(address(governanceTimelock));
   }
 
   /**
