@@ -6,33 +6,39 @@ import { ICDPPolicy } from "./Interfaces/ICDPPolicy.sol";
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
+import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 
 contract CDPPolicy is ICDPPolicy, Ownable {
   mapping(address => address) public deptTokenStabilityPool;
 
   mapping(address => address) public deptTokenCollateralRegistry;
 
-  // For now stored in a mapping as it is not readable in the collateral registry
+  // For now stored in a mapping as it is not readable from the collateral registry
   mapping(address => uint256) public deptTokenRedemptionBeta;
+  mapping(address => uint256) public deptTokenStabilityPoolPercentage;
 
   uint256 public constant BPS_TO_FEE_SCALER = 1e14;
+  uint256 public constant BPS_DENOMINATOR = 10_000;
 
   constructor(
     address[] memory debtTokens,
     address[] memory stabilityPools,
     address[] memory collateralRegistries,
-    uint256[] memory redemptionBetas
+    uint256[] memory redemptionBetas,
+    uint256[] memory stabilityPoolPercentages
   ) Ownable() {
     if (
       debtTokens.length != stabilityPools.length ||
       debtTokens.length != collateralRegistries.length ||
-      debtTokens.length != redemptionBetas.length
+      debtTokens.length != redemptionBetas.length ||
+      debtTokens.length != stabilityPoolPercentages.length
     ) revert CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH();
 
     for (uint256 i = 0; i < debtTokens.length; i++) {
       _setDeptTokenStabilityPool(debtTokens[i], stabilityPools[i]);
       _setDeptTokenCollateralRegistry(debtTokens[i], collateralRegistries[i]);
       _setDeptTokenRedemptionBeta(debtTokens[i], redemptionBetas[i]);
+      _setDeptTokenStabilityPoolPercentage(debtTokens[i], stabilityPoolPercentages[i]);
     }
   }
 
@@ -60,6 +66,10 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     _setDeptTokenRedemptionBeta(debtToken, redemptionBeta);
   }
 
+  function setDeptTokenStabilityPoolPercentage(address debtToken, uint256 stabilityPoolPercentage) external onlyOwner {
+    _setDeptTokenStabilityPoolPercentage(debtToken, stabilityPoolPercentage);
+  }
+
   function determineAction(LQ.Context memory ctx) external view returns (bool shouldAct, LQ.Action memory action) {
     if (ctx.prices.poolPriceAbove) {
       return _handlePoolPriceAbove(ctx);
@@ -82,6 +92,12 @@ contract CDPPolicy is ICDPPolicy, Ownable {
 
   function _setDeptTokenRedemptionBeta(address debtToken, uint256 redemptionBeta) internal {
     deptTokenRedemptionBeta[debtToken] = redemptionBeta;
+  }
+
+  function _setDeptTokenStabilityPoolPercentage(address debtToken, uint256 stabilityPoolPercentage) internal {
+    if (!(0 < stabilityPoolPercentage && stabilityPoolPercentage < BPS_DENOMINATOR))
+      revert CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE();
+    deptTokenStabilityPoolPercentage[debtToken] = stabilityPoolPercentage;
   }
 
   function _handlePoolPriceAbove(
@@ -158,17 +174,11 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     uint256 amountIn,
     uint256 amountOut
   ) internal view returns (LQ.Action memory action) {
-    address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
-    address collToken = ctx.isToken0Debt ? ctx.token1 : ctx.token0;
+    (address debtToken, address collToken) = ctx.isToken0Debt ? (ctx.token0, ctx.token1) : (ctx.token1, ctx.token0);
     address stabilityPool = deptTokenStabilityPool[debtToken];
-    // TODO: check if call StabilityPool.getTotalBoldDeposits() is needed
-    uint256 stabilityPoolBalance = IERC20(debtToken).balanceOf(address(stabilityPool));
-
-    if (stabilityPoolBalance <= 1e18) revert("CDPPolicy: STABILITY_POOL_BALANCE_TOO_LOW");
-    stabilityPoolBalance -= 1e18;
-
-    if (amountIn > stabilityPoolBalance) {
-      amountIn = stabilityPoolBalance;
+    uint256 availableSPAmount = _calculateAvailablePoolBalance(stabilityPool, debtToken);
+    if (amountIn > availableSPAmount) {
+      amountIn = availableSPAmount;
       if (ctx.isToken0Debt) {
         // uint256 amountOutRaw = (amountIn * ctx.prices.oracleNum) / ctx.prices.oracleDen;
         // amountOut = LQ.scaleFromTo(amountOutRaw, ctx.token0Dec, ctx.token1Dec);
@@ -221,7 +231,7 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
     address collToken = ctx.isToken0Debt ? ctx.token1 : ctx.token0;
     address collateralRegistry = deptTokenCollateralRegistry[debtToken];
-    (uint256 amountToRedeem, uint256 amountReceived) = calculateAmountToRedeem(
+    (uint256 amountToRedeem, uint256 amountReceived) = _calculateAmountToRedeem(
       amountOut,
       debtToken,
       collateralRegistry,
@@ -243,7 +253,24 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     action.data = abi.encode(debtToken, collToken, collateralRegistry);
   }
 
-  function calculateAmountToRedeem(
+  function _calculateAvailablePoolBalance(
+    address stabilityPool,
+    address debtToken
+  ) internal view returns (uint256 availableAmount) {
+    uint256 stabilityPoolBalance = IERC20(debtToken).balanceOf(stabilityPool);
+    uint256 stabilityPoolMinBalance = IStabilityPool(stabilityPool).MIN_BOLD_AFTER_REBALANCE();
+
+    if (stabilityPoolBalance <= stabilityPoolMinBalance) revert CDPPolicy_STABILITY_POOL_BALANCE_TOO_LOW();
+
+    uint256 stabilityPoolPercentage = (stabilityPoolBalance * deptTokenStabilityPoolPercentage[debtToken]) /
+      BPS_DENOMINATOR;
+
+    availableAmount = stabilityPoolPercentage > stabilityPoolBalance - stabilityPoolMinBalance
+      ? stabilityPoolBalance - stabilityPoolMinBalance
+      : stabilityPoolPercentage;
+  }
+
+  function _calculateAmountToRedeem(
     uint256 targetAmountOutForRedemption,
     address debtToken,
     address collateralRegistry,

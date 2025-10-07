@@ -59,11 +59,19 @@ contract CDPLiquidityStrategyTest is Test {
     address[] memory stabilityPools = new address[](1);
     address[] memory collateralRegistries = new address[](1);
     uint256[] memory redemptionBetas = new uint256[](1);
+    uint256[] memory stabilityPoolPercentages = new uint256[](1);
     debtTokens[0] = debtToken;
     stabilityPools[0] = address(mockStabilityPool);
     collateralRegistries[0] = address(mockCollateralRegistry);
     redemptionBetas[0] = 1;
-    cdpPolicy = new CDPPolicy(debtTokens, stabilityPools, collateralRegistries, redemptionBetas);
+    stabilityPoolPercentages[0] = 9000; // 90%
+    cdpPolicy = new CDPPolicy(
+      debtTokens,
+      stabilityPools,
+      collateralRegistries,
+      redemptionBetas,
+      stabilityPoolPercentages
+    );
 
     // set trusted pools on cdp liquidity strategy
     cdpLiquidityStrategy.setTrustedPools(address(fpmm), true);
@@ -99,11 +107,19 @@ contract CDPLiquidityStrategyTest is Test {
     address[] memory stabilityPools = new address[](1);
     address[] memory collateralRegistries = new address[](1);
     uint256[] memory redemptionBetas = new uint256[](1);
+    uint256[] memory stabilityPoolPercentages = new uint256[](1);
     debtTokens[0] = debtToken;
     stabilityPools[0] = address(mockStabilityPool);
     collateralRegistries[0] = address(mockCollateralRegistry);
     redemptionBetas[0] = 1;
-    cdpPolicy = new CDPPolicy(debtTokens, stabilityPools, collateralRegistries, redemptionBetas);
+    stabilityPoolPercentages[0] = 9000; // 90%
+    cdpPolicy = new CDPPolicy(
+      debtTokens,
+      stabilityPools,
+      collateralRegistries,
+      redemptionBetas,
+      stabilityPoolPercentages
+    );
 
     // set trusted pools on cdp liquidity strategy
     cdpLiquidityStrategy.setTrustedPools(address(fpmm), true);
@@ -510,9 +526,11 @@ contract CDPLiquidityStrategyTest is Test {
     oracleNumerator = 6755340000000000000000;
     oracleDenominator = 1e24;
 
+    setOracleRate(oracleNumerator, oracleDenominator);
     // provide roughly 550_000$ to both reserves
     provideFPMMReserves(81_419_800e12, 550_000e6, true);
-    setOracleRate(oracleNumerator, oracleDenominator);
+
+    mockStabilityPool.setMIN_BOLD_AFTER_REBALANCE(1e18);
 
     // debalance fpmm by swaping 75k$ worth of USD.m into the pool
     swapIn(collToken, 75_000e6);
