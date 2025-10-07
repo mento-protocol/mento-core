@@ -120,7 +120,7 @@ contract GovernanceFactory is Ownable {
     watchdogMultiSig = watchdogMultiSig_;
 
     PrecalculatedAddresses memory addr = getPrecalculatedAddresses();
-
+    // slither-disable-start reentrancy-benign
     deployProxyAdmin(addr.governanceTimelock);
     deployMentoToken(allocationParams, addr);
     deployEmission(addr);
@@ -128,7 +128,7 @@ contract GovernanceFactory is Ownable {
     deployLocking(addr);
     deployTimelock(addr);
     deployMentoGovernor(addr);
-
+    // slither-disable-end reentrancy-benign
     emit GovernanceCreated(
       address(proxyAdmin),
       address(emission),
