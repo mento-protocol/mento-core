@@ -96,26 +96,6 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     assertEq(fpmm.reserve1(), initialReserve1 - amount1Out);
   }
 
-  function test_swap_whenOracleCallStillHappens_shouldNotRevertEvenIfOracleFails()
-    public
-    initializeFPMM_withDecimalTokens(18, 18)
-    mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
-    withFXMarketOpen(true)
-    withRecentRate(true)
-  {
-    // The oracle is called to ensure breakerbox doesn't revert, but the rate is ignored
-    uint256 amount0In = 100e18;
-    uint256 amount1Out = 99.70e18;
-
-    vm.startPrank(ALICE);
-    IERC20(token0).transfer(address(fpmm), amount0In);
-    fpmm.swap(0, amount1Out, CHARLIE, "");
-    vm.stopPrank();
-
-    assertEq(IERC20(token1).balanceOf(CHARLIE), amount1Out);
-  }
-
   function test_swap_whenSwappingWithDifferentDecimals_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(6, 18)

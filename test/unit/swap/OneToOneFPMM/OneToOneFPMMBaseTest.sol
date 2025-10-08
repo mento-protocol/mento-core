@@ -70,13 +70,6 @@ contract OneToOneFPMMBaseTest is Test {
     _;
   }
 
-  modifier withProtocolFeeRecipient(address _protocolFeeRecipient) {
-    vm.prank(owner);
-    fpmm.setProtocolFeeRecipient(_protocolFeeRecipient);
-
-    _;
-  }
-
   modifier mintInitialLiquidity(uint8 decimals0, uint8 decimals1) {
     vm.startPrank(ALICE);
     IERC20(token0).transfer(address(fpmm), 100 * 10 ** decimals0);
