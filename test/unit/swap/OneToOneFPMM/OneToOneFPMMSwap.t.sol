@@ -119,17 +119,11 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
   function test_swap_whenSwappingWithDifferentDecimals_shouldSucceed()
     public
     initializeFPMM_withDecimalTokens(6, 18)
+    mintInitialLiquidity(6, 18)
     withOracleRate(1e18, 1e18)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
-    // Mint liquidity with different decimals
-    vm.startPrank(ALICE);
-    IERC20(token0).transfer(address(fpmm), 100e6); // 100 tokens with 6 decimals
-    IERC20(token1).transfer(address(fpmm), 200e18); // 200 tokens with 18 decimals
-    fpmm.mint(ALICE);
-    vm.stopPrank();
-
     uint256 amount0In = 10e6; // 10 tokens of token0 (6 decimals)
     // At 1:1 rate with different decimals, 10 token0 = 10 token1
     // With 0.3% LP fee: 10 * (1 - 0.003) = 9.97
@@ -158,8 +152,6 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     withFXMarketOpen(true)
     withRecentRate(true)
   {
-    deal(token0, address(fpmm), 100e18);
-
     vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
     fpmm.swap(0, 10e18, BOB, "");
   }
@@ -194,8 +186,6 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     withRecentRate(false)
   {
     // OneToOneFPMM checks rate freshness via ensureRateValid
-    deal(token0, address(fpmm), 100e18);
-
     vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
     fpmm.swap(0, 10e18, BOB, "");
   }

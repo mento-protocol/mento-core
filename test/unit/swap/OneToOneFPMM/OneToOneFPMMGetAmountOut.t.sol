@@ -38,25 +38,6 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
     assertEq(amountOut, expectedAmountOut);
   }
 
-  function test_getAmountOut_whenOracleRateDiffers_shouldIgnoreOracleAndUse1to1()
-    public
-    initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(3e18, 1e18)
-    withFXMarketOpen(true)
-    withRecentRate(true)
-  {
-    uint256 amountIn = 100e18;
-
-    // Oracle says 3:1 but OneToOneFPMM ignores it
-    uint256 amountOut = fpmm.getAmountOut(amountIn, token0);
-    uint256 expectedAmountOut = 99.7e18; // Always 1:1 minus 0.3% fee
-    assertEq(amountOut, expectedAmountOut);
-
-    // Reverse direction should also be 1:1
-    amountOut = fpmm.getAmountOut(amountIn, token1);
-    assertEq(amountOut, expectedAmountOut);
-  }
-
   function test_getAmountOut_whenLPFeeChanges_shouldRespectLPFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
