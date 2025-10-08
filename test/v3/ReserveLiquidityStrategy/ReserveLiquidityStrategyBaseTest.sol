@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { ReserveLiquidityStrategy } from "contracts/v3/ReserveLiquidityStrategy.sol";
-import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 import { IERC20MintableBurnable } from "contracts/common/IERC20MintableBurnable.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
@@ -26,40 +26,13 @@ contract ReserveLiquidityStrategyBaseTest is Test {
   address public collateralToken = makeAddr("CollateralToken");
 
   function setUp() public virtual {
-    strategy = new ReserveLiquidityStrategy();
-
-    // Initialize the strategy
-    strategy.initialize(reserve, owner);
+    // New architecture uses constructor instead of initialize
+    strategy = new ReserveLiquidityStrategy(owner, reserve);
   }
 
   /* ============================================================ */
   /* ================= Helper Functions ========================= */
   /* ============================================================ */
-
-  function _createAction(
-    address _pool,
-    LQ.Direction _direction,
-    uint256 _amount0Out,
-    uint256 _amount1Out,
-    uint256 _inputAmount,
-    uint256 _incentiveBps,
-    bool _isToken0Debt
-  ) internal pure returns (LQ.Action memory) {
-    uint256 incentiveAmount = (_inputAmount * _incentiveBps) / 10000;
-    bytes memory data = abi.encode(incentiveAmount, _isToken0Debt);
-
-    return
-      LQ.Action({
-        pool: _pool,
-        dir: _direction,
-        liquiditySource: LQ.LiquiditySource.Reserve,
-        amount0Out: _amount0Out,
-        amount1Out: _amount1Out,
-        inputAmount: _inputAmount,
-        incentiveBps: _incentiveBps,
-        data: data
-      });
-  }
 
   function _mockFPMMMetadata(address _pool, address _token0, address _token1) internal {
     bytes memory metadataCalldata = abi.encodeWithSelector(IRPool.metadata.selector);
@@ -67,8 +40,37 @@ contract ReserveLiquidityStrategyBaseTest is Test {
   }
 
   function _mockFPMMTokens(address _pool, address _token0, address _token1) internal {
-    bytes memory metadataCalldata = abi.encodeWithSelector(IRPool.tokens.selector);
-    vm.mockCall(_pool, metadataCalldata, abi.encode(_token0, _token1));
+    // Ensure tokens are in sorted order (smaller address first)
+    (address orderedToken0, address orderedToken1) = _token0 < _token1 ? (_token0, _token1) : (_token1, _token0);
+
+    bytes memory tokensCalldata = abi.encodeWithSelector(IFPMM.tokens.selector);
+    vm.mockCall(_pool, tokensCalldata, abi.encode(orderedToken0, orderedToken1));
+  }
+
+  function _mockFPMMPrices(
+    address _pool,
+    uint256 oracleNum,
+    uint256 oracleDen,
+    uint256 reserveNum,
+    uint256 reserveDen,
+    uint256 diffBps,
+    bool poolAbove
+  ) internal {
+    bytes memory pricesCalldata = abi.encodeWithSelector(IFPMM.getPrices.selector);
+    vm.mockCall(_pool, pricesCalldata, abi.encode(oracleNum, oracleDen, reserveNum, reserveDen, diffBps, poolAbove));
+  }
+
+  function _mockFPMMRebalanceIncentive(address _pool, uint256 incentive) internal {
+    bytes memory incentiveCalldata = abi.encodeWithSelector(IFPMM.rebalanceIncentive.selector);
+    vm.mockCall(_pool, incentiveCalldata, abi.encode(incentive));
+  }
+
+  function _mockFPMMRebalanceThresholds(address _pool, uint256 above, uint256 below) internal {
+    bytes memory aboveCalldata = abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector);
+    vm.mockCall(_pool, aboveCalldata, abi.encode(above));
+
+    bytes memory belowCalldata = abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector);
+    vm.mockCall(_pool, belowCalldata, abi.encode(below));
   }
 
   function _mockFPMMRebalance(address _pool) internal {
@@ -115,26 +117,25 @@ contract ReserveLiquidityStrategyBaseTest is Test {
     vm.mockCall(_reserve, calldata_, abi.encode(_isCollateral));
   }
 
-  function _expectLiquidityMovedEvent(
-    address _pool,
-    LQ.Direction _direction,
-    uint256 _debtAmount,
-    uint256 _collateralAmount,
-    uint256 _incentiveAmount
-  ) internal {
-    vm.expectEmit(true, false, false, true);
-    emit LiquidityMoved(_pool, _direction, _debtAmount, _collateralAmount, _incentiveAmount);
+  function _mockERC20BalanceOf(address _token, address _account, uint256 _balance) internal {
+    bytes memory calldata_ = abi.encodeWithSelector(bytes4(keccak256("balanceOf(address)")), _account);
+    vm.mockCall(_token, calldata_, abi.encode(_balance));
   }
 
   /* ============================================================ */
   /* ======================= Events ============================= */
   /* ============================================================ */
 
-  event LiquidityMoved(
+  event PoolAdded(
     address indexed pool,
-    LQ.Direction direction,
-    uint256 debtAmount,
-    uint256 collateralAmount,
-    uint256 incentiveAmount
+    address indexed debtToken,
+    address indexed collateralToken,
+    uint64 cooldown,
+    uint32 incentiveBps
   );
+
+  event PoolRemoved(address indexed pool);
+  event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
+  event RebalanceIncentiveSet(address indexed pool, uint32 incentiveBps);
+  event RebalanceExecuted(address indexed pool, uint256 diffBefore, uint256 diffAfter);
 }
