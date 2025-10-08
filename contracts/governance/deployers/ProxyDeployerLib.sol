@@ -12,8 +12,9 @@ library ProxyDeployerLib {
    * @notice Deploys a new ProxyAdmin contract
    * @return admin The address of the new ProxyAdmin contract
    */
-  function deployAdmin() external returns (ProxyAdmin admin) {
+  function deployAdmin(address owner) external returns (ProxyAdmin admin) {
     admin = new ProxyAdmin();
+    admin.transferOwnership(owner);
   }
 
   /**

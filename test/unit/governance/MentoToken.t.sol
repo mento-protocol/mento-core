@@ -28,22 +28,22 @@ contract MentoTokenTest is GovernanceTest {
   }
 
   function setUp() public {
-    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, emission, locking);
+    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, emission, locking, address(this));
   }
 
   function test_constructor_whenEmissionIsZero_shouldRevert() public {
     vm.expectRevert("MentoToken: emission is zero address");
-    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, address(0), locking);
+    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, address(0), locking, address(this));
   }
 
   function test_constructor_whenLockingIsZero_shouldRevert() public {
     vm.expectRevert("MentoToken: locking is zero address");
-    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, emission, address(0));
+    mentoToken = new MentoToken(allocationRecipients, allocationAmounts, emission, address(0), address(this));
   }
 
   function test_constructor_whenAllocationRecipientsAndAmountsLengthMismatch_shouldRevert() public {
     vm.expectRevert("MentoToken: recipients and amounts length mismatch");
-    mentoToken = new MentoToken(allocationRecipients, uints(80, 120, 50), emission, locking);
+    mentoToken = new MentoToken(allocationRecipients, uints(80, 120, 50), emission, locking, address(this));
   }
 
   function test_constructor_whenAllocationRecipientIsZero_shouldRevert() public {
@@ -52,19 +52,20 @@ contract MentoTokenTest is GovernanceTest {
       addresses(mentoLabsMultiSig, mentoLabsTreasuryTimelock, airgrab, address(0)),
       allocationAmounts,
       emission,
-      locking
+      locking,
+      address(this)
     );
   }
 
   function test_constructor_whenTotalAllocationExceeds1000_shouldRevert() public {
     vm.expectRevert("MentoToken: total allocation exceeds 100%");
-    mentoToken = new MentoToken(allocationRecipients, uints(80, 120, 50, 1000), emission, locking);
+    mentoToken = new MentoToken(allocationRecipients, uints(80, 120, 50, 1000), emission, locking, address(this));
   }
 
   function test_constructor_shouldPauseTheContract() public {
     vm.expectEmit(true, true, true, true);
     emit Paused(address(this));
-    mentoToken = new MentoToken(allocationRecipients, uints(80, 120, 50, 100), emission, locking);
+    mentoToken = new MentoToken(allocationRecipients, uints(80, 120, 50, 100), emission, locking, address(this));
 
     assertEq(mentoToken.paused(), true);
   }

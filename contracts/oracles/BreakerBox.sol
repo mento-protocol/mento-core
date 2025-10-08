@@ -56,10 +56,10 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param _rateFeedIDs rateFeedIDs to be added.
    * @param _sortedOracles The address of the Celo sorted oracles contract.
    */
-  constructor(address[] memory _rateFeedIDs, ISortedOracles _sortedOracles) public {
-    _transferOwnership(msg.sender);
+  constructor(address[] memory _rateFeedIDs, ISortedOracles _sortedOracles, address owner) public {
     setSortedOracles(_sortedOracles);
     addRateFeeds(_rateFeedIDs);
+    _transferOwnership(owner);
   }
 
   /* ==================== Mutative Functions ==================== */

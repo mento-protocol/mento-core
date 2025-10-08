@@ -18,7 +18,7 @@ contract LockingTest is GovernanceTest {
     locking = new LockingHarness(false);
 
     vm.prank(owner);
-    locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), 0, 0, 0);
+    locking.__Locking_init(IERC20Upgradeable(address(mentoToken)), 0, 0, 0, owner);
 
     weekInBlocks = uint32(locking.WEEK());
 
