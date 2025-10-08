@@ -3,10 +3,18 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { ReservePolicyBaseTest } from "./ReservePolicyBaseTest.sol";
-import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
+import { ReservePolicyBaseTest, ReserveLiquidityStrategyHarness } from "./ReservePolicyBaseTest.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 
 contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
+  ReserveLiquidityStrategyHarness public reserveLS;
+  address public mockReserve = makeAddr("mockReserve");
+
+  function setUp() public override {
+    super.setUp();
+    reserveLS = new ReserveLiquidityStrategyHarness(mockReserve);
+  }
+
   /* ============================================================ */
   /* ================= Precision Tests ========================== */
   /* ============================================================ */
@@ -25,7 +33,7 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
       token1Dec: 1e6
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act with decimal conversions");
 
@@ -73,7 +81,7 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
         token1Dec: tests[i].collateralDec
       });
 
-      (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+      (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
 
       if (shouldAct) {
         // For token0 (debt) - should be scaled by debtDec
@@ -122,7 +130,7 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
           token1Dec: decimals[j]
         });
 
-        (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+        (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
 
         if (shouldAct) {
           assertGt(action.amount1Out, 0, "Should have meaningful output for all decimal combinations");
@@ -165,8 +173,8 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
         token1Dec: 1e6
       });
 
-      (bool shouldAct1, LQ.Action memory action1) = reservePolicy.determineAction(ctx1);
-      (bool shouldAct2, LQ.Action memory action2) = reservePolicy.determineAction(ctx2);
+      (bool shouldAct1, LQ.Action memory action1) = reserveLS.determineAction(ctx1);
+      (bool shouldAct2, LQ.Action memory action2) = reserveLS.determineAction(ctx2);
 
       if (shouldAct1 && shouldAct2 && action1.amount1Out > 0 && action2.amount1Out > 0) {
         // The ratio should be approximately the same as the base amount ratio

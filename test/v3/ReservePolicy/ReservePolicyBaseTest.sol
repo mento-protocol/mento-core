@@ -5,11 +5,23 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { ReservePolicy } from "contracts/v3/ReservePolicy.sol";
-import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
+import { ReserveLiquidityStrategy } from "contracts/v3/ReserveLiquidityStrategy.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+
+// Harness to expose internal _determineAction method
+contract ReserveLiquidityStrategyHarness is ReserveLiquidityStrategy {
+  constructor(address _reserve) ReserveLiquidityStrategy(address(this), _reserve) {}
+
+  function determineAction(LQ.Context memory ctx) external view returns (bool shouldAct, LQ.Action memory action) {
+    return _determineAction(ctx);
+  }
+
+  function name() external pure returns (string memory) {
+    return "ReservePolicy";
+  }
+}
 
 contract ReservePolicyBaseTest is Test {
-  ReservePolicy public reservePolicy;
-
   address public constant POOL = address(0x1);
   address public constant DEBT_TOKEN = address(0x2);
   address public constant COLLATERAL_TOKEN = address(0x3);
@@ -21,7 +33,7 @@ contract ReservePolicyBaseTest is Test {
   }
 
   function setUp() public virtual {
-    reservePolicy = new ReservePolicy();
+    // NOTE: Tests using this base will use the ReserveLiquidityStrategyHarness
   }
 
   /* ============================================================ */
@@ -74,7 +86,14 @@ contract ReservePolicyBaseTest is Test {
         token1Dec: uint64(token1Dec),
         token0: DEBT_TOKEN,
         token1: COLLATERAL_TOKEN,
-        isToken0Debt: true
+        isToken0Debt: true,
+        action: LQ.Action({
+          pool: address(0),
+          dir: LQ.Direction.Expand,
+          amount0Out: 0,
+          amount1Out: 0,
+          inputAmount: 0
+        })
       });
   }
 
@@ -97,7 +116,14 @@ contract ReservePolicyBaseTest is Test {
         token1Dec: 1e18,
         token0: isToken0Debt ? DEBT_TOKEN : COLLATERAL_TOKEN,
         token1: isToken0Debt ? COLLATERAL_TOKEN : DEBT_TOKEN,
-        isToken0Debt: isToken0Debt
+        isToken0Debt: isToken0Debt,
+        action: LQ.Action({
+          pool: address(0),
+          dir: LQ.Direction.Expand,
+          amount0Out: 0,
+          amount1Out: 0,
+          inputAmount: 0
+        })
       });
   }
 }

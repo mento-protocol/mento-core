@@ -3,10 +3,18 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { ReservePolicyBaseTest } from "./ReservePolicyBaseTest.sol";
-import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
+import { ReservePolicyBaseTest, ReserveLiquidityStrategyHarness } from "./ReservePolicyBaseTest.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 
 contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
+  ReserveLiquidityStrategyHarness public reserveLS;
+  address public mockReserve = makeAddr("mockReserve");
+
+  function setUp() public override {
+    super.setUp();
+    reserveLS = new ReserveLiquidityStrategyHarness(mockReserve);
+  }
+
   /* ============================================================ */
   /* ================= Expansion Tests ========================== */
   /* ============================================================ */
@@ -21,16 +29,14 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       incentiveBps: 500 // 5%
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act when pool has excess collateral");
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
-    assertEq(uint256(action.liquiditySource), uint256(LQ.LiquiditySource.Reserve), "Should use Reserve as source");
     assertEq(action.pool, POOL, "Should target correct pool");
     assertTrue(action.amount0Out == 0 || action.amount1Out > 0, "Should have correct token flows for expansion");
     assertTrue(action.amount0Out > 0 || action.amount1Out > 0, "Should have token outflow during expansion");
     assertGt(action.inputAmount, 0, "Should have debt input amount");
-    assertEq(action.incentiveBps, 500, "Should use provided incentive");
   }
 
   function test_determineAction_whenPoolPriceAboveOracleWithDifferentDecimals_shouldHandleCorrectly() public view {
@@ -47,7 +53,7 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       token1Dec: 1e6
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act with different decimals");
     assertTrue(action.amount0Out > 0 || action.amount1Out > 0, "Should have token output in raw units");
@@ -68,10 +74,9 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       incentiveBps: 0
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act even with zero incentive");
-    assertEq(action.incentiveBps, 0, "Should have zero incentive");
     // Formula: X = (OD * RN - ON * RD) / (OD * (2 - i))
     // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 0) / 10000)
     // X = 100e18 / 2 = 50e18
@@ -91,10 +96,9 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       incentiveBps: 10000 // 100%
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act with maximum incentive");
-    assertEq(action.incentiveBps, 10000, "Should have maximum incentive");
     // Formula: X = (OD * RN - ON * RD) / (OD * (2 - i))
     // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 10000) / 10000)
     // X = 100e18 / 1 = 100e18
@@ -120,7 +124,7 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       incentiveBps: 0 // 0% for clean calculation
     });
 
-    (, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (, LQ.Action memory action) = reserveLS.determineAction(ctx);
 
     // Manual calculation:
     // X = (1e18 * 400e18 - 2e18 * 100e18) / (1e18 * 2)
@@ -147,7 +151,7 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
         incentiveBps: incentives[i]
       });
 
-      (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+      (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
 
       if (shouldAct && action.amount1Out > 0) {
         // Y/X should equal OD/ON (Y is inputAmount, X is amount1Out) within precision limits

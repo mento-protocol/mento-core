@@ -63,7 +63,7 @@ abstract contract ReservePolicy {
     if (ctx.isToken0Debt) {
       action = LQ.Action({
         pool: ctx.pool,
-        dir: LQ.Direction.Expand,
+        dir: LQ.Direction.Contract,
         amount0Out: debtTokenDelta,
         amount1Out: 0,
         inputAmount: collateralTokenDelta
@@ -71,7 +71,7 @@ abstract contract ReservePolicy {
     } else {
       action = LQ.Action({
         pool: ctx.pool,
-        dir: LQ.Direction.Expand,
+        dir: LQ.Direction.Contract,
         amount0Out: 0,
         amount1Out: debtTokenDelta,
         inputAmount: collateralTokenDelta
