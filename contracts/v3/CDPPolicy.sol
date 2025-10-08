@@ -14,17 +14,10 @@ import { console } from "forge-std/console.sol";
 abstract contract CDPPolicy is ICDPPolicy, Ownable {
   using LQ for LQ.Context;
 
-  struct CDPLSPoolConfig {
-    address stabilityPool;
-    address collateralRegistry;
-    uint256 redemptionBeta;
-    uint256 stabilityPoolPercentage;
-  }
-
   uint256 constant BPS_TO_FEE_SCALER = 1e14;
   uint256 constant BPS_DENOMINATOR = 10_000;
 
-  mapping(address => CDPLSPoolConfig) private poolConfigs;
+  mapping(address => CDPPolicyPoolConfig) private poolConfigs;
 
   /* ============================================================ */
   /* ================ Admin Functions - Pools =================== */
@@ -37,7 +30,7 @@ abstract contract CDPPolicy is ICDPPolicy, Ownable {
     uint256 redemptionBeta,
     uint256 stabilityPoolPercentage
   ) internal virtual {
-    poolConfigs[pool] = CDPLSPoolConfig({
+    poolConfigs[pool] = CDPPolicyPoolConfig({
       stabilityPool: stabilityPool,
       collateralRegistry: collateralRegistry,
       redemptionBeta: redemptionBeta,
@@ -49,24 +42,13 @@ abstract contract CDPPolicy is ICDPPolicy, Ownable {
     delete poolConfigs[pool];
   }
 
-  function setDeptTokenStabilityPool(address pool, address stabilityPool) external onlyOwner {
+  function setCDPPolicyPoolConfig(address pool, CDPPolicyPoolConfig calldata config) external onlyOwner {
     _ensurePool(pool);
-    _setDeptTokenStabilityPool(pool, stabilityPool);
+    poolConfigs[pool] = config;
   }
 
-  function setDeptTokenCollateralRegistry(address pool, address collateralRegistry) external onlyOwner {
-    _ensurePool(pool);
-    _setDeptTokenCollateralRegistry(pool, collateralRegistry);
-  }
-
-  function setDeptTokenRedemptionBeta(address pool, uint256 redemptionBeta) external onlyOwner {
-    _ensurePool(pool);
-    _setDeptTokenRedemptionBeta(pool, redemptionBeta);
-  }
-
-  function setDeptTokenStabilityPoolPercentage(address pool, uint256 stabilityPoolPercentage) external onlyOwner {
-    _ensurePool(pool);
-    _setDeptTokenStabilityPoolPercentage(pool, stabilityPoolPercentage);
+  function getCDPPolicyPoolConfig(address pool) external view returns (CDPPolicyPoolConfig memory) {
+    return poolConfigs[pool];
   }
 
   /* =========================================================== */
@@ -87,19 +69,19 @@ abstract contract CDPPolicy is ICDPPolicy, Ownable {
   /* =================== Internal Functions ===================== */
   /* ============================================================ */
 
-  function _setDeptTokenStabilityPool(address pool, address _stabilityPool) internal {
+  function _setStabilityPool(address pool, address _stabilityPool) internal {
     poolConfigs[pool].stabilityPool = _stabilityPool;
   }
 
-  function _setDeptTokenCollateralRegistry(address pool, address _collateralRegistry) internal {
+  function _setCollateralRegistry(address pool, address _collateralRegistry) internal {
     poolConfigs[pool].collateralRegistry = _collateralRegistry;
   }
 
-  function _setDeptTokenRedemptionBeta(address pool, uint256 _redemptionBeta) internal {
+  function _setRedemptionBeta(address pool, uint256 _redemptionBeta) internal {
     poolConfigs[pool].redemptionBeta = _redemptionBeta;
   }
 
-  function _setDeptTokenStabilityPoolPercentage(address pool, uint256 _stabilityPoolPercentage) internal {
+  function _setStabilityPoolPercentage(address pool, uint256 _stabilityPoolPercentage) internal {
     if (!(0 < _stabilityPoolPercentage && _stabilityPoolPercentage < BPS_DENOMINATOR))
       revert CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE();
     poolConfigs[pool].stabilityPoolPercentage = _stabilityPoolPercentage;
@@ -242,7 +224,7 @@ abstract contract CDPPolicy is ICDPPolicy, Ownable {
     uint256 redemptionBeta,
     uint256 totalDebtTokenSupply,
     LQ.Context memory ctx
-  ) internal view returns (uint256 amountReceived) {
+  ) internal pure returns (uint256 amountReceived) {
     (uint256 debtTokenDec, uint256 collTokenDec) = ctx.isToken0Debt
       ? (ctx.token0Dec, ctx.token1Dec)
       : (ctx.token1Dec, ctx.token0Dec);

@@ -277,10 +277,6 @@ abstract contract LiquidityStrategy is ILiquidityController, Ownable, Reentrancy
     }
   }
 
-  /* ============================================================ */
-  /* =================== Internal Functions ===================== */
-  /* ============================================================ */
-
   function _handlePoolPriceAbove(
     LQ.Context memory ctx
   ) internal view returns (bool shouldAct, LQ.Action memory action) {
