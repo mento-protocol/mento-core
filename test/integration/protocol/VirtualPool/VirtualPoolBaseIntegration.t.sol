@@ -126,7 +126,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
 
   function _deployFPMM(address token0, address token1, address rateFeedID) internal returns (address fpmm) {
     vm.prank(governance);
-    fpmm = fpmmFactory.deployFPMM(address(fpmmImplementation), address(token0), address(token1), rateFeedID);
+    fpmm = fpmmFactory.deployFPMM(address(fpmmImplementation), address(token0), address(token1), rateFeedID, false);
   }
 
   function _createV3Route(address from, address to) internal view returns (IRouter.Route memory) {
