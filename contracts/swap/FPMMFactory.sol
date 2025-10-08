@@ -137,6 +137,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     (address precomputedProxyAddress, ) = _computeProxyAddressAndSalt(token0, token1);
     return precomputedProxyAddress;
   }
+
   // slither-disable-end encode-packed-collision
 
   /// @inheritdoc IFPMMFactory
@@ -212,7 +213,6 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     emit FPMMImplementationUnregistered(fpmmImplementation);
   }
 
-  // bool revertRateFeed // TODO: Add this back in
   /// @inheritdoc IFPMMFactory
   function deployFPMM(
     address fpmmImplementation,
@@ -221,7 +221,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address customGovernance,
     address token0,
     address token1,
-    address referenceRateFeedID
+    address referenceRateFeedID,
+    bool invertRateFeed
   ) external onlyOwner returns (address) {
     (token0, token1) = sortTokens(token0, token1);
 
@@ -241,21 +242,22 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       customGovernance,
       token0,
       token1,
-      referenceRateFeedID
+      referenceRateFeedID,
+      invertRateFeed
     );
 
     emit FPMMDeployed(token0, token1, fpmmProxy, fpmmImplementation);
     return fpmmProxy;
   }
 
-  // bool revertRateFeed // TODO: Add this back in
   // slither-disable-start reentrancy-no-eth
   /// @inheritdoc IFPMMFactory
   function deployFPMM(
     address fpmmImplementation,
     address token0,
     address token1,
-    address referenceRateFeedID
+    address referenceRateFeedID,
+    bool invertRateFeed
   ) external onlyOwner returns (address) {
     (token0, token1) = sortTokens(token0, token1);
 
@@ -272,12 +274,14 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       $.governance,
       token0,
       token1,
-      referenceRateFeedID
+      referenceRateFeedID,
+      invertRateFeed
     );
 
     emit FPMMDeployed(token0, token1, fpmmProxy, fpmmImplementation);
     return fpmmProxy;
   }
+
   // slither-disable-end reentrancy-no-eth
 
   /* =========================================================== */
@@ -305,7 +309,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address _governance,
     address _token0,
     address _token1,
-    address _referenceRateFeedID
+    address _referenceRateFeedID,
+    bool _invertRateFeed
   ) internal returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     (address expectedProxyAddress, bytes32 salt) = _computeProxyAddressAndSalt(_token0, _token1);
@@ -315,7 +320,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       _token1,
       _oracleAdapter,
       _referenceRateFeedID,
-      false, // revertRateFeed
+      _invertRateFeed,
       _governance
     );
     bytes memory proxyBytecode = abi.encodePacked(
@@ -330,6 +335,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     assert(newProxyAddress == expectedProxyAddress);
     return newProxyAddress;
   }
+
   // slither-disable-end reentrancy-benign
   // slither-disable-end reentrancy-events
   // slither-disable-end encode-packed-collision
@@ -369,7 +375,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /**
    * @notice Hashes two bytes32 values efficiently.
-   * @dev copied from CREATEX contract to precaluclated deployment addresses
+   * @dev copied from CREATEX contract to precalculated deployment addresses
    *      see https://github.com/pcaversaccio/createx/blob/7ab1e452b8803cae1467efd455dee1530660373b/src/CreateX.sol#L952
    * @param a The first bytes32 value
    * @param b The second bytes32 value

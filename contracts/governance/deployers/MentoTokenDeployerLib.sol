@@ -17,8 +17,9 @@ library MentoTokenDeployerLib {
     address[] memory allocationRecipients,
     uint256[] memory allocationAmounts,
     address emission,
-    address locking
+    address locking,
+    address owner
   ) external returns (MentoToken) {
-    return new MentoToken(allocationRecipients, allocationAmounts, emission, locking);
+    return new MentoToken(allocationRecipients, allocationAmounts, emission, locking, owner);
   }
 }

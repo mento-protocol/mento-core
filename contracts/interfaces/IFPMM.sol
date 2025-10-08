@@ -28,8 +28,8 @@ interface IFPMM is IRPool {
     uint256 blockTimestampLast;
     // contract for querying oracle price feeds and trading modes
     IOracleAdapter oracleAdapter;
-    // true if the rate feed should be reverted
-    bool revertRateFeed;
+    // true if the rate feed should be inverted to quote asset0/asset1
+    bool invertRateFeed;
     // identifier for the reference rate feed
     // required for querying the oracle adapter
     address referenceRateFeedID;
@@ -65,24 +65,6 @@ interface IFPMM is IRPool {
   }
 
   /* ========== EVENTS ========== */
-
-  /**
-   * @notice Emitted when tokens are swapped
-   * @param sender Address that initiated the swap
-   * @param amount0In Amount of token0 sent to the pool
-   * @param amount1In Amount of token1 sent to the pool
-   * @param amount0Out Amount of token0 sent to the receiver
-   * @param amount1Out Amount of token1 sent to the receiver
-   * @param to Address receiving the output tokens
-   */
-  event Swap(
-    address indexed sender,
-    uint256 amount0In,
-    uint256 amount1In,
-    uint256 amount0Out,
-    uint256 amount1Out,
-    address indexed to
-  );
 
   /**
    * @notice Emitted when liquidity is added to the pool
@@ -203,42 +185,6 @@ interface IFPMM is IRPool {
   function TRADING_MODE_BIDIRECTIONAL() external view returns (uint256);
 
   /**
-   * @notice Returns the address of the first token in the pair
-   * @return Address of token0
-   */
-  function token0() external view returns (address);
-
-  /**
-   * @notice Returns the address of the second token in the pair
-   * @return Address of token1
-   */
-  function token1() external view returns (address);
-
-  /**
-   * @notice Returns the scaling factor for token0 based on its decimals
-   * @return Scaling factor for token0
-   */
-  function decimals0() external view returns (uint256);
-
-  /**
-   * @notice Returns the scaling factor for token1 based on its decimals
-   * @return Scaling factor for token1
-   */
-  function decimals1() external view returns (uint256);
-
-  /**
-   * @notice Returns the reserve amount of token0
-   * @return Reserve amount of token0
-   */
-  function reserve0() external view returns (uint256);
-
-  /**
-   * @notice Returns the reserve amount of token1
-   * @return Reserve amount of token1
-   */
-  function reserve1() external view returns (uint256);
-
-  /**
    * @notice Returns the timestamp of the last reserve update
    * @return Timestamp of the last reserve update
    */
@@ -251,10 +197,10 @@ interface IFPMM is IRPool {
   function oracleAdapter() external view returns (IOracleAdapter);
 
   /**
-   * @notice Returns the revert rate feed flag
-   * @return Revert rate feed flag
+   * @notice Returns the invert rate feed flag
+   * @return Invert rate feed flag
    */
-  function revertRateFeed() external view returns (bool);
+  function invertRateFeed() external view returns (bool);
 
   /**
    * @notice Returns the reference rate feed ID to query for oracle price
@@ -313,7 +259,7 @@ interface IFPMM is IRPool {
    * @param _token1 Address of the second token
    * @param _oracleAdapter Address of the OracleAdapter contract
    * @param _referenceRateFeedID Address of the reference rate feed ID
-   * @param _revertRateFeed Whether to revert the rate feed
+   * @param _invertRateFeed Whether to invert the rate feed
    * @param _owner Address of the owner
    */
   function initialize(
@@ -321,29 +267,9 @@ interface IFPMM is IRPool {
     address _token1,
     address _oracleAdapter,
     address _referenceRateFeedID,
-    bool _revertRateFeed,
+    bool _invertRateFeed,
     address _owner
   ) external;
-
-  /**
-   * @notice Returns pool metadata
-   * @return dec0 Scaling factor for token0
-   * @return dec1 Scaling factor for token1
-   * @return r0 Reserve amount of token0
-   * @return r1 Reserve amount of token1
-   * @return t0 Address of token0
-   * @return t1 Address of token1
-   */
-  function metadata()
-    external
-    view
-    returns (uint256 dec0, uint256 dec1, uint256 r0, uint256 r1, address t0, address t1);
-
-  /**
-   * @notice Returns addresses of both tokens in the pair
-   * @return Address of token0 and token1
-   */
-  function tokens() external view returns (address, address);
 
   /**
    * @notice Gets current oracle and reserve prices

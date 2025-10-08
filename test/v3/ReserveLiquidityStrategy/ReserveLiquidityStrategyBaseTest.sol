@@ -9,6 +9,7 @@ import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquiditySt
 import { IERC20MintableBurnable } from "contracts/common/IERC20MintableBurnable.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
+import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";
 
 contract ReserveLiquidityStrategyBaseTest is Test {
   ReserveLiquidityStrategy public strategy;
@@ -34,7 +35,7 @@ contract ReserveLiquidityStrategyBaseTest is Test {
   /* ============================================================ */
 
   function _mockFPMMMetadata(address _pool, address _token0, address _token1) internal {
-    bytes memory metadataCalldata = abi.encodeWithSelector(IFPMM.metadata.selector);
+    bytes memory metadataCalldata = abi.encodeWithSelector(IRPool.metadata.selector);
     vm.mockCall(_pool, metadataCalldata, abi.encode(1e18, 1e18, 100e18, 200e18, _token0, _token1));
   }
 
@@ -42,7 +43,7 @@ contract ReserveLiquidityStrategyBaseTest is Test {
     // Ensure tokens are in sorted order (smaller address first)
     (address orderedToken0, address orderedToken1) = _token0 < _token1 ? (_token0, _token1) : (_token1, _token0);
 
-    bytes memory tokensCalldata = abi.encodeWithSelector(IFPMM.tokens.selector);
+    bytes memory tokensCalldata = abi.encodeWithSelector(IRPool.tokens.selector);
     vm.mockCall(_pool, tokensCalldata, abi.encode(orderedToken0, orderedToken1));
   }
 

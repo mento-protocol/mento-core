@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import "../interfaces/IFPMM.sol";
+import "./router/interfaces/IRPool.sol";
 import { ERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 // solhint-disable-next-line max-line-length
@@ -26,7 +27,7 @@ import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
  * 3. Rebalance moves the price difference towards 0
  * 4. Rebalance does not change the direction of the price difference
  */
-contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
+contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
 
   /* ========== CONSTANTS ========== */
@@ -63,7 +64,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     address _token1,
     address _oracleAdapter,
     address _referenceRateFeedID,
-    bool _revertRateFeed,
+    bool _invertRateFeed,
     address owner_
   ) external initializer {
     FPMMStorage storage $ = _getFPMMStorage();
@@ -90,13 +91,13 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     setOracleAdapter(_oracleAdapter);
     setReferenceRateFeedID(_referenceRateFeedID);
-    setRevertRateFeed(_revertRateFeed);
+    setInvertRateFeed(_invertRateFeed);
     transferOwnership(owner_);
   }
 
   /* ========== VIEW FUNCTIONS ========== */
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function metadata()
     external
     view
@@ -107,7 +108,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     return ($.decimals0, $.decimals1, $.reserve0, $.reserve1, $.token0, $.token1);
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function tokens() external view returns (address, address) {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -123,37 +124,37 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     _blockTimestampLast = $.blockTimestampLast;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function token0() external view returns (address) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.token0;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function token1() external view returns (address) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.token1;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function decimals0() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.decimals0;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function decimals1() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.decimals1;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function reserve0() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.reserve0;
   }
 
-  /// @inheritdoc IFPMM
+  /// @inheritdoc IRPool
   function reserve1() external view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.reserve1;
@@ -172,9 +173,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function revertRateFeed() external view returns (bool) {
+  function invertRateFeed() external view returns (bool) {
     FPMMStorage storage $ = _getFPMMStorage();
-    return $.revertRateFeed;
+    return $.invertRateFeed;
   }
 
   /// @inheritdoc IFPMM
@@ -190,7 +191,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   }
 
   /// @inheritdoc IFPMM
-  function protocolFee() external view returns (uint256) {
+  function protocolFee() external view override(IFPMM, IRPool) returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.protocolFee;
   }
@@ -303,6 +304,27 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     }
   }
 
+  // slither-disable-start divide-before-multiply
+  function convertWithRate(
+    uint256 amount,
+    uint256 fromDecimals,
+    uint256 toDecimals,
+    uint256 numerator,
+    uint256 denominator
+  ) public pure returns (uint256) {
+    if (fromDecimals > toDecimals) {
+      uint256 decimalAdjustment = fromDecimals / toDecimals;
+      return (amount * numerator) / (denominator * decimalAdjustment);
+    } else if (fromDecimals < toDecimals) {
+      uint256 decimalAdjustment = toDecimals / fromDecimals;
+      return (amount * numerator * decimalAdjustment) / denominator;
+    } else {
+      return (amount * numerator) / denominator;
+    }
+  }
+
+  // slither-disable-end divide-before-multiply
+
   /* ========== EXTERNAL FUNCTIONS ========== */
 
   /// @inheritdoc IFPMM
@@ -359,6 +381,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     emit Burn(msg.sender, amount0, amount1, liquidity, to);
   }
+
   // slither-disable-end reentrancy-benign
   // slither-disable-end reentrancy-no-eth
 
@@ -410,6 +433,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     emit Swap(msg.sender, swapData.amount0In, swapData.amount1In, amount0Out, amount1Out, to);
   }
+
   // slither-disable-end reentrancy-no-eth
 
   // slither-disable-start reentrancy-no-eth
@@ -472,6 +496,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     uint256 newPriceDifference = _rebalanceCheck(swapData);
     emit Rebalanced(msg.sender, swapData.initialPriceDifference, newPriceDifference);
   }
+
   // slither-disable-end reentrancy-no-eth
 
   /* ========== ADMIN FUNCTIONS ========== */
@@ -557,9 +582,9 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     emit OracleAdapterUpdated(oldOracleAdapter, _oracleAdapter);
   }
 
-  function setRevertRateFeed(bool _revertRateFeed) public onlyOwner {
+  function setInvertRateFeed(bool _invertRateFeed) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
-    $.revertRateFeed = _revertRateFeed;
+    $.invertRateFeed = _invertRateFeed;
   }
 
   /// @inheritdoc IFPMM
@@ -578,7 +603,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
    * @notice Returns the storage pointer for the FPMM contract
    * @return $ Pointer to the FPMM storage
    */
-  function _getFPMMStorage() private pure returns (FPMMStorage storage $) {
+  function _getFPMMStorage() internal pure returns (FPMMStorage storage $) {
     // solhint-disable-next-line no-inline-assembly
     assembly {
       $.slot := _FPMM_STORAGE_LOCATION
@@ -643,12 +668,12 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     return token0ValueInToken1 + amount1;
   }
 
-  function _getRateFeed() private view returns (uint256 rateNumerator, uint256 rateDenominator) {
+  function _getRateFeed() internal view virtual returns (uint256 rateNumerator, uint256 rateDenominator) {
     FPMMStorage storage $ = _getFPMMStorage();
 
     (rateNumerator, rateDenominator) = $.oracleAdapter.getFXRateIfValid($.referenceRateFeedID);
 
-    if ($.revertRateFeed) {
+    if ($.invertRateFeed) {
       (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);
     }
   }
@@ -761,16 +786,6 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     // Check the reserve value is not decreased
     uint256 expectedReserveValue = swapData.initialReserveValue + totalFeeInToken1;
     require(newReserveValue >= expectedReserveValue, "FPMM: RESERVE_VALUE_DECREASED");
-  }
-
-  function convertWithRate(
-    uint256 amount,
-    uint256 fromDecimals,
-    uint256 toDecimals,
-    uint256 numerator,
-    uint256 denominator
-  ) internal pure returns (uint256) {
-    return (amount * numerator * toDecimals) / (denominator * fromDecimals);
   }
 
   function convertWithRateAndFee(

@@ -24,7 +24,7 @@ contract EmissionTest is GovernanceTest {
 
     emission = new Emission(false);
     vm.prank(owner);
-    emission.initialize(address(mentoToken), emissionTarget, EMISSION_SUPPLY);
+    emission.initialize(address(mentoToken), emissionTarget, EMISSION_SUPPLY, owner);
   }
 
   function test_initialize_shouldSetOwner() public view {

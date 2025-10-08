@@ -52,6 +52,7 @@ contract FPMMBaseIntegration is Test {
     _setupMocks();
     _fundTestAccounts();
   }
+
   // ============ INTERNAL FUNCTIONS ============
 
   function _deployContracts() internal {
@@ -133,6 +134,12 @@ contract FPMMBaseIntegration is Test {
 
   function _deployFPMM(address token0, address token1) internal returns (address fpmm) {
     vm.prank(governance);
-    fpmm = factory.deployFPMM(address(fpmmImplementation), address(token0), address(token1), referenceRateFeedID);
+    fpmm = factory.deployFPMM(
+      address(fpmmImplementation),
+      address(token0),
+      address(token1),
+      referenceRateFeedID,
+      false
+    );
   }
 }
