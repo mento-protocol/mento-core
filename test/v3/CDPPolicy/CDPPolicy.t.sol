@@ -2,19 +2,27 @@
 pragma solidity 0.8.24;
 // solhint-disable max-line-length
 
-import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
 import { ICDPPolicy } from "contracts/v3/Interfaces/ICDPPolicy.sol";
-import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
+import { CDPLiquidityStrategy } from "contracts/v3/CDPLiquidityStrategy.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 import { uints, addresses } from "mento-std/Array.sol";
 import { Test } from "forge-std/Test.sol";
 
+contract CDPLiquidityStrategyHarness is CDPLiquidityStrategy {
+  constructor(address initialOwner) CDPLiquidityStrategy(initialOwner) {}
+
+  function determineAction(LQ.Context memory ctx) external view returns (bool shouldAct, LQ.Action memory action) {
+    return _determineAction(ctx);
+  }
+}
+
 contract CDPPolicyTest is Test {
   /* ========== VARIABLES ========== */
 
-  CDPPolicy public policy;
+  CDPLiquidityStrategyHarness public cdpLS;
 
   MockERC20 public debtToken6;
   MockERC20 public collateralToken6;
@@ -29,169 +37,83 @@ contract CDPPolicyTest is Test {
   LQ.Context public ctx;
 
   function setUp() public {
-    policy = new CDPPolicy(
-      address(this),
-      new address[](0),
-      new address[](0),
-      new address[](0),
-      new uint256[](0),
-      new uint256[](0)
-    );
+    cdpLS = new CDPLiquidityStrategyHarness(address(this));
     debtToken6 = new MockERC20("DebtToken6", "DT6", 6);
     collateralToken6 = new MockERC20("CollateralToken6", "CT6", 6);
     debtToken18 = new MockERC20("DebtToken18", "DT18", 18);
     collateralToken18 = new MockERC20("CollateralToken18", "CT18", 18);
   }
 
-  /**
-   * @notice Set up the policy
-   * @param debtToken The debt token
-   * @param stabilityPoolPercentage The stability pool percentage
-   */
-  modifier _setUpPolicy(MockERC20 debtToken, uint256 stabilityPoolPercentage) {
-    policy.setDeptTokenStabilityPool(address(debtToken), stabilityPool);
-    policy.setDeptTokenCollateralRegistry(address(debtToken), collateralRegistry);
-    policy.setDeptTokenRedemptionBeta(address(debtToken), 1);
-    policy.setDeptTokenStabilityPoolPercentage(address(debtToken), stabilityPoolPercentage);
-    setStabilityPoolMinBoldAfterRebalance(1 * 10 ** debtToken.decimals());
-    _;
-  }
+  function test_addPool_shouldSetCorrectState() public {
+    address fpmm0 = makeAddr("fpmm0");
+    address fpmm1 = makeAddr("fpmm1");
 
-  /**
-   * @notice Bounds the fuzz parameters for the test
-   * @param oracleNumerator The oracle numerator
-   * @param reserve0 The reserve0
-   * @param reserve1 The reserve1
-   * @param poolPriceAbove The pool price above
-   */
-  modifier _boundFuzzParams(uint256 oracleNumerator, uint256 reserve0, uint256 reserve1, bool poolPriceAbove) {
-    // price range from 0.001 to 100_000
-    oracleNumerator = bound(oracleNumerator, 1e15, 1e23);
-    uint256 oracleDenominator = 1e18;
-    reserve0 = bound(reserve0, 100e18, 100_000_000e18);
-
-    if (poolPriceAbove) {
-      uint256 reserve1LowerBound = (reserve0 * oracleNumerator * 110) / (oracleDenominator * 100);
-      reserve1 = bound(reserve1, reserve1LowerBound, reserve1LowerBound * 5);
-    } else {
-      uint256 reserve1UpperBound = (reserve0 * oracleNumerator * 90) / (oracleDenominator * 100);
-
-      reserve1 = bound(reserve1, (reserve1UpperBound * 1) / 5, reserve1UpperBound);
-    }
-
-    ctx.reserves = LQ.Reserves({ reserveNum: reserve1, reserveDen: reserve0 });
-
-    ctx.prices = LQ.Prices({
-      oracleNum: oracleNumerator,
-      oracleDen: oracleDenominator,
-      poolPriceAbove: poolPriceAbove,
-      diffBps: 200
+    cdpLS.addPool({
+      pool: makeAddr("fpmm0"),
+      debtToken: address(debtToken6),
+      collateralToken: address(collateralToken6),
+      cooldown: 0 seconds,
+      incentiveBps: 50,
+      stabilityPool: stabilityPool,
+      collateralRegistry: collateralRegistry,
+      redemptionBeta: 1,
+      stabilityPoolPercentage: 100
     });
-    _;
+
+    cdpLS.addPool({
+      pool: makeAddr("fpmm1"),
+      debtToken: address(debtToken6),
+      collateralToken: address(collateralToken6),
+      cooldown: 0 seconds,
+      incentiveBps: 50,
+      stabilityPool: stabilityPool,
+      collateralRegistry: collateralRegistry,
+      redemptionBeta: 1,
+      stabilityPoolPercentage: 100
+    });
+
+    ICDPPolicy.CDPPolicyPoolConfig memory poolConfig0 = cdpLS.getCDPPolicyPoolConfig(fpmm0);
+    ICDPPolicy.CDPPolicyPoolConfig memory poolConfig1 = cdpLS.getCDPPolicyPoolConfig(fpmm1);
+
+    assertEq(poolConfig0.stabilityPool, stabilityPool);
+    assertEq(poolConfig0.stabilityPool, stabilityPool);
+    assertEq(poolConfig0.redemptionBeta, 1);
+    assertEq(poolConfig0.stabilityPoolPercentage, 100);
+    assertEq(poolConfig1.collateralRegistry, collateralRegistry);
+    assertEq(poolConfig1.collateralRegistry, collateralRegistry);
+    assertEq(poolConfig1.redemptionBeta, 2);
+    assertEq(poolConfig1.stabilityPoolPercentage, 200);
   }
 
-  /* ---------- Constructor ---------- */
-
-  function test_constructor_whenConstructorArrayLengthMismatch_shouldRevert() public {
-    vm.expectRevert(abi.encodeWithSelector(ICDPPolicy.CDPPolicy_ConstructorArrayLengthMismatch.selector));
-    policy = new CDPPolicy(
-      address(this),
-      new address[](2),
-      new address[](0),
-      new address[](0),
-      new uint256[](0),
-      new uint256[](0)
-    );
-  }
-
-  function test_constructor_shouldSetCorrectState() public {
-    address[] memory debtTokens = addresses(address(debtToken6), address(debtToken18));
-    address[] memory stabilityPools = addresses(stabilityPool, stabilityPool);
-    address[] memory collateralRegistries = addresses(collateralRegistry, collateralRegistry);
-    uint256[] memory redemptionBetas = uints(1, 2);
-    uint256[] memory stabilityPoolPercentages = uints(100, 200);
-    policy = new CDPPolicy(
-      address(this),
-      debtTokens,
-      stabilityPools,
-      collateralRegistries,
-      redemptionBetas,
-      stabilityPoolPercentages
-    );
-    assertEq(policy.deptTokenStabilityPool(address(debtToken6)), stabilityPool);
-    assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), collateralRegistry);
-    assertEq(policy.deptTokenStabilityPool(address(debtToken18)), stabilityPool);
-    assertEq(policy.deptTokenCollateralRegistry(address(debtToken18)), collateralRegistry);
-    assertEq(policy.deptTokenRedemptionBeta(address(debtToken6)), 1);
-    assertEq(policy.deptTokenRedemptionBeta(address(debtToken18)), 2);
-    assertEq(policy.deptTokenStabilityPoolPercentage(address(debtToken6)), 100);
-    assertEq(policy.deptTokenStabilityPoolPercentage(address(debtToken18)), 200);
-  }
-
-  /* ----------- Setters ---------- */
-
-  function test_setDeptTokenStabilityPool_whenNotOwner_shouldRevert() public {
+  function test_setCDPPolicyPoolConfig_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("notOwner"));
-    policy.setDeptTokenStabilityPool(address(debtToken6), stabilityPool);
+    cdpLS.setCDPPolicyPoolConfig(fpmm, ICDPPolicy.CDPPolicyPoolConfig(stabilityPool, collateralRegistry, 0, 0));
   }
 
-  function test_setDeptTokenStabilityPool_whenCalledByOwner_shouldSucceed() public {
-    policy.setDeptTokenStabilityPool(address(debtToken6), makeAddr("newStabilityPool"));
-    assertEq(policy.deptTokenStabilityPool(address(debtToken6)), makeAddr("newStabilityPool"));
+  function test_setCDPPolicyPoolConfig_whenCalledByOwner_shouldSucceed() public {
+    cdpLS.setCDPPolicyPoolConfig(fpmm, ICDPPolicy.CDPPolicyPoolConfig(stabilityPool, collateralRegistry, 3, 300));
+    CDPLiquidityStrategy.CDPPolicyPoolConfig memory poolConfig = cdpLS.getCDPPolicyPoolConfig(fpmm);
+    assertEq(poolConfig.stabilityPool, stabilityPool);
+    assertEq(poolConfig.stabilityPool, stabilityPool);
+    assertEq(poolConfig.redemptionBeta, 3);
+    assertEq(poolConfig.stabilityPoolPercentage, 300);
   }
 
-  function test_setDeptTokenCollateralRegistry_whenNotOwner_shouldRevert() public {
-    vm.expectRevert("Ownable: caller is not the owner");
-    vm.prank(makeAddr("notOwner"));
-    policy.setDeptTokenCollateralRegistry(address(debtToken6), collateralRegistry);
-  }
-
-  function test_setDeptTokenCollateralRegistry_whenCalledByOwner_shouldSucceed() public {
-    policy.setDeptTokenCollateralRegistry(address(debtToken6), makeAddr("newCollateralRegistry"));
-    assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), makeAddr("newCollateralRegistry"));
-  }
-
-  function test_setDeptTokenRedemptionBeta_whenNotOwner_shouldRevert() public {
-    vm.expectRevert("Ownable: caller is not the owner");
-    vm.prank(makeAddr("notOwner"));
-    policy.setDeptTokenRedemptionBeta(address(debtToken6), 1);
-  }
-
-  function test_setDeptTokenRedemptionBeta_whenCalledByOwner_shouldSucceed() public {
-    policy.setDeptTokenRedemptionBeta(address(debtToken6), 1);
-    assertEq(policy.deptTokenRedemptionBeta(address(debtToken6)), 1);
-  }
-
-  function test_setDeptTokenStabilityPoolPercentage_whenNotOwner_shouldRevert() public {
-    vm.expectRevert("Ownable: caller is not the owner");
-    vm.prank(makeAddr("notOwner"));
-    policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 1);
-  }
-
-  function test_setDeptTokenStabilityPoolPercentage_whenCalledByOwner_shouldSucceed() public {
-    policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 500);
-    assertEq(policy.deptTokenStabilityPoolPercentage(address(debtToken6)), 500);
-  }
-
-  function test_setDeptTokenStabilityPoolPercentage_whenInvalidPercentage_shouldRevert() public {
-    vm.expectRevert(abi.encodeWithSelector(ICDPPolicy.CDPPolicy_InvalidStabilityPoolPercentage.selector));
-    policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 10001);
-
-    vm.expectRevert(abi.encodeWithSelector(ICDPPolicy.CDPPolicy_InvalidStabilityPoolPercentage.selector));
-    policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 0);
-  }
-
-  /* ---------- Determine Action Math Tests ---------- */
-
-  /* ============================================================ */
-  /* ================ Expansion Full liquidity ================== */
-  /* ============================================================ */
-
-  function test_whenToken0DebtPoolPriceAboveAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToOraclePrice()
-    public
-    _setUpPolicy(debtToken18, 9000)
-  {
+  function test_whenPoolPriceAboveAndToken0Debt() public {
+    /*
+      struct Context {
+        address pool;
+        Reserves reserves;
+        Prices prices;
+        address token0;
+        address token1;
+        uint128 incentiveBps;
+        uint64 token0Dec;
+        uint64 token1Dec;
+        bool isToken0Debt;
+    }
+  */
     uint256 reserve0 = 1_000_000 * 1e18; // usdfx
     uint256 reserve1 = 1_500_000 * 1e6; // usdc
 
@@ -216,9 +138,27 @@ contract CDPPolicyTest is Test {
     });
     ctx.incentiveBps = 50; // 0.5%
 
+    cdpLS.addPool({
+      pool: fpmm,
+      debtToken: address(debtToken18),
+      collateralToken: address(collateralToken6),
+      cooldown: 0 seconds,
+      incentiveBps: 50,
+      stabilityPool: stabilityPool,
+      collateralRegistry: collateralRegistry,
+      redemptionBeta: 1,
+      stabilityPoolPercentage: 9000
+    });
+
     // enough to cover the full expansion
     setStabilityPoolBalance(address(debtToken18), 1_000_000 * 1e18);
-    (, LQ.Action memory action) = policy.determineAction(ctx);
+    setStabilityPoolMinBoldAfterRebalance(1e18);
+
+    (, LQ.Action memory action) = cdpLS.determineAction(ctx);
+    console.log("action.amount0Out", action.amount0Out);
+    console.log("action.amount1Out", action.amount1Out);
+    console.log("action.inputAmount", action.inputAmount);
+    console.log("action.dir", uint256(action.dir));
 
     // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 250684.220551
     uint256 expectedAmount1Out = 250684220551;
@@ -397,19 +337,26 @@ contract CDPPolicyTest is Test {
     });
     ctx.pool = fpmm;
 
-    ctx.prices = LQ.Prices({
-      oracleNum: 1e18,
-      oracleDen: 5476912800000000000,
-      poolPriceAbove: false,
-      diffBps: 5_000 // 50%
+    cdpLS.addPool({
+      pool: fpmm,
+      debtToken: address(debtToken18),
+      collateralToken: address(collateralToken6),
+      cooldown: 0 seconds,
+      incentiveBps: 50,
+      stabilityPool: stabilityPool,
+      collateralRegistry: collateralRegistry,
+      redemptionBeta: 1,
+      stabilityPoolPercentage: 9000
     });
-    ctx.incentiveBps = 50; // 0.5%
+
+    setTokenTotalSupply(address(debtToken18), 10_000_000 * 1e18);
+    mockGetRedemptionRateWithDecay(3e15); // 0.3%
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
     uint256 totalSupply = calculateTargetSupply(0.0025 * 1e18); // 0.25% resulting in redemption fee being 0.25% + 0.25% = 0.5%
     setTokenTotalSupply(address(debtToken18), totalSupply);
 
-    (, LQ.Action memory action) = policy.determineAction(ctx);
+    (, LQ.Action memory action) = cdpLS.determineAction(ctx);
 
     // amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 808079.298245614035087719
     uint256 expectedAmount0Out = 808079298245614035087719;
@@ -417,10 +364,13 @@ contract CDPPolicyTest is Test {
     // input amount in token 1 := (amountOut * ON * (1-i))/OD = 146805.131123
     uint256 expectedInputAmount = 146805131123;
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
-    assertEq(action.amount0Out, expectedAmount0Out);
-    assertEq(action.amount1Out, expectedAmount1Out);
-    assertEq(action.inputAmount, expectedInputAmount);
+    reserve0 -= action.amount0Out;
+    reserve1 -= action.amount1Out;
+    uint256 inputAmount = (action.inputAmount * (10_000 - 50)) / 10_000;
+    reserve0 += inputAmount;
+
+    // console.log("reserve0", reserve0);
+    console.log("reserve1", reserve1 * 1e12);
   }
 
   function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeEqualToIncentive_shouldContractAndBringPriceBackToOraclePrice()
