@@ -75,11 +75,11 @@ abstract contract CDPPolicy is ICDPPolicy, Ownable {
 
   function _ensurePool(address pool) internal view virtual;
 
-  function _getStabilityPool(address pool) internal view returns (address) {
+  function _getStabilityPool(address pool) internal view virtual returns (address) {
     return poolConfigs[pool].stabilityPool;
   }
 
-  function _getCollateralRegistry(address pool) internal view returns (address) {
+  function _getCollateralRegistry(address pool) internal view virtual returns (address) {
     return poolConfigs[pool].collateralRegistry;
   }
 
@@ -174,7 +174,7 @@ abstract contract CDPPolicy is ICDPPolicy, Ownable {
     );
 
     action.pool = ctx.pool;
-    action.dir = LQ.Direction.Expand;
+    action.dir = LQ.Direction.Contract;
 
     if (ctx.isToken0Debt) {
       action.amount0Out = amountToRedeem;

@@ -24,7 +24,7 @@ contract ReserveLiquidityStrategy is LiquidityStrategy, ReserveRebalancer, Reser
     LiquidityStrategy._ensurePool(pool);
   }
 
-  function _getReserve(address pool) internal view override returns (address) {
+  function _getReserve(address) internal view override returns (address) {
     return address(reserve);
   }
 
@@ -48,6 +48,6 @@ contract ReserveLiquidityStrategy is LiquidityStrategy, ReserveRebalancer, Reser
     LQ.Context memory ctx,
     LQ.Action memory action
   ) internal override(LiquidityStrategy, ReserveRebalancer) returns (bool) {
-    ReserveRebalancer._execute(ctx, action);
+    return ReserveRebalancer._execute(ctx, action);
   }
 }
