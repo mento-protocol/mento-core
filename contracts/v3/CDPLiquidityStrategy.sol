@@ -45,11 +45,11 @@ contract CDPLiquidityStrategy is LiquidityStrategy, CDPRebalancer, CDPPolicy {
     LiquidityStrategy._ensurePool(pool);
   }
 
-  function _getStabilityPool(address pool) internal view override returns (address) {
+  function _getStabilityPool(address pool) internal view override(CDPPolicy, CDPRebalancer) returns (address) {
     return CDPPolicy._getStabilityPool(pool);
   }
 
-  function _getCollateralRegistry(address pool) internal view override returns (address) {
+  function _getCollateralRegistry(address pool) internal view override(CDPPolicy, CDPRebalancer) returns (address) {
     return CDPPolicy._getCollateralRegistry(pool);
   }
 

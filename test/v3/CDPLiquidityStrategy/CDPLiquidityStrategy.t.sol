@@ -3,27 +3,23 @@ pragma solidity 0.8.24;
 // solhint-disable max-line-length
 
 import { CDPLiquidityStrategy } from "contracts/v3/CDPLiquidityStrategy.sol";
-import { ICDPLiquidityStrategy } from "contracts/v3/Interfaces/ICDPLiquidityStrategy.sol";
-import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
-import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { Test } from "forge-std/Test.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
-import { LiquidityController } from "contracts/v3/LiquidityController.sol";
-import { ILiquidityPolicy } from "contracts/v3/Interfaces/ILiquidityPolicy.sol";
+// import { LiquidityController } from "contracts/v3/LiquidityController.sol";
+// import { ILiquidityPolicy } from "contracts/v3/Interfaces/ILiquidityPolicy.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
 
 contract CDPLiquidityStrategyTest is Test {
   CDPLiquidityStrategy public cdpLiquidityStrategy;
-  CDPPolicy public cdpPolicy;
   FPMM public fpmm;
   MockStabilityPool public mockStabilityPool;
   MockCollateralRegistry public mockCollateralRegistry;
-  LiquidityController public liquidityController;
   address public liquiditySource;
   address public debtToken;
   address public collToken;
@@ -35,8 +31,6 @@ contract CDPLiquidityStrategyTest is Test {
   function setUp() public {
     fpmm = new FPMM(false);
     cdpLiquidityStrategy = new CDPLiquidityStrategy(address(this));
-    liquidityController = new LiquidityController();
-    liquidityController.initialize(address(this));
   }
 
   modifier fpmmToken0Debt(uint8 debtDecimals, uint8 collateralDecimals) {
@@ -54,35 +48,17 @@ contract CDPLiquidityStrategyTest is Test {
     fpmm.setLiquidityStrategy(address(cdpLiquidityStrategy), true);
 
     // deploy cdp policy
-    address[] memory debtTokens = new address[](1);
-    address[] memory stabilityPools = new address[](1);
-    address[] memory collateralRegistries = new address[](1);
-    uint256[] memory redemptionBetas = new uint256[](1);
-    uint256[] memory stabilityPoolPercentages = new uint256[](1);
-    debtTokens[0] = debtToken;
-    stabilityPools[0] = address(mockStabilityPool);
-    collateralRegistries[0] = address(mockCollateralRegistry);
-    redemptionBetas[0] = 1;
-    stabilityPoolPercentages[0] = 9000; // 90%
-    cdpPolicy = new CDPPolicy(
-      address(this),
-      debtTokens,
-      stabilityPools,
-      collateralRegistries,
-      redemptionBetas,
-      stabilityPoolPercentages
-    );
-
-    // set trusted pools on cdp liquidity strategy
-    cdpLiquidityStrategy.setTrustedPool(address(fpmm), true);
-
-    // configure liquidity controller
-    ILiquidityPolicy[] memory policies = new ILiquidityPolicy[](1);
-    policies[0] = ILiquidityPolicy(address(cdpPolicy));
-    liquidityController.addPool(address(fpmm), debtToken, collToken, 0 seconds, 50);
-    liquidityController.setPoolPipeline(address(fpmm), policies);
-    liquidityController.setLiquiditySourceStrategy(LQ.LiquiditySource.CDP, cdpLiquidityStrategy);
-
+    cdpLiquidityStrategy.addPool({
+      pool: address(fpmm),
+      debtToken: debtToken,
+      collateralToken: collToken,
+      cooldown: 0 seconds,
+      incentiveBps: 50,
+      stabilityPool: address(mockStabilityPool),
+      collateralRegistry: address(mockCollateralRegistry),
+      redemptionBeta: 1,
+      stabilityPoolPercentage: 9000
+    });
     _;
   }
 
@@ -100,35 +76,17 @@ contract CDPLiquidityStrategyTest is Test {
     fpmm.initialize(collToken, debtToken, oracleAdapter, referenceRateFeedID, false, address(this));
     fpmm.setLiquidityStrategy(address(cdpLiquidityStrategy), true);
 
-    // deploy cdp policy
-    address[] memory debtTokens = new address[](1);
-    address[] memory stabilityPools = new address[](1);
-    address[] memory collateralRegistries = new address[](1);
-    uint256[] memory redemptionBetas = new uint256[](1);
-    uint256[] memory stabilityPoolPercentages = new uint256[](1);
-    debtTokens[0] = debtToken;
-    stabilityPools[0] = address(mockStabilityPool);
-    collateralRegistries[0] = address(mockCollateralRegistry);
-    redemptionBetas[0] = 1;
-    stabilityPoolPercentages[0] = 9000; // 90%
-    cdpPolicy = new CDPPolicy(
-      address(this),
-      debtTokens,
-      stabilityPools,
-      collateralRegistries,
-      redemptionBetas,
-      stabilityPoolPercentages
-    );
-
-    // set trusted pools on cdp liquidity strategy
-    cdpLiquidityStrategy.setTrustedPool(address(fpmm), true);
-
-    // configure liquidity controller
-    ILiquidityPolicy[] memory policies = new ILiquidityPolicy[](1);
-    policies[0] = ILiquidityPolicy(address(cdpPolicy));
-    liquidityController.addPool(address(fpmm), debtToken, collToken, 0 seconds, 50);
-    liquidityController.setPoolPipeline(address(fpmm), policies);
-    liquidityController.setLiquiditySourceStrategy(LQ.LiquiditySource.CDP, cdpLiquidityStrategy);
+    cdpLiquidityStrategy.addPool({
+      pool: address(fpmm),
+      debtToken: debtToken,
+      collateralToken: collToken,
+      cooldown: 0 seconds,
+      incentiveBps: 50,
+      stabilityPool: address(mockStabilityPool),
+      collateralRegistry: address(mockCollateralRegistry),
+      redemptionBeta: 1,
+      stabilityPoolPercentage: 9000
+    });
     _;
   }
 
@@ -232,7 +190,7 @@ contract CDPLiquidityStrategyTest is Test {
     // price difference is positive
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
@@ -284,7 +242,7 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(!reservePriceAboveOraclePriceBefore);
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
@@ -340,7 +298,7 @@ contract CDPLiquidityStrategyTest is Test {
     // price difference is positive
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
@@ -396,7 +354,7 @@ contract CDPLiquidityStrategyTest is Test {
     // price difference is positive
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
@@ -451,7 +409,7 @@ contract CDPLiquidityStrategyTest is Test {
     // price difference is positive
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
@@ -508,7 +466,7 @@ contract CDPLiquidityStrategyTest is Test {
     // price difference is positive
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
@@ -557,7 +515,7 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(reservePriceAboveOraclePriceBefore);
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
     uint256 reserve0After = fpmm.reserve0();
@@ -606,7 +564,7 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(reservePriceAboveOraclePriceBefore);
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
     uint256 reserve0After = fpmm.reserve0();
@@ -658,7 +616,7 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(!reservePriceAboveOraclePriceBefore);
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
@@ -703,7 +661,7 @@ contract CDPLiquidityStrategyTest is Test {
     assertTrue(!reservePriceAboveOraclePriceBefore);
     assertTrue(priceDifferenceBefore > 0);
 
-    liquidityController.rebalance(address(fpmm));
+    cdpLiquidityStrategy.rebalance(address(fpmm));
 
     // Snapshot after the rebalance
     (, , , , uint256 priceDifferenceAfter, bool reservePriceAboveOraclePriceAfter) = fpmm.getPrices();
@@ -744,6 +702,8 @@ contract CDPLiquidityStrategyTest is Test {
       debtToken = address(new MockERC20("DebtToken", "DT", debtDecimals));
       collToken = address(new MockERC20("CollateralToken", "CT", collateralDecimals));
     }
+    vm.label(debtToken, "DebtToken");
+    vm.label(collToken, "CollToken");
   }
 
   /**
@@ -782,6 +742,7 @@ contract CDPLiquidityStrategyTest is Test {
   function setDebtTokenTotalSupply(uint256 totalSupply) public {
     vm.mockCall(debtToken, abi.encodeWithSelector(IERC20.totalSupply.selector), abi.encode(totalSupply));
   }
+
   /**
    * @notice Set the balance of the stability pool
    * @param token Address of the token
