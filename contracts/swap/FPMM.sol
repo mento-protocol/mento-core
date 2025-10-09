@@ -280,7 +280,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
 
     if (tokenIn == $.token0) {
       return
-        convertWithRateAndFee(
+        _convertWithRateAndFee(
           amountIn,
           $.decimals0,
           $.decimals1,
@@ -291,7 +291,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
         );
     } else {
       return
-        convertWithRateAndFee(
+        _convertWithRateAndFee(
           amountIn,
           $.decimals1,
           $.decimals0,
@@ -637,7 +637,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
   ) private view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    uint256 token0ValueInToken1 = convertWithRate(amount0, $.decimals0, 1e18, rateNumerator, rateDenominator);
+    uint256 token0ValueInToken1 = _convertWithRate(amount0, $.decimals0, 1e18, rateNumerator, rateDenominator);
     // slither-disable-next-line divide-before-multiply
     amount1 = amount1 * (1e18 / $.decimals1);
     return token0ValueInToken1 + amount1;
@@ -677,7 +677,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     );
 
     if (swapData.amount0In > 0) {
-      uint256 minAmount0In = convertWithRateAndFee(
+      uint256 minAmount0In = _convertWithRateAndFee(
         swapData.amount1Out,
         $.decimals1,
         $.decimals0,
@@ -688,7 +688,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
       );
       require(swapData.amount0In >= minAmount0In, "FPMM: INSUFFICIENT_AMOUNT_0_IN");
     } else {
-      uint256 minAmount1In = convertWithRateAndFee(
+      uint256 minAmount1In = _convertWithRateAndFee(
         swapData.amount0Out,
         $.decimals0,
         $.decimals1,
@@ -716,7 +716,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     );
 
     // TODO: think about rounding here
-    uint256 expectedAmount0In = convertWithRate(
+    uint256 expectedAmount0In = _convertWithRate(
       swapData.amount1Out,
       $.decimals1,
       $.decimals0,
@@ -725,7 +725,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     );
 
     // TODO: think about rounding here
-    uint256 expectedAmount1In = convertWithRate(
+    uint256 expectedAmount1In = _convertWithRate(
       swapData.amount0Out,
       $.decimals0,
       $.decimals1,
@@ -746,7 +746,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     fee0 = totalFeeBps > 0 ? (fee0 * lpFeeBps) / totalFeeBps : 0;
     fee1 = totalFeeBps > 0 ? (fee1 * lpFeeBps) / totalFeeBps : 0;
 
-    uint256 fee0InToken1 = convertWithRate(
+    uint256 fee0InToken1 = _convertWithRate(
       fee0,
       $.decimals0,
       $.decimals1,
@@ -763,7 +763,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     require(newReserveValue >= expectedReserveValue, "FPMM: RESERVE_VALUE_DECREASED");
   }
 
-  function convertWithRate(
+  function _convertWithRate(
     uint256 amount,
     uint256 fromDecimals,
     uint256 toDecimals,
@@ -773,7 +773,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     return (amount * numerator * toDecimals) / (denominator * fromDecimals);
   }
 
-  function convertWithRateAndFee(
+  function _convertWithRateAndFee(
     uint256 amount,
     uint256 fromDecimals,
     uint256 toDecimals,
@@ -781,7 +781,7 @@ contract FPMM is IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpg
     uint256 denominator,
     uint256 incentiveNum,
     uint256 incentiveDen
-  ) public pure returns (uint256) {
+  ) internal pure returns (uint256) {
     return (amount * numerator * toDecimals * incentiveNum) / (denominator * fromDecimals * incentiveDen);
   }
 }

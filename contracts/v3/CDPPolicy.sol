@@ -205,6 +205,8 @@ contract CDPPolicy is ICDPPolicy, Ownable {
         );
       }
     }
+    if (amountOut == 0) revert CDPPolicy_AMOUNT_OUT_IS_0();
+    if (amountIn == 0) revert CDPPolicy_AMOUNT_IN_IS_0();
 
     action.pool = ctx.pool;
     action.dir = LQ.Direction.Expand;
@@ -237,6 +239,9 @@ contract CDPPolicy is ICDPPolicy, Ownable {
       collateralRegistry,
       ctx
     );
+
+    if (amountToRedeem == 0) revert CDPPolicy_AMOUNT_OUT_IS_0();
+    if (amountReceived == 0) revert CDPPolicy_AMOUNT_IN_IS_0();
 
     action.pool = ctx.pool;
     action.dir = LQ.Direction.Contract;
@@ -336,19 +341,5 @@ contract CDPPolicy is ICDPPolicy, Ownable {
         1e18 - redemptionFee,
         1e18
       );
-  }
-
-  function _emptyAction(address pool) internal pure returns (LQ.Action memory) {
-    return
-      LQ.Action({
-        pool: pool,
-        dir: LQ.Direction.Expand,
-        liquiditySource: LQ.LiquiditySource.Reserve,
-        amount0Out: 0,
-        amount1Out: 0,
-        inputAmount: 0,
-        incentiveBps: 0,
-        data: ""
-      });
   }
 }

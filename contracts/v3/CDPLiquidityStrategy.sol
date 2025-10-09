@@ -8,10 +8,7 @@ import { IFPMM } from "../interfaces/IFPMM.sol";
 import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
-
-interface IStabilityPool {
-  function swapCollateralForStable(uint256 amountCollIn, uint256 amountStableOut) external;
-}
+import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 
 contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
   mapping(address => bool) public trustedPools;
