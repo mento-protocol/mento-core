@@ -1,29 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
+// solhint-disable max-line-length
 
-import { ICDPPolicy } from "contracts/v3/Interfaces/ICDPPolicy.sol";
-import { CDPLiquidityStrategy } from "contracts/v3/CDPLiquidityStrategy.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
+import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 import { console } from "forge-std/console.sol";
 import { uints, addresses } from "mento-std/Array.sol";
 import { Test } from "forge-std/Test.sol";
-
-contract CDPLiquidityStrategyHarness is CDPLiquidityStrategy {
-  constructor(address initialOwner) CDPLiquidityStrategy(initialOwner) {}
-
-  function determineAction(LQ.Context memory ctx) external view returns (bool shouldAct, LQ.Action memory action) {
-    return _determineAction(ctx);
-  }
-}
-
 contract CDPPolicyTest is Test {
   error CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH();
   error CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE();
 
-  CDPLiquidityStrategyHarness public cdpLS;
+  CDPPolicy public policy;
 
   MockERC20 public debtToken6;
   MockERC20 public collateralToken6;
@@ -35,71 +26,309 @@ contract CDPPolicyTest is Test {
   address stabilityPool = makeAddr("stabilityPool");
   address fpmm = makeAddr("fpmm");
 
+  LQ.Context public ctx;
+
   function setUp() public {
-    cdpLS = new CDPLiquidityStrategyHarness(address(this));
+    policy = new CDPPolicy(new address[](0), new address[](0), new address[](0), new uint256[](0), new uint256[](0));
     debtToken6 = new MockERC20("DebtToken6", "DT6", 6);
     collateralToken6 = new MockERC20("CollateralToken6", "CT6", 6);
     debtToken18 = new MockERC20("DebtToken18", "DT18", 18);
     collateralToken18 = new MockERC20("CollateralToken18", "CT18", 18);
   }
 
-  function test_addPool_shouldSetCorrectState() public {
-    address fpmm0 = makeAddr("fpmm0");
-    address fpmm1 = makeAddr("fpmm1");
-
-    cdpLS.addPool({
-      pool: makeAddr("fpmm0"),
-      debtToken: address(debtToken6),
-      collateralToken: address(collateralToken6),
-      cooldown: 0 seconds,
-      incentiveBps: 50,
-      stabilityPool: stabilityPool,
-      collateralRegistry: collateralRegistry,
-      redemptionBeta: 1,
-      stabilityPoolPercentage: 100
-    });
-
-    cdpLS.addPool({
-      pool: makeAddr("fpmm1"),
-      debtToken: address(debtToken6),
-      collateralToken: address(collateralToken6),
-      cooldown: 0 seconds,
-      incentiveBps: 50,
-      stabilityPool: stabilityPool,
-      collateralRegistry: collateralRegistry,
-      redemptionBeta: 1,
-      stabilityPoolPercentage: 100
-    });
-
-    ICDPPolicy.CDPPolicyPoolConfig memory poolConfig0 = cdpLS.getCDPPolicyPoolConfig(fpmm0);
-    ICDPPolicy.CDPPolicyPoolConfig memory poolConfig1 = cdpLS.getCDPPolicyPoolConfig(fpmm1);
-
-    assertEq(poolConfig0.stabilityPool, stabilityPool);
-    assertEq(poolConfig0.stabilityPool, stabilityPool);
-    assertEq(poolConfig0.redemptionBeta, 1);
-    assertEq(poolConfig0.stabilityPoolPercentage, 100);
-    assertEq(poolConfig1.collateralRegistry, collateralRegistry);
-    assertEq(poolConfig1.collateralRegistry, collateralRegistry);
-    assertEq(poolConfig1.redemptionBeta, 2);
-    assertEq(poolConfig1.stabilityPoolPercentage, 200);
+  modifier _setUpPolicy(MockERC20 debtToken, uint256 stabilityPoolPercentage) {
+    policy.setDeptTokenStabilityPool(address(debtToken), stabilityPool);
+    policy.setDeptTokenCollateralRegistry(address(debtToken), collateralRegistry);
+    policy.setDeptTokenRedemptionBeta(address(debtToken), 1);
+    policy.setDeptTokenStabilityPoolPercentage(address(debtToken), stabilityPoolPercentage);
+    setStabilityPoolMinBoldAfterRebalance(1e18);
+    _;
   }
 
-  function test_setCDPPolicyPoolConfig_whenNotOwner_shouldRevert() public {
+  modifier _boundFuzzParams(uint256 oracleNumerator, uint256 reserve0, uint256 reserve1, bool poolPriceAbove) {
+    // price range from 0.000001 to 100_000
+    oracleNumerator = bound(oracleNumerator, 1e12, 1e23);
+    uint256 oracleDenominator = 1e18;
+    reserve0 = bound(reserve0, 100e18, 100_000_000e18);
+
+    if (poolPriceAbove) {
+      uint256 reserve1LowerBound = (reserve0 * oracleNumerator * 110) / (oracleDenominator * 100);
+      reserve1 = bound(reserve1, reserve1LowerBound, reserve1LowerBound * 5);
+    } else {
+      uint256 reserve1UpperBound = (reserve0 * oracleNumerator * 90) / (oracleDenominator * 100);
+
+      reserve1 = bound(reserve1, (reserve1UpperBound * 1) / 5, reserve1UpperBound);
+    }
+
+    ctx.reserves = LQ.Reserves({ reserveNum: reserve1, reserveDen: reserve0 });
+
+    ctx.prices = LQ.Prices({
+      oracleNum: oracleNumerator,
+      oracleDen: oracleDenominator,
+      poolPriceAbove: poolPriceAbove,
+      diffBps: 200
+    });
+    _;
+  }
+
+  function test_constructor_whenArrayLengthsMismatch_shouldRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH.selector));
+    policy = new CDPPolicy(new address[](2), new address[](0), new address[](0), new uint256[](0), new uint256[](0));
+  }
+
+  function test_constructor_shouldSetCorrectState() public {
+    address[] memory debtTokens = addresses(address(debtToken6), address(debtToken18));
+    address[] memory stabilityPools = addresses(stabilityPool, stabilityPool);
+    address[] memory collateralRegistries = addresses(collateralRegistry, collateralRegistry);
+    uint256[] memory redemptionBetas = uints(1, 2);
+    uint256[] memory stabilityPoolPercentages = uints(100, 200);
+    policy = new CDPPolicy(debtTokens, stabilityPools, collateralRegistries, redemptionBetas, stabilityPoolPercentages);
+    assertEq(policy.deptTokenStabilityPool(address(debtToken6)), stabilityPool);
+    assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), collateralRegistry);
+    assertEq(policy.deptTokenStabilityPool(address(debtToken18)), stabilityPool);
+    assertEq(policy.deptTokenCollateralRegistry(address(debtToken18)), collateralRegistry);
+    assertEq(policy.deptTokenRedemptionBeta(address(debtToken6)), 1);
+    assertEq(policy.deptTokenRedemptionBeta(address(debtToken18)), 2);
+    assertEq(policy.deptTokenStabilityPoolPercentage(address(debtToken6)), 100);
+    assertEq(policy.deptTokenStabilityPoolPercentage(address(debtToken18)), 200);
+  }
+
+  function test_setDeptTokenStabilityPool_whenNotOwner_shouldRevert() public {
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("notOwner"));
-    cdpLS.setCDPPolicyPoolConfig(fpmm, ICDPPolicy.CDPPolicyPoolConfig(stabilityPool, collateralRegistry, 0, 0));
+    policy.setDeptTokenStabilityPool(address(debtToken6), stabilityPool);
   }
 
-  function test_setCDPPolicyPoolConfig_whenCalledByOwner_shouldSucceed() public {
-    cdpLS.setCDPPolicyPoolConfig(fpmm, ICDPPolicy.CDPPolicyPoolConfig(stabilityPool, collateralRegistry, 3, 300));
-    CDPLiquidityStrategy.CDPPolicyPoolConfig memory poolConfig = cdpLS.getCDPPolicyPoolConfig(fpmm);
-    assertEq(poolConfig.stabilityPool, stabilityPool);
-    assertEq(poolConfig.stabilityPool, stabilityPool);
-    assertEq(poolConfig.redemptionBeta, 3);
-    assertEq(poolConfig.stabilityPoolPercentage, 300);
+  function test_setDeptTokenStabilityPool_whenCalledByOwner_shouldSucceed() public {
+    policy.setDeptTokenStabilityPool(address(debtToken6), makeAddr("newStabilityPool"));
+    assertEq(policy.deptTokenStabilityPool(address(debtToken6)), makeAddr("newStabilityPool"));
   }
 
-  function test_whenPoolPriceAboveAndToken0Debt() public {
+  function test_setDeptTokenCollateralRegistry_whenNotOwner_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("notOwner"));
+    policy.setDeptTokenCollateralRegistry(address(debtToken6), collateralRegistry);
+  }
+
+  function test_setDeptTokenCollateralRegistry_whenCalledByOwner_shouldSucceed() public {
+    policy.setDeptTokenCollateralRegistry(address(debtToken6), makeAddr("newCollateralRegistry"));
+    assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), makeAddr("newCollateralRegistry"));
+  }
+
+  function test_setDeptTokenRedemptionBeta_whenNotOwner_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("notOwner"));
+    policy.setDeptTokenRedemptionBeta(address(debtToken6), 1);
+  }
+
+  function test_setDeptTokenRedemptionBeta_whenCalledByOwner_shouldSucceed() public {
+    policy.setDeptTokenRedemptionBeta(address(debtToken6), 1);
+    assertEq(policy.deptTokenRedemptionBeta(address(debtToken6)), 1);
+  }
+
+  function test_setDeptTokenStabilityPoolPercentage_whenNotOwner_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("notOwner"));
+    policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 1);
+  }
+
+  function test_setDeptTokenStabilityPoolPercentage_whenCalledByOwner_shouldSucceed() public {
+    policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 500);
+    assertEq(policy.deptTokenStabilityPoolPercentage(address(debtToken6)), 500);
+  }
+
+  function test_setDeptTokenStabilityPoolPercentage_whenInvalidPercentage_shouldRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE.selector));
+    policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 10001);
+
+    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE.selector));
+    policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 0);
+  }
+
+  struct FuzzTestContext {
+    uint256 stabilityPoolBalance;
+    uint256 priceDifferenceBefore;
+    uint256 priceDifferenceAfter;
+    uint256 reserve0After;
+    uint256 reserve1After;
+    bool reservePriceAboveOraclePriceBefore;
+    bool reservePriceAboveOraclePriceAfter;
+  }
+
+  /// forge-config: default.fuzz.runs = 10000
+  function test_FUZZ_whenToken0DebtPoolPriceAboveAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToOraclePrice(
+    uint256 oracleNumerator,
+    uint256 reserve0,
+    uint256 reserve1
+  ) public _setUpPolicy(debtToken18, 9000) _boundFuzzParams(oracleNumerator, reserve0, reserve1, true) {
+    FuzzTestContext memory testContext;
+
+    ctx.pool = fpmm;
+    ctx.token0 = address(debtToken18);
+    ctx.token1 = address(collateralToken18);
+    ctx.token0Dec = 1e18;
+    ctx.token1Dec = 1e18;
+    ctx.isToken0Debt = true;
+    ctx.incentiveBps = 50;
+
+    // enough to cover the full expansion
+    testContext.stabilityPoolBalance = 1e18 + (ctx.reserves.reserveNum * ctx.prices.oracleDen) / ctx.prices.oracleNum;
+    setStabilityPoolBalance(address(debtToken18), testContext.stabilityPoolBalance);
+
+    (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum,
+      ctx.reserves.reserveDen
+    );
+    assertTrue(testContext.reservePriceAboveOraclePriceBefore);
+    assertTrue(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
+
+    (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
+
+    assertTrue(shouldAct);
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
+    assertEq(action.amount0Out, 0);
+    assertTrue(action.amount1Out > 0);
+    assertTrue(action.inputAmount > 0);
+
+    testContext.reserve0After = ctx.reserves.reserveDen + action.inputAmount;
+    testContext.reserve1After = ctx.reserves.reserveNum - action.amount1Out;
+
+    (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      testContext.reserve1After,
+      testContext.reserve0After
+    );
+    assert(testContext.priceDifferenceAfter == 0);
+    assertIncentive(
+      ctx.incentiveBps,
+      false,
+      action.amount1Out,
+      action.inputAmount,
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen
+    );
+  }
+
+  /// forge-config: default.fuzz.runs = 10000
+  function test_FUZZ_whenToken1DebtPoolPriceBelowAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToOraclePrice(
+    uint256 oracleNumerator,
+    uint256 reserve0,
+    uint256 reserve1
+  ) public _setUpPolicy(debtToken18, 9000) _boundFuzzParams(oracleNumerator, reserve0, reserve1, false) {
+    FuzzTestContext memory testContext;
+    ctx.pool = fpmm;
+    ctx.token0 = address(collateralToken6);
+    ctx.token1 = address(debtToken18);
+    ctx.token0Dec = 1e6;
+    ctx.token1Dec = 1e18;
+    ctx.isToken0Debt = false;
+    ctx.incentiveBps = 50;
+
+    testContext.stabilityPoolBalance = 1e18 + (ctx.reserves.reserveDen * ctx.prices.oracleNum) / ctx.prices.oracleDen;
+    setStabilityPoolBalance(address(debtToken18), testContext.stabilityPoolBalance);
+
+    (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum,
+      ctx.reserves.reserveDen
+    );
+    assertTrue(!testContext.reservePriceAboveOraclePriceBefore);
+    assertTrue(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
+
+    (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
+
+    assertTrue(shouldAct);
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
+    assertTrue(action.amount0Out > 0);
+    assertTrue(action.amount1Out == 0);
+    assertTrue(action.inputAmount > 0);
+
+    testContext.reserve0After = ctx.reserves.reserveDen - action.amount0Out * (1e18 / ctx.token0Dec);
+    testContext.reserve1After = ctx.reserves.reserveNum + action.inputAmount;
+
+    (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      testContext.reserve1After,
+      testContext.reserve0After
+    );
+    assert(testContext.priceDifferenceAfter == 0);
+    assertIncentive(
+      ctx.incentiveBps,
+      true,
+      action.amount0Out * (1e18 / ctx.token0Dec),
+      action.inputAmount,
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen
+    );
+  }
+
+  /// forge-config: default.fuzz.runs = 10000
+  function test_FUZZ_whenToken0DebtPoolPriceBelowAndRedemptionFeeEqualToIncentive_shouldContractAndBringPriceBackToOraclePrice(
+    uint256 oracleNumerator,
+    uint256 reserve0,
+    uint256 reserve1
+  ) public _setUpPolicy(debtToken18, 9000) _boundFuzzParams(oracleNumerator, reserve0, reserve1, false) {
+    FuzzTestContext memory testContext;
+
+    ctx.pool = fpmm;
+    ctx.token0 = address(debtToken18);
+    ctx.token1 = address(collateralToken6);
+    ctx.token0Dec = 1e18;
+    ctx.token1Dec = 1e6;
+    ctx.isToken0Debt = true;
+    ctx.incentiveBps = 50;
+
+    (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum,
+      ctx.reserves.reserveDen
+    );
+
+    assertTrue(!testContext.reservePriceAboveOraclePriceBefore);
+    assertTrue(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
+
+    mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    // ensure redemption fractions is below 0.25% resulting in total redemption fee less than 0.5%
+    uint256 totalSupply = (ctx.reserves.reserveNum * ctx.prices.oracleDen * 10_000) / ctx.prices.oracleNum;
+    setTokenTotalSupply(address(debtToken18), totalSupply);
+
+    (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
+
+    assertTrue(shouldAct);
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+    assert(action.amount0Out > 0);
+    assert(action.amount1Out == 0);
+    assert(action.inputAmount > 0);
+
+    testContext.reserve0After = ctx.reserves.reserveDen - action.amount0Out;
+    testContext.reserve1After = ctx.reserves.reserveNum + action.inputAmount * (1e18 / ctx.token1Dec);
+
+    (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      testContext.reserve1After,
+      testContext.reserve0After
+    );
+
+    // price difference should be less than before
+    assert(testContext.priceDifferenceAfter < testContext.priceDifferenceBefore);
+    assertIncentive(
+      ctx.incentiveBps,
+      true,
+      action.amount0Out,
+      action.inputAmount * (1e18 / ctx.token1Dec),
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen
+    );
+  }
+
+  function test_whenPoolPriceAboveAndToken0Debt_() public {
     /*
       struct Context {
         address pool;
@@ -139,23 +368,16 @@ contract CDPPolicyTest is Test {
     });
     ctx.incentiveBps = 50; // 0.5%
 
-    cdpLS.addPool({
-      pool: fpmm,
-      debtToken: address(debtToken18),
-      collateralToken: address(collateralToken6),
-      cooldown: 0 seconds,
-      incentiveBps: 50,
-      stabilityPool: stabilityPool,
-      collateralRegistry: collateralRegistry,
-      redemptionBeta: 1,
-      stabilityPoolPercentage: 9000
-    });
+    policy.setDeptTokenStabilityPool(address(debtToken18), stabilityPool);
+    policy.setDeptTokenCollateralRegistry(address(debtToken18), collateralRegistry);
+    policy.setDeptTokenRedemptionBeta(address(debtToken18), 1);
+    policy.setDeptTokenStabilityPoolPercentage(address(debtToken18), 9000); // 90%
 
     // enough to cover the full expansion
     setStabilityPoolBalance(address(debtToken18), 1_000_000 * 1e18);
     setStabilityPoolMinBoldAfterRebalance(1e18);
 
-    (, LQ.Action memory action) = cdpLS.determineAction(ctx);
+    (, LQ.Action memory action) = policy.determineAction(ctx);
     console.log("action.amount0Out", action.amount0Out);
     console.log("action.amount1Out", action.amount1Out);
     console.log("action.inputAmount", action.inputAmount);
@@ -198,36 +420,20 @@ contract CDPPolicyTest is Test {
     ctx.token1Dec = 1e6;
     ctx.isToken0Debt = true;
 
-    cdpLS.addPool({
-      pool: fpmm,
-      debtToken: address(debtToken18),
-      collateralToken: address(collateralToken6),
-      cooldown: 0 seconds,
-      incentiveBps: 50,
-      stabilityPool: stabilityPool,
-      collateralRegistry: collateralRegistry,
-      redemptionBeta: 1,
-      stabilityPoolPercentage: 9000
-    });
-
+    policy.setDeptTokenStabilityPool(address(debtToken18), stabilityPool);
+    policy.setDeptTokenCollateralRegistry(address(debtToken18), collateralRegistry);
+    policy.setDeptTokenRedemptionBeta(address(debtToken18), 1);
     setTokenTotalSupply(address(debtToken18), 10_000_000 * 1e18);
     mockGetRedemptionRateWithDecay(3e15); // 0.3%
 
     setStabilityPoolBalance(address(collateralToken6), 100_000 * 1e6);
 
-    (, LQ.Action memory action) = cdpLS.determineAction(ctx);
-
-    console.log("action.amount0Out", action.amount0Out);
-    console.log("action.amount1Out", action.amount1Out);
-    console.log("action.inputAmount", action.inputAmount);
+    (, LQ.Action memory action) = policy.determineAction(ctx);
 
     reserve0 -= action.amount0Out;
     reserve1 -= action.amount1Out;
-    uint256 inputAmount = (action.inputAmount * (10_000 - 50)) / 10_000;
+    uint256 inputAmount = (action.inputAmount * (10_000 - action.incentiveBps)) / 10_000;
     reserve0 += inputAmount;
-
-    // console.log("reserve0", reserve0);
-    console.log("reserve1", reserve1 * 1e12);
   }
 
   function setStabilityPoolMinBoldAfterRebalance(uint256 minBalance) public {
@@ -252,5 +458,43 @@ contract CDPPolicyTest is Test {
       abi.encodeWithSelector(ICollateralRegistry.getRedemptionRateWithDecay.selector),
       abi.encode(redemptionRate)
     );
+  }
+
+  function calculatePriceDifference(
+    uint256 oracleNumerator,
+    uint256 oracleDenominator,
+    uint256 reserveNumerator,
+    uint256 reserveDenominator
+  ) internal view returns (uint256 priceDifference, bool reservePriceAboveOraclePrice) {
+    uint256 oracleCrossProduct = oracleNumerator * reserveDenominator;
+    uint256 reserveCrossProduct = reserveNumerator * oracleDenominator;
+
+    reservePriceAboveOraclePrice = reserveCrossProduct > oracleCrossProduct;
+    uint256 absolutePriceDiff = reservePriceAboveOraclePrice
+      ? reserveCrossProduct - oracleCrossProduct
+      : oracleCrossProduct - reserveCrossProduct;
+    priceDifference = (absolutePriceDiff * LQ.BASIS_POINTS_DENOMINATOR) / oracleCrossProduct;
+  }
+
+  function assertIncentive(
+    uint256 incentiveBps,
+    bool isToken0Out,
+    uint256 amountOut,
+    uint256 amountIn,
+    uint256 oracleNumerator,
+    uint256 oracleDenominator
+  ) public {
+    uint256 amountOutInOtherToken;
+    if (isToken0Out) {
+      amountOutInOtherToken = (amountOut * oracleNumerator) / oracleDenominator;
+    } else {
+      amountOutInOtherToken = (amountOut * oracleDenominator) / oracleNumerator;
+    }
+    uint256 incentive = ((amountOutInOtherToken - amountIn) * 10_000) / amountOutInOtherToken;
+    console.log("amountOutInOtherToken", amountOutInOtherToken);
+    console.log("amountIn", amountIn);
+    console.log("incentive", incentive);
+    // we allow 1bp difference due to rounding
+    assertApproxEqAbs(incentive, incentiveBps, 1);
   }
 }

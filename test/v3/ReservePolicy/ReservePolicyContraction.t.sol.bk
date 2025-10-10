@@ -3,18 +3,10 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { ReservePolicyBaseTest, ReserveLiquidityStrategyHarness } from "./ReservePolicyBaseTest.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { ReservePolicyBaseTest } from "./ReservePolicyBaseTest.sol";
+import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
 
 contract ReservePolicyContractionTest is ReservePolicyBaseTest {
-  ReserveLiquidityStrategyHarness public reserveLS;
-  address public mockReserve = makeAddr("mockReserve");
-
-  function setUp() public override {
-    super.setUp();
-    reserveLS = new ReserveLiquidityStrategyHarness(mockReserve);
-  }
-
   /* ============================================================ */
   /* ================= Contraction Tests ======================== */
   /* ============================================================ */
@@ -30,14 +22,16 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       incentiveBps: 500 // 5%
     });
 
-    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act when pool has excess debt");
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract when pool price below oracle");
+    assertEq(uint256(action.liquiditySource), uint256(LQ.LiquiditySource.Reserve), "Should use Reserve as source");
     assertEq(action.pool, POOL, "Should target correct pool");
     assertEq(action.amount1Out, 0, "No collateral should flow out during contraction");
     assertGt(action.amount0Out, 0, "Debt should flow out during contraction");
     assertGt(action.inputAmount, 0, "Should have collateral input amount");
+    assertEq(action.incentiveBps, 500, "Should use provided incentive");
   }
 
   function test_determineAction_whenPoolPriceBelowOracleWithDifferentDecimals_shouldHandleCorrectly() public view {
@@ -54,7 +48,7 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       token1Dec: 1e6
     });
 
-    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act with different decimals");
     assertGt(action.amount0Out, 0, "Should have debt output in raw units");
@@ -73,10 +67,10 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       incentiveBps: 0
     });
 
-    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act even with zero incentive");
-    // NOTE: incentiveBps is in context, not in action in the new architecture
+    assertEq(action.incentiveBps, 0, "Should have zero incentive");
     // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
     // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 2)
     // Y = 100e18 / 2 = 50e18 (token0 to remove)
@@ -96,17 +90,17 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       incentiveBps: 10000 // 100%
     });
 
-    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act with maximum incentive");
-    // NOTE: In new architecture, the incentive is applied in the denominator formula:
-    // denominator = (OD * (2 * 10000 - incentiveBps)) / 10000
-    // With 100% incentive: denominator = (1e18 * (20000 - 10000)) / 10000 = 1e18
-    // numerator = ON * RD - OD * RN = 1e18 * 200e18 - 1e18 * 100e18 = 100e18
-    // token1In = numerator / denominator = 100e18 / 1e18 = 100e18
-    // token0Out = token1In * (OD / ON) = 100e18 * (1e18 / 1e18) = 100e18
+    assertEq(action.incentiveBps, 10000, "Should have maximum incentive");
+    // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
+    // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 1)
+    // Y = 100e18 / 1 = 100e18 (token0 to remove)
     assertEq(action.amount0Out, 100e18, "Should calculate correct debt out");
-    assertEq(action.inputAmount, 100e18, "Should calculate correct collateral input amount with 100% incentive");
+    // X = Y * (ON/OD) * (1 - i) = 100e18 * (1e18/1e18) * 0 = 0 (token1 to add)
+    // In contraction: collateral flows in via inputAmount
+    assertEq(action.inputAmount, 0, "Should calculate correct collateral input amount with 100% incentive");
   }
 
   /* ============================================================ */
@@ -125,7 +119,7 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       incentiveBps: 0 // 0% for clean calculation
     });
 
-    (, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     // Manual calculation:
     // Y = (2e18 * 500e18 - 1e18 * 100e18) / (2e18 * 2)
@@ -140,12 +134,7 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
   }
 
   function test_YRelationship_shouldAlwaysHoldForContraction() public view {
-    // NOTE: In new architecture, the formula is different from the old one
-    // The old formula had: X = Y * (ON/OD) * (1 - i)
-    // The new formula in _handlePoolPriceBelow calculates:
-    // token1In = numerator / denominator where denominator = (OD * (2 * 10000 - incentiveBps)) / 10000
-    // token0Out = token1In * (OD / ON)
-    // So the relationship is: token1In / token0Out = ON / OD (independent of incentive)
+    // Test X = Y * (ON/OD) * (1 - i) relationship for contraction (PP < OP)
     uint256[3] memory incentives = [uint256(0), 1500, 5000];
 
     for (uint256 i = 0; i < incentives.length; i++) {
@@ -158,15 +147,15 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
         incentiveBps: incentives[i]
       });
 
-      (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+      (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
       if (shouldAct && action.inputAmount > 0) {
-        // In new architecture: token0Out = token1In * (OD / ON)
-        // So: token1In / token0Out = ON / OD
-        uint256 calculatedRatio = (action.inputAmount * ctx.prices.oracleDen) / (action.amount0Out * ctx.prices.oracleNum);
-        uint256 expectedRatio = 1;
-        // Allow for rounding errors
-        assertApproxEqAbs(calculatedRatio, expectedRatio, 1, "token1In / token0Out should equal ON / OD");
+        // X/Y should equal (ON/OD) * (1 - i) (X is inputAmount, Y is amount0Out) within precision limits
+        uint256 calculatedRatio = (action.inputAmount * ctx.prices.oracleDen * LQ.BASIS_POINTS_DENOMINATOR) /
+          (action.amount0Out * ctx.prices.oracleNum);
+        uint256 expectedRatio = LQ.BASIS_POINTS_DENOMINATOR - incentives[i];
+        // Allow for rounding errors (1 wei difference)
+        assertApproxEqAbs(calculatedRatio, expectedRatio, 1, "X/Y ratio should approximately equal (ON/OD) * (1 - i)");
       }
     }
   }

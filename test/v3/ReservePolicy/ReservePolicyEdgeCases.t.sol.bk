@@ -3,18 +3,10 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { ReservePolicyBaseTest, ReserveLiquidityStrategyHarness } from "./ReservePolicyBaseTest.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { ReservePolicyBaseTest } from "./ReservePolicyBaseTest.sol";
+import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
 
 contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
-  ReserveLiquidityStrategyHarness public reserveLS;
-  address public mockReserve = makeAddr("mockReserve");
-
-  function setUp() public override {
-    super.setUp();
-    reserveLS = new ReserveLiquidityStrategyHarness(mockReserve);
-  }
-
   /* ============================================================ */
   /* ================= Small and Large Amounts ================= */
   /* ============================================================ */
@@ -30,7 +22,7 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
       incentiveBps: 500
     });
 
-    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     // Should handle small amounts gracefully
     if (shouldAct) {
@@ -52,7 +44,7 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
       incentiveBps: 500
     });
 
-    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should handle large amounts");
     assertGt(action.amount1Out, 0, "Should have valid token1 out");
@@ -73,7 +65,7 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
       incentiveBps: 500
     });
 
-    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act with very small oracle price");
     assertGt(action.amount1Out, 0, "Should have token1 out");
@@ -90,7 +82,7 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
       incentiveBps: 500
     });
 
-    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act with very large oracle price");
     assertGt(action.amount0Out, 0, "Should have token0 out");
@@ -112,7 +104,7 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
       incentiveBps: 19999 // Just below 20000 which would cause division by zero
     });
 
-    (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
     assertTrue(shouldAct, "Policy should act even with very high incentive");
     assertGt(action.amount1Out, 0, "Should have valid token1 out");
@@ -123,29 +115,22 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
   }
 
   function test_edgeCase_whenIncentiveAt20000_shouldReturnZero() public view {
-    // NOTE: In the new architecture, when incentiveBps is 20000, the denominator becomes 0
-    // This should cause division by zero, which will revert
-    // This test expects the function NOT to revert with shouldAct=false, but that's not how it works
-    // Commenting out this test as division by zero would revert the transaction
-    // The validation of incentive should happen at a higher level
-
     // Test with incentive at exactly 20000 bps (200%) - theoretical maximum
-    // LQ.Context memory ctx = _createContext({
-    //   reserveDen: 100e18, // token0 reserves
-    //   reserveNum: 200e18, // token1 reserves
-    //   oracleNum: 1e18,
-    //   oracleDen: 1e18,
-    //   poolPriceAbove: true,
-    //   incentiveBps: 20000 // Exactly 20000 would cause division by zero
-    // });
+    LQ.Context memory ctx = _createContext({
+      reserveDen: 100e18, // token0 reserves
+      reserveNum: 200e18, // token1 reserves
+      oracleNum: 1e18,
+      oracleDen: 1e18,
+      poolPriceAbove: true,
+      incentiveBps: 20000 // Exactly 20000 would cause division by zero
+    });
 
-    // (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
-    // // NOTE: In the new architecture, this will cause a division by zero and revert
-    // // The old test expected shouldAct=false, but the new implementation doesn't check for this
-    // assertFalse(shouldAct, "Should not act when denominator would be zero");
-    // assertEq(action.amount0Out, 0, "Should have zero output");
-    // assertEq(action.amount1Out, 0, "Should have zero output");
+    // When denominator is 0, the function should return no action
+    assertFalse(shouldAct, "Should not act when denominator would be zero");
+    assertEq(action.amount0Out, 0, "Should have zero output");
+    assertEq(action.amount1Out, 0, "Should have zero output");
   }
 
   function test_edgeCase_verySmallDenominator_shouldHandleGracefully() public view {
@@ -162,7 +147,7 @@ contract ReservePolicyEdgeCasesTest is ReservePolicyBaseTest {
         incentiveBps: incentiveBps[i]
       });
 
-      (bool shouldAct, LQ.Action memory action) = reserveLS.determineAction(ctx);
+      (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
 
       if (shouldAct) {
         // Verify no overflow occurred

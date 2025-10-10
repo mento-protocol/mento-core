@@ -31,6 +31,8 @@ interface ILiquidityStrategy {
   error LS_BAD_INCENTIVE();
   /// @notice Thrown when the callback sender is not the strategy itself
   error LS_INVALID_SENDER();
+  /// @notice Thrown when the initial owner is address(0)
+  error LS_INVALID_OWNER();
   /// @notice Thrown when attempting to rebalance before cooldown has elapsed
   error LS_COOLDOWN_ACTIVE();
   /// @notice Thrown when strategy execution fails

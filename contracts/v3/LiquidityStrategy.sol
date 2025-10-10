@@ -40,6 +40,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @param _initialOwner The initial owner of the contract
    */
   constructor(address _initialOwner) Ownable() ReentrancyGuard() {
+    if (_initialOwner == address(0)) revert LS_INVALID_OWNER();
     _transferOwnership(_initialOwner);
   }
 

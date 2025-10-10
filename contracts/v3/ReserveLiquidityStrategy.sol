@@ -32,6 +32,7 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
    * @param _reserve The Mento Protocol Reserve contract address
    */
   constructor(address _initialOwner, address _reserve) LiquidityStrategy(_initialOwner) {
+    if (_reserve == address(0)) revert RLS_INVALID_RESERVE();
     reserve = IReserve(_reserve);
     emit ReserveSet(address(0), _reserve);
   }
