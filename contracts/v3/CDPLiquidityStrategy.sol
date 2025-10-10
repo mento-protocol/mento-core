@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
+import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
+import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
+
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "./interfaces/ICDPLiquidityStrategy.sol";
-import { CDPRebalancer } from "./CDPRebalancer.sol";
-import { CDPPolicy } from "./CDPPolicy.sol";
+import { IFPMM } from "../interfaces/IFPMM.sol";
 import { LiquidityStrategyTypes as LQ } from "./libraries/LiquidityStrategyTypes.sol";
 
-contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy, CDPRebalancer, CDPPolicy {
+contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
+  using SafeERC20 for IERC20;
   using LQ for LQ.Context;
 
   uint256 constant BPS_TO_FEE_SCALER = 1e14;
@@ -15,14 +20,21 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy, CDPRe
 
   mapping(address => CDPConfig) private cdpConfigs;
 
-  /// @notice Constructor
-  /// @param _initialOwner the initial owner of the contract
+  /* ============================================================ */
+  /* ======================= Constructor ======================== */
+  /* ============================================================ */
+
+  /**
+   * @notice Constructor
+   * @param _initialOwner The initial owner of the contract
+   */
   constructor(address _initialOwner) LiquidityStrategy(_initialOwner) {}
 
   /* ============================================================ */
   /* ==================== External Functions ==================== */
   /* ============================================================ */
 
+  /// @inheritdoc ICDPLiquidityStrategy
   function addPool(
     address pool,
     address debtToken,
@@ -47,77 +59,177 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy, CDPRe
     });
   }
 
+  /// @inheritdoc ICDPLiquidityStrategy
   function removePool(address pool) external onlyOwner {
     LiquidityStrategy._removePool(pool);
     delete cdpConfigs[pool];
   }
 
+  /// @inheritdoc ICDPLiquidityStrategy
   function setCDPConfig(address pool, CDPConfig calldata config) external onlyOwner {
     _ensurePool(pool);
     cdpConfigs[pool] = config;
   }
 
+  /// @inheritdoc ICDPLiquidityStrategy
   function getCDPConfig(address pool) external view returns (CDPConfig memory) {
     _ensurePool(pool);
     return cdpConfigs[pool];
-  }
-
-  function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
-    _ensurePool(msg.sender);
-    require(sender == address(this), "CDPLiquidityStrategy: INVALID_SENDER");
-
-    (uint256 inputAmount, uint256 incentiveBps, LQ.Direction dir, address debtToken, address collToken) = abi.decode(
-      data,
-      (uint256, uint256, LQ.Direction, address, address)
-    );
-    if (dir == LQ.Direction.Expand) {
-      // swap coll for debt in stability pool
-      uint256 collAmount = amount0Out > 0 ? amount0Out : amount1Out;
-      address stabilityPool = _getStabilityPool(fpmm);
-      SafeERC20.safeApprove(IERC20(collToken), stabilityPool, collAmount);
-      IStabilityPool(stabilityPool).swapCollateralForStable(collAmount, inputAmount);
-      // transfer debt to FPMM
-      SafeERC20.safeTransfer(IERC20(debtToken), fpmm, inputAmount);
-    } else {
-      // redeem debt for coll
-      uint256 debtAmount = amount0Out > 0 ? amount0Out : amount1Out;
-      address collateralRegistry = _getCollateralRegistry(fpmm);
-      ICollateralRegistry(collateralRegistry).redeemCollateral(debtAmount, 100, incentiveBps);
-
-      uint256 collateralBalance = IERC20(collToken).balanceOf(address(this));
-      require(collateralBalance >= inputAmount, "CDPLiquidityStrategy: INSUFFICIENT_COLLATERAL_FROM_REDEMPTION");
-      // transfer coll to FPMM
-      SafeERC20.safeTransfer(IERC20(collToken), fpmm, inputAmount);
-    }
   }
 
   /* =========================================================== */
   /* ==================== Virtual Functions ==================== */
   /* =========================================================== */
 
+  /**
+   * @notice Builds an expansion action limited by stability pool balance
+   * @dev Checks available balance in the stability pool and adjusts expansion amount if needed
+   * @param ctx The liquidity context
+   * @param expansionAmount The requested amount of debt tokens to swap from stability pool
+   * @param collateralPayed The amount of collateral to send to stability pool
+   * @return action The expansion action
+   */
   function _buildExpansionAction(
     LQ.Context memory ctx,
-    uint256 amountIn,
-    uint256 amountOut
-  ) internal view override(LiquidityStrategy, CDPPolicy) returns (LQ.Action memory action) {
-    return CDPLSLib.buildExpansionAction(ctx, cdpConfigs[ctx.pool], amountIn, amountOut);
+    uint256 expansionAmount,
+    uint256 collateralPayed
+  ) internal view override returns (LQ.Action memory action) {
+    uint256 availableDebtToken = _calculateAvailablePoolBalance(cdpConfigs[ctx.pool], ctx.debtToken());
+
+    if (expansionAmount > availableDebtToken) {
+      expansionAmount = availableDebtToken;
+      collateralPayed = ctx.convertToCollateralWithFee(expansionAmount);
+    }
+
+    return ctx.newExpansion(expansionAmount, collateralPayed);
   }
 
+  /**
+   * @notice Builds a contraction action limited by redemption fee constraints
+   * @dev Calculates max redeemable amount based on current redemption fees and adjusts if needed
+   * @param ctx The liquidity context
+   * @param contractionAmount The requested amount of debt tokens to redeem
+   * @param collateralReceived The expected amount of collateral to receive from redemption
+   * @return action The contraction action
+   */
   function _buildContractionAction(
     LQ.Context memory ctx,
-    uint256 amountIn,
-    uint256 amountOut
-  ) internal view override(LiquidityStrategy, CDPPolicy) returns (LQ.Action memory action) {
-    return CDPLSLib.buildContractionAction(ctx, cdpConfigs[ctx.pool], amountOut);
+    uint256 contractionAmount,
+    uint256 collateralReceived
+  ) internal view override returns (LQ.Action memory action) {
+    (contractionAmount, collateralReceived) = _calculateAmountToRedeem(ctx, cdpConfigs[ctx.pool], contractionAmount);
+
+    return ctx.newContraction(contractionAmount, collateralReceived);
   }
 
-  function _execute(
+  /* ============================================================ */
+  /* ================= Callback Implementation ================== */
+  /* ============================================================ */
+
+  /**
+   * @notice Handles the rebalance callback by interacting with CDP protocol contracts
+   * @dev For expansions, swaps collateral for stable via stability pool
+   *      For contractions, redeems stable for collateral via collateral registry
+   * @param pool The address of the FPMM pool
+   * @param amount0Out The amount of token0 being sent from the pool
+   * @param amount1Out The amount of token1 being sent from the pool
+   * @param cb The callback data containing rebalance parameters
+   */
+  function _handleCallback(
+    address pool,
+    uint256 amount0Out,
+    uint256 amount1Out,
+    LQ.CallbackData memory cb
+  ) internal override {
+    if (cb.dir == LQ.Direction.Expand) {
+      // Expansion: swap collateral for debt in stability pool
+      uint256 collAmount = amount0Out > 0 ? amount0Out : amount1Out;
+      address stabilityPool = cdpConfigs[pool].stabilityPool;
+      IERC20(cb.collateralToken).safeApprove(stabilityPool, collAmount);
+      IStabilityPool(stabilityPool).swapCollateralForStable(collAmount, cb.inputAmount);
+      // Transfer debt to FPMM
+      IERC20(cb.debtToken).safeTransfer(pool, cb.inputAmount);
+    } else {
+      // Contraction: redeem debt for collateral
+      uint256 debtAmount = amount0Out > 0 ? amount0Out : amount1Out;
+      address collateralRegistry = cdpConfigs[pool].collateralRegistry;
+      ICollateralRegistry(collateralRegistry).redeemCollateral(debtAmount, 100, cb.incentiveBps);
+
+      uint256 collateralBalance = IERC20(cb.collateralToken).balanceOf(address(this));
+      if (collateralBalance < cb.inputAmount) revert CDPLS_INSUFFICIENT_COLLATERAL_FROM_REDEMPTION();
+      // Transfer collateral to FPMM
+      IERC20(cb.collateralToken).safeTransfer(pool, cb.inputAmount);
+    }
+  }
+
+  /* ============================================================ */
+  /* =================== Private Functions ====================== */
+  /* ============================================================ */
+
+  /**
+   * @notice Calculates the available balance in the stability pool for rebalancing
+   * @dev Takes into account minimum balance requirements and configured percentage limits
+   * @param cdpConfig The CDP configuration for the pool
+   * @param debtToken The address of the debt token
+   * @return availableAmount The amount of debt tokens available for expansion
+   */
+  function _calculateAvailablePoolBalance(
+    CDPConfig storage cdpConfig,
+    address debtToken
+  ) private view returns (uint256 availableAmount) {
+    uint256 stabilityPoolBalance = IERC20(debtToken).balanceOf(cdpConfig.stabilityPool);
+    uint256 stabilityPoolMinBalance = IStabilityPool(cdpConfig.stabilityPool).MIN_BOLD_AFTER_REBALANCE();
+
+    if (stabilityPoolBalance <= stabilityPoolMinBalance) revert CDPLS_STABILITY_POOL_BALANCE_TOO_LOW();
+
+    uint256 stabilityPoolAvailable = (stabilityPoolBalance * cdpConfig.stabilityPoolPercentage) / BPS_DENOMINATOR;
+
+    availableAmount = stabilityPoolAvailable > stabilityPoolBalance - stabilityPoolMinBalance
+      ? stabilityPoolBalance - stabilityPoolMinBalance
+      : stabilityPoolAvailable;
+  }
+
+  /**
+   * @notice Calculates the maximum amount that can be redeemed given current redemption fees
+   * @dev Uses the redemption fee formula to determine max redeemable amount within incentive constraints
+   * @param ctx The liquidity context
+   * @param cdpConfig The CDP configuration for the pool
+   * @param targetContractionAmount The desired amount of debt tokens to redeem
+   * @return contractionAmount The actual amount of debt tokens to redeem (may be lower than target)
+   * @return collateralReceived The amount of collateral that will be received
+   */
+  function _calculateAmountToRedeem(
     LQ.Context memory ctx,
-    LQ.Action memory action
-  ) internal override(LiquidityStrategy, CDPRebalancer) returns (bool) {
-    (address debtToken, address collToken) = ctx.tokens();
-    bytes memory hookData = abi.encode(action.inputAmount, ctx.incentiveBps, action.dir, debtToken, collToken);
-    IFPMM(action.pool).rebalance(action.amount0Out, action.amount1Out, hookData);
-    return true;
+    CDPConfig storage cdpConfig,
+    uint256 targetContractionAmount
+  ) private view returns (uint256 contractionAmount, uint256 collateralReceived) {
+    // formula for max amount that can be redeemed given the max fee we are willing to pay:
+    // amountToRedeem = totalSupply * REDEMPTION_BETA * (maxFee - decayedBaseFee)
+    address debtToken = ctx.debtToken();
+    uint256 decayedBaseFee = ICollateralRegistry(cdpConfig.collateralRegistry).getRedemptionRateWithDecay();
+    uint256 totalDebtTokenSupply = IERC20(debtToken).totalSupply();
+
+    uint256 maxRedemptionFee = ctx.incentiveBps * BPS_TO_FEE_SCALER;
+
+    if (maxRedemptionFee < decayedBaseFee) revert CDPLS_REDEMPTION_FEE_TOO_LARGE();
+
+    uint256 maxAmountToRedeem = (totalDebtTokenSupply *
+      cdpConfig.redemptionBeta *
+      (maxRedemptionFee - decayedBaseFee)) / 1e18;
+
+    if (targetContractionAmount > maxAmountToRedeem) {
+      contractionAmount = maxAmountToRedeem;
+    } else {
+      contractionAmount = targetContractionAmount;
+    }
+
+    uint256 redemptionFee = decayedBaseFee +
+      (contractionAmount * 1e18 * cdpConfig.redemptionBeta) /
+      totalDebtTokenSupply;
+
+    // redemption fee is capped at 100%
+    redemptionFee = redemptionFee > 1e18 ? 1e18 : redemptionFee;
+
+    collateralReceived = ctx.convertToCollateralWithFee(contractionAmount, 1e18 - redemptionFee, 1e18);
   }
 }

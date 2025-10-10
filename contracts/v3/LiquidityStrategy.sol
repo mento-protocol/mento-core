@@ -31,8 +31,14 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
   EnumerableSet.AddressSet private pools;
   mapping(address => PoolConfig) private poolConfigs;
 
-  /// @notice Constructor
-  /// @param _initialOwner the initial owner of the contract
+  /* ============================================================ */
+  /* ======================= Constructor ======================== */
+  /* ============================================================ */
+
+  /**
+   * @notice Constructor
+   * @param _initialOwner The initial owner of the contract
+   */
   constructor(address _initialOwner) Ownable() ReentrancyGuard() {
     _transferOwnership(_initialOwner);
   }
@@ -52,49 +58,68 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
   function setRebalanceIncentive(address pool, uint32 incentiveBps) external onlyOwner {
     _ensurePool(pool);
     uint256 poolIncentiveCap = IFPMM(pool).rebalanceIncentive();
-    require(incentiveBps <= poolIncentiveCap && incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR, "LS: BAD_INCENTIVE");
+    if (!(incentiveBps <= poolIncentiveCap && incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR)) revert LS_BAD_INCENTIVE();
     poolConfigs[pool].rebalanceIncentive = incentiveBps;
     emit RebalanceIncentiveSet(pool, incentiveBps);
   }
-
-  /* =========================================================== */
-  /* ==================== Virtual Functions ==================== */
-  /* =========================================================== */
-
-  function _buildExpansionAction(
-    LQ.Context memory ctx,
-    uint256 amountIn,
-    uint256 amountOut
-  ) internal view virtual returns (LQ.Action memory action);
-
-  function _buildContractionAction(
-    LQ.Context memory ctx,
-    uint256 amountIn,
-    uint256 amountOut
-  ) internal view virtual returns (LQ.Action memory action);
-
-  function _execute(LQ.Context memory ctx, LQ.Action memory action) internal virtual returns (bool);
 
   /* ============================================================ */
   /* ==================== External Functions ==================== */
   /* ============================================================ */
 
   /// @inheritdoc ILiquidityStrategy
-  function rebalance(address pool) external nonReentrant {
+  function rebalance(address pool) external virtual nonReentrant {
     _ensurePool(pool);
 
     PoolConfig memory config = poolConfigs[pool];
-    require(block.timestamp > config.lastRebalance + config.rebalanceCooldown, "LS: COOLDOWN_ACTIVE");
+    if (block.timestamp <= config.lastRebalance + config.rebalanceCooldown) revert LS_COOLDOWN_ACTIVE();
     LQ.Context memory ctx = LQ.newContext(pool, config);
-    (bool shouldAct, LQ.Action memory action) = _determineAction(ctx);
-    require(shouldAct, "LS: NO_ACTION_NEEDED");
+    LQ.Action memory action = _determineAction(ctx);
 
-    bool ok = _execute(ctx, action);
-    require(ok, "LS: STRATEGY_EXECUTION_FAILED");
+    (address debtToken, address collateralToken) = ctx.tokens();
+
+    bytes memory hookData = abi.encode(
+      LQ.CallbackData({
+        inputAmount: action.inputAmount,
+        incentiveBps: ctx.incentiveBps,
+        dir: action.dir,
+        isToken0Debt: ctx.isToken0Debt,
+        debtToken: debtToken,
+        collateralToken: collateralToken
+      })
+    );
+
+    IFPMM(ctx.pool).rebalance(action.amount0Out, action.amount1Out, hookData);
+
+    uint256 incentiveAmount = LQ.incentiveAmount(action.inputAmount, ctx.incentiveBps);
+    emit LiquidityMoved(
+      ctx.pool,
+      action.dir,
+      action.inputAmount,
+      action.amount0Out + action.amount1Out,
+      incentiveAmount
+    );
 
     poolConfigs[pool].lastRebalance = uint64(block.timestamp);
     (, , , , uint256 diffAfter, ) = IFPMM(pool).getPrices();
     emit RebalanceExecuted(pool, ctx.prices.diffBps, diffAfter);
+  }
+
+  /**
+   * @notice Hook called by FPMM during rebalance to handle token transfers
+   * @dev Virtual function that can be overridden for custom callback handling
+   * @param sender The address that initiated the rebalance (must be this contract)
+   * @param amount0Out The amount of token0 to be sent from the pool
+   * @param amount1Out The amount of token1 to be sent from the pool
+   * @param data Encoded callback data containing rebalance parameters
+   */
+  function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external virtual {
+    address pool = msg.sender;
+    _ensurePool(pool);
+    if (sender != address(this)) revert LS_INVALID_SENDER();
+
+    LQ.CallbackData memory cb = abi.decode(data, (LQ.CallbackData));
+    _handleCallback(pool, amount0Out, amount1Out, cb);
   }
 
   /* ============================================================ */
@@ -111,21 +136,72 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     return pools.values();
   }
 
+  /* =========================================================== */
+  /* ==================== Virtual Functions ==================== */
+  /* =========================================================== */
+
+  /**
+   * @notice Builds an expansion action when pool price is above oracle price
+   * @dev Must be implemented by concrete strategies to define how to handle liquidity constraints
+   * @param ctx The liquidity context containing pool state and configuration
+   * @param expansionAmount The amount of debt tokens to add to the pool
+   * @param collateralPayed The amount of collateral tokens to receive from the pool
+   * @return action The constructed expansion action
+   */
+  function _buildExpansionAction(
+    LQ.Context memory ctx,
+    uint256 expansionAmount,
+    uint256 collateralPayed
+  ) internal view virtual returns (LQ.Action memory action);
+
+  /**
+   * @notice Builds a contraction action when pool price is below oracle price
+
+   * @dev Must be implemented by concrete strategies to define how to handle liquidity constraints
+   * @param ctx The liquidity context containing pool state and configuration
+   * @param contractionAmount The amount of debt tokens to receive from the pool
+   * @param collateralReceived The amount of collateral tokens to add to the pool
+   * @return action The constructed contraction action
+   */
+  function _buildContractionAction(
+    LQ.Context memory ctx,
+    uint256 contractionAmount,
+    uint256 collateralReceived
+  ) internal view virtual returns (LQ.Action memory action);
+
+  /**
+   * @notice Handles the rebalance callback from the FPMM pool
+   * @dev Must be implemented by concrete strategies to define token transfer logic
+   * @param pool The address of the FPMM pool
+   * @param amount0Out The amount of token0 being sent from the pool
+   * @param amount1Out The amount of token1 being sent from the pool
+   * @param cb The decoded callback data containing rebalance parameters
+   */
+  function _handleCallback(
+    address pool,
+    uint256 amount0Out,
+    uint256 amount1Out,
+    LQ.CallbackData memory cb
+  ) internal virtual;
+
   /* ============================================================ */
   /* ==================== Internal Functions ==================== */
   /* ============================================================ */
 
-  function _addPool(
-    address pool,
-    address debtToken,
-    uint64 cooldown,
-    uint32 incentiveBps
-  ) internal virtual {
-    require(pool != address(0), "LS: POOL_MUST_BE_SET");
+  /**
+   * @notice Adds a new pool to the strategy's registry
+   * @dev Virtual function to allow strategies to extend with additional logic
+   * @param pool The address of the FPMM pool to add
+   * @param debtToken The address of the debt token (determines isToken0Debt)
+   * @param cooldown The cooldown period between rebalances in seconds
+   * @param incentiveBps The rebalance incentive in basis points
+   */
+  function _addPool(address pool, address debtToken, uint64 cooldown, uint32 incentiveBps) internal virtual {
+    if (pool == address(0)) revert LS_POOL_MUST_BE_SET();
     // Verify incentive
     uint256 poolCap = IFPMM(pool).rebalanceIncentive();
-    require(incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR && incentiveBps <= poolCap, "LS: BAD_INCENTIVE");
-    require(pools.add(pool), "LS: POOL_ALREADY_EXISTS"); // Ensure pool is added
+    if (!(incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR && incentiveBps <= poolCap)) revert LS_BAD_INCENTIVE();
+    if (!pools.add(pool)) revert LS_POOL_ALREADY_EXISTS(); // Ensure pool is added
     bool isToken0Debt = debtToken == IFPMM(pool).token0();
 
     poolConfigs[pool] = PoolConfig({
@@ -138,49 +214,33 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     emit PoolAdded(pool, isToken0Debt, cooldown, incentiveBps);
   }
 
+  /**
+   * @notice Removes a pool from the strategy's registry
+   * @dev Virtual function to allow strategies to extend with cleanup logic
+   * @param pool The address of the pool to remove
+   */
   function _removePool(address pool) internal virtual {
-    require(pools.remove(pool), "LS: POOL_NOT_FOUND");
+    if (!pools.remove(pool)) revert LS_POOL_NOT_FOUND();
     delete poolConfigs[pool];
     emit PoolRemoved(pool);
   }
 
-  function _ensurePool(address pool) internal view virtual {
-    require(pools.contains(pool), "LS: POOL_NOT_FOUND");
+  /**
+   * @notice Ensures that a pool is registered in the strategy
+   * @dev Virtual function to allow custom pool validation logic
+   * @param pool The address of the pool to check
+   */
+  function _ensurePool(address pool) internal view {
+    if (!pools.contains(pool)) revert LS_POOL_NOT_FOUND();
   }
 
-  /// @dev Fetch rebalance thresholds from FPMM
-  function _getThresholds(address pool) internal view returns (uint256 upperThreshold, uint256 lowerThreshold) {
-    IFPMM fpmm = IFPMM(pool);
-    upperThreshold = fpmm.rebalanceThresholdAbove();
-    lowerThreshold = fpmm.rebalanceThresholdBelow();
-  }
-
-  /// @dev Check if price is in range using provided thresholds
-  function _checkInRange(LQ.Prices memory prices, address pool) internal view returns (bool) {
-    (uint256 upperThreshold, uint256 lowerThreshold) = _getThresholds(pool);
-    _validateThresholds(upperThreshold, lowerThreshold);
-
-    // Price is in range if deviation is below the relevant threshold
-    uint256 threshold = prices.poolPriceAbove ? upperThreshold : lowerThreshold;
-    return prices.diffBps < threshold;
-  }
-
-  /// @dev Validate threshold values are in acceptable range
-  function _validateThresholds(uint256 upperBps, uint256 lowerBps) internal pure {
-    require(
-      upperBps > 0 &&
-        upperBps <= LQ.BASIS_POINTS_DENOMINATOR &&
-        lowerBps > 0 &&
-        lowerBps <= LQ.BASIS_POINTS_DENOMINATOR,
-      "LS: INVALID_THRESHOLD"
-    );
-  }
-
-  /* ============================================================ */
-  /* ================= Internal Policy Functions ================ */
-  /* ============================================================ */
-
-  function _determineAction(LQ.Context memory ctx) internal view returns (bool shouldAct, LQ.Action memory action) {
+  /**
+   * @notice Determines the appropriate rebalance action based on pool and oracle prices
+   * @dev Reverts if no action is needed
+   * @param ctx The liquidity context containing pool state and configuration
+   * @return action The rebalance action to execute
+   */
+  function _determineAction(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
     if (ctx.prices.poolPriceAbove) {
       return _handlePoolPriceAbove(ctx);
     } else {
@@ -188,9 +248,13 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     }
   }
 
-  function _handlePoolPriceAbove(
-    LQ.Context memory ctx
-  ) internal view returns (bool shouldAct, LQ.Action memory action) {
+  /**
+   * @notice Handles the case when pool price is above oracle price
+   * @dev Calculates expansion or contraction amounts based on token order
+   * @param ctx The liquidity context containing pool state and configuration
+   * @return action The constructed rebalance action
+   */
+  function _handlePoolPriceAbove(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
     uint256 numerator = ctx.prices.oracleDen * ctx.reserves.reserveNum - ctx.prices.oracleNum * ctx.reserves.reserveDen;
     uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
@@ -202,21 +266,23 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     uint256 token0In = LQ.scaleFromTo(token0InRaw, ctx.token1Dec, ctx.token0Dec);
 
     if (ctx.isToken0Debt) {
-      // ON/OD < RN/RD
-      // ON/OD < CollR/DebtR
-      action = _buildExpansionAction(ctx, token0In, token1Out);
-      shouldAct = true;
+      // ON/OD < RN/RD => Pool price > Oracle price
+      // Expansion: add debt (token0) to pool, take collateral (token1) from pool
+      return _buildExpansionAction(ctx, token0In, token1Out);
     } else {
-      // ON/OD < RN/RD
-      // ON/OD < DebtR/CollR
-      action = _buildContractionAction(ctx, token0In, token1Out);
-      shouldAct = true;
+      // ON/OD < RN/RD => Pool price > Oracle price
+      // Contraction: take debt (token1) from pool, add collateral (token0) to pool
+      return _buildContractionAction(ctx, token1Out, token0In);
     }
   }
 
-  function _handlePoolPriceBelow(
-    LQ.Context memory ctx
-  ) internal view returns (bool shouldAct, LQ.Action memory action) {
+  /**
+   * @notice Handles the case when pool price is below oracle price
+   * @dev Calculates contraction or expansion amounts based on token order
+   * @param ctx The liquidity context containing pool state and configuration
+   * @return action The constructed rebalance action
+   */
+  function _handlePoolPriceBelow(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
     uint256 numerator = ctx.prices.oracleNum * ctx.reserves.reserveDen - ctx.prices.oracleDen * ctx.reserves.reserveNum;
     uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
@@ -228,15 +294,13 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     uint256 token0Out = LQ.scaleFromTo(token0OutRaw, ctx.token1Dec, ctx.token0Dec);
 
     if (ctx.isToken0Debt) {
-      // ON/OD > RN/RD
-      // ON/OD > CollR/DebtR
-      action = _buildContractionAction(ctx, token1In, token0Out);
-      shouldAct = true;
+      // ON/OD > RN/RD => Pool price < Oracle price
+      // Contraction: take debt (token0) from pool, add collateral (token1) to pool
+      return _buildContractionAction(ctx, token0Out, token1In);
     } else {
-      // ON/OD > RN/RD
-      // ON/OD > DebtR/CollR
-      action = _buildExpansionAction(ctx, token1In, token0Out);
-      shouldAct = true;
+      // ON/OD > RN/RD => Pool price < Oracle price
+      // Expansion: add debt (token1) to pool, take collateral (token0) from pool
+      return _buildExpansionAction(ctx, token1In, token0Out);
     }
   }
 }

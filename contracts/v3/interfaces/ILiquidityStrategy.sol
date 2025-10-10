@@ -11,11 +11,10 @@ interface ILiquidityStrategy {
   /**
    * @notice Struct holding the complete configuration of an FPMM pool,
    *         in the context of liquidity management.
-   * @param debtToken The Mento-issued debt token (e.g., cUSD, USD.M etc)
-   * @param collateralToken The backing/collateral token (e.g., USDC, USDT)
-   * @param lastRebalance The timestamp of the last rebalance for this pool.
-   * @param rebalanceCooldown The cooldown period that must pass before the next rebalance.
-   * @param rebalanceIncentive The controller-side incentive cap (bps) for the rebalance.
+   * @param isToken0Debt Whether token0 is the debt token (true) or token1 is the debt token (false)
+   * @param lastRebalance The timestamp of the last rebalance for this pool
+   * @param rebalanceCooldown The cooldown period that must pass before the next rebalance
+   * @param rebalanceIncentive The strategy-side incentive cap (bps) for the rebalance
    */
   struct PoolConfig {
     bool isToken0Debt;
@@ -25,40 +24,92 @@ interface ILiquidityStrategy {
   }
 
   /* ============================================================ */
+  /* ======================== Errors ============================ */
+  /* ============================================================ */
+
+  /// @notice Thrown when the incentive is invalid or exceeds limits
+  error LS_BAD_INCENTIVE();
+  /// @notice Thrown when the callback sender is not the strategy itself
+  error LS_INVALID_SENDER();
+  /// @notice Thrown when attempting to rebalance before cooldown has elapsed
+  error LS_COOLDOWN_ACTIVE();
+  /// @notice Thrown when strategy execution fails
+  error LS_STRATEGY_EXECUTION_FAILED();
+  /// @notice Thrown when pool address is zero
+  error LS_POOL_MUST_BE_SET();
+  /// @notice Thrown when attempting to add a pool that already exists
+  error LS_POOL_ALREADY_EXISTS();
+  /// @notice Thrown when pool is not found in the registry
+  error LS_POOL_NOT_FOUND();
+  /// @notice Thrown when rebalance thresholds are invalid
+  error LS_INVALID_THRESHOLD();
+  /// @notice Thrown when token decimals are zero
+  error LST_ZERO_DECIMAL();
+  /// @notice Thrown when token decimals exceed 1e18
+  error LST_INVALID_DECIMAL();
+  /// @notice Thrown when oracle prices are invalid
+  error LS_INVALID_PRICES();
+
+  /* ============================================================ */
   /* ======================== Events ============================ */
   /* ============================================================ */
 
+  /**
+   * @notice Emitted when a new pool is added to the strategy
+   * @param pool The address of the pool
+   * @param isToken0Debt Whether token0 is the debt token
+   * @param cooldown The rebalance cooldown period
+   * @param incentiveBps The rebalance incentive in basis points
+   */
   event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown, uint32 incentiveBps);
+
+  /**
+   * @notice Emitted when a pool is removed from the strategy
+   * @param pool The address of the pool
+   */
   event PoolRemoved(address indexed pool);
+
+  /**
+   * @notice Emitted when a pool's rebalance cooldown is updated
+   * @param pool The address of the pool
+   * @param cooldown The new cooldown period
+   */
   event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
+
+  /**
+   * @notice Emitted when a pool's rebalance incentive is updated
+   * @param pool The address of the pool
+   * @param incentiveBps The new incentive in basis points
+   */
   event RebalanceIncentiveSet(address indexed pool, uint32 incentiveBps);
+
+  /**
+   * @notice Emitted when a rebalance is executed
+   * @param pool The address of the pool
+   * @param diffBeforeBps The price difference before rebalance in basis points
+   * @param diffAfterBps The price difference after rebalance in basis points
+   */
   event RebalanceExecuted(address indexed pool, uint256 diffBeforeBps, uint256 diffAfterBps);
+
+  /**
+   * @notice Emitted when liquidity is moved during rebalance
+   * @param pool The address of the pool
+   * @param direction The direction of the rebalance (Expand or Contract)
+   * @param tokenInAmount The amount of tokens moved into the pool
+   * @param tokenOutAmount The amount of tokens moved out of the pool
+   * @param incentiveAmount The incentive amount paid to the rebalancer
+   */
+  event LiquidityMoved(
+    address indexed pool,
+    LQ.Direction direction,
+    uint256 tokenInAmount,
+    uint256 tokenOutAmount,
+    uint256 incentiveAmount
+  );
 
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */
-
-  // /**
-  //  * @notice Adds a new liquidity pool to be mangeed by the controller.
-  //  * @param pool The address of the pool to be added
-  //  * @param debtToken The address of the pools debt token
-  //  * @param collateralToken The address of the pools collateral token
-  //  * @param cooldown The cooldown period that must elapse before the pool can be rebalanced again
-  //  * @param incentiveBps The rebalance incentive in basis points
-  //  */
-  // function addPool(
-  //   address pool,
-  //   address debtToken,
-  //   address collateralToken,
-  //   uint64 cooldown,
-  //   uint32 incentiveBps
-  // ) external;
-
-  /**
-   * @notice Removes a liquidity pool from the controller.
-   * @param pool The address of the pool to be removed.
-   */
-  function removePool(address pool) external;
 
   /**
    * @notice Sets the rebalance cooldown for a given liquidity pool.
