@@ -68,36 +68,36 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
 
   function _clampExpansion(
     LQ.Context memory ctx,
-    uint256 idealDebtExpanded,
-    uint256 idealCollateralPayed
-  ) internal view override returns (uint256 debtExpanded, uint256 collateralPayed) {
+    uint256 idealDebtToExpand,
+    uint256 idealCollateralToPay
+  ) internal view override returns (uint256 debtToExpand, uint256 collateralToPay) {
     // Apply test limits if configured
-    if (shouldLimitExpansion && idealDebtExpanded > maxExpansionAmount) {
-      debtExpanded = maxExpansionAmount;
-      collateralPayed = ctx.convertToCollateralWithFee(debtExpanded);
+    if (shouldLimitExpansion && idealDebtToExpand > maxExpansionAmount) {
+      debtToExpand = maxExpansionAmount;
+      collateralToPay = ctx.convertToCollateralWithFee(debtToExpand);
     } else {
-      debtExpanded = idealDebtExpanded;
-      collateralPayed = idealCollateralPayed;
+      debtToExpand = idealDebtToExpand;
+      collateralToPay = idealCollateralToPay;
     }
 
-    return (debtExpanded, collateralPayed);
+    return (debtToExpand, collateralToPay);
   }
 
   function _clampContraction(
     LQ.Context memory ctx,
-    uint256 idealDebtContracted,
-    uint256 idealCollateralReceived
-  ) internal view override returns (uint256 debtContracted, uint256 collateralReceived) {
+    uint256 idealDebtToContract,
+    uint256 idealCollateralToReceive
+  ) internal view override returns (uint256 debtToContract, uint256 collateralToReceive) {
     // Apply test limits if configured
-    if (shouldLimitContraction && idealDebtContracted > maxContractionAmount) {
-      debtContracted = maxContractionAmount;
-      collateralReceived = ctx.convertToDebtToken(debtContracted);
+    if (shouldLimitContraction && idealDebtToContract > maxContractionAmount) {
+      debtToContract = maxContractionAmount;
+      collateralToReceive = ctx.convertToDebtToken(debtToContract);
     } else {
-      debtContracted = idealDebtContracted;
-      collateralReceived = idealCollateralReceived;
+      debtToContract = idealDebtToContract;
+      collateralToReceive = idealCollateralToReceive;
     }
 
-    return (debtContracted, collateralReceived);
+    return (debtToContract, collateralToReceive);
   }
 
   function _handleCallback(

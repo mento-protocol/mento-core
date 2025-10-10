@@ -315,48 +315,48 @@ library LiquidityStrategyTypes {
    * @notice Creates an expansion action (add debt to pool, receive collateral)
    * @dev Sets amount0Out/amount1Out based on token order
    * @param ctx The liquidity context
-   * @param expansionAmount The amount of debt tokens to add to the pool
-   * @param collateralPayed The amount of collateral tokens to receive from the pool
+   * @param debtToExpand The amount of debt tokens to add to the pool
+   * @param collateralToPay The amount of collateral tokens to receive from the pool
    * @return action The constructed expansion action
    */
   function newExpansion(
     Context memory ctx,
-    uint256 expansionAmount,
-    uint256 collateralPayed
+    uint256 debtToExpand,
+    uint256 collateralToPay
   ) internal pure returns (Action memory action) {
     action.dir = Direction.Expand;
     if (ctx.isToken0Debt) {
       action.amount0Out = 0;
-      action.amount1Out = collateralPayed;
+      action.amount1Out = collateralToPay;
     } else {
-      action.amount0Out = collateralPayed;
+      action.amount0Out = collateralToPay;
       action.amount1Out = 0;
     }
-    action.inputAmount = expansionAmount;
+    action.inputAmount = debtToExpand;
   }
 
   /**
    * @notice Creates a contraction action (add collateral to pool, receive debt)
    * @dev Sets amount0Out/amount1Out based on token order
    * @param ctx The liquidity context
-   * @param contractionAmount The amount of debt tokens to receive from the pool
-   * @param collateralReceived The amount of collateral tokens to add to the pool
+   * @param debtToContract The amount of debt tokens to receive from the pool
+   * @param collateralToReceive The amount of collateral tokens to add to the pool
    * @return action The constructed contraction action
    */
   function newContraction(
     Context memory ctx,
-    uint256 contractionAmount,
-    uint256 collateralReceived
+    uint256 debtToContract,
+    uint256 collateralToReceive
   ) internal pure returns (Action memory action) {
     action.dir = Direction.Contract;
     if (ctx.isToken0Debt) {
       action.amount0Out = 0;
-      action.amount1Out = contractionAmount;
+      action.amount1Out = debtToContract;
     } else {
-      action.amount0Out = contractionAmount;
+      action.amount0Out = debtToContract;
       action.amount1Out = 0;
     }
-    action.inputAmount = collateralReceived;
+    action.inputAmount = collateralToReceive;
   }
 
   /* ============================================================ */

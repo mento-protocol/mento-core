@@ -69,30 +69,30 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
    * @dev Reserve has unlimited minting capacity for expansions so no clamping needed
    *      For contractions, checks Reserve collateral balance and adjusts if insufficient
    * @param ctx The liquidity context containing pool state and configuration
-   * @param idealDebtContracted The calculated ideal amount of debt tokens to receive from pool
-   * @param idealCollateralReceived The calculated ideal amount of collateral to add to pool
-   * @return debtContracted The actual debt amount to contract (may be less than ideal)
-   * @return collateralReceived The actual collateral amount to send (adjusted if balance insufficient)
+   * @param idealDebtToContract The calculated ideal amount of debt tokens to receive from pool
+   * @param idealCollateralToReceive The calculated ideal amount of collateral to add to pool
+   * @return debtToContract The actual debt amount to contract (may be less than ideal)
+   * @return collateralToReceive The actual collateral amount to send (adjusted if balance insufficient)
    */
   function _clampContraction(
     LQ.Context memory ctx,
-    uint256 idealDebtContracted,
-    uint256 idealCollateralReceived
-  ) internal view override returns (uint256 debtContracted, uint256 collateralReceived) {
+    uint256 idealDebtToContract,
+    uint256 idealCollateralToReceive
+  ) internal view override returns (uint256 debtToContract, uint256 collateralToReceive) {
     address collateralToken = ctx.collateralToken();
     uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(reserve));
 
     if (collateralBalance == 0) revert RLS_RESERVE_OUT_OF_COLLATERAL();
 
-    if (collateralBalance < idealCollateralReceived) {
-      collateralReceived = collateralBalance;
-      debtContracted = ctx.convertToDebtToken(collateralBalance);
+    if (collateralBalance < idealCollateralToReceive) {
+      collateralToReceive = collateralBalance;
+      debtToContract = ctx.convertToDebtToken(collateralBalance);
     } else {
-      debtContracted = idealDebtContracted;
-      collateralReceived = idealCollateralReceived;
+      debtToContract = idealDebtToContract;
+      collateralToReceive = idealCollateralToReceive;
     }
 
-    return (debtContracted, collateralReceived);
+    return (debtToContract, collateralToReceive);
   }
 
   /* ============================================================ */

@@ -175,17 +175,17 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @dev Override this method to limit expansion based on available liquidity
    *      Default implementation returns ideal amounts unchanged
    * @param ctx The liquidity context containing pool state and configuration
-   * @param idealDebtExpanded The calculated ideal amount of debt tokens to add to pool
-   * @param idealCollateralPayed The calculated ideal amount of collateral to receive from pool
-   * @return debtExpanded The actual debt amount to expand (may be less than ideal)
-   * @return collateralPayed The actual collateral amount to receive (adjusted proportionally)
+   * @param idealDebtToExpand The calculated ideal amount of debt tokens to add to pool
+   * @param idealCollateralToPay The calculated ideal amount of collateral to receive from pool
+   * @return debtToExpand The actual debt amount to expand (may be less than ideal)
+   * @return collateralToPay The actual collateral amount to receive (adjusted proportionally)
    */
   function _clampExpansion(
     LQ.Context memory ctx,
-    uint256 idealDebtExpanded,
-    uint256 idealCollateralPayed
-  ) internal view virtual returns (uint256 debtExpanded, uint256 collateralPayed) {
-    return (idealDebtExpanded, idealCollateralPayed);
+    uint256 idealDebtToExpand,
+    uint256 idealCollateralToPay
+  ) internal view virtual returns (uint256 debtToExpand, uint256 collateralToPay) {
+    return (idealDebtToExpand, idealCollateralToPay);
   }
 
   /**
@@ -193,17 +193,17 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @dev Override this method to limit contraction based on available collateral
    *      Default implementation returns ideal amounts unchanged
    * @param ctx The liquidity context containing pool state and configuration
-   * @param idealDebtContracted The calculated ideal amount of debt tokens to receive from pool
-   * @param idealCollateralReceived The calculated ideal amount of collateral to add to pool
-   * @return debtContracted The actual debt amount to contract (may be less than ideal)
-   * @return collateralReceived The actual collateral amount to send (adjusted proportionally)
+   * @param idealDebtToContract The calculated ideal amount of debt tokens to receive from pool
+   * @param idealCollateralToReceive The calculated ideal amount of collateral to add to pool
+   * @return debtToContract The actual debt amount to contract (may be less than ideal)
+   * @return collateralToReceive The actual collateral amount to send (adjusted proportionally)
    */
   function _clampContraction(
     LQ.Context memory ctx,
-    uint256 idealDebtContracted,
-    uint256 idealCollateralReceived
-  ) internal view virtual returns (uint256 debtContracted, uint256 collateralReceived) {
-    return (idealDebtContracted, idealCollateralReceived);
+    uint256 idealDebtToContract,
+    uint256 idealCollateralToReceive
+  ) internal view virtual returns (uint256 debtToContract, uint256 collateralToReceive) {
+    return (idealDebtToContract, idealCollateralToReceive);
   }
 
   /* ============================================================ */
@@ -330,40 +330,40 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @notice Builds an expansion action when pool price is above oracle price
    * @dev Must be implemented by concrete strategies to define how to handle liquidity constraints
    * @param ctx The liquidity context containing pool state and configuration
-   * @param idealDebtExpanded The amount of debt tokens to add to the pool
-   * @param idealCollateralPayed The amount of collateral tokens to receive from the pool
+   * @param idealDebtToExpand The amount of debt tokens to add to the pool
+   * @param idealCollateralToPay The amount of collateral tokens to receive from the pool
    * @return action The constructed expansion action
    */
   function _buildExpansionAction(
     LQ.Context memory ctx,
-    uint256 idealDebtExpanded,
-    uint256 idealCollateralPayed
+    uint256 idealDebtToExpand,
+    uint256 idealCollateralToPay
   ) internal view returns (LQ.Action memory action) {
-    (uint256 debtExpanded, uint256 collateralPayed) = _clampExpansion(ctx, idealDebtExpanded, idealCollateralPayed);
+    (uint256 debtToExpand, uint256 collateralToPay) = _clampExpansion(ctx, idealDebtToExpand, idealCollateralToPay);
 
-    return ctx.newExpansion(debtExpanded, collateralPayed);
+    return ctx.newExpansion(debtToExpand, collateralToPay);
   }
 
   /**
    * @notice Builds a contraction action when pool price is below oracle price
    * @dev Must be implemented by concrete strategies to define how to handle liquidity constraints
    * @param ctx The liquidity context containing pool state and configuration
-   * @param idealDebtContracted The amount of debt tokens to receive from the pool
-   * @param idealCollateralReceived The amount of collateral tokens to add to the pool
+   * @param idealDebtToContract The amount of debt tokens to receive from the pool
+   * @param idealCollateralToReceive The amount of collateral tokens to add to the pool
    * @return action The constructed contraction action
    */
   function _buildContractionAction(
     LQ.Context memory ctx,
-    uint256 idealDebtContracted,
-    uint256 idealCollateralReceived
+    uint256 idealDebtToContract,
+    uint256 idealCollateralToReceive
   ) internal view returns (LQ.Action memory action) {
-    (uint256 debtContracted, uint256 collateralReceived) = _clampContraction(
+    (uint256 debtToContract, uint256 collateralToReceive) = _clampContraction(
       ctx,
-      idealDebtContracted,
-      idealCollateralReceived
+      idealDebtToContract,
+      idealCollateralToReceive
     );
 
-    return ctx.newContraction(debtContracted, collateralReceived);
+    return ctx.newContraction(debtToContract, collateralToReceive);
   }
 
   /**
