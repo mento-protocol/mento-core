@@ -155,7 +155,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
   /* =========================================================== */
   /**
    * @notice Handles the rebalance callback from the FPMM pool
-   * @dev Must be implemented by concrete strategies to define token transfer logic
+   * @dev Must be implemented by concrete strategies to source liquidity
    * @param pool The address of the FPMM pool
    * @param amount0Out The amount of token0 being sent from the pool
    * @param amount1Out The amount of token1 being sent from the pool
