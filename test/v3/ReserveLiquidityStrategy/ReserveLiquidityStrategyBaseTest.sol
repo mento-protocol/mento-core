@@ -3,80 +3,33 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { Test } from "mento-std/Test.sol";
+import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrategy_BaseTest.sol";
 import { ReserveLiquidityStrategy } from "contracts/v3/ReserveLiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 import { IERC20MintableBurnable } from "contracts/common/IERC20MintableBurnable.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
-import { IFPMM } from "contracts/interfaces/IFPMM.sol";
-import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";
 
-contract ReserveLiquidityStrategyBaseTest is Test {
+/**
+ * @title ReserveLiquidityStrategyBaseTest
+ * @notice Abstract base test contract for ReserveLiquidityStrategy tests
+ * @dev Extends LiquidityStrategy_BaseTest with Reserve-specific mocking utilities
+ */
+abstract contract ReserveLiquidityStrategyBaseTest is LiquidityStrategy_BaseTest {
   ReserveLiquidityStrategy public strategy;
 
-  // Mock addresses
+  // Reserve-specific addresses
   address public reserve = makeAddr("Reserve");
-  address public owner = makeAddr("Owner");
-  address public notOwner = makeAddr("NotOwner");
   address public pool1 = makeAddr("Pool1");
   address public pool2 = makeAddr("Pool2");
-  address public token0 = makeAddr("Token0");
-  address public token1 = makeAddr("Token1");
-  address public debtToken = makeAddr("DebtToken");
-  address public collateralToken = makeAddr("CollateralToken");
 
-  function setUp() public virtual {
-    // New architecture uses constructor instead of initialize
+  function setUp() public virtual override {
+    super.setUp();
     strategy = new ReserveLiquidityStrategy(owner, reserve);
   }
 
   /* ============================================================ */
-  /* ================= Helper Functions ========================= */
+  /* ============ Reserve-Specific Helper Functions ============= */
   /* ============================================================ */
-
-  function _mockFPMMMetadata(address _pool, address _token0, address _token1) internal {
-    bytes memory metadataCalldata = abi.encodeWithSelector(IRPool.metadata.selector);
-    vm.mockCall(_pool, metadataCalldata, abi.encode(1e18, 1e18, 100e18, 200e18, _token0, _token1));
-  }
-
-  function _mockFPMMTokens(address _pool, address _token0, address _token1) internal {
-    // Ensure tokens are in sorted order (smaller address first)
-    (address orderedToken0, address orderedToken1) = _token0 < _token1 ? (_token0, _token1) : (_token1, _token0);
-
-    bytes memory tokensCalldata = abi.encodeWithSelector(IFPMM.tokens.selector);
-    vm.mockCall(_pool, tokensCalldata, abi.encode(orderedToken0, orderedToken1));
-  }
-
-  function _mockFPMMPrices(
-    address _pool,
-    uint256 oracleNum,
-    uint256 oracleDen,
-    uint256 reserveNum,
-    uint256 reserveDen,
-    uint256 diffBps,
-    bool poolAbove
-  ) internal {
-    bytes memory pricesCalldata = abi.encodeWithSelector(IFPMM.getPrices.selector);
-    vm.mockCall(_pool, pricesCalldata, abi.encode(oracleNum, oracleDen, reserveNum, reserveDen, diffBps, poolAbove));
-  }
-
-  function _mockFPMMRebalanceIncentive(address _pool, uint256 incentive) internal {
-    bytes memory incentiveCalldata = abi.encodeWithSelector(IFPMM.rebalanceIncentive.selector);
-    vm.mockCall(_pool, incentiveCalldata, abi.encode(incentive));
-  }
-
-  function _mockFPMMRebalanceThresholds(address _pool, uint256 above, uint256 below) internal {
-    bytes memory aboveCalldata = abi.encodeWithSelector(IFPMM.rebalanceThresholdAbove.selector);
-    vm.mockCall(_pool, aboveCalldata, abi.encode(above));
-
-    bytes memory belowCalldata = abi.encodeWithSelector(IFPMM.rebalanceThresholdBelow.selector);
-    vm.mockCall(_pool, belowCalldata, abi.encode(below));
-  }
-
-  function _mockFPMMRebalance(address _pool) internal {
-    bytes memory rebalanceCalldata = abi.encodeWithSelector(IFPMM.rebalance.selector);
-    vm.mockCall(_pool, rebalanceCalldata, abi.encode());
-  }
 
   function _mockDebtTokenMint(address _debtToken) internal {
     bytes memory mintCalldata = abi.encodeWithSelector(IERC20MintableBurnable.mint.selector);
@@ -121,15 +74,4 @@ contract ReserveLiquidityStrategyBaseTest is Test {
     bytes memory calldata_ = abi.encodeWithSelector(bytes4(keccak256("balanceOf(address)")), _account);
     vm.mockCall(_token, calldata_, abi.encode(_balance));
   }
-
-  /* ============================================================ */
-  /* ======================= Events ============================= */
-  /* ============================================================ */
-
-  event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown, uint32 incentiveBps);
-
-  event PoolRemoved(address indexed pool);
-  event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
-  event RebalanceIncentiveSet(address indexed pool, uint32 incentiveBps);
-  event RebalanceExecuted(address indexed pool, uint256 diffBefore, uint256 diffAfter);
 }
