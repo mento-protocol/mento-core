@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
 
-interface ILiquidityController {
+interface ILiquidityStrategy {
   /* ============================================================ */
   /* ===================== Structs & Enums ====================== */
   /* ============================================================ */
@@ -18,9 +18,8 @@ interface ILiquidityController {
    * @param rebalanceIncentive The controller-side incentive cap (bps) for the rebalance.
    */
   struct PoolConfig {
-    address debtToken;
-    address collateralToken;
-    uint128 lastRebalance;
+    bool isToken0Debt;
+    uint64 lastRebalance;
     uint64 rebalanceCooldown;
     uint32 rebalanceIncentive;
   }
@@ -29,7 +28,7 @@ interface ILiquidityController {
   /* ======================== Events ============================ */
   /* ============================================================ */
 
-  event PoolAdded(address indexed pool, address debt, address collateral, uint64 cooldown, uint32 incentiveBps);
+  event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown, uint32 incentiveBps);
   event PoolRemoved(address indexed pool);
   event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
   event RebalanceIncentiveSet(address indexed pool, uint32 incentiveBps);
@@ -39,21 +38,21 @@ interface ILiquidityController {
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */
 
-  /**
-   * @notice Adds a new liquidity pool to be mangeed by the controller.
-   * @param pool The address of the pool to be added
-   * @param debtToken The address of the pools debt token
-   * @param collateralToken The address of the pools collateral token
-   * @param cooldown The cooldown period that must elapse before the pool can be rebalanced again
-   * @param incentiveBps The rebalance incentive in basis points
-   */
-  function addPool(
-    address pool,
-    address debtToken,
-    address collateralToken,
-    uint64 cooldown,
-    uint32 incentiveBps
-  ) external;
+  // /**
+  //  * @notice Adds a new liquidity pool to be mangeed by the controller.
+  //  * @param pool The address of the pool to be added
+  //  * @param debtToken The address of the pools debt token
+  //  * @param collateralToken The address of the pools collateral token
+  //  * @param cooldown The cooldown period that must elapse before the pool can be rebalanced again
+  //  * @param incentiveBps The rebalance incentive in basis points
+  //  */
+  // function addPool(
+  //   address pool,
+  //   address debtToken,
+  //   address collateralToken,
+  //   uint64 cooldown,
+  //   uint32 incentiveBps
+  // ) external;
 
   /**
    * @notice Removes a liquidity pool from the controller.

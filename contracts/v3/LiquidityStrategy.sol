@@ -9,16 +9,17 @@ import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20
 import { SafeERC20Upgradeable as SafeERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import { IFPMM } from "../interfaces/IFPMM.sol"; // TODO: Confirm location
-import { ILiquidityController } from "./Interfaces/ILiquidityController.sol";
+import { ILiquidityStrategy } from "./interfaces/ILiquidityStrategy.sol";
 
 import { LiquidityStrategyTypes as LQ } from "./libraries/LiquidityStrategyTypes.sol";
 
 /**
- * @title LiquidityController
- * @notice Orchestrates per-pool policy pipelines and executes actions via liquidity source-specific strategies.
- *         Also stores per-pool FPMM config (cooldown, incentive cap, lastRebalance, tokens).
+ * @title LiquidityStrategy
+ * @notice Base liquidity strategy which determines the current state of the pool in contrast
+ * to the oracle price and defers to concrete implementations that handle building and
+ * executing the rebalance action.
  */
-abstract contract LiquidityStrategy is ILiquidityController, Ownable, ReentrancyGuard {
+abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGuard {
   using LQ for LQ.Context;
   using EnumerableSet for EnumerableSet.AddressSet;
   using SafeERC20 for IERC20;
@@ -40,58 +41,18 @@ abstract contract LiquidityStrategy is ILiquidityController, Ownable, Reentrancy
   /* ================ Admin Functions - Pools =================== */
   /* ============================================================ */
 
-  /// @inheritdoc ILiquidityController
-  function addPool(
-    address pool,
-    address debtToken,
-    address collateralToken,
-    uint64 cooldown,
-    uint32 incentiveBps
-  ) public onlyOwner {
-    require(pool != address(0), "LC: POOL_MUST_BE_SET");
-    require(debtToken != address(0) && collateralToken != address(0), "LC: TOKENS_MUST_BE_SET");
-    require(debtToken != collateralToken, "LC: TOKENS_MUST_BE_DIFFERENT");
-
-    // Verify LC token ordering matches FPMM ordering
-    (address expectedToken0, address expectedToken1) = _orderTokens(debtToken, collateralToken);
-    (address actualT0, address actualT1) = IFPMM(pool).tokens();
-    require(actualT0 == expectedToken0 && actualT1 == expectedToken1, "LC: FPMM_TOKEN_ORDER_MISMATCH");
-
-    // Verify incentive
-    uint256 poolCap = IFPMM(pool).rebalanceIncentive();
-    require(incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR && incentiveBps <= poolCap, "LC: BAD_INCENTIVE");
-    require(pools.add(pool), "LC: POOL_ALREADY_EXISTS"); // Ensure pool is added
-
-    poolConfigs[pool] = PoolConfig({
-      debtToken: debtToken,
-      collateralToken: collateralToken,
-      lastRebalance: 0,
-      rebalanceCooldown: cooldown,
-      rebalanceIncentive: incentiveBps
-    });
-
-    emit PoolAdded(pool, debtToken, collateralToken, cooldown, incentiveBps);
-  }
-
-  /// @inheritdoc ILiquidityController
-  function removePool(address pool) public virtual onlyOwner {
-    require(pools.remove(pool), "LC: POOL_NOT_FOUND");
-    delete poolConfigs[pool];
-    emit PoolRemoved(pool);
-  }
-
-  /// @inheritdoc ILiquidityController
+  /// @inheritdoc ILiquidityStrategy
   function setRebalanceCooldown(address pool, uint64 cooldown) external onlyOwner {
     _ensurePool(pool);
     poolConfigs[pool].rebalanceCooldown = cooldown;
     emit RebalanceCooldownSet(pool, cooldown);
   }
 
-  /// @inheritdoc ILiquidityController
+  /// @inheritdoc ILiquidityStrategy
   function setRebalanceIncentive(address pool, uint32 incentiveBps) external onlyOwner {
     _ensurePool(pool);
     uint256 poolIncentiveCap = IFPMM(pool).rebalanceIncentive();
-    require(incentiveBps <= poolIncentiveCap && incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR, "LC: BAD_INCENTIVE");
+    require(incentiveBps <= poolIncentiveCap && incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR, "LS: BAD_INCENTIVE");
     poolConfigs[pool].rebalanceIncentive = incentiveBps;
     emit RebalanceIncentiveSet(pool, incentiveBps);
   }
@@ -118,45 +79,34 @@ abstract contract LiquidityStrategy is ILiquidityController, Ownable, Reentrancy
   /* ==================== External Functions ==================== */
   /* ============================================================ */
 
-  /// @inheritdoc ILiquidityController
+  /// @inheritdoc ILiquidityStrategy
   function rebalance(address pool) external nonReentrant {
     _ensurePool(pool);
 
     PoolConfig memory config = poolConfigs[pool];
-    require(block.timestamp > config.lastRebalance + config.rebalanceCooldown, "LC: COOLDOWN_ACTIVE");
-
-    (LQ.Context memory ctx, bool inRange, uint256 diffBefore) = _readCtx(pool, config);
-    require(!inRange, "LC: POOL_PRICE_IN_RANGE");
-
-    bool acted = false;
-
+    require(block.timestamp > config.lastRebalance + config.rebalanceCooldown, "LS: COOLDOWN_ACTIVE");
+    LQ.Context memory ctx = LQ.newContext(pool, config);
     (bool shouldAct, LQ.Action memory action) = _determineAction(ctx);
+    require(shouldAct, "LS: NO_ACTION_NEEDED");
 
-    if (shouldAct) {
-      bool ok = _execute(ctx, action);
-      require(ok, "LC: STRATEGY_EXECUTION_FAILED");
-      acted = true;
-      // refresh after action execution, stop early if price in range
-      (ctx, inRange, ) = _readCtx(pool, config);
-    }
+    bool ok = _execute(ctx, action);
+    require(ok, "LS: STRATEGY_EXECUTION_FAILED");
 
-    require(acted, "LC: NO_ACTION_TAKEN");
-
-    poolConfigs[pool].lastRebalance = uint128(block.timestamp);
+    poolConfigs[pool].lastRebalance = uint64(block.timestamp);
     (, , , , uint256 diffAfter, ) = IFPMM(pool).getPrices();
-    emit RebalanceExecuted(pool, diffBefore, diffAfter);
+    emit RebalanceExecuted(pool, ctx.prices.diffBps, diffAfter);
   }
 
   /* ============================================================ */
   /* ==================== View Functions ======================== */
   /* ============================================================ */
 
-  /// @inheritdoc ILiquidityController
+  /// @inheritdoc ILiquidityStrategy
   function isPoolRegistered(address pool) public view returns (bool) {
     return pools.contains(pool);
   }
 
-  /// @inheritdoc ILiquidityController
+  /// @inheritdoc ILiquidityStrategy
   function getPools() external view returns (address[] memory) {
     return pools.values();
   }
@@ -165,65 +115,37 @@ abstract contract LiquidityStrategy is ILiquidityController, Ownable, Reentrancy
   /* ==================== Internal Functions ==================== */
   /* ============================================================ */
 
-  function _ensurePool(address pool) internal view virtual {
-    require(pools.contains(pool), "LC: POOL_NOT_FOUND");
-  }
-
-  /// @dev Build policy context, calculate range status, and return current deviation.
-  function _readCtx(
+  function _addPool(
     address pool,
-    PoolConfig memory config
-  ) internal view returns (LQ.Context memory ctx, bool priceInRange, uint256 priceDiffBps) {
-    // Build context with all data
-    (ctx) = _buildFullContext(pool, config);
+    address debtToken,
+    uint64 cooldown,
+    uint32 incentiveBps
+  ) internal virtual {
+    require(pool != address(0), "LS: POOL_MUST_BE_SET");
+    // Verify incentive
+    uint256 poolCap = IFPMM(pool).rebalanceIncentive();
+    require(incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR && incentiveBps <= poolCap, "LS: BAD_INCENTIVE");
+    require(pools.add(pool), "LS: POOL_ALREADY_EXISTS"); // Ensure pool is added
+    bool isToken0Debt = debtToken == IFPMM(pool).token0();
 
-    // Check if price in range
-    priceDiffBps = ctx.prices.diffBps;
-    priceInRange = _checkInRange(ctx.prices, pool);
+    poolConfigs[pool] = PoolConfig({
+      isToken0Debt: isToken0Debt,
+      lastRebalance: 0,
+      rebalanceCooldown: cooldown,
+      rebalanceIncentive: incentiveBps
+    });
+
+    emit PoolAdded(pool, isToken0Debt, cooldown, incentiveBps);
   }
 
-  /// @dev Build full context combining all data needed for rebalancing
-  function _buildFullContext(address pool, PoolConfig memory config) internal view returns (LQ.Context memory ctx) {
-    IFPMM fpmm = IFPMM(pool);
-    ctx.pool = pool;
+  function _removePool(address pool) internal virtual {
+    require(pools.remove(pool), "LS: POOL_NOT_FOUND");
+    delete poolConfigs[pool];
+    emit PoolRemoved(pool);
+  }
 
-    // Get and set token data
-    {
-      (uint256 dec0, uint256 dec1, , , address t0, address t1) = fpmm.metadata();
-      _validateDecimals(dec0, dec1);
-
-      ctx.token0 = t0;
-      ctx.token1 = t1;
-      ctx.token0Dec = uint64(dec0);
-      ctx.token1Dec = uint64(dec1);
-      ctx.isToken0Debt = config.debtToken == t0;
-
-      // Set incentive
-      uint256 fpmmIncentive = fpmm.rebalanceIncentive();
-      ctx.incentiveBps = uint128(config.rebalanceIncentive < fpmmIncentive ? config.rebalanceIncentive : fpmmIncentive);
-    }
-
-    // Get and set price data
-    {
-      (
-        uint256 oracleNum,
-        uint256 oracleDen,
-        uint256 reserveNum,
-        uint256 reserveDen,
-        uint256 diffBps,
-        bool poolAbove
-      ) = fpmm.getPrices();
-
-      require(oracleNum > 0 && oracleDen > 0, "LC: INVALID_PRICES");
-
-      ctx.reserves = LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen });
-      ctx.prices = LQ.Prices({
-        oracleNum: oracleNum,
-        oracleDen: oracleDen,
-        poolPriceAbove: poolAbove,
-        diffBps: diffBps
-      });
-    }
+  function _ensurePool(address pool) internal view virtual {
+    require(pools.contains(pool), "LS: POOL_NOT_FOUND");
   }
 
   /// @dev Fetch rebalance thresholds from FPMM
@@ -231,12 +153,6 @@ abstract contract LiquidityStrategy is ILiquidityController, Ownable, Reentrancy
     IFPMM fpmm = IFPMM(pool);
     upperThreshold = fpmm.rebalanceThresholdAbove();
     lowerThreshold = fpmm.rebalanceThresholdBelow();
-  }
-
-  /// @dev Validate decimal are in valid range
-  function _validateDecimals(uint256 dec0, uint256 dec1) internal pure {
-    require(dec0 > 0 && dec1 > 0, "LC: ZERO_DECIMALS");
-    require(dec0 <= 1e18 && dec1 <= 1e18, "LC: INVALID_DECIMALS");
   }
 
   /// @dev Check if price is in range using provided thresholds
@@ -256,13 +172,8 @@ abstract contract LiquidityStrategy is ILiquidityController, Ownable, Reentrancy
         upperBps <= LQ.BASIS_POINTS_DENOMINATOR &&
         lowerBps > 0 &&
         lowerBps <= LQ.BASIS_POINTS_DENOMINATOR,
-      "LC: INVALID_THRESHOLD"
+      "LS: INVALID_THRESHOLD"
     );
-  }
-
-  /// @dev Order tokens based on size
-  function _orderTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
-    (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
   }
 
   /* ============================================================ */

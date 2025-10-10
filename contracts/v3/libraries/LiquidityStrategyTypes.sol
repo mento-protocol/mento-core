@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 import { console } from "forge-std/console.sol";
+import { IFPMM } from "../../interfaces/IFPMM.sol";
+import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 
 /**
  * @title LiquidityStrategyTypes ()
@@ -50,7 +52,7 @@ library LiquidityStrategyTypes {
     uint256 diffBps; // PP - P in bps
   }
 
-  /// @notice Read-only context provided by the controller to a policy
+  /// @notice Read-only context with shared data
   struct Context {
     address pool;
     Reserves reserves;
@@ -61,12 +63,10 @@ library LiquidityStrategyTypes {
     uint64 token0Dec;
     uint64 token1Dec;
     bool isToken0Debt;
-    Action action;
   }
 
   /// @notice A single rebalance step produced by a policy
   struct Action {
-    address pool;
     Direction dir;
     uint256 amount0Out; // amount of token0 to move out of pool
     uint256 amount1Out; // amount of token1 to move out of pool
@@ -77,50 +77,138 @@ library LiquidityStrategyTypes {
   /* ================== Context Functions ======================= */
   /* ============================================================ */
 
-  function debtToken(Context memory self) internal pure returns (address) {
-    return self.isToken0Debt ? self.token0 : self.token1;
+  function newContext(
+    address pool,
+    ILiquidityStrategy.PoolConfig memory config
+  ) internal view returns (Context memory ctx) {
+    IFPMM fpmm = IFPMM(pool);
+    ctx.pool = pool;
+    // Get and set token data
+    {
+      (uint256 dec0, uint256 dec1, , , address t0, address t1) = fpmm.metadata();
+      require(dec0 > 0 && dec1 > 0, "LST: ZERO_DECIMAL");
+      require(dec0 <= 1e18 && dec1 <= 1e18, "LST: INVALID_DECIMAL");
+
+      ctx.token0 = t0;
+      ctx.token1 = t1;
+      ctx.token0Dec = uint64(dec0);
+      ctx.token1Dec = uint64(dec1);
+      ctx.isToken0Debt = config.isToken0Debt;
+
+      // Set incentive
+      uint256 fpmmIncentive = fpmm.rebalanceIncentive();
+      ctx.incentiveBps = uint128(config.rebalanceIncentive < fpmmIncentive ? config.rebalanceIncentive : fpmmIncentive);
+    }
+
+    // Get and set price data
+    {
+      (
+        uint256 oracleNum,
+        uint256 oracleDen,
+        uint256 reserveNum,
+        uint256 reserveDen,
+        uint256 diffBps,
+        bool poolAbove
+      ) = fpmm.getPrices();
+
+      require(oracleNum > 0 && oracleDen > 0, "LS: INVALID_PRICES");
+
+      ctx.reserves = Reserves({ reserveNum: reserveNum, reserveDen: reserveDen });
+      ctx.prices = Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolAbove, diffBps: diffBps });
+    }
   }
 
-  function collateralToken(Context memory self) internal pure returns (address) {
-    return self.isToken0Debt ? self.token1 : self.token0;
+  function debtToken(Context memory ctx) internal pure returns (address) {
+    return ctx.isToken0Debt ? ctx.token0 : ctx.token1;
   }
 
-  function tokens(Context memory self) internal pure returns (address, address) {
-    return self.isToken0Debt ? (self.token0, self.token1) : (self.token1, self.token0);
+  function collateralToken(Context memory ctx) internal pure returns (address) {
+    return ctx.isToken0Debt ? ctx.token1 : ctx.token0;
   }
 
-  function debtTokenDecimals(Context memory self) internal pure returns (uint64) {
-    return self.isToken0Debt ? self.token0Dec : self.token1Dec;
+  function tokens(Context memory ctx) internal pure returns (address, address) {
+    return ctx.isToken0Debt ? (ctx.token0, ctx.token1) : (ctx.token1, ctx.token0);
   }
 
-  function collateralTokenDecimals(Context memory self) internal pure returns (uint64) {
-    return self.isToken0Debt ? self.token1Dec : self.token0Dec;
+  function decimals(Context memory ctx) internal pure returns (uint64 debtDecimals, uint64 collDecimals) {
+    return ctx.isToken0Debt ? (ctx.token0Dec, ctx.token1Dec) : (ctx.token1Dec, ctx.token0Dec);
   }
 
-  function collateralToDebtPrice(Context memory self) internal pure returns (uint256, uint256) {
+  function debtToCollateralPrice(Context memory ctx) internal pure returns (uint256, uint256) {
     return
-      self.isToken0Debt
-        ? (self.prices.oracleNum, self.prices.oracleDen)
-        : (self.prices.oracleDen, self.prices.oracleNum);
+      ctx.isToken0Debt ? (ctx.prices.oracleDen, ctx.prices.oracleNum) : (ctx.prices.oracleNum, ctx.prices.oracleDen);
   }
 
-  function convertToDebtToken(Context memory self, uint256 collateralBalance) internal pure returns (uint256) {
-    (uint256 numerator, uint256 denominator) = collateralToDebtPrice(self);
+  function collateralToDebtPrice(Context memory ctx) internal pure returns (uint256, uint256) {
+    return
+      ctx.isToken0Debt ? (ctx.prices.oracleNum, ctx.prices.oracleDen) : (ctx.prices.oracleDen, ctx.prices.oracleNum);
+  }
+
+  function convertToDebtWithFee(Context memory ctx, uint256 collateralBalance) internal pure returns (uint256) {
+    (uint256 priceNumerator, uint256 priceDenominator) = collateralToDebtPrice(ctx);
+    (uint256 debtDecimals, uint256 collDecimals) = decimals(ctx);
     return
       convertWithRateScalingAndAddFee(
         collateralBalance,
-        collateralTokenDecimals(self),
-        debtTokenDecimals(self),
-        numerator,
-        denominator,
-        self.incentiveBps + BASIS_POINTS_DENOMINATOR,
+        collDecimals,
+        debtDecimals,
+        priceNumerator,
+        priceDenominator,
+        ctx.incentiveBps + BASIS_POINTS_DENOMINATOR,
         BASIS_POINTS_DENOMINATOR
       );
   }
 
-  /* =========================================================== */
-  /* ================== Action Functions ======================= */
-  /* =========================================================== */
+  function convertToCollateralWithFee(Context memory ctx, uint256 debtBalance) internal pure returns (uint256) {
+    (uint256 priceNumerator, uint256 priceDenominator) = debtToCollateralPrice(ctx);
+    (uint256 debtDecimals, uint256 collDecimals) = decimals(ctx);
+    return
+      convertWithRateScalingAndAddFee(
+        debtBalance,
+        debtDecimals,
+        collDecimals,
+        priceNumerator,
+        priceDenominator,
+        BASIS_POINTS_DENOMINATOR,
+        BASIS_POINTS_DENOMINATOR - ctx.incentiveBps
+      );
+  }
+
+  /* ============================================================ */
+  /* =================== Action Functions ======================= */
+  /* ============================================================ */
+
+  function newExpansion(
+    Context memory ctx,
+    uint256 expansionAmount,
+    uint256 collateralPayed
+  ) internal pure returns (Action memory action) {
+    action.dir = Direction.Expand;
+    if (ctx.isToken0Debt) {
+      action.amount0Out = 0;
+      action.amount1Out = collateralPayed;
+    } else {
+      action.amount0Out = collateralPayed;
+      action.amount1Out = 0;
+    }
+    action.inputAmount = expansionAmount;
+  }
+
+  function newContraction(
+    Context memory ctx,
+    uint256 contractionAmount,
+    uint256 collateralReceived
+  ) internal pure returns (Action memory action) {
+    action.dir = Direction.Contract;
+    if (ctx.isToken0Debt) {
+      action.amount0Out = 0;
+      action.amount1Out = contractionAmount;
+    } else {
+      action.amount0Out = contractionAmount;
+      action.amount1Out = 0;
+    }
+    action.inputAmount = collateralReceived;
+  }
 
   /* ============================================================ */
   /* =================== Helper Functions ======================= */
@@ -163,18 +251,6 @@ library LiquidityStrategyTypes {
   }
 
   function convertWithRateScalingAndFee(
-    uint256 amount,
-    uint256 fromDec,
-    uint256 toDec,
-    uint256 oracleNum,
-    uint256 oracleDen,
-    uint256 incentiveNum,
-    uint256 incentiveDen
-  ) internal pure returns (uint256) {
-    return (amount * oracleNum * toDec * incentiveNum) / (fromDec * oracleDen * incentiveDen);
-  }
-
-  function convertWithRateScalingAndAddFee(
     uint256 amount,
     uint256 fromDec,
     uint256 toDec,
