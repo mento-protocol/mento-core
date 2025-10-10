@@ -146,12 +146,7 @@ contract LiquidityStrategyTypes_Test is Test {
     ctx.token1Dec = token1Dec;
     ctx.isToken0Debt = isToken0Debt;
     ctx.incentiveBps = incentiveBps;
-    ctx.prices = LQ.Prices({
-      oracleNum: oracleNum,
-      oracleDen: oracleDen,
-      poolPriceAbove: false,
-      diffBps: 0
-    });
+    ctx.prices = LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: false, diffBps: 0 });
     ctx.reserves = LQ.Reserves({ reserveNum: 100e18, reserveDen: 100e18 });
   }
 
@@ -415,7 +410,7 @@ contract LiquidityStrategyTypes_Test is Test {
     LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50);
 
     uint256 expansionAmount = 100e18; // Debt to add
-    uint256 collateralPayed = 50e18;  // Collateral to receive
+    uint256 collateralPayed = 50e18; // Collateral to receive
 
     LQ.Action memory action = harness.newExpansion(ctx, expansionAmount, collateralPayed);
 
@@ -453,10 +448,8 @@ contract LiquidityStrategyTypes_Test is Test {
 
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
     assertEq(action.inputAmount, collateralReceived);
-    // Note: Library sets amount1Out even though token0 is debt
-    // This appears to use amountOut for the NON-debt token in contractions
-    assertEq(action.amount0Out, 0);
-    assertEq(action.amount1Out, contractionAmount);
+    assertEq(action.amount0Out, contractionAmount);
+    assertEq(action.amount1Out, 0);
   }
 
   function test_newContraction_whenToken1IsDebt() public view {
@@ -471,8 +464,8 @@ contract LiquidityStrategyTypes_Test is Test {
 
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
     assertEq(action.inputAmount, collateralReceived);
-    assertEq(action.amount0Out, contractionAmount); // Debt out
-    assertEq(action.amount1Out, 0); // No collateral out
+    assertEq(action.amount0Out, 0);
+    assertEq(action.amount1Out, contractionAmount);
   }
 
   /* ============================================================ */
@@ -500,12 +493,12 @@ contract LiquidityStrategyTypes_Test is Test {
     // = 202e18
     uint256 result = harness.convertWithRateScalingAndFee(
       amount,
-      1e6,   // from 6 decimals
-      1e18,  // to 18 decimals
-      2e18,  // price numerator (2:1)
-      1e18,  // price denominator
+      1e6, // from 6 decimals
+      1e18, // to 18 decimals
+      2e18, // price numerator (2:1)
+      1e18, // price denominator
       10100, // 1% fee (10000 + 100)
-      10000  // fee denominator
+      10000 // fee denominator
     );
 
     assertEq(result, 202e18);
