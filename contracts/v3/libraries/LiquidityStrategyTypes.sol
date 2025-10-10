@@ -350,11 +350,11 @@ library LiquidityStrategyTypes {
   ) internal pure returns (Action memory action) {
     action.dir = Direction.Contract;
     if (ctx.isToken0Debt) {
-      action.amount0Out = 0;
-      action.amount1Out = debtToContract;
-    } else {
       action.amount0Out = debtToContract;
       action.amount1Out = 0;
+    } else {
+      action.amount0Out = 0;
+      action.amount1Out = debtToContract;
     }
     action.inputAmount = collateralToReceive;
   }

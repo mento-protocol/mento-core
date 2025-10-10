@@ -3,10 +3,10 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { ReserveLiquidityStrategyBaseTest } from "./ReserveLiquidityStrategyBaseTest.sol";
+import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_BaseTest.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 
-contract ReserveLiquidityStrategyBasicTest is ReserveLiquidityStrategyBaseTest {
+contract ReserveLiquidityStrategyBasicTest is ReserveLiquidityStrategy_BaseTest {
   function setUp() public override {
     super.setUp();
   }

@@ -3,10 +3,10 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { ReserveLiquidityStrategyBaseTest } from "./ReserveLiquidityStrategyBaseTest.sol";
+import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_BaseTest.sol";
 import { ReserveLiquidityStrategy } from "contracts/v3/ReserveLiquidityStrategy.sol";
 
-contract ReserveLiquidityStrategyAdminTest is ReserveLiquidityStrategyBaseTest {
+contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest {
   /* ============================================================ */
   /* =================== Constructor Tests ====================== */
   /* ============================================================ */
@@ -22,32 +22,29 @@ contract ReserveLiquidityStrategyAdminTest is ReserveLiquidityStrategyBaseTest {
     assertEq(newStrategy.owner(), newOwner, "Should set owner correctly");
   }
 
-  // NOTE: Constructor validation tests commented out - validation might be in different place or use different pattern
-  // function test_constructor_whenZeroOwner_shouldRevert() public {
-  //   vm.expectRevert();
-  //   new ReserveLiquidityStrategy(address(0), reserve);
-  // }
+  function test_constructor_whenZeroOwner_shouldRevert() public {
+    vm.expectRevert();
+    new ReserveLiquidityStrategy(address(0), reserve);
+  }
 
-  // function test_constructor_whenZeroReserve_shouldRevert() public {
-  //   vm.expectRevert("RR: INVALID_RESERVE");
-  //   new ReserveLiquidityStrategy(owner, address(0));
-  // }
+  function test_constructor_whenZeroReserve_shouldRevert() public {
+    vm.expectRevert("RR: INVALID_RESERVE");
+    new ReserveLiquidityStrategy(owner, address(0));
+  }
 
   /* ============================================================ */
   /* ===================== Pool Management ====================== */
   /* ============================================================ */
 
   function test_addPool_whenValidParameters_shouldAddPool() public {
-    // Ensure tokens are ordered correctly (smaller address first)
-    (address orderedToken0, address orderedToken1) = token0 < token1 ? (token0, token1) : (token1, token0);
+    MockFPMM fpmm = _createMockFPMM(debtToken, collateralToken);
 
     // Mock FPMM interactions - must return tokens in correct order
     _mockFPMMTokens(pool1, orderedToken0, orderedToken1);
     _mockFPMMRebalanceIncentive(pool1, 1000); // 10% max incentive
 
-    // NOTE: Event check commented out - event structure may differ slightly in implementation
-    // vm.expectEmit(true, true, true, true);
-    // emit PoolAdded(pool1, orderedToken0, orderedToken1, 3600, 500);
+    vm.expectEmit(true, true, true, true);
+    emit PoolAdded(pool1, orderedToken0, orderedToken1, 3600, 500);
 
     vm.prank(owner);
     strategy.addPool(pool1, orderedToken0, orderedToken1, 3600, 500);

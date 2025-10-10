@@ -3,6 +3,7 @@ pragma solidity 0.8.24;
 
 import { LiquidityStrategy } from "contracts/v3/LiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title LiquidityStrategyHarness
@@ -106,10 +107,27 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
     uint256 amount1Out,
     LQ.CallbackData memory cb
   ) internal override {
-    // Simple test implementation - just verify the callback was called
-    // In real implementations, this would handle token transfers
+    // Determine which token goes into the pool
+    address tokenIn;
 
-    // For testing purposes, we just verify that at least one amount is being moved
-    require(amount0Out > 0 || amount1Out > 0 || cb.inputAmount > 0, "LiquidityStrategyHarness: No amounts");
+    if (cb.dir == LQ.Direction.Expand) {
+      // Expansion: provide debt to pool, receive collateral from pool
+      tokenIn = cb.debtToken;
+    } else {
+      // Contraction: provide collateral to pool, receive debt from pool
+      tokenIn = cb.collateralToken;
+    }
+
+    // Calculate amounts (incentive stays with strategy, rest goes to pool)
+    uint256 incentiveAmount = LQ.incentiveAmount(cb.inputAmount, cb.incentiveBps);
+    uint256 amountToPool = cb.inputAmount - incentiveAmount;
+
+    // Transfer tokenIn to the pool
+    // Assumes harness has been funded with tokens in test setup
+    IERC20(tokenIn).transfer(pool, amountToPool);
+
+    // Note: Tokens coming OUT of the pool (amount0Out/amount1Out) have already been
+    // transferred to this contract by the FPMM, so no action needed
+    // The incentiveAmount is kept by this contract (also already transferred by FPMM)
   }
 }

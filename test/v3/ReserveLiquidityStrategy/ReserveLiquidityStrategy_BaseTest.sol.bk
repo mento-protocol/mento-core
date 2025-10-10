@@ -14,7 +14,7 @@ import { IReserve } from "contracts/interfaces/IReserve.sol";
  * @notice Abstract base test contract for ReserveLiquidityStrategy tests
  * @dev Extends LiquidityStrategy_BaseTest with Reserve-specific mocking utilities
  */
-abstract contract ReserveLiquidityStrategyBaseTest is LiquidityStrategy_BaseTest {
+abstract contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   ReserveLiquidityStrategy public strategy;
 
   // Reserve-specific addresses

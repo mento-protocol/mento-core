@@ -75,7 +75,10 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     }
 
     PoolConfig memory config = poolConfigs[pool];
-    if (block.timestamp <= config.lastRebalance + config.rebalanceCooldown) revert LS_COOLDOWN_ACTIVE();
+    // Skip cooldown check for first rebalance (lastRebalance == 0)
+    if (config.lastRebalance > 0 && block.timestamp < config.lastRebalance + config.rebalanceCooldown) {
+      revert LS_COOLDOWN_ACTIVE();
+    }
 
     LQ.Context memory ctx = LQ.newContext(pool, config);
     LQ.Action memory action = _determineAction(ctx);
