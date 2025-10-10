@@ -82,44 +82,48 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   /* =========================================================== */
 
   /**
-   * @notice Builds an expansion action limited by stability pool balance
+   * @notice Clamps expansion amounts based on stability pool balance
    * @dev Checks available balance in the stability pool and adjusts expansion amount if needed
-   * @param ctx The liquidity context
-   * @param expansionAmount The requested amount of debt tokens to swap from stability pool
-   * @param collateralPayed The amount of collateral to send to stability pool
-   * @return action The expansion action
+   * @param ctx The liquidity context containing pool state and configuration
+   * @param idealDebtExpanded The calculated ideal amount of debt tokens to swap from stability pool
+   * @param idealCollateralPayed The calculated ideal amount of collateral to send to stability pool
+   * @return debtExpanded The actual debt amount to expand (limited by stability pool balance)
+   * @return collateralPayed The actual collateral amount to receive (adjusted proportionally)
    */
-  function _buildExpansionAction(
+  function _clampExpansion(
     LQ.Context memory ctx,
-    uint256 expansionAmount,
-    uint256 collateralPayed
-  ) internal view override returns (LQ.Action memory action) {
+    uint256 idealDebtExpanded,
+    uint256 idealCollateralPayed
+  ) internal view override returns (uint256 debtExpanded, uint256 collateralPayed) {
     uint256 availableDebtToken = _calculateAvailablePoolBalance(cdpConfigs[ctx.pool], ctx.debtToken());
 
-    if (expansionAmount > availableDebtToken) {
-      expansionAmount = availableDebtToken;
-      collateralPayed = ctx.convertToCollateralWithFee(expansionAmount);
+    if (idealDebtExpanded > availableDebtToken) {
+      debtExpanded = availableDebtToken;
+      collateralPayed = ctx.convertToCollateralWithFee(debtExpanded);
+    } else {
+      debtExpanded = idealDebtExpanded;
+      collateralPayed = idealCollateralPayed;
     }
 
-    return ctx.newExpansion(expansionAmount, collateralPayed);
+    return (debtExpanded, collateralPayed);
   }
 
   /**
-   * @notice Builds a contraction action limited by redemption fee constraints
+   * @notice Clamps contraction amounts based on redemption fee constraints
    * @dev Calculates max redeemable amount based on current redemption fees and adjusts if needed
-   * @param ctx The liquidity context
-   * @param contractionAmount The requested amount of debt tokens to redeem
-   * @param collateralReceived The expected amount of collateral to receive from redemption
-   * @return action The contraction action
+   * @param ctx The liquidity context containing pool state and configuration
+   * @param idealDebtContracted The calculated ideal amount of debt tokens to redeem
+   * @param idealCollateralReceived The calculated ideal amount of collateral to receive from redemption
+   * @return debtContracted The actual debt amount to contract (limited by redemption fee)
+   * @return collateralReceived The actual collateral amount to send (adjusted based on redemption fee)
    */
-  function _buildContractionAction(
+  function _clampContraction(
     LQ.Context memory ctx,
-    uint256 contractionAmount,
-    uint256 collateralReceived
-  ) internal view override returns (LQ.Action memory action) {
-    (contractionAmount, collateralReceived) = _calculateAmountToRedeem(ctx, cdpConfigs[ctx.pool], contractionAmount);
-
-    return ctx.newContraction(contractionAmount, collateralReceived);
+    uint256 idealDebtContracted,
+    uint256 idealCollateralReceived
+  ) internal view override returns (uint256 debtContracted, uint256 collateralReceived) {
+    (debtContracted, collateralReceived) = _calculateAmountToRedeem(ctx, cdpConfigs[ctx.pool], idealDebtContracted);
+    return (debtContracted, collateralReceived);
   }
 
   /* ============================================================ */

@@ -136,39 +136,23 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     return pools.values();
   }
 
+  /**
+   * @notice Determines the rebalance action for a pool by building context and calculating action
+   * @dev Useful for external callers to preview actions and for testing
+   * @param pool The address of the pool to check
+   * @return ctx The liquidity context containing pool state
+   * @return action The determined rebalance action
+   */
+  function determineAction(address pool) external view returns (LQ.Context memory ctx, LQ.Action memory action) {
+    _ensurePool(pool);
+    PoolConfig memory config = poolConfigs[pool];
+    ctx = LQ.newContext(pool, config);
+    action = _determineAction(ctx);
+  }
+
   /* =========================================================== */
   /* ==================== Virtual Functions ==================== */
   /* =========================================================== */
-
-  /**
-   * @notice Builds an expansion action when pool price is above oracle price
-   * @dev Must be implemented by concrete strategies to define how to handle liquidity constraints
-   * @param ctx The liquidity context containing pool state and configuration
-   * @param expansionAmount The amount of debt tokens to add to the pool
-   * @param collateralPayed The amount of collateral tokens to receive from the pool
-   * @return action The constructed expansion action
-   */
-  function _buildExpansionAction(
-    LQ.Context memory ctx,
-    uint256 expansionAmount,
-    uint256 collateralPayed
-  ) internal view virtual returns (LQ.Action memory action);
-
-  /**
-   * @notice Builds a contraction action when pool price is below oracle price
-
-   * @dev Must be implemented by concrete strategies to define how to handle liquidity constraints
-   * @param ctx The liquidity context containing pool state and configuration
-   * @param contractionAmount The amount of debt tokens to receive from the pool
-   * @param collateralReceived The amount of collateral tokens to add to the pool
-   * @return action The constructed contraction action
-   */
-  function _buildContractionAction(
-    LQ.Context memory ctx,
-    uint256 contractionAmount,
-    uint256 collateralReceived
-  ) internal view virtual returns (LQ.Action memory action);
-
   /**
    * @notice Handles the rebalance callback from the FPMM pool
    * @dev Must be implemented by concrete strategies to define token transfer logic
@@ -183,6 +167,42 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     uint256 amount1Out,
     LQ.CallbackData memory cb
   ) internal virtual;
+
+  /**
+   * @notice Clamps expansion amounts based on strategy-specific constraints
+   * @dev Override this method to limit expansion based on available liquidity
+   *      Default implementation returns ideal amounts unchanged
+   * @param ctx The liquidity context containing pool state and configuration
+   * @param idealDebtExpanded The calculated ideal amount of debt tokens to add to pool
+   * @param idealCollateralPayed The calculated ideal amount of collateral to receive from pool
+   * @return debtExpanded The actual debt amount to expand (may be less than ideal)
+   * @return collateralPayed The actual collateral amount to receive (adjusted proportionally)
+   */
+  function _clampExpansion(
+    LQ.Context memory ctx,
+    uint256 idealDebtExpanded,
+    uint256 idealCollateralPayed
+  ) internal view virtual returns (uint256 debtExpanded, uint256 collateralPayed) {
+    return (idealDebtExpanded, idealCollateralPayed);
+  }
+
+  /**
+   * @notice Clamps contraction amounts based on strategy-specific constraints
+   * @dev Override this method to limit contraction based on available collateral
+   *      Default implementation returns ideal amounts unchanged
+   * @param ctx The liquidity context containing pool state and configuration
+   * @param idealDebtContracted The calculated ideal amount of debt tokens to receive from pool
+   * @param idealCollateralReceived The calculated ideal amount of collateral to add to pool
+   * @return debtContracted The actual debt amount to contract (may be less than ideal)
+   * @return collateralReceived The actual collateral amount to send (adjusted proportionally)
+   */
+  function _clampContraction(
+    LQ.Context memory ctx,
+    uint256 idealDebtContracted,
+    uint256 idealCollateralReceived
+  ) internal view virtual returns (uint256 debtContracted, uint256 collateralReceived) {
+    return (idealDebtContracted, idealCollateralReceived);
+  }
 
   /* ============================================================ */
   /* ==================== Internal Functions ==================== */
@@ -302,5 +322,45 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       // Expansion: add debt (token1) to pool, take collateral (token0) from pool
       return _buildExpansionAction(ctx, token1In, token0Out);
     }
+  }
+
+  /**
+   * @notice Builds an expansion action when pool price is above oracle price
+   * @dev Must be implemented by concrete strategies to define how to handle liquidity constraints
+   * @param ctx The liquidity context containing pool state and configuration
+   * @param idealDebtExpanded The amount of debt tokens to add to the pool
+   * @param idealCollateralPayed The amount of collateral tokens to receive from the pool
+   * @return action The constructed expansion action
+   */
+  function _buildExpansionAction(
+    LQ.Context memory ctx,
+    uint256 idealDebtExpanded,
+    uint256 idealCollateralPayed
+  ) internal view returns (LQ.Action memory action) {
+    (uint256 debtExpanded, uint256 collateralPayed) = _clampExpansion(ctx, idealDebtExpanded, idealCollateralPayed);
+
+    return ctx.newExpansion(debtExpanded, collateralPayed);
+  }
+
+  /**
+   * @notice Builds a contraction action when pool price is below oracle price
+   * @dev Must be implemented by concrete strategies to define how to handle liquidity constraints
+   * @param ctx The liquidity context containing pool state and configuration
+   * @param idealDebtContracted The amount of debt tokens to receive from the pool
+   * @param idealCollateralReceived The amount of collateral tokens to add to the pool
+   * @return action The constructed contraction action
+   */
+  function _buildContractionAction(
+    LQ.Context memory ctx,
+    uint256 idealDebtContracted,
+    uint256 idealCollateralReceived
+  ) internal view returns (LQ.Action memory action) {
+    (uint256 debtContracted, uint256 collateralReceived) = _clampContraction(
+      ctx,
+      idealDebtContracted,
+      idealCollateralReceived
+    );
+
+    return ctx.newContraction(debtContracted, collateralReceived);
   }
 }

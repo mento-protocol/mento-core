@@ -1,0 +1,150 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
+pragma solidity ^0.8;
+
+import { ReserveLiquidityStrategyBaseTest } from "./ReserveLiquidityStrategyBaseTest.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+
+contract ReserveLiquidityStrategyBasicTest is ReserveLiquidityStrategyBaseTest {
+  function setUp() public override {
+    super.setUp();
+  }
+
+  function _setupPool() internal {
+    _mockFPMMMetadata(pool1, debtToken, collateralToken);
+    vm.mockCall(pool1, abi.encodeWithSelector(bytes4(keccak256("token0()"))), abi.encode(debtToken));
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    // Mock collateral balance for contraction scenarios
+    _mockERC20BalanceOf(collateralToken, reserve, 1000e18);
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 3600, 50);
+  }
+
+  /* ============================================================ */
+  /* ================== Oracle Price Tests ===================== */
+  /* ============================================================ */
+
+  function test_determineAction_whenOraclePriceHigh_shouldHandleCorrectly() public {
+    _setupPool();
+
+    // Oracle price is 2:1 (2 collateral per 1 debt)
+    // Pool has 100 debt and 100 collateral, so it needs more collateral
+    _mockFPMMPrices(pool1, 2e18, 1e18, 100e18, 100e18, 0, false); // Pool price below oracle
+
+    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool1);
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract to add collateral");
+    assertGt(action.amount1Out, 0, "Collateral should flow out");
+    assertGt(action.inputAmount, 0, "Collateral should flow in");
+  }
+
+  function test_determineAction_whenOraclePriceLow_shouldHandleCorrectly() public {
+    _setupPool();
+
+    // Oracle price is 1:2 (0.5 collateral per 1 debt)
+    // Pool has 100 debt and 100 collateral, so it has excess collateral
+    _mockFPMMPrices(pool1, 1e18, 2e18, 100e18, 100e18, 0, true); // Pool price above oracle
+
+    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool1);
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand to remove collateral");
+    assertGt(action.amount1Out, 0, "Collateral should flow out");
+    assertGt(action.inputAmount, 0, "Debt should flow in");
+  }
+
+  /* ============================================================ */
+  /* ================= Balance Tests ============================ */
+  /* ============================================================ */
+
+  function test_determineAction_whenZeroToken0Reserve_shouldHandleCorrectly() public {
+    _setupPool();
+    _mockFPMMPrices(pool1, 1e18, 1e18, 100e18, 0, 0, true); // Only collateral
+
+    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool1);
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertGt(action.amount1Out, 0, "Should remove excess collateral");
+  }
+
+  function test_determineAction_whenZeroToken1Reserve_shouldHandleCorrectly() public {
+    _setupPool();
+    _mockFPMMPrices(pool1, 1e18, 1e18, 0, 100e18, 0, false); // Only debt
+
+    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool1);
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
+    assertGt(action.amount1Out, 0, "Should remove excess debt");
+  }
+
+  /* ============================================================ */
+  /* ================= Realistic Scenarios ===================== */
+  /* ============================================================ */
+
+  function test_determineAction_withRealisticPriceDifference_shouldReturnProportionalAmounts() public {
+    _setupPool();
+
+    // This simulates a real scenario where pool price deviates by 2%
+    // Pool price = reserveNum/reserveDen = 102/100 = 1.02
+    _mockFPMMPrices(pool1, 1e18, 1e18, 102e18, 100e18, 200, true); // 2% above
+
+    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool1);
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+
+    // With 2% difference and 0.5% incentive (50 bps from pool config), amounts should be reasonable
+    // X = (1e18 * 102e18 - 1e18 * 100e18) / (1e18 * (20000 - 50) / 10000)
+    // X = 2e18 / 1.995 ≈ 1.0025e18
+    assertApproxEqRel(action.amount1Out, 1.0025e18, 1e16, "Token1 out should be approximately 1.0025e18");
+    assertApproxEqRel(action.inputAmount, 1.0025e18, 1e16, "Token0 in should be approximately 1.0025e18");
+  }
+
+  function test_determineAction_withMultipleRealisticScenarios_shouldHandleCorrectly() public {
+    _setupPool();
+
+    // Test multiple realistic price deviations
+    uint256[3] memory reserveNums = [uint256(101e18), 105e18, 110e18]; // 1%, 5%, 10% above
+    uint256[3] memory expectedAmounts = [uint256(0.5e18), 2.5e18, 5.1e18]; // Approximate expected
+
+    for (uint256 i = 0; i < reserveNums.length; i++) {
+      _mockFPMMPrices(pool1, 1e18, 1e18, reserveNums[i], 100e18, uint256(i + 1) * 100, true);
+
+      (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool1);
+
+      assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand for all scenarios");
+      assertGt(action.amount1Out, 0, "Should have token1 output");
+      assertGt(action.inputAmount, 0, "Should have token0 input");
+
+      // Verify amounts increase with price difference
+      if (i > 0) {
+        assertTrue(action.amount1Out > expectedAmounts[i - 1], "Larger price diff should yield larger rebalance");
+      }
+    }
+  }
+
+  /* ============================================================ */
+  /* ============== Token Order Scenarios ======================= */
+  /* ============================================================ */
+
+  function test_determineAction_whenToken1IsDebt_shouldCalculateCorrectly() public {
+    // Setup pool with token1 as debt (reverse order)
+    address pool2 = makeAddr("Pool2");
+    _mockFPMMMetadata(pool2, collateralToken, debtToken);
+    vm.mockCall(pool2, abi.encodeWithSelector(bytes4(keccak256("token0()"))), abi.encode(collateralToken));
+    _mockFPMMRebalanceIncentive(pool2, 100);
+    // Mock collateral balance for contraction scenarios
+    _mockERC20BalanceOf(collateralToken, reserve, 1000e18);
+    vm.prank(owner);
+    strategy.addPool(pool2, debtToken, 3600, 50);
+
+    // Pool price above oracle
+    _mockFPMMPrices(pool2, 1e18, 1e18, 110e18, 100e18, 1000, true);
+
+    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool2);
+
+    // When token1 is debt and pool price is above oracle, it's a contraction
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
+    assertGt(action.amount0Out, 0, "Collateral (token0) should flow out");
+    assertGt(action.inputAmount, 0, "Debt should flow in");
+  }
+}

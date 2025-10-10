@@ -126,13 +126,7 @@ contract ReserveLiquidityStrategyBaseTest is Test {
   /* ======================= Events ============================= */
   /* ============================================================ */
 
-  event PoolAdded(
-    address indexed pool,
-    address indexed debtToken,
-    address indexed collateralToken,
-    uint64 cooldown,
-    uint32 incentiveBps
-  );
+  event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown, uint32 incentiveBps);
 
   event PoolRemoved(address indexed pool);
   event RebalanceCooldownSet(address indexed pool, uint64 cooldown);

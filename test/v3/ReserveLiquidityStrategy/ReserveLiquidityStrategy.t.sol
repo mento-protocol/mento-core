@@ -1,0 +1,296 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
+pragma solidity ^0.8;
+
+import { ReserveLiquidityStrategyBaseTest } from "./ReserveLiquidityStrategyBaseTest.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { IReserveLiquidityStrategy } from "contracts/v3/interfaces/IReserveLiquidityStrategy.sol";
+
+contract ReserveLiquidityStrategy_Test is ReserveLiquidityStrategyBaseTest {
+  /* ============================================================ */
+  /* ======================== Setup ============================= */
+  /* ============================================================ */
+
+  function setUp() public override {
+    super.setUp();
+  }
+
+  /* ============================================================ */
+  /* ==================== Admin Functions ======================= */
+  /* ============================================================ */
+
+  function test_addPool_whenCalledByOwner_shouldAddPool() public {
+    _mockFPMMMetadata(pool1, token0, token1);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+
+    vm.expectEmit(true, true, true, true);
+    emit PoolAdded(pool1, true, 3600, 50);
+
+    vm.prank(owner);
+    strategy.addPool(pool1, token0, 3600, 50);
+
+    assertTrue(strategy.isPoolRegistered(pool1));
+  }
+
+  function test_addPool_whenCalledByNonOwner_shouldRevert() public {
+    _mockFPMMMetadata(pool1, token0, token1);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+
+    vm.prank(notOwner);
+    vm.expectRevert();
+    strategy.addPool(pool1, token0, 3600, 50);
+  }
+
+  function test_removePool_whenCalledByOwner_shouldRemovePool() public {
+    // First add pool
+    _mockFPMMMetadata(pool1, token0, token1);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    vm.prank(owner);
+    strategy.addPool(pool1, token0, 3600, 50);
+
+    // Then remove it
+    vm.expectEmit(true, false, false, false);
+    emit PoolRemoved(pool1);
+
+    vm.prank(owner);
+    strategy.removePool(pool1);
+
+    assertFalse(strategy.isPoolRegistered(pool1));
+  }
+
+  function test_setReserve_whenCalledByOwner_shouldUpdateReserve() public {
+    address newReserve = makeAddr("NewReserve");
+
+    vm.prank(owner);
+    strategy.setReserve(newReserve);
+
+    assertEq(address(strategy.reserve()), newReserve);
+  }
+
+  function test_setReserve_whenCalledWithZeroAddress_shouldRevert() public {
+    vm.prank(owner);
+    vm.expectRevert(IReserveLiquidityStrategy.RLS_INVALID_RESERVE.selector);
+    strategy.setReserve(address(0));
+  }
+
+  function test_setRebalanceCooldown_whenCalledByOwner_shouldUpdateCooldown() public {
+    // First add pool
+    _mockFPMMMetadata(pool1, token0, token1);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    vm.prank(owner);
+    strategy.addPool(pool1, token0, 3600, 50);
+
+    // Update cooldown
+    vm.expectEmit(true, false, false, true);
+    emit RebalanceCooldownSet(pool1, 7200);
+
+    vm.prank(owner);
+    strategy.setRebalanceCooldown(pool1, 7200);
+  }
+
+  function test_setRebalanceIncentive_whenCalledByOwner_shouldUpdateIncentive() public {
+    // First add pool
+    _mockFPMMMetadata(pool1, token0, token1);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    vm.prank(owner);
+    strategy.addPool(pool1, token0, 3600, 50);
+
+    // Update incentive
+    vm.expectEmit(true, false, false, true);
+    emit RebalanceIncentiveSet(pool1, 75);
+
+    vm.prank(owner);
+    strategy.setRebalanceIncentive(pool1, 75);
+  }
+
+  /* ============================================================ */
+  /* ================= Determine Action Tests =================== */
+  /* ============================================================ */
+
+  function test_determineAction_expansion_whenPoolPriceAbove() public {
+    // Setup pool
+    _mockFPMMMetadata(pool1, debtToken, collateralToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 110e18, 100e18, 1000, true); // Pool price > oracle
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 3600, 50);
+
+    // Determine action
+    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool1);
+
+    assertEq(uint(action.dir), uint(LQ.Direction.Expand));
+    assertTrue(action.inputAmount > 0);
+    assertTrue(action.amount1Out > 0); // Collateral out (token1)
+    assertEq(action.amount0Out, 0); // No debt out
+  }
+
+  function test_determineAction_contraction_whenPoolPriceBelow() public {
+    // Setup pool
+    _mockFPMMMetadata(pool1, debtToken, collateralToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 90e18, 100e18, 1000, false); // Pool price < oracle
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 3600, 50);
+
+    // Determine action
+    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool1);
+
+    assertEq(uint(action.dir), uint(LQ.Direction.Contract));
+    assertTrue(action.inputAmount > 0); // Collateral in
+    assertTrue(action.amount0Out > 0); // Debt out (token0)
+    assertEq(action.amount1Out, 0); // No collateral out
+  }
+
+  /* ============================================================ */
+  /* =================== Rebalance Tests ======================== */
+  /* ============================================================ */
+
+  function test_rebalance_expansion_shouldMintDebtAndReceiveCollateral() public {
+    // Setup pool
+    _mockFPMMMetadata(pool1, debtToken, collateralToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 110e18, 100e18, 1000, true);
+    _mockFPMMRebalance(pool1);
+    _mockDebtTokenMint(debtToken);
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 0, 50); // 0 cooldown for testing
+
+    // Execute rebalance
+    vm.prank(owner);
+    strategy.rebalance(pool1);
+  }
+
+  function test_rebalance_contraction_shouldBurnDebtAndSendCollateral() public {
+    // Setup pool
+    _mockFPMMMetadata(pool1, debtToken, collateralToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 90e18, 100e18, 1000, false);
+    _mockFPMMRebalance(pool1);
+    _mockDebtTokenBurn(debtToken);
+    _mockReserveTransfer(reserve);
+    _mockERC20BalanceOf(collateralToken, reserve, 1000e18);
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 0, 50);
+
+    // Execute rebalance
+    vm.prank(owner);
+    strategy.rebalance(pool1);
+  }
+
+  function test_rebalance_whenCooldownActive_shouldRevert() public {
+    // Setup pool with long cooldown
+    _mockFPMMMetadata(pool1, debtToken, collateralToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 110e18, 100e18, 1000, true);
+    _mockFPMMRebalance(pool1);
+    _mockDebtTokenMint(debtToken);
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 3600, 50);
+
+    // Execute first rebalance
+    vm.prank(owner);
+    strategy.rebalance(pool1);
+
+    // Try to rebalance again immediately
+    vm.prank(owner);
+    vm.expectRevert(); // Should revert due to cooldown
+    strategy.rebalance(pool1);
+  }
+
+  function test_rebalance_afterCooldown_shouldSucceed() public {
+    // Setup pool
+    _mockFPMMMetadata(pool1, debtToken, collateralToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 110e18, 100e18, 1000, true);
+    _mockFPMMRebalance(pool1);
+    _mockDebtTokenMint(debtToken);
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 3600, 50);
+
+    // Execute first rebalance
+    vm.prank(owner);
+    strategy.rebalance(pool1);
+
+    // Warp time forward past cooldown
+    vm.warp(block.timestamp + 3601);
+
+    // Execute second rebalance
+    vm.prank(owner);
+    strategy.rebalance(pool1);
+  }
+
+  /* ============================================================ */
+  /* =============== Contraction Edge Cases ===================== */
+  /* ============================================================ */
+
+  function test_buildContractionAction_whenReserveHasZeroCollateral_shouldRevert() public {
+    // Setup pool
+    _mockFPMMMetadata(pool1, debtToken, collateralToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 90e18, 100e18, 1000, false);
+    _mockERC20BalanceOf(collateralToken, reserve, 0); // No collateral in reserve
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 0, 50);
+
+    // Should revert when trying to determine action
+    vm.expectRevert(IReserveLiquidityStrategy.RLS_RESERVE_OUT_OF_COLLATERAL.selector);
+    strategy.determineAction(pool1);
+  }
+
+  function test_buildContractionAction_whenReserveHasInsufficientCollateral_shouldAdjustAmount() public {
+    // Setup pool
+    _mockFPMMMetadata(pool1, debtToken, collateralToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 50e18, 100e18, 5000, false); // Large price difference
+    _mockERC20BalanceOf(collateralToken, reserve, 10e18); // Limited collateral
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 0, 50);
+
+    // Determine action
+    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(pool1);
+
+    // Action should be adjusted to available collateral
+    assertEq(uint(action.dir), uint(LQ.Direction.Contract));
+    assertTrue(action.inputAmount <= 10e18); // Limited by reserve balance
+  }
+
+  /* ============================================================ */
+  /* ================== View Function Tests ===================== */
+  /* ============================================================ */
+
+  function test_getPools_shouldReturnAllPools() public {
+    // Add multiple pools
+    _mockFPMMMetadata(pool1, token0, token1);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    vm.prank(owner);
+    strategy.addPool(pool1, token0, 3600, 50);
+
+    _mockFPMMMetadata(pool2, token0, token1);
+    _mockFPMMRebalanceIncentive(pool2, 100);
+    vm.prank(owner);
+    strategy.addPool(pool2, token0, 3600, 50);
+
+    address[] memory pools = strategy.getPools();
+    assertEq(pools.length, 2);
+  }
+
+  function test_isPoolRegistered_shouldReturnCorrectly() public {
+    assertFalse(strategy.isPoolRegistered(pool1));
+
+    _mockFPMMMetadata(pool1, token0, token1);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    vm.prank(owner);
+    strategy.addPool(pool1, token0, 3600, 50);
+
+    assertTrue(strategy.isPoolRegistered(pool1));
+  }
+}

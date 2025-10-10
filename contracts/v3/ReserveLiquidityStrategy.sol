@@ -65,45 +65,34 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
   /* =========================================================== */
 
   /**
-   * @notice Builds an expansion action using the Reserve's unlimited minting capacity
-   * @dev Reserve strategy doesn't need to check liquidity for expansions (can mint)
-   * @param ctx The liquidity context
-   * @param expansionAmount The amount of debt tokens to mint and add to pool
-   * @param collateralPayed The amount of collateral to receive from pool
-   * @return action The expansion action
+   * @notice Clamps contraction amounts based on Reserve's collateral balance
+   * @dev Reserve has unlimited minting capacity for expansions so no clamping needed
+   *      For contractions, checks Reserve collateral balance and adjusts if insufficient
+   * @param ctx The liquidity context containing pool state and configuration
+   * @param idealDebtContracted The calculated ideal amount of debt tokens to receive from pool
+   * @param idealCollateralReceived The calculated ideal amount of collateral to add to pool
+   * @return debtContracted The actual debt amount to contract (may be less than ideal)
+   * @return collateralReceived The actual collateral amount to send (adjusted if balance insufficient)
    */
-  function _buildExpansionAction(
+  function _clampContraction(
     LQ.Context memory ctx,
-    uint256 expansionAmount,
-    uint256 collateralPayed
-  ) internal pure override returns (LQ.Action memory action) {
-    return ctx.newExpansion(expansionAmount, collateralPayed);
-  }
-
-  /**
-   * @notice Builds a contraction action limited by Reserve's collateral balance
-   * @dev Checks Reserve collateral balance and adjusts amounts if insufficient
-   * @param ctx The liquidity context
-   * @param contractionAmount The amount of debt tokens to burn (receive from pool)
-   * @param collateralReceived The amount of collateral to send to pool
-   * @return action The contraction action
-   */
-  function _buildContractionAction(
-    LQ.Context memory ctx,
-    uint256 contractionAmount,
-    uint256 collateralReceived
-  ) internal view override returns (LQ.Action memory action) {
-    address collateralToken = ctx.isToken0Debt ? ctx.token1 : ctx.token0;
+    uint256 idealDebtContracted,
+    uint256 idealCollateralReceived
+  ) internal view override returns (uint256 debtContracted, uint256 collateralReceived) {
+    address collateralToken = ctx.collateralToken();
     uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(reserve));
 
     if (collateralBalance == 0) revert RLS_RESERVE_OUT_OF_COLLATERAL();
 
-    if (collateralBalance < collateralReceived) {
+    if (collateralBalance < idealCollateralReceived) {
       collateralReceived = collateralBalance;
-      contractionAmount = ctx.convertToDebtToken(collateralBalance);
+      debtContracted = ctx.convertToDebtToken(collateralBalance);
+    } else {
+      debtContracted = idealDebtContracted;
+      collateralReceived = idealCollateralReceived;
     }
 
-    return ctx.newContraction(contractionAmount, collateralReceived);
+    return (debtContracted, collateralReceived);
   }
 
   /* ============================================================ */
