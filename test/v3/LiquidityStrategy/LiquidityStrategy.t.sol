@@ -485,13 +485,15 @@ contract LiquidityStrategy_Test is Test {
     vm.prank(owner);
     strategy.rebalance(address(mockPool));
 
-    // Manually clear transient storage to simulate a new transaction
-    // In reality, EIP-1153 automatically clears transient storage between transactions
+    // Simulate a new transaction by:
+    // 1. Advancing time to pass cooldown
+    vm.warp(block.timestamp + 1);
+    // 2. Manually clearing transient storage (simulates EIP-1153 automatic clearing between transactions)
     strategy.clearTransientStorage(address(mockPool));
 
     // Second transaction - transient storage should be cleared
     // So the hook check at the start should NOT revert with LS_CAN_ONLY_REBALANCE_ONCE
-    // Instead it should work normally and succeed (cooldown is 0)
+    // Instead it should work normally and succeed
     vm.prank(owner);
     strategy.rebalance(address(mockPool));
   }

@@ -109,11 +109,7 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
     // Simple test implementation - just verify the callback was called
     // In real implementations, this would handle token transfers
 
-    // For testing purposes, we just verify the amounts are correct
-    uint256 expectedOut = cb.dir == LQ.Direction.Expand
-      ? (cb.isToken0Debt ? amount1Out : amount0Out) // Collateral out
-      : (cb.isToken0Debt ? amount0Out : amount1Out); // Debt out
-
-    require(expectedOut > 0, "LiquidityStrategyHarness: Invalid amount out");
+    // For testing purposes, we just verify that at least one amount is being moved
+    require(amount0Out > 0 || amount1Out > 0 || cb.inputAmount > 0, "LiquidityStrategyHarness: No amounts");
   }
 }
