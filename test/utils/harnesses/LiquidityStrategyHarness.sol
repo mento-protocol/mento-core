@@ -38,6 +38,18 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
     shouldLimitContraction = false;
   }
 
+  /**
+   * @notice Manually clears transient storage for a pool (for testing only)
+   * @dev Simulates the automatic clearing that happens between transactions
+   * @param pool The pool address to clear transient storage for
+   */
+  function clearTransientStorage(address pool) external {
+    bytes32 key = bytes32(uint256(uint160(pool)));
+    assembly {
+      tstore(key, 0)
+    }
+  }
+
   /* ============================================================ */
   /* =============== Public Pool Management Functions =========== */
   /* ============================================================ */

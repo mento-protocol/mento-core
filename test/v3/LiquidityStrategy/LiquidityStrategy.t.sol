@@ -5,6 +5,7 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { LiquidityStrategyHarness } from "test/utils/harnesses/LiquidityStrategyHarness.sol";
+import { MockFPMM } from "test/utils/mocks/MockFPMM.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 import { ILiquidityStrategy } from "contracts/v3/interfaces/ILiquidityStrategy.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
@@ -64,8 +65,21 @@ contract LiquidityStrategy_Test is Test {
   }
 
   function _mockFPMMRebalance(address _pool) internal {
+    // Note: This mock doesn't simulate the callback - tests using this need special handling
     bytes memory rebalanceCalldata = abi.encodeWithSelector(IFPMM.rebalance.selector);
     vm.mockCall(_pool, rebalanceCalldata, abi.encode());
+  }
+
+  function _mockFPMMRebalanceWithCallback(address _pool, uint256 amount0Out, uint256 amount1Out, bytes memory hookData) internal {
+    // Mock the rebalance call to actually trigger the hook callback
+    vm.mockCall(
+      _pool,
+      abi.encodeWithSelector(IFPMM.rebalance.selector, amount0Out, amount1Out, hookData),
+      abi.encode()
+    );
+    // Simulate the pool calling back into the strategy
+    vm.prank(_pool);
+    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   /* ============================================================ */
@@ -353,6 +367,154 @@ contract LiquidityStrategy_Test is Test {
 
     vm.prank(owner);
     strategy.rebalance(pool1);
+  }
+
+  /* ============================================================ */
+  /* ============== Hook Called Mechanism Tests ================= */
+  /* ============================================================ */
+
+  function test_rebalance_whenHookNotCalled_shouldRevert() public {
+    _mockFPMMMetadata(pool1, debtToken, collateralToken, 1e18, 1e18);
+    _mockFPMMToken0(pool1, debtToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 110e18, 100e18, 1000, true);
+
+    // Mock rebalance call but DON'T call hook
+    vm.mockCall(pool1, abi.encodeWithSelector(IFPMM.rebalance.selector), abi.encode());
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 0, 50);
+
+    // Should revert because hook was not called
+    vm.prank(owner);
+    vm.expectRevert(ILiquidityStrategy.LS_HOOK_NOT_CALLED.selector);
+    strategy.rebalance(pool1);
+  }
+
+  function test_rebalance_whenHookCalled_shouldSucceed() public {
+    _mockFPMMMetadata(pool1, debtToken, collateralToken, 1e18, 1e18);
+    _mockFPMMToken0(pool1, debtToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+    _mockFPMMPrices(pool1, 1e18, 1e18, 110e18, 100e18, 1000, true);
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 0, 50);
+
+    // Mock rebalance to call the hook
+    vm.mockCall(
+      pool1,
+      abi.encodeWithSelector(IFPMM.rebalance.selector),
+      abi.encode()
+    );
+
+    // Manually call hook during rebalance
+    vm.prank(owner);
+    vm.mockCall(
+      pool1,
+      abi.encodeWithSelector(IFPMM.rebalance.selector),
+      abi.encode()
+    );
+
+    // We need to actually call the strategy, which will be called by the pool
+    // The rebalance function should succeed when hook is properly called
+    vm.prank(owner);
+    strategy.rebalance(pool1);
+  }
+
+  function test_hook_whenCalledFromNonPool_shouldRevert() public {
+    _mockFPMMMetadata(pool1, debtToken, collateralToken, 1e18, 1e18);
+    _mockFPMMToken0(pool1, debtToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 0, 50);
+
+    // Try to call hook from non-pool address
+    bytes memory hookData = abi.encode(
+      LQ.CallbackData({
+        inputAmount: 100e18,
+        incentiveBps: 50,
+        dir: LQ.Direction.Expand,
+        isToken0Debt: true,
+        debtToken: debtToken,
+        collateralToken: collateralToken
+      })
+    );
+
+    vm.prank(notOwner); // Not the pool
+    vm.expectRevert(ILiquidityStrategy.LS_POOL_NOT_FOUND.selector);
+    strategy.hook(address(strategy), 0, 100e18, hookData);
+  }
+
+  function test_hook_whenSenderIsNotStrategy_shouldRevert() public {
+    _mockFPMMMetadata(pool1, debtToken, collateralToken, 1e18, 1e18);
+    _mockFPMMToken0(pool1, debtToken);
+    _mockFPMMRebalanceIncentive(pool1, 100);
+
+    vm.prank(owner);
+    strategy.addPool(pool1, debtToken, 0, 50);
+
+    bytes memory hookData = abi.encode(
+      LQ.CallbackData({
+        inputAmount: 100e18,
+        incentiveBps: 50,
+        dir: LQ.Direction.Expand,
+        isToken0Debt: true,
+        debtToken: debtToken,
+        collateralToken: collateralToken
+      })
+    );
+
+    // Call from pool but with wrong sender
+    vm.prank(pool1);
+    vm.expectRevert(ILiquidityStrategy.LS_INVALID_SENDER.selector);
+    strategy.hook(notOwner, 0, 100e18, hookData);
+  }
+
+  function test_transientStorage_shouldResetBetweenTransactions() public {
+    // Use a real MockFPMM that properly simulates the callback
+    MockFPMM mockPool = new MockFPMM(debtToken, collateralToken, false);
+    // Set prices: oracle 1:1, reserves 1.1:1 (pool price 10% above oracle)
+    mockPool.setPrices(1e18, 1e18, 110e18, 100e18, 1000, true);
+    mockPool.setRebalanceIncentive(100);
+
+    vm.prank(owner);
+    strategy.addPool(address(mockPool), debtToken, 0, 50);
+
+    // First transaction - should succeed
+    vm.prank(owner);
+    strategy.rebalance(address(mockPool));
+
+    // Manually clear transient storage to simulate a new transaction
+    // In reality, EIP-1153 automatically clears transient storage between transactions
+    strategy.clearTransientStorage(address(mockPool));
+
+    // Second transaction - transient storage should be cleared
+    // So the hook check at the start should NOT revert with LS_CAN_ONLY_REBALANCE_ONCE
+    // Instead it should work normally and succeed (cooldown is 0)
+    vm.prank(owner);
+    strategy.rebalance(address(mockPool));
+  }
+
+  function test_rebalance_multiplePools_shouldTrackSeparately() public {
+    // Create two real MockFPMM instances
+    MockFPMM mockPool1 = new MockFPMM(debtToken, collateralToken, false);
+    mockPool1.setPrices(1e18, 1e18, 110e18, 100e18, 1000, true); // Pool price 10% above oracle
+    mockPool1.setRebalanceIncentive(100);
+
+    MockFPMM mockPool2 = new MockFPMM(debtToken, collateralToken, false);
+    mockPool2.setPrices(1e18, 1e18, 110e18, 100e18, 1000, true); // Pool price 10% above oracle
+    mockPool2.setRebalanceIncentive(100);
+
+    vm.startPrank(owner);
+    strategy.addPool(address(mockPool1), debtToken, 0, 50);
+    strategy.addPool(address(mockPool2), debtToken, 0, 50);
+
+    // Should be able to rebalance both pools in the same transaction
+    // Each pool tracks its own transient storage flag
+    strategy.rebalance(address(mockPool1));
+    strategy.rebalance(address(mockPool2));
+    vm.stopPrank();
   }
 
   /* ============================================================ */

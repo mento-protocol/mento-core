@@ -49,6 +49,10 @@ interface ILiquidityStrategy {
   error LST_INVALID_DECIMAL();
   /// @notice Thrown when oracle prices are invalid
   error LS_INVALID_PRICES();
+  /// @notice Thrown when the hook callback isn't called during a rebalance from the FPMM
+  error LS_HOOK_NOT_CALLED();
+  /// @notice Thrown when the same pool is rebalanced twice in a single transaction
+  error LS_CAN_ONLY_REBALANCE_ONCE(address pool);
 
   /* ============================================================ */
   /* ======================== Events ============================ */
@@ -131,6 +135,16 @@ interface ILiquidityStrategy {
    * @param pool The address of the pool to rebalance.
    */
   function rebalance(address pool) external;
+
+  /**
+   * @notice Hook called by FPMM during rebalance to handle token transfers
+   * @dev Must be called by a registered pool with the correct sender
+   * @param sender The address that initiated the rebalance (must be this contract)
+   * @param amount0Out The amount of token0 to be sent from the pool
+   * @param amount1Out The amount of token1 to be sent from the pool
+   * @param data Encoded callback data containing rebalance parameters
+   */
+  function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external;
 
   /* ============================================================ */
   /* ======================== View Functions ==================== */

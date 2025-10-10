@@ -70,6 +70,10 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
   /// @inheritdoc ILiquidityStrategy
   function rebalance(address pool) external virtual nonReentrant {
     _ensurePool(pool);
+    if (_getHookCalled(pool)) {
+      revert LS_CAN_ONLY_REBALANCE_ONCE(pool);
+    }
+
     PoolConfig memory config = poolConfigs[pool];
     if (block.timestamp <= config.lastRebalance + config.rebalanceCooldown) revert LS_COOLDOWN_ACTIVE();
 
@@ -89,16 +93,13 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       })
     );
 
-    IFPMM(ctx.pool).rebalance(action.amount0Out, action.amount1Out, hookData);
+    IFPMM(pool).rebalance(action.amount0Out, action.amount1Out, hookData);
+    if (!_getHookCalled(pool)) {
+      revert LS_HOOK_NOT_CALLED();
+    }
 
     uint256 incentiveAmount = LQ.incentiveAmount(action.inputAmount, ctx.incentiveBps);
-    emit LiquidityMoved(
-      ctx.pool,
-      action.dir,
-      action.inputAmount,
-      action.amount0Out + action.amount1Out,
-      incentiveAmount
-    );
+    emit LiquidityMoved(pool, action.dir, action.inputAmount, action.amount0Out + action.amount1Out, incentiveAmount);
 
     poolConfigs[pool].lastRebalance = uint64(block.timestamp);
     (, , , , uint256 diffAfter, ) = IFPMM(pool).getPrices();
@@ -120,6 +121,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
 
     LQ.CallbackData memory cb = abi.decode(data, (LQ.CallbackData));
     _handleCallback(pool, amount0Out, amount1Out, cb);
+    _setHookCalled(pool);
   }
 
   /* ============================================================ */
@@ -362,5 +364,32 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     );
 
     return ctx.newContraction(debtContracted, collateralReceived);
+  }
+
+  /**
+   * @notice Sets a transient storage flag indicating the hook was called for a pool
+   * @dev Uses EIP-1153 transient storage (tstore) to track hook calls within a single transaction
+   *      This ensures the flag is automatically cleared after the transaction completes
+   * @param pool The address of the pool being rebalanced
+   */
+  function _setHookCalled(address pool) internal {
+    bytes32 key = bytes32(uint256(uint160(pool)));
+    assembly {
+      tstore(key, true)
+    }
+  }
+
+  /**
+   * @notice Checks if the hook was called for a pool in the current transaction
+   * @dev Uses EIP-1153 transient storage (tload) to read the hook call flag
+   *      Returns false if the flag was never set or if called in a different transaction
+   * @param pool The address of the pool being checked
+   * @return hookCalled True if the hook was called for this pool in the current transaction
+   */
+  function _getHookCalled(address pool) private view returns (bool hookCalled) {
+    bytes32 key = bytes32(uint256(uint160(pool)));
+    assembly {
+      hookCalled := tload(key)
+    }
   }
 }
