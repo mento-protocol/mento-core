@@ -117,46 +117,6 @@ contract LiquidityStrategyTypes_Test is Test {
   }
 
   /* ============================================================ */
-  /* ============== Token Order Conversion Tests ================ */
-  /* ============================================================ */
-
-  function test_toTokenOrder_whenToken0IsDebt() public view {
-    uint256 debtOut = 100e18;
-    uint256 collateralOut = 200e18;
-    (uint256 amount0Out, uint256 amount1Out) = harness.toTokenOrder(debtOut, collateralOut, true);
-
-    assertEq(amount0Out, debtOut);
-    assertEq(amount1Out, collateralOut);
-  }
-
-  function test_toTokenOrder_whenToken1IsDebt() public view {
-    uint256 debtOut = 100e18;
-    uint256 collateralOut = 200e18;
-    (uint256 amount0Out, uint256 amount1Out) = harness.toTokenOrder(debtOut, collateralOut, false);
-
-    assertEq(amount0Out, collateralOut);
-    assertEq(amount1Out, debtOut);
-  }
-
-  function test_fromTokenOrder_whenToken0IsDebt() public view {
-    uint256 amount0Out = 100e18;
-    uint256 amount1Out = 200e18;
-    (uint256 debtOut, uint256 collateralOut) = harness.fromTokenOrder(amount0Out, amount1Out, true);
-
-    assertEq(debtOut, amount0Out);
-    assertEq(collateralOut, amount1Out);
-  }
-
-  function test_fromTokenOrder_whenToken1IsDebt() public view {
-    uint256 amount0Out = 200e18;
-    uint256 amount1Out = 100e18;
-    (uint256 debtOut, uint256 collateralOut) = harness.fromTokenOrder(amount0Out, amount1Out, false);
-
-    assertEq(debtOut, amount1Out);
-    assertEq(collateralOut, amount0Out);
-  }
-
-  /* ============================================================ */
   /* ================= Constants Tests ========================== */
   /* ============================================================ */
 

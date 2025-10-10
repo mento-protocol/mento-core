@@ -459,38 +459,4 @@ library LiquidityStrategyTypes {
   function incentiveAmount(uint256 inputAmount, uint256 incentiveBps) internal pure returns (uint256) {
     return mulBps(inputAmount, incentiveBps);
   }
-
-  /**
-   * @notice Converts debt/collateral amounts to token0/token1 order
-   * @param debtOut The debt token amount
-   * @param collateralOut The collateral token amount
-   * @param isToken0Debt Whether token0 is the debt token
-   * @return amount0Out The amount for token0
-   * @return amount1Out The amount for token1
-   */
-  function toTokenOrder(
-    uint256 debtOut,
-    uint256 collateralOut,
-    bool isToken0Debt
-  ) internal pure returns (uint256 amount0Out, uint256 amount1Out) {
-    if (isToken0Debt) return (debtOut, collateralOut);
-    return (collateralOut, debtOut);
-  }
-
-  /**
-   * @notice Converts token0/token1 amounts to debt/collateral order
-   * @param amount0Out The amount for token0
-   * @param amount1Out The amount for token1
-   * @param isToken0Debt Whether token0 is the debt token
-   * @return debtOut The debt token amount
-   * @return collateralOut The collateral token amount
-   */
-  function fromTokenOrder(
-    uint256 amount0Out,
-    uint256 amount1Out,
-    bool isToken0Debt
-  ) internal pure returns (uint256 debtOut, uint256 collateralOut) {
-    if (isToken0Debt) return (amount0Out, amount1Out);
-    return (amount1Out, amount0Out);
-  }
 }

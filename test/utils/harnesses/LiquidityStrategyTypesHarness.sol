@@ -152,22 +152,6 @@ contract LiquidityStrategyTypesHarness {
     return LQ.incentiveAmount(amount, incentiveBps);
   }
 
-  function toTokenOrder(
-    uint256 debtOut,
-    uint256 collateralOut,
-    bool isToken0Debt
-  ) external pure returns (uint256, uint256) {
-    return LQ.toTokenOrder(debtOut, collateralOut, isToken0Debt);
-  }
-
-  function fromTokenOrder(
-    uint256 amount0Out,
-    uint256 amount1Out,
-    bool isToken0Debt
-  ) external pure returns (uint256, uint256) {
-    return LQ.fromTokenOrder(amount0Out, amount1Out, isToken0Debt);
-  }
-
   /* ============================================================ */
   /* ================= Constant Accessors ======================= */
   /* ============================================================ */
