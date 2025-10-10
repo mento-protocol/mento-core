@@ -3,15 +3,20 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { ReservePolicyBaseTest } from "./ReservePolicyBaseTest.sol";
-import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
+import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_BaseTest.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-contract ReservePolicyContractionTest is ReservePolicyBaseTest {
+contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrategy_BaseTest {
+  function setUp() public override {
+    super.setUp();
+  }
+
   /* ============================================================ */
   /* ================= Contraction Tests ======================== */
   /* ============================================================ */
 
-  function test_determineAction_whenPoolPriceBelowOracle_shouldReturnContractAction() public view {
+  function test_determineAction_whenPoolPriceBelowOracle_shouldReturnContractAction() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     // Pool has excess token0: 200 token0 vs 100 token1 at 1:1 oracle price
     LQ.Context memory ctx = _createContext({
       reserveDen: 200e18, // token0 reserves (debt)
@@ -19,22 +24,25 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 500 // 5%
+      incentiveBps: 100 // 1%
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    // Mock reserve to have collateral balance for contraction
+    vm.mockCall(
+      collToken,
+      abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)),
+      abi.encode(1000e18)
+    );
 
-    assertTrue(shouldAct, "Policy should act when pool has excess debt");
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
+
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract when pool price below oracle");
-    assertEq(uint256(action.liquiditySource), uint256(LQ.LiquiditySource.Reserve), "Should use Reserve as source");
-    assertEq(action.pool, POOL, "Should target correct pool");
     assertEq(action.amount1Out, 0, "No collateral should flow out during contraction");
     assertGt(action.amount0Out, 0, "Debt should flow out during contraction");
     assertGt(action.inputAmount, 0, "Should have collateral input amount");
-    assertEq(action.incentiveBps, 500, "Should use provided incentive");
   }
 
-  function test_determineAction_whenPoolPriceBelowOracleWithDifferentDecimals_shouldHandleCorrectly() public view {
+  function test_determineAction_whenPoolPriceBelowOracleWithDifferentDecimals_shouldHandleCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     // Test with 6 decimal token1 and 18 decimal token0
     // Reserves are normalized to 18 decimals: 100 token1 = 100e18 normalized
     LQ.Context memory ctx = _createContextWithDecimals({
@@ -43,21 +51,27 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 500,
+      incentiveBps: 100,
       token0Dec: 1e18,
       token1Dec: 1e6
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    // Mock reserve to have collateral balance for contraction
+    vm.mockCall(
+      collToken,
+      abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)),
+      abi.encode(1000e6) // 6 decimal token
+    );
 
-    assertTrue(shouldAct, "Policy should act with different decimals");
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
+
     assertGt(action.amount0Out, 0, "Should have debt output in raw units");
     assertGt(action.inputAmount, 0, "Should have collateral input in raw units");
     // Verify the input is in 6-decimal scale
     assertLt(action.inputAmount, 1e12, "Collateral input should be in 6-decimal scale");
   }
 
-  function test_determineAction_whenPoolPriceBelowOracleWithZeroIncentive_shouldReturnCorrectAmounts() public view {
+  function test_determineAction_whenPoolPriceBelowOracleWithZeroIncentive_shouldReturnCorrectAmounts() public fpmmToken0Debt(18, 18) addFpmm(0, 0) {
     LQ.Context memory ctx = _createContext({
       reserveDen: 200e18, // token0 reserves
       reserveNum: 100e18, // token1 reserves
@@ -67,10 +81,15 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       incentiveBps: 0
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    // Mock reserve to have collateral balance for contraction
+    vm.mockCall(
+      collToken,
+      abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)),
+      abi.encode(1000e18)
+    );
 
-    assertTrue(shouldAct, "Policy should act even with zero incentive");
-    assertEq(action.incentiveBps, 0, "Should have zero incentive");
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
+
     // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
     // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 2)
     // Y = 100e18 / 2 = 50e18 (token0 to remove)
@@ -80,7 +99,7 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
     assertEq(action.inputAmount, 50e18, "Should calculate correct collateral input amount");
   }
 
-  function test_determineAction_whenPoolPriceBelowOracleWithMaxIncentive_shouldReturnCorrectAmounts() public view {
+  function test_determineAction_whenPoolPriceBelowOracleWithMaxIncentive_shouldReturnCorrectAmounts() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     LQ.Context memory ctx = _createContext({
       reserveDen: 200e18, // token0 reserves
       reserveNum: 100e18, // token1 reserves
@@ -90,10 +109,15 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       incentiveBps: 10000 // 100%
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    // Mock reserve to have collateral balance for contraction
+    vm.mockCall(
+      collToken,
+      abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)),
+      abi.encode(1000e18)
+    );
 
-    assertTrue(shouldAct, "Policy should act with maximum incentive");
-    assertEq(action.incentiveBps, 10000, "Should have maximum incentive");
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
+
     // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
     // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 1)
     // Y = 100e18 / 1 = 100e18 (token0 to remove)
@@ -107,7 +131,7 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
   /* ================= Contraction Formula Tests =============== */
   /* ============================================================ */
 
-  function test_formulaValidation_whenPPLessThanOP_shouldFollowExactFormula() public view {
+  function test_formulaValidation_whenPPLessThanOP_shouldFollowExactFormula() public fpmmToken0Debt(18, 18) addFpmm(0, 0) {
     // PP < OP: Y = (ON * RD - OD * RN) / (ON * (2 - i))
     // Test with specific values that give clean division: RN=100, RD=500, ON=2, OD=1, i=0
     LQ.Context memory ctx = _createContext({
@@ -119,7 +143,14 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
       incentiveBps: 0 // 0% for clean calculation
     });
 
-    (, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    // Mock reserve to have collateral balance for contraction
+    vm.mockCall(
+      collToken,
+      abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)),
+      abi.encode(1000e18)
+    );
+
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
 
     // Manual calculation:
     // Y = (2e18 * 500e18 - 1e18 * 100e18) / (2e18 * 2)
@@ -133,9 +164,16 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
     assertEq(action.inputAmount, expectedX, "X should equal Y * (ON/OD) * (1 - i)");
   }
 
-  function test_YRelationship_shouldAlwaysHoldForContraction() public view {
+  function test_YRelationship_shouldAlwaysHoldForContraction() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     // Test X = Y * (ON/OD) * (1 - i) relationship for contraction (PP < OP)
-    uint256[3] memory incentives = [uint256(0), 1500, 5000];
+    uint256[3] memory incentives = [uint256(0), 100, 100]; // Capped at 1%
+
+    // Mock reserve to have collateral balance for contraction
+    vm.mockCall(
+      collToken,
+      abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)),
+      abi.encode(10000e18)
+    );
 
     for (uint256 i = 0; i < incentives.length; i++) {
       LQ.Context memory ctx = _createContext({
@@ -147,9 +185,9 @@ contract ReservePolicyContractionTest is ReservePolicyBaseTest {
         incentiveBps: incentives[i]
       });
 
-      (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+      (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-      if (shouldAct && action.inputAmount > 0) {
+      if (action.inputAmount > 0) {
         // X/Y should equal (ON/OD) * (1 - i) (X is inputAmount, Y is amount0Out) within precision limits
         uint256 calculatedRatio = (action.inputAmount * ctx.prices.oracleDen * LQ.BASIS_POINTS_DENOMINATOR) /
           (action.amount0Out * ctx.prices.oracleNum);

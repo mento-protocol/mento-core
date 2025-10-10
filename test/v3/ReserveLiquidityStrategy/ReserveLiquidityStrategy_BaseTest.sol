@@ -25,10 +25,10 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
 
   modifier addFpmm(uint64 cooldown, uint32 incentiveBps) {
     // Mock reserve to recognize debt token as stable asset and collateral token as collateral asset
-    vm.mockCall(reserve, abi.encodeWithSelector(IReserve.isStableAsset.selector, debtToken), abi.encode(true));
-    vm.mockCall(reserve, abi.encodeWithSelector(IReserve.isStableAsset.selector, collToken), abi.encode(false));
-    vm.mockCall(reserve, abi.encodeWithSelector(IReserve.isCollateralAsset.selector, debtToken), abi.encode(false));
-    vm.mockCall(reserve, abi.encodeWithSelector(IReserve.isCollateralAsset.selector, collToken), abi.encode(true));
+    mockReserveStable(debtToken, true);
+    mockReserveStable(collToken, false);
+    mockReserveCollateral(debtToken, false);
+    mockReserveCollateral(collToken, true);
 
     // Set FPMM rebalance incentive cap to match or exceed strategy incentive
     // Note: FPMM has a maximum cap, typically 1000 bps (10%)
@@ -43,6 +43,107 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   /* ============================================================ */
   /* ================= Helper Functions ========================= */
   /* ============================================================ */
+
+  /**
+   * @notice Mock reserve to recognize an asset as collateral
+   * @param asset The asset address
+   * @param isCollateral Whether the asset is collateral
+   */
+  function mockReserveCollateral(address asset, bool isCollateral) internal {
+    vm.mockCall(reserve, abi.encodeWithSelector(IReserve.isCollateralAsset.selector, asset), abi.encode(isCollateral));
+  }
+
+  /**
+   * @notice Mock reserve to recognize an asset as stable
+   * @param asset The asset address
+   * @param isStable Whether the asset is stable
+   */
+  function mockReserveStable(address asset, bool isStable) internal {
+    vm.mockCall(reserve, abi.encodeWithSelector(IReserve.isStableAsset.selector, asset), abi.encode(isStable));
+  }
+
+  /**
+   * @notice Create a liquidity context for testing
+   * @param reserveDen token0 reserves (denominator in pool price)
+   * @param reserveNum token1 reserves (numerator in pool price)
+   * @param oracleNum Oracle price numerator
+   * @param oracleDen Oracle price denominator
+   * @param poolPriceAbove Whether pool price is above oracle price
+   * @param incentiveBps Incentive in basis points
+   */
+  function _createContext(
+    uint256 reserveDen,
+    uint256 reserveNum,
+    uint256 oracleNum,
+    uint256 oracleDen,
+    bool poolPriceAbove,
+    uint256 incentiveBps
+  ) internal view returns (LQ.Context memory) {
+    return
+      _createContextWithDecimals(
+        reserveDen,
+        reserveNum,
+        oracleNum,
+        oracleDen,
+        poolPriceAbove,
+        incentiveBps,
+        1e18, // 18 decimals for token0
+        1e18 // 18 decimals for token1
+      );
+  }
+
+  /**
+   * @notice Create a liquidity context with custom decimals
+   */
+  function _createContextWithDecimals(
+    uint256 reserveDen,
+    uint256 reserveNum,
+    uint256 oracleNum,
+    uint256 oracleDen,
+    bool poolPriceAbove,
+    uint256 incentiveBps,
+    uint256 token0Dec,
+    uint256 token1Dec
+  ) internal view returns (LQ.Context memory) {
+    return
+      LQ.Context({
+        pool: address(fpmm),
+        reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
+        prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
+        incentiveBps: uint128(incentiveBps),
+        token0Dec: uint64(token0Dec),
+        token1Dec: uint64(token1Dec),
+        token0: debtToken,
+        token1: collToken,
+        isToken0Debt: true
+      });
+  }
+
+  /**
+   * @notice Create a liquidity context with custom token order
+   */
+  function _createContextWithTokenOrder(
+    uint256 reserveDen,
+    uint256 reserveNum,
+    uint256 oracleNum,
+    uint256 oracleDen,
+    bool poolPriceAbove,
+    uint256 incentiveBps,
+    bool isToken0Debt
+  ) internal view returns (LQ.Context memory) {
+    return
+      LQ.Context({
+        pool: address(fpmm),
+        reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
+        prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
+        incentiveBps: uint128(incentiveBps),
+        token0Dec: 1e18,
+        token1Dec: 1e18,
+        token0: isToken0Debt ? debtToken : collToken,
+        token1: isToken0Debt ? collToken : debtToken,
+        isToken0Debt: isToken0Debt
+      });
+  }
 
   function _expectLiquidityMovedEvent(
     address _pool,

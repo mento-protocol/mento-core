@@ -156,6 +156,11 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     action = _determineAction(ctx);
   }
 
+  function determineAction(LQ.Context memory ctx) external view returns (LQ.Context memory, LQ.Action memory) {
+    _ensurePool(ctx.pool);
+    return (ctx, _determineAction(ctx));
+  }
+
   /* =========================================================== */
   /* ==================== Virtual Functions ==================== */
   /* =========================================================== */

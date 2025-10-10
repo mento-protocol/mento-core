@@ -3,37 +3,37 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { ReservePolicyBaseTest } from "./ReservePolicyBaseTest.sol";
-import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
+import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_BaseTest.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 
-contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
+contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrategy_BaseTest {
+  function setUp() public override {
+    super.setUp();
+  }
+
   /* ============================================================ */
   /* ================= Expansion Tests ========================== */
   /* ============================================================ */
 
-  function test_determineAction_whenPoolPriceAboveOracle_shouldReturnExpandAction() public view {
+  function test_determineAction_whenPoolPriceAboveOracle_shouldReturnExpandAction() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
       reserveNum: 200e18, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 500 // 5%
+      incentiveBps: 100 // 1% (capped at FPMM max)
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-    assertTrue(shouldAct, "Policy should act when pool has excess collateral");
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
-    assertEq(uint256(action.liquiditySource), uint256(LQ.LiquiditySource.Reserve), "Should use Reserve as source");
-    assertEq(action.pool, POOL, "Should target correct pool");
-    assertTrue(action.amount0Out == 0 || action.amount1Out > 0, "Should have correct token flows for expansion");
-    assertTrue(action.amount0Out > 0 || action.amount1Out > 0, "Should have token outflow during expansion");
+    assertEq(action.amount0Out, 0, "No debt should flow out during expansion");
+    assertGt(action.amount1Out, 0, "Collateral should flow out during expansion");
     assertGt(action.inputAmount, 0, "Should have debt input amount");
-    assertEq(action.incentiveBps, 500, "Should use provided incentive");
   }
 
-  function test_determineAction_whenPoolPriceAboveOracleWithDifferentDecimals_shouldHandleCorrectly() public view {
+  function test_determineAction_whenPoolPriceAboveOracleWithDifferentDecimals_shouldHandleCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     // Test with 6 decimal token1 and 18 decimal token0
     // Reserves are normalized to 18 decimals: 200 token1 = 200e18 normalized
     LQ.Context memory ctx = _createContextWithDecimals({
@@ -42,23 +42,20 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 500,
+      incentiveBps: 100,
       token0Dec: 1e18,
       token1Dec: 1e6
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-    assertTrue(shouldAct, "Policy should act with different decimals");
-    assertTrue(action.amount0Out > 0 || action.amount1Out > 0, "Should have token output in raw units");
+    assertGt(action.amount1Out, 0, "Should have collateral output in raw units");
     assertGt(action.inputAmount, 0, "Should have debt input in raw units");
-    assertTrue(
-      action.amount0Out < 1e12 || action.amount1Out < 1e12,
-      "Token out should be in appropriate decimal scale"
-    );
+    // Verify the output is in 6-decimal scale
+    assertLt(action.amount1Out, 1e12, "Collateral output should be in 6-decimal scale");
   }
 
-  function test_determineAction_whenPoolPriceAboveOracleWithZeroIncentive_shouldReturnCorrectAmounts() public view {
+  function test_determineAction_whenPoolPriceAboveOracleWithZeroIncentive_shouldReturnCorrectAmounts() public fpmmToken0Debt(18, 18) addFpmm(0, 0) {
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
       reserveNum: 200e18, // token1 reserves
@@ -68,10 +65,8 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       incentiveBps: 0
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-    assertTrue(shouldAct, "Policy should act even with zero incentive");
-    assertEq(action.incentiveBps, 0, "Should have zero incentive");
     // Formula: X = (OD * RN - ON * RD) / (OD * (2 - i))
     // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 0) / 10000)
     // X = 100e18 / 2 = 50e18
@@ -81,7 +76,7 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
     assertEq(action.inputAmount, 50e18, "Should calculate correct debt input amount");
   }
 
-  function test_determineAction_whenPoolPriceAboveOracleWithMaxIncentive_shouldReturnCorrectAmounts() public view {
+  function test_determineAction_whenPoolPriceAboveOracleWithMaxIncentive_shouldReturnCorrectAmounts() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
       reserveNum: 200e18, // token1 reserves
@@ -91,10 +86,8 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       incentiveBps: 10000 // 100%
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-    assertTrue(shouldAct, "Policy should act with maximum incentive");
-    assertEq(action.incentiveBps, 10000, "Should have maximum incentive");
     // Formula: X = (OD * RN - ON * RD) / (OD * (2 - i))
     // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 10000) / 10000)
     // X = 100e18 / 1 = 100e18
@@ -108,7 +101,7 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
   /* ================= Expansion Formula Tests ================== */
   /* ============================================================ */
 
-  function test_formulaValidation_whenPPGreaterThanOP_shouldFollowExactFormula() public view {
+  function test_formulaValidation_whenPPGreaterThanOP_shouldFollowExactFormula() public fpmmToken0Debt(18, 18) addFpmm(0, 0) {
     // PP > OP: X = (OD * RN - ON * RD) / (OD * (2 - i))
     // Test with specific values that give clean division: RN=400, RD=100, ON=2, OD=1, i=0
     LQ.Context memory ctx = _createContext({
@@ -120,7 +113,7 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
       incentiveBps: 0 // 0% for clean calculation
     });
 
-    (, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
 
     // Manual calculation:
     // X = (1e18 * 400e18 - 2e18 * 100e18) / (1e18 * 2)
@@ -133,9 +126,9 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
     assertEq(action.inputAmount, expectedY, "Y should equal X * OD/ON");
   }
 
-  function test_YRelationship_shouldAlwaysHoldForExpansion() public view {
+  function test_YRelationship_shouldAlwaysHoldForExpansion() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     // Test Y = X * OD/ON relationship for expansion (PP > OP)
-    uint256[3] memory incentives = [uint256(0), 500, 2000];
+    uint256[3] memory incentives = [uint256(0), 100, 100]; // Capped at 1%
 
     for (uint256 i = 0; i < incentives.length; i++) {
       LQ.Context memory ctx = _createContext({
@@ -147,9 +140,9 @@ contract ReservePolicyExpansionTest is ReservePolicyBaseTest {
         incentiveBps: incentives[i]
       });
 
-      (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+      (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-      if (shouldAct && action.amount1Out > 0) {
+      if (action.amount1Out > 0) {
         // Y/X should equal OD/ON (Y is inputAmount, X is amount1Out) within precision limits
         uint256 calculatedRatio = (action.inputAmount * ctx.prices.oracleNum) / action.amount1Out;
         uint256 expectedRatio = ctx.prices.oracleDen;

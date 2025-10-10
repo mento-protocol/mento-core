@@ -3,15 +3,29 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { ReservePolicyBaseTest } from "./ReservePolicyBaseTest.sol";
-import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
+import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_BaseTest.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 
-contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
+contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_BaseTest {
+  struct DecimalTest {
+    uint256 debtDec;
+    uint256 collateralDec;
+    uint256 factor;
+  }
+
+  function setUp() public override {
+    super.setUp();
+  }
+
   /* ============================================================ */
   /* ================= Precision Tests ========================== */
   /* ============================================================ */
 
-  function test_determineAction_whenDecimalConversions_shouldMaintainPrecision() public view {
+  function test_determineAction_whenDecimalConversions_shouldMaintainPrecision()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 100)
+  {
     // Test conversion between 18 decimals and 6 decimals
     // 100 token0 (18 decimals) vs 200 token1 (normalized to 18 decimals)
     LQ.Context memory ctx = _createContextWithDecimals({
@@ -20,22 +34,20 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 500,
+      incentiveBps: 100, // Capped at 1%
       token0Dec: 1e18,
       token1Dec: 1e6
     });
 
-    (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
-
-    assertTrue(shouldAct, "Policy should act with decimal conversions");
+    (, LQ.Action memory action) = strategy.determineAction(ctx);
 
     // Calculate expected values - use simpler calculation for testing
-    // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 500) / 10000)
-    // X = 100e18 / 1.95, but let's use integer approximation
+    // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 100) / 10000)
+    // X = 100e18 / 1.99, but let's use integer approximation
     // Just verify that there's output for decimal conversion test
-    assertTrue(action.amount1Out > 0, "Should have token1 output");
+    assertGt(action.amount1Out, 0, "Should have token1 output");
 
-    // For 6 decimal collateral, amount should be around 50e6 (approx 51.282e6 with 5% incentive)
+    // For 6 decimal collateral, amount should be reasonable range
     assertLt(action.amount1Out, 1e9, "Token1 out should be in 6 decimal range");
     assertGt(action.amount1Out, 1e6, "Token1 out should be meaningful in 6 decimals");
     assertGt(action.inputAmount, 1e12, "Debt input should be in 18 decimal units");
@@ -52,7 +64,7 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
     ); // 0.1% tolerance
   }
 
-  function test_decimalPrecision_multipleDecimalCombinations() public view {
+  function test_decimalPrecision_multipleDecimalCombinations() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     // Test multiple decimal combinations
     DecimalTest[4] memory tests = [
       DecimalTest(1e18, 1e6, 1e12), // 18 dec debt, 6 dec collateral
@@ -68,14 +80,14 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
-        incentiveBps: 1000,
+        incentiveBps: 100, // Capped at 1%
         token0Dec: tests[i].debtDec,
         token1Dec: tests[i].collateralDec
       });
 
-      (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+      (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-      if (shouldAct) {
+      if (action.amount0Out > 0 || action.amount1Out > 0) {
         // For token0 (debt) - should be scaled by debtDec
         if (action.inputAmount > 0 || action.amount0Out > 0) {
           uint256 amount0 = action.amount0Out > 0 ? action.amount0Out : action.inputAmount;
@@ -103,7 +115,7 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
     }
   }
 
-  function test_precision_highDecimalVariations() public view {
+  function test_precision_highDecimalVariations() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     // Test with high precision decimals (up to 18)
     uint256[4] memory decimals = [uint256(1e6), 1e8, 1e12, 1e18];
 
@@ -117,14 +129,14 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
           oracleNum: 1e18,
           oracleDen: 1e18,
           poolPriceAbove: true,
-          incentiveBps: 250, // 2.5%
+          incentiveBps: 100, // Capped at 1%
           token0Dec: decimals[i],
           token1Dec: decimals[j]
         });
 
-        (bool shouldAct, LQ.Action memory action) = reservePolicy.determineAction(ctx);
+        (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-        if (shouldAct) {
+        if (action.amount0Out > 0 || action.amount1Out > 0) {
           assertGt(action.amount1Out, 0, "Should have meaningful output for all decimal combinations");
           assertGt(action.inputAmount, 0, "Should have meaningful input for all decimal combinations");
 
@@ -138,7 +150,7 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
     }
   }
 
-  function test_precision_rounding_consistency() public view {
+  function test_precision_rounding_consistency() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     // Test that similar inputs produce proportionally similar outputs
     uint256[3] memory baseAmounts = [uint256(100e18), 1000e18, 10000e18];
 
@@ -149,7 +161,7 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
-        incentiveBps: 300,
+        incentiveBps: 100,
         token0Dec: 1e18,
         token1Dec: 1e6
       });
@@ -160,15 +172,15 @@ contract ReservePolicyPrecisionTest is ReservePolicyBaseTest {
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
-        incentiveBps: 300,
+        incentiveBps: 100,
         token0Dec: 1e18,
         token1Dec: 1e6
       });
 
-      (bool shouldAct1, LQ.Action memory action1) = reservePolicy.determineAction(ctx1);
-      (bool shouldAct2, LQ.Action memory action2) = reservePolicy.determineAction(ctx2);
+      (, LQ.Action memory action1) = strategy.determineAction(ctx1);
+      (, LQ.Action memory action2) = strategy.determineAction(ctx2);
 
-      if (shouldAct1 && shouldAct2 && action1.amount1Out > 0 && action2.amount1Out > 0) {
+      if (action1.amount1Out > 0 && action2.amount1Out > 0) {
         // The ratio should be approximately the same as the base amount ratio
         uint256 expectedRatio = baseAmounts[i + 1] / baseAmounts[i];
         uint256 actualRatio = action2.amount1Out / action1.amount1Out;
