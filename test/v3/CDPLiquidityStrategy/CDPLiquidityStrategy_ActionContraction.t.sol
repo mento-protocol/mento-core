@@ -57,11 +57,11 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
     assertGt(action.amount0Out, 0, "Debt should flow out during contraction");
     assertEq(action.amount1Out, 0, "No collateral should flow out during contraction");
-    assertGt(action.inputAmount, 0, "Collateral should flow in via inputAmount");
+    assertGt(action.amountOwedToPool, 0, "Collateral should flow in via amountOwedToPool");
 
     // Calculate reserves after action
     uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    uint256 reserve1After = ctx.reserves.reserveNum * 1e12 + action.inputAmount * 1e12;
+    uint256 reserve1After = ctx.reserves.reserveNum * 1e12 + action.amountOwedToPool * 1e12;
 
     (uint256 priceDiffAfter, ) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -76,7 +76,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
       ctx.incentiveBps,
       true,
       action.amount0Out,
-      action.inputAmount * 1e12,
+      action.amountOwedToPool * 1e12,
       ctx.prices.oracleNum,
       ctx.prices.oracleDen
     );
@@ -121,7 +121,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
 
     // Calculate reserves after action
     uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    uint256 reserve1After = ctx.reserves.reserveNum * 1e12 + action.inputAmount * 1e12;
+    uint256 reserve1After = ctx.reserves.reserveNum * 1e12 + action.amountOwedToPool * 1e12;
 
     (uint256 priceDiffAfter, ) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -190,10 +190,10 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
     assertEq(action.amount0Out, 0, "No collateral should flow out during contraction");
     assertGt(action.amount1Out, 0, "Debt should flow out during contraction");
-    assertGt(action.inputAmount, 0, "Collateral should flow in via inputAmount");
+    assertGt(action.amountOwedToPool, 0, "Collateral should flow in via amountOwedToPool");
 
     // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen * 1e12 + action.inputAmount * 1e12;
+    uint256 reserve0After = ctx.reserves.reserveDen * 1e12 + action.amountOwedToPool * 1e12;
     uint256 reserve1After = ctx.reserves.reserveNum - action.amount1Out;
 
     (uint256 priceDiffAfter, ) = calculatePriceDifference(
@@ -209,7 +209,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
       ctx.incentiveBps,
       false,
       action.amount1Out,
-      action.inputAmount * 1e12,
+      action.amountOwedToPool * 1e12,
       ctx.prices.oracleNum,
       ctx.prices.oracleDen
     );
@@ -281,7 +281,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
 
     // Calculate reserves after action
     uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    uint256 reserve1After = ctx.reserves.reserveNum + action.inputAmount;
+    uint256 reserve1After = ctx.reserves.reserveNum + action.amountOwedToPool;
 
     (uint256 priceDiffAfter, ) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -336,11 +336,11 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
     assertGt(action.amount0Out, 0, "Debt should flow out");
     assertEq(action.amount1Out, 0, "No collateral should flow out");
-    assertGt(action.inputAmount, 0, "Collateral should flow in");
+    assertGt(action.amountOwedToPool, 0, "Collateral should flow in");
 
     // Calculate reserves after action
     uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    uint256 reserve1After = ctx.reserves.reserveNum * 1e12 + action.inputAmount * 1e12;
+    uint256 reserve1After = ctx.reserves.reserveNum * 1e12 + action.amountOwedToPool * 1e12;
 
     (uint256 priceDiffAfter, ) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -355,7 +355,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
       ctx.incentiveBps,
       true,
       action.amount0Out,
-      action.inputAmount * 1e12,
+      action.amountOwedToPool * 1e12,
       ctx.prices.oracleNum,
       ctx.prices.oracleDen
     );

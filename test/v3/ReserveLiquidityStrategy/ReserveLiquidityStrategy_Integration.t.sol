@@ -47,7 +47,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     );
     assertEq(action.amount0Out, 0, "No collateral (token0) should flow out");
     assertGt(action.amount1Out, 0, "Should have debt (token1) flowing out");
-    assertGt(action.inputAmount, 0, "Should have collateral input amount");
+    assertGt(action.amountOwedToPool, 0, "Should have collateral input amount");
   }
 
   function test_determineAction_whenToken0IsCollateral_shouldHandleExpansionCorrectly()
@@ -71,7 +71,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when excess collateral");
     assertGt(action.amount0Out, 0, "Should have collateral (token0) flowing out");
     assertEq(action.amount1Out, 0, "No debt (token1) should flow out");
-    assertGt(action.inputAmount, 0, "Should have debt input amount");
+    assertGt(action.amountOwedToPool, 0, "Should have debt input amount");
   }
 
   function test_determineAction_whenToken0IsCollateral_shouldHandleContractionCorrectly()
@@ -98,7 +98,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract when excess debt");
     assertEq(action.amount0Out, 0, "No collateral (token0) should flow out");
     assertGt(action.amount1Out, 0, "Should have debt (token1) flowing out");
-    assertGt(action.inputAmount, 0, "Should have collateral input amount");
+    assertGt(action.amountOwedToPool, 0, "Should have collateral input amount");
   }
 
   /* ============================================================ */
@@ -122,7 +122,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
     assertEq(action.amount0Out, 0, "No debt should flow out during expansion");
     assertGt(action.amount1Out, 0, "Collateral should flow out during expansion");
-    assertGt(action.inputAmount, 0, "Debt should flow in via inputAmount");
+    assertGt(action.amountOwedToPool, 0, "Debt should flow in via inputAmount");
   }
 
   function test_determineAction_outputConsistency_withReversedTokenOrder_shouldMatchDirection()
@@ -147,7 +147,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
     assertGt(action.amount0Out, 0, "Collateral (token0) should flow out during expansion");
     assertEq(action.amount1Out, 0, "No debt (token1) should flow out during expansion");
-    assertGt(action.inputAmount, 0, "Debt should flow in via inputAmount");
+    assertGt(action.amountOwedToPool, 0, "Debt should flow in via inputAmount");
   }
 
   function test_determineAction_amountScaling_withDifferentIncentives_shouldBeProportional()
@@ -171,7 +171,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       (, LQ.Action memory action) = strategy.determineAction(ctx);
 
       if (action.amount1Out > 0) {
-        assertGt(action.inputAmount, 0, "Should have input amount");
+        assertGt(action.amountOwedToPool, 0, "Should have input amount");
 
         // Verify amounts increase with incentive (more incentive = more rebalancing)
         if (i > 0) {
@@ -267,11 +267,11 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
             // Verify token flow consistency with direction
             if (action.dir == LQ.Direction.Expand) {
               // In expansion, debt flows in (inputAmount), collateral flows out
-              assertGt(action.inputAmount, 0, "Should have debt input in expansion");
+              assertGt(action.amountOwedToPool, 0, "Should have debt input in expansion");
               assertTrue(action.amount0Out > 0 || action.amount1Out > 0, "Should have collateral output in expansion");
             } else {
               // In contraction, collateral flows in (inputAmount), debt flows out
-              assertGt(action.inputAmount, 0, "Should have collateral input in contraction");
+              assertGt(action.amountOwedToPool, 0, "Should have collateral input in contraction");
               assertTrue(action.amount0Out > 0 || action.amount1Out > 0, "Should have debt output in contraction");
             }
           }

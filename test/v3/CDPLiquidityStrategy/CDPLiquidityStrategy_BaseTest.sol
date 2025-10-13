@@ -27,7 +27,11 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     strategyAddr = address(strategy);
   }
 
-  modifier addFpmm(uint64 cooldown, uint32 incentiveBps, uint256 stabilityPoolPercentage) {
+  modifier addFpmm(
+    uint64 cooldown,
+    uint32 incentiveBps,
+    uint256 stabilityPoolPercentage
+  ) {
     // Deploy collateral registry mock
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
 
@@ -212,7 +216,13 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   function calculatePriceDifference(
     LQ.Context memory ctx
   ) internal pure returns (uint256 priceDifference, bool reservePriceAboveOracle) {
-    return calculatePriceDifference(ctx.prices.oracleNum, ctx.prices.oracleDen, ctx.reserves.reserveNum, ctx.reserves.reserveDen);
+    return
+      calculatePriceDifference(
+        ctx.prices.oracleNum,
+        ctx.prices.oracleDen,
+        ctx.reserves.reserveNum,
+        ctx.reserves.reserveDen
+      );
   }
 
   /**
@@ -226,7 +236,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     LQ.Context memory ctx,
     LQ.Action memory action
   ) internal pure returns (uint256 priceDifference, bool reservePriceAboveOracle) {
-    uint256 reserve0After = ctx.reserves.reserveDen + action.inputAmount - action.amount0Out;
+    uint256 reserve0After = ctx.reserves.reserveDen + action.amountOwedToPool - action.amount0Out;
     uint256 reserve1After = ctx.reserves.reserveNum - action.amount1Out;
     return calculatePriceDifference(ctx.prices.oracleNum, ctx.prices.oracleDen, reserve1After, reserve0After);
   }

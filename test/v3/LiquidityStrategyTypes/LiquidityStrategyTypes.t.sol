@@ -415,7 +415,7 @@ contract LiquidityStrategyTypes_Test is Test {
     LQ.Action memory action = harness.newExpansion(ctx, expansionAmount, collateralPayed);
 
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
-    assertEq(action.inputAmount, expansionAmount);
+    assertEq(action.amountOwedToPool, expansionAmount);
     assertEq(action.amount0Out, 0); // No debt out
     assertEq(action.amount1Out, collateralPayed); // Collateral out (token1)
   }
@@ -431,7 +431,7 @@ contract LiquidityStrategyTypes_Test is Test {
     LQ.Action memory action = harness.newExpansion(ctx, expansionAmount, collateralPayed);
 
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
-    assertEq(action.inputAmount, expansionAmount);
+    assertEq(action.amountOwedToPool, expansionAmount);
     assertEq(action.amount0Out, collateralPayed); // Collateral out (token0)
     assertEq(action.amount1Out, 0); // No debt out
   }
@@ -447,7 +447,7 @@ contract LiquidityStrategyTypes_Test is Test {
     LQ.Action memory action = harness.newContraction(ctx, contractionAmount, collateralReceived);
 
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
-    assertEq(action.inputAmount, collateralReceived);
+    assertEq(action.amountOwedToPool, collateralReceived);
     assertEq(action.amount0Out, contractionAmount);
     assertEq(action.amount1Out, 0);
   }
@@ -463,7 +463,7 @@ contract LiquidityStrategyTypes_Test is Test {
     LQ.Action memory action = harness.newContraction(ctx, contractionAmount, collateralReceived);
 
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
-    assertEq(action.inputAmount, collateralReceived);
+    assertEq(action.amountOwedToPool, collateralReceived);
     assertEq(action.amount0Out, 0);
     assertEq(action.amount1Out, contractionAmount);
   }

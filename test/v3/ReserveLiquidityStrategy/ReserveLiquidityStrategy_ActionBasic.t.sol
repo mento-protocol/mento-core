@@ -39,7 +39,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract to add collateral");
     assertGt(action.amount0Out, 0, "Debt should flow out");
-    assertGt(action.inputAmount, 0, "Collateral should flow in");
+    assertGt(action.amountOwedToPool, 0, "Collateral should flow in");
   }
 
   function test_determineAction_whenOraclePriceLow_shouldHandleCorrectly()
@@ -62,7 +62,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand to remove collateral");
     assertGt(action.amount1Out, 0, "Collateral should flow out");
-    assertGt(action.inputAmount, 0, "Debt should flow in");
+    assertGt(action.amountOwedToPool, 0, "Debt should flow in");
   }
 
   /* ============================================================ */
@@ -92,7 +92,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
 
     assertEq(action.amount1Out, 0, "No token1 should flow out");
     assertEq(action.amount0Out, 0, "No token0 should flow out");
-    assertEq(action.inputAmount, 0, "No input amount should be set");
+    assertEq(action.amountOwedToPool, 0, "No input amount should be set");
   }
 
   function test_determineAction_whenPoolPriceEqualsOracle_shouldNotAct() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
@@ -112,7 +112,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
     (, LQ.Action memory action) = strategy.determineAction(ctx);
 
     assertEq(action.amount0Out, 0, "No token0 should flow out");
-    assertEq(action.inputAmount, 0, "No input amount should be set");
+    assertEq(action.amountOwedToPool, 0, "No input amount should be set");
   }
 
   function test_determineAction_whenZeroReserves_shouldNotAct() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
@@ -129,7 +129,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
 
     assertEq(action.amount1Out, 0, "No collateral should flow out (amount1)");
     assertEq(action.amount0Out, 0, "No debt should flow out (amount0)");
-    assertEq(action.inputAmount, 0, "No input amount should be set");
+    assertEq(action.amountOwedToPool, 0, "No input amount should be set");
   }
 
   function test_determineAction_whenZeroToken0Reserve_shouldHandleCorrectly()
@@ -205,7 +205,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
     // X = (1e18 * 102e18 - 1e18 * 100e18) / (1e18 * (20000 - 100) / 10000)
     // X = 2e18 / 1.99 ≈ 1.005e18
     assertApproxEqRel(action.amount1Out, 1.005e18, 1e16, "Token1 out should be approximately 1.005e18");
-    assertApproxEqRel(action.inputAmount, 1.005e18, 1e16, "Token0 in should be approximately 1.005e18");
+    assertApproxEqRel(action.amountOwedToPool, 1.005e18, 1e16, "Token0 in should be approximately 1.005e18");
   }
 
   function test_determineAction_withMultipleRealisticScenarios_shouldHandleCorrectly()
@@ -231,7 +231,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
       (, LQ.Action memory action) = strategy.determineAction(ctx);
 
       assertGt(action.amount1Out, 0, "Should have token1 output");
-      assertGt(action.inputAmount, 0, "Should have token0 input");
+      assertGt(action.amountOwedToPool, 0, "Should have token0 input");
 
       // Verify amounts increase with price difference
       if (i > 0) {

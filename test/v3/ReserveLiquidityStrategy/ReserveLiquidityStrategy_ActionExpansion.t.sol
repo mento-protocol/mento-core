@@ -30,7 +30,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
     assertEq(action.amount0Out, 0, "No debt should flow out during expansion");
     assertGt(action.amount1Out, 0, "Collateral should flow out during expansion");
-    assertGt(action.inputAmount, 0, "Should have debt input amount");
+    assertGt(action.amountOwedToPool, 0, "Should have debt input amount");
   }
 
   function test_determineAction_whenPoolPriceAboveOracleWithDifferentDecimals_shouldHandleCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
@@ -50,7 +50,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
     (, LQ.Action memory action) = strategy.determineAction(ctx);
 
     assertGt(action.amount1Out, 0, "Should have collateral output in raw units");
-    assertGt(action.inputAmount, 0, "Should have debt input in raw units");
+    assertGt(action.amountOwedToPool, 0, "Should have debt input in raw units");
     // Verify the output is in 6-decimal scale
     assertLt(action.amount1Out, 1e12, "Collateral output should be in 6-decimal scale");
   }
@@ -73,7 +73,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
     assertEq(action.amount1Out, 50e18, "Should calculate correct collateral out with zero incentive");
     // Y = X * OD/ON = 50e18 * 1e18/1e18 = 50e18 (debt flows into pool)
     // In expansion: debt flows in via inputAmount
-    assertEq(action.inputAmount, 50e18, "Should calculate correct debt input amount");
+    assertEq(action.amountOwedToPool, 50e18, "Should calculate correct debt input amount");
   }
 
   function test_determineAction_whenPoolPriceAboveOracleWithMaxIncentive_shouldReturnCorrectAmounts() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
@@ -92,9 +92,9 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
     // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 10000) / 10000)
     // X = 100e18 / 1 = 100e18
     assertEq(action.amount1Out, 100e18, "Should calculate correct collateral out with max incentive");
-    // Y = X * OD/ON = 100e18 * 1e18/1e18 = 100e18 (debt flows into pool)
-    // In expansion: debt flows in via inputAmount
-    assertEq(action.inputAmount, 100e18, "Should calculate correct debt input amount");
+    // Y = X * OD/ON * (1 - i) = 100e18 * 1e18/1e18 * (1 - 1) = 0
+    // With 100% incentive, all goes to incentive, nothing flows to pool
+    assertEq(action.amountOwedToPool, 0, "Should be zero with 100% incentive");
   }
 
   /* ============================================================ */
@@ -123,11 +123,11 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
 
     // Y = X * OD/ON = 100e18 * 1e18/2e18 = 50e18
     uint256 expectedY = 50e18;
-    assertEq(action.inputAmount, expectedY, "Y should equal X * OD/ON");
+    assertEq(action.amountOwedToPool, expectedY, "Y should equal X * OD/ON");
   }
 
   function test_YRelationship_shouldAlwaysHoldForExpansion() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
-    // Test Y = X * OD/ON relationship for expansion (PP > OP)
+    // Test Y = X * OD/ON * (1 - i) relationship for expansion (PP > OP)
     uint256[3] memory incentives = [uint256(0), 100, 100]; // Capped at 1%
 
     for (uint256 i = 0; i < incentives.length; i++) {
@@ -143,11 +143,12 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
       (, LQ.Action memory action) = strategy.determineAction(ctx);
 
       if (action.amount1Out > 0) {
-        // Y/X should equal OD/ON (Y is inputAmount, X is amount1Out) within precision limits
-        uint256 calculatedRatio = (action.inputAmount * ctx.prices.oracleNum) / action.amount1Out;
-        uint256 expectedRatio = ctx.prices.oracleDen;
+        // Y/X should equal OD/ON * (1 - i) (Y is amountOwedToPool, X is amount1Out) within precision limits
+        uint256 calculatedRatio = (action.amountOwedToPool * ctx.prices.oracleNum) / action.amount1Out;
+        // Apply incentive multiplier to expected ratio
+        uint256 expectedRatio = (ctx.prices.oracleDen * (10000 - ctx.incentiveBps)) / 10000;
         // Allow for rounding errors (1 wei difference)
-        assertApproxEqAbs(calculatedRatio, expectedRatio, 1, "Y/X ratio should approximately equal OD/ON");
+        assertApproxEqAbs(calculatedRatio, expectedRatio, 1, "Y/X ratio should approximately equal OD/ON * (1 - i)");
       }
     }
   }

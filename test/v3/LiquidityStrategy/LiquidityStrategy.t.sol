@@ -139,7 +139,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Should be expansion: add debt (token0), take collateral (token1)
     assertEq(ctx.prices.poolPriceAbove, true);
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
-    assertTrue(action.inputAmount > 0); // Debt in
+    assertTrue(action.amountOwedToPool > 0); // Debt in
     assertEq(action.amount0Out, 0); // No debt out
     assertTrue(action.amount1Out > 0); // Collateral out
   }
@@ -158,7 +158,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Should be contraction: add collateral (token1), take debt (token0)
     assertEq(ctx.prices.poolPriceAbove, false);
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
-    assertTrue(action.inputAmount > 0); // Collateral in
+    assertTrue(action.amountOwedToPool > 0); // Collateral in
     assertTrue(action.amount0Out > 0); // Debt out
     assertEq(action.amount1Out, 0); // No collateral out
   }
@@ -178,7 +178,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Should be contraction: take debt (token1) from pool, add collateral (token0)
     assertEq(ctx.prices.poolPriceAbove, true);
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
-    assertTrue(action.inputAmount > 0); // Collateral in
+    assertTrue(action.amountOwedToPool > 0); // Collateral in
     assertTrue(action.amount1Out > 0); // Debt out (token1)
     assertEq(action.amount0Out, 0);
   }
@@ -198,7 +198,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Should be expansion: add debt (token1), take collateral (token0)
     assertEq(ctx.prices.poolPriceAbove, false);
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
-    assertTrue(action.inputAmount > 0); // Debt in
+    assertTrue(action.amountOwedToPool > 0); // Debt in
     assertTrue(action.amount0Out > 0); // Collateral out (token0)
     assertEq(action.amount1Out, 0);
   }
@@ -216,7 +216,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     // Should handle decimal scaling correctly
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
-    assertTrue(action.inputAmount > 0);
+    assertTrue(action.amountOwedToPool > 0);
     assertTrue(action.amount1Out > 0);
   }
 
@@ -304,12 +304,12 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Try to call hook from non-pool address
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
-        inputAmount: 100e18,
+        amountOwedToPool: 100e18,
         incentiveBps: 50,
         dir: LQ.Direction.Expand,
         isToken0Debt: true,
         debtToken: debtToken,
-        collateralToken: collToken
+        collToken: collToken
       })
     );
 
@@ -324,12 +324,12 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
-        inputAmount: 100e18,
+        amountOwedToPool: 100e18,
         incentiveBps: 50,
         dir: LQ.Direction.Expand,
         isToken0Debt: true,
         debtToken: debtToken,
-        collateralToken: collToken
+        collToken: collToken
       })
     );
 

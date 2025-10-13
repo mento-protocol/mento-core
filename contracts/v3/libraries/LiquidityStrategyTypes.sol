@@ -78,17 +78,17 @@ library LiquidityStrategyTypes {
     Direction dir;
     uint256 amount0Out; // amount of token0 to move out of pool
     uint256 amount1Out; // amount of token1 to move out of pool
-    uint256 inputAmount; // amount moved into pool (pre-incentive)
+    uint256 amountOwedToPool; // amount to move to pool (post-incentive)
   }
 
   /// @notice Callback data passed to hook during rebalance
   struct CallbackData {
-    uint256 inputAmount;
+    uint256 amountOwedToPool;
     uint256 incentiveBps;
     Direction dir;
     bool isToken0Debt;
     address debtToken;
-    address collateralToken;
+    address collToken;
   }
 
   /* ============================================================ */
@@ -332,7 +332,7 @@ library LiquidityStrategyTypes {
       action.amount0Out = collateralToPay;
       action.amount1Out = 0;
     }
-    action.inputAmount = debtToExpand;
+    action.amountOwedToPool = debtToExpand;
   }
 
   /**
@@ -356,7 +356,7 @@ library LiquidityStrategyTypes {
       action.amount0Out = 0;
       action.amount1Out = debtToContract;
     }
-    action.inputAmount = collateralToReceive;
+    action.amountOwedToPool = collateralToReceive;
   }
 
   /* ============================================================ */
@@ -394,6 +394,23 @@ library LiquidityStrategyTypes {
    */
   function scaleFromTo(uint256 amount, uint256 fromDec, uint256 toDec) internal pure returns (uint256) {
     return (amount * toDec) / fromDec;
+  }
+
+  /**
+   * @notice Scales an amount from one decimal factor to another
+   * @param amountNum The amount numerator to scale
+   * @param amountDen The amount denominator to scale
+   * @param fromDec The source decimal factor (10**decimals)
+   * @param toDec The target decimal factor (10**decimals)
+   * @return The scaled amount
+   */
+  function scaleFromTo(
+    uint256 amountNum,
+    uint256 amountDen,
+    uint256 fromDec,
+    uint256 toDec
+  ) internal pure returns (uint256) {
+    return (amountNum * toDec) / (fromDec * amountDen);
   }
 
   /**
@@ -452,11 +469,11 @@ library LiquidityStrategyTypes {
 
   /**
    * @notice Calculates the incentive amount from an input and incentive rate
-   * @param inputAmount The base amount
+   * @param amount The base amount
    * @param incentiveBps The incentive rate in basis points
    * @return The incentive amount
    */
-  function incentiveAmount(uint256 inputAmount, uint256 incentiveBps) internal pure returns (uint256) {
-    return mulBps(inputAmount, incentiveBps);
+  function incentiveAmount(uint256 amount, uint256 incentiveBps) internal pure returns (uint256) {
+    return mulBps(amount, incentiveBps);
   }
 }

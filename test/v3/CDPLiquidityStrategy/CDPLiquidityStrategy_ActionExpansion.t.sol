@@ -50,10 +50,10 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
     assertEq(action.amount0Out, 0, "No debt should flow out during expansion");
     assertGt(action.amount1Out, 0, "Collateral should flow out during expansion");
-    assertGt(action.inputAmount, 0, "Debt should flow in via inputAmount");
+    assertGt(action.amountOwedToPool, 0, "Debt should flow in via inputAmount");
 
     // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen + action.inputAmount;
+    uint256 reserve0After = ctx.reserves.reserveDen + action.amountOwedToPool;
     uint256 reserve1After = ctx.reserves.reserveNum - action.amount1Out;
 
     (uint256 priceDiffAfter, ) = calculatePriceDifference(
@@ -64,7 +64,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     );
 
     assertEq(priceDiffAfter, 0, "Price difference should be zero after expansion");
-    assertIncentive(ctx.incentiveBps, false, action.amount1Out, action.inputAmount, ctx.prices.oracleNum, ctx.prices.oracleDen);
+    assertIncentive(ctx.incentiveBps, false, action.amount1Out, action.amountOwedToPool, ctx.prices.oracleNum, ctx.prices.oracleDen);
   }
 
   function test_determineAction_whenToken0DebtPoolPriceAboveAndInsufficientLiquidity_shouldExpandPartially()
@@ -101,10 +101,10 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
     assertGt(action.amount1Out, 0, "Collateral should flow out");
-    assertGt(action.inputAmount, 0, "Debt should flow in");
+    assertGt(action.amountOwedToPool, 0, "Debt should flow in");
 
     // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen + action.inputAmount;
+    uint256 reserve0After = ctx.reserves.reserveDen + action.amountOwedToPool;
     uint256 reserve1After = ctx.reserves.reserveNum - action.amount1Out;
 
     (uint256 priceDiffAfter, ) = calculatePriceDifference(
@@ -164,11 +164,11 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
     assertGt(action.amount0Out, 0, "Collateral (token0) should flow out during expansion");
     assertEq(action.amount1Out, 0, "No debt (token1) should flow out during expansion");
-    assertGt(action.inputAmount, 0, "Debt should flow in via inputAmount");
+    assertGt(action.amountOwedToPool, 0, "Debt should flow in via inputAmount");
 
     // Calculate reserves after action (normalize decimals for comparison)
     uint256 reserve0After = ctx.reserves.reserveDen * 1e12 - action.amount0Out * 1e12;
-    uint256 reserve1After = ctx.reserves.reserveNum + action.inputAmount;
+    uint256 reserve1After = ctx.reserves.reserveNum + action.amountOwedToPool;
 
     (uint256 priceDiffAfter, ) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -182,7 +182,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       ctx.incentiveBps,
       true,
       action.amount0Out * 1e12,
-      action.inputAmount,
+      action.amountOwedToPool,
       ctx.prices.oracleNum,
       ctx.prices.oracleDen
     );
@@ -242,7 +242,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     // The expansion should be limited by the 50% stability pool percentage
     uint256 maxAllowed = (10_000_000e18 * 5000) / 10_000;
-    assertLe(action.inputAmount, maxAllowed, "Expansion should respect stability pool percentage limit");
+    assertLe(action.amountOwedToPool, maxAllowed, "Expansion should respect stability pool percentage limit");
   }
 
   /* ============================================================ */
@@ -286,10 +286,10 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
     assertEq(action.amount0Out, 0, "No debt should flow out");
     assertGt(action.amount1Out, 0, "Collateral should flow out");
-    assertGt(action.inputAmount, 0, "Debt should flow in");
+    assertGt(action.amountOwedToPool, 0, "Debt should flow in");
 
     // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen + action.inputAmount;
+    uint256 reserve0After = ctx.reserves.reserveDen + action.amountOwedToPool;
     uint256 reserve1After = ctx.reserves.reserveNum * 1e12 - action.amount1Out * 1e12;
 
     (uint256 priceDiffAfter, ) = calculatePriceDifference(
@@ -304,7 +304,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       ctx.incentiveBps,
       false,
       action.amount1Out * 1e12,
-      action.inputAmount,
+      action.amountOwedToPool,
       ctx.prices.oracleNum,
       ctx.prices.oracleDen
     );

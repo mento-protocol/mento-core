@@ -50,17 +50,19 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
     // For 6 decimal collateral, amount should be reasonable range
     assertLt(action.amount1Out, 1e9, "Token1 out should be in 6 decimal range");
     assertGt(action.amount1Out, 1e6, "Token1 out should be meaningful in 6 decimals");
-    assertGt(action.inputAmount, 1e12, "Debt input should be in 18 decimal units");
+    assertGt(action.amountOwedToPool, 1e12, "Debt input should be in 18 decimal units");
 
-    // Verify Y = X * OD/ON relationship holds across decimal conversions
+    // Verify Y = X * OD/ON * (1 - i) relationship holds across decimal conversions
     // Convert collateral back to 18 decimals for comparison
     uint256 collateralOut18 = action.amount1Out * 1e12;
+    // Apply incentive multiplier: Y = X * (1 - i)
+    uint256 expectedY = (collateralOut18 * (10000 - ctx.incentiveBps)) / 10000;
     // Allow for small rounding errors in decimal conversion
     assertApproxEqRel(
-      action.inputAmount,
-      collateralOut18,
+      action.amountOwedToPool,
+      expectedY,
       1e15,
-      "Y should approximately equal X when oracle ratio is 1:1"
+      "Y should approximately equal X * (1 - i) when oracle ratio is 1:1"
     ); // 0.1% tolerance
   }
 
@@ -89,8 +91,8 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
 
       if (action.amount0Out > 0 || action.amount1Out > 0) {
         // For token0 (debt) - should be scaled by debtDec
-        if (action.inputAmount > 0 || action.amount0Out > 0) {
-          uint256 amount0 = action.amount0Out > 0 ? action.amount0Out : action.inputAmount;
+        if (action.amountOwedToPool > 0 || action.amount0Out > 0) {
+          uint256 amount0 = action.amount0Out > 0 ? action.amount0Out : action.amountOwedToPool;
           // Verify it's in the correct decimal range (allowing for reasonable values)
           if (tests[i].debtDec < 1e18) {
             // For 6 decimals, max reasonable value would be around 1e12 (1M tokens)
@@ -101,8 +103,8 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
         }
 
         // For token1 (collateral) - should be scaled by collateralDec
-        if (action.inputAmount > 0 || action.amount1Out > 0) {
-          uint256 amount1 = action.amount1Out > 0 ? action.amount1Out : action.inputAmount;
+        if (action.amountOwedToPool > 0 || action.amount1Out > 0) {
+          uint256 amount1 = action.amount1Out > 0 ? action.amount1Out : action.amountOwedToPool;
           // Verify it's in the correct decimal range (allowing for reasonable values)
           if (tests[i].collateralDec < 1e18) {
             // For 6 decimals, max reasonable value would be around 1e12 (1M tokens)
@@ -138,7 +140,7 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
 
         if (action.amount0Out > 0 || action.amount1Out > 0) {
           assertGt(action.amount1Out, 0, "Should have meaningful output for all decimal combinations");
-          assertGt(action.inputAmount, 0, "Should have meaningful input for all decimal combinations");
+          assertGt(action.amountOwedToPool, 0, "Should have meaningful input for all decimal combinations");
 
           // Verify no precision loss causes zero amounts for reasonable reserves
           if (decimals[j] >= 1e6) {

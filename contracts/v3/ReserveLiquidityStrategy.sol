@@ -114,55 +114,35 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
     uint256 amount1Out,
     LQ.CallbackData memory cb
   ) internal override {
-    address tokenIn;
-    address tokenOut;
-    uint256 amountOut;
-
     if (cb.dir == LQ.Direction.Expand) {
       // Expansion: Pool price > oracle price
       // Reserve provides debt to pool, receives collateral from pool
-      tokenIn = cb.debtToken;
-      tokenOut = cb.collateralToken;
-      amountOut = cb.isToken0Debt ? amount1Out : amount0Out;
+      uint256 collTokenFromPool = cb.isToken0Debt ? amount1Out : amount0Out;
+      _transferToReserve(cb.collToken, collTokenFromPool);
+      _transferToPool(cb.debtToken, pool, cb.amountOwedToPool);
     } else {
       // Contraction: Pool price < oracle price
       // Reserve provides collateral to pool, receives debt from pool
-      tokenIn = cb.collateralToken;
-      tokenOut = cb.debtToken;
-      amountOut = cb.isToken0Debt ? amount0Out : amount1Out;
+      uint256 debtTokenFromPool = cb.isToken0Debt ? amount0Out : amount1Out;
+      _transferToReserve(cb.debtToken, debtTokenFromPool);
+      _transferToPool(cb.collToken, pool, cb.amountOwedToPool);
     }
-
-    // Handle token going INTO the pool
-    uint256 incentiveAmount = LQ.incentiveAmount(cb.inputAmount, cb.incentiveBps);
-    uint256 amountToPool = cb.inputAmount - incentiveAmount;
-    _transferTokenIn(tokenIn, pool, amountToPool, incentiveAmount);
-
-    // Handle token coming OUT of the pool
-    _transferTokenOut(tokenOut, amountOut);
   }
 
   /**
    * @notice Transfer tokens into the pool and pay incentive
    * @param token The token to transfer in
    * @param pool The pool to transfer to
-   * @param amountToPool Amount to send to the pool
-   * @param incentiveAmount Incentive amount to send to this contract
+   * @param amount Amount to send to the pool
    */
-  function _transferTokenIn(address token, address pool, uint256 amountToPool, uint256 incentiveAmount) internal {
+  function _transferToPool(address token, address pool, uint256 amount) internal {
     if (reserve.isStableAsset(token)) {
       // Mint stable assets directly
-      IERC20MintableBurnable(token).mint(pool, amountToPool);
-      if (incentiveAmount > 0) {
-        IERC20MintableBurnable(token).mint(address(this), incentiveAmount);
-      }
+      IERC20MintableBurnable(token).mint(pool, amount);
     } else if (reserve.isCollateralAsset(token)) {
       // Transfer collateral from reserve
-      if (!reserve.transferExchangeCollateralAsset(token, payable(pool), amountToPool))
+      if (!reserve.transferExchangeCollateralAsset(token, payable(pool), amount))
         revert RLS_COLLATERAL_TO_POOL_FAILED();
-      if (incentiveAmount > 0) {
-        if (!reserve.transferExchangeCollateralAsset(token, payable(address(this)), incentiveAmount))
-          revert RLS_INCENTIVE_TRANSFER_FAILED();
-      }
     } else {
       revert RLS_TOKEN_IN_NOT_SUPPORTED();
     }
@@ -173,7 +153,7 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
    * @param token The token to transfer out
    * @param amount The amount to transfer
    */
-  function _transferTokenOut(address token, uint256 amount) internal {
+  function _transferToReserve(address token, uint256 amount) internal {
     if (amount == 0) return;
 
     if (reserve.isStableAsset(token)) {

@@ -115,16 +115,16 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
       tokenIn = cb.debtToken;
     } else {
       // Contraction: provide collateral to pool, receive debt from pool
-      tokenIn = cb.collateralToken;
+      tokenIn = cb.collToken;
     }
 
     // Calculate amounts (incentive stays with strategy, rest goes to pool)
-    uint256 incentiveAmount = LQ.incentiveAmount(cb.inputAmount, cb.incentiveBps);
-    uint256 amountToPool = cb.inputAmount - incentiveAmount;
+    uint256 incentiveAmount = LQ.incentiveAmount(cb.amountOwedToPool, cb.incentiveBps);
+    uint256 amountToPool = cb.amountOwedToPool - incentiveAmount;
 
     // Transfer tokenIn to the pool
     // Assumes harness has been funded with tokens in test setup
-    IERC20(tokenIn).transfer(pool, amountToPool);
+    IERC20(tokenIn).transfer(pool, cb.amountOwedToPool);
 
     // Note: Tokens coming OUT of the pool (amount0Out/amount1Out) have already been
     // transferred to this contract by the FPMM, so no action needed

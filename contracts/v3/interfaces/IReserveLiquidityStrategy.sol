@@ -16,8 +16,6 @@ interface IReserveLiquidityStrategy {
   error RLS_RESERVE_OUT_OF_COLLATERAL();
   /// @notice Thrown when collateral transfer from reserve to pool fails
   error RLS_COLLATERAL_TO_POOL_FAILED();
-  /// @notice Thrown when incentive transfer from reserve fails
-  error RLS_INCENTIVE_TRANSFER_FAILED();
   /// @notice Thrown when the input token is not supported by the reserve
   error RLS_TOKEN_IN_NOT_SUPPORTED();
   /// @notice Thrown when the output token is not supported by the reserve

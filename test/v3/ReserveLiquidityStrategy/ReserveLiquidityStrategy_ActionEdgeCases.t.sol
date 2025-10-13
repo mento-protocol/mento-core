@@ -35,7 +35,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
 
     // Should handle small amounts gracefully
     assertGe(action.amount1Out, 0, "Should not have negative collateral out");
-    assertGe(action.inputAmount, 0, "Should not have negative input amount");
+    assertGe(action.amountOwedToPool, 0, "Should not have negative input amount");
   }
 
   function test_determineAction_whenVeryLargeAmounts_shouldNotOverflow() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
@@ -54,7 +54,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
     (, LQ.Action memory action) = strategy.determineAction(ctx);
 
     assertGt(action.amount1Out, 0, "Should have valid token1 out");
-    assertGt(action.inputAmount, 0, "Should have valid input amount");
+    assertGt(action.amountOwedToPool, 0, "Should have valid input amount");
   }
 
   /* ============================================================ */
@@ -78,7 +78,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
     (, LQ.Action memory action) = strategy.determineAction(ctx);
 
     assertGt(action.amount1Out, 0, "Should have token1 out");
-    assertGt(action.inputAmount, 0, "Should have input amount");
+    assertGt(action.amountOwedToPool, 0, "Should have input amount");
   }
 
   function test_determineAction_whenOraclePriceVeryLarge_shouldHandleCorrectly()
@@ -101,7 +101,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
     (, LQ.Action memory action) = strategy.determineAction(ctx);
 
     assertGt(action.amount0Out, 0, "Should have token0 out");
-    assertGt(action.inputAmount, 0, "Should have input amount");
+    assertGt(action.amountOwedToPool, 0, "Should have input amount");
   }
 
   /* ============================================================ */
@@ -169,12 +169,12 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
       if (action.amount1Out > 0) {
         // Verify no overflow occurred
         assertLe(action.amount1Out, type(uint256).max / 2, "Should not overflow");
-        assertLe(action.inputAmount, type(uint256).max / 2, "Should not overflow");
+        assertLe(action.amountOwedToPool, type(uint256).max / 2, "Should not overflow");
 
         // Verify Y = X * OD/ON relationship still holds
         if (action.amount1Out > 0) {
           uint256 calculatedY = (action.amount1Out * ctx.prices.oracleDen) / ctx.prices.oracleNum;
-          assertEq(action.inputAmount, calculatedY, "Y relationship should hold even with small denominator");
+          assertEq(action.amountOwedToPool, calculatedY, "Y relationship should hold even with small denominator");
         }
       }
     }

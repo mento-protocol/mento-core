@@ -149,20 +149,20 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
       // Expansion: swap collateral for debt in stability pool
       uint256 collAmount = amount0Out > 0 ? amount0Out : amount1Out;
       address stabilityPool = cdpConfigs[pool].stabilityPool;
-      IERC20(cb.collateralToken).safeApprove(stabilityPool, collAmount);
-      IStabilityPool(stabilityPool).swapCollateralForStable(collAmount, cb.inputAmount);
+      IERC20(cb.collToken).safeApprove(stabilityPool, collAmount);
+      IStabilityPool(stabilityPool).swapCollateralForStable(collAmount, cb.amountOwedToPool);
       // Transfer debt to FPMM
-      IERC20(cb.debtToken).safeTransfer(pool, cb.inputAmount);
+      IERC20(cb.debtToken).safeTransfer(pool, cb.amountOwedToPool);
     } else {
       // Contraction: redeem debt for collateral
       uint256 debtAmount = amount0Out > 0 ? amount0Out : amount1Out;
       address collateralRegistry = cdpConfigs[pool].collateralRegistry;
       ICollateralRegistry(collateralRegistry).redeemCollateral(debtAmount, 100, cb.incentiveBps);
 
-      uint256 collateralBalance = IERC20(cb.collateralToken).balanceOf(address(this));
-      if (collateralBalance < cb.inputAmount) revert CDPLS_INSUFFICIENT_COLLATERAL_FROM_REDEMPTION();
+      uint256 collateralBalance = IERC20(cb.collToken).balanceOf(address(this));
+      if (collateralBalance < cb.amountOwedToPool) revert CDPLS_INSUFFICIENT_COLLATERAL_FROM_REDEMPTION();
       // Transfer collateral to FPMM
-      IERC20(cb.collateralToken).safeTransfer(pool, cb.inputAmount);
+      IERC20(cb.collToken).safeTransfer(pool, cb.amountOwedToPool);
     }
   }
 
