@@ -64,7 +64,8 @@ contract MedianDeltaBreakerTest is Test {
           breakerBox,
           rateFeedIDs,
           rateChangeThresholds,
-          cooldownTimes
+          cooldownTimes,
+          address(this)
         )
       )
     );

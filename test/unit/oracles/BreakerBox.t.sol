@@ -56,7 +56,7 @@ contract BreakerBoxTest is Test {
     sortedOracles.addOracle(rateFeedID1, makeAddr("oracleClient1"));
     sortedOracles.addOracle(rateFeedID2, makeAddr("oracleClient1"));
 
-    breakerBox = IBreakerBox(deployCode("BreakerBox", abi.encode(testRateFeedIDs, sortedOracles)));
+    breakerBox = IBreakerBox(deployCode("BreakerBox", abi.encode(testRateFeedIDs, sortedOracles, address(this))));
     breakerBox.addBreaker(address(mockBreaker1), 1);
   }
 

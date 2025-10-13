@@ -204,6 +204,41 @@ contract OracleAdapterTest is Test {
     assertEq(oracleAdapter.getTradingMode(referenceRateFeedID), 1);
   }
 
+  function test_ensureRateValid_whenTradingIsSuspended_shouldRevert()
+    public
+    initialized
+    withTradingMode(3)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs)
+  {
+    vm.warp(blockTs);
+    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    oracleAdapter.ensureRateValid(referenceRateFeedID);
+  }
+
+  function test_ensureRateValid_whenNoRecentRate_shouldRevert()
+    public
+    initialized
+    withTradingMode(0)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs - 7 minutes)
+  {
+    vm.warp(blockTs);
+    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    oracleAdapter.ensureRateValid(referenceRateFeedID);
+  }
+
+  function test_ensureRateValid_whenValid_shouldNotRevert()
+    public
+    initialized
+    withTradingMode(0)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs)
+  {
+    vm.warp(blockTs);
+    oracleAdapter.ensureRateValid(referenceRateFeedID);
+  }
+
   function test_isFXMarketOpen_returnsTrueIfFXMarketIsOpen() public initialized withFXMarketOpen(true) {
     assertTrue(oracleAdapter.isFXMarketOpen());
   }
