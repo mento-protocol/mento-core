@@ -25,7 +25,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
       incentiveBps: 100 // 1% (capped at FPMM max)
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
     assertEq(action.amount0Out, 0, "No debt should flow out during expansion");
@@ -47,7 +47,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
       token1Dec: 1e6
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertGt(action.amount1Out, 0, "Should have collateral output in raw units");
     assertGt(action.amountOwedToPool, 0, "Should have debt input in raw units");
@@ -65,7 +65,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
       incentiveBps: 0
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // Formula: X = (OD * RN - ON * RD) / (OD * (2 - i))
     // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 0) / 10000)
@@ -86,7 +86,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
       incentiveBps: 10000 // 100%
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // Formula: X = (OD * RN - ON * RD) / (OD * (2 - i))
     // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 10000) / 10000)
@@ -113,7 +113,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
       incentiveBps: 0 // 0% for clean calculation
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // Manual calculation:
     // X = (1e18 * 400e18 - 2e18 * 100e18) / (1e18 * 2)
@@ -140,7 +140,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
         incentiveBps: incentives[i]
       });
 
-      (, LQ.Action memory action) = strategy.determineAction(ctx);
+      LQ.Action memory action = strategy.determineAction(ctx);
 
       if (action.amount1Out > 0) {
         // Y/X should equal OD/ON * (1 - i) (Y is amountOwedToPool, X is amount1Out) within precision limits

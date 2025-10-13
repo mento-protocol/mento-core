@@ -35,7 +35,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     // Mock reserve to have collateral balance for contraction
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // When token1 is debt and PP > OP, we still need to contract (remove excess debt)
     // Pool has 200 debt (token1) vs 100 collateral (token0) at 1:1 oracle, so pool price > oracle
@@ -66,7 +66,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       isToken0Debt: false // token1 is debt
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when excess collateral");
     assertGt(action.amount0Out, 0, "Should have collateral (token0) flowing out");
@@ -93,7 +93,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     // Mock reserve to have collateral balance for contraction
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract when excess debt");
     assertEq(action.amount0Out, 0, "No collateral (token0) should flow out");
@@ -116,7 +116,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       incentiveBps: 100 // 1%
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // For expansion when token0 is debt: collateral (token1) flows out, debt (token0) flows in via inputAmount
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
@@ -141,7 +141,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       isToken0Debt: false // token1 is debt
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // For expansion when token1 is debt: collateral (token0) flows out, debt (token1) flows in via inputAmount
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
@@ -168,7 +168,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
         incentiveBps: incentives[i]
       });
 
-      (, LQ.Action memory action) = strategy.determineAction(ctx);
+      LQ.Action memory action = strategy.determineAction(ctx);
 
       if (action.amount1Out > 0) {
         assertGt(action.amountOwedToPool, 0, "Should have input amount");
@@ -255,7 +255,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
             isToken0Debt: isToken0Debt
           });
 
-          (, LQ.Action memory action) = strategy.determineAction(ctx);
+          LQ.Action memory action = strategy.determineAction(ctx);
 
           if (action.amount0Out > 0 || action.amount1Out > 0) {
             // Verify basic action properties

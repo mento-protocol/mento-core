@@ -52,7 +52,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     assertFalse(poolPriceAboveBefore, "Pool price should be below oracle");
     assertGt(priceDiffBefore, 0, "Price difference should be positive");
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
     assertGt(action.amount0Out, 0, "Debt should flow out during contraction");
@@ -115,7 +115,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
       ctx.reserves.reserveDen
     );
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
 
@@ -185,7 +185,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     assertTrue(poolPriceAboveBefore, "Pool price should be above oracle");
     assertGt(priceDiffBefore, 0, "Price difference should be positive");
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
     assertEq(action.amount0Out, 0, "No collateral should flow out during contraction");
@@ -275,7 +275,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     setDebtTokenTotalSupply(targetSupply);
     mockCollateralRegistryOracleRate(ctx.prices.oracleNum, ctx.prices.oracleDen);
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
 
@@ -331,7 +331,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     assertFalse(poolPriceAboveBefore, "Pool price should be below oracle");
     assertGt(priceDiffBefore, 0, "Price difference should be positive");
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
     assertGt(action.amount0Out, 0, "Debt should flow out");

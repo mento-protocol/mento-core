@@ -35,7 +35,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
     // Mock reserve to have collateral balance for contraction
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract to add collateral");
     assertGt(action.amount0Out, 0, "Debt should flow out");
@@ -58,7 +58,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
       incentiveBps: 100
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand to remove collateral");
     assertGt(action.amount1Out, 0, "Collateral should flow out");
@@ -88,7 +88,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
     // Mock reserve balance (even though no action should occur)
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(action.amount1Out, 0, "No token1 should flow out");
     assertEq(action.amount0Out, 0, "No token0 should flow out");
@@ -109,7 +109,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
     // Mock reserve balance (even though no action should occur)
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(action.amount0Out, 0, "No token0 should flow out");
     assertEq(action.amountOwedToPool, 0, "No input amount should be set");
@@ -125,7 +125,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
       incentiveBps: 100
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(action.amount1Out, 0, "No collateral should flow out (amount1)");
     assertEq(action.amount0Out, 0, "No debt should flow out (amount0)");
@@ -146,7 +146,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
       incentiveBps: 100
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
     assertGt(action.amount1Out, 0, "Should remove excess collateral");
@@ -169,7 +169,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
     // Mock reserve to have collateral balance for contraction
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
     assertGt(action.amount0Out, 0, "Should remove excess debt");
@@ -197,7 +197,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
       incentiveBps: 100 // 1%
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
 
@@ -228,7 +228,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
         incentiveBps: incentives[i]
       });
 
-      (, LQ.Action memory action) = strategy.determineAction(ctx);
+      LQ.Action memory action = strategy.determineAction(ctx);
 
       assertGt(action.amount1Out, 0, "Should have token1 output");
       assertGt(action.amountOwedToPool, 0, "Should have token0 input");

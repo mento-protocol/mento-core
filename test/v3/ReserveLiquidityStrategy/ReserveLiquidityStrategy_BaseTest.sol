@@ -5,21 +5,21 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrategy_BaseTest.sol";
-import { ReserveLiquidityStrategy } from "contracts/v3/ReserveLiquidityStrategy.sol";
+import { ReserveLiquidityStrategyHarness } from "test/utils/harnesses/ReserveLiquidityStrategyHarness.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 import { IERC20MintableBurnable } from "contracts/common/IERC20MintableBurnable.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
-  ReserveLiquidityStrategy public strategy;
+  ReserveLiquidityStrategyHarness public strategy;
 
   // Mock addresses
   address public reserve = makeAddr("Reserve");
 
   function setUp() public virtual override {
     LiquidityStrategy_BaseTest.setUp();
-    strategy = new ReserveLiquidityStrategy(owner, reserve);
+    strategy = new ReserveLiquidityStrategyHarness(owner, reserve);
     strategyAddr = address(strategy);
   }
 

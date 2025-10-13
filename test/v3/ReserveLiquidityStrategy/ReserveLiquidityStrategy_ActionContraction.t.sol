@@ -34,7 +34,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
     // Mock reserve to have collateral balance for contraction
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract when pool price below oracle");
     assertEq(action.amount1Out, 0, "No collateral should flow out during contraction");
@@ -67,7 +67,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
       abi.encode(1000e6) // 6 decimal token
     );
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertGt(action.amount0Out, 0, "Should have debt output in raw units");
     assertGt(action.amountOwedToPool, 0, "Should have collateral input in raw units");
@@ -92,7 +92,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
     // Mock reserve to have collateral balance for contraction
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
     // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 2)
@@ -120,7 +120,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
     // Mock reserve to have collateral balance for contraction
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
     // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 1)
@@ -154,7 +154,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
     // Mock reserve to have collateral balance for contraction
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // Manual calculation:
     // Y = (2e18 * 500e18 - 1e18 * 100e18) / (2e18 * 2)
@@ -185,7 +185,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
         incentiveBps: incentives[i]
       });
 
-      (, LQ.Action memory action) = strategy.determineAction(ctx);
+      LQ.Action memory action = strategy.determineAction(ctx);
 
       if (action.amountOwedToPool > 0) {
         // X/Y should equal (ON/OD) * (1 - i) (X is inputAmount, Y is amount0Out) within precision limits

@@ -45,7 +45,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     assertTrue(poolPriceAboveBefore, "Pool price should be above oracle");
     assertGt(priceDiffBefore, 0, "Price difference should be positive");
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
     assertEq(action.amount0Out, 0, "No debt should flow out during expansion");
@@ -97,7 +97,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     assertTrue(poolPriceAboveBefore, "Pool price should be above oracle");
     assertGt(priceDiffBefore, 0, "Price difference should be positive");
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
     assertGt(action.amount1Out, 0, "Collateral should flow out");
@@ -159,7 +159,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     assertFalse(poolPriceAboveBefore, "Pool price should be below oracle");
     assertGt(priceDiffBefore, 0, "Price difference should be positive");
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
     assertGt(action.amount0Out, 0, "Collateral (token0) should flow out during expansion");
@@ -236,7 +236,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     setStabilityPoolBalance(debtToken, 10_000_000e18);
     setStabilityPoolMinBalance(1e18);
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
 
@@ -281,7 +281,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     assertTrue(poolPriceAboveBefore, "Pool price should be above oracle");
     assertGt(priceDiffBefore, 4900, "Price difference should be close to 50%");
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
     assertEq(action.amount0Out, 0, "No debt should flow out");

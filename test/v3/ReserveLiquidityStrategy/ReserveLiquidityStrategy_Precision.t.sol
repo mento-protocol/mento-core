@@ -39,7 +39,7 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
       token1Dec: 1e6
     });
 
-    (, LQ.Action memory action) = strategy.determineAction(ctx);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
     // Calculate expected values - use simpler calculation for testing
     // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 100) / 10000)
@@ -87,7 +87,7 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
         token1Dec: tests[i].collateralDec
       });
 
-      (, LQ.Action memory action) = strategy.determineAction(ctx);
+      LQ.Action memory action = strategy.determineAction(ctx);
 
       if (action.amount0Out > 0 || action.amount1Out > 0) {
         // For token0 (debt) - should be scaled by debtDec
@@ -136,7 +136,7 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
           token1Dec: decimals[j]
         });
 
-        (, LQ.Action memory action) = strategy.determineAction(ctx);
+        LQ.Action memory action = strategy.determineAction(ctx);
 
         if (action.amount0Out > 0 || action.amount1Out > 0) {
           assertGt(action.amount1Out, 0, "Should have meaningful output for all decimal combinations");
@@ -179,8 +179,8 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
         token1Dec: 1e6
       });
 
-      (, LQ.Action memory action1) = strategy.determineAction(ctx1);
-      (, LQ.Action memory action2) = strategy.determineAction(ctx2);
+      LQ.Action memory action1 = strategy.determineAction(ctx1);
+      LQ.Action memory action2 = strategy.determineAction(ctx2);
 
       if (action1.amount1Out > 0 && action2.amount1Out > 0) {
         // The ratio should be approximately the same as the base amount ratio

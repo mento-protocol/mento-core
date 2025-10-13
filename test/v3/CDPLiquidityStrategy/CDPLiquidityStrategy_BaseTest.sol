@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrategy_BaseTest.sol";
-import { CDPLiquidityStrategy } from "contracts/v3/CDPLiquidityStrategy.sol";
+import { CDPLiquidityStrategyHarness } from "test/utils/harnesses/CDPLiquidityStrategyHarness.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
@@ -15,7 +15,7 @@ import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 
 contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
-  CDPLiquidityStrategy public strategy;
+  CDPLiquidityStrategyHarness public strategy;
 
   // Mock contracts specific to CDP
   MockStabilityPool public mockStabilityPool;
@@ -23,7 +23,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
 
   function setUp() public virtual override {
     LiquidityStrategy_BaseTest.setUp();
-    strategy = new CDPLiquidityStrategy(owner);
+    strategy = new CDPLiquidityStrategyHarness(owner);
     strategyAddr = address(strategy);
   }
 
