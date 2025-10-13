@@ -94,13 +94,13 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    // Formula: X = (ON * RD - OD * RN) / (ON * (2 - i))
-    // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 2)
-    // X = 100e18 / 2 = 50e18 (token1 collateral to add)
-    assertEq(action.amountOwedToPool, 50e18, "Should calculate correct collateral input amount");
-    // Y = X * (OD/ON) * (1 - i) = 50e18 * (1e18/1e18) * 1 = 50e18 (token0 debt to remove)
-    // In contraction: debt flows out
+    // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
+    // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 2)
+    // Y = 100e18 / 2 = 50e18 (token0 debt to remove)
     assertEq(action.amount0Out, 50e18, "Should calculate correct debt out");
+    // X = Y * (ON/OD) * (1 - i) = 50e18 * (1e18/1e18) * 1 = 50e18 (token1 collateral to add)
+    // In contraction: collateral flows in
+    assertEq(action.amountOwedToPool, 50e18, "Should calculate correct collateral input amount");
   }
 
   function test_determineAction_whenPoolPriceBelowOracleWithMaxIncentive_shouldReturnCorrectAmounts()
@@ -122,13 +122,13 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    // Formula: X = (ON * RD - OD * RN) / (ON * (2 - i))
-    // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 1)
-    // X = 100e18 / 1 = 100e18 (token1 collateral to add)
-    assertEq(action.amountOwedToPool, 100e18, "Should calculate correct collateral input amount");
-    // Y = X * (OD/ON) * (1 - i) = 100e18 * (1e18/1e18) * 0 = 0 (token0 debt to remove)
-    // With 100% incentive, debt out becomes zero
-    assertEq(action.amount0Out, 0, "Should have zero debt out with 100% incentive");
+    // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
+    // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 1)
+    // Y = 100e18 / 1 = 100e18 (token0 debt to remove)
+    assertEq(action.amount0Out, 100e18, "Should calculate correct debt out");
+    // X = Y * (ON/OD) * (1 - i) = 100e18 * (1e18/1e18) * 0 = 0 (token1 collateral to add)
+    // With 100% incentive, collateral in becomes zero
+    assertEq(action.amountOwedToPool, 0, "Should have zero collateral in with 100% incentive");
   }
 
   /* ============================================================ */
@@ -157,19 +157,19 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
     LQ.Action memory action = strategy.determineAction(ctx);
 
     // Manual calculation:
-    // X = (2e18 * 500e18 - 1e18 * 100e18) / (2e18 * 2)
-    // X = (1000e18 - 100e18) / 4e18 = 900e18 / 4e18 = 225e18 (collateral in)
-    uint256 expectedX = 225e18;
-    assertEq(action.amountOwedToPool, expectedX, "X calculation should match formula (collateral in)");
+    // Y = (2e18 * 500e18 - 1e18 * 100e18) / (2e18 * 2)
+    // Y = (1000e18 - 100e18) / 4e18 = 900e18 / 4e18 = 225e18 (debt out)
+    uint256 expectedY = 225e18;
+    assertEq(action.amount0Out, expectedY, "Y calculation should match formula (debt out)");
     // For PP < OP, token1 flows in via amountOwedToPool and token0 flows out
 
-    // Y = X * (OD/ON) * (1 - i) = 225e18 * (1e18/2e18) * 1 = 112.5e18 (debt out)
-    uint256 expectedY = 112.5e18;
-    assertEq(action.amount0Out, expectedY, "Y should equal X * (OD/ON) * (1 - i)");
+    // X = Y * (ON/OD) * (1 - i) = 225e18 * (2e18/1e18) * 1 = 450e18 (collateral in)
+    uint256 expectedX = 450e18;
+    assertEq(action.amountOwedToPool, expectedX, "X should equal Y * (ON/OD) * (1 - i)");
   }
 
   function test_YRelationship_shouldAlwaysHoldForContraction() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
-    // Test Y = X * (OD/ON) * (1 - i) relationship for contraction (PP < OP)
+    // Test X = Y * (ON/OD) * (1 - i) relationship for contraction (PP < OP)
     uint256[3] memory incentives = [uint256(0), 100, 100]; // Capped at 1%
 
     // Mock reserve to have collateral balance for contraction
@@ -188,11 +188,11 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
       LQ.Action memory action = strategy.determineAction(ctx);
 
       if (action.amount0Out > 0) {
-        // Y/X should equal (OD/ON) * (1 - i) (Y is amount0Out, X is amountOwedToPool) within precision limits
-        uint256 calculatedRatio = (action.amount0Out * ctx.prices.oracleNum) / action.amountOwedToPool;
-        uint256 expectedRatio = (ctx.prices.oracleDen * (10000 - incentives[i])) / 10000;
+        // X/Y should equal (ON/OD) * (1 - i) (X is amountOwedToPool, Y is amount0Out) within precision limits
+        uint256 calculatedRatio = (action.amountOwedToPool * ctx.prices.oracleDen) / action.amount0Out;
+        uint256 expectedRatio = (ctx.prices.oracleNum * (10000 - incentives[i])) / 10000;
         // Allow for rounding errors (1 wei difference)
-        assertApproxEqAbs(calculatedRatio, expectedRatio, 1, "Y/X ratio should approximately equal (OD/ON) * (1 - i)");
+        assertApproxEqAbs(calculatedRatio, expectedRatio, 1, "X/Y ratio should approximately equal (ON/OD) * (1 - i)");
       }
     }
   }

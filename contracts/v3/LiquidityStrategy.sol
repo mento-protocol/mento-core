@@ -330,20 +330,34 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @return action The constructed rebalance action
    */
   function _handlePoolPriceBelow(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
+    console.log("=== _handlePoolPriceBelow ===");
+    console.log("ON:", ctx.prices.oracleNum);
+    console.log("OD:", ctx.prices.oracleDen);
+    console.log("reserveDen (reserve0):", ctx.reserves.reserveDen);
+    console.log("reserveNum (reserve1):", ctx.reserves.reserveNum);
+    console.log("incentiveBps:", ctx.incentiveBps);
+    console.log("isToken0Debt:", ctx.isToken0Debt);
+
     uint256 numerator = ctx.prices.oracleNum * ctx.reserves.reserveDen - ctx.prices.oracleDen * ctx.reserves.reserveNum;
     uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
-    uint256 token1In = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token1Dec);
-    uint256 token0Out = LQ.convertWithRateScalingAndFee(
-      token1In,
-      ctx.token1Dec,
+    console.log("numerator:", numerator);
+    console.log("denominator:", denominator);
+
+    uint256 token0Out = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token0Dec);
+    console.log("token0Out: ", token0Out);
+
+    uint256 token1In = LQ.convertWithRateScalingAndFee(
+      token0Out,
       ctx.token0Dec,
-      ctx.prices.oracleDen,
+      ctx.token1Dec,
       ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
       LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
       LQ.BASIS_POINTS_DENOMINATOR
     );
+    console.log("token1In: ", token1In);
 
     if (ctx.isToken0Debt) {
       // ON/OD > RN/RD => Pool price < Oracle price
