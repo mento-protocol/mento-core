@@ -64,7 +64,14 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     );
 
     assertEq(priceDiffAfter, 0, "Price difference should be zero after expansion");
-    assertIncentive(ctx.incentiveBps, false, action.amount1Out, action.amountOwedToPool, ctx.prices.oracleNum, ctx.prices.oracleDen);
+    assertIncentive(
+      ctx.incentiveBps,
+      false,
+      action.amount1Out,
+      action.amountOwedToPool,
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen
+    );
   }
 
   function test_determineAction_whenToken0DebtPoolPriceAboveAndInsufficientLiquidity_shouldExpandPartially()
@@ -120,7 +127,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
   }
 
   /* ============================================================ */
-  /* ============= Expansion Token 1 Debt Tests ================ */
+  /* ============= Expansion Token 1 Debt Tests ================= */
   /* ============================================================ */
 
   function test_determineAction_whenToken1DebtPoolPriceBelowAndEnoughLiquidity_shouldExpandToOraclePrice()
@@ -128,6 +135,9 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     fpmmToken1Debt(6, 18)
     addFpmm(0, 50, 9000)
   {
+    uint256 reserve0 = 1_300_000 * 1e18; // usdm
+    uint256 reserve1 = 1_000_000 * 1e6; // eurm
+
     // Setup: Pool price below oracle (excess collateral scenario for token1 debt)
     LQ.Context memory ctx = _createContextWithDecimals({
       reserveDen: 1_000_000e6, // token0 (collateral) reserves (6 decimals)
@@ -246,7 +256,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
   }
 
   /* ============================================================ */
-  /* ================ Specific Scenario Tests ================== */
+  /* ================ Specific Scenario Tests =================== */
   /* ============================================================ */
 
   function test_determineAction_whenToken0DebtPoolPriceAboveWith50PercentDifference_shouldExpandCorrectly()
