@@ -8,6 +8,8 @@ import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_Ba
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { MockERC20 } from "../../utils/mocks/MockERC20.sol";
+import { FPMM } from "contracts/swap/FPMM.sol";
 
 contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_BaseTest {
   function setUp() public override {
@@ -59,7 +61,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       reserveNum: 100e18, // token1 (debt) reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
-      poolPriceAbove: true, // Pool has excess collateral relative to debt
+      poolPriceAbove: false,
       incentiveBps: 100,
       isToken0Debt: false // token1 is debt
     });
@@ -83,7 +85,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       reserveNum: 200e18, // token1 (debt) reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
-      poolPriceAbove: false, // Pool has excess debt relative to collateral
+      poolPriceAbove: true, // Pool has excess debt relative to collateral
       incentiveBps: 100,
       isToken0Debt: false // token1 is debt
     });
@@ -134,7 +136,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       reserveNum: 100e18, // token1 (debt) reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
-      poolPriceAbove: true,
+      poolPriceAbove: false,
       incentiveBps: 100,
       isToken0Debt: false // token1 is debt
     });
@@ -190,34 +192,67 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     uint256[3] memory incentiveValues = [uint256(0), 50, 100]; // 0%, 0.5%, 1% (capped at FPMM max)
 
     for (uint256 i = 0; i < tokenOrders.length; i++) {
-      // Setup FPMM with correct token order
-      if (tokenOrders[i]) {
-        // token0 is debt
-        mockReserveStable(debtToken, true);
-        mockReserveStable(collToken, false);
-        mockReserveCollateral(debtToken, false);
-        mockReserveCollateral(collToken, true);
+      bool isToken0Debt = tokenOrders[i];
+
+      // 1. Deploy tokens in the correct order for this iteration
+      address token0;
+      address token1;
+      address _debtToken;
+      address _collToken;
+
+      if (isToken0Debt) {
+        token0 = address(new MockERC20("DebtToken", "DT", 18));
+        token1 = address(new MockERC20("CollToken", "CT", 18));
+        _debtToken = token0;
+        _collToken = token1;
       } else {
-        // token1 is debt (reversed)
-        mockReserveStable(collToken, false);
-        mockReserveStable(debtToken, true);
-        mockReserveCollateral(collToken, false);
-        mockReserveCollateral(debtToken, true);
+        token0 = address(new MockERC20("CollToken", "CT", 18));
+        token1 = address(new MockERC20("DebtToken", "DT", 18));
+        _debtToken = token1;
+        _collToken = token0;
       }
 
-      // Mock reserve balance for contraction scenarios
-      vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
+      // 2. Create and initialize a new FPMM for this token order
+      FPMM testFpmm = new FPMM(false);
+      testFpmm.initialize(token0, token1, oracleAdapter, referenceRateFeedID, false, address(this));
+      testFpmm.setLiquidityStrategy(address(strategy), true);
+      testFpmm.setRebalanceIncentive(100);
 
+      // 3. Mock reserve functions for these specific tokens
+      mockReserveStable(_debtToken, true);
+      mockReserveStable(_collToken, false);
+      mockReserveCollateral(_debtToken, false);
+      mockReserveCollateral(_collToken, true);
+
+      // 4. Add this pool to the strategy
+      vm.prank(owner);
+      strategy.addPool(address(testFpmm), _debtToken, 0, 100);
+
+      // 5. Mock reserve balance for contraction scenarios
+      vm.mockCall(_collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
+
+      // 6. Now test all combinations for this token order
       for (uint256 j = 0; j < pricePositions.length; j++) {
         for (uint256 k = 0; k < incentiveValues.length; k++) {
-          LQ.Context memory ctx = _createContextWithTokenOrder({
-            reserveDen: 120e18,
-            reserveNum: 180e18,
-            oracleNum: 1e18,
-            oracleDen: 1e18,
-            poolPriceAbove: pricePositions[j],
-            incentiveBps: incentiveValues[k],
-            isToken0Debt: tokenOrders[i]
+          // Flip reserves based on poolPriceAbove to ensure mathematically valid scenarios
+          // poolPriceAbove=true: reserveNum/reserveDen should be > oracleNum/oracleDen
+          // poolPriceAbove=false: reserveNum/reserveDen should be < oracleNum/oracleDen
+          bool poolPriceAbove = pricePositions[j];
+          uint256 reserveNum = poolPriceAbove ? 180e18 : 120e18;
+          uint256 reserveDen = poolPriceAbove ? 120e18 : 180e18;
+          uint128 incentive = uint128(incentiveValues[k]);
+
+          // Manually construct the context with proper token addresses
+          LQ.Context memory ctx = LQ.Context({
+            pool: address(testFpmm),
+            reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
+            prices: LQ.Prices({ oracleNum: 1e18, oracleDen: 1e18, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
+            token0: token0,
+            token1: token1,
+            incentiveBps: incentive,
+            token0Dec: 1e18,
+            token1Dec: 1e18,
+            isToken0Debt: isToken0Debt
           });
 
           (, LQ.Action memory action) = strategy.determineAction(ctx);
