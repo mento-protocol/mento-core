@@ -417,6 +417,136 @@ contract CDPPolicyTest is Test {
     assertEq(action.inputAmount, expectedInputAmount);
   }
 
+  /* ============================================================ */
+  /* ============== Contraction target liquidity ================ */
+  /* ============================================================ */
+
+  function test_determineAction_whenToken0DebtPoolPriceBelowAndRedemptionFeeEqualToIncentive_shouldContractAndBringPriceBackToOraclePrice()
+    public
+    _setUpPolicy(debtToken18, 9000)
+  {
+    /*
+      struct Context {
+        address pool;
+        Reserves reserves;
+        Prices prices;
+        address token0;
+        address token1;
+        uint128 incentiveBps;
+        uint64 token0Dec;
+        uint64 token1Dec;
+        bool isToken0Debt;
+    }
+  */
+
+    uint256 reserve0 = 7_089_031 * 1e18; // brl.m 1.3Mio in $
+    uint256 reserve1 = 1_000_000 * 1e6; // usd.m 1Mio in $
+
+    LQ.Context memory ctx;
+
+    ctx.token0 = address(debtToken18);
+    ctx.token1 = address(collateralToken6);
+    ctx.token0Dec = 1e18;
+    ctx.token1Dec = 1e6;
+
+    ctx.isToken0Debt = true;
+    ctx.reserves = LQ.Reserves({
+      reserveNum: reserve1 * 1e12, // reserve token 1 (1M) usd.m
+      reserveDen: reserve0 // reserve token 0 (1.3M) brl.m
+    });
+    ctx.pool = fpmm;
+
+    ctx.prices = LQ.Prices({
+      oracleNum: 1e18,
+      oracleDen: 5476912800000000000,
+      poolPriceAbove: false,
+      diffBps: 5_000 // 50%
+    });
+    ctx.incentiveBps = 50; // 0.5%
+
+    mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(ctx, 0.0025 * 1e18); // 0.25% resulting in redemption fee being 0.25% + 0.25% = 0.5%
+    setTokenTotalSupply(address(debtToken18), totalSupply);
+
+    (, LQ.Action memory action) = policy.determineAction(ctx);
+
+    // amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 808079.298245614035087719
+    uint256 expectedAmount0Out = 808079298245614035087719;
+    uint256 expectedAmount1Out = 0;
+    // input amount in token 1 := (amountOut * ON * (1-i))/OD = 146805.131123
+    uint256 expectedInputAmount = 146805131123;
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.inputAmount, expectedInputAmount);
+  }
+
+  function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeEqualToIncentive_shouldContractAndBringPriceBackToOraclePrice()
+    public
+    _setUpPolicy(debtToken6, 9000)
+  {
+    /*
+      struct Context {
+        address pool;
+        Reserves reserves;
+        Prices prices;
+        address token0;
+        address token1;
+        uint128 incentiveBps;
+        uint64 token0Dec;
+        uint64 token1Dec;
+        bool isToken0Debt;
+    }
+  */
+
+    uint256 reserve0 = 10_000_000 * 1e18; // usd.m
+    uint256 reserve1 = 14_500_000 * 1e6; // chf.m
+
+    LQ.Context memory ctx;
+
+    ctx.token0 = address(collateralToken18);
+    ctx.token1 = address(debtToken6);
+    ctx.token0Dec = 1e18;
+    ctx.token1Dec = 1e6;
+
+    ctx.isToken0Debt = false;
+    ctx.reserves = LQ.Reserves({
+      reserveNum: reserve1 * 1e12, // reserve token 1 (14.5M) chf.m
+      reserveDen: reserve0 // reserve token 0 (10M) usd.m
+    });
+    ctx.pool = fpmm;
+
+    ctx.prices = LQ.Prices({
+      oracleNum: 1e18,
+      oracleDen: 1242930830000000000,
+      poolPriceAbove: true,
+      diffBps: 5_000 // 50%
+    });
+    ctx.incentiveBps = 50; // 0.5%
+
+    mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(ctx, 0.0025 * 1e18); // 0.25% resulting in redemption fee being 0.25% + 0.25% = 0.5%
+    setTokenTotalSupply(address(debtToken6), totalSupply);
+
+    (, LQ.Action memory action) = policy.determineAction(ctx);
+
+    uint256 expectedAmount0Out = 0;
+    // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 3_235_338.342946
+    uint256 expectedAmount1Out = 3235338342946;
+    // input amount in token 1 := (amountOut * OD * (1-i))/ON = 4_001_195.263069052943054100
+    uint256 expectedInputAmount = 4001195263069052943054100;
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.inputAmount, expectedInputAmount);
+  }
+
+  /* ============================================================ */
+  /* ============== Contraction non-target liquidity ============ */
+  /* ============================================================ */
+
   /* ---------- Determine Action Fuzz Tests ---------- */
 
   struct FuzzTestContext {
