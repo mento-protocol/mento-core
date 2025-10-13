@@ -3,8 +3,9 @@ pragma solidity 0.8.24;
 // solhint-disable max-line-length
 
 // import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
+import { ICDPLiquidityStrategy } from "contracts/v3/interfaces/ICDPLiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
-import { CDPLiquidityStrategy_BaseTest } from "./CDPLiquidityStrategy_BaseTest.sol";
+import { CDPLiquidityStrategy_BaseTest } from "../CDPLiquidityStrategy/CDPLiquidityStrategy_BaseTest.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
@@ -13,17 +14,6 @@ import { uints, addresses } from "mento-std/Array.sol";
 import { Test } from "forge-std/Test.sol";
 
 contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
-  MockERC20 public debtToken6;
-  MockERC20 public collateralToken6;
-
-  MockERC20 public debtToken18;
-  MockERC20 public collateralToken18;
-
-  address collateralRegistry = makeAddr("collateralRegistry");
-  address stabilityPool = makeAddr("stabilityPool");
-
-  address mockFpmm = makeAddr("fpmm");
-
   LQ.Context public ctx;
 
   /**
@@ -75,25 +65,11 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
     fpmmToken0Debt(18, 6)
     addFpmm(0, 50, 9000)
   {
-    /*
-      struct Context {
-        address pool;
-        Reserves reserves;
-        Prices prices;
-        address token0;
-        address token1;
-        uint128 incentiveBps;
-        uint64 token0Dec;
-        uint64 token1Dec;
-        bool isToken0Debt;
-    }
-  */
-
     uint256 reserve0 = 1_000_000 * 1e18; // usdfx
     uint256 reserve1 = 1_500_000 * 1e6; // usdc
 
-    ctx.token0 = address(debtToken18);
-    ctx.token1 = address(collateralToken6);
+    ctx.token0 = address(debtToken);
+    ctx.token1 = address(collToken);
     ctx.token0Dec = 1e18;
     ctx.token1Dec = 1e6;
 
@@ -114,7 +90,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
     ctx.incentiveBps = 50; // 0.5%
 
     // enough to cover the full expansion
-    setStabilityPoolBalance(address(debtToken18), 1_000_000 * 1e18);
+    setStabilityPoolBalance(address(debtToken), 1_000_000 * 1e18);
     LQ.Action memory action = strategy.determineAction(ctx);
 
     // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 250684.220551
@@ -125,162 +101,120 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
 
     assertEq(action.amount1Out, expectedAmount1Out);
     assertEq(action.amount0Out, expectedAmount0Out);
-    assertEq(action., expectedInputAmount);
+    assertEq(action.amountOwedToPool, expectedInputAmount);
   }
 
-  // function test_whenToken1DebtPoolPriceBelowAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToOraclePrice()
-  //   public
-  //   _setUpPolicy(9000)
-  // {
-  //   /*
-  //     struct Context {
-  //       address pool;
-  //       Reserves reserves;
-  //       Prices prices;
-  //       address token0;
-  //       address token1;
-  //       uint128 incentiveBps;
-  //       uint64 token0Dec;
-  //       uint64 token1Dec;
-  //       bool isToken0Debt;
-  //   }
-  // */
+  function test_whenToken1DebtPoolPriceBelowAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToOraclePrice()
+    public
+    fpmmToken1Debt(6, 18)
+    addFpmm(0, 50, 9000)
+  {
+    uint256 reserve0 = 1_300_000 * 1e18; // usdm
+    uint256 reserve1 = 1_000_000 * 1e6; // eurm
 
-  //   uint256 reserve0 = 1_300_000 * 1e18; // usdm
-  //   uint256 reserve1 = 1_000_000 * 1e6; // eurm
+    ctx.token0 = address(collToken);
+    ctx.token1 = address(debtToken);
+    ctx.token0Dec = 1e18;
+    ctx.token1Dec = 1e6;
 
-  //   LQ.Context memory ctx;
+    ctx.isToken0Debt = false;
+    ctx.reserves = LQ.Reserves({
+      reserveNum: reserve1 * 1e12, // reserve token 1 (1M) EURM
+      reserveDen: reserve0 // reserve token 0 (1.3M) USDM
+    });
+    ctx.pool = address(fpmm);
 
-  //   ctx.token0 = address(collateralToken18);
-  //   ctx.token1 = address(debtToken6);
-  //   ctx.token0Dec = 1e18;
-  //   ctx.token1Dec = 1e6;
+    // USDC/USD rate
+    ctx.prices = LQ.Prices({
+      oracleNum: 863549230000000000000000 / 1e6, // USDC/EUR rate
+      oracleDen: 1e18,
+      poolPriceAbove: false,
+      diffBps: 5_000 // 50%
+    });
+    ctx.incentiveBps = 50; // 0.5%
 
-  //   ctx.isToken0Debt = false;
-  //   ctx.reserves = LQ.Reserves({
-  //     reserveNum: reserve1 * 1e12, // reserve token 1 (1M) EURM
-  //     reserveDen: reserve0 // reserve token 0 (1.3M) USDM
-  //   });
-  //   ctx.pool = fpmm;
+    // enough to cover the full expansion
+    setStabilityPoolBalance(address(debtToken), 1_000_000 * 1e6);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
-  //   // USDC/USD rate
-  //   ctx.prices = LQ.Prices({
-  //     oracleNum: 863549230000000000000000 / 1e6, // USDC/EUR rate
-  //     oracleDen: 1e18,
-  //     poolPriceAbove: false,
-  //     diffBps: 5_000 // 50%
-  //   });
-  //   ctx.incentiveBps = 50; // 0.5%
+    // amount out in token 0 := (ON*RD-OD*RN)/(ON*(2-i)) = 71172.145133890686084197
+    uint256 expectedAmount0Out = 71172145133890686084197;
+    uint256 expectedAmount1Out = 0;
+    // input amount in token 1 := (amountOut * ON * (1-i))/OD = 61153.347872
 
-  //   // enough to cover the full expansion
-  //   setStabilityPoolBalance(address(debtToken6), 1_000_000 * 1e6);
-  //   (, LQ.Action memory action) = policy.determineAction(ctx);
+    uint256 expectedInputAmount = 61153347872;
 
-  //   // amount out in token 0 := (ON*RD-OD*RN)/(ON*(2-i)) = 71172.145133890686084197
-  //   uint256 expectedAmount0Out = 71172145133890686084197;
-  //   uint256 expectedAmount1Out = 0;
-  //   // input amount in token 1 := (amountOut * ON * (1-i))/OD = 61153.347872
-
-  //   uint256 expectedInputAmount = 61153347872;
-
-  //   assertEq(action.amount1Out, expectedAmount1Out);
-  //   assertEq(action.amount0Out, expectedAmount0Out);
-  //   assertEq(action.inputAmount, expectedInputAmount);
-  // }
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amountOwedToPool, expectedInputAmount);
+  }
 
   // /* ============================================================ */
   // /* ============== Expansion Partial liquidity ================= */
   // /* ============================================================ */
 
-  // function test_whenToken0DebtPoolPriceAboveAndNotEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceCloserToOraclePrice()
-  //   public
-  //   _setUpPolicy(debtToken18, 9000)
-  // {
-  //   /*
-  //     struct Context {
-  //       address pool;
-  //       Reserves reserves;
-  //       Prices prices;
-  //       address token0;
-  //       address token1;
-  //       uint128 incentiveBps;
-  //       uint64 token0Dec;
-  //       uint64 token1Dec;
-  //       bool isToken0Debt;
-  //   }
-  // */
+  // NOTE: Expected values need updating after formula fixes
+  function test_whenToken0DebtPoolPriceAboveAndNotEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceCloserToOraclePrice()
+    public
+    fpmmToken0Debt(18, 6)
+    addFpmm(0, 50, 9000)
+  {
+    uint256 reserve0 = 1_000_000 * 1e18; // usdfx
+    uint256 reserve1 = 1_500_000 * 1e6; // usdc
 
-  //   uint256 reserve0 = 1_000_000 * 1e18; // usdfx
-  //   uint256 reserve1 = 1_500_000 * 1e6; // usdc
+    ctx.token0 = address(debtToken);
+    ctx.token1 = address(collToken);
+    ctx.token0Dec = 1e18;
+    ctx.token1Dec = 1e6;
 
-  //   LQ.Context memory ctx;
+    ctx.isToken0Debt = true;
+    ctx.reserves = LQ.Reserves({
+      reserveNum: reserve1 * 1e12, // reserve token 1 (1M) USDC
+      reserveDen: reserve0 // reserve token 0 (1.5M) usdfx
+    });
+    ctx.pool = address(fpmm);
 
-  //   ctx.token0 = address(debtToken18);
-  //   ctx.token1 = address(collateralToken6);
-  //   ctx.token0Dec = 1e18;
-  //   ctx.token1Dec = 1e6;
+    // USDC/USD rate
+    ctx.prices = LQ.Prices({
+      oracleNum: 999884980000000000,
+      oracleDen: 1e18,
+      poolPriceAbove: true,
+      diffBps: 5_000 // 50%
+    });
+    ctx.incentiveBps = 50; // 0.5%
 
-  //   ctx.isToken0Debt = true;
-  //   ctx.reserves = LQ.Reserves({
-  //     reserveNum: reserve1 * 1e12, // reserve token 1 (1M) USDC
-  //     reserveDen: reserve0 // reserve token 0 (1.5M) usdfx
-  //   });
-  //   ctx.pool = fpmm;
+    // enough to cover 90% of the target amount
+    uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(ctx, 0.9e18);
+    setStabilityPoolBalance(address(debtToken), stabilityPoolBalance);
+    setStabilityPoolMinBalance(1e18);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
-  //   // USDC/USD rate
-  //   ctx.prices = LQ.Prices({
-  //     oracleNum: 999884980000000000,
-  //     oracleDen: 1e18,
-  //     poolPriceAbove: true,
-  //     diffBps: 5_000 // 50%
-  //   });
-  //   ctx.incentiveBps = 50; // 0.5%
+    // target amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 250684.220551
+    // since we only have limited liquidity:
+    // amount out in token 1 := (224513.5430511422423807184 * ON * 1) / (OD * (1-i)) = 225615.798495
+    uint256 expectedAmount1Out = 225615798495;
+    uint256 expectedAmount0Out = 0;
+    // input amount in token 0 := (amountOut * OD * (1-i))/ON = 249459.492279046935978576
+    // available stability pool balance = 249459.492279046935978576 * 0.9 = 224513.5430511422423807184
+    uint256 expectedInputAmount = 224513543051142242380718;
 
-  //   // enough to cover 90% of the target amount
-  //   uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(ctx, 0.9e18);
-  //   setStabilityPoolBalance(address(debtToken18), stabilityPoolBalance);
-  //   (, LQ.Action memory action) = policy.determineAction(ctx);
+    // since we only have liquidity for 90% of the target amount, the input amount should be 90% of the target amount
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amountOwedToPool, expectedInputAmount);
+  }
 
-  //   // target amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 250684.220551
-  //   // since we only have limited liquidity:
-  //   // amount out in token 1 := (224513.5430511422423807184 * ON * 1) / (OD * (1-i)) = 225615.798495
-  //   uint256 expectedAmount1Out = 225615798495;
-  //   uint256 expectedAmount0Out = 0;
-  //   // input amount in token 0 := (amountOut * OD * (1-i))/ON = 249459.492279046935978576
-  //   // available stability pool balance = 249459.492279046935978576 * 0.9 = 224513.5430511422423807184
-  //   uint256 expectedInputAmount = 224513543051142242380718;
-
-  //   // since we only have liquidity for 90% of the target amount, the input amount should be 90% of the target amount
-  //   assertEq(action.amount1Out, expectedAmount1Out);
-  //   assertEq(action.amount0Out, expectedAmount0Out);
-  //   assertEq(action.inputAmount, expectedInputAmount);
-  // }
-
+  // NOTE: Expected values need updating after formula fixes
   // function test_whenToken1DebtPoolPriceBelowAndNotEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceCloserToOraclePrice()
   //   public
-  //   _setUpPolicy(debtToken6, 9000)
+  //   fpmmToken1Debt(18, 6)
+  //   addFpmm(0, 50, 9000)
   // {
-  //   /*
-  //     struct Context {
-  //       address pool;
-  //       Reserves reserves;
-  //       Prices prices;
-  //       address token0;
-  //       address token1;
-  //       uint128 incentiveBps;
-  //       uint64 token0Dec;
-  //       uint64 token1Dec;
-  //       bool isToken0Debt;
-  //   }
-  // */
-
   //   uint256 reserve0 = 1_300_000 * 1e18; // usdm
   //   uint256 reserve1 = 1_000_000 * 1e6; // eurm
 
-  //   LQ.Context memory ctx;
-
-  //   ctx.token0 = address(collateralToken18);
-  //   ctx.token1 = address(debtToken6);
+  //   ctx.token0 = address(collToken);
+  //   ctx.token1 = address(debtToken);
   //   ctx.token0Dec = 1e18;
   //   ctx.token1Dec = 1e6;
 
@@ -289,7 +223,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
   //     reserveNum: reserve1 * 1e12, // reserve token 1 (1M) EURM
   //     reserveDen: reserve0 // reserve token 0 (1.3M) USDM
   //   });
-  //   ctx.pool = fpmm;
+  //   ctx.pool = address(fpmm);
 
   //   // USDC/USD rate
   //   ctx.prices = LQ.Prices({
@@ -302,8 +236,9 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
 
   //   // enough to cover 90% of the target amount
   //   uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(ctx, 0.9e18);
-  //   setStabilityPoolBalance(address(debtToken6), stabilityPoolBalance);
-  //   (, LQ.Action memory action) = policy.determineAction(ctx);
+  //   setStabilityPoolBalance(address(debtToken), stabilityPoolBalance);
+  //   setStabilityPoolMinBalance(1e6);
+  //   LQ.Action memory action = strategy.determineAction(ctx);
 
   //   // amount out in token 0 := (ON*RD-OD*RN)/(ON*(2-i)) = 71172.145133890686084197
   //   // since we only have limited liquidity:
@@ -316,7 +251,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
 
   //   assertEq(action.amount1Out, expectedAmount1Out);
   //   assertEq(action.amount0Out, expectedAmount0Out);
-  //   assertEq(action.inputAmount, expectedInputAmount);
+  //   assertEq(action.amountOwedToPool, expectedInputAmount);
   // }
 
   // /* ---------- Determine Action Fuzz Tests ---------- */
@@ -1181,64 +1116,64 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
   //   targetSupply = (amountOut * 1e18) / targetFraction;
   // }
 
-  // /**
-  //  * @notice Calculate the stability pool balance in order to cover a percentage of the target amount needed to rebalance
-  //  * @param ctx The context of the policy
-  //  * @param stabilityPoolPercentage The percentage of the target amount to calculate
-  //  * @return desiredStabilityPoolBalance
-  //  */
-  // function calculateTargetStabilityPoolBalance(
-  //   LQ.Context memory ctx,
-  //   uint256 stabilityPoolPercentage
-  // ) internal view returns (uint256 desiredStabilityPoolBalance) {
-  //   uint256 targetStabilityPoolBalance;
-  //   if (ctx.prices.poolPriceAbove) {
-  //     uint256 numerator = ctx.prices.oracleDen *
-  //       ctx.reserves.reserveNum -
-  //       ctx.prices.oracleNum *
-  //       ctx.reserves.reserveDen;
-  //     uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
-  //       LQ.BASIS_POINTS_DENOMINATOR;
-  //     uint256 amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token1Dec, numerator, denominator);
+  /**
+   * @notice Calculate the stability pool balance in order to cover a percentage of the target amount needed to rebalance
+   * @param ctx The context of the policy
+   * @param stabilityPoolPercentage The percentage of the target amount to calculate
+   * @return desiredStabilityPoolBalance
+   */
+  function calculateTargetStabilityPoolBalance(
+    LQ.Context memory ctx,
+    uint256 stabilityPoolPercentage
+  ) internal view returns (uint256 desiredStabilityPoolBalance) {
+    uint256 targetStabilityPoolBalance;
+    if (ctx.prices.poolPriceAbove) {
+      uint256 numerator = ctx.prices.oracleDen *
+        ctx.reserves.reserveNum -
+        ctx.prices.oracleNum *
+        ctx.reserves.reserveDen;
+      uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+        LQ.BASIS_POINTS_DENOMINATOR;
+      uint256 amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token1Dec, numerator, denominator);
 
-  //     targetStabilityPoolBalance = LQ.convertWithRateScalingAndFee(
-  //       amountOut,
-  //       ctx.token1Dec,
-  //       ctx.token0Dec,
-  //       ctx.prices.oracleDen,
-  //       ctx.prices.oracleNum,
-  //       LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
-  //       LQ.BASIS_POINTS_DENOMINATOR
-  //     );
-  //   } else {
-  //     uint256 numerator = ctx.prices.oracleNum *
-  //       ctx.reserves.reserveDen -
-  //       ctx.prices.oracleDen *
-  //       ctx.reserves.reserveNum;
-  //     uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
-  //       LQ.BASIS_POINTS_DENOMINATOR;
+      targetStabilityPoolBalance = LQ.convertWithRateScalingAndFee(
+        amountOut,
+        ctx.token1Dec,
+        ctx.token0Dec,
+        ctx.prices.oracleDen,
+        ctx.prices.oracleNum,
+        LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+        LQ.BASIS_POINTS_DENOMINATOR
+      );
+    } else {
+      uint256 numerator = ctx.prices.oracleNum *
+        ctx.reserves.reserveDen -
+        ctx.prices.oracleDen *
+        ctx.reserves.reserveNum;
+      uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+        LQ.BASIS_POINTS_DENOMINATOR;
 
-  //     uint256 amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token0Dec, numerator, denominator);
+      uint256 amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token0Dec, numerator, denominator);
 
-  //     targetStabilityPoolBalance = LQ.convertWithRateScalingAndFee(
-  //       amountOut,
-  //       ctx.token0Dec,
-  //       ctx.token1Dec,
-  //       ctx.prices.oracleNum,
-  //       ctx.prices.oracleDen,
-  //       LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
-  //       LQ.BASIS_POINTS_DENOMINATOR
-  //     );
-  //   }
-  //   address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
-  //   desiredStabilityPoolBalance = (targetStabilityPoolBalance * stabilityPoolPercentage) / 1e18;
-  //   uint256 a = IStabilityPool(stabilityPool).MIN_BOLD_AFTER_REBALANCE() + desiredStabilityPoolBalance;
-  //   uint256 b = (desiredStabilityPoolBalance *
-  //     LQ.BASIS_POINTS_DENOMINATOR +
-  //     policy.deptTokenStabilityPoolPercentage(debtToken) -
-  //     1) / policy.deptTokenStabilityPoolPercentage(debtToken);
+      targetStabilityPoolBalance = LQ.convertWithRateScalingAndFee(
+        amountOut,
+        ctx.token0Dec,
+        ctx.token1Dec,
+        ctx.prices.oracleNum,
+        ctx.prices.oracleDen,
+        LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+        LQ.BASIS_POINTS_DENOMINATOR
+      );
+    }
+    address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
+    ICDPLiquidityStrategy.CDPConfig memory config = strategy.getCDPConfig(ctx.pool);
 
-  //   // take the higher of the two
-  //   desiredStabilityPoolBalance = a > b ? a : b;
-  // }
+    desiredStabilityPoolBalance = (targetStabilityPoolBalance * stabilityPoolPercentage) / 1e18;
+    uint256 a = IStabilityPool(config.stabilityPool).MIN_BOLD_AFTER_REBALANCE() + desiredStabilityPoolBalance;
+    uint256 b = (desiredStabilityPoolBalance * LQ.BASIS_POINTS_DENOMINATOR + config.stabilityPoolPercentage - 1) /
+      config.stabilityPoolPercentage;
+
+    // take the higher of the two
+    desiredStabilityPoolBalance = a > b ? a : b;
+  }
 }
