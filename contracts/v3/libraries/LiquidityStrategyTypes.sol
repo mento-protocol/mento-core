@@ -182,24 +182,36 @@ library LiquidityStrategyTypes {
 
   /**
    * @notice Returns the oracle price for converting debt to collateral
+   * @dev Price convention: Po = ON/OD such that:
+   *      - token1 = token0 * ON/OD
+   *      - token0 = token1 * OD/ON
+   *      For debt→collateral conversion:
+   *      - If token0 is debt: collateral = debt * ON/OD
+   *      - If token1 is debt: collateral = debt * OD/ON
    * @param ctx The liquidity context
    * @return numerator The price numerator
    * @return denominator The price denominator
    */
   function debtToCollateralPrice(Context memory ctx) internal pure returns (uint256, uint256) {
     return
-      ctx.isToken0Debt ? (ctx.prices.oracleDen, ctx.prices.oracleNum) : (ctx.prices.oracleNum, ctx.prices.oracleDen);
+      ctx.isToken0Debt ? (ctx.prices.oracleNum, ctx.prices.oracleDen) : (ctx.prices.oracleDen, ctx.prices.oracleNum);
   }
 
   /**
    * @notice Returns the oracle price for converting collateral to debt
+   * @dev Price convention: Po = ON/OD such that:
+   *      - token1 = token0 * ON/OD
+   *      - token0 = token1 * OD/ON
+   *      For collateral→debt conversion:
+   *      - If token0 is debt: debt = collateral * OD/ON
+   *      - If token1 is debt: debt = collateral * ON/OD
    * @param ctx The liquidity context
    * @return numerator The price numerator
    * @return denominator The price denominator
    */
   function collateralToDebtPrice(Context memory ctx) internal pure returns (uint256, uint256) {
     return
-      ctx.isToken0Debt ? (ctx.prices.oracleNum, ctx.prices.oracleDen) : (ctx.prices.oracleDen, ctx.prices.oracleNum);
+      ctx.isToken0Debt ? (ctx.prices.oracleDen, ctx.prices.oracleNum) : (ctx.prices.oracleNum, ctx.prices.oracleDen);
   }
 
   /**
@@ -273,8 +285,8 @@ library LiquidityStrategyTypes {
       convertToCollateralWithFee(
         ctx,
         debtBalance,
-        BASIS_POINTS_DENOMINATOR,
-        BASIS_POINTS_DENOMINATOR - ctx.incentiveBps
+        BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+        BASIS_POINTS_DENOMINATOR
       );
   }
 

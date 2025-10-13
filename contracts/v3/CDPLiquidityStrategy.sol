@@ -95,10 +95,11 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     uint256 idealDebtToExpand,
     uint256 idealCollateralToPay
   ) internal view override returns (uint256 debtToExpand, uint256 collateralToPay) {
-    uint256 availableDebtToken = _calculateAvailablePoolBalance(cdpConfigs[ctx.pool], ctx.debtToken());
+    uint256 availableDebtToken = _calculateAvailableDebtInSP(cdpConfigs[ctx.pool], ctx.debtToken());
 
     if (idealDebtToExpand > availableDebtToken) {
       debtToExpand = availableDebtToken;
+      // Ideal amounts already include incentive, so just scale proportionally
       collateralToPay = ctx.convertToCollateralWithFee(debtToExpand);
     } else {
       debtToExpand = idealDebtToExpand;
@@ -122,7 +123,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     uint256 idealDebtToContract,
     uint256 idealCollateralToReceive
   ) internal view override returns (uint256 debtToContract, uint256 collateralToReceive) {
-    (debtToContract, collateralToReceive) = _calculateAmountToRedeem(ctx, cdpConfigs[ctx.pool], idealDebtToContract);
+    (debtToContract, collateralToReceive) = _calculateMaxRedeemableDebt(ctx, cdpConfigs[ctx.pool], idealDebtToContract);
     return (debtToContract, collateralToReceive);
   }
 
@@ -177,7 +178,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    * @param debtToken The address of the debt token
    * @return availableAmount The amount of debt tokens available for expansion
    */
-  function _calculateAvailablePoolBalance(
+  function _calculateAvailableDebtInSP(
     CDPConfig storage cdpConfig,
     address debtToken
   ) private view returns (uint256 availableAmount) {
@@ -202,7 +203,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    * @return contractionAmount The actual amount of debt tokens to redeem (may be lower than target)
    * @return collateralReceived The amount of collateral that will be received
    */
-  function _calculateAmountToRedeem(
+  function _calculateMaxRedeemableDebt(
     LQ.Context memory ctx,
     CDPConfig storage cdpConfig,
     uint256 targetContractionAmount

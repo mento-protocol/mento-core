@@ -237,51 +237,53 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_debtToCollateralPrice_whenToken0IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    // Oracle price: 2 token0 (debt) = 1 token1 (collateral)
-    // oracleNum/oracleDen = token0/token1 = 2/1
+    // Oracle price: Po = ON/OD = 2/1 = 2
+    // This means: token1 = token0 * 2, or 1 token0 (debt) = 2 token1 (collateral)
     LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 50);
 
     (uint256 num, uint256 den) = harness.debtToCollateralPrice(ctx);
-    // To convert debt to collateral: multiply by den/num = 1/2
-    assertEq(num, 1e18); // oracleDen
-    assertEq(den, 2e18); // oracleNum
+    // To convert debt to collateral: multiply by num/den = 2/1 = 2
+    assertEq(num, 2e18); // oracleNum
+    assertEq(den, 1e18); // oracleDen
   }
 
   function test_debtToCollateralPrice_whenToken1IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    // Oracle price: 2 token1 (debt) = 1 token0 (collateral)
-    // oracleNum/oracleDen = token0/token1 = 1/2
+    // Oracle price: Po = ON/OD = 1/2 = 0.5
+    // This means: token1 = token0 * 0.5, or 1 token1 (debt) = 2 token0 (collateral)
     LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 2e18, false, 50);
 
     (uint256 num, uint256 den) = harness.debtToCollateralPrice(ctx);
-    // To convert debt to collateral: multiply by num/den = 1/2
-    assertEq(num, 1e18); // oracleNum
-    assertEq(den, 2e18); // oracleDen
+    // To convert debt to collateral: multiply by num/den = 2/1 = 2
+    assertEq(num, 2e18); // oracleDen
+    assertEq(den, 1e18); // oracleNum
   }
 
   function test_collateralToDebtPrice_whenToken0IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    // Oracle price: 2 token0 (debt) = 1 token1 (collateral)
+    // Oracle price: Po = ON/OD = 2/1 = 2
+    // This means: 1 token0 (debt) = 2 token1 (collateral)
     LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 50);
 
     (uint256 num, uint256 den) = harness.collateralToDebtPrice(ctx);
-    // To convert collateral to debt: multiply by num/den = 2/1
-    assertEq(num, 2e18); // oracleNum
-    assertEq(den, 1e18); // oracleDen
+    // To convert collateral to debt: multiply by num/den = 1/2 = 0.5
+    assertEq(num, 1e18); // oracleDen
+    assertEq(den, 2e18); // oracleNum
   }
 
   function test_collateralToDebtPrice_whenToken1IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    // Oracle price: 1 token0 (collateral) = 2 token1 (debt)
+    // Oracle price: Po = ON/OD = 1/2 = 0.5
+    // This means: 1 token1 (debt) = 2 token0 (collateral)
     LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 2e18, false, 50);
 
     (uint256 num, uint256 den) = harness.collateralToDebtPrice(ctx);
-    // To convert collateral to debt: multiply by den/num = 2/1
-    assertEq(num, 2e18); // oracleDen
-    assertEq(den, 1e18); // oracleNum
+    // To convert collateral to debt: multiply by num/den = 1/2 = 0.5
+    assertEq(num, 1e18); // oracleNum
+    assertEq(den, 2e18); // oracleDen
   }
 
   /* ============================================================ */
@@ -301,12 +303,13 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_convertToDebtToken_withPriceConversion() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    // 100 collateral @ 2:1 rate = 200 debt
+    // Po = ON/OD = 2, so 1 debt = 2 collateral
+    // Therefore: 100 collateral = 50 debt
     LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 50);
 
     uint256 collateralAmount = 100e18;
     uint256 result = harness.convertToDebtToken(ctx, collateralAmount);
-    assertEq(result, 200e18);
+    assertEq(result, 50e18);
   }
 
   function test_convertToDebtToken_withDecimalsAndPrice() public view {
@@ -351,9 +354,9 @@ contract LiquidityStrategyTypes_Test is Test {
 
     uint256 debtAmount = 100e18;
     uint256 result = harness.convertToCollateralWithFee_default(ctx, debtAmount);
-    // Fee is applied as: num=10000, den=9950, so result = 100 * 10000 / 9950 ≈ 100.502...
-    // This gives MORE collateral as an incentive to the rebalancer
-    assertTrue(result > 100e18 && result < 101e18);
+    // Fee is applied as: num=9950, den=10000, so result = 100 * 9950 / 10000 = 99.5
+    // This applies the (1 - i) multiplier where i = 0.5%, giving less collateral for the debt
+    assertEq(result, 99.5e18);
   }
 
   function test_convertToCollateralWithFee_custom() public view {
@@ -387,17 +390,17 @@ contract LiquidityStrategyTypes_Test is Test {
     address token0 = address(0x100);
     address token1 = address(0x200);
 
-    // Test with token0 as debt
+    // Test with token0 as debt: Po = ON/OD = 2, so 1 debt = 2 collateral
     LQ.Context memory ctx1 = _createContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 0);
     uint256 result1 = harness.convertToDebtToken(ctx1, 100e18);
 
-    // Test with token1 as debt (should give same result since we're converting collateral to debt)
+    // Test with token1 as debt: Po = ON/OD = 0.5, so 1 debt = 2 collateral
     LQ.Context memory ctx2 = _createContext(token0, token1, 1e18, 1e18, 1e18, 2e18, false, 0);
     uint256 result2 = harness.convertToDebtToken(ctx2, 100e18);
 
-    // Both should convert 100 collateral to 200 debt at 2:1 rate
-    assertEq(result1, 200e18);
-    assertEq(result2, 200e18);
+    // Both should convert 100 collateral to 50 debt (since 1 debt = 2 collateral in both cases)
+    assertEq(result1, 50e18);
+    assertEq(result2, 50e18);
   }
 
   /* ============================================================ */
