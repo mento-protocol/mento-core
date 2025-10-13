@@ -36,7 +36,7 @@ contract OneToOneFPMMBaseTest is Test {
   function setUp() public virtual {
     fpmm = new OneToOneFPMM(false);
     oracleAdapter = IOracleAdapter(new OracleAdapter(false));
-    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), address(marketHoursBreaker));
+    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), address(marketHoursBreaker), owner);
 
     vm.prank(fpmm.owner());
 
