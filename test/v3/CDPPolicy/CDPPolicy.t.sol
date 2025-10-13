@@ -226,6 +226,65 @@ contract CDPPolicyTest is Test {
     assertEq(action.inputAmount, expectedInputAmount);
   }
 
+  function test_whenToken1DebtPoolPriceBelowAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToOraclePrice()
+    public
+    _setUpPolicy(debtToken6, 9000)
+  {
+    /*
+      struct Context {
+        address pool;
+        Reserves reserves;
+        Prices prices;
+        address token0;
+        address token1;
+        uint128 incentiveBps;
+        uint64 token0Dec;
+        uint64 token1Dec;
+        bool isToken0Debt;
+    }
+  */
+
+    uint256 reserve0 = 1_300_000 * 1e18; // usdm
+    uint256 reserve1 = 1_000_000 * 1e6; // eurm
+
+    LQ.Context memory ctx;
+
+    ctx.token0 = address(collateralToken18);
+    ctx.token1 = address(debtToken6);
+    ctx.token0Dec = 1e18;
+    ctx.token1Dec = 1e6;
+
+    ctx.isToken0Debt = false;
+    ctx.reserves = LQ.Reserves({
+      reserveNum: reserve1 * 1e12, // reserve token 1 (1M) EURM
+      reserveDen: reserve0 // reserve token 0 (1.3M) USDM
+    });
+    ctx.pool = fpmm;
+
+    // USDC/USD rate
+    ctx.prices = LQ.Prices({
+      oracleNum: 863549230000000000000000 / 1e6, // USDC/EUR rate
+      oracleDen: 1e18,
+      poolPriceAbove: false,
+      diffBps: 5_000 // 50%
+    });
+    ctx.incentiveBps = 50; // 0.5%
+
+    // enough to cover the full expansion
+    setStabilityPoolBalance(address(debtToken6), 1_000_000 * 1e6);
+    (, LQ.Action memory action) = policy.determineAction(ctx);
+
+    // amount out in token 0 := (ON*RD-OD*RN)/(ON*(2-i)) = 71172.145133890686084197
+    uint256 expectedAmount0Out = 71172145133890686084197;
+    uint256 expectedAmount1Out = 0;
+    // input amount in token 1 := (amountOut * ON * (1-i))/OD = 61153.347872
+    uint256 expectedInputAmount = 61153347872;
+
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.inputAmount, expectedInputAmount);
+  }
+
   /* ---------- Determine Action Fuzz Tests ---------- */
 
   struct FuzzTestContext {
