@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import { LiquidityTypes as LQ } from "../libraries/LiquidityTypes.sol";
+import { IFPMMCallee } from "../../interfaces/IFPMMCallee.sol";
 
-interface ILiquidityStrategy {
+interface ILiquidityStrategy is IFPMMCallee {
   /**
    * @notice Executes a liquidity action based on the provided action data.
    * @param action The action data to execute.

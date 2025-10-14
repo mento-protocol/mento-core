@@ -11,6 +11,8 @@ import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 
 contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
+  using SafeERC20 for IERC20;
+
   mapping(address => bool) public trustedPools;
 
   constructor(bool disable) {
@@ -58,43 +60,37 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
       address collToken,
       address liquiditySource
     ) = abi.decode(data, (uint256, uint256, LQ.Direction, address, address, address));
+    uint256 amountOut = amount0Out > 0 ? amount0Out : amount1Out;
     if (dir == LQ.Direction.Expand) {
-      _handleExpansionCallback(debtToken, collToken, amount0Out, amount1Out, inputAmount, liquiditySource);
+      _handleExpansionCallback(debtToken, collToken, amountOut, inputAmount, liquiditySource);
     } else {
-      _handleContractionCallback(collToken, amount0Out, amount1Out, inputAmount, incentiveBps, liquiditySource);
+      _handleContractionCallback(collToken, amountOut, inputAmount, incentiveBps, liquiditySource);
     }
   }
 
   function _handleExpansionCallback(
     address debtToken,
     address collToken,
-    uint256 amount0Out,
-    uint256 amount1Out,
+    uint256 amountOut,
     uint256 inputAmount,
     address liquiditySource
   ) internal {
-    uint256 collAmount = amount0Out > 0 ? amount0Out : amount1Out;
     // send collateral to stability pool
-    SafeERC20.safeApprove(IERC20(collToken), liquiditySource, collAmount);
+    IERC20(collToken).safeApprove(liquiditySource, amountOut);
     // swap collateral for debt
-    IStabilityPool(liquiditySource).swapCollateralForStable(collAmount, inputAmount);
+    IStabilityPool(liquiditySource).swapCollateralForStable(amountOut, inputAmount);
     // send debt to fpmm
-    SafeERC20.safeTransfer(IERC20(debtToken), msg.sender, inputAmount);
+    IERC20(debtToken).safeTransfer(msg.sender, inputAmount);
   }
 
   function _handleContractionCallback(
     address collToken,
-    uint256 amount0Out,
-    uint256 amount1Out,
+    uint256 amountOut,
     uint256 inputAmount,
     uint256 incentiveBps,
     address liquiditySource
   ) internal {
-    uint256 debtAmount = amount0Out > 0 ? amount0Out : amount1Out;
-    ICollateralRegistry(liquiditySource).redeemCollateral(debtAmount, 100, incentiveBps);
-
-    uint256 collateralBalance = IERC20(collToken).balanceOf(address(this));
-    require(collateralBalance >= inputAmount, "CDPLiquidityStrategy: INSUFFICIENT_COLLATERAL_FROM_REDEMPTION");
-    SafeERC20.safeTransfer(IERC20(collToken), msg.sender, inputAmount);
+    ICollateralRegistry(liquiditySource).redeemCollateral(amountOut, 100, incentiveBps);
+    IERC20(collToken).safeTransfer(msg.sender, inputAmount);
   }
 }

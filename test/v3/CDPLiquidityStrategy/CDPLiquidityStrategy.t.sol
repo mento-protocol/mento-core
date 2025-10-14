@@ -748,7 +748,7 @@ contract CDPLiquidityStrategyTest is Test {
     uint256 rateDenominator,
     uint256 fromDec,
     uint256 toDec
-  ) public returns (uint256) {
+  ) public pure returns (uint256) {
     return (amount * rateNumerator * toDec) / (rateDenominator * fromDec);
   }
 
@@ -764,7 +764,7 @@ contract CDPLiquidityStrategyTest is Test {
     uint256 reserve1Before,
     uint256 reserve0After,
     uint256 reserve1After
-  ) public {
+  ) public view {
     (uint256 rateNumerator, uint256 rateDenominator, , , , ) = fpmm.getPrices();
 
     uint256 token0Scaler = 10 ** MockERC20(fpmm.token0()).decimals();
@@ -810,7 +810,7 @@ contract CDPLiquidityStrategyTest is Test {
     uint256 amountAdded,
     bool isToken0Out,
     bool isCheapContraction
-  ) public {
+  ) public view {
     (uint256 rateNumerator, uint256 rateDenominator, , , , ) = fpmm.getPrices();
 
     uint256 token0Scaler = 10 ** MockERC20(fpmm.token0()).decimals();

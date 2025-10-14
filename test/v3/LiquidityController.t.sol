@@ -827,4 +827,8 @@ contract ReentrantStrategy is ILiquidityStrategy {
     controller.rebalance(pool);
     return true;
   }
+
+  function hook(address sender, uint256 amount0, uint256 amount1, bytes calldata data) external {
+    // do nothing
+  }
 }

@@ -29,7 +29,7 @@ contract MockCollateralRegistry {
     return redemptionRateWithDecay;
   }
 
-  function redeemCollateral(uint256 _boldamount, uint256 _maxIterations, uint256 _maxFeePercentage) external {
+  function redeemCollateral(uint256 _boldamount, uint256, uint256) external {
     MockERC20(debtToken).burn(msg.sender, _boldamount);
     uint256 debtDecimals = 10 ** MockERC20(debtToken).decimals();
     uint256 collateralDecimals = 10 ** MockERC20(collateralToken).decimals();

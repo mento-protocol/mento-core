@@ -3,15 +3,16 @@ pragma solidity 0.8.24;
 // solhint-disable max-line-length
 
 import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
+import { ICDPPolicy } from "contracts/v3/Interfaces/ICDPPolicy.sol";
 import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 import { uints, addresses } from "mento-std/Array.sol";
 import { Test } from "forge-std/Test.sol";
+
 contract CDPPolicyTest is Test {
-  error CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH();
-  error CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE();
+  /* ========== VARIABLES ========== */
 
   CDPPolicy public policy;
 
@@ -84,8 +85,8 @@ contract CDPPolicyTest is Test {
 
   /* ---------- Constructor ---------- */
 
-  function test_constructor_whenArrayLengthsMismatch_shouldRevert() public {
-    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_CONSTRUCTOR_ARRAY_LENGTH_MISMATCH.selector));
+  function test_constructor_whenConstructorArrayLengthMismatch_shouldRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(ICDPPolicy.CDPPolicy_ConstructorArrayLengthMismatch.selector));
     policy = new CDPPolicy(new address[](2), new address[](0), new address[](0), new uint256[](0), new uint256[](0));
   }
 
@@ -153,10 +154,10 @@ contract CDPPolicyTest is Test {
   }
 
   function test_setDeptTokenStabilityPoolPercentage_whenInvalidPercentage_shouldRevert() public {
-    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE.selector));
+    vm.expectRevert(abi.encodeWithSelector(ICDPPolicy.CDPPolicy_InvalidStabilityPoolPercentage.selector));
     policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 10001);
 
-    vm.expectRevert(abi.encodeWithSelector(CDPPolicy_INVALID_STABILITY_POOL_PERCENTAGE.selector));
+    vm.expectRevert(abi.encodeWithSelector(ICDPPolicy.CDPPolicy_InvalidStabilityPoolPercentage.selector));
     policy.setDeptTokenStabilityPoolPercentage(address(debtToken6), 0);
   }
 
@@ -172,8 +173,6 @@ contract CDPPolicyTest is Test {
   {
     uint256 reserve0 = 1_000_000 * 1e18; // usdfx
     uint256 reserve1 = 1_500_000 * 1e6; // usdc
-
-    LQ.Context memory ctx;
 
     ctx.token0 = address(debtToken18);
     ctx.token1 = address(collateralToken6);
@@ -217,8 +216,6 @@ contract CDPPolicyTest is Test {
   {
     uint256 reserve0 = 1_300_000 * 1e18; // usdm
     uint256 reserve1 = 1_000_000 * 1e6; // eurm
-
-    LQ.Context memory ctx;
 
     ctx.token0 = address(collateralToken18);
     ctx.token1 = address(debtToken6);
@@ -268,8 +265,6 @@ contract CDPPolicyTest is Test {
     uint256 reserve0 = 1_000_000 * 1e18; // usdfx
     uint256 reserve1 = 1_500_000 * 1e6; // usdc
 
-    LQ.Context memory ctx;
-
     ctx.token0 = address(debtToken18);
     ctx.token1 = address(collateralToken6);
     ctx.token0Dec = 1e18;
@@ -292,7 +287,7 @@ contract CDPPolicyTest is Test {
     ctx.incentiveBps = 50; // 0.5%
 
     // enough to cover 90% of the target amount
-    uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(ctx, 0.9e18);
+    uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.9e18);
     setStabilityPoolBalance(address(debtToken18), stabilityPoolBalance);
     (, LQ.Action memory action) = policy.determineAction(ctx);
 
@@ -318,8 +313,6 @@ contract CDPPolicyTest is Test {
     uint256 reserve0 = 1_300_000 * 1e18; // usdm
     uint256 reserve1 = 1_000_000 * 1e6; // eurm
 
-    LQ.Context memory ctx;
-
     ctx.token0 = address(collateralToken18);
     ctx.token1 = address(debtToken6);
     ctx.token0Dec = 1e18;
@@ -342,7 +335,7 @@ contract CDPPolicyTest is Test {
     ctx.incentiveBps = 50; // 0.5%
 
     // enough to cover 90% of the target amount
-    uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(ctx, 0.9e18);
+    uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.9e18);
     setStabilityPoolBalance(address(debtToken6), stabilityPoolBalance);
     (, LQ.Action memory action) = policy.determineAction(ctx);
 
@@ -368,24 +361,8 @@ contract CDPPolicyTest is Test {
     public
     _setUpPolicy(debtToken18, 9000)
   {
-    /*
-      struct Context {
-        address pool;
-        Reserves reserves;
-        Prices prices;
-        address token0;
-        address token1;
-        uint128 incentiveBps;
-        uint64 token0Dec;
-        uint64 token1Dec;
-        bool isToken0Debt;
-    }
-  */
-
     uint256 reserve0 = 7_089_031 * 1e18; // brl.m 1.3Mio in $
     uint256 reserve1 = 1_000_000 * 1e6; // usd.m 1Mio in $
-
-    LQ.Context memory ctx;
 
     ctx.token0 = address(debtToken18);
     ctx.token1 = address(collateralToken6);
@@ -408,7 +385,7 @@ contract CDPPolicyTest is Test {
     ctx.incentiveBps = 50; // 0.5%
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.0025 * 1e18); // 0.25% resulting in redemption fee being 0.25% + 0.25% = 0.5%
+    uint256 totalSupply = calculateTargetSupply(0.0025 * 1e18); // 0.25% resulting in redemption fee being 0.25% + 0.25% = 0.5%
     setTokenTotalSupply(address(debtToken18), totalSupply);
 
     (, LQ.Action memory action) = policy.determineAction(ctx);
@@ -432,8 +409,6 @@ contract CDPPolicyTest is Test {
     uint256 reserve0 = 10_000_000 * 1e18; // usd.m
     uint256 reserve1 = 14_500_000 * 1e6; // chf.m
 
-    LQ.Context memory ctx;
-
     ctx.token0 = address(collateralToken18);
     ctx.token1 = address(debtToken6);
     ctx.token0Dec = 1e18;
@@ -455,7 +430,7 @@ contract CDPPolicyTest is Test {
     ctx.incentiveBps = 50; // 0.5%
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.0025 * 1e18); // 0.25% resulting in redemption fee being 0.25% + 0.25% = 0.5%
+    uint256 totalSupply = calculateTargetSupply(0.0025 * 1e18); // 0.25% resulting in redemption fee being 0.25% + 0.25% = 0.5%
     setTokenTotalSupply(address(debtToken6), totalSupply);
 
     (, LQ.Action memory action) = policy.determineAction(ctx);
@@ -483,8 +458,6 @@ contract CDPPolicyTest is Test {
     uint256 reserve0 = 10_956_675_007 * 1e6; // ngnm 7.5 mio in $
     uint256 reserve1 = 6_000_000 * 1e18; // usdm 6 mio in $
 
-    LQ.Context memory ctx;
-
     ctx.token0 = address(debtToken6);
     ctx.token1 = address(collateralToken18);
     ctx.token0Dec = 1e6;
@@ -506,7 +479,7 @@ contract CDPPolicyTest is Test {
     ctx.incentiveBps = 50; // 0.5%
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.0015 * 1e18); // 0.15% resulting in redemption fee being 0.25% + 0.15% = 0.4%
+    uint256 totalSupply = calculateTargetSupply(0.0015 * 1e18); // 0.15% resulting in redemption fee being 0.25% + 0.15% = 0.4%
     setTokenTotalSupply(address(debtToken6), totalSupply);
 
     (, LQ.Action memory action) = policy.determineAction(ctx);
@@ -553,7 +526,7 @@ contract CDPPolicyTest is Test {
     ctx.incentiveBps = 50; // 0.5%
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.001 * 1e18); // 0.1% resulting in redemption fee being 0.25% + 0.1% = 0.35%
+    uint256 totalSupply = calculateTargetSupply(0.001 * 1e18); // 0.1% resulting in redemption fee being 0.25% + 0.1% = 0.35%
     setTokenTotalSupply(address(debtToken18), totalSupply);
 
     (, LQ.Action memory action) = policy.determineAction(ctx);
@@ -599,7 +572,7 @@ contract CDPPolicyTest is Test {
     ctx.incentiveBps = 50; // 0.5%
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.0035 * 1e18); // 0.35% resulting in redemption fee being 0.25% + 0.35% = 0.6%
+    uint256 totalSupply = calculateTargetSupply(0.0035 * 1e18); // 0.35% resulting in redemption fee being 0.25% + 0.35% = 0.6%
     setTokenTotalSupply(address(debtToken6), totalSupply);
 
     (, LQ.Action memory action) = policy.determineAction(ctx);
@@ -648,7 +621,7 @@ contract CDPPolicyTest is Test {
     ctx.incentiveBps = 50; // 0.5%
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.005 * 1e18); // 0.5% resulting in redemption fee being 0.25% + 0.5% = 0.75%
+    uint256 totalSupply = calculateTargetSupply(0.005 * 1e18); // 0.5% resulting in redemption fee being 0.25% + 0.5% = 0.75%
     setTokenTotalSupply(address(debtToken18), totalSupply);
 
     (, LQ.Action memory action) = policy.determineAction(ctx);
@@ -680,6 +653,7 @@ contract CDPPolicyTest is Test {
     bool reservePriceAboveOraclePriceBefore;
     bool reservePriceAboveOraclePriceAfter;
   }
+
   /* ============================================================ */
   /* ================ Expansion Full liquidity ================== */
   /* ============================================================ */
@@ -819,7 +793,7 @@ contract CDPPolicyTest is Test {
     ctx.incentiveBps = 50;
 
     // enough to cover the full expansion
-    testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(ctx, 0.9e18); // stability pool holds 90% of target amount to rebalance fully
+    testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.9e18); // stability pool holds 90% of target amount to rebalance fully
     setStabilityPoolBalance(address(debtToken6), testContext.stabilityPoolBalance);
 
     (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
@@ -878,7 +852,7 @@ contract CDPPolicyTest is Test {
     ctx.isToken0Debt = false;
     ctx.incentiveBps = 50;
 
-    testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(ctx, 0.8e18); // stability pool holds 90% of target amount to rebalance fully
+    testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.8e18); // stability pool holds 90% of target amount to rebalance fully
     setStabilityPoolBalance(address(debtToken6), testContext.stabilityPoolBalance);
 
     (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
@@ -955,7 +929,7 @@ contract CDPPolicyTest is Test {
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
     // ensure redemption fractions is below 0.25% resulting in total redemption fee less than 0.5%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.0025 * 1e18);
+    uint256 totalSupply = calculateTargetSupply(0.0025 * 1e18);
     setTokenTotalSupply(address(debtToken18), totalSupply);
 
     (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
@@ -1016,7 +990,7 @@ contract CDPPolicyTest is Test {
     assert(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.0025 * 1e18);
+    uint256 totalSupply = calculateTargetSupply(0.0025 * 1e18);
     setTokenTotalSupply(address(debtToken6), totalSupply);
 
     (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
@@ -1078,7 +1052,7 @@ contract CDPPolicyTest is Test {
     assert(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.001 * 1e18); // 0.1% resulting in redemption fee beeing 0.25% + 0.1% = 0.35%
+    uint256 totalSupply = calculateTargetSupply(0.001 * 1e18); // 0.1% resulting in redemption fee beeing 0.25% + 0.1% = 0.35%
     setTokenTotalSupply(address(debtToken18), totalSupply);
 
     (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
@@ -1137,7 +1111,7 @@ contract CDPPolicyTest is Test {
     assert(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.003 * 1e18); // 0.3% resulting in redemption fee beeing 0.25% + 0.3% = 0.55%
+    uint256 totalSupply = calculateTargetSupply(0.003 * 1e18); // 0.3% resulting in redemption fee beeing 0.25% + 0.3% = 0.55%
     setTokenTotalSupply(address(debtToken6), totalSupply);
 
     (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
@@ -1196,7 +1170,7 @@ contract CDPPolicyTest is Test {
     assert(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.001 * 1e18); // 0.1% resulting in redemption fee beeing 0.25% + 0.1% = 0.35%
+    uint256 totalSupply = calculateTargetSupply(0.001 * 1e18); // 0.1% resulting in redemption fee beeing 0.25% + 0.1% = 0.35%
     setTokenTotalSupply(address(debtToken18), totalSupply);
 
     (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
@@ -1255,7 +1229,7 @@ contract CDPPolicyTest is Test {
     assert(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
 
     mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(ctx, 0.003 * 1e18); // 0.3% resulting in redemption fee beeing 0.25% + 0.3% = 0.55%
+    uint256 totalSupply = calculateTargetSupply(0.003 * 1e18); // 0.3% resulting in redemption fee beeing 0.25% + 0.3% = 0.55%
     setTokenTotalSupply(address(debtToken18), totalSupply);
 
     (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
@@ -1394,14 +1368,10 @@ contract CDPPolicyTest is Test {
 
   /**
    * @notice Calculate the target supply such that the redemption fraction is equal to the target fraction
-   * @param ctx The context of the policy
    * @param targetFraction the redemption fraction to target
    * @return targetSupply
    */
-  function calculateTargetSupply(
-    LQ.Context memory ctx,
-    uint256 targetFraction
-  ) internal view returns (uint256 targetSupply) {
+  function calculateTargetSupply(uint256 targetFraction) internal view returns (uint256 targetSupply) {
     uint256 amountOut;
     if (ctx.prices.poolPriceAbove) {
       uint256 numerator = ctx.prices.oracleDen *
@@ -1427,12 +1397,10 @@ contract CDPPolicyTest is Test {
 
   /**
    * @notice Calculate the stability pool balance in order to cover a percentage of the target amount needed to rebalance
-   * @param ctx The context of the policy
    * @param stabilityPoolPercentage The percentage of the target amount to calculate
    * @return desiredStabilityPoolBalance
    */
   function calculateTargetStabilityPoolBalance(
-    LQ.Context memory ctx,
     uint256 stabilityPoolPercentage
   ) internal view returns (uint256 desiredStabilityPoolBalance) {
     uint256 targetStabilityPoolBalance;
