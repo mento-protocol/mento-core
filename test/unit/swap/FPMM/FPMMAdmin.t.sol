@@ -96,15 +96,6 @@ contract FPMMAdminTest is FPMMBaseTest {
     assertEq(fpmm.protocolFee(), 0);
   }
 
-  function test_setProtocolFee_whenFeeIsNotZero_shouldRequireRecipient()
-    public
-    initializeFPMM_withDecimalTokens(18, 18)
-  {
-    vm.prank(owner);
-    vm.expectRevert("FPMM: PROTOCOL_FEE_RECIPIENT_REQUIRED");
-    fpmm.setProtocolFee(10);
-  }
-
   function test_setProtocolFee_whenFeeTooHigh_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
@@ -137,7 +128,7 @@ contract FPMMAdminTest is FPMMBaseTest {
   {
     vm.prank(owner);
     vm.expectEmit();
-    emit ProtocolFeeRecipientUpdated(address(0), feeRecipient);
+    emit ProtocolFeeRecipientUpdated(defaultFpmmConfig.protocolFeeRecipient, feeRecipient);
     fpmm.setProtocolFeeRecipient(feeRecipient);
 
     assertEq(fpmm.protocolFeeRecipient(), feeRecipient);

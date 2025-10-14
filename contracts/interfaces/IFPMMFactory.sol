@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 
 import { IRPoolFactory } from "../swap/router/interfaces/IRPoolFactory.sol";
+import { IFPMM } from "./IFPMM.sol";
 
 interface IFPMMFactory is IRPoolFactory {
   /* ========================================== */
@@ -47,6 +48,12 @@ interface IFPMMFactory is IRPoolFactory {
    */
   event GovernanceSet(address indexed governance);
 
+  /**
+   * @notice Emitted when the default configuration is set.
+   * @param defaultConfig The new default configuration
+   */
+  event DefaultConfigSet(IFPMM.FPMMConfig defaultConfig);
+
   /* ======================================================== */
   /* ==================== View Functions ==================== */
   /* ======================================================== */
@@ -68,6 +75,12 @@ interface IFPMMFactory is IRPoolFactory {
    * @return The address of the governance contract
    */
   function governance() external view returns (address);
+
+  /**
+   * @notice Gets the default configuration for deployed FPMMs.
+   * @return The default configuration for deployed FPMMs
+   */
+  function defaultConfig() external view returns (IFPMM.FPMMConfig memory);
 
   /**
    * @notice Gets the list of deployed FPMM addresses.
@@ -107,12 +120,14 @@ interface IFPMMFactory is IRPoolFactory {
    * @param _proxyAdmin The address of the proxy admin contract
    * @param _governance The address of the governance contract
    * @param _fpmmImplementation The address of the FPMM implementation
+   * @param _defaultConfig The default configuration for deployed FPMMs
    */
   function initialize(
     address _oracleAdapter,
     address _proxyAdmin,
     address _governance,
-    address _fpmmImplementation
+    address _fpmmImplementation,
+    IFPMM.FPMMConfig calldata _defaultConfig
   ) external;
 
   /**
@@ -132,6 +147,12 @@ interface IFPMMFactory is IRPoolFactory {
    * @param _governance The new address of the governance contract
    */
   function setGovernance(address _governance) external;
+
+  /**
+   * @notice Sets the default configuration for deployed FPMMs.
+   * @param _defaultConfig The new default configuration for deployed FPMMs
+   */
+  function setDefaultConfig(IFPMM.FPMMConfig calldata _defaultConfig) external;
 
   /**
    * @notice Registers a new FPMM implementation address.
@@ -183,6 +204,7 @@ interface IFPMMFactory is IRPoolFactory {
     address token0,
     address token1,
     address referenceRateFeedID,
-    bool invertRateFeed
+    bool invertRateFeed,
+    IFPMM.FPMMConfig memory _customConfig
   ) external returns (address proxy);
 }

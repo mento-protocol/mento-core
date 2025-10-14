@@ -42,6 +42,16 @@ contract FPMMBaseIntegration is Test {
   // Test environment
   uint256 public celoFork = vm.createFork("https://forno.celo.org");
 
+  IFPMM.FPMMConfig public defaultFpmmConfig =
+    IFPMM.FPMMConfig({
+      lpFee: 30,
+      protocolFee: 0,
+      protocolFeeRecipient: makeAddr("protocolFeeRecipient"),
+      rebalanceIncentive: 50,
+      rebalanceThresholdAbove: 500,
+      rebalanceThresholdBelow: 500
+    });
+
   // ============ SETUP ============
 
   function setUp() public virtual {
@@ -67,7 +77,7 @@ contract FPMMBaseIntegration is Test {
 
     router = new Router(forwarder, factoryRegistry, address(factory));
 
-    factory.initialize(oracleAdapter, proxyAdmin, governance, address(fpmmImplementation));
+    factory.initialize(oracleAdapter, proxyAdmin, governance, address(fpmmImplementation), defaultFpmmConfig);
   }
 
   function _setupMocks() internal {

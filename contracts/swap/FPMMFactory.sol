@@ -46,6 +46,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address[] registeredImplementations;
     // Mapping of deployed pools.
     mapping(address => bool) isPool;
+    // Default configuration for deployed FPMMs.
+    IFPMM.FPMMConfig defaultConfig;
   }
 
   /* ===================================================== */
@@ -75,12 +77,14 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address _oracleAdapter,
     address _proxyAdmin,
     address _governance,
-    address _fpmmImplementation
+    address _fpmmImplementation,
+    IFPMM.FPMMConfig calldata _defaultConfig
   ) external initializer {
     __Ownable_init();
     setProxyAdmin(_proxyAdmin);
     setOracleAdapter(_oracleAdapter);
     registerFPMMImplementation(_fpmmImplementation);
+    setDefaultConfig(_defaultConfig);
     setGovernance(_governance);
   }
 
@@ -104,6 +108,12 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   function governance() public view returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     return $.governance;
+  }
+
+  /// @inheritdoc IFPMMFactory
+  function defaultConfig() public view returns (IFPMM.FPMMConfig memory) {
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    return $.defaultConfig;
   }
 
   /// @inheritdoc IFPMMFactory
@@ -190,6 +200,21 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMMFactory
+  function setDefaultConfig(IFPMM.FPMMConfig calldata _defaultConfig) public onlyOwner {
+    require(_defaultConfig.lpFee <= 100, "FPMMFactory: LP_FEE_TOO_HIGH");
+    require(_defaultConfig.protocolFee <= 100, "FPMMFactory: PROTOCOL_FEE_TOO_HIGH");
+    require(_defaultConfig.protocolFee + _defaultConfig.lpFee <= 100, "FPMMFactory: COMBINED_FEE_TOO_HIGH");
+    require(_defaultConfig.protocolFeeRecipient != address(0), "FPMMFactory: ZERO_ADDRESS");
+    require(_defaultConfig.rebalanceIncentive <= 100, "FPMMFactory: REBALANCE_INCENTIVE_TOO_HIGH");
+    require(_defaultConfig.rebalanceThresholdAbove <= 1000, "FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
+    require(_defaultConfig.rebalanceThresholdBelow <= 1000, "FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
+
+    FPMMFactoryStorage storage $ = _getFPMMStorage();
+    $.defaultConfig = _defaultConfig;
+    emit DefaultConfigSet(_defaultConfig);
+  }
+
+  /// @inheritdoc IFPMMFactory
   function registerFPMMImplementation(address fpmmImplementation) public onlyOwner {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     require(fpmmImplementation != address(0), "FPMMFactory: ZERO_ADDRESS");
@@ -222,7 +247,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address token0,
     address token1,
     address referenceRateFeedID,
-    bool invertRateFeed
+    bool invertRateFeed,
+    IFPMM.FPMMConfig calldata _customConfig
   ) external onlyOwner returns (address) {
     (token0, token1) = sortTokens(token0, token1);
 
@@ -243,7 +269,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       token0,
       token1,
       referenceRateFeedID,
-      invertRateFeed
+      invertRateFeed,
+      _customConfig
     );
 
     emit FPMMDeployed(token0, token1, fpmmProxy, fpmmImplementation);
@@ -275,7 +302,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       token0,
       token1,
       referenceRateFeedID,
-      invertRateFeed
+      invertRateFeed,
+      $.defaultConfig
     );
 
     emit FPMMDeployed(token0, token1, fpmmProxy, fpmmImplementation);
@@ -297,6 +325,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @param _token0 The address of the first token
    * @param _token1 The address of the second token
    * @param _referenceRateFeedID The address of the reference rate feed
+   * @param _invertRateFeed Whether to invert the rate feed
+   * @param _config The configuration for the FPMM
    * @return The address of the deployed FPMM proxy
    */
   // slither-disable-start reentrancy-benign
@@ -310,9 +340,42 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address _token0,
     address _token1,
     address _referenceRateFeedID,
-    bool _invertRateFeed
+    bool _invertRateFeed,
+    IFPMM.FPMMConfig memory _config
   ) internal returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
+
+    address newProxyAddress = _deployNewProxy(
+      _fpmmImplementation,
+      _oracleAdapter,
+      _proxyAdmin,
+      _governance,
+      _token0,
+      _token1,
+      _referenceRateFeedID,
+      _invertRateFeed,
+      _config
+    );
+
+    $.deployedFPMMs[_token0][_token1] = newProxyAddress;
+    $.deployedFPMMs[_token1][_token0] = newProxyAddress;
+    $.isPool[newProxyAddress] = true;
+    $.deployedFPMMAddresses.push(newProxyAddress);
+
+    return newProxyAddress;
+  }
+
+  function _deployNewProxy(
+    address _fpmmImplementation,
+    address _oracleAdapter,
+    address _proxyAdmin,
+    address _governance,
+    address _token0,
+    address _token1,
+    address _referenceRateFeedID,
+    bool _invertRateFeed,
+    IFPMM.FPMMConfig memory _config
+  ) internal returns (address) {
     (address expectedProxyAddress, bytes32 salt) = _computeProxyAddressAndSalt(_token0, _token1);
     bytes memory initData = abi.encodeWithSelector(
       IFPMM.initialize.selector,
@@ -321,18 +384,16 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       _oracleAdapter,
       _referenceRateFeedID,
       _invertRateFeed,
-      _governance
+      _governance,
+      _config
     );
     bytes memory proxyBytecode = abi.encodePacked(
       type(FPMMProxy).creationCode,
       abi.encode(_fpmmImplementation, _proxyAdmin, initData)
     );
     address newProxyAddress = ICreateX(CREATEX).deployCreate3(salt, proxyBytecode);
-    $.deployedFPMMs[_token0][_token1] = newProxyAddress;
-    $.deployedFPMMs[_token1][_token0] = newProxyAddress; // populate the reverse mapping
-    $.isPool[newProxyAddress] = true;
-    $.deployedFPMMAddresses.push(newProxyAddress);
     assert(newProxyAddress == expectedProxyAddress);
+
     return newProxyAddress;
   }
 
