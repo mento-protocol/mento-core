@@ -792,6 +792,7 @@ abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
   address public expectedToken0;
   address public expectedToken1;
   address public expectedReferenceRateFeedID;
+  IFPMM.FPMMConfig public expectedDefaultFpmmConfig;
 
   function deploy(string memory chain) internal virtual returns (address);
 
@@ -875,21 +876,20 @@ abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
     address proxyAdmin = ITransparentUpgradeableProxy(deployedProxy).admin();
     assertEq(proxyAdmin, expectedProxyAdmin);
 
+    FPMM fpmm = FPMM(deployedProxy);
+
     // test that the proxy is initialized correctly
-    address owner = FPMM(deployedProxy).owner();
-    assertEq(owner, expectedGovernance);
-
-    address token0 = FPMM(deployedProxy).token0();
-    assertEq(token0, expectedToken0);
-
-    address token1 = FPMM(deployedProxy).token1();
-    assertEq(token1, expectedToken1);
-
-    address _referenceRateFeedID = address(FPMM(deployedProxy).referenceRateFeedID());
-    assertEq(_referenceRateFeedID, expectedReferenceRateFeedID);
-
-    address oracleAdapter = address(FPMM(deployedProxy).oracleAdapter());
-    assertEq(oracleAdapter, expectedOracleAdapter);
+    assertEq(fpmm.owner(), expectedGovernance);
+    assertEq(fpmm.token0(), expectedToken0);
+    assertEq(fpmm.token1(), expectedToken1);
+    assertEq(fpmm.referenceRateFeedID(), expectedReferenceRateFeedID);
+    assertEq(address(fpmm.oracleAdapter()), expectedOracleAdapter);
+    assertEq(fpmm.lpFee(), expectedDefaultFpmmConfig.lpFee);
+    assertEq(fpmm.protocolFee(), expectedDefaultFpmmConfig.protocolFee);
+    assertEq(fpmm.protocolFeeRecipient(), expectedDefaultFpmmConfig.protocolFeeRecipient);
+    assertEq(fpmm.rebalanceIncentive(), expectedDefaultFpmmConfig.rebalanceIncentive);
+    assertEq(fpmm.rebalanceThresholdAbove(), expectedDefaultFpmmConfig.rebalanceThresholdAbove);
+    assertEq(fpmm.rebalanceThresholdBelow(), expectedDefaultFpmmConfig.rebalanceThresholdBelow);
   }
 
   function test_deployFPMM_shouldRevertForSamePairInDifferentOrder() public {
@@ -940,6 +940,7 @@ contract FPMMFactoryTest_DeployFPMMStandard is FPMMFactoryTest_DeployFPMM {
     expectedProxyAdmin = proxyAdminCelo;
     expectedGovernance = governanceCelo;
     expectedReferenceRateFeedID = referenceRateFeedID;
+    expectedDefaultFpmmConfig = defaultFpmmConfigCelo;
   }
 
   function deploy(string memory chain) internal override returns (address) {
@@ -964,6 +965,15 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
     expectedProxyAdmin = makeAddr("Custom Proxy Admin");
     expectedGovernance = makeAddr("Custom Governance");
     expectedReferenceRateFeedID = referenceRateFeedID;
+
+    expectedDefaultFpmmConfig = IFPMM.FPMMConfig({
+      lpFee: 39,
+      protocolFee: 22,
+      protocolFeeRecipient: makeAddr("Custom Protocol Fee Recipient"),
+      rebalanceIncentive: 30,
+      rebalanceThresholdAbove: 123,
+      rebalanceThresholdBelow: 456
+    });
   }
 
   function deploy(string memory chain) internal override returns (address) {
@@ -978,7 +988,7 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
           token1Celo,
           referenceRateFeedID,
           false,
-          defaultFpmmConfigCelo // TODO: add custom config?
+          expectedDefaultFpmmConfig
         );
     } else if (keccak256(abi.encode(chain)) == keccak256(abi.encode("op"))) {
       return
@@ -991,7 +1001,7 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
           token1Op,
           referenceRateFeedID,
           false,
-          defaultFpmmConfigOp // TODO: add custom config?
+          expectedDefaultFpmmConfig
         );
     } else {
       return address(0);

@@ -86,8 +86,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     $.decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
 
     setLPFee(_config.lpFee);
-    setProtocolFee(_config.protocolFee);
     setProtocolFeeRecipient(_config.protocolFeeRecipient);
+    setProtocolFee(_config.protocolFee);
     setRebalanceIncentive(_config.rebalanceIncentive);
     setRebalanceThresholds(_config.rebalanceThresholdAbove, _config.rebalanceThresholdBelow);
 
