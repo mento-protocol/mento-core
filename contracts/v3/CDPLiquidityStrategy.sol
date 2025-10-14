@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
-import { ILiquidityStrategy } from "./Interfaces/ILiquidityStrategy.sol";
-import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import { ICDPLiquidityStrategy } from "./Interfaces/ICDPLiquidityStrategy.sol";
+import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -10,27 +10,44 @@ import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol"
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 
-contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
+/**
+ * @title CDPLiquidityStrategy
+ * @notice Implements a liquidity strategy that sources the StabilityPool for expansions
+ * and the redemption mechanism for contractions.
+ */
+contract CDPLiquidityStrategy is ICDPLiquidityStrategy, Ownable {
   using SafeERC20 for IERC20;
 
+  /* ========== STATE VARIABLES ========== */
+
+  /// @inheritdoc ICDPLiquidityStrategy
   mapping(address => bool) public trustedPools;
 
-  constructor(bool disable) {
-    if (disable) {
-      _disableInitializers();
-      _transferOwnership(msg.sender);
-    }
+  /* ========== INITIALIZATION ========== */
+
+  /**
+   * @notice Constructor
+   * @param initialOwner The owner of the strategy
+   */
+  constructor(address initialOwner) {
+    Ownable(initialOwner);
   }
 
-  function initialize() external initializer {
-    __Ownable_init();
-  }
+  /* ============================================================ */
+  /* ===================== External Functions =================== */
+  /* ============================================================ */
 
-  function setTrustedPools(address pool, bool isTrusted) external onlyOwner {
+  /// @inheritdoc ICDPLiquidityStrategy
+  function setTrustedPool(address pool, bool isTrusted) external onlyOwner {
+    if (pool == address(0)) revert CDPLiquidityStrategy_InvalidPool();
     trustedPools[pool] = isTrusted;
   }
 
+  /// @inheritdoc ICDPLiquidityStrategy
   function execute(LQ.Action memory action) external override returns (bool ok) {
+    if (action.liquiditySource != LQ.LiquiditySource.CDP) revert CDPLiquidityStrategy_InvalidSource();
+    if (!trustedPools[action.pool]) revert CDPLiquidityStrategy_PoolNotTrusted();
+
     (address debtToken, address collToken, address liquiditySource) = abi.decode(
       action.data,
       (address, address, address)
@@ -48,9 +65,10 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
     return true;
   }
 
+  /// @inheritdoc ICDPLiquidityStrategy
   function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
-    require(trustedPools[msg.sender], "CDPLiquidityStrategy: UNTRUSTED_POOL");
-    require(sender == address(this), "CDPLiquidityStrategy: INVALID_SENDER");
+    if (!trustedPools[msg.sender]) revert CDPLiquidityStrategy_PoolNotTrusted();
+    if (sender != address(this)) revert CDPLiquidityStrategy_InvalidSender();
 
     (
       uint256 inputAmount,
@@ -68,6 +86,18 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
     }
   }
 
+  /* ============================================================ */
+  /* =================== Internal Functions ===================== */
+  /* ============================================================ */
+
+  /**
+   * @notice Handles the expansion callback
+   * @param debtToken The address of the debt token
+   * @param collToken The address of the collateral token
+   * @param amountOut The amount of collateral to send to the stability pool
+   * @param inputAmount The amount of debt to send to the fpmm
+   * @param liquiditySource The address of the liquidity source
+   */
   function _handleExpansionCallback(
     address debtToken,
     address collToken,
@@ -83,6 +113,14 @@ contract CDPLiquidityStrategy is ILiquidityStrategy, OwnableUpgradeable {
     IERC20(debtToken).safeTransfer(msg.sender, inputAmount);
   }
 
+  /**
+   * @notice Handles the contraction callback
+   * @param collToken The address of the collateral token
+   * @param amountOut The amount of collateral to send to the collateral registry
+   * @param inputAmount The amount of debt to send to the fpmm
+   * @param incentiveBps The incentive bps
+   * @param liquiditySource The address of the liquidity source
+   */
   function _handleContractionCallback(
     address collToken,
     uint256 amountOut,

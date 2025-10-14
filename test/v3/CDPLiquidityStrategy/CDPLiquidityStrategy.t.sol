@@ -3,13 +3,13 @@ pragma solidity 0.8.24;
 // solhint-disable max-line-length
 
 import { CDPLiquidityStrategy } from "contracts/v3/CDPLiquidityStrategy.sol";
+import { ICDPLiquidityStrategy } from "contracts/v3/Interfaces/ICDPLiquidityStrategy.sol";
 import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
 import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { Test } from "forge-std/Test.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
-
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { LiquidityController } from "contracts/v3/LiquidityController.sol";
 import { ILiquidityPolicy } from "contracts/v3/Interfaces/ILiquidityPolicy.sol";
@@ -34,7 +34,7 @@ contract CDPLiquidityStrategyTest is Test {
 
   function setUp() public {
     fpmm = new FPMM(false);
-    cdpLiquidityStrategy = new CDPLiquidityStrategy(true);
+    cdpLiquidityStrategy = new CDPLiquidityStrategy(address(this));
     liquidityController = new LiquidityController();
     liquidityController.initialize(address(this));
   }
@@ -65,6 +65,7 @@ contract CDPLiquidityStrategyTest is Test {
     redemptionBetas[0] = 1;
     stabilityPoolPercentages[0] = 9000; // 90%
     cdpPolicy = new CDPPolicy(
+      address(this),
       debtTokens,
       stabilityPools,
       collateralRegistries,
@@ -73,7 +74,7 @@ contract CDPLiquidityStrategyTest is Test {
     );
 
     // set trusted pools on cdp liquidity strategy
-    cdpLiquidityStrategy.setTrustedPools(address(fpmm), true);
+    cdpLiquidityStrategy.setTrustedPool(address(fpmm), true);
 
     // configure liquidity controller
     ILiquidityPolicy[] memory policies = new ILiquidityPolicy[](1);
@@ -111,6 +112,7 @@ contract CDPLiquidityStrategyTest is Test {
     redemptionBetas[0] = 1;
     stabilityPoolPercentages[0] = 9000; // 90%
     cdpPolicy = new CDPPolicy(
+      address(this),
       debtTokens,
       stabilityPools,
       collateralRegistries,
@@ -119,7 +121,7 @@ contract CDPLiquidityStrategyTest is Test {
     );
 
     // set trusted pools on cdp liquidity strategy
-    cdpLiquidityStrategy.setTrustedPools(address(fpmm), true);
+    cdpLiquidityStrategy.setTrustedPool(address(fpmm), true);
 
     // configure liquidity controller
     ILiquidityPolicy[] memory policies = new ILiquidityPolicy[](1);
@@ -128,6 +130,68 @@ contract CDPLiquidityStrategyTest is Test {
     liquidityController.setPoolPipeline(address(fpmm), policies);
     liquidityController.setLiquiditySourceStrategy(LQ.LiquiditySource.CDP, cdpLiquidityStrategy);
     _;
+  }
+
+  function test_setTrustedPool_whenCalledByNonOwner_shouldRevert() public {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(vm.addr(1));
+    cdpLiquidityStrategy.setTrustedPool(address(fpmm), true);
+  }
+
+  function test_setTrustedPool_whenPoolIs0_shouldRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(ICDPLiquidityStrategy.CDPLiquidityStrategy_InvalidPool.selector));
+    cdpLiquidityStrategy.setTrustedPool(address(0), true);
+  }
+
+  function test_setTrustedPool_wheCalledByOwner_shouldSucceed() public {
+    assertTrue(!cdpLiquidityStrategy.trustedPools(makeAddr("pool1")));
+    vm.prank(address(this));
+    cdpLiquidityStrategy.setTrustedPool(makeAddr("pool1"), true);
+    assertTrue(cdpLiquidityStrategy.trustedPools(makeAddr("pool1")));
+  }
+
+  function test_execute_whenPoolIsNotTrusted_shouldRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(ICDPLiquidityStrategy.CDPLiquidityStrategy_PoolNotTrusted.selector));
+    cdpLiquidityStrategy.execute(
+      LQ.Action({
+        pool: makeAddr("pool1"),
+        liquiditySource: LQ.LiquiditySource.CDP,
+        amount0Out: 0,
+        amount1Out: 0,
+        inputAmount: 0,
+        incentiveBps: 0,
+        dir: LQ.Direction.Expand,
+        data: ""
+      })
+    );
+  }
+
+  function test_execute_whenLiquiditySourceIsNotCDP_shouldRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(ICDPLiquidityStrategy.CDPLiquidityStrategy_InvalidSource.selector));
+    cdpLiquidityStrategy.execute(
+      LQ.Action({
+        pool: makeAddr("pool1"),
+        liquiditySource: LQ.LiquiditySource.Reserve,
+        amount0Out: 0,
+        amount1Out: 0,
+        inputAmount: 0,
+        incentiveBps: 0,
+        dir: LQ.Direction.Expand,
+        data: ""
+      })
+    );
+  }
+
+  function test_hook_whenMessageSenderIsNotTrustedPool_shouldRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(ICDPLiquidityStrategy.CDPLiquidityStrategy_PoolNotTrusted.selector));
+    cdpLiquidityStrategy.hook(makeAddr("pool1"), 0, 0, "");
+  }
+
+  function test_hook_whenSenderIsNotThisContract_shouldRevert() public {
+    cdpLiquidityStrategy.setTrustedPool(makeAddr("pool1"), true);
+    vm.prank(makeAddr("pool1"));
+    vm.expectRevert(abi.encodeWithSelector(ICDPLiquidityStrategy.CDPLiquidityStrategy_InvalidSender.selector));
+    cdpLiquidityStrategy.hook(makeAddr("notCDPLiquidityStrategy"), 0, 0, "");
   }
 
   /* ============================================================ */

@@ -29,7 +29,14 @@ contract CDPPolicyTest is Test {
   LQ.Context public ctx;
 
   function setUp() public {
-    policy = new CDPPolicy(new address[](0), new address[](0), new address[](0), new uint256[](0), new uint256[](0));
+    policy = new CDPPolicy(
+      address(this),
+      new address[](0),
+      new address[](0),
+      new address[](0),
+      new uint256[](0),
+      new uint256[](0)
+    );
     debtToken6 = new MockERC20("DebtToken6", "DT6", 6);
     collateralToken6 = new MockERC20("CollateralToken6", "CT6", 6);
     debtToken18 = new MockERC20("DebtToken18", "DT18", 18);
@@ -87,7 +94,14 @@ contract CDPPolicyTest is Test {
 
   function test_constructor_whenConstructorArrayLengthMismatch_shouldRevert() public {
     vm.expectRevert(abi.encodeWithSelector(ICDPPolicy.CDPPolicy_ConstructorArrayLengthMismatch.selector));
-    policy = new CDPPolicy(new address[](2), new address[](0), new address[](0), new uint256[](0), new uint256[](0));
+    policy = new CDPPolicy(
+      address(this),
+      new address[](2),
+      new address[](0),
+      new address[](0),
+      new uint256[](0),
+      new uint256[](0)
+    );
   }
 
   function test_constructor_shouldSetCorrectState() public {
@@ -96,7 +110,14 @@ contract CDPPolicyTest is Test {
     address[] memory collateralRegistries = addresses(collateralRegistry, collateralRegistry);
     uint256[] memory redemptionBetas = uints(1, 2);
     uint256[] memory stabilityPoolPercentages = uints(100, 200);
-    policy = new CDPPolicy(debtTokens, stabilityPools, collateralRegistries, redemptionBetas, stabilityPoolPercentages);
+    policy = new CDPPolicy(
+      address(this),
+      debtTokens,
+      stabilityPools,
+      collateralRegistries,
+      redemptionBetas,
+      stabilityPoolPercentages
+    );
     assertEq(policy.deptTokenStabilityPool(address(debtToken6)), stabilityPool);
     assertEq(policy.deptTokenCollateralRegistry(address(debtToken6)), collateralRegistry);
     assertEq(policy.deptTokenStabilityPool(address(debtToken18)), stabilityPool);
@@ -1321,7 +1342,7 @@ contract CDPPolicyTest is Test {
     uint256 oracleDenominator,
     uint256 reserveNumerator,
     uint256 reserveDenominator
-  ) internal view returns (uint256 priceDifference, bool reservePriceAboveOraclePrice) {
+  ) internal pure returns (uint256 priceDifference, bool reservePriceAboveOraclePrice) {
     uint256 oracleCrossProduct = oracleNumerator * reserveDenominator;
     uint256 reserveCrossProduct = reserveNumerator * oracleDenominator;
 
@@ -1350,7 +1371,7 @@ contract CDPPolicyTest is Test {
     uint256 oracleNumerator,
     uint256 oracleDenominator,
     bool isCheapContraction
-  ) public {
+  ) public pure {
     uint256 amountOutInOtherToken;
     if (isToken0Out) {
       amountOutInOtherToken = (amountOut * oracleNumerator) / oracleDenominator;

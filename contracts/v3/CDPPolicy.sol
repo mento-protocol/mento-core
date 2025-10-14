@@ -8,6 +8,10 @@ import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 
+/**
+ * @title CDPPolicy
+ * @notice Implements a policy that determines the action to take based on the pool price and the oracle price.
+ */
 contract CDPPolicy is ICDPPolicy, Ownable {
   /* ========== VARIABLES ========== */
 
@@ -34,6 +38,7 @@ contract CDPPolicy is ICDPPolicy, Ownable {
 
   /**
    * @notice Constructor
+   * @param initialOwner The owner of the policy
    * @param debtTokens The addresses of the debt tokens
    * @param stabilityPools The addresses of the stability pools
    * @param collateralRegistries The addresses of the collateral registries
@@ -41,12 +46,14 @@ contract CDPPolicy is ICDPPolicy, Ownable {
    * @param stabilityPoolPercentages The stability pool percentages
    */
   constructor(
+    address initialOwner,
     address[] memory debtTokens,
     address[] memory stabilityPools,
     address[] memory collateralRegistries,
     uint256[] memory redemptionBetas,
     uint256[] memory stabilityPoolPercentages
-  ) Ownable() {
+  ) {
+    Ownable(initialOwner);
     if (
       debtTokens.length != stabilityPools.length ||
       debtTokens.length != collateralRegistries.length ||
@@ -145,7 +152,7 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
-    uint256 token1Out = LQ.convertWithRateScaling(1, 1e18, ctx.token1Dec, numerator, denominator);
+    uint256 token1Out = (numerator * ctx.token1Dec) / (denominator * 1e18);
 
     uint256 token0In = LQ.convertWithRateScalingAndFee(
       token1Out,
@@ -186,7 +193,7 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
-    uint256 token0Out = LQ.convertWithRateScaling(1, 1e18, ctx.token0Dec, numerator, denominator);
+    uint256 token0Out = (numerator * ctx.token0Dec) / (denominator * 1e18);
 
     uint256 token1In = LQ.convertWithRateScalingAndFee(
       token0Out,
@@ -334,9 +341,10 @@ contract CDPPolicy is ICDPPolicy, Ownable {
 
     uint256 stabilityPoolPercentage = (stabilityPoolBalance * deptTokenStabilityPoolPercentage[debtToken]) /
       BPS_DENOMINATOR;
+    uint256 availableAmountAfterMinBalance = stabilityPoolBalance - stabilityPoolMinBalance;
 
-    availableAmount = stabilityPoolPercentage > stabilityPoolBalance - stabilityPoolMinBalance
-      ? stabilityPoolBalance - stabilityPoolMinBalance
+    availableAmount = stabilityPoolPercentage > availableAmountAfterMinBalance
+      ? availableAmountAfterMinBalance
       : stabilityPoolPercentage;
   }
 
