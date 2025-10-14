@@ -7,7 +7,6 @@ import { LiquidityTypes as LQ } from "contracts/v3/libraries/LiquidityTypes.sol"
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
-import { console } from "forge-std/console.sol";
 import { uints, addresses } from "mento-std/Array.sol";
 import { Test } from "forge-std/Test.sol";
 contract CDPPolicyTest is Test {
@@ -171,20 +170,6 @@ contract CDPPolicyTest is Test {
     public
     _setUpPolicy(debtToken18, 9000)
   {
-    /*
-      struct Context {
-        address pool;
-        Reserves reserves;
-        Prices prices;
-        address token0;
-        address token1;
-        uint128 incentiveBps;
-        uint64 token0Dec;
-        uint64 token1Dec;
-        bool isToken0Debt;
-    }
-  */
-
     uint256 reserve0 = 1_000_000 * 1e18; // usdfx
     uint256 reserve1 = 1_500_000 * 1e6; // usdc
 
@@ -230,20 +215,6 @@ contract CDPPolicyTest is Test {
     public
     _setUpPolicy(debtToken6, 9000)
   {
-    /*
-      struct Context {
-        address pool;
-        Reserves reserves;
-        Prices prices;
-        address token0;
-        address token1;
-        uint128 incentiveBps;
-        uint64 token0Dec;
-        uint64 token1Dec;
-        bool isToken0Debt;
-    }
-  */
-
     uint256 reserve0 = 1_300_000 * 1e18; // usdm
     uint256 reserve1 = 1_000_000 * 1e6; // eurm
 
@@ -294,20 +265,6 @@ contract CDPPolicyTest is Test {
     public
     _setUpPolicy(debtToken18, 9000)
   {
-    /*
-      struct Context {
-        address pool;
-        Reserves reserves;
-        Prices prices;
-        address token0;
-        address token1;
-        uint128 incentiveBps;
-        uint64 token0Dec;
-        uint64 token1Dec;
-        bool isToken0Debt;
-    }
-  */
-
     uint256 reserve0 = 1_000_000 * 1e18; // usdfx
     uint256 reserve1 = 1_500_000 * 1e6; // usdc
 
@@ -358,20 +315,6 @@ contract CDPPolicyTest is Test {
     public
     _setUpPolicy(debtToken6, 9000)
   {
-    /*
-      struct Context {
-        address pool;
-        Reserves reserves;
-        Prices prices;
-        address token0;
-        address token1;
-        uint128 incentiveBps;
-        uint64 token0Dec;
-        uint64 token1Dec;
-        bool isToken0Debt;
-    }
-  */
-
     uint256 reserve0 = 1_300_000 * 1e18; // usdm
     uint256 reserve1 = 1_000_000 * 1e6; // eurm
 
@@ -486,20 +429,6 @@ contract CDPPolicyTest is Test {
     public
     _setUpPolicy(debtToken6, 9000)
   {
-    /*
-      struct Context {
-        address pool;
-        Reserves reserves;
-        Prices prices;
-        address token0;
-        address token1;
-        uint128 incentiveBps;
-        uint64 token0Dec;
-        uint64 token1Dec;
-        bool isToken0Debt;
-    }
-  */
-
     uint256 reserve0 = 10_000_000 * 1e18; // usd.m
     uint256 reserve1 = 14_500_000 * 1e6; // chf.m
 
@@ -546,6 +475,199 @@ contract CDPPolicyTest is Test {
   /* ============================================================ */
   /* ============== Contraction non-target liquidity ============ */
   /* ============================================================ */
+
+  function test_determineAction_whenToken0DebtPoolPriceBelowAndRedemptionFeeLessIncentive_shouldContractAndBringPriceAboveOraclePrice()
+    public
+    _setUpPolicy(debtToken6, 9000)
+  {
+    uint256 reserve0 = 10_956_675_007 * 1e6; // ngnm 7.5 mio in $
+    uint256 reserve1 = 6_000_000 * 1e18; // usdm 6 mio in $
+
+    LQ.Context memory ctx;
+
+    ctx.token0 = address(debtToken6);
+    ctx.token1 = address(collateralToken18);
+    ctx.token0Dec = 1e6;
+    ctx.token1Dec = 1e18;
+
+    ctx.isToken0Debt = true;
+    ctx.reserves = LQ.Reserves({
+      reserveNum: reserve1, // reserve token 1 usdm
+      reserveDen: reserve0 * 1e12 // reserve token 0 ngnm
+    });
+    ctx.pool = fpmm;
+
+    ctx.prices = LQ.Prices({
+      oracleNum: 684510000000000,
+      oracleDen: 1e18,
+      poolPriceAbove: false,
+      diffBps: 5_000 // 50%
+    });
+    ctx.incentiveBps = 50; // 0.5%
+
+    mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(ctx, 0.0015 * 1e18); // 0.15% resulting in redemption fee being 0.25% + 0.15% = 0.4%
+    setTokenTotalSupply(address(debtToken6), totalSupply);
+
+    (, LQ.Action memory action) = policy.determineAction(ctx);
+
+    // amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 1_098_386_357.591375
+    uint256 expectedAmount0Out = 1098386357591375;
+    uint256 expectedAmount1Out = 0;
+    // input amount in token 1 := (amountOut * ON * (1-0.004))/OD = 748_849.019852332612845000
+    // 0.004 = 0.4% redemption fee
+    uint256 expectedInputAmount = 748849019852332612845000;
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.inputAmount, expectedInputAmount);
+  }
+
+  function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeLessIncentive_shouldContractAndBringPriceBelowOraclePrice()
+    public
+    _setUpPolicy(debtToken18, 9000)
+  {
+    uint256 reserve0 = 555_555 * 1e6; // 555555 usd.m
+    uint256 reserve1 = 43_629_738 * 1e18; // php.m 750k in $
+
+    ctx.token0 = address(collateralToken6);
+    ctx.token1 = address(debtToken18);
+    ctx.token0Dec = 1e6;
+    ctx.token1Dec = 1e18;
+
+    ctx.isToken0Debt = false;
+    ctx.reserves = LQ.Reserves({
+      reserveNum: reserve1, // reserve token 1 php.m
+      reserveDen: reserve0 * 1e12 // reserve token 0 usd.m
+    });
+    ctx.pool = fpmm;
+
+    ctx.prices = LQ.Prices({
+      oracleNum: 1e18,
+      oracleDen: 17190990000000000,
+      poolPriceAbove: true,
+      diffBps: 5_000 // 50%
+    });
+    ctx.incentiveBps = 50; // 0.5%
+
+    mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(ctx, 0.001 * 1e18); // 0.1% resulting in redemption fee being 0.25% + 0.1% = 0.35%
+    setTokenTotalSupply(address(debtToken18), totalSupply);
+
+    (, LQ.Action memory action) = policy.determineAction(ctx);
+
+    uint256 expectedAmount0Out = 0;
+    // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 5_670_726.837208791926748374
+    uint256 expectedAmount1Out = 5670726837208791926748374;
+    // input amount in token 0 := (amountOut * OD * (1-0.0035))/ON = 97_144.209421
+    // 0.0035 = 0.35% redemption fee
+    uint256 expectedInputAmount = 97144209421;
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.inputAmount, expectedInputAmount);
+  }
+
+  function test_determineAction_whenToken0DebtPoolPriceBelowAndRedemptionFeeGreaterIncentive_shouldContractAndBringPriceCloserToOraclePrice()
+    public
+    _setUpPolicy(debtToken6, 9000)
+  {
+    uint256 reserve0 = 10_956_675_007 * 1e6; // ngnm 7.5 mio in $
+    uint256 reserve1 = 6_000_000 * 1e18; // usdm 6 mio in $
+
+    ctx.token0 = address(debtToken6);
+    ctx.token1 = address(collateralToken18);
+    ctx.token0Dec = 1e6;
+    ctx.token1Dec = 1e18;
+
+    ctx.isToken0Debt = true;
+    ctx.reserves = LQ.Reserves({
+      reserveNum: reserve1, // reserve token 1 usdm
+      reserveDen: reserve0 * 1e12 // reserve token 0 ngnm
+    });
+    ctx.pool = fpmm;
+
+    ctx.prices = LQ.Prices({
+      oracleNum: 684510000000000,
+      oracleDen: 1e18,
+      poolPriceAbove: false,
+      diffBps: 5_000 // 50%
+    });
+    ctx.incentiveBps = 50; // 0.5%
+
+    mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(ctx, 0.0035 * 1e18); // 0.35% resulting in redemption fee being 0.25% + 0.35% = 0.6%
+    setTokenTotalSupply(address(debtToken6), totalSupply);
+
+    (, LQ.Action memory action) = policy.determineAction(ctx);
+
+    // target amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 1_098_386_357.591375
+    // since redemption fee for target amount is greater than incentive.
+    // we will redeem an amount that results in a redemption fee equal to incentive.
+    // maximum amount that can be redeemed is: totalSupply * redemptionBeta * (incentive - decayedBaseFee) =
+    // = 313824673597535714 * 1 * (0.005 - 0.0025) =  784_561_683.993839
+    uint256 expectedAmount0Out = 784561683993839;
+    uint256 expectedAmount1Out = 0;
+    // input amount in token 1 := (amountOut * ON * (1-0.0025 - amountOut / totalSupply))/OD = 534_355.116719069620757590
+    uint256 expectedInputAmount = 534355116719069620757590;
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.inputAmount, expectedInputAmount);
+  }
+
+  function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeGreaterIncentive_shouldContractAndBringPriceCloserToOraclePrice()
+    public
+    _setUpPolicy(debtToken18, 9000)
+  {
+    uint256 reserve0 = 555_555 * 1e6; // 555555 usd.m
+    uint256 reserve1 = 43_629_738 * 1e18; // php.m 750k in $
+
+    ctx.token0 = address(collateralToken6);
+    ctx.token1 = address(debtToken18);
+    ctx.token0Dec = 1e6;
+    ctx.token1Dec = 1e18;
+
+    ctx.isToken0Debt = false;
+    ctx.reserves = LQ.Reserves({
+      reserveNum: reserve1, // reserve token 1 php.m
+      reserveDen: reserve0 * 1e12 // reserve token 0 usd.m
+    });
+    ctx.pool = fpmm;
+
+    ctx.prices = LQ.Prices({
+      oracleNum: 1e18,
+      oracleDen: 17190990000000000,
+      poolPriceAbove: true,
+      diffBps: 5_000 // 50%
+    });
+    ctx.incentiveBps = 50; // 0.5%
+
+    mockGetRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(ctx, 0.005 * 1e18); // 0.5% resulting in redemption fee being 0.25% + 0.5% = 0.75%
+    setTokenTotalSupply(address(debtToken18), totalSupply);
+
+    (, LQ.Action memory action) = policy.determineAction(ctx);
+
+    uint256 expectedAmount0Out = 0;
+    // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 5_670_726.837208791926748374
+    // since redemption fee for target amount is greater than incentive.
+    // we will redeem an amount that results in a redemption fee equal to incentive.
+    // maximum amount that can be redeemed is: totalSupply * redemptionBeta * (incentive - decayedBaseFee) =
+    // = 1134145367441758385349674800 * 1 * (0.005 - 0.0025) =  2_835_363.418604395963374187
+    uint256 expectedAmount1Out = 2835363418604395963374187;
+    // input amount in token 1 := (amountOut * ON * (1-0.0025 - amountOut / totalSupply))/OD = 484_989.90654
+    uint256 expectedInputAmount = 48498990654;
+
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.inputAmount, expectedInputAmount);
+  }
 
   /* ---------- Determine Action Fuzz Tests ---------- */
 
@@ -1166,110 +1288,6 @@ contract CDPPolicyTest is Test {
   }
 
   /* ============================================================ */
-
-  function test_whenPoolPriceAboveAndToken0Debt_() public {
-    /*
-      struct Context {
-        address pool;
-        Reserves reserves;
-        Prices prices;
-        address token0;
-        address token1;
-        uint128 incentiveBps;
-        uint64 token0Dec;
-        uint64 token1Dec;
-        bool isToken0Debt;
-    }
-  */
-    uint256 reserve0 = 1_000_000 * 1e18; // usdfx
-    uint256 reserve1 = 1_500_000 * 1e6; // usdc
-
-    LQ.Context memory ctx;
-
-    ctx.token0 = address(debtToken18);
-    ctx.token1 = address(collateralToken6);
-    ctx.token0Dec = 1e18;
-    ctx.token1Dec = 1e6;
-
-    ctx.isToken0Debt = true;
-    ctx.reserves = LQ.Reserves({
-      reserveNum: reserve1 * 1e12, // reserve token 1 (1M) USDC
-      reserveDen: reserve0 // reserve token 0 (1.5M) usdfx
-    });
-
-    ctx.pool = fpmm;
-
-    ctx.prices = LQ.Prices({
-      oracleNum: 999884980000000000,
-      oracleDen: 1e18,
-      poolPriceAbove: true,
-      diffBps: 5_000 // 50%
-    });
-    ctx.incentiveBps = 50; // 0.5%
-
-    policy.setDeptTokenStabilityPool(address(debtToken18), stabilityPool);
-    policy.setDeptTokenCollateralRegistry(address(debtToken18), collateralRegistry);
-    policy.setDeptTokenRedemptionBeta(address(debtToken18), 1);
-    policy.setDeptTokenStabilityPoolPercentage(address(debtToken18), 9000); // 90%
-
-    // enough to cover the full expansion
-    setStabilityPoolBalance(address(debtToken18), 1_000_000 * 1e18);
-    setStabilityPoolMinBoldAfterRebalance(1e18);
-
-    (, LQ.Action memory action) = policy.determineAction(ctx);
-
-    reserve0 -= action.amount0Out;
-    reserve1 -= action.amount1Out;
-    reserve0 += action.inputAmount;
-
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
-    assertEq(action.amount0Out, 0);
-  }
-
-  function test_whenPoolPriceBelow() public {
-    LQ.Context memory ctx;
-    ctx.pool = fpmm;
-
-    uint256 reserve0 = 1_500_000 * 1e18; // usdfx
-    console.log("reserve0", reserve0);
-    uint256 reserve1 = 1_000_000 * 1e6; // usdc
-    console.log("reserve1", reserve1);
-    ctx.reserves = LQ.Reserves({
-      reserveNum: reserve1 * 1e12, // reserve token 1 (1M) USDC
-      reserveDen: reserve0 // reserve token 0 (1.5M) usdfx
-    });
-
-    ctx.prices = LQ.Prices({
-      oracleNum: 999884980000000000,
-      oracleDen: 1e18,
-      poolPriceAbove: false,
-      diffBps: 1_000 // 10%
-    });
-
-    ctx.token0 = address(debtToken18);
-    ctx.token1 = address(collateralToken6);
-    ctx.incentiveBps = 50; // 0.5%
-    ctx.token0Dec = 1e18;
-    ctx.token1Dec = 1e6;
-    ctx.isToken0Debt = true;
-
-    policy.setDeptTokenStabilityPool(address(debtToken18), stabilityPool);
-    policy.setDeptTokenCollateralRegistry(address(debtToken18), collateralRegistry);
-    policy.setDeptTokenRedemptionBeta(address(debtToken18), 1);
-    setTokenTotalSupply(address(debtToken18), 10_000_000 * 1e18);
-    mockGetRedemptionRateWithDecay(3e15); // 0.3%
-
-    setStabilityPoolBalance(address(collateralToken6), 100_000 * 1e6);
-
-    (, LQ.Action memory action) = policy.determineAction(ctx);
-
-    reserve0 -= action.amount0Out;
-    reserve1 -= action.amount1Out;
-    uint256 inputAmount = (action.inputAmount * (10_000 - action.incentiveBps)) / 10_000;
-    reserve0 += inputAmount;
-  }
-
-  /* ============================================================ */
   /* ==================== Helper Functions ====================== */
   /* ============================================================ */
 
@@ -1278,7 +1296,6 @@ contract CDPPolicyTest is Test {
    * @param minBalance The minimum balance of the stability pool after rebalance
    */
   function setStabilityPoolMinBoldAfterRebalance(uint256 minBalance) public {
-    console.log("minBalance", minBalance);
     vm.mockCall(
       address(stabilityPool),
       abi.encodeWithSelector(IStabilityPool.MIN_BOLD_AFTER_REBALANCE.selector),
