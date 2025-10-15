@@ -37,6 +37,7 @@ contract FPMMBaseIntegration is Test {
   // External addresses TODO: should be replaced with real contracts
   address public referenceRateFeedID = makeAddr("referenceRateFeedID");
   address public oracleAdapter = makeAddr("oracleAdapter");
+
   address public governance = makeAddr("governance");
   address public forwarder = address(0);
   address public proxyAdminOwner = makeAddr("ProxyAdminOwner");
@@ -47,7 +48,6 @@ contract FPMMBaseIntegration is Test {
   // ============ SETUP ============
 
   function setUp() public virtual {
-    vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp
     vm.selectFork(celoFork);
 
     _deployContracts();

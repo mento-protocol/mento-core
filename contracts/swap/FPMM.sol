@@ -484,7 +484,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   /* ========== ADMIN FUNCTIONS ========== */
 
   /// @inheritdoc IFPMM
-  function setLPFee(uint256 _lpFee) public onlyOwner {
+  function setLPFee(uint256 _lpFee) public virtual onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
     require(_lpFee + $.protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1% combined
@@ -585,7 +585,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
    * @notice Returns the storage pointer for the FPMM contract
    * @return $ Pointer to the FPMM storage
    */
-  function _getFPMMStorage() private pure returns (FPMMStorage storage $) {
+  function _getFPMMStorage() internal pure returns (FPMMStorage storage $) {
     // solhint-disable-next-line no-inline-assembly
     assembly {
       $.slot := _FPMM_STORAGE_LOCATION

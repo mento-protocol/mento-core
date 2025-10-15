@@ -21,7 +21,7 @@ contract MarketHoursBreaker is IMarketHoursBreaker {
 
   /// @inheritdoc IMarketHoursBreaker
   // solhint-disable-next-line no-unused-vars
-  function shouldTrigger(address rateFeedID) public view returns (bool triggerBreaker) {
+  function shouldTrigger(address) public view returns (bool triggerBreaker) {
     require(isFXMarketOpen(block.timestamp), "MarketHoursBreaker: FX market is closed");
 
     return false;

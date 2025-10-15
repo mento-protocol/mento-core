@@ -30,6 +30,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   address public referenceRateFeedID = makeAddr("referenceRateFeedID");
   address public proxyAdmin = makeAddr("proxyAdmin");
   address public governance = makeAddr("governance");
+  // TODO: use an actual market hours breaker
   address public marketHoursBreaker = makeAddr("marketHoursBreaker");
   address public forwarder = address(0);
 
@@ -37,7 +38,6 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   uint256 public celoFork = vm.createFork("https://forno.celo.org");
 
   function setUp() public virtual override {
-    vm.warp(10 days); // Start at a non-zero timestamp
     vm.selectFork(celoFork);
 
     super.setUp();
@@ -69,6 +69,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   }
 
   function _setupMocks() internal {
+    // TODO: warp timestamp to a week-end instead
     vm.mockCall(
       marketHoursBreaker,
       abi.encodeWithSelector(IMarketHoursBreaker.isFXMarketOpen.selector),
