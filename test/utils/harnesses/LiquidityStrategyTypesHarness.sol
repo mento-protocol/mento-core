@@ -54,13 +54,6 @@ contract LiquidityStrategyTypesHarness {
     return ctx.convertToDebtToken(collateralBalance);
   }
 
-  function convertToDebtWithFee_default(
-    LQ.Context memory ctx,
-    uint256 collateralBalance
-  ) external pure returns (uint256) {
-    return ctx.convertToDebtWithFee(collateralBalance);
-  }
-
   function convertToDebtWithFee_custom(
     LQ.Context memory ctx,
     uint256 collateralBalance,
@@ -68,13 +61,6 @@ contract LiquidityStrategyTypesHarness {
     uint256 incentiveDen
   ) external pure returns (uint256) {
     return ctx.convertToDebtWithFee(collateralBalance, incentiveNum, incentiveDen);
-  }
-
-  function convertToCollateralWithFee_default(
-    LQ.Context memory ctx,
-    uint256 debtBalance
-  ) external pure returns (uint256) {
-    return ctx.convertToCollateralWithFee(debtBalance);
   }
 
   function convertToCollateralWithFee_custom(

@@ -75,7 +75,11 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
     // Apply test limits if configured
     if (shouldLimitExpansion && idealDebtToExpand > maxExpansionAmount) {
       debtToExpand = maxExpansionAmount;
-      collateralToPay = ctx.convertToCollateralWithFee(debtToExpand);
+      collateralToPay = ctx.convertToCollateralWithFee(
+        debtToExpand,
+        LQ.BASIS_POINTS_DENOMINATOR,
+        LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps
+      );
     } else {
       debtToExpand = idealDebtToExpand;
       collateralToPay = idealCollateralToPay;

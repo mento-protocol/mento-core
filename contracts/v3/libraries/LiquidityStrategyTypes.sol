@@ -228,23 +228,6 @@ library LiquidityStrategyTypes {
   }
 
   /**
-   * @notice Converts collateral to debt with default incentive fee (adds incentive to result)
-   * @dev Uses ctx.incentiveBps as the fee, resulting in more debt tokens
-   * @param ctx The liquidity context
-   * @param collateralBalance The amount of collateral to convert
-   * @return The equivalent amount in debt token units including incentive
-   */
-  function convertToDebtWithFee(Context memory ctx, uint256 collateralBalance) internal pure returns (uint256) {
-    return
-      convertToDebtWithFee(
-        ctx,
-        collateralBalance,
-        ctx.incentiveBps + BASIS_POINTS_DENOMINATOR,
-        BASIS_POINTS_DENOMINATOR
-      );
-  }
-
-  /**
    * @notice Converts collateral to debt with custom fee parameters
    * @dev Allows specifying custom fee numerator/denominator for flexibility
    * @param ctx The liquidity context
@@ -270,23 +253,6 @@ library LiquidityStrategyTypes {
         priceDenominator,
         feeNumerator,
         feeDenominator
-      );
-  }
-
-  /**
-   * @notice Converts debt to collateral with default incentive fee (subtracts incentive from result)
-   * @dev Uses ctx.incentiveBps as the fee, resulting in less collateral
-   * @param ctx The liquidity context
-   * @param debtBalance The amount of debt tokens to convert
-   * @return The equivalent amount in collateral units minus incentive
-   */
-  function convertToCollateralWithFee(Context memory ctx, uint256 debtBalance) internal pure returns (uint256) {
-    return
-      convertToCollateralWithFee(
-        ctx,
-        debtBalance,
-        BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
-        BASIS_POINTS_DENOMINATOR
       );
   }
 

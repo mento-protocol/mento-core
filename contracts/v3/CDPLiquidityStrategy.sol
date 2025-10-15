@@ -99,8 +99,12 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
 
     if (idealDebtToExpand > availableDebtToken) {
       debtToExpand = availableDebtToken;
-      // Ideal amounts already include incentive, so just scale proportionally
-      collateralToPay = ctx.convertToCollateralWithFee(debtToExpand);
+
+      collateralToPay = ctx.convertToCollateralWithFee(
+        debtToExpand,
+        BPS_DENOMINATOR,
+        BPS_DENOMINATOR - ctx.incentiveBps
+      );
     } else {
       debtToExpand = idealDebtToExpand;
       collateralToPay = idealCollateralToPay;
@@ -189,8 +193,9 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
 
     uint256 stabilityPoolAvailable = (stabilityPoolBalance * cdpConfig.stabilityPoolPercentage) / BPS_DENOMINATOR;
 
-    availableAmount = stabilityPoolAvailable > stabilityPoolBalance - stabilityPoolMinBalance
-      ? stabilityPoolBalance - stabilityPoolMinBalance
+    uint256 availableAmountAfterMinBalance = stabilityPoolBalance - stabilityPoolMinBalance;
+    availableAmount = stabilityPoolAvailable > availableAmountAfterMinBalance
+      ? availableAmountAfterMinBalance
       : stabilityPoolAvailable;
   }
 

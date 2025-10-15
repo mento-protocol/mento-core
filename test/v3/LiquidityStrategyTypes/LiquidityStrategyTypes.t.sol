@@ -325,17 +325,6 @@ contract LiquidityStrategyTypes_Test is Test {
     assertEq(result, 100e6); // 100 with 6 decimals
   }
 
-  function test_convertToDebtWithFee_default() public view {
-    address token0 = address(0x100);
-    address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50); // 50 bps = 0.5%
-
-    uint256 collateralAmount = 100e18;
-    uint256 result = harness.convertToDebtWithFee_default(ctx, collateralAmount);
-    // Expected: 100 * (10000 + 50) / 10000 = 100.5
-    assertEq(result, 100.5e18);
-  }
-
   function test_convertToDebtWithFee_custom() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
@@ -345,18 +334,6 @@ contract LiquidityStrategyTypes_Test is Test {
     // Custom 10% fee
     uint256 result = harness.convertToDebtWithFee_custom(ctx, collateralAmount, 11000, 10000);
     assertEq(result, 110e18);
-  }
-
-  function test_convertToCollateralWithFee_default() public view {
-    address token0 = address(0x100);
-    address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50); // 50 bps = 0.5%
-
-    uint256 debtAmount = 100e18;
-    uint256 result = harness.convertToCollateralWithFee_default(ctx, debtAmount);
-    // Fee is applied as: num=9950, den=10000, so result = 100 * 9950 / 10000 = 99.5
-    // This applies the (1 - i) multiplier where i = 0.5%, giving less collateral for the debt
-    assertEq(result, 99.5e18);
   }
 
   function test_convertToCollateralWithFee_custom() public view {
