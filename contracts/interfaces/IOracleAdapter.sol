@@ -78,8 +78,14 @@ interface IOracleAdapter {
    * @param _sortedOracles The address of the sorted oracles contract
    * @param _breakerBox The address of the breaker box contract
    * @param _marketHoursBreaker The address of the market hours breaker contract
+   * @param _initialOwner The address to transfer ownership to
    */
-  function initialize(address _sortedOracles, address _breakerBox, address _marketHoursBreaker) external;
+  function initialize(
+    address _sortedOracles,
+    address _breakerBox,
+    address _marketHoursBreaker,
+    address _initialOwner
+  ) external;
 
   /**
    * @notice Sets the address of the sorted oracles contract

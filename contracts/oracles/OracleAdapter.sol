@@ -32,12 +32,19 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   /* ========== INITIALIZATION ========== */
 
   /// @inheritdoc IOracleAdapter
-  function initialize(address _sortedOracles, address _breakerBox, address _marketHoursBreaker) external initializer {
+  function initialize(
+    address _sortedOracles,
+    address _breakerBox,
+    address _marketHoursBreaker,
+    address _initialOwner
+  ) external initializer {
     __Ownable_init();
 
     setSortedOracles(_sortedOracles);
     setBreakerBox(_breakerBox);
     setMarketHoursBreaker(_marketHoursBreaker);
+
+    transferOwnership(_initialOwner);
   }
 
   /* ========== VIEW FUNCTIONS ========== */
