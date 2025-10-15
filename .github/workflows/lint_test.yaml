@@ -26,7 +26,9 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@9979a41b5daa5da1572d973d7ac5a3dd2afc0221 # v1.3.5
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.3.5
 
       - name: Install Node.js
         uses: actions/setup-node@v3
