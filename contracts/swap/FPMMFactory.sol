@@ -46,7 +46,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address[] registeredImplementations;
     // Mapping of deployed pools.
     mapping(address => bool) isPool;
-    // Default parameters for deployed FPMMs.
+    // Default parameters when deploying a new FPMM.
     IFPMM.FPMMParams defaultParams;
   }
 

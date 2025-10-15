@@ -25,17 +25,6 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     super.setUp();
   }
 
-  // ============ HELPER FUNCTIONS ============
-
-  function assertEqFPMMParams(IFPMM.FPMMParams memory expected, IFPMM.FPMMParams memory actual) internal {
-    assertEq(expected.lpFee, actual.lpFee);
-    assertEq(expected.protocolFee, actual.protocolFee);
-    assertEq(expected.protocolFeeRecipient, actual.protocolFeeRecipient);
-    assertEq(expected.rebalanceIncentive, actual.rebalanceIncentive);
-    assertEq(expected.rebalanceThresholdAbove, actual.rebalanceThresholdAbove);
-    assertEq(expected.rebalanceThresholdBelow, actual.rebalanceThresholdBelow);
-  }
-
   // ============ FACTORY SETUP TESTS ============
 
   function test_initialize_whenCalledByOwner_shouldSetCorrectValues() public view {
