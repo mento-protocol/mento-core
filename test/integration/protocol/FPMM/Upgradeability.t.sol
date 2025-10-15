@@ -7,7 +7,6 @@ import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 import { FPMMAlternativeImplementation } from "test/utils/mocks/FPMMAlternativeImplementation.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { IERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
-import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract UpgradeabilityTest is FPMMBaseIntegration {
@@ -170,7 +169,7 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
     address originalOracleAdapter = address(_fpmm.oracleAdapter());
 
     _upgrade(_upgradedFPMM, _newFPMMimpl, proxyAdminOwner);
-    
+
     assertEq(_fpmm.token0(), originalToken0, "token0 changed");
     assertEq(_fpmm.token1(), originalToken1, "token1 changed");
     assertEq(_fpmm.decimals0(), originalDecimals0, "decimals0 changed");
