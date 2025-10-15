@@ -46,7 +46,7 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
   function test_poolFor_whenCustomFactoryProvided_shouldUseCustomFactory() public {
     FPMMFactory customFactory = new FPMMFactory(false);
 
-    customFactory.initialize(oracleAdapter, proxyAdmin, governance, address(fpmmImplementation), defaultFpmmConfig);
+    customFactory.initialize(oracleAdapter, proxyAdmin, governance, address(fpmmImplementation), defaultFpmmParams);
 
     // Mock factory registry to approve custom factory
     vm.mockCall(

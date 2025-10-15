@@ -46,8 +46,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address[] registeredImplementations;
     // Mapping of deployed pools.
     mapping(address => bool) isPool;
-    // Default configuration for deployed FPMMs.
-    IFPMM.FPMMConfig defaultConfig;
+    // Default parameters for deployed FPMMs.
+    IFPMM.FPMMParams defaultParams;
   }
 
   /* ===================================================== */
@@ -78,13 +78,13 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address _proxyAdmin,
     address _governance,
     address _fpmmImplementation,
-    IFPMM.FPMMConfig calldata _defaultConfig
+    IFPMM.FPMMParams calldata _defaultParams
   ) external initializer {
     __Ownable_init();
     setProxyAdmin(_proxyAdmin);
     setOracleAdapter(_oracleAdapter);
     registerFPMMImplementation(_fpmmImplementation);
-    setDefaultConfig(_defaultConfig);
+    setDefaultParams(_defaultParams);
     setGovernance(_governance);
   }
 
@@ -111,9 +111,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMMFactory
-  function defaultConfig() public view returns (IFPMM.FPMMConfig memory) {
+  function defaultParams() public view returns (IFPMM.FPMMParams memory) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    return $.defaultConfig;
+    return $.defaultParams;
   }
 
   /// @inheritdoc IFPMMFactory
@@ -200,18 +200,18 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMMFactory
-  function setDefaultConfig(IFPMM.FPMMConfig calldata _defaultConfig) public onlyOwner {
-    require(_defaultConfig.lpFee <= 100, "FPMMFactory: LP_FEE_TOO_HIGH");
-    require(_defaultConfig.protocolFee <= 100, "FPMMFactory: PROTOCOL_FEE_TOO_HIGH");
-    require(_defaultConfig.protocolFee + _defaultConfig.lpFee <= 100, "FPMMFactory: COMBINED_FEE_TOO_HIGH");
-    require(_defaultConfig.protocolFeeRecipient != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(_defaultConfig.rebalanceIncentive <= 100, "FPMMFactory: REBALANCE_INCENTIVE_TOO_HIGH");
-    require(_defaultConfig.rebalanceThresholdAbove <= 1000, "FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
-    require(_defaultConfig.rebalanceThresholdBelow <= 1000, "FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
+  function setDefaultParams(IFPMM.FPMMParams calldata _defaultParams) public onlyOwner {
+    require(_defaultParams.lpFee <= 100, "FPMMFactory: LP_FEE_TOO_HIGH");
+    require(_defaultParams.protocolFee <= 100, "FPMMFactory: PROTOCOL_FEE_TOO_HIGH");
+    require(_defaultParams.protocolFee + _defaultParams.lpFee <= 100, "FPMMFactory: COMBINED_FEE_TOO_HIGH");
+    require(_defaultParams.protocolFeeRecipient != address(0), "FPMMFactory: ZERO_ADDRESS");
+    require(_defaultParams.rebalanceIncentive <= 100, "FPMMFactory: REBALANCE_INCENTIVE_TOO_HIGH");
+    require(_defaultParams.rebalanceThresholdAbove <= 1000, "FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
+    require(_defaultParams.rebalanceThresholdBelow <= 1000, "FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
 
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    $.defaultConfig = _defaultConfig;
-    emit DefaultConfigSet(_defaultConfig);
+    $.defaultParams = _defaultParams;
+    emit DefaultParamsSet(_defaultParams);
   }
 
   /// @inheritdoc IFPMMFactory
@@ -248,7 +248,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address token1,
     address referenceRateFeedID,
     bool invertRateFeed,
-    IFPMM.FPMMConfig calldata _customConfig
+    IFPMM.FPMMParams calldata customParams
   ) external onlyOwner returns (address) {
     (token0, token1) = sortTokens(token0, token1);
 
@@ -270,7 +270,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       token1,
       referenceRateFeedID,
       invertRateFeed,
-      _customConfig
+      customParams
     );
 
     emit FPMMDeployed(token0, token1, fpmmProxy, fpmmImplementation);
@@ -303,7 +303,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       token1,
       referenceRateFeedID,
       invertRateFeed,
-      $.defaultConfig
+      $.defaultParams
     );
 
     emit FPMMDeployed(token0, token1, fpmmProxy, fpmmImplementation);
@@ -326,7 +326,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @param _token1 The address of the second token
    * @param _referenceRateFeedID The address of the reference rate feed
    * @param _invertRateFeed Whether to invert the rate feed
-   * @param _config The configuration for the FPMM
+   * @param _params The parameters for the FPMM
    * @return The address of the deployed FPMM proxy
    */
   // slither-disable-start reentrancy-benign
@@ -341,7 +341,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address _token1,
     address _referenceRateFeedID,
     bool _invertRateFeed,
-    IFPMM.FPMMConfig memory _config
+    IFPMM.FPMMParams memory _params
   ) internal returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
 
@@ -354,7 +354,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       _token1,
       _referenceRateFeedID,
       _invertRateFeed,
-      _config
+      _params
     );
 
     $.deployedFPMMs[_token0][_token1] = newProxyAddress;
@@ -365,6 +365,19 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     return newProxyAddress;
   }
 
+  /**
+   * @notice Internal helper function to deploy a new FPMM proxy contract.
+   * @param _fpmmImplementation The address of the FPMM implementation
+   * @param _oracleAdapter The address of the oracle adapter contract
+   * @param _proxyAdmin The address of the proxy admin contract
+   * @param _governance The address of the governance contract
+   * @param _token0 The address of the first token
+   * @param _token1 The address of the second token
+   * @param _referenceRateFeedID The address of the reference rate feed
+   * @param _invertRateFeed Whether to invert the rate feed
+   * @param _params The parameters for the FPMM
+   * @return The address of the deployed FPMM proxy
+   */
   function _deployNewProxy(
     address _fpmmImplementation,
     address _oracleAdapter,
@@ -374,7 +387,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address _token1,
     address _referenceRateFeedID,
     bool _invertRateFeed,
-    IFPMM.FPMMConfig memory _config
+    IFPMM.FPMMParams memory _params
   ) internal returns (address) {
     (address expectedProxyAddress, bytes32 salt) = _computeProxyAddressAndSalt(_token0, _token1);
     bytes memory initData = abi.encodeWithSelector(
@@ -385,7 +398,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       _referenceRateFeedID,
       _invertRateFeed,
       _governance,
-      _config
+      _params
     );
     bytes memory proxyBytecode = abi.encodePacked(
       type(FPMMProxy).creationCode,

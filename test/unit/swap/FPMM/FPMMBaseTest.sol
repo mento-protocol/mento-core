@@ -34,8 +34,8 @@ contract FPMMBaseTest is Test {
   uint256 public constant TRADING_MODE_BIDIRECTIONAL = 0;
   uint256 public constant TRADING_MODE_DISABLED = 3;
 
-  IFPMM.FPMMConfig public defaultFpmmConfig =
-    IFPMM.FPMMConfig({
+  IFPMM.FPMMParams public defaultFpmmParams =
+    IFPMM.FPMMParams({
       lpFee: 30,
       protocolFee: 0,
       protocolFeeRecipient: makeAddr("protocolFeeRecipient"),
@@ -62,7 +62,7 @@ contract FPMMBaseTest is Test {
     token0 = address(new ERC20DecimalsMock("token0", "T0", decimals0));
     token1 = address(new ERC20DecimalsMock("token1", "T1", decimals1));
 
-    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner, defaultFpmmConfig);
+    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner, defaultFpmmParams);
 
     deal(token0, ALICE, 1_000 * 10 ** decimals0);
     deal(token1, ALICE, 1_000 * 10 ** decimals1);

@@ -128,7 +128,7 @@ contract FPMMAdminTest is FPMMBaseTest {
   {
     vm.prank(owner);
     vm.expectEmit();
-    emit ProtocolFeeRecipientUpdated(defaultFpmmConfig.protocolFeeRecipient, feeRecipient);
+    emit ProtocolFeeRecipientUpdated(defaultFpmmParams.protocolFeeRecipient, feeRecipient);
     fpmm.setProtocolFeeRecipient(feeRecipient);
 
     assertEq(fpmm.protocolFeeRecipient(), feeRecipient);

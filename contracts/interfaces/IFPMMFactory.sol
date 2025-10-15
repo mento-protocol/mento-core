@@ -50,9 +50,9 @@ interface IFPMMFactory is IRPoolFactory {
 
   /**
    * @notice Emitted when the default configuration is set.
-   * @param defaultConfig The new default configuration
+   * @param defaultParams The new default parameters
    */
-  event DefaultConfigSet(IFPMM.FPMMConfig defaultConfig);
+  event DefaultParamsSet(IFPMM.FPMMParams defaultParams);
 
   /* ======================================================== */
   /* ==================== View Functions ==================== */
@@ -77,10 +77,10 @@ interface IFPMMFactory is IRPoolFactory {
   function governance() external view returns (address);
 
   /**
-   * @notice Gets the default configuration for deployed FPMMs.
-   * @return The default configuration for deployed FPMMs
+   * @notice Gets the default parameters for deployed FPMMs.
+   * @return The default parameters for deployed FPMMs
    */
-  function defaultConfig() external view returns (IFPMM.FPMMConfig memory);
+  function defaultParams() external view returns (IFPMM.FPMMParams memory);
 
   /**
    * @notice Gets the list of deployed FPMM addresses.
@@ -120,14 +120,14 @@ interface IFPMMFactory is IRPoolFactory {
    * @param _proxyAdmin The address of the proxy admin contract
    * @param _governance The address of the governance contract
    * @param _fpmmImplementation The address of the FPMM implementation
-   * @param _defaultConfig The default configuration for deployed FPMMs
+   * @param _defaultParams The default parameters for deployed FPMMs
    */
   function initialize(
     address _oracleAdapter,
     address _proxyAdmin,
     address _governance,
     address _fpmmImplementation,
-    IFPMM.FPMMConfig calldata _defaultConfig
+    IFPMM.FPMMParams calldata _defaultParams
   ) external;
 
   /**
@@ -149,10 +149,10 @@ interface IFPMMFactory is IRPoolFactory {
   function setGovernance(address _governance) external;
 
   /**
-   * @notice Sets the default configuration for deployed FPMMs.
-   * @param _defaultConfig The new default configuration for deployed FPMMs
+   * @notice Sets the default parameters for deployed FPMMs.
+   * @param _defaultParams The new default parameters for deployed FPMMs
    */
-  function setDefaultConfig(IFPMM.FPMMConfig calldata _defaultConfig) external;
+  function setDefaultParams(IFPMM.FPMMParams calldata _defaultParams) external;
 
   /**
    * @notice Registers a new FPMM implementation address.
@@ -194,6 +194,7 @@ interface IFPMMFactory is IRPoolFactory {
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
    * @param invertRateFeed Wether to invert the rate feed so that the base is asset0 and quote is asset1
+   * @param customParams The custom parameters for the deployed FPMM
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
@@ -205,6 +206,6 @@ interface IFPMMFactory is IRPoolFactory {
     address token1,
     address referenceRateFeedID,
     bool invertRateFeed,
-    IFPMM.FPMMConfig memory _customConfig
+    IFPMM.FPMMParams memory customParams
   ) external returns (address proxy);
 }

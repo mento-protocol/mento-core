@@ -49,12 +49,19 @@ interface IFPMM is IRPool {
     mapping(address => bool) liquidityStrategy;
   }
 
-  struct FPMMConfig {
+  /// @notice Struct containing the initialization parameters for the FPMM contract
+  struct FPMMParams {
+    // fee taken from the swap for liquidity providers
     uint256 lpFee;
+    // fee taken from the swap for the protocol
     uint256 protocolFee;
+    // recipient of the protocol fee
     address protocolFeeRecipient;
+    // incentive percentage for rebalancing the pool
     uint256 rebalanceIncentive;
+    // threshold for rebalancing the pool when reserve price > oracle price
     uint256 rebalanceThresholdAbove;
+    // threshold for rebalancing the pool when reserve price < oracle price
     uint256 rebalanceThresholdBelow;
   }
 
@@ -270,7 +277,7 @@ interface IFPMM is IRPool {
    * @param _referenceRateFeedID Address of the reference rate feed ID
    * @param _invertRateFeed Whether to invert the rate feed
    * @param _initialOwner Address of the owner
-   * @param _config Configuration for the FPMM contract
+   * @param _params Parameters for the FPMM contract
    */
   function initialize(
     address _token0,
@@ -279,7 +286,7 @@ interface IFPMM is IRPool {
     address _referenceRateFeedID,
     bool _invertRateFeed,
     address _initialOwner,
-    FPMMConfig calldata _config
+    FPMMParams calldata _params
   ) external;
 
   /**

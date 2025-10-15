@@ -37,8 +37,8 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   // Test environment
   uint256 public celoFork = vm.createFork("https://forno.celo.org");
 
-  IFPMM.FPMMConfig public defaultFpmmConfig =
-    IFPMM.FPMMConfig({
+  IFPMM.FPMMParams public defaultFpmmParams =
+    IFPMM.FPMMParams({
       lpFee: 30,
       protocolFee: 0,
       protocolFeeRecipient: makeAddr("protocolFeeRecipient"),
@@ -77,7 +77,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
       proxyAdmin,
       governance,
       address(fpmmImplementation),
-      defaultFpmmConfig
+      defaultFpmmParams
     );
   }
 
