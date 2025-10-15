@@ -14,6 +14,8 @@ import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 
+import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
+
 contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   CDPLiquidityStrategyHarness public strategy;
 
@@ -27,11 +29,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     strategyAddr = address(strategy);
   }
 
-  modifier addFpmm(
-    uint64 cooldown,
-    uint32 incentiveBps,
-    uint256 stabilityPoolPercentage
-  ) {
+  modifier addFpmm(uint64 cooldown, uint32 incentiveBps, uint256 stabilityPoolPercentage) {
     // Deploy collateral registry mock
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
 
@@ -268,5 +266,96 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
 
     // Allow 1bp difference due to rounding
     assertApproxEqAbs(actualIncentive, expectedIncentiveBps, 1, "Incentive should match expected value");
+  }
+
+  /**
+   * @notice Assert the reserve value change is within the incentive
+   * @param reserve0Before Reserve of token0 before the rebalance
+   * @param reserve1Before Reserve of token1 before the rebalance
+   * @param reserve0After Reserve of token0 after the rebalance
+   * @param reserve1After Reserve of token1 after the rebalance
+   */
+  function assertReserveValueIncentives(
+    uint256 reserve0Before,
+    uint256 reserve1Before,
+    uint256 reserve0After,
+    uint256 reserve1After
+  ) public {
+    (uint256 rateNumerator, uint256 rateDenominator, , , , ) = fpmm.getPrices();
+
+    uint256 token0Scaler = 10 ** MockERC20(fpmm.token0()).decimals();
+    uint256 token1Scaler = 10 ** MockERC20(fpmm.token1()).decimals();
+
+    uint256 totalReserveValueBefore;
+    uint256 totalReserveValueAfter;
+    if (token0Scaler > token1Scaler) {
+      // calculate total reserve value token0
+      totalReserveValueBefore =
+        reserve0Before +
+        convertWithRateAndScale(reserve1Before, rateDenominator, rateNumerator, token1Scaler, token0Scaler);
+
+      totalReserveValueAfter =
+        reserve0After +
+        convertWithRateAndScale(reserve1After, rateDenominator, rateNumerator, token1Scaler, token0Scaler);
+    } else {
+      // calculate total reserve value token1
+      totalReserveValueBefore =
+        reserve1Before +
+        convertWithRateAndScale(reserve0Before, rateNumerator, rateDenominator, token0Scaler, token1Scaler);
+      totalReserveValueAfter =
+        reserve1After +
+        convertWithRateAndScale(reserve0After, rateNumerator, rateDenominator, token0Scaler, token1Scaler);
+    }
+    uint256 reserveValueDifference = ((totalReserveValueBefore - totalReserveValueAfter) * 10_000) /
+      totalReserveValueBefore;
+    // Since we allow the incentive to be up to 50 bps of the amount taken out off the fppm
+    // and the max amount that makes sense for a rebalance is taking out 50% of the reserves,
+    // we allow the reserve value difference to be up to 0.25% of the total reserve value
+    assertTrue(reserveValueDifference <= 25); // 0.25%
+  }
+
+  /**
+   * @notice Assert the rebalance amounts are within the incentive
+   * @param amountTakenOut Amount of the token taken out
+   * @param amountAdded Amount of the token added
+   * @param isToken0Out True if the token taken out is token0, false otherwise
+   * @param isCheapContraction True if the rebalance is a cheap contraction (contraction with less than 50bps)
+   */
+  function assertRebalanceAmountIncentives(
+    uint256 amountTakenOut,
+    uint256 amountAdded,
+    bool isToken0Out,
+    bool isCheapContraction
+  ) public {
+    (uint256 rateNumerator, uint256 rateDenominator, , , , ) = fpmm.getPrices();
+
+    uint256 token0Scaler = 10 ** MockERC20(fpmm.token0()).decimals();
+    uint256 token1Scaler = 10 ** MockERC20(fpmm.token1()).decimals();
+
+    uint256 amountInInTokenOut;
+    if (isToken0Out) {
+      amountInInTokenOut = ((amountAdded * rateDenominator * token0Scaler) / (rateNumerator * token1Scaler));
+    } else {
+      amountInInTokenOut = ((amountAdded * rateNumerator * token1Scaler) / (rateDenominator * token0Scaler));
+    }
+    uint256 bpsDifference = ((amountTakenOut - amountInInTokenOut) * 10_000) / amountTakenOut;
+
+    // 50 bps is the max but for contractions the amount can be less depending on the redemption rate
+    if (isCheapContraction) {
+      assertTrue(bpsDifference < 50); // 0.5%
+    } else {
+      // we allow for a difference of 1 due to rounding when token decimals differ
+      assertApproxEqAbs(bpsDifference, 50, 1); // 0.5%
+    }
+  }
+
+  function convertWithRateAndScale(
+    uint256 amount,
+    uint256 rateNumerator,
+    uint256 rateDenominator,
+    uint256 fromDec,
+    uint256 toDec
+  ) public pure returns (uint256) {
+    return (amount * rateNumerator * toDec) / (rateDenominator * fromDec);
   }
 }
