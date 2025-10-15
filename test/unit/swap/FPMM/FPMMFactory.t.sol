@@ -89,7 +89,7 @@ contract FPMMFactoryTest is Test {
     });
   }
 
-  function assertEqFPMMParams(IFPMM.FPMMParams memory expected, IFPMM.FPMMParams memory actual) internal {
+  function assertEqFPMMParams(IFPMM.FPMMParams memory expected, IFPMM.FPMMParams memory actual) internal pure {
     assertEq(expected.lpFee, actual.lpFee);
     assertEq(expected.protocolFee, actual.protocolFee);
     assertEq(expected.protocolFeeRecipient, actual.protocolFeeRecipient);
