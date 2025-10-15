@@ -49,7 +49,7 @@ interface IFPMMFactory is IRPoolFactory {
   event GovernanceSet(address indexed governance);
 
   /**
-   * @notice Emitted when the default configuration is set.
+   * @notice Emitted when the default parameters are set.
    * @param defaultParams The new default parameters
    */
   event DefaultParamsSet(IFPMM.FPMMParams defaultParams);
