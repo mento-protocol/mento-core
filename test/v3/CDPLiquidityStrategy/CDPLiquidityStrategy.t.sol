@@ -14,7 +14,7 @@ import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { LiquidityController } from "contracts/v3/LiquidityController.sol";
 import { ILiquidityPolicy } from "contracts/v3/Interfaces/ILiquidityPolicy.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
-
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
 
 contract CDPLiquidityStrategyTest is Test {
@@ -31,6 +31,16 @@ contract CDPLiquidityStrategyTest is Test {
   address public referenceRateFeedID = makeAddr("referenceRateFeedID");
   uint256 public oracleNumerator;
   uint256 public oracleDenominator;
+
+  IFPMM.FPMMParams public defaultFpmmParams =
+    IFPMM.FPMMParams({
+      lpFee: 30,
+      protocolFee: 0,
+      protocolFeeRecipient: makeAddr("protocolFeeRecipient"),
+      rebalanceIncentive: 50,
+      rebalanceThresholdAbove: 500,
+      rebalanceThresholdBelow: 500
+    });
 
   function setUp() public {
     fpmm = new FPMM(false);
@@ -50,7 +60,7 @@ contract CDPLiquidityStrategyTest is Test {
     mockStabilityPool = new MockStabilityPool(debtToken, collToken);
 
     // initialize fpmm and set liquidity strategy
-    fpmm.initialize(debtToken, collToken, oracleAdapter, referenceRateFeedID, false, address(this));
+    fpmm.initialize(debtToken, collToken, oracleAdapter, referenceRateFeedID, false, address(this), defaultFpmmParams);
     fpmm.setLiquidityStrategy(address(cdpLiquidityStrategy), true);
 
     // deploy cdp policy
@@ -97,7 +107,7 @@ contract CDPLiquidityStrategyTest is Test {
     mockStabilityPool = new MockStabilityPool(debtToken, collToken);
 
     // initialize fpmm and set liquidity strategy
-    fpmm.initialize(collToken, debtToken, oracleAdapter, referenceRateFeedID, false, address(this));
+    fpmm.initialize(collToken, debtToken, oracleAdapter, referenceRateFeedID, false, address(this), defaultFpmmParams);
     fpmm.setLiquidityStrategy(address(cdpLiquidityStrategy), true);
 
     // deploy cdp policy
