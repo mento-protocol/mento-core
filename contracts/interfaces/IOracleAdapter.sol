@@ -28,6 +28,19 @@ interface IOracleAdapter {
     bool isFXMarketOpen;
   }
 
+  /* ========== ERRORS ========== */
+
+  // @notice Thrown when the FX market is closed
+  error FXMarketClosed();
+  // @notice Thrown when trading is suspended because of a breaker
+  error TradingSuspended();
+  // @notice Thrown when the rate in sorted oracles is 0
+  error InvalidRate();
+  // @notice Thrown when no recent rate is available
+  error NoRecentRate();
+  // @notice Thrown when trying to set a zero address as a contract address
+  error ZeroAddress();
+
   /* ========== EVENTS ========== */
 
   /**

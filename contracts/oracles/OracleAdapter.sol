@@ -68,7 +68,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
   /// @inheritdoc IOracleAdapter
   function setSortedOracles(address _sortedOracles) public onlyOwner {
-    require(_sortedOracles != address(0), "OracleAdapter: ZERO_ADDRESS");
+    if (_sortedOracles == address(0)) revert ZeroAddress();
 
     OracleAdapterStorage storage $ = _getStorage();
     address oldSortedOracles = address($.sortedOracles);
@@ -79,7 +79,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
   /// @inheritdoc IOracleAdapter
   function setBreakerBox(address _breakerBox) public onlyOwner {
-    require(_breakerBox != address(0), "OracleAdapter: ZERO_ADDRESS");
+    if (_breakerBox == address(0)) revert ZeroAddress();
 
     OracleAdapterStorage storage $ = _getStorage();
     address oldBreakerBox = address($.breakerBox);
@@ -90,7 +90,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
   /// @inheritdoc IOracleAdapter
   function setMarketHoursBreaker(address _marketHoursBreaker) public onlyOwner {
-    require(_marketHoursBreaker != address(0), "OracleAdapter: ZERO_ADDRESS");
+    if (_marketHoursBreaker == address(0)) revert ZeroAddress();
 
     OracleAdapterStorage storage $ = _getStorage();
     address oldMarketHoursBreaker = address($.marketHoursBreaker);
@@ -129,17 +129,17 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
   /// @inheritdoc IOracleAdapter
   function getRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator) {
-    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
-    require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
+    if (_getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL) revert TradingSuspended();
+    if (!_hasRecentRate(rateFeedID)) revert NoRecentRate();
 
     return _getOracleRate(rateFeedID);
   }
 
   /// @inheritdoc IOracleAdapter
   function getFXRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator) {
-    require(_isFXMarketOpen(), "OracleAdapter: FX_MARKET_CLOSED");
-    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
-    require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
+    if (!_isFXMarketOpen()) revert FXMarketClosed();
+    if (_getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL) revert TradingSuspended();
+    if (!_hasRecentRate(rateFeedID)) revert NoRecentRate();
 
     return _getOracleRate(rateFeedID);
   }
@@ -151,8 +151,9 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
   /// @inheritdoc IOracleAdapter
   function ensureRateValid(address rateFeedID) external view {
-    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
-    require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
+    if (_getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL) revert TradingSuspended();
+    if (!_hasRecentRate(rateFeedID)) revert NoRecentRate();
+    _getOracleRate(rateFeedID);
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */
@@ -173,6 +174,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     OracleAdapterStorage storage $ = _getStorage();
 
     (numerator, denominator) = $.sortedOracles.medianRate(rateFeedID);
+    if (numerator == 0 || denominator == 0) revert InvalidRate();
 
     numerator = numerator / 1e6;
     denominator = denominator / 1e6;

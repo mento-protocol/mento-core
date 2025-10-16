@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { MockLiquidityStrategy } from "./helpers/MockLiquidityStrategy.sol";
-
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
 contract FPMMRebalanceTest is FPMMBaseTest {
@@ -159,7 +159,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    vm.expectRevert(IOracleAdapter.TradingSuspended.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
@@ -173,7 +173,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
+    vm.expectRevert(IOracleAdapter.FXMarketClosed.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
@@ -187,7 +187,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(false)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
