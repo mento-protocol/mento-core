@@ -34,7 +34,8 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockStabilityPool),
       address(mockCollateralRegistry),
       1, // redemptionBeta
-      9000 // stabilityPoolPercentage (90%)
+      9000, // stabilityPoolPercentage (90%)
+      100 // maxIterations
     );
 
     // Verify pool is registered
@@ -46,6 +47,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     assertEq(config.collateralRegistry, address(mockCollateralRegistry), "Collateral registry should match");
     assertEq(config.redemptionBeta, 1, "Redemption beta should match");
     assertEq(config.stabilityPoolPercentage, 9000, "Stability pool percentage should match");
+    assertEq(config.maxIterations, 100, "Max iterations should match");
   }
 
   function test_addPool_whenCalledByNonOwner_shouldRevert() public fpmmToken0Debt(18, 18) {
@@ -62,7 +64,8 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockStabilityPool),
       address(mockCollateralRegistry),
       1,
-      9000
+      9000,
+      100
     );
   }
 
@@ -80,7 +83,8 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockStabilityPool),
       address(mockCollateralRegistry),
       1,
-      0 // Invalid: 0%
+      0, // Invalid: 0%
+      100
     );
   }
 
@@ -98,7 +102,8 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockStabilityPool),
       address(mockCollateralRegistry),
       1,
-      10000 // Invalid: 100%
+      10000, // Invalid: 100%
+      100
     );
   }
 
@@ -115,7 +120,8 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockStabilityPool),
       address(0), // Invalid
       1,
-      9000
+      9000,
+      100
     );
   }
 
@@ -132,7 +138,8 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(0), // Invalid
       address(mockCollateralRegistry),
       1,
-      9000
+      9000,
+      100
     );
   }
 
@@ -185,7 +192,8 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       stabilityPool: address(newStabilityPool),
       collateralRegistry: address(newCollateralRegistry),
       redemptionBeta: 2,
-      stabilityPoolPercentage: 8000 // 80%
+      stabilityPoolPercentage: 8000, // 80%
+      maxIterations: 100
     });
 
     vm.prank(owner);
@@ -197,6 +205,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     assertEq(config.collateralRegistry, address(newCollateralRegistry), "Collateral registry should be updated");
     assertEq(config.redemptionBeta, 2, "Redemption beta should be updated");
     assertEq(config.stabilityPoolPercentage, 8000, "Stability pool percentage should be updated");
+    assertEq(config.maxIterations, 100, "Max iterations should be updated");
   }
 
   function test_setCDPConfig_whenCalledByNonOwner_shouldRevert() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 9000) {
@@ -204,7 +213,8 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(mockCollateralRegistry),
       redemptionBeta: 2,
-      stabilityPoolPercentage: 8000
+      stabilityPoolPercentage: 8000,
+      maxIterations: 100
     });
 
     vm.expectRevert("Ownable: caller is not the owner");
@@ -217,7 +227,8 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(mockCollateralRegistry),
       redemptionBeta: 2,
-      stabilityPoolPercentage: 8000
+      stabilityPoolPercentage: 8000,
+      maxIterations: 100
     });
 
     vm.expectRevert("LS_POOL_NOT_FOUND()");
@@ -240,6 +251,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     assertEq(config.collateralRegistry, address(mockCollateralRegistry), "Collateral registry should match");
     assertEq(config.redemptionBeta, 1, "Redemption beta should match");
     assertEq(config.stabilityPoolPercentage, 9000, "Stability pool percentage should match");
+    assertEq(config.maxIterations, 100, "Max iterations should match");
   }
 
   function test_getCDPConfig_whenPoolNotRegistered_shouldRevert() public fpmmToken0Debt(18, 18) {

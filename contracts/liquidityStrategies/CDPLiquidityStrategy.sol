@@ -42,7 +42,8 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     address stabilityPool,
     address collateralRegistry,
     uint256 redemptionBeta,
-    uint256 stabilityPoolPercentage
+    uint256 stabilityPoolPercentage,
+    uint256 maxIterations
   ) external onlyOwner {
     if (!(0 < stabilityPoolPercentage && stabilityPoolPercentage < BPS_DENOMINATOR))
       revert CDPLS_INVALID_STABILITY_POOL_PERCENTAGE();
@@ -54,7 +55,8 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
       stabilityPool: stabilityPool,
       collateralRegistry: collateralRegistry,
       redemptionBeta: redemptionBeta,
-      stabilityPoolPercentage: stabilityPoolPercentage
+      stabilityPoolPercentage: stabilityPoolPercentage,
+      maxIterations: maxIterations
     });
   }
 
@@ -160,7 +162,8 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
       // Contraction: redeem debt for collateral
       uint256 debtAmount = amount0Out > 0 ? amount0Out : amount1Out;
       address collateralRegistry = cdpConfigs[pool].collateralRegistry;
-      ICollateralRegistry(collateralRegistry).redeemCollateral(debtAmount, 100, cb.incentiveBps);
+      uint256 maxIterations = cdpConfigs[pool].maxIterations;
+      ICollateralRegistry(collateralRegistry).redeemCollateral(debtAmount, maxIterations, cb.incentiveBps);
 
       uint256 collateralBalance = IERC20(cb.collToken).balanceOf(address(this));
       if (collateralBalance < cb.amountOwedToPool) revert CDPLS_INSUFFICIENT_COLLATERAL_FROM_REDEMPTION();
@@ -186,15 +189,12 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   ) private view returns (uint256 availableAmount) {
     uint256 stabilityPoolBalance = IERC20(debtToken).balanceOf(cdpConfig.stabilityPool);
     uint256 stabilityPoolMinBalance = IStabilityPool(cdpConfig.stabilityPool).MIN_BOLD_AFTER_REBALANCE();
-
     if (stabilityPoolBalance <= stabilityPoolMinBalance) revert CDPLS_STABILITY_POOL_BALANCE_TOO_LOW();
 
-    uint256 stabilityPoolAvailable = (stabilityPoolBalance * cdpConfig.stabilityPoolPercentage) / BPS_DENOMINATOR;
+    uint256 targetDebtToExtract = (stabilityPoolBalance * cdpConfig.stabilityPoolPercentage) / BPS_DENOMINATOR;
+    uint256 maxDebtExtractable = stabilityPoolBalance - stabilityPoolMinBalance;
 
-    uint256 availableAmountAfterMinBalance = stabilityPoolBalance - stabilityPoolMinBalance;
-    availableAmount = stabilityPoolAvailable > availableAmountAfterMinBalance
-      ? availableAmountAfterMinBalance
-      : stabilityPoolAvailable;
+    availableAmount = targetDebtToExtract > maxDebtExtractable ? maxDebtExtractable : targetDebtToExtract;
   }
 
   /**

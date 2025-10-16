@@ -47,7 +47,8 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       address(mockStabilityPool),
       address(mockCollateralRegistry),
       1, // redemption beta
-      stabilityPoolPercentage
+      stabilityPoolPercentage,
+      100 // maxIterations
     );
     _;
   }
