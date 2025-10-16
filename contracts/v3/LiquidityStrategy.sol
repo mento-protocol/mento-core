@@ -2,7 +2,6 @@
 pragma solidity 0.8.24;
 // solhint-disable max-line-length
 
-import { console } from "forge-std/console.sol";
 import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
 import { EnumerableSet } from "openzeppelin-contracts-next/contracts/utils/structs/EnumerableSet.sol";
@@ -40,7 +39,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @notice Constructor
    * @param _initialOwner The initial owner of the contract
    */
-  constructor(address _initialOwner) Ownable() ReentrancyGuard() {
+  constructor(address _initialOwner) {
     if (_initialOwner == address(0)) revert LS_INVALID_OWNER();
     _transferOwnership(_initialOwner);
   }
@@ -84,8 +83,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
 
     LQ.Context memory ctx = LQ.newContext(pool, config);
     LQ.Action memory action = _determineAction(ctx);
-
-    console.log("Direction:", uint256(action.dir));
 
     (address debtToken, address collToken) = ctx.tokens();
 
@@ -332,23 +329,11 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @return action The constructed rebalance action
    */
   function _handlePoolPriceBelow(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
-    console.log("=== _handlePoolPriceBelow ===");
-    console.log("ON:", ctx.prices.oracleNum);
-    console.log("OD:", ctx.prices.oracleDen);
-    console.log("reserveDen (reserve0):", ctx.reserves.reserveDen);
-    console.log("reserveNum (reserve1):", ctx.reserves.reserveNum);
-    console.log("incentiveBps:", ctx.incentiveBps);
-    console.log("isToken0Debt:", ctx.isToken0Debt);
-
     uint256 numerator = ctx.prices.oracleNum * ctx.reserves.reserveDen - ctx.prices.oracleDen * ctx.reserves.reserveNum;
     uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
-    console.log("numerator:", numerator);
-    console.log("denominator:", denominator);
-
     uint256 token0Out = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token0Dec);
-    console.log("token0Out: ", token0Out);
 
     uint256 token1In = LQ.convertWithRateScalingAndFee(
       token0Out,
@@ -359,7 +344,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
       LQ.BASIS_POINTS_DENOMINATOR
     );
-    console.log("token1In: ", token1In);
 
     if (ctx.isToken0Debt) {
       // ON/OD > RN/RD => Pool price < Oracle price
@@ -385,7 +369,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     uint256 idealDebtToExpand,
     uint256 idealCollateralToPay
   ) internal view returns (LQ.Action memory action) {
-    console.log(idealDebtToExpand, idealCollateralToPay);
     (uint256 debtToExpand, uint256 collateralToPay) = _clampExpansion(ctx, idealDebtToExpand, idealCollateralToPay);
 
     return ctx.newExpansion(debtToExpand, collateralToPay);
