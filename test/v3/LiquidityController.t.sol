@@ -28,7 +28,6 @@ contract LiquidityControllerTest is Test {
   address public ALICE = makeAddr("ALICE");
   address public BOB = makeAddr("BOB");
   address public NOT_OWNER = makeAddr("NOT_OWNER");
-
   bool public isToken0Debt;
 
   event PoolAdded(address indexed pool, address debt, address collateral, uint64 cooldown, uint32 incentiveBps);
@@ -52,7 +51,6 @@ contract LiquidityControllerTest is Test {
 
     debtToken = address(new ERC20DecimalsMock("DebtToken", "DEBT", 18));
     collateralToken = address(new ERC20DecimalsMock("CollateralToken", "COLL", 18));
-
     // Calculate token ordering once
     isToken0Debt = debtToken < collateralToken;
 
@@ -488,7 +486,6 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
@@ -520,7 +517,6 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
@@ -696,7 +692,6 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
@@ -783,7 +778,6 @@ contract LiquidityControllerTest is Test {
 
     mockPool.setDiffBps(600, true);
     mockPolicy.setShouldAct(true);
-
     mockPolicy.setAction(
       LQ.Action({
         pool: address(mockPool),
@@ -832,5 +826,9 @@ contract ReentrantStrategy is ILiquidityStrategy {
   function execute(LQ.Action calldata) external returns (bool) {
     controller.rebalance(pool);
     return true;
+  }
+
+  function hook(address sender, uint256 amount0, uint256 amount1, bytes calldata data) external {
+    // do nothing
   }
 }

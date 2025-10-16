@@ -1,6 +1,9 @@
+lib/bold/:openzeppelin-contracts/=lib/bold/contracts/lib/openzeppelin-contracts/
+openzeppelin/=lib/openzeppelin-contracts/
 openzeppelin-solidity/=lib/openzeppelin-contracts/
 openzeppelin-contracts/=lib/openzeppelin-contracts-next/
 openzeppelin-contracts-next/=lib/openzeppelin-contracts-next/
+bold/=lib/bold/contracts/src
 test/=test/
 forge-std/=lib/forge-std/src/
 safe-contracts/=lib/safe-contracts/

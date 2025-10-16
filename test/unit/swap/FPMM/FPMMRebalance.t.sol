@@ -363,7 +363,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // Borrow 40 token1 and exchange it for 33.33 token0
     // 133.33 / 160 = 1.2
     uint256 rebalanceAmount = 40e6;
-    uint256 expectedAmount0In = fpmm.convertWithRate(
+    uint256 expectedAmount0In = liquidityStrategy.convertWithRate(
       rebalanceAmount,
       1e6,
       1e18,

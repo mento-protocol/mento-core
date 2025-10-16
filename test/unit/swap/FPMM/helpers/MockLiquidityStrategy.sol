@@ -69,8 +69,8 @@ contract MockLiquidityStrategy is IFPMMCallee {
     uint256 token1ToAdd;
 
     if (shouldMovePrice) {
-      token0ToAdd = fpmm.convertWithRate(amount1, dec1, dec0, oraclePriceDenominator, oraclePriceNumerator);
-      token1ToAdd = fpmm.convertWithRate(amount0, dec0, dec1, oraclePriceNumerator, oraclePriceDenominator);
+      token0ToAdd = convertWithRate(amount1, dec1, dec0, oraclePriceDenominator, oraclePriceNumerator);
+      token1ToAdd = convertWithRate(amount0, dec0, dec1, oraclePriceNumerator, oraclePriceDenominator);
       if (profitPercentage > 0) {
         token0ToAdd = (token0ToAdd * (10000 - profitPercentage)) / 10000;
         token1ToAdd = (token1ToAdd * (10000 - profitPercentage)) / 10000;
@@ -86,5 +86,15 @@ contract MockLiquidityStrategy is IFPMMCallee {
     if (token1ToAdd > 0) {
       IERC20(token1).transfer(address(fpmm), token1ToAdd);
     }
+  }
+
+  function convertWithRate(
+    uint256 amount,
+    uint256 fromDecimals,
+    uint256 toDecimals,
+    uint256 numerator,
+    uint256 denominator
+  ) public pure returns (uint256) {
+    return (amount * numerator * toDecimals) / (denominator * fromDecimals);
   }
 }

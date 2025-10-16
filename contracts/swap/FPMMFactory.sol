@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.18;
+pragma solidity 0.8.24;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
@@ -435,6 +435,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address proxyAddress = ICreateX(CREATEX).computeCreate3Address(guardedSalt);
     return (proxyAddress, salt);
   }
+
+  // slither-disable-end encode-packed-collision
 
   /**
    * @notice Returns the pointer to the FPMMFactoryStorage struct.

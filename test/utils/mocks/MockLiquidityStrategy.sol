@@ -47,6 +47,10 @@ contract MockLiquidityStrategy is ILiquidityStrategy {
     return executionResult;
   }
 
+  function hook(address sender, uint256 amount0, uint256 amount1, bytes calldata data) external {
+    // do nothing
+  }
+
   // Reset tracking state for cleaner test setup
   function resetTracking() external {
     executionCount = 0;
