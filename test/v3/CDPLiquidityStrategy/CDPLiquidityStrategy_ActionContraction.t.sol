@@ -265,8 +265,10 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     mockRedemptionRateWithDecay(baseRate);
 
     // Calculate target amount to redeem (from ideal contraction formula)
-    uint256 targetAmountToRedeem = (ctx.reserves.reserveNum * ctx.prices.oracleDen - ctx.reserves.reserveDen * ctx.prices.oracleNum) /
-      ctx.prices.oracleDen;
+    uint256 targetAmountToRedeem = (ctx.reserves.reserveNum *
+      ctx.prices.oracleDen -
+      ctx.reserves.reserveDen *
+      ctx.prices.oracleNum) / ctx.prices.oracleDen;
 
     // Calculate supply where redemption fee equals incentive:
     // targetSupply = (targetAmount * 1e18) / (incentive - baseRate)

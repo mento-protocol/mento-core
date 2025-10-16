@@ -133,13 +133,22 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
     // Formula: X = (OD * RN - ON * RD) / (OD * (2 - i))
     // X = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * (20000 - 9999) / 10000)
     // X = 100e18 / 1.0001 ≈ 99.99e18
-    assertApproxEqAbs(action.amount1Out, 100e18, 1e17, "Should calculate correct collateral out with near-max incentive");
+    assertApproxEqAbs(
+      action.amount1Out,
+      100e18,
+      1e17,
+      "Should calculate correct collateral out with near-max incentive"
+    );
 
     // Y = X * (1 - i) = X * 0.0001 ≈ 0.01e18
     assertApproxEqAbs(action.amountOwedToPool, 1e16, 1e15, "Should have very small amount owed with 99.99% incentive");
   }
 
-  function test_edgeCase_whenIncentiveAt10000_shouldReturnZeroAmountOwed() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_edgeCase_whenIncentiveAt10000_shouldReturnZeroAmountOwed()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 100)
+  {
     // Test with incentive at exactly 10000 bps (100%) - maximum valid value
     // With 100% incentive, Y = X * (1 - 1) = 0
     LQ.Context memory ctx = _createContext({
@@ -183,8 +192,13 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
         // Verify Y = X * OD/ON * (1 - i) relationship still holds with high incentives
         if (action.amount1Out > 0) {
           uint256 expectedY = (action.amount1Out * ctx.prices.oracleDen * (10000 - ctx.incentiveBps)) /
-                              (ctx.prices.oracleNum * 10000);
-          assertApproxEqAbs(action.amountOwedToPool, expectedY, 1, "Y relationship should hold even with high incentive");
+            (ctx.prices.oracleNum * 10000);
+          assertApproxEqAbs(
+            action.amountOwedToPool,
+            expectedY,
+            1,
+            "Y relationship should hold even with high incentive"
+          );
         }
       }
     }

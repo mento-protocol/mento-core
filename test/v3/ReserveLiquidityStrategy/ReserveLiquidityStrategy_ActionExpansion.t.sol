@@ -15,7 +15,11 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
   /* ================= Expansion Tests ========================== */
   /* ============================================================ */
 
-  function test_determineAction_whenPoolPriceAboveOracle_shouldReturnExpandAction() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_determineAction_whenPoolPriceAboveOracle_shouldReturnExpandAction()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 100)
+  {
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
       reserveNum: 200e18, // token1 reserves
@@ -33,7 +37,11 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
     assertGt(action.amountOwedToPool, 0, "Should have debt input amount");
   }
 
-  function test_determineAction_whenPoolPriceAboveOracleWithDifferentDecimals_shouldHandleCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_determineAction_whenPoolPriceAboveOracleWithDifferentDecimals_shouldHandleCorrectly()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 100)
+  {
     // Test with 6 decimal token1 and 18 decimal token0
     // Reserves are normalized to 18 decimals: 200 token1 = 200e18 normalized
     LQ.Context memory ctx = _createContextWithDecimals({
@@ -55,7 +63,11 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
     assertLt(action.amount1Out, 1e12, "Collateral output should be in 6-decimal scale");
   }
 
-  function test_determineAction_whenPoolPriceAboveOracleWithZeroIncentive_shouldReturnCorrectAmounts() public fpmmToken0Debt(18, 18) addFpmm(0, 0) {
+  function test_determineAction_whenPoolPriceAboveOracleWithZeroIncentive_shouldReturnCorrectAmounts()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 0)
+  {
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
       reserveNum: 200e18, // token1 reserves
@@ -76,7 +88,11 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
     assertEq(action.amountOwedToPool, 50e18, "Should calculate correct debt input amount");
   }
 
-  function test_determineAction_whenPoolPriceAboveOracleWithMaxIncentive_shouldReturnCorrectAmounts() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_determineAction_whenPoolPriceAboveOracleWithMaxIncentive_shouldReturnCorrectAmounts()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 100)
+  {
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
       reserveNum: 200e18, // token1 reserves
@@ -101,7 +117,11 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
   /* ================= Expansion Formula Tests ================== */
   /* ============================================================ */
 
-  function test_formulaValidation_whenPPGreaterThanOP_shouldFollowExactFormula() public fpmmToken0Debt(18, 18) addFpmm(0, 0) {
+  function test_formulaValidation_whenPPGreaterThanOP_shouldFollowExactFormula()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 0)
+  {
     // PP > OP: X = (OD * RN - ON * RD) / (OD * (2 - i))
     // Test with specific values that give clean division: RN=400, RD=100, ON=2, OD=1, i=0
     LQ.Context memory ctx = _createContext({
