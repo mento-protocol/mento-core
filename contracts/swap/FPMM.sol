@@ -425,6 +425,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   // slither-disable-end reentrancy-no-eth
 
   // slither-disable-start reentrancy-no-eth
+  // solhint-disable code-complexity
   /// @inheritdoc IFPMM
   function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external nonReentrant {
     FPMMStorage storage $ = _getFPMMStorage();
@@ -483,6 +484,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     emit Rebalanced(msg.sender, swapData.initialPriceDifference, newPriceDifference);
   }
 
+  // solhint-enable code-complexity
   // slither-disable-end reentrancy-no-eth
 
   /* ========== ADMIN FUNCTIONS ========== */
