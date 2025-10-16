@@ -35,7 +35,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     // Rebalance should expand (remove excess collateral)
     // Expansion: debt flows IN, collateral flows OUT
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -58,7 +58,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     // Rebalance should contract (add collateral to pool)
     // Contraction: collateral flows IN, debt flows OUT
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -101,7 +101,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     // Should expand even with zero incentive
     // Expansion: debt flows IN, collateral flows OUT
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -119,7 +119,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     // Should contract with incentive
     // Contraction: collateral flows IN, debt flows OUT
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -200,7 +200,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     // Should expand (remove excess collateral)
     // Expansion: debt flows IN, collateral flows OUT
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -219,7 +219,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     // Should contract (add collateral to pool)
     // Contraction: collateral flows IN, debt flows OUT
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -242,7 +242,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     // Should contract (add collateral)
     // Contraction: collateral flows IN, debt flows OUT
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -261,7 +261,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     // Should expand (remove excess collateral)
     // Expansion: debt flows IN, collateral flows OUT
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -300,7 +300,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     // Should expand to remove excess collateral
     // Expansion: debt flows IN, collateral flows OUT
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 

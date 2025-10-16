@@ -111,9 +111,8 @@ library LiquidityStrategyTypes {
       ctx.token1Dec = uint64(dec1);
       ctx.isToken0Debt = config.isToken0Debt;
 
-      // Set incentive
-      uint256 fpmmIncentive = fpmm.rebalanceIncentive();
-      ctx.incentiveBps = uint128(config.rebalanceIncentive < fpmmIncentive ? config.rebalanceIncentive : fpmmIncentive);
+      // Set incentive from FPMM
+      ctx.incentiveBps = uint128(fpmm.rebalanceIncentive());
     }
 
     // Get and set price data

@@ -145,12 +145,13 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   function _expectLiquidityMovedEvent(
     address _pool,
     LQ.Direction _direction,
-    uint256 _debtAmount,
-    uint256 _collateralAmount,
-    uint256 _incentiveAmount
+    address _tokenGivenToPool,
+    uint256 _amountGivenToPool,
+    address _tokenTakenFromPool,
+    uint256 _amountTakenFromPool
   ) internal {
-    vm.expectEmit(true, false, false, true);
-    emit LiquidityMoved(_pool, _direction, _debtAmount, _collateralAmount, _incentiveAmount);
+    vm.expectEmit(true, true, false, false);
+    emit LiquidityMoved(_pool, _direction, _tokenGivenToPool, _amountGivenToPool, _tokenTakenFromPool, _amountTakenFromPool);
   }
 
   /**

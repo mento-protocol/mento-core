@@ -39,14 +39,6 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     strategy.addPool(address(0), debtToken, 3600, 50);
   }
 
-  function test_addPool_whenIncentiveTooHigh_shouldRevert() public fpmmToken0Debt(18, 18) {
-    fpmm.setRebalanceIncentive(50); // Pool max is 50
-
-    vm.prank(owner);
-    vm.expectRevert(ILiquidityStrategy.LS_BAD_INCENTIVE.selector);
-    strategy.addPool(address(fpmm), debtToken, 3600, 100); // Trying to set 100
-  }
-
   function test_addPool_whenPoolAlreadyExists_shouldRevert() public fpmmToken0Debt(18, 18) {
     vm.prank(owner);
     strategy.addPool(address(fpmm), debtToken, 3600, 50);
@@ -112,30 +104,6 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     vm.prank(owner);
     strategy.setRebalanceCooldown(address(fpmm), 7200);
-  }
-
-  function test_setRebalanceIncentive_whenValid_shouldUpdateIncentive() public fpmmToken0Debt(18, 18) {
-    // Add pool
-    vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
-
-    // Update incentive
-    vm.expectEmit(true, false, false, true);
-    emit RebalanceIncentiveSet(address(fpmm), 45);
-
-    vm.prank(owner);
-    strategy.setRebalanceIncentive(address(fpmm), 45);
-  }
-
-  function test_setRebalanceIncentive_whenExceedsPoolCap_shouldRevert() public fpmmToken0Debt(18, 18) {
-    // Add pool
-    vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
-
-    // Try to set incentive above pool cap
-    vm.prank(owner);
-    vm.expectRevert(ILiquidityStrategy.LS_BAD_INCENTIVE.selector);
-    strategy.setRebalanceIncentive(address(fpmm), 150);
   }
 
   /* ============================================================ */
@@ -291,9 +259,9 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     vm.prank(owner);
     strategy.addPool(address(fpmm), debtToken, 0, 50); // 0 cooldown
 
-    // Expect LiquidityMoved event
-    vm.expectEmit(true, false, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, 0, 0, 0); // Amounts will vary
+    // Expect LiquidityMoved event (only checking indexed fields)
+    vm.expectEmit(true, true, false, false);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0); // Amounts and addresses will vary
 
     vm.prank(owner);
     strategy.rebalance(address(fpmm));

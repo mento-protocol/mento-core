@@ -14,13 +14,11 @@ interface ILiquidityStrategy {
    * @param isToken0Debt Whether token0 is the debt token (true) or token1 is the debt token (false)
    * @param lastRebalance The timestamp of the last rebalance for this pool
    * @param rebalanceCooldown The cooldown period that must pass before the next rebalance
-   * @param rebalanceIncentive The strategy-side incentive cap (bps) for the rebalance
    */
   struct PoolConfig {
     bool isToken0Debt;
     uint64 lastRebalance;
     uint64 rebalanceCooldown;
-    uint32 rebalanceIncentive;
   }
 
   /* ============================================================ */
@@ -85,34 +83,21 @@ interface ILiquidityStrategy {
   event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
 
   /**
-   * @notice Emitted when a pool's rebalance incentive is updated
-   * @param pool The address of the pool
-   * @param incentiveBps The new incentive in basis points
-   */
-  event RebalanceIncentiveSet(address indexed pool, uint32 incentiveBps);
-
-  /**
-   * @notice Emitted when a rebalance is executed
-   * @param pool The address of the pool
-   * @param diffBeforeBps The price difference before rebalance in basis points
-   * @param diffAfterBps The price difference after rebalance in basis points
-   */
-  event RebalanceExecuted(address indexed pool, uint256 diffBeforeBps, uint256 diffAfterBps);
-
-  /**
    * @notice Emitted when liquidity is moved during rebalance
    * @param pool The address of the pool
    * @param direction The direction of the rebalance (Expand or Contract)
-   * @param tokenInAmount The amount of tokens moved into the pool
-   * @param tokenOutAmount The amount of tokens moved out of the pool
-   * @param incentiveAmount The incentive amount paid to the rebalancer
+   * @param tokenGivenToPool The token address moved into the pool
+   * @param amountGivenToPool The amount of tokens moved into the pool
+   * @param tokenTakenFromPool The token address taken from the pool
+   * @param amountTakenFromPool The amount of tokens taken from the pool
    */
   event LiquidityMoved(
     address indexed pool,
-    LQ.Direction direction,
-    uint256 tokenInAmount,
-    uint256 tokenOutAmount,
-    uint256 incentiveAmount
+    LQ.Direction indexed direction,
+    address tokenGivenToPool,
+    uint256 amountGivenToPool,
+    address tokenTakenFromPool,
+    uint256 amountTakenFromPool
   );
 
   /* ============================================================ */
@@ -125,13 +110,6 @@ interface ILiquidityStrategy {
    * @param cooldown The new cooldown period for the pool.
    */
   function setRebalanceCooldown(address pool, uint64 cooldown) external;
-
-  /**
-   * @notice Sets the rebalance incentive for a given liquidity pool.
-   * @param pool The address of the pool to update.
-   * @param incentiveBps The new incentive in basis points.
-   */
-  function setRebalanceIncentive(address pool, uint32 incentiveBps) external;
 
   /**
    * @notice Executes a rebalance for the specified pool using its configured policy pipeline.

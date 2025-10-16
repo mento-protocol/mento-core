@@ -177,13 +177,13 @@ abstract contract LiquidityStrategy_BaseTest is Test {
   event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown, uint32 incentiveBps);
   event PoolRemoved(address indexed pool);
   event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
-  event RebalanceIncentiveSet(address indexed pool, uint32 incentiveBps);
   event RebalanceExecuted(address indexed pool, uint256 diffBeforeBps, uint256 diffAfterBps);
   event LiquidityMoved(
     address indexed pool,
-    LQ.Direction direction,
-    uint256 tokenInAmount,
-    uint256 tokenOutAmount,
-    uint256 incentiveAmount
+    LQ.Direction indexed direction,
+    address tokenGivenToPool,
+    uint256 amountGivenToPool,
+    address tokenTakenFromPool,
+    uint256 amountTakenFromPool
   );
 }

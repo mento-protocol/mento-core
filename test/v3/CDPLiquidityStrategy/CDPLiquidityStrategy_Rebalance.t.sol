@@ -50,7 +50,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Execute rebalance
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -213,7 +213,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Execute rebalance
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -274,7 +274,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Execute rebalance
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -335,7 +335,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Execute rebalance
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -390,7 +390,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Execute rebalance
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -507,7 +507,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Execute rebalance
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 
@@ -571,7 +571,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Execute rebalance
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, 0, 0, 0);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
     vm.expectEmit(true, false, false, false);
     emit RebalanceExecuted(address(fpmm), 0, 0);
 

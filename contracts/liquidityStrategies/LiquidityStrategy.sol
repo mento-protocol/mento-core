@@ -54,15 +54,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     emit RebalanceCooldownSet(pool, cooldown);
   }
 
-  /// @inheritdoc ILiquidityStrategy
-  function setRebalanceIncentive(address pool, uint32 incentiveBps) external onlyOwner {
-    _ensurePool(pool);
-    uint256 poolIncentiveCap = IFPMM(pool).rebalanceIncentive();
-    if (incentiveBps > poolIncentiveCap || incentiveBps > LQ.BASIS_POINTS_DENOMINATOR) revert LS_BAD_INCENTIVE();
-    poolConfigs[pool].rebalanceIncentive = incentiveBps;
-    emit RebalanceIncentiveSet(pool, incentiveBps);
-  }
-
   /* ============================================================ */
   /* ==================== External Functions ==================== */
   /* ============================================================ */
@@ -102,18 +93,14 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       revert LS_HOOK_NOT_CALLED();
     }
 
-    uint256 incentiveAmount = LQ.incentiveAmount(action.amountOwedToPool, ctx.incentiveBps);
-    emit LiquidityMoved(
-      pool,
-      action.dir,
-      action.amountOwedToPool,
-      action.amount0Out + action.amount1Out,
-      incentiveAmount
-    );
-
-    // slither-disable-next-line unused-return
-    (, , , , uint256 diffAfter, ) = IFPMM(pool).getPrices();
-    emit RebalanceExecuted(pool, ctx.prices.diffBps, diffAfter);
+    emit LiquidityMoved({
+      pool: pool,
+      direction: action.dir,
+      tokenGivenToPool: action.dir == LQ.Direction.Expand ? debtToken : collToken,
+      amountGivenToPool: action.amountOwedToPool,
+      tokenTakenFromPool: action.dir == LQ.Direction.Expand ? collToken : debtToken,
+      amountTakenFromPool: action.amount0Out + action.amount1Out // only one is positive
+    });
   }
 
   /**
@@ -224,25 +211,17 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @param pool The address of the FPMM pool to add
    * @param debtToken The address of the debt token (determines isToken0Debt)
    * @param cooldown The cooldown period between rebalances in seconds
-   * @param incentiveBps The rebalance incentive in basis points
+   * @param incentiveBps The rebalance incentive in basis points (for event emission only)
    */
   function _addPool(address pool, address debtToken, uint64 cooldown, uint32 incentiveBps) internal virtual {
     if (pool == address(0)) revert LS_POOL_MUST_BE_SET();
-    // Verify incentive
-    uint256 poolCap = IFPMM(pool).rebalanceIncentive();
-    if (!(incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR && incentiveBps <= poolCap)) revert LS_BAD_INCENTIVE();
     if (!pools.add(pool)) revert LS_POOL_ALREADY_EXISTS(); // Ensure pool is added
     bool isToken0Debt = debtToken == IFPMM(pool).token0();
     if (!isToken0Debt && IFPMM(pool).token1() != debtToken) {
       revert LS_DEBT_TOKEN_NOT_IN_POOL();
     }
 
-    poolConfigs[pool] = PoolConfig({
-      isToken0Debt: isToken0Debt,
-      lastRebalance: 0,
-      rebalanceCooldown: cooldown,
-      rebalanceIncentive: incentiveBps
-    });
+    poolConfigs[pool] = PoolConfig({ isToken0Debt: isToken0Debt, lastRebalance: 0, rebalanceCooldown: cooldown });
 
     emit PoolAdded(pool, isToken0Debt, cooldown, incentiveBps);
   }
@@ -274,13 +253,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @return action The rebalance action to execute
    */
   function _determineAction(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
-    // Guard against division by zero when incentive is at or above 200%
-    // Formula uses (2 - i) as denominator, which becomes zero when i >= 2
-    // where i = incentiveBps / BASIS_POINTS_DENOMINATOR
-    if (ctx.incentiveBps >= 2 * LQ.BASIS_POINTS_DENOMINATOR) {
-      return action; // Return empty action (all fields default to 0)
-    }
-
     if (ctx.prices.poolPriceAbove) {
       return _handlePoolPriceAbove(ctx);
     } else {
