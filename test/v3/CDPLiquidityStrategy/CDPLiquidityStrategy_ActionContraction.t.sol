@@ -54,7 +54,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
     assertGt(action.amount0Out, 0, "Debt should flow out during contraction");
     assertEq(action.amount1Out, 0, "No collateral should flow out during contraction");
     assertGt(action.amountOwedToPool, 0, "Collateral should flow in via amountOwedToPool");
@@ -117,7 +117,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
 
     // Calculate reserves after action
     uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
@@ -187,7 +187,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
     assertEq(action.amount0Out, 0, "No collateral should flow out during contraction");
     assertGt(action.amount1Out, 0, "Debt should flow out during contraction");
     assertGt(action.amountOwedToPool, 0, "Collateral should flow in via amountOwedToPool");
@@ -279,7 +279,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
 
     // Calculate reserves after action
     uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
@@ -335,7 +335,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
     assertGt(action.amount0Out, 0, "Debt should flow out");
     assertEq(action.amount1Out, 0, "No collateral should flow out");
     assertGt(action.amountOwedToPool, 0, "Collateral should flow in");

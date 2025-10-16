@@ -37,7 +37,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract to add collateral");
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract to add collateral");
     assertGt(action.amount0Out, 0, "Debt should flow out");
     assertGt(action.amountOwedToPool, 0, "Collateral should flow in");
   }
@@ -60,7 +60,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand to remove collateral");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand to remove collateral");
     assertGt(action.amount1Out, 0, "Collateral should flow out");
     assertGt(action.amountOwedToPool, 0, "Debt should flow in");
   }
@@ -148,7 +148,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand");
     assertGt(action.amount1Out, 0, "Should remove excess collateral");
   }
 
@@ -171,7 +171,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
     assertGt(action.amount0Out, 0, "Should remove excess debt");
   }
 
@@ -199,7 +199,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand");
 
     // With 2% difference and 1% incentive, amounts should be reasonable
     // X = (1e18 * 102e18 - 1e18 * 100e18) / (1e18 * (20000 - 100) / 10000)

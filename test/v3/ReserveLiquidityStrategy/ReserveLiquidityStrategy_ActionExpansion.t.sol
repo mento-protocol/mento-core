@@ -31,7 +31,7 @@ contract ReserveLiquidityStrategy_ActionExpansionTest is ReserveLiquidityStrateg
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand when pool price above oracle");
     assertEq(action.amount0Out, 0, "No debt should flow out during expansion");
     assertGt(action.amount1Out, 0, "Collateral should flow out during expansion");
     assertGt(action.amountOwedToPool, 0, "Should have debt input amount");

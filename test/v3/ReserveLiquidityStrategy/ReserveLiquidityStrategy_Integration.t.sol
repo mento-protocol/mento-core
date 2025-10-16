@@ -39,11 +39,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     // When token1 is debt and PP > OP, we still need to contract (remove excess debt)
     // Pool has 200 debt (token1) vs 100 collateral (token0) at 1:1 oracle, so pool price > oracle
     // This means too much debt relative to collateral, so we contract
-    assertEq(
-      uint256(action.dir),
-      uint256(LQ.Direction.Contract),
-      "Should contract when excess debt relative to collateral"
-    );
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract when excess debt relative to collateral");
     assertEq(action.amount0Out, 0, "No collateral (token0) should flow out");
     assertGt(action.amount1Out, 0, "Should have debt (token1) flowing out");
     assertGt(action.amountOwedToPool, 0, "Should have collateral input amount");

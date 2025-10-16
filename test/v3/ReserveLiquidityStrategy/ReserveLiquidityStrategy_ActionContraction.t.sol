@@ -36,7 +36,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract when pool price below oracle");
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract when pool price below oracle");
     assertEq(action.amount1Out, 0, "No collateral should flow out during contraction");
     assertGt(action.amount0Out, 0, "Debt should flow out during contraction");
     assertGt(action.amountOwedToPool, 0, "Should have collateral input amount");

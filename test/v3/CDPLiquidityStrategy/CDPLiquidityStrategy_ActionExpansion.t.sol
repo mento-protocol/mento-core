@@ -47,7 +47,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand");
     assertEq(action.amount0Out, 0, "No debt should flow out during expansion");
     assertGt(action.amount1Out, 0, "Collateral should flow out during expansion");
     assertGt(action.amountOwedToPool, 0, "Debt should flow in via inputAmount");
@@ -106,7 +106,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand");
     assertGt(action.amount1Out, 0, "Collateral should flow out");
     assertGt(action.amountOwedToPool, 0, "Debt should flow in");
 
@@ -168,7 +168,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand");
     assertGt(action.amount0Out, 0, "Collateral (token0) should flow out during expansion");
     assertEq(action.amount1Out, 0, "No debt (token1) should flow out during expansion");
     assertGt(action.amountOwedToPool, 0, "Debt should flow in via inputAmount");
@@ -245,7 +245,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand");
 
     // The expansion should be limited by the 50% stability pool percentage
     uint256 maxAllowed = (10_000_000e18 * 5000) / 10_000;
@@ -290,7 +290,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand");
     assertEq(action.amount0Out, 0, "No debt should flow out");
     assertGt(action.amount1Out, 0, "Collateral should flow out");
     assertGt(action.amountOwedToPool, 0, "Debt should flow in");

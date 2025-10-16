@@ -290,7 +290,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
 
   //   assertTrue(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
+  //   assertEq(action.dir, LQ.Direction.Expand));
   //   assertEq(action.amount0Out, 0);
   //   assertTrue(action.amount1Out > 0);
   //   assertTrue(action.inputAmount > 0);
@@ -346,7 +346,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
 
   //   assertTrue(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
+  //   assertEq(action.dir, LQ.Direction.Expand));
   //   assertTrue(action.amount0Out > 0);
   //   assertTrue(action.amount1Out == 0);
   //   assertTrue(action.inputAmount > 0);
@@ -408,7 +408,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
 
   //   assert(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
+  //   assertEq(action.dir, LQ.Direction.Expand));
   //   assertEq(action.amount0Out, 0);
   //   assertTrue(action.amount1Out > 0);
   //   assertTrue(action.inputAmount > 0);
@@ -467,7 +467,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
 
   //   assert(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
+  //   assertEq(action.dir, LQ.Direction.Expand));
   //   assert(action.amount0Out > 0);
   //   assert(action.amount1Out == 0);
   //   assert(action.inputAmount > 0);
@@ -535,7 +535,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
 
   //   assertTrue(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+  //   assertEq(action.dir, LQ.Direction.Contract));
   //   assert(action.amount0Out > 0);
   //   assert(action.amount1Out == 0);
   //   assert(action.inputAmount > 0);
@@ -595,7 +595,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
 
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
   //   assertTrue(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+  //   assertEq(action.dir, LQ.Direction.Contract));
   //   assert(action.amount0Out == 0);
   //   assert(action.amount1Out > 0);
   //   assert(action.inputAmount > 0);
@@ -657,7 +657,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
 
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
   //   assertTrue(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+  //   assertEq(action.dir, LQ.Direction.Contract));
   //   assert(action.amount0Out > 0);
   //   assert(action.amount1Out == 0);
   //   assert(action.inputAmount > 0);
@@ -716,7 +716,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
 
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
   //   assertTrue(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+  //   assertEq(action.dir, LQ.Direction.Contract));
   //   assert(action.amount0Out > 0);
   //   assert(action.amount1Out == 0);
   //   assert(action.inputAmount > 0);
@@ -775,7 +775,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
 
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
   //   assertTrue(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+  //   assertEq(action.dir, LQ.Direction.Contract));
   //   assert(action.amount0Out == 0);
   //   assert(action.amount1Out > 0);
   //   assert(action.inputAmount > 0);
@@ -834,7 +834,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
 
   //   (bool shouldAct, LQ.Action memory action) = policy.determineAction(ctx);
   //   assertTrue(shouldAct);
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+  //   assertEq(action.dir, LQ.Direction.Contract));
   //   assert(action.amount0Out == 0);
   //   assert(action.amount1Out > 0);
   //   assert(action.inputAmount > 0);
@@ -918,7 +918,7 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
   //   reserve1 -= action.amount1Out;
   //   reserve0 += action.inputAmount;
 
-  //   assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
+  //   assertEq(action.dir, LQ.Direction.Expand));
   //   assertEq(action.amount0Out, 0);
   // }
 
