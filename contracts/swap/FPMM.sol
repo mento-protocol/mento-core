@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
-import { console } from "forge-std/console.sol";
 import "../interfaces/IFPMM.sol";
 import "./router/interfaces/IRPool.sol";
 import { ERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
@@ -693,8 +692,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
         BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
         BASIS_POINTS_DENOMINATOR
       );
-      console.log("amount0In:", swapData.amount1In);
-      console.log("minAmount0In: ", minAmount0In);
       require(swapData.amount0In >= minAmount0In, "FPMM: INSUFFICIENT_AMOUNT_0_IN");
     } else {
       uint256 minAmount1In = _convertWithRateAndFee(
