@@ -31,7 +31,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
   function test_initialize_whenCalledByOwner_shouldSetCorrectValues() public view {
     // Verify factory configuration
     assertEq(factory.oracleAdapter(), oracleAdapter);
-    assertEq(factory.proxyAdmin(), proxyAdmin);
+    assertEq(factory.proxyAdmin(), address(proxyAdmin));
     assertEq(factory.governance(), governance);
     assertEq(factory.owner(), governance);
 
@@ -44,7 +44,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_initialize_whenCalledTwice_shouldRevert() public {
     vm.expectRevert("Initializable: contract is already initialized");
-    factory.initialize(oracleAdapter, proxyAdmin, governance, address(fpmmImplementation), defaultFpmmParams);
+    factory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation), defaultFpmmParams);
   }
 
   // ============ IMPLEMENTATION MANAGEMENT TESTS ============

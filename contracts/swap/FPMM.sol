@@ -497,7 +497,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   /* ============================================================ */
 
   /// @inheritdoc IFPMM
-  function setLPFee(uint256 _lpFee) public onlyOwner {
+  function setLPFee(uint256 _lpFee) public virtual onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
     if (_lpFee + $.protocolFee > 100) revert FeeTooHigh(); // Max 1% combined
