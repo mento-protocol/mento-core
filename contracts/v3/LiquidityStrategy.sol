@@ -60,7 +60,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
   function setRebalanceIncentive(address pool, uint32 incentiveBps) external onlyOwner {
     _ensurePool(pool);
     uint256 poolIncentiveCap = IFPMM(pool).rebalanceIncentive();
-    if (!(incentiveBps <= poolIncentiveCap && incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR)) revert LS_BAD_INCENTIVE();
+    if (incentiveBps > poolIncentiveCap || incentiveBps > LQ.BASIS_POINTS_DENOMINATOR) revert LS_BAD_INCENTIVE();
     poolConfigs[pool].rebalanceIncentive = incentiveBps;
     emit RebalanceIncentiveSet(pool, incentiveBps);
   }
