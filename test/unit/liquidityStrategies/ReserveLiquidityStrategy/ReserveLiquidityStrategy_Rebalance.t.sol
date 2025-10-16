@@ -6,8 +6,8 @@ pragma solidity ^0.8;
 import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_BaseTest.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { MockReserve } from "../../utils/mocks/MockReserve.sol";
-import { MockERC20 } from "../../utils/mocks/MockERC20.sol";
+import { MockReserve } from "../../../utils/mocks/MockReserve.sol";
+import { MockERC20 } from "../../../utils/mocks/MockERC20.sol";
 
 contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_BaseTest {
   function setUp() public override {
