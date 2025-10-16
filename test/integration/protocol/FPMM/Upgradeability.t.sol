@@ -99,9 +99,7 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
 
     // Upgrade to new implementation and set fee to 150
     _upgrade(_upgradedFPMM, _newFPMMimpl, proxyAdminOwner);
-    vm.prank(governance);
-    _fpmm.setLPFee(_EXPECTED_FEE);
-    assertEq(_fpmm.lpFee(), _EXPECTED_FEE, "Fee should be set to 150");
+    _expectUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
 
     // Downgrade back to original implementation
     _upgrade(_upgradedFPMM, originalImpl, proxyAdminOwner);
@@ -110,14 +108,10 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
     assertEq(_fpmm.lpFee(), _EXPECTED_FEE, "Fee should remain 150 after downgrade");
 
     // Old implementation should reject fee >= 100, so setting to 50 should work
-    vm.prank(governance);
-    _fpmm.setLPFee(50);
-    assertEq(_fpmm.lpFee(), 50, "Should be able to set fee to 50 with old impl");
+    _expectUpgraded(_fpmm, 50, _REVERT_REASON);
 
     // Setting to 150 should fail with old implementation
-    vm.prank(governance);
-    vm.expectRevert(bytes(_REVERT_REASON));
-    _fpmm.setLPFee(_EXPECTED_FEE);
+    _expectNotUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
 
     address currentImpl = proxyAdmin.getProxyImplementation(ITransparentUpgradeableProxy(_upgradedFPMM));
     assertEq(currentImpl, originalImpl, "Implementation should revert to original");
@@ -243,27 +237,32 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
   }
 
   function test_fpmmUpgradeability_ownerFunctionsAfterUpgrade() public {
+    uint256 rebalanceIncentive = 100;
+    uint256 rebalanceThreshold = 600;
+
     _upgrade(_upgradedFPMM, _newFPMMimpl, proxyAdminOwner);
 
     vm.startPrank(governance);
 
-    _fpmm.setRebalanceIncentive(100);
-    assertEq(_fpmm.rebalanceIncentive(), 100, "setRebalanceIncentive failed");
+    _fpmm.setRebalanceIncentive(rebalanceIncentive);
+    assertEq(_fpmm.rebalanceIncentive(), rebalanceIncentive, "setRebalanceIncentive failed");
 
-    _fpmm.setRebalanceThresholds(600, 600);
-    assertEq(_fpmm.rebalanceThresholdAbove(), 600, "setRebalanceThresholdAbove failed");
-    assertEq(_fpmm.rebalanceThresholdBelow(), 600, "setRebalanceThresholdBelow failed");
+    _fpmm.setRebalanceThresholds(rebalanceThreshold, rebalanceThreshold);
+    assertEq(_fpmm.rebalanceThresholdAbove(), rebalanceThreshold, "setRebalanceThresholdAbove failed");
+    assertEq(_fpmm.rebalanceThresholdBelow(), rebalanceThreshold, "setRebalanceThresholdBelow failed");
 
     vm.stopPrank();
   }
 
   function test_fpmmUpgradeability_eventsEmittedAfterUpgrade() public {
+    uint256 newFee = 50;
     _upgrade(_upgradedFPMM, _newFPMMimpl, proxyAdminOwner);
 
     vm.prank(governance);
     vm.expectEmit(true, true, false, true);
-    emit LPFeeUpdated(_ORIGINAL_LP_FEE, 50);
-    _fpmm.setLPFee(50);
+    emit LPFeeUpdated(_ORIGINAL_LP_FEE, newFee);
+    _fpmm.setLPFee(newFee);
+    assertEq(_fpmm.lpFee(), newFee);
   }
 
   function test_fpmmUpgradeability_accessControlAfterUpgrade() public {
