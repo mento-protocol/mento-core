@@ -74,9 +74,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       revert LS_COOLDOWN_ACTIVE();
     }
 
-    // Capture price difference before rebalancing
-    (, , , , uint256 diffBeforeBps, ) = IFPMM(pool).getPrices();
-
     LQ.Context memory ctx = LQ.newContext(pool, config);
     LQ.Action memory action = _determineAction(ctx);
 
@@ -99,9 +96,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       revert LS_HOOK_NOT_CALLED();
     }
 
-    // Capture price difference after rebalancing
-    (, , , , uint256 diffAfterBps, ) = IFPMM(pool).getPrices();
-
     emit LiquidityMoved({
       pool: pool,
       direction: action.dir,
@@ -110,8 +104,6 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       tokenTakenFromPool: action.dir == LQ.Direction.Expand ? collToken : debtToken,
       amountTakenFromPool: action.amount0Out + action.amount1Out // only one is positive
     });
-
-    emit RebalanceExecuted(pool, diffBeforeBps, diffAfterBps);
   }
 
   /**

@@ -100,14 +100,6 @@ interface ILiquidityStrategy {
     uint256 amountTakenFromPool
   );
 
-  /**
-   * @notice Emitted when a rebalance operation completes successfully
-   * @param pool The address of the pool that was rebalanced
-   * @param diffBeforeBps The price difference in basis points before rebalancing
-   * @param diffAfterBps The price difference in basis points after rebalancing
-   */
-  event RebalanceExecuted(address indexed pool, uint256 diffBeforeBps, uint256 diffAfterBps);
-
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */
