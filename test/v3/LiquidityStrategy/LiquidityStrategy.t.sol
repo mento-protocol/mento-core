@@ -137,8 +137,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     // Should be expansion: add debt (token0), take collateral (token1)
     assertEq(ctx.prices.poolPriceAbove, true);
-    // solhint-disable-next-line explicit-types
-    assertEq(uint(action.dir), uint(LQ.Direction.Expand));
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
     assertTrue(action.amountOwedToPool > 0); // Debt in
     assertEq(action.amount0Out, 0); // No debt out
     assertTrue(action.amount1Out > 0); // Collateral out
@@ -157,8 +156,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     // Should be contraction: add collateral (token1), take debt (token0)
     assertEq(ctx.prices.poolPriceAbove, false);
-    // solhint-disable-next-line explicit-types
-    assertEq(uint(action.dir), uint(LQ.Direction.Contract));
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
     assertTrue(action.amountOwedToPool > 0); // Collateral in
     assertTrue(action.amount0Out > 0); // Debt out
     assertEq(action.amount1Out, 0); // No collateral out
@@ -178,8 +176,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     // Should be contraction: take debt (token1) from pool, add collateral (token0)
     assertEq(ctx.prices.poolPriceAbove, true);
-    // solhint-disable-next-line explicit-types
-    assertEq(uint(action.dir), uint(LQ.Direction.Contract));
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
     assertTrue(action.amountOwedToPool > 0); // Collateral in
     assertTrue(action.amount1Out > 0); // Debt out (token1)
     assertEq(action.amount0Out, 0);
@@ -199,8 +196,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     // Should be expansion: add debt (token1), take collateral (token0)
     assertEq(ctx.prices.poolPriceAbove, false);
-    // solhint-disable-next-line explicit-types
-    assertEq(uint(action.dir), uint(LQ.Direction.Expand));
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
     assertTrue(action.amountOwedToPool > 0); // Debt in
     assertTrue(action.amount0Out > 0); // Collateral out (token0)
     assertEq(action.amount1Out, 0);
@@ -218,8 +214,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     (, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
     // Should handle decimal scaling correctly
-    // solhint-disable-next-line explicit-types
-    assertEq(uint(action.dir), uint(LQ.Direction.Expand));
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
     assertTrue(action.amountOwedToPool > 0);
     assertTrue(action.amount1Out > 0);
   }

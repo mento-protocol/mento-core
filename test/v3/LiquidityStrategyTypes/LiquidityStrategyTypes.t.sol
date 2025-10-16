@@ -393,8 +393,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newExpansion(ctx, expansionAmount, collateralPayed);
 
-    // solhint-disable-next-line explicit-types
-    assertEq(uint(action.dir), uint(LQ.Direction.Expand));
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
     assertEq(action.amountOwedToPool, expansionAmount);
     assertEq(action.amount0Out, 0); // No debt out
     assertEq(action.amount1Out, collateralPayed); // Collateral out (token1)
@@ -410,8 +409,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newExpansion(ctx, expansionAmount, collateralPayed);
 
-    // solhint-disable-next-line explicit-types
-    assertEq(uint(action.dir), uint(LQ.Direction.Expand));
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
     assertEq(action.amountOwedToPool, expansionAmount);
     assertEq(action.amount0Out, collateralPayed); // Collateral out (token0)
     assertEq(action.amount1Out, 0); // No debt out
@@ -427,8 +425,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newContraction(ctx, contractionAmount, collateralReceived);
 
-    // solhint-disable-next-line explicit-types
-    assertEq(uint(action.dir), uint(LQ.Direction.Contract));
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
     assertEq(action.amountOwedToPool, collateralReceived);
     assertEq(action.amount0Out, contractionAmount);
     assertEq(action.amount1Out, 0);
@@ -444,8 +441,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newContraction(ctx, contractionAmount, collateralReceived);
 
-    // solhint-disable-next-line explicit-types
-    assertEq(uint(action.dir), uint(LQ.Direction.Contract));
+    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
     assertEq(action.amountOwedToPool, collateralReceived);
     assertEq(action.amount0Out, 0);
     assertEq(action.amount1Out, contractionAmount);
