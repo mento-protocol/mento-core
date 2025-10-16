@@ -48,12 +48,35 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
       abi.encodeWithSelector(IRPoolFactory.getOrPrecomputeProxyAddress.selector, address(tokenA), address(tokenB))
     );
     address pool = router.poolFor(address(tokenA), address(tokenB), address(customFactory));
-    assert(pool != address(0));
+    vm.prank(governance);
+    address actualPool = address(
+      customFactory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID)
+    );
+    assertEq(pool, actualPool);
   }
 
   function test_getAmountsOut_whenPoolDoesNotExist_shouldReturnZero() public view {
     IRouter.Route[] memory routes = new IRouter.Route[](1);
     routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(0) });
+
+    uint256[] memory amounts = router.getAmountsOut(1000e18, routes);
+    assertEq(amounts.length, 2);
+    assertEq(amounts[0], 1000e18);
+    assertEq(amounts[1], 0);
+  }
+
+  function test_getAmountsOut_whenFactoryIsNotApproved_shouldRevert() public {
+    FPMMFactory customFactory = new FPMMFactory(false);
+    customFactory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation));
+
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(customFactory) });
+
+    vm.expectRevert(IRouter.PoolFactoryDoesNotExist.selector);
+    router.getAmountsOut(1000e18, routes);
+
+    vm.prank(governance);
+    factoryRegistry.approve(address(customFactory));
 
     uint256[] memory amounts = router.getAmountsOut(1000e18, routes);
     assertEq(amounts.length, 2);
@@ -356,6 +379,31 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
   function test_getReserves_whenPoolDoesNotExist_shouldRevert() public {
     vm.expectRevert();
     router.getReserves(address(tokenA), address(tokenB), address(0));
+  }
+
+  function test_getReserves_whenFactoryIsNotApproved_shouldRevert() public {
+    FPMMFactory customFactory = new FPMMFactory(false);
+    customFactory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation));
+
+    vm.prank(governance);
+    address fpmm = customFactory.deployFPMM(
+      address(fpmmImplementation),
+      address(tokenA),
+      address(tokenB),
+      referenceRateFeedID
+    );
+    _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
+
+    vm.expectRevert(IRouter.PoolFactoryDoesNotExist.selector);
+    router.getReserves(address(tokenA), address(tokenB), address(customFactory));
+
+    vm.prank(governance);
+    factoryRegistry.approve(address(customFactory));
+
+    (uint256 reserveA, uint256 reserveB) = router.getReserves(address(tokenA), address(tokenB), address(customFactory));
+
+    assertEq(reserveA, 1000e18);
+    assertEq(reserveB, 1000e18);
   }
 
   function test_quoteAddLiquidity_whenExistingPool_shouldReturnCorrectAmounts() public {
