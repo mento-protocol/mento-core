@@ -9,7 +9,9 @@ import { IMarketHoursBreaker } from "../interfaces/IMarketHoursBreaker.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
 contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
-  /* ========== CONSTANTS ========== */
+  /* ============================================================ */
+  /* ======================== Constants ========================= */
+  /* ============================================================ */
 
   uint256 public constant TRADING_MODE_BIDIRECTIONAL = 0;
 
@@ -17,7 +19,9 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   bytes32 private constant _ORACLE_ADAPTER_STORAGE_LOCATION =
     0x04e664c42d77958a8a4a4091eaa097623a29a223ec89dc71155113e263f9c400;
 
-  /* ========== CONSTRUCTOR ========== */
+  /* ============================================================ */
+  /* ======================== Constructor ======================= */
+  /* ============================================================ */
 
   /**
    * @notice Contract constructor
@@ -29,7 +33,9 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     }
   }
 
-  /* ========== INITIALIZATION ========== */
+  /* ============================================================ */
+  /* ==================== Initialization ======================== */
+  /* ============================================================ */
 
   /// @inheritdoc IOracleAdapter
   function initialize(
@@ -47,24 +53,9 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     transferOwnership(_initialOwner);
   }
 
-  /* ========== VIEW FUNCTIONS ========== */
-
-  function sortedOracles() external view returns (ISortedOracles) {
-    OracleAdapterStorage storage $ = _getStorage();
-    return $.sortedOracles;
-  }
-
-  function breakerBox() external view returns (IBreakerBox) {
-    OracleAdapterStorage storage $ = _getStorage();
-    return $.breakerBox;
-  }
-
-  function marketHoursBreaker() external view returns (IMarketHoursBreaker) {
-    OracleAdapterStorage storage $ = _getStorage();
-    return $.marketHoursBreaker;
-  }
-
-  /* ========== ADMIN FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ==================== Admin Functions ======================= */
+  /* ============================================================ */
 
   /// @inheritdoc IOracleAdapter
   function setSortedOracles(address _sortedOracles) public onlyOwner {
@@ -99,7 +90,24 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     emit MarketHoursBreakerUpdated(oldMarketHoursBreaker, _marketHoursBreaker);
   }
 
-  /* ========== EXTERNAL FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ===================== View Functions ======================= */
+  /* ============================================================ */
+
+  function sortedOracles() external view returns (ISortedOracles) {
+    OracleAdapterStorage storage $ = _getStorage();
+    return $.sortedOracles;
+  }
+
+  function breakerBox() external view returns (IBreakerBox) {
+    OracleAdapterStorage storage $ = _getStorage();
+    return $.breakerBox;
+  }
+
+  function marketHoursBreaker() external view returns (IMarketHoursBreaker) {
+    OracleAdapterStorage storage $ = _getStorage();
+    return $.marketHoursBreaker;
+  }
 
   /// @inheritdoc IOracleAdapter
   function isFXMarketOpen() external view returns (bool) {
@@ -156,7 +164,9 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     _getOracleRate(rateFeedID);
   }
 
-  /* ========== INTERNAL FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ==================== Private Functions ===================== */
+  /* ============================================================ */
 
   function _isFXMarketOpen() private view returns (bool) {
     OracleAdapterStorage storage $ = _getStorage();

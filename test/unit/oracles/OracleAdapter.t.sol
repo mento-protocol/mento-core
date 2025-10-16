@@ -125,6 +125,18 @@ contract OracleAdapterTest is Test {
     oracleAdapter.getRateIfValid(referenceRateFeedID);
   }
 
+  function test_getRateIfValid_whenValid_shouldNotRevert()
+    public
+    initialized
+    withOracleRate(1e18, 1e18)
+    withTradingMode(0)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs)
+  {
+    vm.warp(blockTs);
+    oracleAdapter.getRateIfValid(referenceRateFeedID);
+  }
+
   function test_getRateIfValid_whenNoRecentRate_shouldRevert()
     public
     initialized

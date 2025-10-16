@@ -6,7 +6,9 @@ import { ISortedOracles } from "./ISortedOracles.sol";
 import { IMarketHoursBreaker } from "./IMarketHoursBreaker.sol";
 
 interface IOracleAdapter {
-  /* ========== STRUCTS ========== */
+  /* ============================================================ */
+  /* ======================== Structs =========================== */
+  /* ============================================================ */
 
   /// @notice Struct to store OracleAdapter contract state
   /// @custom:storage-location erc7201:mento.storage.OracleAdapter
@@ -28,7 +30,9 @@ interface IOracleAdapter {
     bool isFXMarketOpen;
   }
 
-  /* ========== ERRORS ========== */
+  /* ============================================================ */
+  /* ======================== Errors ============================ */
+  /* ============================================================ */
 
   // @notice Thrown when the FX market is closed
   error FXMarketClosed();
@@ -41,7 +45,9 @@ interface IOracleAdapter {
   // @notice Thrown when trying to set a zero address as a contract address
   error ZeroAddress();
 
-  /* ========== EVENTS ========== */
+  /* ============================================================ */
+  /* ======================== Events ============================ */
+  /* ============================================================ */
 
   /**
    * @notice Emitted when the SortedOracles contract is updated
@@ -64,7 +70,9 @@ interface IOracleAdapter {
    */
   event MarketHoursBreakerUpdated(address oldMarketHoursBreaker, address newMarketHoursBreaker);
 
-  /* ========== VARIABLES ========== */
+  /* ============================================================ */
+  /* ====================== View Functions ====================== */
+  /* ============================================================ */
 
   /**
    * @notice Returns the contract for oracle price feeds
@@ -83,40 +91,6 @@ interface IOracleAdapter {
    * @return Address of the MarketHoursBreaker contract
    */
   function marketHoursBreaker() external view returns (IMarketHoursBreaker);
-
-  /* ========== FUNCTIONS ========== */
-
-  /**
-   * @notice Initializes the OracleAdapter contract
-   * @param _sortedOracles The address of the sorted oracles contract
-   * @param _breakerBox The address of the breaker box contract
-   * @param _marketHoursBreaker The address of the market hours breaker contract
-   * @param _initialOwner The address to transfer ownership to
-   */
-  function initialize(
-    address _sortedOracles,
-    address _breakerBox,
-    address _marketHoursBreaker,
-    address _initialOwner
-  ) external;
-
-  /**
-   * @notice Sets the address of the sorted oracles contract
-   * @param _sortedOracles The address of the sorted oracles contract
-   */
-  function setSortedOracles(address _sortedOracles) external;
-
-  /**
-   * @notice Sets the address of the breaker box contract
-   * @param _breakerBox The address of the breaker box contract
-   */
-  function setBreakerBox(address _breakerBox) external;
-
-  /**
-   * @notice Sets the address of the market hours breaker contract
-   * @param _marketHoursBreaker The address of the market hours breaker contract
-   */
-  function setMarketHoursBreaker(address _marketHoursBreaker) external;
 
   /**
    * @notice Returns true if the market is open based on FX market hours
@@ -172,4 +146,40 @@ interface IOracleAdapter {
    * @param rateFeedID The address of the rate feed
    */
   function ensureRateValid(address rateFeedID) external view;
+
+  /* ============================================================ */
+  /* ==================== Mutative Functions ==================== */
+  /* ============================================================ */
+
+  /**
+   * @notice Initializes the OracleAdapter contract
+   * @param _sortedOracles The address of the sorted oracles contract
+   * @param _breakerBox The address of the breaker box contract
+   * @param _marketHoursBreaker The address of the market hours breaker contract
+   * @param _initialOwner The address to transfer ownership to
+   */
+  function initialize(
+    address _sortedOracles,
+    address _breakerBox,
+    address _marketHoursBreaker,
+    address _initialOwner
+  ) external;
+
+  /**
+   * @notice Sets the address of the sorted oracles contract
+   * @param _sortedOracles The address of the sorted oracles contract
+   */
+  function setSortedOracles(address _sortedOracles) external;
+
+  /**
+   * @notice Sets the address of the breaker box contract
+   * @param _breakerBox The address of the breaker box contract
+   */
+  function setBreakerBox(address _breakerBox) external;
+
+  /**
+   * @notice Sets the address of the market hours breaker contract
+   * @param _marketHoursBreaker The address of the market hours breaker contract
+   */
+  function setMarketHoursBreaker(address _marketHoursBreaker) external;
 }

@@ -50,9 +50,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     IFPMM.FPMMParams defaultParams;
   }
 
-  /* ===================================================== */
-  /* ==================== Constructor ==================== */
-  /* ===================================================== */
+  /* ============================================================ */
+  /* ======================== Constructor ======================= */
+  /* ============================================================ */
 
   /**
    * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
@@ -72,6 +72,10 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     if (createXCodeHash != CREATEX_BYTECODE_HASH) revert CreateXBytecodeHashMismatch();
   }
 
+  /* ============================================================ */
+  /* ==================== Initialization ======================== */
+  /* ============================================================ */
+
   /// @inheritdoc IFPMMFactory
   function initialize(
     address _oracleAdapter,
@@ -88,9 +92,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     setGovernance(_governance);
   }
 
-  /* ======================================================== */
-  /* ==================== View Functions ==================== */
-  /* ======================================================== */
+  /* ============================================================ */
+  /* ===================== View Functions ======================= */
+  /* ============================================================ */
 
   /// @inheritdoc IFPMMFactory
   function oracleAdapter() public view returns (address) {
@@ -170,7 +174,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   /* ============================================================ */
-  /* ==================== Mutative Functions ==================== */
+  /* ===================== Admin Functions ======================= */
   /* ============================================================ */
 
   /// @inheritdoc IFPMMFactory
@@ -310,9 +314,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   // slither-disable-end reentrancy-no-eth
 
-  /* =========================================================== */
-  /* ==================== Private Functions ==================== */
-  /* =========================================================== */
+  /* ============================================================ */
+  /* =================== Internal Functions ===================== */
+  /* ============================================================ */
 
   /**
    * @notice Deploys the FPMM proxy contract.

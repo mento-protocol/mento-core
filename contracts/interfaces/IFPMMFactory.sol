@@ -5,9 +5,9 @@ import { IRPoolFactory } from "../swap/router/interfaces/IRPoolFactory.sol";
 import { IFPMM } from "./IFPMM.sol";
 
 interface IFPMMFactory is IRPoolFactory {
-  /* ========================================== */
-  /* ================= Errors ================= */
-  /* ========================================== */
+  /* ============================================================ */
+  /* ======================== Errors ============================ */
+  /* ============================================================ */
 
   // @notice Throw when the CREATEX bytecode hash does not match the expected hash
   error CreateXBytecodeHashMismatch();
@@ -42,9 +42,9 @@ interface IFPMMFactory is IRPoolFactory {
   // @notice Throw when trying to set a rebalance threshold that is too high
   error RebalanceThresholdTooHigh();
 
-  /* ========================================== */
-  /* ================= Events ================= */
-  /* ========================================== */
+  /* ============================================================ */
+  /* ======================== Events ============================ */
+  /* ============================================================ */
 
   /**
    * @notice Emitted when a new FPMM is deployed.
@@ -91,9 +91,9 @@ interface IFPMMFactory is IRPoolFactory {
    */
   event DefaultParamsSet(IFPMM.FPMMParams defaultParams);
 
-  /* ======================================================== */
-  /* ==================== View Functions ==================== */
-  /* ======================================================== */
+  /* ============================================================ */
+  /* ====================== View Functions ====================== */
+  /* ============================================================ */
 
   /**
    * @notice Gets the address of the oracle adapter contract.

@@ -30,7 +30,9 @@ import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
 contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
 
-  /* ========== CONSTANTS ========== */
+  /* ============================================================ */
+  /* ======================== Constants ========================= */
+  /* ============================================================ */
 
   /// @inheritdoc IFPMM
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
@@ -44,7 +46,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   // keccak256(abi.encode(uint256(keccak256("mento.storage.FPMM")) - 1)) & ~bytes32(uint256(0xff))
   bytes32 private constant _FPMM_STORAGE_LOCATION = 0xe40ad100017325097d9c1a3195cd4d2d97dcb316ccef4f208489777afd465d00;
 
-  /* ========== CONSTRUCTOR ========== */
+  /* ============================================================ */
+  /* ======================== Constructor ======================= */
+  /* ============================================================ */
 
   /**
    * @notice Contract constructor
@@ -56,7 +60,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     }
   }
 
-  /* ========== INITIALIZATION ========== */
+  /* ============================================================ */
+  /* ==================== Initialization ======================== */
+  /* ============================================================ */
 
   /// @inheritdoc IFPMM
   function initialize(
@@ -97,7 +103,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     transferOwnership(_initialOwner);
   }
 
-  /* ========== VIEW FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ====================== View Functions ====================== */
+  /* ============================================================ */
 
   /// @inheritdoc IRPool
   function metadata()
@@ -306,7 +314,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     }
   }
 
-  /* ========== EXTERNAL FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ====================== External Functions ================== */
+  /* ============================================================ */
 
   /// @inheritdoc IFPMM
   function mint(address to) external nonReentrant returns (uint256 liquidity) {
@@ -480,7 +490,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   // solhint-enable code-complexity
   // slither-disable-end reentrancy-no-eth
 
-  /* ========== ADMIN FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ===================== Admin Functions ====================== */
+  /* ============================================================ */
 
   /// @inheritdoc IFPMM
   function setLPFee(uint256 _lpFee) public onlyOwner {
@@ -586,7 +598,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     emit ReferenceRateFeedIDUpdated(oldRateFeedID, _referenceRateFeedID);
   }
 
-  /* ========== INTERNAL FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ==================== Internal Functions ==================== */
+  /* ============================================================ */
 
   /**
    * @notice Returns the storage pointer for the FPMM contract

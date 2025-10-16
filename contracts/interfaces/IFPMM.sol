@@ -7,7 +7,9 @@ import { IOracleAdapter } from "./IOracleAdapter.sol";
 import { IRPool } from "../swap/router/interfaces/IRPool.sol";
 
 interface IFPMM is IRPool {
-  /* ========== STRUCTS ========== */
+  /* ============================================================ */
+  /* ======================== Structs ============================ */
+  /* ============================================================ */
 
   /// @notice Struct to store FPMM contract state
   /// @custom:storage-location erc7201:mento.storage.FPMM
@@ -80,7 +82,9 @@ interface IFPMM is IRPool {
     bool reservePriceAboveOraclePrice;
   }
 
-  /* ========== ERRORS ========== */
+  /* ============================================================ */
+  /* ======================== Errors ============================ */
+  /* ============================================================ */
 
   // @notice Throw when trying to get a price for a rate feed that is not set
   error ReferenceRateNotSet();
@@ -129,7 +133,9 @@ interface IFPMM is IRPool {
   // @notice Throw when trying to rebalance with an invalid direction
   error RebalanceDirectionInvalid();
 
-  /* ========== EVENTS ========== */
+  /* ============================================================ */
+  /* ======================== Events ============================ */
+  /* ============================================================ */
 
   /**
    * @notice Emitted when liquidity is added to the pool
@@ -236,7 +242,9 @@ interface IFPMM is IRPool {
    */
   event UpdateReserves(uint256 reserve0, uint256 reserve1, uint256 blockTimestamp);
 
-  /* ========== VARIABLES ========== */
+  /* ============================================================ */
+  /* ====================== View Functions ====================== */
+  /* ============================================================ */
 
   /**
    * @notice Returns the minimum liquidity that will be locked forever when creating a pool
@@ -323,28 +331,6 @@ interface IFPMM is IRPool {
    */
   function liquidityStrategy(address strategy) external view returns (bool);
 
-  /* ========== FUNCTIONS ========== */
-
-  /**
-   * @notice Initializes the FPMM contract
-   * @param _token0 Address of the first token
-   * @param _token1 Address of the second token
-   * @param _oracleAdapter Address of the OracleAdapter contract
-   * @param _referenceRateFeedID Address of the reference rate feed ID
-   * @param _invertRateFeed Whether to invert the rate feed
-   * @param _initialOwner Address of the owner
-   * @param _params Parameters for the FPMM contract
-   */
-  function initialize(
-    address _token0,
-    address _token1,
-    address _oracleAdapter,
-    address _referenceRateFeedID,
-    bool _invertRateFeed,
-    address _initialOwner,
-    FPMMParams calldata _params
-  ) external;
-
   /**
    * @notice Gets current oracle and reserve prices
    * @return oraclePriceNumerator The numerator of the oracle price.
@@ -366,6 +352,30 @@ interface IFPMM is IRPool {
       uint256 priceDifference,
       bool reservePriceAboveOraclePrice
     );
+
+  /* ============================================================ */
+  /* ==================== Mutative Functions ==================== */
+  /* ============================================================ */
+
+  /**
+   * @notice Initializes the FPMM contract
+   * @param _token0 Address of the first token
+   * @param _token1 Address of the second token
+   * @param _oracleAdapter Address of the OracleAdapter contract
+   * @param _referenceRateFeedID Address of the reference rate feed ID
+   * @param _invertRateFeed Whether to invert the rate feed
+   * @param _initialOwner Address of the owner
+   * @param _params Parameters for the FPMM contract
+   */
+  function initialize(
+    address _token0,
+    address _token1,
+    address _oracleAdapter,
+    address _referenceRateFeedID,
+    bool _invertRateFeed,
+    address _initialOwner,
+    FPMMParams calldata _params
+  ) external;
 
   /**
    * @notice Mints LP tokens by providing liquidity to the pool
