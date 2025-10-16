@@ -8,7 +8,8 @@ import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { Router } from "contracts/swap/router/Router.sol";
-import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
+import { ProxyAdmin } from "openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
+import { FactoryRegistry } from "contracts/swap/FactoryRegistry.sol";
 
 /**
  * @title FPMMBaseIntegration
@@ -25,6 +26,8 @@ contract FPMMBaseIntegration is Test {
   TestERC20 public tokenA;
   TestERC20 public tokenB;
   TestERC20 public tokenC;
+  ProxyAdmin public proxyAdmin;
+  FactoryRegistry public factoryRegistry;
 
   // Test accounts
   address public alice = makeAddr("alice");
@@ -34,10 +37,10 @@ contract FPMMBaseIntegration is Test {
   // External addresses TODO: should be replaced with real contracts
   address public referenceRateFeedID = makeAddr("referenceRateFeedID");
   address public oracleAdapter = makeAddr("oracleAdapter");
-  address public proxyAdmin = makeAddr("proxyAdmin");
+
   address public governance = makeAddr("governance");
-  address public factoryRegistry = makeAddr("factoryRegistry");
   address public forwarder = address(0);
+  address public proxyAdminOwner = makeAddr("ProxyAdminOwner");
 
   // Test environment
   uint256 public celoFork = vm.createFork("https://forno.celo.org");
@@ -55,7 +58,6 @@ contract FPMMBaseIntegration is Test {
   // ============ SETUP ============
 
   function setUp() public virtual {
-    vm.warp(60 * 60 * 24 * 10); // Start at a non-zero timestamp
     vm.selectFork(celoFork);
 
     _deployContracts();
@@ -75,9 +77,19 @@ contract FPMMBaseIntegration is Test {
     factory = new FPMMFactory(false);
     fpmmImplementation = new FPMM(true);
 
-    router = new Router(forwarder, factoryRegistry, address(factory));
+    // This prank should not be necessary. The owner of the ProxyAdmin could very well be address(this).
+    // However, deploying the proxy admin as (this) will change the test contract's nonce and consequently will affect
+    // the addresses of all subsequently deployed contracts. This should be perfectly fine but in their current state
+    // some tests will break because we have some assumptions about the return values of _sortTokens().
+    vm.startPrank(proxyAdminOwner);
+    proxyAdmin = new ProxyAdmin();
+    factoryRegistry = new FactoryRegistry(false);
+    vm.stopPrank();
 
-    factory.initialize(oracleAdapter, proxyAdmin, governance, address(fpmmImplementation), defaultFpmmParams);
+    router = new Router(forwarder, address(factoryRegistry), address(factory));
+
+    factory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation), defaultFpmmParams);
+    factoryRegistry.initialize(address(factory), governance);
   }
 
   function _setupMocks() internal {
@@ -85,12 +97,6 @@ contract FPMMBaseIntegration is Test {
       address(oracleAdapter),
       abi.encodeWithSelector(IOracleAdapter.getFXRateIfValid.selector, referenceRateFeedID),
       abi.encode(1e18, 1e18)
-    );
-
-    vm.mockCall(
-      factoryRegistry,
-      abi.encodeWithSelector(IFactoryRegistry.isPoolFactoryApproved.selector, address(factory)),
-      abi.encode(true)
     );
   }
 
