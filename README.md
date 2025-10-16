@@ -43,7 +43,10 @@ forge test
 Install slither, if not installed.
 
 ```bash
-pip3 install slither-analyzer
+# On macOS
+brew install slither
+
+# For other platforms, see https://github.com/crytic/slither?tab=readme-ov-file#how-to-install
 ```
 
 Running slither locally requires you to build only a subset of packages:

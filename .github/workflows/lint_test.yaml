@@ -21,12 +21,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
 
       - name: Install Node.js
         uses: actions/setup-node@v3
@@ -45,10 +48,16 @@ jobs:
           echo "## Lint" >> $GITHUB_STEP_SUMMARY
           echo "✅ Passed" >> $GITHUB_STEP_SUMMARY
 
-      - name: Show the Foundry config
+      - name: Show Forge Version
+        run: forge --version
+
+      - name: Show Forge Config
         run: forge config
 
-      - name: Run the tests
+      - name: Run Forge Build
+        run: forge build
+
+      - name: Run Forge Test
         run: forge test
 
       - name: Check contract sizes
