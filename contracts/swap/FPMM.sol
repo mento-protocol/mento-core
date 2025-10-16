@@ -361,6 +361,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     amount0 = (liquidity * balance0) / _totalSupply;
     amount1 = (liquidity * balance1) / _totalSupply;
 
+    // slither-disable-next-line incorrect-equality
     if (amount0 == 0 || amount1 == 0) revert InsufficientLiquidityBurned();
 
     _burn(address(this), liquidity);
@@ -414,6 +415,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     swapData.amount1In = swapData.balance1 > $.reserve1 - amount1Out
       ? swapData.balance1 - ($.reserve1 - amount1Out)
       : 0;
+    // slither-disable-next-line incorrect-equality
     if (swapData.amount0In == 0 && swapData.amount1In == 0) revert InsufficientInputAmount();
 
     _transferProtocolFee(swapData.amount0In, swapData.amount1In);
