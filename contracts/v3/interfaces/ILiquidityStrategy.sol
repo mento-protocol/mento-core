@@ -55,6 +55,8 @@ interface ILiquidityStrategy {
   error LS_HOOK_NOT_CALLED();
   /// @notice Thrown when the same pool is rebalanced twice in a single transaction
   error LS_CAN_ONLY_REBALANCE_ONCE(address pool);
+  /// @notice Thrown when trying to add a pool with a debt token that's not a part of the pool
+  error LS_DEBT_TOKEN_NOT_IN_POOL();
 
   /* ============================================================ */
   /* ======================== Events ============================ */

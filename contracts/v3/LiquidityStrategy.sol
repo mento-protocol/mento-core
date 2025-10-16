@@ -236,6 +236,9 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
     if (!(incentiveBps <= LQ.BASIS_POINTS_DENOMINATOR && incentiveBps <= poolCap)) revert LS_BAD_INCENTIVE();
     if (!pools.add(pool)) revert LS_POOL_ALREADY_EXISTS(); // Ensure pool is added
     bool isToken0Debt = debtToken == IFPMM(pool).token0();
+    if (!isToken0Debt && IFPMM(pool).token1() != debtToken) {
+      revert LS_DEBT_TOKEN_NOT_IN_POOL();
+    }
 
     poolConfigs[pool] = PoolConfig({
       isToken0Debt: isToken0Debt,
