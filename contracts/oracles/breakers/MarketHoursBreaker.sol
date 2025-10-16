@@ -12,7 +12,9 @@ import { BokkyPooBahsDateTimeLibrary as DateTimeLibrary } from "BokkyPooBahsDate
  *         Used to enforce that FX rates are only being reported during valid trading hours.
  */
 contract MarketHoursBreaker is IMarketHoursBreaker {
-  /* ========== VIEW FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ===================== View Functions ======================= */
+  /* ============================================================ */
 
   /// @inheritdoc IMarketHoursBreaker
   function isFXMarketOpen(uint256 timestamp) public pure returns (bool) {
@@ -21,13 +23,15 @@ contract MarketHoursBreaker is IMarketHoursBreaker {
 
   /// @inheritdoc IMarketHoursBreaker
   // solhint-disable-next-line no-unused-vars
-  function shouldTrigger(address rateFeedID) public view returns (bool triggerBreaker) {
+  function shouldTrigger(address /* rateFeedID */) public view returns (bool triggerBreaker) {
     require(isFXMarketOpen(block.timestamp), "MarketHoursBreaker: FX market is closed");
 
     return false;
   }
 
-  /* ========== INTERNAL FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ===================== Internal Functions =================== */
+  /* ============================================================ */
 
   /**
    * @notice Check if the timestamp is during FX weekend hours
