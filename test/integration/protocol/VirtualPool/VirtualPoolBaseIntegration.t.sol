@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
-pragma solidity ^0.8;
+pragma solidity 0.8.24;
 
 import { ProtocolTest } from "../ProtocolTest.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";

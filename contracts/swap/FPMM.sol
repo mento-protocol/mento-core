@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.18;
+pragma solidity 0.8.24;
 
 import "../interfaces/IFPMM.sol";
 import "./router/interfaces/IRPool.sol";
@@ -281,37 +281,30 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     (uint256 rateNumerator, uint256 rateDenominator) = _getRateFeed();
 
-    uint256 totalFeeBps = $.lpFee + $.protocolFee;
-    uint256 amountInAfterFee = amountIn - ((amountIn * totalFeeBps) / BASIS_POINTS_DENOMINATOR);
-
     if (tokenIn == $.token0) {
-      return convertWithRate(amountInAfterFee, $.decimals0, $.decimals1, rateNumerator, rateDenominator);
+      return
+        _convertWithRateAndFee(
+          amountIn,
+          $.decimals0,
+          $.decimals1,
+          rateNumerator,
+          rateDenominator,
+          BASIS_POINTS_DENOMINATOR - ($.lpFee + $.protocolFee),
+          BASIS_POINTS_DENOMINATOR
+        );
     } else {
-      return convertWithRate(amountInAfterFee, $.decimals1, $.decimals0, rateDenominator, rateNumerator);
+      return
+        _convertWithRateAndFee(
+          amountIn,
+          $.decimals1,
+          $.decimals0,
+          rateDenominator,
+          rateNumerator,
+          BASIS_POINTS_DENOMINATOR - ($.lpFee + $.protocolFee),
+          BASIS_POINTS_DENOMINATOR
+        );
     }
   }
-
-  // slither-disable-start divide-before-multiply
-  /// @inheritdoc IFPMM
-  function convertWithRate(
-    uint256 amount,
-    uint256 fromDecimals,
-    uint256 toDecimals,
-    uint256 numerator,
-    uint256 denominator
-  ) public pure returns (uint256) {
-    if (fromDecimals > toDecimals) {
-      uint256 decimalAdjustment = fromDecimals / toDecimals;
-      return (amount * numerator) / (denominator * decimalAdjustment);
-    } else if (fromDecimals < toDecimals) {
-      uint256 decimalAdjustment = toDecimals / fromDecimals;
-      return (amount * numerator * decimalAdjustment) / denominator;
-    } else {
-      return (amount * numerator) / denominator;
-    }
-  }
-
-  // slither-disable-end divide-before-multiply
 
   /* ========== EXTERNAL FUNCTIONS ========== */
 
@@ -658,7 +651,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   ) private view returns (uint256) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    uint256 token0ValueInToken1 = convertWithRate(amount0, $.decimals0, 1e18, rateNumerator, rateDenominator);
+    uint256 token0ValueInToken1 = _convertWithRate(amount0, $.decimals0, 1e18, rateNumerator, rateDenominator);
     // slither-disable-next-line divide-before-multiply
     amount1 = amount1 * (1e18 / $.decimals1);
     return token0ValueInToken1 + amount1;
@@ -686,35 +679,37 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     bool reservePriceAboveOraclePrice;
     (, , , , newPriceDifference, reservePriceAboveOraclePrice) = getPrices();
-
     // Ensure price difference is smaller than before
     if (newPriceDifference >= swapData.initialPriceDifference) revert PriceDifferenceNotImproved();
+    // we allow the price difference to be moved in the wrong direction but not by more than the rebalance incentive
+    // this is due to the dynamic rebalance fee on redemptions.
     // slither-disable-next-line incorrect-equality
-    if (reservePriceAboveOraclePrice != swapData.reservePriceAboveOraclePrice && newPriceDifference != 0)
-      revert PriceDifferenceMovedInWrongDirection();
+    if (
+      reservePriceAboveOraclePrice != swapData.reservePriceAboveOraclePrice &&
+      newPriceDifference > (swapData.initialPriceDifference * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR
+    ) revert PriceDifferenceMovedInWrongDirection();
 
     if (swapData.amount0In > 0) {
-      uint256 expectedAmount0In = convertWithRate(
+      uint256 minAmount0In = _convertWithRateAndFee(
         swapData.amount1Out,
         $.decimals1,
-        1e18,
+        $.decimals0,
         swapData.rateDenominator,
-        swapData.rateNumerator
+        swapData.rateNumerator,
+        BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
+        BASIS_POINTS_DENOMINATOR
       );
-      uint256 minAmount0In = expectedAmount0In - (expectedAmount0In * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
-
       if (swapData.amount0In < minAmount0In) revert InsufficientAmount0In();
     } else {
-      uint256 expectedAmount1In = convertWithRate(
+      uint256 minAmount1In = _convertWithRateAndFee(
         swapData.amount0Out,
         $.decimals0,
-        1e18,
+        $.decimals1,
         swapData.rateNumerator,
-        swapData.rateDenominator
+        swapData.rateDenominator,
+        BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
+        BASIS_POINTS_DENOMINATOR
       );
-      // slither-disable-next-line divide-before-multiply
-      expectedAmount1In = expectedAmount1In / (1e18 / $.decimals1);
-      uint256 minAmount1In = expectedAmount1In - (expectedAmount1In * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
       if (swapData.amount1In < minAmount1In) revert InsufficientAmount1In();
     }
   }
@@ -734,7 +729,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     );
 
     // TODO: think about rounding here
-    uint256 expectedAmount0In = convertWithRate(
+    uint256 expectedAmount0In = _convertWithRate(
       swapData.amount1Out,
       $.decimals1,
       $.decimals0,
@@ -743,7 +738,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     );
 
     // TODO: think about rounding here
-    uint256 expectedAmount1In = convertWithRate(
+    uint256 expectedAmount1In = _convertWithRate(
       swapData.amount0Out,
       $.decimals0,
       $.decimals1,
@@ -764,7 +759,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     fee0 = totalFeeBps > 0 ? (fee0 * lpFeeBps) / totalFeeBps : 0;
     fee1 = totalFeeBps > 0 ? (fee1 * lpFeeBps) / totalFeeBps : 0;
 
-    uint256 fee0InToken1 = convertWithRate(
+    uint256 fee0InToken1 = _convertWithRate(
       fee0,
       $.decimals0,
       $.decimals1,
@@ -779,5 +774,27 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     // Check the reserve value is not decreased
     uint256 expectedReserveValue = swapData.initialReserveValue + totalFeeInToken1;
     if (newReserveValue < expectedReserveValue) revert ReserveValueDecreased();
+  }
+
+  function _convertWithRate(
+    uint256 amount,
+    uint256 fromDecimals,
+    uint256 toDecimals,
+    uint256 numerator,
+    uint256 denominator
+  ) internal pure returns (uint256) {
+    return (amount * numerator * toDecimals) / (denominator * fromDecimals);
+  }
+
+  function _convertWithRateAndFee(
+    uint256 amount,
+    uint256 fromDecimals,
+    uint256 toDecimals,
+    uint256 numerator,
+    uint256 denominator,
+    uint256 incentiveNum,
+    uint256 incentiveDen
+  ) internal pure returns (uint256) {
+    return (amount * numerator * toDecimals * incentiveNum) / (denominator * fromDecimals * incentiveDen);
   }
 }

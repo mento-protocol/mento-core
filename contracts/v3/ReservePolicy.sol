@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.18;
+pragma solidity 0.8.24;
 
 import { LiquidityTypes as LQ } from "./libraries/LiquidityTypes.sol";
 import { ILiquidityPolicy } from "./Interfaces/ILiquidityPolicy.sol";
@@ -41,7 +41,6 @@ contract ReservePolicy is ILiquidityPolicy {
     // Contract: Reserve contracts debt supply (receives debt from pool, provides collateral)
     LQ.Direction direction;
     uint256 inputAmount;
-
     if (ctx.isToken0Debt) {
       // Token0 is debt, Token1 is collateral
       if (amount0In > 0) {
@@ -65,7 +64,6 @@ contract ReservePolicy is ILiquidityPolicy {
         inputAmount = amount0In;
       }
     }
-
     bytes memory callbackData = abi.encode(LQ.incentiveAmount(inputAmount, ctx.incentiveBps), ctx.isToken0Debt);
 
     action = LQ.Action({
@@ -126,15 +124,16 @@ contract ReservePolicy is ILiquidityPolicy {
     if (denominator == 0) {
       return (0, 0, 0, 0);
     }
-
     if (poolPriceNumerator > oraclePriceNumerator) {
       // PP > OP: Pool price above oracle (RN/RD > ON/OD)
       // X = (OD * RN - ON * RD) / (OD * (2 - i))
       // X is token1 to REMOVE from pool
       // Y = X * OD/ON is token0 to ADD to pool
+      // slither-disable-start divide-before-multiply
       uint256 token1ToRemove18 = ((poolPriceNumerator - oraclePriceNumerator) * LQ.BASIS_POINTS_DENOMINATOR) /
         denominator;
       uint256 token0ToAdd18 = (token1ToRemove18 * ctx.prices.oracleDen) / ctx.prices.oracleNum;
+      // slither-disable-end divide-before-multiply
 
       amount0Out = 0;
       amount1Out = LQ.from1e18(token1ToRemove18, ctx.token1Dec);
@@ -152,11 +151,13 @@ contract ReservePolicy is ILiquidityPolicy {
         return (0, 0, 0, 0);
       }
 
+      // slither-disable-start divide-before-multiply
       uint256 token0ToRemove18 = ((oraclePriceNumerator - poolPriceNumerator) * LQ.BASIS_POINTS_DENOMINATOR) /
         contractionDenominator;
       uint256 token1ToAdd18 = (token0ToRemove18 *
         ctx.prices.oracleNum *
         (LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) / (ctx.prices.oracleDen * LQ.BASIS_POINTS_DENOMINATOR);
+      // slither-disable-end divide-before-multiply
 
       amount0Out = LQ.from1e18(token0ToRemove18, ctx.token0Dec);
       amount1Out = 0;
