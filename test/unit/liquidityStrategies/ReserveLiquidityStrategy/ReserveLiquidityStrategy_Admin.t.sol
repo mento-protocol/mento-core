@@ -30,14 +30,12 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
 
   function test_constructor_whenZeroReserve_shouldRevert() public {
     vm.expectRevert("RLS_INVALID_RESERVE()");
-    // solhint-disable-next-line no-unused-vars
-    ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(owner, address(0));
+    new ReserveLiquidityStrategy(owner, address(0));
   }
 
   function test_constructor_whenZeroOwner_shouldRevert() public {
     vm.expectRevert("LS_INVALID_OWNER()");
-    // solhint-disable-next-line no-unused-vars
-    ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(address(0), reserve);
+    new ReserveLiquidityStrategy(address(0), reserve);
   }
 
   /* ============================================================ */

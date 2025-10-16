@@ -67,7 +67,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
 
     (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, uint256(LQ.Direction.Expand), "Should expand");
     assertEq(action.amount0Out, 0, "No debt should flow out");
     assertGt(action.amount1Out, 0, "Collateral should flow out");
     assertGt(action.inputAmount, 0, "Debt should flow in");
@@ -108,7 +108,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
 
     (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, uint256(LQ.Direction.Expand), "Should expand");
     assertGt(action.amount0Out, 0, "Collateral should flow out");
     assertEq(action.amount1Out, 0, "No debt should flow out");
     assertGt(action.inputAmount, 0, "Debt should flow in");
@@ -157,7 +157,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
 
     (, LQ.Action memory action) = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract");
+    assertEq(action.dir, uint256(LQ.Direction.Contract), "Should contract");
     assertGt(action.amount0Out, 0, "Debt should flow out");
     assertEq(action.amount1Out, 0, "No collateral should flow out");
     assertGt(action.inputAmount, 0, "Collateral should flow in");

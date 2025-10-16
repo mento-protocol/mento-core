@@ -229,7 +229,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand");
     assertGt(action.amount0Out, 0, "Collateral (token0) should flow out during expansion");
     assertEq(action.amount1Out, 0, "No debt (token1) should flow out during expansion");
     assertGt(action.amountOwedToPool, 0, "Debt should flow in via inputAmount");
@@ -403,40 +403,55 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     setStabilityPoolBalance(debtToken, stabilityPoolBalance);
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    (uint256 priceDiffBefore, ) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.reserves.reserveNum,
-      ctx.reserves.reserveDen
-    );
+    // target amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 250684.220551
+    // since we only have limited liquidity:
+    // amount out in token 1 := (224513.5430511422423807184 * ON * 1) / (OD * (1-i)) = 225615.798495
+    uint256 expectedAmount1Out = 225615798495;
+    uint256 expectedAmount0Out = 0;
+    // input amount in token 0 := (amountOut * OD * (1-i))/ON = 249459.492279046935978576
+    // available stability pool balance = 249459.492279046935978576 * 0.9 = 224513.5430511422423807184
+    uint256 expectedAmountOwedToPool = 224513543051142242380718;
 
-    assertGt(priceDiffBefore, 0, "Price difference should be positive");
+    // since we only have liquidity for 90% of the target amount, the input amount should be 90% of the target amount
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+  }
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand");
-    assertEq(action.amount0Out, 0, "No debt should flow out");
-    assertGt(action.amount1Out, 0, "Collateral should flow out");
-    assertGt(action.amountOwedToPool, 0, "Debt should flow in");
+  function test_determineAction_whenToken1DebtPoolPriceBelowAndNotEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceCloserToOraclePrice()
+    public
+    fpmmToken1Debt(6, 18)
+    addFpmm(0, 50, 9000)
+  {
+    uint256 reserve0 = 1_300_000 * 1e18; // usdm
+    uint256 reserve1 = 1_000_000 * 1e6; // eurm
 
-    // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen + action.amountOwedToPool;
-    uint256 reserve1After = ctx.reserves.reserveNum - action.amount1Out * 1e12;
+    LQ.Context memory ctx = _createContextWithTokenOrder({
+      reserveDen: reserve0,
+      reserveNum: reserve1 * 1e12,
+      oracleNum: 863549230000000000, // USD/EUR rate
+      oracleDen: 1e18,
+      poolPriceAbove: false,
+      incentiveBps: 50,
+      isToken0Debt: false
+    });
 
-    (uint256 priceDiffAfter, ) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      reserve1After,
-      reserve0After
-    );
+    // enough to cover 90% of the target amount
+    uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.9e18, ctx);
+    setStabilityPoolBalance(debtToken, stabilityPoolBalance);
+    LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertLt(priceDiffAfter, priceDiffBefore, "Price difference should decrease");
-    assertGt(priceDiffAfter, 0, "Price difference should still be positive (partial expansion)");
-    assertIncentive(
-      ctx.incentiveBps,
-      false,
-      action.amount1Out * 1e12,
-      action.amountOwedToPool,
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen
-    );
+    // amount out in token 0 := (ON*RD-OD*RN)/(ON*(2-i)) = 71172.145133890686084197
+    // since we only have limited liquidity:
+    // amount out in token 0 := (55038013084 * OD * 1) / (ON * (1-i)) = 64054.930619381539786439
+    uint256 expectedAmount0Out = 64054930619381539786439;
+    uint256 expectedAmount1Out = 0;
+    // input amount in token 1 := (amountOut * ON * (1-i))/OD = 61153.347872
+    // available stability pool balance =  61153.347872 * 0.9 = 55038.013084
+    uint256 expectedAmountOwedToPool = 55038013084;
+
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
   }
 }
