@@ -11,7 +11,7 @@ import "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgra
 
 contract UpgradeabilityTest is FPMMBaseIntegration {
   // ========== Constants ==========
-  string internal constant _REVERT_REASON = "FPMM: FEE_TOO_HIGH";
+  string internal constant _REVERT_REASON = "FeeTooHigh()";
   uint256 internal constant _EXPECTED_FEE = 150;
   uint256 internal constant _ORIGINAL_LP_FEE = 30; // 0.3%
   uint256 internal constant _MAX_COMBINED_FEE_OLD = 100; // 1% in old implementation
