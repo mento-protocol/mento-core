@@ -96,6 +96,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       revert LS_HOOK_NOT_CALLED();
     }
 
+    // slither-disable-start incorrect-equality
     emit LiquidityMoved({
       pool: pool,
       direction: action.dir,
@@ -104,6 +105,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       tokenTakenFromPool: action.dir == LQ.Direction.Expand ? collToken : debtToken,
       amountTakenFromPool: action.amount0Out + action.amount1Out // only one is positive
     });
+    // slither-disable-end
   }
 
   /**
