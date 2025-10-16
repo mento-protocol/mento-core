@@ -23,6 +23,9 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
   using EnumerableSet for EnumerableSet.AddressSet;
   using SafeERC20 for IERC20;
 
+  uint256 public constant BPS_TO_FEE_SCALER = 1e14;
+  uint256 public constant BPS_DENOMINATOR = 10_000;
+
   /* ============================================================ */
   /* ==================== State Variables ======================= */
   /* ============================================================ */

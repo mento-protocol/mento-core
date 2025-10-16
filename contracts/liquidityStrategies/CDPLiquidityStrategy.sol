@@ -15,9 +15,6 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   using SafeERC20 for IERC20;
   using LQ for LQ.Context;
 
-  uint256 public constant BPS_TO_FEE_SCALER = 1e14;
-  uint256 public constant BPS_DENOMINATOR = 10_000;
-
   mapping(address => CDPConfig) private cdpConfigs;
 
   /* ============================================================ */

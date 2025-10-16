@@ -44,7 +44,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
 
   function test_determineAction_whenPoolPriceBelowOracleWithDifferentDecimals_shouldHandleCorrectly()
     public
-    fpmmToken0Debt(18, 18)
+    fpmmToken0Debt(18, 6)
     addFpmm(0, 100)
   {
     // Test with 6 decimal token1 and 18 decimal token0
@@ -73,6 +73,35 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
     assertGt(action.amountOwedToPool, 0, "Should have collateral input in raw units");
     // Verify the input is in 6-decimal scale
     assertLt(action.amountOwedToPool, 1e12, "Collateral input should be in 6-decimal scale");
+  }
+
+  function test_determineAction_whenPoolPriceBelowOracleWithNotEnoughBalance_shouldReturnCorrectAmounts()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50)
+  {
+    LQ.Context memory ctx = _createContext({
+      reserveDen: 300e18, // token0 reserves
+      reserveNum: 100e18, // token1 reserves
+      oracleNum: 1e18,
+      oracleDen: 1e18,
+      poolPriceAbove: false,
+      incentiveBps: 50
+    });
+
+    // Mock reserve to have collateral balance for contraction
+    vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(50e18));
+
+    LQ.Action memory action = strategy.determineAction(ctx);
+
+    // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
+    // Y = (1e18 * 300e18 - 1e18 * 100e18) / (1e18 * 2)
+    // Y = 200e18 / 2 = 100e18 (token0 debt to remove)
+    // X = Y * (ON/OD) * (1 - i) = 100e18 * (1e18/1e18) * 1 = 100e18 (token1 collateral to add)
+    // but we have at most 50e18 in the reserve, so we clamp collateral to that
+    // and calculate deby as 50e18 * 1e18/1e18 * 10000/9950 = 50251256281407035175
+    assertEq(action.amount0Out, 50251256281407035175, "Should calculate correct debt out");
+    assertEq(action.amountOwedToPool, 50e18, "Should calculate correct collateral input amount");
   }
 
   function test_determineAction_whenPoolPriceBelowOracleWithZeroIncentive_shouldReturnCorrectAmounts()

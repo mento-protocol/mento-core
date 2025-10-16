@@ -87,10 +87,10 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
 
     if (collateralBalance < idealCollateralToReceive) {
       collateralToReceive = collateralBalance;
-      debtToContract = ctx.convertToDebtToken(collateralBalance);
+      debtToContract = ctx.convertToDebtWithFee(collateralBalance, BPS_DENOMINATOR, BPS_DENOMINATOR - ctx.incentiveBps);
     } else {
-      debtToContract = idealDebtToContract;
       collateralToReceive = idealCollateralToReceive;
+      debtToContract = idealDebtToContract;
     }
 
     return (debtToContract, collateralToReceive);
