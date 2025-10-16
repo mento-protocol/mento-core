@@ -277,7 +277,8 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 amountOut,
     uint256 amountIn,
     uint256 oracleNum,
-    uint256 oracleDen
+    uint256 oracleDen,
+    bool isCheapContraction
   ) internal {
     uint256 amountOutInOtherToken;
     if (isToken0Out) {
@@ -288,7 +289,12 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 actualIncentive = ((amountOutInOtherToken - amountIn) * 10_000) / amountOutInOtherToken;
 
     // Allow 1bp difference due to rounding
-    assertApproxEqAbs(actualIncentive, expectedIncentiveBps, 1, "Incentive should match expected value");
+    // we allow 1bp difference due to rounding
+    if (isCheapContraction) {
+      assert(actualIncentive <= expectedIncentiveBps);
+    } else {
+      assertApproxEqAbs(actualIncentive, expectedIncentiveBps, 1);
+    }
   }
 
   /**

@@ -72,7 +72,8 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       action.amount1Out,
       action.amountOwedToPool,
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen
+      ctx.prices.oracleDen,
+      false
     );
   }
 
@@ -192,7 +193,8 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       action.amount0Out,
       action.amountOwedToPool * 1e12,
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen
+      ctx.prices.oracleDen,
+      false
     );
   }
 
