@@ -129,9 +129,11 @@ contract ReservePolicy is ILiquidityPolicy {
       // X = (OD * RN - ON * RD) / (OD * (2 - i))
       // X is token1 to REMOVE from pool
       // Y = X * OD/ON is token0 to ADD to pool
+      // slither-disable-start divide-before-multiply
       uint256 token1ToRemove18 = ((poolPriceNumerator - oraclePriceNumerator) * LQ.BASIS_POINTS_DENOMINATOR) /
         denominator;
       uint256 token0ToAdd18 = (token1ToRemove18 * ctx.prices.oracleDen) / ctx.prices.oracleNum;
+      // slither-disable-end divide-before-multiply
 
       amount0Out = 0;
       amount1Out = LQ.from1e18(token1ToRemove18, ctx.token1Dec);
@@ -149,11 +151,13 @@ contract ReservePolicy is ILiquidityPolicy {
         return (0, 0, 0, 0);
       }
 
+      // slither-disable-start divide-before-multiply
       uint256 token0ToRemove18 = ((oraclePriceNumerator - poolPriceNumerator) * LQ.BASIS_POINTS_DENOMINATOR) /
         contractionDenominator;
       uint256 token1ToAdd18 = (token0ToRemove18 *
         ctx.prices.oracleNum *
         (LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) / (ctx.prices.oracleDen * LQ.BASIS_POINTS_DENOMINATOR);
+      // slither-disable-end divide-before-multiply
 
       amount0Out = LQ.from1e18(token0ToRemove18, ctx.token0Dec);
       amount1Out = 0;

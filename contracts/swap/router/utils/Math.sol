@@ -337,3 +337,5 @@ library Math {
     }
   }
 }
+// slither-disable-end incorrect-exp
+// slither-disable-end divide-before-multiply

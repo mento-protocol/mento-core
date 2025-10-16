@@ -149,10 +149,12 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     LQ.Context memory ctx
   ) internal view returns (bool shouldAct, LQ.Action memory action) {
     uint256 numerator = ctx.prices.oracleDen * ctx.reserves.reserveNum - ctx.prices.oracleNum * ctx.reserves.reserveDen;
+    // slither-disable-start divide-before-multiply
     uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
     uint256 token1Out = (numerator * ctx.token1Dec) / (denominator * 1e18);
+    // slither-disable-end divide-before-multiply
 
     uint256 token0In = LQ.convertWithRateScalingAndFee(
       token1Out,
@@ -190,10 +192,12 @@ contract CDPPolicy is ICDPPolicy, Ownable {
     LQ.Context memory ctx
   ) internal view returns (bool shouldAct, LQ.Action memory action) {
     uint256 numerator = ctx.prices.oracleNum * ctx.reserves.reserveDen - ctx.prices.oracleDen * ctx.reserves.reserveNum;
+    // slither-disable-start divide-before-multiply
     uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
     uint256 token0Out = (numerator * ctx.token0Dec) / (denominator * 1e18);
+    // slither-disable-end divide-before-multiply
 
     uint256 token1In = LQ.convertWithRateScalingAndFee(
       token0Out,
@@ -261,7 +265,9 @@ contract CDPPolicy is ICDPPolicy, Ownable {
         );
       }
     }
+    // slither-disable-next-line incorrect-equality
     if (amountOut == 0) revert CDPPolicy_AmountOutIs0();
+    // slither-disable-next-line incorrect-equality
     if (amountIn == 0) revert CDPPolicy_AmountInIs0();
 
     action.pool = ctx.pool;

@@ -362,6 +362,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     return (proxyAddress, salt);
   }
 
+  // slither-disable-end encode-packed-collision
+
   /**
    * @notice Returns the pointer to the FPMMFactoryStorage struct.
    * @return $ The pointer to the FPMMFactoryStorage struct
