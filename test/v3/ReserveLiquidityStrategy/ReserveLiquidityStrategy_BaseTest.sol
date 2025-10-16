@@ -151,7 +151,14 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 _amountTakenFromPool
   ) internal {
     vm.expectEmit(true, true, false, false);
-    emit LiquidityMoved(_pool, _direction, _tokenGivenToPool, _amountGivenToPool, _tokenTakenFromPool, _amountTakenFromPool);
+    emit LiquidityMoved(
+      _pool,
+      _direction,
+      _tokenGivenToPool,
+      _amountGivenToPool,
+      _tokenTakenFromPool,
+      _amountTakenFromPool
+    );
   }
 
   /**
