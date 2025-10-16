@@ -187,14 +187,13 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @notice Clamps expansion amounts based on strategy-specific constraints
    * @dev Override this method to limit expansion based on available liquidity
    *      Default implementation returns ideal amounts unchanged
-   * @param ctx The liquidity context containing pool state and configuration
    * @param idealDebtToExpand The calculated ideal amount of debt tokens to add to pool
    * @param idealCollateralToPay The calculated ideal amount of collateral to receive from pool
    * @return debtToExpand The actual debt amount to expand (may be less than ideal)
    * @return collateralToPay The actual collateral amount to receive (adjusted proportionally)
    */
   function _clampExpansion(
-    LQ.Context memory ctx,
+    LQ.Context memory, // used in concrete implementations
     uint256 idealDebtToExpand,
     uint256 idealCollateralToPay
   ) internal view virtual returns (uint256 debtToExpand, uint256 collateralToPay) {
@@ -205,14 +204,13 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @notice Clamps contraction amounts based on strategy-specific constraints
    * @dev Override this method to limit contraction based on available collateral
    *      Default implementation returns ideal amounts unchanged
-   * @param ctx The liquidity context containing pool state and configuration
    * @param idealDebtToContract The calculated ideal amount of debt tokens to receive from pool
    * @param idealCollateralToReceive The calculated ideal amount of collateral to add to pool
    * @return debtToContract The actual debt amount to contract (may be less than ideal)
    * @return collateralToReceive The actual collateral amount to send (adjusted proportionally)
    */
   function _clampContraction(
-    LQ.Context memory ctx,
+    LQ.Context memory, // used in concrete implementations
     uint256 idealDebtToContract,
     uint256 idealCollateralToReceive
   ) internal view virtual returns (uint256 debtToContract, uint256 collateralToReceive) {

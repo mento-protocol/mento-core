@@ -117,14 +117,13 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    * @dev Calculates max redeemable amount based on current redemption fees and adjusts if needed
    * @param ctx The liquidity context containing pool state and configuration
    * @param idealDebtToContract The calculated ideal amount of debt tokens to redeem
-   * @param idealCollateralToReceive The calculated ideal amount of collateral to receive from redemption
    * @return debtToContract The actual debt amount to contract (limited by redemption fee)
    * @return collateralToReceive The actual collateral amount to send (adjusted based on redemption fee)
    */
   function _clampContraction(
     LQ.Context memory ctx,
     uint256 idealDebtToContract,
-    uint256 idealCollateralToReceive
+    uint256 // idealCollateralToReceive - used in other implementations
   ) internal view override returns (uint256 debtToContract, uint256 collateralToReceive) {
     (debtToContract, collateralToReceive) = _calculateMaxRedeemableDebt(ctx, cdpConfigs[ctx.pool], idealDebtToContract);
     return (debtToContract, collateralToReceive);
