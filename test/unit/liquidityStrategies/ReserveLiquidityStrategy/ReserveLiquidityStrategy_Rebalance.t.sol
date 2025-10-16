@@ -82,7 +82,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     MockERC20(collToken).mint(address(reserve), 1000e18);
 
     // Rebalance should not execute any action (no events should be emitted, should revert)
-    vm.expectRevert("FPMM: ONE_OUTPUT_AMOUNT_REQUIRED");
+    vm.expectRevert("OneOutputAmountRequired()");
     strategy.rebalance(address(fpmm));
   }
 
@@ -269,7 +269,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     MockERC20(collToken).mint(address(reserve), 1000e18);
 
     // Should revert due to FPMM threshold (price difference too small)
-    vm.expectRevert("FPMM: PRICE_DIFFERENCE_TOO_SMALL");
+    vm.expectRevert("PriceDifferenceTooSmall()");
     strategy.rebalance(address(fpmm));
   }
 

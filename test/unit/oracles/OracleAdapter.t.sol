@@ -61,6 +61,12 @@ contract OracleAdapterTest is Test {
     assertEq(address(oracleAdapter.sortedOracles()), newOracles);
   }
 
+  function test_setSortedOracles_whenCalledWithZeroAddress_shouldRevert() public initialized {
+    vm.prank(owner);
+    vm.expectRevert(IOracleAdapter.ZeroAddress.selector);
+    oracleAdapter.setSortedOracles(address(0));
+  }
+
   function test_setSortedOracles_whenCalledByNotOwner_shouldRevert() public initialized {
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("NOT_OWNER"));
@@ -82,6 +88,12 @@ contract OracleAdapterTest is Test {
     oracleAdapter.setBreakerBox(breakerBox);
   }
 
+  function test_setBreakerBox_whenCalledWithZeroAddress_shouldRevert() public initialized {
+    vm.prank(owner);
+    vm.expectRevert(IOracleAdapter.ZeroAddress.selector);
+    oracleAdapter.setBreakerBox(address(0));
+  }
+
   function test_setMarketHoursBreaker_whenCalledByOwner_shouldUpdateAddress() public initialized {
     address newMarketHoursBreaker = makeAddr("newMarketHoursBreaker");
 
@@ -97,13 +109,31 @@ contract OracleAdapterTest is Test {
     oracleAdapter.setMarketHoursBreaker(marketHoursBreaker);
   }
 
+  function test_setMarketHoursBreaker_whenCalledWithZeroAddress_shouldRevert() public initialized {
+    vm.prank(owner);
+    vm.expectRevert(IOracleAdapter.ZeroAddress.selector);
+    oracleAdapter.setMarketHoursBreaker(address(0));
+  }
+
   function test_getRateIfValid_whenTradingIsSuspended_shouldRevert()
     public
     initialized
     withFXMarketOpen(true)
     withTradingMode(1)
   {
-    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    vm.expectRevert(IOracleAdapter.TradingSuspended.selector);
+    oracleAdapter.getRateIfValid(referenceRateFeedID);
+  }
+
+  function test_getRateIfValid_whenValid_shouldNotRevert()
+    public
+    initialized
+    withOracleRate(1e18, 1e18)
+    withTradingMode(0)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs)
+  {
+    vm.warp(blockTs);
     oracleAdapter.getRateIfValid(referenceRateFeedID);
   }
 
@@ -122,12 +152,12 @@ contract OracleAdapterTest is Test {
 
     skip(1);
 
-    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
     oracleAdapter.getRateIfValid(referenceRateFeedID);
   }
 
   function test_getFXRateIfValid_whenFXMarketIsClosed_shouldRevert() public initialized withFXMarketOpen(false) {
-    vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
+    vm.expectRevert(IOracleAdapter.FXMarketClosed.selector);
     oracleAdapter.getFXRateIfValid(referenceRateFeedID);
   }
 
@@ -137,7 +167,7 @@ contract OracleAdapterTest is Test {
     withFXMarketOpen(true)
     withTradingMode(1)
   {
-    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    vm.expectRevert(IOracleAdapter.TradingSuspended.selector);
     oracleAdapter.getFXRateIfValid(referenceRateFeedID);
   }
 
@@ -156,7 +186,7 @@ contract OracleAdapterTest is Test {
 
     skip(1);
 
-    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
     oracleAdapter.getFXRateIfValid(referenceRateFeedID);
   }
 
@@ -211,7 +241,7 @@ contract OracleAdapterTest is Test {
     withMedianTimestamp(blockTs)
   {
     vm.warp(blockTs);
-    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    vm.expectRevert(IOracleAdapter.TradingSuspended.selector);
     oracleAdapter.ensureRateValid(referenceRateFeedID);
   }
 
@@ -223,18 +253,32 @@ contract OracleAdapterTest is Test {
     withMedianTimestamp(blockTs - 7 minutes)
   {
     vm.warp(blockTs);
-    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
     oracleAdapter.ensureRateValid(referenceRateFeedID);
   }
 
   function test_ensureRateValid_whenValid_shouldNotRevert()
     public
     initialized
+    withOracleRate(1e18, 1e18)
     withTradingMode(0)
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs)
   {
     vm.warp(blockTs);
+    oracleAdapter.ensureRateValid(referenceRateFeedID);
+  }
+
+  function test_ensureRateValid_whenRateIsZero_shouldRevert()
+    public
+    initialized
+    withOracleRate(0, 0)
+    withTradingMode(0)
+    withReportExpiry(6 minutes)
+    withMedianTimestamp(blockTs)
+  {
+    vm.warp(blockTs);
+    vm.expectRevert(IOracleAdapter.InvalidRate.selector);
     oracleAdapter.ensureRateValid(referenceRateFeedID);
   }
 

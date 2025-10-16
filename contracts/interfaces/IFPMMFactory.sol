@@ -5,9 +5,46 @@ import { IRPoolFactory } from "../swap/router/interfaces/IRPoolFactory.sol";
 import { IFPMM } from "./IFPMM.sol";
 
 interface IFPMMFactory is IRPoolFactory {
-  /* ========================================== */
-  /* ================= Events ================= */
-  /* ========================================== */
+  /* ============================================================ */
+  /* ======================== Errors ============================ */
+  /* ============================================================ */
+
+  // @notice Throw when the CREATEX bytecode hash does not match the expected hash
+  error CreateXBytecodeHashMismatch();
+  // @notice Throw when trying to set a zero address as a contract address
+  error ZeroAddress();
+  // @notice Throw when trying to sort identical token addresses
+  error IdenticalTokenAddresses();
+  // @notice Throw when trying to sort tokens with a zero address as one of the tokens
+  error SortTokensZeroAddress();
+  // @notice Throw when trying to deploy an fpmm with a zero address as the oracle adapter
+  error InvalidOracleAdapter();
+  // @notice Throw when trying to deploy an fpmm with a zero address as the proxy admin
+  error InvalidProxyAdmin();
+  // @notice Throw when trying to deploy an fpmm with a zero address as the governance address
+  error InvalidGovernance();
+  // @notice Throw when trying to deploy an fpmm with a zero address as the reference rate feed id
+  error InvalidReferenceRateFeedID();
+  // @notice Throw when trying to deploy an fpmm for a token pair that already exists
+  error PairAlreadyExists();
+  // @notice Throw when trying to do an operation with an fpmm implementation that is not registered
+  error ImplementationNotRegistered();
+  // @notice Throw when trying to register an fpmm implementation that is already registered
+  error ImplementationAlreadyRegistered();
+  // @notice Throw when trying to unregister an fpmm implementation with an index that is out of bounds
+  error IndexOutOfBounds();
+  // @notice Throw when trying to unregister an fpmm implementation with an index that does not match the implementation
+  error ImplementationIndexMismatch();
+  // @notice Throw when trying to set a fee that is too high
+  error FeeTooHigh();
+  // @notice Throw when trying to set a rebalance incentive that is too high
+  error RebalanceIncentiveTooHigh();
+  // @notice Throw when trying to set a rebalance threshold that is too high
+  error RebalanceThresholdTooHigh();
+
+  /* ============================================================ */
+  /* ======================== Events ============================ */
+  /* ============================================================ */
 
   /**
    * @notice Emitted when a new FPMM is deployed.
@@ -54,9 +91,9 @@ interface IFPMMFactory is IRPoolFactory {
    */
   event DefaultParamsSet(IFPMM.FPMMParams defaultParams);
 
-  /* ======================================================== */
-  /* ==================== View Functions ==================== */
-  /* ======================================================== */
+  /* ============================================================ */
+  /* ====================== View Functions ====================== */
+  /* ============================================================ */
 
   /**
    * @notice Gets the address of the oracle adapter contract.

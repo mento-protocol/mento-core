@@ -9,7 +9,9 @@ import { IMarketHoursBreaker } from "../interfaces/IMarketHoursBreaker.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
 contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
-  /* ========== CONSTANTS ========== */
+  /* ============================================================ */
+  /* ======================== Constants ========================= */
+  /* ============================================================ */
 
   uint256 public constant TRADING_MODE_BIDIRECTIONAL = 0;
 
@@ -17,7 +19,9 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   bytes32 private constant _ORACLE_ADAPTER_STORAGE_LOCATION =
     0x04e664c42d77958a8a4a4091eaa097623a29a223ec89dc71155113e263f9c400;
 
-  /* ========== CONSTRUCTOR ========== */
+  /* ============================================================ */
+  /* ======================== Constructor ======================= */
+  /* ============================================================ */
 
   /**
    * @notice Contract constructor
@@ -29,7 +33,9 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     }
   }
 
-  /* ========== INITIALIZATION ========== */
+  /* ============================================================ */
+  /* ==================== Initialization ======================== */
+  /* ============================================================ */
 
   /// @inheritdoc IOracleAdapter
   function initialize(
@@ -47,7 +53,46 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     transferOwnership(_initialOwner);
   }
 
-  /* ========== VIEW FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ==================== Admin Functions ======================= */
+  /* ============================================================ */
+
+  /// @inheritdoc IOracleAdapter
+  function setSortedOracles(address _sortedOracles) public onlyOwner {
+    if (_sortedOracles == address(0)) revert ZeroAddress();
+
+    OracleAdapterStorage storage $ = _getStorage();
+    address oldSortedOracles = address($.sortedOracles);
+    $.sortedOracles = ISortedOracles(_sortedOracles);
+
+    emit SortedOraclesUpdated(oldSortedOracles, _sortedOracles);
+  }
+
+  /// @inheritdoc IOracleAdapter
+  function setBreakerBox(address _breakerBox) public onlyOwner {
+    if (_breakerBox == address(0)) revert ZeroAddress();
+
+    OracleAdapterStorage storage $ = _getStorage();
+    address oldBreakerBox = address($.breakerBox);
+    $.breakerBox = IBreakerBox(_breakerBox);
+
+    emit BreakerBoxUpdated(oldBreakerBox, _breakerBox);
+  }
+
+  /// @inheritdoc IOracleAdapter
+  function setMarketHoursBreaker(address _marketHoursBreaker) public onlyOwner {
+    if (_marketHoursBreaker == address(0)) revert ZeroAddress();
+
+    OracleAdapterStorage storage $ = _getStorage();
+    address oldMarketHoursBreaker = address($.marketHoursBreaker);
+    $.marketHoursBreaker = IMarketHoursBreaker(_marketHoursBreaker);
+
+    emit MarketHoursBreakerUpdated(oldMarketHoursBreaker, _marketHoursBreaker);
+  }
+
+  /* ============================================================ */
+  /* ===================== View Functions ======================= */
+  /* ============================================================ */
 
   function sortedOracles() external view returns (ISortedOracles) {
     OracleAdapterStorage storage $ = _getStorage();
@@ -63,43 +108,6 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     OracleAdapterStorage storage $ = _getStorage();
     return $.marketHoursBreaker;
   }
-
-  /* ========== ADMIN FUNCTIONS ========== */
-
-  /// @inheritdoc IOracleAdapter
-  function setSortedOracles(address _sortedOracles) public onlyOwner {
-    require(_sortedOracles != address(0), "OracleAdapter: ZERO_ADDRESS");
-
-    OracleAdapterStorage storage $ = _getStorage();
-    address oldSortedOracles = address($.sortedOracles);
-    $.sortedOracles = ISortedOracles(_sortedOracles);
-
-    emit SortedOraclesUpdated(oldSortedOracles, _sortedOracles);
-  }
-
-  /// @inheritdoc IOracleAdapter
-  function setBreakerBox(address _breakerBox) public onlyOwner {
-    require(_breakerBox != address(0), "OracleAdapter: ZERO_ADDRESS");
-
-    OracleAdapterStorage storage $ = _getStorage();
-    address oldBreakerBox = address($.breakerBox);
-    $.breakerBox = IBreakerBox(_breakerBox);
-
-    emit BreakerBoxUpdated(oldBreakerBox, _breakerBox);
-  }
-
-  /// @inheritdoc IOracleAdapter
-  function setMarketHoursBreaker(address _marketHoursBreaker) public onlyOwner {
-    require(_marketHoursBreaker != address(0), "OracleAdapter: ZERO_ADDRESS");
-
-    OracleAdapterStorage storage $ = _getStorage();
-    address oldMarketHoursBreaker = address($.marketHoursBreaker);
-    $.marketHoursBreaker = IMarketHoursBreaker(_marketHoursBreaker);
-
-    emit MarketHoursBreakerUpdated(oldMarketHoursBreaker, _marketHoursBreaker);
-  }
-
-  /* ========== EXTERNAL FUNCTIONS ========== */
 
   /// @inheritdoc IOracleAdapter
   function isFXMarketOpen() external view returns (bool) {
@@ -129,17 +137,17 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
   /// @inheritdoc IOracleAdapter
   function getRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator) {
-    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
-    require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
+    if (_getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL) revert TradingSuspended();
+    if (!_hasRecentRate(rateFeedID)) revert NoRecentRate();
 
     return _getOracleRate(rateFeedID);
   }
 
   /// @inheritdoc IOracleAdapter
   function getFXRateIfValid(address rateFeedID) external view returns (uint256 numerator, uint256 denominator) {
-    require(_isFXMarketOpen(), "OracleAdapter: FX_MARKET_CLOSED");
-    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
-    require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
+    if (!_isFXMarketOpen()) revert FXMarketClosed();
+    if (_getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL) revert TradingSuspended();
+    if (!_hasRecentRate(rateFeedID)) revert NoRecentRate();
 
     return _getOracleRate(rateFeedID);
   }
@@ -151,11 +159,14 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
   /// @inheritdoc IOracleAdapter
   function ensureRateValid(address rateFeedID) external view {
-    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
-    require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
+    if (_getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL) revert TradingSuspended();
+    if (!_hasRecentRate(rateFeedID)) revert NoRecentRate();
+    _getOracleRate(rateFeedID);
   }
 
-  /* ========== INTERNAL FUNCTIONS ========== */
+  /* ============================================================ */
+  /* ==================== Private Functions ===================== */
+  /* ============================================================ */
 
   function _isFXMarketOpen() private view returns (bool) {
     OracleAdapterStorage storage $ = _getStorage();
@@ -173,6 +184,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     OracleAdapterStorage storage $ = _getStorage();
 
     (numerator, denominator) = $.sortedOracles.medianRate(rateFeedID);
+    if (numerator == 0 || denominator == 0) revert InvalidRate();
 
     numerator = numerator / 1e6;
     denominator = denominator / 1e6;

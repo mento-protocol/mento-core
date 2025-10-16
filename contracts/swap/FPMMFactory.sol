@@ -50,9 +50,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     IFPMM.FPMMParams defaultParams;
   }
 
-  /* ===================================================== */
-  /* ==================== Constructor ==================== */
-  /* ===================================================== */
+  /* ============================================================ */
+  /* ======================== Constructor ======================= */
+  /* ============================================================ */
 
   /**
    * @dev Should be called with disable=true in deployments when it's accessed through a Proxy.
@@ -69,8 +69,12 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     assembly {
       createXCodeHash := extcodehash(CREATEX)
     }
-    require(createXCodeHash == CREATEX_BYTECODE_HASH, "FPMMFactory: CREATEX_BYTECODE_HASH_MISMATCH");
+    if (createXCodeHash != CREATEX_BYTECODE_HASH) revert CreateXBytecodeHashMismatch();
   }
+
+  /* ============================================================ */
+  /* ==================== Initialization ======================== */
+  /* ============================================================ */
 
   /// @inheritdoc IFPMMFactory
   function initialize(
@@ -88,9 +92,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     setGovernance(_governance);
   }
 
-  /* ======================================================== */
-  /* ==================== View Functions ==================== */
-  /* ======================================================== */
+  /* ============================================================ */
+  /* ===================== View Functions ======================= */
+  /* ============================================================ */
 
   /// @inheritdoc IFPMMFactory
   function oracleAdapter() public view returns (address) {
@@ -152,9 +156,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @inheritdoc IFPMMFactory
   function sortTokens(address tokenA, address tokenB) public pure returns (address token0, address token1) {
-    require(tokenA != tokenB, "FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    if (tokenA == tokenB) revert IdenticalTokenAddresses();
     (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-    require(token0 != address(0), "FPMMFactory: ZERO_ADDRESS");
+    if (token0 == address(0)) revert SortTokensZeroAddress();
   }
 
   /// @inheritdoc IRPoolFactory
@@ -170,12 +174,12 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   /* ============================================================ */
-  /* ==================== Mutative Functions ==================== */
+  /* ===================== Admin Functions ======================= */
   /* ============================================================ */
 
   /// @inheritdoc IFPMMFactory
   function setOracleAdapter(address _oracleAdapter) public onlyOwner {
-    require(_oracleAdapter != address(0), "FPMMFactory: ZERO_ADDRESS");
+    if (_oracleAdapter == address(0)) revert ZeroAddress();
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     $.oracleAdapter = _oracleAdapter;
     emit OracleAdapterSet(_oracleAdapter);
@@ -183,7 +187,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @inheritdoc IFPMMFactory
   function setProxyAdmin(address _proxyAdmin) public onlyOwner {
-    require(_proxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
+    if (_proxyAdmin == address(0)) revert ZeroAddress();
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     $.proxyAdmin = _proxyAdmin;
     emit ProxyAdminSet(_proxyAdmin);
@@ -192,7 +196,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /// @inheritdoc IFPMMFactory
   function setGovernance(address _governance) public onlyOwner {
     // TODO: Discuss why do we need a seperate governance address if the governance is set as the owner?
-    require(_governance != address(0), "FPMMFactory: ZERO_ADDRESS");
+    if (_governance == address(0)) revert ZeroAddress();
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     $.governance = _governance;
     transferOwnership(_governance);
@@ -201,13 +205,11 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @inheritdoc IFPMMFactory
   function setDefaultParams(IFPMM.FPMMParams calldata _defaultParams) public onlyOwner {
-    require(_defaultParams.lpFee <= 100, "FPMMFactory: LP_FEE_TOO_HIGH");
-    require(_defaultParams.protocolFee <= 100, "FPMMFactory: PROTOCOL_FEE_TOO_HIGH");
-    require(_defaultParams.protocolFee + _defaultParams.lpFee <= 100, "FPMMFactory: COMBINED_FEE_TOO_HIGH");
-    require(_defaultParams.protocolFeeRecipient != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(_defaultParams.rebalanceIncentive <= 100, "FPMMFactory: REBALANCE_INCENTIVE_TOO_HIGH");
-    require(_defaultParams.rebalanceThresholdAbove <= 1000, "FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
-    require(_defaultParams.rebalanceThresholdBelow <= 1000, "FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
+    if (_defaultParams.protocolFee + _defaultParams.lpFee > 100) revert FeeTooHigh();
+    if (_defaultParams.protocolFeeRecipient == address(0)) revert ZeroAddress();
+    if (_defaultParams.rebalanceIncentive > 100) revert RebalanceIncentiveTooHigh();
+    if (_defaultParams.rebalanceThresholdAbove > 1000) revert RebalanceThresholdTooHigh();
+    if (_defaultParams.rebalanceThresholdBelow > 1000) revert RebalanceThresholdTooHigh();
 
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     $.defaultParams = _defaultParams;
@@ -217,8 +219,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /// @inheritdoc IFPMMFactory
   function registerFPMMImplementation(address fpmmImplementation) public onlyOwner {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    require(fpmmImplementation != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(!$.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_ALREADY_REGISTERED");
+    if (fpmmImplementation == address(0)) revert ZeroAddress();
+    if ($.isRegisteredImplementation[fpmmImplementation]) revert ImplementationAlreadyRegistered();
     $.isRegisteredImplementation[fpmmImplementation] = true;
     $.registeredImplementations.push(fpmmImplementation);
     emit FPMMImplementationRegistered(fpmmImplementation);
@@ -227,9 +229,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   /// @inheritdoc IFPMMFactory
   function unregisterFPMMImplementation(address fpmmImplementation, uint256 index) public onlyOwner {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
-    require(index < $.registeredImplementations.length, "FPMMFactory: INDEX_OUT_OF_BOUNDS");
-    require($.registeredImplementations[index] == fpmmImplementation, "FPMMFactory: IMPLEMENTATION_INDEX_MISMATCH");
+    if (!$.isRegisteredImplementation[fpmmImplementation]) revert ImplementationNotRegistered();
+    if (index >= $.registeredImplementations.length) revert IndexOutOfBounds();
+    if ($.registeredImplementations[index] != fpmmImplementation) revert ImplementationIndexMismatch();
     $.isRegisteredImplementation[fpmmImplementation] = false;
     if ($.registeredImplementations.length > 1) {
       $.registeredImplementations[index] = $.registeredImplementations[$.registeredImplementations.length - 1];
@@ -254,12 +256,12 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
     FPMMFactoryStorage storage $ = _getFPMMStorage();
 
-    require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
-    require(customOracleAdapter != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(customProxyAdmin != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(customGovernance != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
-    require(getPool(token0, token1) == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
+    if (!$.isRegisteredImplementation[fpmmImplementation]) revert ImplementationNotRegistered();
+    if (customOracleAdapter == address(0)) revert InvalidOracleAdapter();
+    if (customProxyAdmin == address(0)) revert InvalidProxyAdmin();
+    if (customGovernance == address(0)) revert InvalidGovernance();
+    if (referenceRateFeedID == address(0)) revert InvalidReferenceRateFeedID();
+    if (getPool(token0, token1) != address(0)) revert PairAlreadyExists();
 
     address fpmmProxy = _deployFPMMProxy(
       fpmmImplementation,
@@ -289,10 +291,10 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     (token0, token1) = sortTokens(token0, token1);
 
     FPMMFactoryStorage storage $ = _getFPMMStorage();
-    require($.isRegisteredImplementation[fpmmImplementation], "FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+    if (!$.isRegisteredImplementation[fpmmImplementation]) revert ImplementationNotRegistered();
 
-    require(getPool(token0, token1) == address(0), "FPMMFactory: PAIR_ALREADY_EXISTS");
-    require(referenceRateFeedID != address(0), "FPMMFactory: ZERO_ADDRESS");
+    if (getPool(token0, token1) != address(0)) revert PairAlreadyExists();
+    if (referenceRateFeedID == address(0)) revert InvalidReferenceRateFeedID();
 
     address fpmmProxy = _deployFPMMProxy(
       fpmmImplementation,
@@ -312,9 +314,9 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   // slither-disable-end reentrancy-no-eth
 
-  /* =========================================================== */
-  /* ==================== Private Functions ==================== */
-  /* =========================================================== */
+  /* ============================================================ */
+  /* =================== Internal Functions ===================== */
+  /* ============================================================ */
 
   /**
    * @notice Deploys the FPMM proxy contract.

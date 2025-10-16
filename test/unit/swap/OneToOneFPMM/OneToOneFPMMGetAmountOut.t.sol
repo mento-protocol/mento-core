@@ -3,6 +3,8 @@
 pragma solidity ^0.8;
 
 import { OneToOneFPMMBaseTest } from "./OneToOneFPMMBaseTest.sol";
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
   function setUp() public override {
@@ -16,7 +18,7 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
   function test_getAmountOut_whenTokenIsInvalid_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     address invalidToken = makeAddr("INVALID_TOKEN");
 
-    vm.expectRevert("FPMM: INVALID_TOKEN");
+    vm.expectRevert(IFPMM.InvalidToken.selector);
     fpmm.getAmountOut(100, invalidToken);
   }
 
@@ -121,7 +123,7 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
     withFXMarketOpen(true)
     withRecentRate(true)
   {
-    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    vm.expectRevert(IOracleAdapter.TradingSuspended.selector);
     fpmm.getAmountOut(100e18, token0);
   }
 
@@ -149,7 +151,7 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
     withRecentRate(false)
   {
     // OneToOneFPMM checks rate freshness via ensureRateValid
-    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
     fpmm.getAmountOut(100e18, token0);
   }
 }

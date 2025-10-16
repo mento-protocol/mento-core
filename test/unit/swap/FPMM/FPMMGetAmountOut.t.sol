@@ -2,7 +2,9 @@
 // solhint-disable var-name-mixedcase
 pragma solidity ^0.8;
 
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract FPMMGetAmountOutTest is FPMMBaseTest {
   function setUp() public override {
@@ -16,7 +18,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenTokenIsInvalid_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     address invalidToken = makeAddr("INVALID_TOKEN");
 
-    vm.expectRevert("FPMM: INVALID_TOKEN");
+    vm.expectRevert(IFPMM.InvalidToken.selector);
     fpmm.getAmountOut(100, invalidToken);
   }
 
@@ -183,7 +185,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     withFXMarketOpen(false)
     withRecentRate(true)
   {
-    vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
+    vm.expectRevert(IOracleAdapter.FXMarketClosed.selector);
     fpmm.getAmountOut(100e18, token0);
   }
 
@@ -194,7 +196,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     withFXMarketOpen(true)
     withRecentRate(false)
   {
-    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
     fpmm.getAmountOut(100e18, token0);
   }
 
@@ -206,7 +208,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     withFXMarketOpen(true)
     withRecentRate(true)
   {
-    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    vm.expectRevert(IOracleAdapter.TradingSuspended.selector);
     fpmm.getAmountOut(100e18, token0);
   }
 }

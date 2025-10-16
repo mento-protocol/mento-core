@@ -7,6 +7,7 @@ import { FPMMBaseIntegration } from "./FPMMBaseIntegration.t.sol";
 // Interfaces
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
+import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 
 // OpenZeppelin
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
@@ -70,13 +71,13 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_registerFPMMImplementation_whenZeroAddress_shouldRevert() public {
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     factory.registerFPMMImplementation(address(0));
   }
 
   function test_registerFPMMImplementation_whenAlreadyRegistered_shouldRevert() public {
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: IMPLEMENTATION_ALREADY_REGISTERED");
+    vm.expectRevert(IFPMMFactory.ImplementationAlreadyRegistered.selector);
     factory.registerFPMMImplementation(address(fpmmImplementation));
   }
 
@@ -105,13 +106,13 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     address nonRegisteredImplementation = address(0x1234567890123456789012345678901234567890);
 
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+    vm.expectRevert(IFPMMFactory.ImplementationNotRegistered.selector);
     factory.unregisterFPMMImplementation(nonRegisteredImplementation, 0);
   }
 
   function test_unregisterFPMMImplementation_whenInvalidIndex_shouldRevert() public {
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: INDEX_OUT_OF_BOUNDS");
+    vm.expectRevert(IFPMMFactory.IndexOutOfBounds.selector);
     factory.unregisterFPMMImplementation(address(fpmmImplementation), 1);
   }
 
@@ -123,7 +124,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
     // Try to unregister with wrong index
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: IMPLEMENTATION_INDEX_MISMATCH");
+    vm.expectRevert(IFPMMFactory.ImplementationIndexMismatch.selector);
     factory.unregisterFPMMImplementation(newImplementation, 0);
   }
 
@@ -175,7 +176,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     address nonRegisteredImplementation = address(0x1234567890123456789012345678901234567890);
 
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+    vm.expectRevert(IFPMMFactory.ImplementationNotRegistered.selector);
     factory.deployFPMM(nonRegisteredImplementation, address(tokenA), address(tokenB), referenceRateFeedID, false);
   }
 
@@ -186,13 +187,13 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
     // Try to deploy again
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
+    vm.expectRevert(IFPMMFactory.PairAlreadyExists.selector);
     factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID, false);
   }
 
   function test_deployFPMM_whenZeroReferenceRateFeedID_shouldRevert() public {
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.InvalidReferenceRateFeedID.selector);
     factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), address(0), false);
   }
 
@@ -367,12 +368,12 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
   }
 
   function test_sortTokens_whenSameTokens_shouldRevert() public {
-    vm.expectRevert("FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    vm.expectRevert(IFPMMFactory.IdenticalTokenAddresses.selector);
     factory.sortTokens(address(tokenA), address(tokenA));
   }
 
   function test_sortTokens_whenZeroAddress_shouldRevert() public {
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.SortTokensZeroAddress.selector);
     factory.sortTokens(address(0), address(tokenA));
   }
 
@@ -397,7 +398,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_setOracleAdapter_whenZeroAddress_shouldRevert() public {
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     factory.setOracleAdapter(address(0));
   }
 
@@ -420,7 +421,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_setProxyAdmin_whenZeroAddress_shouldRevert() public {
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     factory.setProxyAdmin(address(0));
   }
 
@@ -444,7 +445,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_setGovernance_whenZeroAddress_shouldRevert() public {
     vm.prank(governance);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     factory.setGovernance(address(0));
   }
 }

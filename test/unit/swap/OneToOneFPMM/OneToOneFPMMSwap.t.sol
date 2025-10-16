@@ -3,6 +3,7 @@
 pragma solidity ^0.8;
 
 import { OneToOneFPMMBaseTest } from "./OneToOneFPMMBaseTest.sol";
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
 contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
@@ -132,7 +133,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     withFXMarketOpen(true)
     withRecentRate(true)
   {
-    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    vm.expectRevert(IOracleAdapter.TradingSuspended.selector);
     fpmm.swap(0, 10e18, BOB, "");
   }
 
@@ -166,7 +167,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     withRecentRate(false)
   {
     // OneToOneFPMM checks rate freshness via ensureRateValid
-    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
     fpmm.swap(0, 10e18, BOB, "");
   }
 }

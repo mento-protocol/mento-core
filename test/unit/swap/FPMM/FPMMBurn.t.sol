@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract FPMMBurnTest is FPMMBaseTest {
   event Burn(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity, address indexed to);
@@ -13,7 +14,7 @@ contract FPMMBurnTest is FPMMBaseTest {
     mintInitialLiquidity(18, 18)
   {
     // Call burn without transferring any LP tokens to the pool
-    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY_BURNED");
+    vm.expectRevert(IFPMM.InsufficientLiquidityBurned.selector);
     fpmm.burn(BOB);
   }
 
@@ -140,7 +141,7 @@ contract FPMMBurnTest is FPMMBaseTest {
     vm.startPrank(ALICE);
     fpmm.transfer(address(fpmm), tinyLiquidity);
 
-    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY_BURNED");
+    vm.expectRevert(IFPMM.InsufficientLiquidityBurned.selector);
     fpmm.burn(ALICE);
     vm.stopPrank();
   }

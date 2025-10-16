@@ -4,8 +4,9 @@ pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { MockLiquidityStrategy } from "./helpers/MockLiquidityStrategy.sol";
-
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract FPMMRebalanceTest is FPMMBaseTest {
   MockLiquidityStrategy public liquidityStrategy;
@@ -36,7 +37,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     uint256 rebalanceAmount = 10e18;
 
     // Try to call rebalance directly without being a trusted strategy
-    vm.expectRevert("FPMM: NOT_LIQUIDITY_STRATEGY");
+    vm.expectRevert(IFPMM.NotLiquidityStrategy.selector);
     fpmm.rebalance(rebalanceAmount, 0, "Unauthorized rebalance");
   }
 
@@ -56,7 +57,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // .5% < 5% (threshold)
 
     uint256 rebalanceAmount = 20e18;
-    vm.expectRevert("FPMM: PRICE_DIFFERENCE_TOO_SMALL");
+    vm.expectRevert(IFPMM.PriceDifferenceTooSmall.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
@@ -99,13 +100,13 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // 1.25 % loss > .5% threshold it should revert
 
     uint256 rebalanceAmount = 40e18;
-    vm.expectRevert("FPMM: INSUFFICIENT_AMOUNT_0_IN");
+    vm.expectRevert(IFPMM.InsufficientAmount0In.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
     liquidityStrategy.setProfitPercentage(300);
     // 3 % profit -> returns 32.33 tokens -> takes 1 token as incentive
     // 32.33 * .5% = 0.16165
-    vm.expectRevert("FPMM: INSUFFICIENT_AMOUNT_0_IN");
+    vm.expectRevert(IFPMM.InsufficientAmount0In.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
     liquidityStrategy.setProfitPercentage(30);
@@ -126,7 +127,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
   {
     // Try to rebalance - should fail because price isn't improved
     uint256 rebalanceAmount = 20e18;
-    vm.expectRevert("FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
+    vm.expectRevert(IFPMM.PriceDifferenceNotImproved.selector);
     liquidityStrategy.executeRebalance(rebalanceAmount, 0);
   }
 
@@ -141,10 +142,10 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     uint256 tooLargeAmount0 = 101e18; // More than reserve0
     uint256 tooLargeAmount1 = 201e18; // More than reserve1
 
-    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY");
+    vm.expectRevert(IFPMM.InsufficientLiquidity.selector);
     liquidityStrategy.executeRebalance(tooLargeAmount0, 0);
 
-    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY");
+    vm.expectRevert(IFPMM.InsufficientLiquidity.selector);
     liquidityStrategy.executeRebalance(0, tooLargeAmount1);
   }
 
@@ -159,7 +160,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("OracleAdapter: TRADING_SUSPENDED");
+    vm.expectRevert(IOracleAdapter.TradingSuspended.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
@@ -173,7 +174,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(true)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("OracleAdapter: FX_MARKET_CLOSED");
+    vm.expectRevert(IOracleAdapter.FXMarketClosed.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
@@ -187,7 +188,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     withRecentRate(false)
   {
     uint256 rebalanceAmount = 10e18;
-    vm.expectRevert("OracleAdapter: NO_RECENT_RATE");
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
@@ -209,7 +210,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // 251 / 83 = 3.024  Price moved from low to high
     // Should revert because price moved in wrong direction
     uint256 rebalanceAmount = 17e18;
-    vm.expectRevert("FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION");
+    vm.expectRevert(IFPMM.PriceDifferenceMovedInWrongDirection.selector);
     liquidityStrategy.executeRebalance(rebalanceAmount, 0);
   }
 
@@ -224,7 +225,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
   {
     uint256 rebalanceAmount = 10e18;
     liquidityStrategy.setShouldMovePrice(false);
-    vm.expectRevert("FPMM: REBALANCE_DIRECTION_INVALID");
+    vm.expectRevert(IFPMM.RebalanceDirectionInvalid.selector);
     liquidityStrategy.executeRebalance(rebalanceAmount, 0);
   }
 
@@ -239,7 +240,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
   {
     uint256 rebalanceAmount = 10e18;
     liquidityStrategy.setShouldMovePrice(false);
-    vm.expectRevert("FPMM: REBALANCE_DIRECTION_INVALID");
+    vm.expectRevert(IFPMM.RebalanceDirectionInvalid.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 

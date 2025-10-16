@@ -105,7 +105,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       tokenTakenFromPool: action.dir == LQ.Direction.Expand ? collToken : debtToken,
       amountTakenFromPool: action.amount0Out + action.amount1Out // only one is positive
     });
-    // slither-disable-end
+    // slither-disable-end incorrect-equality
   }
 
   /**

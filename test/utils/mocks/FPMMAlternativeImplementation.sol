@@ -9,7 +9,7 @@ contract FPMMAlternativeImplementation is FPMM {
   function setLPFee(uint256 _lpFee) public override onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(_lpFee + $.protocolFee <= 300, "FPMM: FEE_TOO_HIGH"); // Max 3% combined
+    if (_lpFee + $.protocolFee > 300) revert FeeTooHigh();
 
     uint256 oldFee = $.lpFee;
     $.lpFee = _lpFee;
