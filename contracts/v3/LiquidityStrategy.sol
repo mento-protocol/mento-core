@@ -100,6 +100,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       })
     );
 
+    poolConfigs[pool].lastRebalance = uint64(block.timestamp);
     IFPMM(pool).rebalance(action.amount0Out, action.amount1Out, hookData);
     if (!_getHookCalled(pool)) {
       revert LS_HOOK_NOT_CALLED();
@@ -114,7 +115,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       incentiveAmount
     );
 
-    poolConfigs[pool].lastRebalance = uint64(block.timestamp);
+    // slither-disable-next-line unused-return
     (, , , , uint256 diffAfter, ) = IFPMM(pool).getPrices();
     emit RebalanceExecuted(pool, ctx.prices.diffBps, diffAfter);
   }

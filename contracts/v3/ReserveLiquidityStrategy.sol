@@ -82,6 +82,7 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
     address collateralToken = ctx.collateralToken();
     uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(reserve));
 
+    // slither-disable-next-line incorrect-equality
     if (collateralBalance == 0) revert RLS_RESERVE_OUT_OF_COLLATERAL();
 
     if (collateralBalance < idealCollateralToReceive) {
