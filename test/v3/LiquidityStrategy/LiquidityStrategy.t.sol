@@ -385,7 +385,15 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     }
 
     FPMM fpmm2 = new FPMM(false);
-    fpmm2.initialize(debtToken2, collToken2, oracleAdapter, referenceRateFeedID, false, address(this));
+    fpmm2.initialize(
+      debtToken2,
+      collToken2,
+      oracleAdapter,
+      referenceRateFeedID,
+      false,
+      address(this),
+      defaultFPMMParams
+    );
     fpmm2.setLiquidityStrategy(strategyAddr, true);
 
     // Setup both pools with imbalanced reserves

@@ -6,6 +6,7 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 
 import { FPMM } from "contracts/swap/FPMM.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
@@ -20,6 +21,7 @@ import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
  */
 abstract contract LiquidityStrategy_BaseTest is Test {
   FPMM public fpmm;
+  IFPMM.FPMMParams internal defaultFPMMParams;
 
   address public owner = makeAddr("Owner");
   address public notOwner = makeAddr("NotOwner");
@@ -33,6 +35,14 @@ abstract contract LiquidityStrategy_BaseTest is Test {
 
   function setUp() public virtual {
     fpmm = new FPMM(false);
+    defaultFPMMParams = IFPMM.FPMMParams({
+      lpFee: 30,
+      protocolFee: 0,
+      protocolFeeRecipient: makeAddr("protocolFeeRecipient"),
+      rebalanceIncentive: 50,
+      rebalanceThresholdAbove: 500,
+      rebalanceThresholdBelow: 500
+    });
   }
 
   /* ============================================================ */
@@ -43,7 +53,7 @@ abstract contract LiquidityStrategy_BaseTest is Test {
     // deploy debt and collateral with specified decimals and correct address order
     deployDebtAndCollateral(true, debtDecimals, collateralDecimals);
     // initialize fpmm and set liquidity strategy
-    fpmm.initialize(debtToken, collToken, oracleAdapter, referenceRateFeedID, false, address(this));
+    fpmm.initialize(debtToken, collToken, oracleAdapter, referenceRateFeedID, false, address(this), defaultFPMMParams);
     fpmm.setLiquidityStrategy(strategyAddr, true);
     // Fund the strategy with tokens for rebalancing
     if (strategyAddr != address(0)) {
@@ -57,7 +67,7 @@ abstract contract LiquidityStrategy_BaseTest is Test {
     // deploy debt and collateral with specified decimals and correct address order
     deployDebtAndCollateral(false, debtDecimals, collateralDecimals);
     // initialize fpmm and set liquidity strategy
-    fpmm.initialize(collToken, debtToken, oracleAdapter, referenceRateFeedID, false, address(this));
+    fpmm.initialize(collToken, debtToken, oracleAdapter, referenceRateFeedID, false, address(this), defaultFPMMParams);
     fpmm.setLiquidityStrategy(strategyAddr, true);
     // Fund the strategy with tokens for rebalancing
     if (strategyAddr != address(0)) {

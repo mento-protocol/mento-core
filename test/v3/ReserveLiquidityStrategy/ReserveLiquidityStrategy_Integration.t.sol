@@ -214,7 +214,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
 
       // 2. Create and initialize a new FPMM for this token order
       FPMM testFpmm = new FPMM(false);
-      testFpmm.initialize(token0, token1, oracleAdapter, referenceRateFeedID, false, address(this));
+      testFpmm.initialize(token0, token1, oracleAdapter, referenceRateFeedID, false, address(this), defaultFPMMParams);
       testFpmm.setLiquidityStrategy(address(strategy), true);
       testFpmm.setRebalanceIncentive(100);
 
