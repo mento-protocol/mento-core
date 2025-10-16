@@ -11,14 +11,6 @@ import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
  */
 library LiquidityStrategyTypes {
   /* ============================================================ */
-  /* ======================== Errors ============================ */
-  /* ============================================================ */
-
-  error LST_ZERO_DECIMAL();
-  error LST_INVALID_DECIMAL();
-  error LS_INVALID_PRICES();
-
-  /* ============================================================ */
   /* ====================== Constants =========================== */
   /* ============================================================ */
 
@@ -110,8 +102,8 @@ library LiquidityStrategyTypes {
     // Get and set token data
     {
       (uint256 dec0, uint256 dec1, , , address t0, address t1) = fpmm.metadata();
-      if (!(dec0 > 0 && dec1 > 0)) revert LST_ZERO_DECIMAL();
-      if (!(dec0 <= 1e18 && dec1 <= 1e18)) revert LST_INVALID_DECIMAL();
+      if (!(dec0 > 0 && dec1 > 0)) revert ILiquidityStrategy.LS_ZERO_DECIMAL();
+      if (!(dec0 <= 1e18 && dec1 <= 1e18)) revert ILiquidityStrategy.LS_INVALID_DECIMAL();
 
       ctx.token0 = t0;
       ctx.token1 = t1;
@@ -135,7 +127,7 @@ library LiquidityStrategyTypes {
         bool poolAbove
       ) = fpmm.getPrices();
 
-      if (!(oracleNum > 0 && oracleDen > 0)) revert LS_INVALID_PRICES();
+      if (!(oracleNum > 0 && oracleDen > 0)) revert ILiquidityStrategy.LS_INVALID_PRICES();
 
       ctx.reserves = Reserves({ reserveNum: reserveNum, reserveDen: reserveDen });
       ctx.prices = Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolAbove, diffBps: diffBps });

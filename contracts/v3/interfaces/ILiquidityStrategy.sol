@@ -46,9 +46,9 @@ interface ILiquidityStrategy {
   /// @notice Thrown when rebalance thresholds are invalid
   error LS_INVALID_THRESHOLD();
   /// @notice Thrown when token decimals are zero
-  error LST_ZERO_DECIMAL();
+  error LS_ZERO_DECIMAL();
   /// @notice Thrown when token decimals exceed 1e18
-  error LST_INVALID_DECIMAL();
+  error LS_INVALID_DECIMAL();
   /// @notice Thrown when oracle prices are invalid
   error LS_INVALID_PRICES();
   /// @notice Thrown when the hook callback isn't called during a rebalance from the FPMM
