@@ -1,6 +1,6 @@
 // solhint-disable
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.18;
+pragma solidity 0.8.24;
 
 import { IERC20 } from "../interfaces/IERC20.sol";
 import { IERC20Permit } from "../interfaces/IERC20Permit.sol";

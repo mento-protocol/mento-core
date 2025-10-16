@@ -42,7 +42,7 @@ contract MarketHoursBreaker is IMarketHoursBreaker {
     bool isFridayEvening = dow == 5 && hour >= 21;
     bool isSaturday = dow == 6;
     bool isSundayBeforeEvening = dow == 7 && hour < 23;
-    // slither-disable-end
+    // slither-disable-end incorrect-equality
 
     return isFridayEvening || isSaturday || isSundayBeforeEvening;
   }

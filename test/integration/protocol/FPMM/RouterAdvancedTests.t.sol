@@ -38,7 +38,13 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
   function test_poolFor_whenCustomFactoryProvided_shouldUseCustomFactory() public {
     FPMMFactory customFactory = new FPMMFactory(false);
 
-    customFactory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation));
+    customFactory.initialize(
+      oracleAdapter,
+      address(proxyAdmin),
+      governance,
+      address(fpmmImplementation),
+      defaultFpmmParams
+    );
 
     vm.prank(governance);
     factoryRegistry.approve(address(customFactory));
@@ -50,7 +56,13 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
     address pool = router.poolFor(address(tokenA), address(tokenB), address(customFactory));
     vm.prank(governance);
     address actualPool = address(
-      customFactory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID)
+      customFactory.deployFPMM(
+        address(fpmmImplementation),
+        address(tokenA),
+        address(tokenB),
+        referenceRateFeedID,
+        false
+      )
     );
     assertEq(pool, actualPool);
   }
@@ -67,7 +79,13 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
   function test_getAmountsOut_whenFactoryIsNotApproved_shouldRevert() public {
     FPMMFactory customFactory = new FPMMFactory(false);
-    customFactory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation));
+    customFactory.initialize(
+      oracleAdapter,
+      address(proxyAdmin),
+      governance,
+      address(fpmmImplementation),
+      defaultFpmmParams
+    );
 
     IRouter.Route[] memory routes = new IRouter.Route[](1);
     routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(customFactory) });
@@ -383,14 +401,21 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
 
   function test_getReserves_whenFactoryIsNotApproved_shouldRevert() public {
     FPMMFactory customFactory = new FPMMFactory(false);
-    customFactory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation));
+    customFactory.initialize(
+      oracleAdapter,
+      address(proxyAdmin),
+      governance,
+      address(fpmmImplementation),
+      defaultFpmmParams
+    );
 
     vm.prank(governance);
     address fpmm = customFactory.deployFPMM(
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
     _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
 

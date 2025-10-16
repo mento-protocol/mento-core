@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, const-name-snakecase, max-states-count
-pragma solidity ^0.8;
+pragma solidity 0.8.24;
 
 import { ProtocolTest } from "../ProtocolTest.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
@@ -12,6 +12,7 @@ import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
 import { FactoryRegistry } from "contracts/swap/FactoryRegistry.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract VirtualPoolBaseIntegration is ProtocolTest {
   FPMMFactory public fpmmFactory;
@@ -37,6 +38,16 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   // Test environment
   uint256 public celoFork = vm.createFork("https://forno.celo.org");
 
+  IFPMM.FPMMParams public defaultFpmmParams =
+    IFPMM.FPMMParams({
+      lpFee: 30,
+      protocolFee: 0,
+      protocolFeeRecipient: makeAddr("protocolFeeRecipient"),
+      rebalanceIncentive: 50,
+      rebalanceThresholdAbove: 500,
+      rebalanceThresholdBelow: 500
+    });
+
   function setUp() public virtual override {
     vm.selectFork(celoFork);
 
@@ -58,14 +69,20 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
     fpmmImplementation = new FPMM(true);
 
     oracleAdapter = new OracleAdapter(false);
-    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), marketHoursBreaker);
+    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), marketHoursBreaker, governance);
     factoryRegistry = new FactoryRegistry(false);
     factoryRegistry.initialize(address(fpmmFactory), governance);
     vm.prank(governance);
     factoryRegistry.approve(address(vpFactory));
     router = new Router(forwarder, address(factoryRegistry), address(fpmmFactory));
 
-    fpmmFactory.initialize(address(oracleAdapter), proxyAdmin, governance, address(fpmmImplementation));
+    fpmmFactory.initialize(
+      address(oracleAdapter),
+      proxyAdmin,
+      governance,
+      address(fpmmImplementation),
+      defaultFpmmParams
+    );
   }
 
   function _setupMocks() internal {
@@ -120,7 +137,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
 
   function _deployFPMM(address token0, address token1, address rateFeedID) internal returns (address fpmm) {
     vm.prank(governance);
-    fpmm = fpmmFactory.deployFPMM(address(fpmmImplementation), address(token0), address(token1), rateFeedID);
+    fpmm = fpmmFactory.deployFPMM(address(fpmmImplementation), address(token0), address(token1), rateFeedID, false);
   }
 
   function _createV3Route(address from, address to) internal view returns (IRouter.Route memory) {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.18;
+pragma solidity 0.8.24;
 
 import { IOracleAdapter } from "../interfaces/IOracleAdapter.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
@@ -32,12 +32,19 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   /* ========== INITIALIZATION ========== */
 
   /// @inheritdoc IOracleAdapter
-  function initialize(address _sortedOracles, address _breakerBox, address _marketHoursBreaker) external initializer {
+  function initialize(
+    address _sortedOracles,
+    address _breakerBox,
+    address _marketHoursBreaker,
+    address _initialOwner
+  ) external initializer {
     __Ownable_init();
 
     setSortedOracles(_sortedOracles);
     setBreakerBox(_breakerBox);
     setMarketHoursBreaker(_marketHoursBreaker);
+
+    transferOwnership(_initialOwner);
   }
 
   /* ========== VIEW FUNCTIONS ========== */
@@ -140,6 +147,12 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   /// @inheritdoc IOracleAdapter
   function hasRecentRate(address rateFeedID) external view returns (bool) {
     return _hasRecentRate(rateFeedID);
+  }
+
+  /// @inheritdoc IOracleAdapter
+  function ensureRateValid(address rateFeedID) external view {
+    require(_getTradingMode(rateFeedID) == TRADING_MODE_BIDIRECTIONAL, "OracleAdapter: TRADING_SUSPENDED");
+    require(_hasRecentRate(rateFeedID), "OracleAdapter: NO_RECENT_RATE");
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */

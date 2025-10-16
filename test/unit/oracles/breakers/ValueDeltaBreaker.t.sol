@@ -62,7 +62,8 @@ contract ValueDeltaBreakerTest is Test {
           ISortedOracles(address(sortedOracles)),
           rateFeedIDs,
           rateChangeThresholds,
-          cooldownTimes
+          cooldownTimes,
+          address(this)
         )
       )
     );

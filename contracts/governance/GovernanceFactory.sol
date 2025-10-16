@@ -120,16 +120,15 @@ contract GovernanceFactory is Ownable {
     watchdogMultiSig = watchdogMultiSig_;
 
     PrecalculatedAddresses memory addr = getPrecalculatedAddresses();
-
-    deployProxyAdmin();
+    // slither-disable-start reentrancy-benign
+    deployProxyAdmin(addr.governanceTimelock);
     deployMentoToken(allocationParams, addr);
     deployEmission(addr);
     deployAirgrab(airgrabRoot, fractalSigner, addr);
     deployLocking(addr);
     deployTimelock(addr);
     deployMentoGovernor(addr);
-    transferOwnership();
-
+    // slither-disable-end reentrancy-benign
     emit GovernanceCreated(
       address(proxyAdmin),
       address(emission),
@@ -144,11 +143,11 @@ contract GovernanceFactory is Ownable {
   /**
    * @notice Deploys the ProxyAdmin contract.
    */
-  function deployProxyAdmin() internal {
+  function deployProxyAdmin(address owner) internal {
     // =========================================
     // ========== Deploy 1: ProxyAdmin =========
     // =========================================
-    proxyAdmin = ProxyDeployerLib.deployAdmin(); // NONCE:1
+    proxyAdmin = ProxyDeployerLib.deployAdmin(owner); // NONCE:1
   }
 
   /**
@@ -177,7 +176,13 @@ contract GovernanceFactory is Ownable {
       allocationAmounts[i + 2] = allocationParams.additionalAllocationAmounts[i];
     }
 
-    mentoToken = MentoTokenDeployerLib.deploy(allocationRecipients, allocationAmounts, addr.emission, addr.locking); // NONCE:2
+    mentoToken = MentoTokenDeployerLib.deploy(
+      allocationRecipients,
+      allocationAmounts,
+      addr.emission,
+      addr.locking,
+      addr.governanceTimelock
+    ); // NONCE:2
 
     assert(address(mentoToken) == addr.mentoToken);
   }
@@ -199,7 +204,8 @@ contract GovernanceFactory is Ownable {
           emissionImpl.initialize.selector,
           addr.mentoToken, ///               @param mentoToken_ The address of the MentoToken contract.
           addr.governanceTimelock, ///  @param governanceTimelock_ The address of the mento treasury contract.
-          mentoToken.emissionSupply() ///       @param emissionSupply_ The total amount of tokens that can be emitted.
+          mentoToken.emissionSupply(), ///       @param emissionSupply_ The total amount of tokens that can be emitted.
+          addr.governanceTimelock ///       @param initialOwner_ The initial owner of the emission contract.
         )
       );
 
@@ -252,7 +258,8 @@ contract GovernanceFactory is Ownable {
           address(mentoToken), /// @param _token The token to be locked in exchange for voting power in form of veTokens.
           startingPointWeek, ///   @param _startingPointWeek The locking epoch start in weeks. We start the locking contract from week 1 with min slope duration of 1
           0, ///                   @param _minCliffPeriod minimum cliff period in weeks.
-          1 ///                    @param _minSlopePeriod minimum slope period in weeks.
+          1, ///                   @param _minSlopePeriod minimum slope period in weeks.
+          addr.governanceTimelock /// @param _initialOwner The initial owner of the locking contract.
         )
       );
     locking = Locking(address(lockingProxy));
@@ -322,19 +329,6 @@ contract GovernanceFactory is Ownable {
     // slither-disable-next-line reentrancy-benign
     mentoGovernor = MentoGovernor(payable(mentoGovernorProxy));
     assert(address(mentoGovernor) == addr.mentoGovernor);
-  }
-
-  /**
-   * @notice Transfers the ownership of the contracts to the governance timelock.
-   */
-  function transferOwnership() internal {
-    // =============================================
-    // =========== Configure Ownership =============
-    // =============================================
-    emission.transferOwnership(address(governanceTimelock));
-    locking.transferOwnership(address(governanceTimelock));
-    proxyAdmin.transferOwnership(address(governanceTimelock));
-    mentoToken.transferOwnership(address(governanceTimelock));
   }
 
   /**

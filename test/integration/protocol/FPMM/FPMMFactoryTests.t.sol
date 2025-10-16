@@ -43,7 +43,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
   function test_initialize_whenCalledTwice_shouldRevert() public {
     vm.expectRevert("Initializable: contract is already initialized");
-    factory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation));
+    factory.initialize(oracleAdapter, address(proxyAdmin), governance, address(fpmmImplementation), defaultFpmmParams);
   }
 
   // ============ IMPLEMENTATION MANAGEMENT TESTS ============
@@ -136,7 +136,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     assertTrue(fpmm != address(0));
@@ -167,7 +168,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
   function test_deployFPMM_whenCalledByNonOwner_shouldRevert() public {
     vm.prank(alice);
     vm.expectRevert("Ownable: caller is not the owner");
-    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID, false);
   }
 
   function test_deployFPMM_whenImplementationNotRegistered_shouldRevert() public {
@@ -175,52 +176,72 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
 
     vm.prank(governance);
     vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
-    factory.deployFPMM(nonRegisteredImplementation, address(tokenA), address(tokenB), referenceRateFeedID);
+    factory.deployFPMM(nonRegisteredImplementation, address(tokenA), address(tokenB), referenceRateFeedID, false);
   }
 
   function test_deployFPMM_whenPoolAlreadyExists_shouldRevert() public {
     // Deploy first pool
     vm.prank(governance);
-    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID, false);
 
     // Try to deploy again
     vm.prank(governance);
     vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
-    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID);
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), referenceRateFeedID, false);
   }
 
   function test_deployFPMM_whenZeroReferenceRateFeedID_shouldRevert() public {
     vm.prank(governance);
     vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
-    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), address(0));
+    factory.deployFPMM(address(fpmmImplementation), address(tokenA), address(tokenB), address(0), false);
   }
 
   function test_deployFPMM_whenCustomParameters_shouldDeployWithCustomConfig() public {
     address customOracleAdapter = makeAddr("customOracleAdapter");
     address customProxyAdmin = makeAddr("customProxyAdmin");
     address customGovernance = makeAddr("customGovernance");
+    address customReferenceRateFeedID = makeAddr("customReferenceRateFeedID");
+
+    IFPMM.FPMMParams memory customParams = IFPMM.FPMMParams({
+      lpFee: 5,
+      protocolFee: 6,
+      protocolFeeRecipient: makeAddr("customProtocolFeeRecipient"),
+      rebalanceIncentive: 30,
+      rebalanceThresholdAbove: 123,
+      rebalanceThresholdBelow: 456
+    });
 
     vm.prank(governance);
-    address fpmm = factory.deployFPMM(
+    address fpmmAddress = factory.deployFPMM(
       address(fpmmImplementation),
       customOracleAdapter,
       customProxyAdmin,
       customGovernance,
       address(tokenA),
       address(tokenC),
-      referenceRateFeedID
+      customReferenceRateFeedID,
+      false,
+      customParams
     );
 
-    assertTrue(fpmm != address(0));
-    assertEq(factory.getPool(address(tokenA), address(tokenC)), fpmm);
-    assertTrue(factory.isPool(fpmm));
+    assertTrue(fpmmAddress != address(0));
+    assertEq(factory.getPool(address(tokenA), address(tokenC)), fpmmAddress);
+    assertTrue(factory.isPool(fpmmAddress));
 
-    // Verify custom configuration
-    assertEq(address(IFPMM(fpmm).oracleAdapter()), customOracleAdapter);
-    assertEq(OwnableUpgradeable(fpmm).owner(), customGovernance);
+    IFPMM fpmm = IFPMM(fpmmAddress);
+
+    assertEq(address(fpmm.oracleAdapter()), customOracleAdapter);
+    assertEq(OwnableUpgradeable(address(fpmm)).owner(), customGovernance);
+    assertEq(fpmm.referenceRateFeedID(), customReferenceRateFeedID);
+    assertEq(fpmm.lpFee(), customParams.lpFee);
+    assertEq(fpmm.protocolFee(), customParams.protocolFee);
+    assertEq(fpmm.protocolFeeRecipient(), customParams.protocolFeeRecipient);
+    assertEq(fpmm.rebalanceIncentive(), customParams.rebalanceIncentive);
+    assertEq(fpmm.rebalanceThresholdAbove(), customParams.rebalanceThresholdAbove);
+    assertEq(fpmm.rebalanceThresholdBelow(), customParams.rebalanceThresholdBelow);
 
     bytes32 adminSlot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
-    address admin = address(uint160(uint256(vm.load(fpmm, adminSlot))));
+    address admin = address(uint160(uint256(vm.load(fpmmAddress, adminSlot))));
     assertEq(admin, customProxyAdmin);
   }
 
@@ -232,7 +253,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     assertTrue(factory.isPool(fpmm));
@@ -249,7 +271,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     (address token0, address token1) = _sortTokens(address(tokenA), address(tokenB));
@@ -264,7 +287,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     vm.prank(governance);
@@ -272,7 +296,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenC),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     address[] memory deployedAddresses = factory.deployedFPMMAddresses();
@@ -289,7 +314,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
 
     address computedAddress = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
@@ -308,7 +334,8 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       address(fpmmImplementation),
       address(tokenA),
       address(tokenB),
-      referenceRateFeedID
+      referenceRateFeedID,
+      false
     );
     assertEq(precomputedAddress, fpmm);
   }

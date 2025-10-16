@@ -27,7 +27,7 @@ contract FuzzTestLocking is Test {
     testERC20 = new TestERC20("Test", "TST");
 
     locking = new LockingHarness(false);
-    locking.__Locking_init(IERC20Upgradeable(address(testERC20)), 0, 1, 3);
+    locking.__Locking_init(IERC20Upgradeable(address(testERC20)), 0, 1, 3, address(this));
     locking.incrementBlock(locking.WEEK() + 1);
   }
 

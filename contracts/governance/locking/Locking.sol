@@ -33,11 +33,13 @@ contract Locking is ILocking, LockingBase, LockingRelock, LockingVotes {
     IERC20Upgradeable _token,
     uint32 _startingPointWeek,
     uint32 _minCliffPeriod,
-    uint32 _minSlopePeriod
+    uint32 _minSlopePeriod,
+    address _initialOwner
   ) external initializer {
     __LockingBase_init_unchained(_token, _startingPointWeek, _minCliffPeriod, _minSlopePeriod);
     __Ownable_init_unchained();
     __Context_init_unchained();
+    _transferOwnership(_initialOwner);
   }
 
   /**

@@ -10,7 +10,7 @@ contract FPMMInitializeTest is FPMMBaseTest {
     FPMM fpmmDisabled = new FPMM(true);
 
     vm.expectRevert("Initializable: contract is already initialized");
-    fpmmDisabled.initialize(address(0), address(0), address(0), address(0), false, address(0));
+    fpmmDisabled.initialize(address(0), address(0), address(0), address(0), false, address(0), defaultFpmmParams);
   }
 
   function test_initialize_whenCalledWithCorrectParams_shouldSetProperValues()
@@ -33,7 +33,7 @@ contract FPMMInitializeTest is FPMMBaseTest {
 
   function test_initialize_whenCalledTwice_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     vm.expectRevert("Initializable: contract is already initialized");
-    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner);
+    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner, defaultFpmmParams);
   }
 
   function test_initialize_whenTokensHaveDifferentDecimals_shouldSetCorrectDecimalScalingFactors()

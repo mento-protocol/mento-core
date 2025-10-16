@@ -52,9 +52,9 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
     address _breakerBox,
     address[] memory rateFeedIDs,
     uint256[] memory rateChangeThresholds,
-    uint256[] memory cooldownTimes
+    uint256[] memory cooldownTimes,
+    address owner
   ) public {
-    _transferOwnership(msg.sender);
     setSortedOracles(_sortedOracles);
     setBreakerBox(_breakerBox);
 
@@ -62,6 +62,7 @@ contract MedianDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
     _setDefaultRateChangeThreshold(_defaultRateChangeThreshold);
     _setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     _setCooldownTimes(rateFeedIDs, cooldownTimes);
+    _transferOwnership(owner);
   }
 
   /* ==================== Restricted Functions ==================== */

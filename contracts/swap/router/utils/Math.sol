@@ -2,7 +2,7 @@
 // slither-disable-start incorrect-exp
 // slither-disable-start divide-before-multiply
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.18;
+pragma solidity 0.8.24;
 
 // OpenZeppelin Contracts (last updated v4.8.0) (utils/math/Math.sol)
 
@@ -337,3 +337,5 @@ library Math {
     }
   }
 }
+// slither-disable-end incorrect-exp
+// slither-disable-end divide-before-multiply
