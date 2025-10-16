@@ -214,6 +214,13 @@ interface IFPMM is IRPool {
   event OracleAdapterUpdated(address oldOracleAdapter, address newOracleAdapter);
 
   /**
+   * @notice Emitted when the invert rate feed flag is updated
+   * @param oldInvertRateFeed Previous invert rate feed flag
+   * @param newInvertRateFeed New invert rate feed flag
+   */
+  event InvertRateFeedUpdated(bool oldInvertRateFeed, bool newInvertRateFeed);
+
+  /**
    * @notice Emitted when a successful rebalance operation occurs
    * @param sender Address that initiated the rebalance
    * @param priceDifferenceBefore Price difference before rebalance in basis points
@@ -444,6 +451,12 @@ interface IFPMM is IRPool {
    * @param _oracleAdapter Address of the OracleAdapter contract
    */
   function setOracleAdapter(address _oracleAdapter) external;
+
+  /**
+   * @notice Sets the invert rate feed flag
+   * @param _invertRateFeed Whether to invert the rate feed
+   */
+  function setInvertRateFeed(bool _invertRateFeed) external;
 
   /**
    * @notice Sets the reference rate feed ID

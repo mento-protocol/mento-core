@@ -552,6 +552,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
   /// @inheritdoc IFPMM
   function setLiquidityStrategy(address strategy, bool state) external onlyOwner {
+    if (strategy == address(0)) revert ZeroAddress();
+
     FPMMStorage storage $ = _getFPMMStorage();
 
     $.liquidityStrategy[strategy] = state;
@@ -561,6 +563,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   /// @inheritdoc IFPMM
   function setOracleAdapter(address _oracleAdapter) public onlyOwner {
     if (_oracleAdapter == address(0)) revert ZeroAddress();
+
     FPMMStorage storage $ = _getFPMMStorage();
 
     address oldOracleAdapter = address($.oracleAdapter);
@@ -570,12 +573,17 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
   function setInvertRateFeed(bool _invertRateFeed) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
+
+    bool oldInvertRateFeed = $.invertRateFeed;
     $.invertRateFeed = _invertRateFeed;
+
+    emit InvertRateFeedUpdated(oldInvertRateFeed, _invertRateFeed);
   }
 
   /// @inheritdoc IFPMM
   function setReferenceRateFeedID(address _referenceRateFeedID) public onlyOwner {
     if (_referenceRateFeedID == address(0)) revert ZeroAddress();
+
     FPMMStorage storage $ = _getFPMMStorage();
 
     address oldRateFeedID = $.referenceRateFeedID;

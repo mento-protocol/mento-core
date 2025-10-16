@@ -9,6 +9,10 @@ contract FPMMAdminTest is FPMMBaseTest {
   event LPFeeUpdated(uint256 oldFee, uint256 newFee);
   event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
   event ProtocolFeeRecipientUpdated(address oldRecipient, address newRecipient);
+  event ReferenceRateFeedIDUpdated(address oldRateFeedID, address newRateFeedID);
+  event OracleAdapterUpdated(address oldOracleAdapter, address newOracleAdapter);
+  event LiquidityStrategyUpdated(address indexed strategy, bool status);
+  event InvertRateFeedUpdated(bool oldInvertRateFeed, bool newInvertRateFeed);
 
   address public notOwner = makeAddr("NOT_OWNER");
   address public feeRecipient = makeAddr("FEE_RECIPIENT");
@@ -159,15 +163,90 @@ contract FPMMAdminTest is FPMMBaseTest {
     fpmm.setLiquidityStrategy(address(0), true);
   }
 
+  function test_setLiquidityStrategy_whenZeroAddress_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
+    vm.prank(owner);
+    vm.expectRevert(IFPMM.ZeroAddress.selector);
+    fpmm.setLiquidityStrategy(address(0), true);
+  }
+
+  function test_setLiquidityStrategy_whenOwner_shouldSetLiquidityStrategy()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+  {
+    address newLiquidityStrategy = makeAddr("newLiquidityStrategy");
+
+    vm.prank(owner);
+    vm.expectEmit();
+    emit LiquidityStrategyUpdated(newLiquidityStrategy, true);
+    fpmm.setLiquidityStrategy(newLiquidityStrategy, true);
+
+    assertEq(fpmm.liquidityStrategy(newLiquidityStrategy), true);
+  }
+
   function test_setOracleAdapter_whenNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert("Ownable: caller is not the owner");
     fpmm.setOracleAdapter(address(0));
   }
 
+  function test_setOracleAdapter_whenZeroAddress_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
+    vm.prank(owner);
+    vm.expectRevert(IFPMM.ZeroAddress.selector);
+    fpmm.setOracleAdapter(address(0));
+  }
+
+  function test_setOracleAdapter_whenOwner_shouldSetOracleAdapter() public initializeFPMM_withDecimalTokens(18, 18) {
+    address newOracleAdapter = makeAddr("newOracleAdapter");
+
+    vm.prank(owner);
+    vm.expectEmit();
+    emit OracleAdapterUpdated(address(oracleAdapter), newOracleAdapter);
+    fpmm.setOracleAdapter(newOracleAdapter);
+  }
+
   function test_setReferenceRateFeedID_whenNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert("Ownable: caller is not the owner");
     fpmm.setReferenceRateFeedID(address(0));
+  }
+
+  function test_setReferenceRateFeedID_whenZeroAddress_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
+    vm.prank(owner);
+    vm.expectRevert(IFPMM.ZeroAddress.selector);
+    fpmm.setReferenceRateFeedID(address(0));
+  }
+
+  function test_setReferenceRateFeedID_whenOwner_shouldSetReferenceRateFeedID()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+  {
+    address newReferenceRateFeedID = makeAddr("newReferenceRateFeedID");
+
+    vm.prank(owner);
+    vm.expectEmit();
+    emit ReferenceRateFeedIDUpdated(referenceRateFeedID, newReferenceRateFeedID);
+    fpmm.setReferenceRateFeedID(newReferenceRateFeedID);
+
+    assertEq(fpmm.referenceRateFeedID(), newReferenceRateFeedID);
+  }
+
+  function test_setInvertRateFeed_whenNotOwner_shouldRevert() public {
+    vm.prank(notOwner);
+    vm.expectRevert("Ownable: caller is not the owner");
+    fpmm.setInvertRateFeed(true);
+  }
+
+  function test_setInvertRateFeed_whenOwner_shouldSetInvertRateFeed() public initializeFPMM_withDecimalTokens(18, 18) {
+    vm.startPrank(owner);
+    vm.expectEmit();
+    emit InvertRateFeedUpdated(false, true);
+    fpmm.setInvertRateFeed(true);
+    assertEq(fpmm.invertRateFeed(), true);
+
+    vm.expectEmit();
+    emit InvertRateFeedUpdated(true, false);
+    fpmm.setInvertRateFeed(false);
+    assertEq(fpmm.invertRateFeed(), false);
+    vm.stopPrank();
   }
 }
