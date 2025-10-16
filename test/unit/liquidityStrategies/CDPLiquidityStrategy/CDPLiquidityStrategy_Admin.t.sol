@@ -190,11 +190,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     MockCollateralRegistry newCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
 
     address newSystemParams = makeAddr("NewSystemParams");
-    vm.mockCall(
-      newSystemParams,
-      abi.encodeWithSelector(ISystemParams.REDEMPTION_BETA.selector),
-      abi.encode(2)
-    );
+    vm.mockCall(newSystemParams, abi.encodeWithSelector(ISystemParams.REDEMPTION_BETA.selector), abi.encode(2));
 
     ICDPLiquidityStrategy.CDPConfig memory newConfig = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(newStabilityPool),
