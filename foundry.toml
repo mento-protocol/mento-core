@@ -21,6 +21,7 @@ fs_permissions = [{ access = "read", path = "out" }]
 [profile.ci]
 fuzz_runs = 1_000
 verbosity = 3
+no_match_contract = "ForkTest"
 
 [profile.optimized]
 optimizer = true
