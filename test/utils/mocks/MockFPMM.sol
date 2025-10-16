@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8;
 
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
+
 contract MockFPMM {
   address public token0;
   address public token1;
@@ -10,6 +12,12 @@ contract MockFPMM {
 
   uint256 public diffBps = 0;
   bool public poolAbove = false;
+
+  // Price data
+  uint256 public oracleNum = 1e18;
+  uint256 public oracleDen = 1e18;
+  uint256 public reserveNum = 1e18;
+  uint256 public reserveDen = 1e18;
 
   constructor(address _token0, address _token1, bool skipSort) {
     // With the actual FPMM we expect the tokens will be sorted
@@ -30,7 +38,23 @@ contract MockFPMM {
   }
 
   function getPrices() external view returns (uint256, uint256, uint256, uint256, uint256, bool) {
-    return (1e18, 1e18, 1e18, 1e18, diffBps, poolAbove);
+    return (oracleNum, oracleDen, reserveNum, reserveDen, diffBps, poolAbove);
+  }
+
+  function setPrices(
+    uint256 _oracleNum,
+    uint256 _oracleDen,
+    uint256 _reserveNum,
+    uint256 _reserveDen,
+    uint256 _diffBps,
+    bool _poolAbove
+  ) external {
+    oracleNum = _oracleNum;
+    oracleDen = _oracleDen;
+    reserveNum = _reserveNum;
+    reserveDen = _reserveDen;
+    diffBps = _diffBps;
+    poolAbove = _poolAbove;
   }
 
   function tokens() external view returns (address, address) {
@@ -44,5 +68,11 @@ contract MockFPMM {
 
   function setRebalanceIncentive(uint256 _incentive) external {
     rebalanceIncentive = _incentive;
+  }
+
+  function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
+    // Simulate the pool calling back into the strategy's hook
+    // In the real FPMM, this would transfer tokens and then call the hook
+    ILiquidityStrategy(msg.sender).hook(msg.sender, amount0Out, amount1Out, data);
   }
 }
