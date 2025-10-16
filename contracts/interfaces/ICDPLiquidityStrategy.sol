@@ -32,14 +32,14 @@ interface ICDPLiquidityStrategy {
    * @notice Configuration for CDP-specific parameters for a pool
    * @param stabilityPool The address of the stability pool used for swapping collateral to stable
    * @param collateralRegistry The address of the collateral registry for redemptions
-   * @param redemptionBeta The beta parameter controlling redemption fee sensitivity
+   * @param systemParams The address of the system params contract for reading redemption beta
    * @param stabilityPoolPercentage The percentage of stability pool balance available for rebalancing (in bps)
    * @param maxIterations The maximum number of iterations for redemption operations
    */
   struct CDPConfig {
     address stabilityPool;
     address collateralRegistry;
-    uint256 redemptionBeta;
+    address systemParams;
     uint256 stabilityPoolPercentage;
     uint256 maxIterations;
   }
@@ -56,7 +56,7 @@ interface ICDPLiquidityStrategy {
    * @param incentiveBps The rebalance incentive in basis points
    * @param stabilityPool The address of the stability pool for this debt token
    * @param collateralRegistry The address of the collateral registry for redemptions
-   * @param redemptionBeta The beta parameter for redemption fee calculation
+   * @param systemParams The address of the system params contract for reading redemption beta
    * @param stabilityPoolPercentage The percentage of stability pool balance to use (in bps)
    * @param maxIterations The maximum number of iterations for redemption operations
    */
@@ -67,7 +67,7 @@ interface ICDPLiquidityStrategy {
     uint32 incentiveBps,
     address stabilityPool,
     address collateralRegistry,
-    uint256 redemptionBeta,
+    address systemParams,
     uint256 stabilityPoolPercentage,
     uint256 maxIterations
   ) external;

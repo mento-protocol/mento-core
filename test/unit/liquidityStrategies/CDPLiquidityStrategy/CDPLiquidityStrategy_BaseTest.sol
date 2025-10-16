@@ -14,6 +14,7 @@ import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
+import { ISystemParams } from "bold/Interfaces/ISystemParams.sol";
 
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
@@ -23,11 +24,17 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   // Mock contracts specific to CDP
   MockStabilityPool public mockStabilityPool;
   MockCollateralRegistry public mockCollateralRegistry;
+  address public mockSystemParams;
 
   function setUp() public virtual override {
     LiquidityStrategy_BaseTest.setUp();
     strategy = new CDPLiquidityStrategyHarness(owner);
     strategyAddr = address(strategy);
+
+    // Create mock SystemParams address
+    mockSystemParams = makeAddr("SystemParams");
+    // Mock REDEMPTION_BETA to return 1 (default value)
+    mockRedemptionBeta(1);
   }
 
   modifier addFpmm(uint64 cooldown, uint32 incentiveBps, uint256 stabilityPoolPercentage) {
@@ -46,7 +53,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       incentiveBps,
       address(mockStabilityPool),
       address(mockCollateralRegistry),
-      1, // redemption beta
+      mockSystemParams,
       stabilityPoolPercentage,
       100 // maxIterations
     );
@@ -66,6 +73,18 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       address(mockCollateralRegistry),
       abi.encodeWithSelector(ICollateralRegistry.getRedemptionRateWithDecay.selector),
       abi.encode(redemptionRate)
+    );
+  }
+
+  /**
+   * @notice Mock the system params redemption beta
+   * @param redemptionBeta The redemption beta value
+   */
+  function mockRedemptionBeta(uint256 redemptionBeta) internal {
+    vm.mockCall(
+      mockSystemParams,
+      abi.encodeWithSelector(ISystemParams.REDEMPTION_BETA.selector),
+      abi.encode(redemptionBeta)
     );
   }
 

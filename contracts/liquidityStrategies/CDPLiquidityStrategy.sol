@@ -5,6 +5,7 @@ import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20
 import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
+import { ISystemParams } from "bold/Interfaces/ISystemParams.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "../interfaces/ICDPLiquidityStrategy.sol";
@@ -41,7 +42,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     uint32 incentiveBps,
     address stabilityPool,
     address collateralRegistry,
-    uint256 redemptionBeta,
+    address systemParams,
     uint256 stabilityPoolPercentage,
     uint256 maxIterations
   ) external onlyOwner {
@@ -54,7 +55,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     cdpConfigs[pool] = CDPConfig({
       stabilityPool: stabilityPool,
       collateralRegistry: collateralRegistry,
-      redemptionBeta: redemptionBeta,
+      systemParams: systemParams,
       stabilityPoolPercentage: stabilityPoolPercentage,
       maxIterations: maxIterations
     });
@@ -216,14 +217,13 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     address debtToken = ctx.debtToken();
     uint256 decayedBaseFee = ICollateralRegistry(cdpConfig.collateralRegistry).getRedemptionRateWithDecay();
     uint256 totalDebtTokenSupply = IERC20(debtToken).totalSupply();
+    uint256 redemptionBeta = ISystemParams(cdpConfig.systemParams).REDEMPTION_BETA();
 
     uint256 maxRedemptionFee = ctx.incentiveBps * BPS_TO_FEE_SCALER;
 
     if (maxRedemptionFee < decayedBaseFee) revert CDPLS_REDEMPTION_FEE_TOO_LARGE();
 
-    uint256 maxAmountToRedeem = (totalDebtTokenSupply *
-      cdpConfig.redemptionBeta *
-      (maxRedemptionFee - decayedBaseFee)) / 1e18;
+    uint256 maxAmountToRedeem = (totalDebtTokenSupply * redemptionBeta * (maxRedemptionFee - decayedBaseFee)) / 1e18;
 
     if (targetContractionAmount > maxAmountToRedeem) {
       contractionAmount = maxAmountToRedeem;
@@ -231,9 +231,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
       contractionAmount = targetContractionAmount;
     }
 
-    uint256 redemptionFee = decayedBaseFee +
-      (contractionAmount * 1e18 * cdpConfig.redemptionBeta) /
-      totalDebtTokenSupply;
+    uint256 redemptionFee = decayedBaseFee + (contractionAmount * 1e18 * redemptionBeta) / totalDebtTokenSupply;
 
     // redemption fee is capped at 100%
     redemptionFee = redemptionFee > 1e18 ? 1e18 : redemptionFee;

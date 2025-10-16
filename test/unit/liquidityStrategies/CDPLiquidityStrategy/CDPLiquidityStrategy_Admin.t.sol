@@ -7,6 +7,7 @@ import { CDPLiquidityStrategy_BaseTest } from "./CDPLiquidityStrategy_BaseTest.s
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
+import { ISystemParams } from "bold/Interfaces/ISystemParams.sol";
 
 contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
   function setUp() public override {
@@ -33,7 +34,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       50, // incentiveBps
       address(mockStabilityPool),
       address(mockCollateralRegistry),
-      1, // redemptionBeta
+      mockSystemParams,
       9000, // stabilityPoolPercentage (90%)
       100 // maxIterations
     );
@@ -45,7 +46,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     ICDPLiquidityStrategy.CDPConfig memory config = strategy.getCDPConfig(address(fpmm));
     assertEq(config.stabilityPool, address(mockStabilityPool), "Stability pool should match");
     assertEq(config.collateralRegistry, address(mockCollateralRegistry), "Collateral registry should match");
-    assertEq(config.redemptionBeta, 1, "Redemption beta should match");
+    assertEq(config.systemParams, mockSystemParams, "System params should match");
     assertEq(config.stabilityPoolPercentage, 9000, "Stability pool percentage should match");
     assertEq(config.maxIterations, 100, "Max iterations should match");
   }
@@ -63,7 +64,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       50,
       address(mockStabilityPool),
       address(mockCollateralRegistry),
-      1,
+      mockSystemParams,
       9000,
       100
     );
@@ -82,7 +83,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       50,
       address(mockStabilityPool),
       address(mockCollateralRegistry),
-      1,
+      mockSystemParams,
       0, // Invalid: 0%
       100
     );
@@ -101,7 +102,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       50,
       address(mockStabilityPool),
       address(mockCollateralRegistry),
-      1,
+      mockSystemParams,
       10000, // Invalid: 100%
       100
     );
@@ -119,7 +120,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       50,
       address(mockStabilityPool),
       address(0), // Invalid
-      1,
+      mockSystemParams,
       9000,
       100
     );
@@ -137,7 +138,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       50,
       address(0), // Invalid
       address(mockCollateralRegistry),
-      1,
+      mockSystemParams,
       9000,
       100
     );
@@ -188,10 +189,17 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     MockStabilityPool newStabilityPool = new MockStabilityPool(debtToken, collToken);
     MockCollateralRegistry newCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
 
+    address newSystemParams = makeAddr("NewSystemParams");
+    vm.mockCall(
+      newSystemParams,
+      abi.encodeWithSelector(ISystemParams.REDEMPTION_BETA.selector),
+      abi.encode(2)
+    );
+
     ICDPLiquidityStrategy.CDPConfig memory newConfig = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(newStabilityPool),
       collateralRegistry: address(newCollateralRegistry),
-      redemptionBeta: 2,
+      systemParams: newSystemParams,
       stabilityPoolPercentage: 8000, // 80%
       maxIterations: 100
     });
@@ -203,7 +211,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     ICDPLiquidityStrategy.CDPConfig memory config = strategy.getCDPConfig(address(fpmm));
     assertEq(config.stabilityPool, address(newStabilityPool), "Stability pool should be updated");
     assertEq(config.collateralRegistry, address(newCollateralRegistry), "Collateral registry should be updated");
-    assertEq(config.redemptionBeta, 2, "Redemption beta should be updated");
+    assertEq(config.systemParams, newSystemParams, "System params should be updated");
     assertEq(config.stabilityPoolPercentage, 8000, "Stability pool percentage should be updated");
     assertEq(config.maxIterations, 100, "Max iterations should be updated");
   }
@@ -212,7 +220,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     ICDPLiquidityStrategy.CDPConfig memory newConfig = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(mockCollateralRegistry),
-      redemptionBeta: 2,
+      systemParams: mockSystemParams,
       stabilityPoolPercentage: 8000,
       maxIterations: 100
     });
@@ -226,7 +234,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     ICDPLiquidityStrategy.CDPConfig memory newConfig = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(mockCollateralRegistry),
-      redemptionBeta: 2,
+      systemParams: mockSystemParams,
       stabilityPoolPercentage: 8000,
       maxIterations: 100
     });
@@ -249,7 +257,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
 
     assertEq(config.stabilityPool, address(mockStabilityPool), "Stability pool should match");
     assertEq(config.collateralRegistry, address(mockCollateralRegistry), "Collateral registry should match");
-    assertEq(config.redemptionBeta, 1, "Redemption beta should match");
+    assertEq(config.systemParams, mockSystemParams, "System params should match");
     assertEq(config.stabilityPoolPercentage, 9000, "Stability pool percentage should match");
     assertEq(config.maxIterations, 100, "Max iterations should match");
   }
