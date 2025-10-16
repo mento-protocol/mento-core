@@ -671,9 +671,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     (, , , , newPriceDifference, reservePriceAboveOraclePrice) = getPrices();
     // Ensure price difference is smaller than before
     require(newPriceDifference < swapData.initialPriceDifference, "FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
-    // slither-disable-next-line incorrect-equality
     // we allow the price difference to be moved in the wrong direction but not by more than the rebalance incentive
     // this is due to the dynamic rebalance fee on redemptions.
+    // slither-disable-next-line incorrect-equality
     require(
       reservePriceAboveOraclePrice == swapData.reservePriceAboveOraclePrice ||
         newPriceDifference <= (swapData.initialPriceDifference * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR,
