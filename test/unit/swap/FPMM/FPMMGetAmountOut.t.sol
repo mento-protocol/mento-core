@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract FPMMGetAmountOutTest is FPMMBaseTest {
   function setUp() public override {
@@ -17,7 +18,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenTokenIsInvalid_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     address invalidToken = makeAddr("INVALID_TOKEN");
 
-    vm.expectRevert("FPMM: INVALID_TOKEN");
+    vm.expectRevert(IFPMM.InvalidToken.selector);
     fpmm.getAmountOut(100, invalidToken);
   }
 

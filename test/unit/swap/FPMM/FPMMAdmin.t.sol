@@ -3,6 +3,7 @@
 pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract FPMMAdminTest is FPMMBaseTest {
   event LPFeeUpdated(uint256 oldFee, uint256 newFee);
@@ -49,13 +50,13 @@ contract FPMMAdminTest is FPMMBaseTest {
     withProtocolFeeRecipient(feeRecipient)
   {
     vm.prank(owner);
-    vm.expectRevert("FPMM: FEE_TOO_HIGH");
+    vm.expectRevert(IFPMM.FeeTooHigh.selector);
     fpmm.setLPFee(101);
 
     vm.startPrank(owner);
     fpmm.setProtocolFee(10);
 
-    vm.expectRevert("FPMM: FEE_TOO_HIGH");
+    vm.expectRevert(IFPMM.FeeTooHigh.selector);
     fpmm.setLPFee(91);
     vm.stopPrank();
   }
@@ -105,13 +106,13 @@ contract FPMMAdminTest is FPMMBaseTest {
     fpmm.setLPFee(0);
 
     vm.prank(owner);
-    vm.expectRevert("FPMM: FEE_TOO_HIGH");
+    vm.expectRevert(IFPMM.FeeTooHigh.selector);
     fpmm.setProtocolFee(101);
 
     vm.startPrank(owner);
     fpmm.setLPFee(10);
 
-    vm.expectRevert("FPMM: FEE_TOO_HIGH");
+    vm.expectRevert(IFPMM.FeeTooHigh.selector);
     fpmm.setProtocolFee(91);
     vm.stopPrank();
   }
@@ -136,7 +137,7 @@ contract FPMMAdminTest is FPMMBaseTest {
 
   function test_setProtocolFeeRecipient_whenZeroAddress_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     vm.prank(owner);
-    vm.expectRevert("FPMM: ZERO_ADDRESS");
+    vm.expectRevert(IFPMM.ZeroAddress.selector);
     fpmm.setProtocolFeeRecipient(address(0));
   }
 

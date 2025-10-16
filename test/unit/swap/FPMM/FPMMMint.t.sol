@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract FPMMMintTest is FPMMBaseTest {
   event Mint(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity);
@@ -17,7 +18,7 @@ contract FPMMMintTest is FPMMBaseTest {
     IERC20(token0).transfer(address(fpmm), amount0);
     IERC20(token1).transfer(address(fpmm), amount1);
 
-    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY_MINTED");
+    vm.expectRevert(IFPMM.InsufficientLiquidityMinted.selector);
     fpmm.mint(address(this));
 
     vm.stopPrank();

@@ -5,6 +5,7 @@ pragma solidity ^0.8;
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract FPMMSwapTest is FPMMBaseTest {
   function setUp() public override {
@@ -12,7 +13,7 @@ contract FPMMSwapTest is FPMMBaseTest {
   }
 
   function test_swap_whenCalledWith0AmountOut_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
-    vm.expectRevert("FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
+    vm.expectRevert(IFPMM.InsufficientOutputAmount.selector);
     fpmm.swap(0, 0, address(this), "");
   }
 
@@ -20,7 +21,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
   {
-    vm.expectRevert("FPMM: INSUFFICIENT_LIQUIDITY");
+    vm.expectRevert(IFPMM.InsufficientLiquidity.selector);
     fpmm.swap(100e18, 0, address(this), "");
   }
 
@@ -31,7 +32,7 @@ contract FPMMSwapTest is FPMMBaseTest {
   {
     deal(token0, address(fpmm), 100e18);
 
-    vm.expectRevert("FPMM: INVALID_TO_ADDRESS");
+    vm.expectRevert(IFPMM.InvalidToAddress.selector);
     fpmm.swap(50e18, 0, token0, "");
   }
 
@@ -46,7 +47,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     deal(token0, address(this), 100e18);
     IERC20(token0).transfer(address(fpmm), 100e18);
 
-    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    vm.expectRevert(IFPMM.ReserveValueDecreased.selector);
     fpmm.swap(0, 100e18, address(this), "");
   }
 

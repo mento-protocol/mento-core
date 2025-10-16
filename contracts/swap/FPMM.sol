@@ -243,8 +243,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require($.referenceRateFeedID != address(0), "FPMM: REFERENCE_RATE_NOT_SET");
-    require($.reserve0 > 0 && $.reserve1 > 0, "FPMM: RESERVES_EMPTY");
+    if ($.referenceRateFeedID == address(0)) revert ReferenceRateNotSet();
+    if ($.reserve0 == 0 || $.reserve1 == 0) revert ReservesEmpty();
 
     (oraclePriceNumerator, oraclePriceDenominator) = _getRateFeed();
 
@@ -275,7 +275,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function getAmountOut(uint256 amountIn, address tokenIn) public view returns (uint256 amountOut) {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(tokenIn == $.token0 || tokenIn == $.token1, "FPMM: INVALID_TOKEN");
+    if (tokenIn != $.token0 && tokenIn != $.token1) revert InvalidToken();
 
     if (amountIn == 0) return 0;
 
@@ -334,7 +334,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
       liquidity = Math.min((amount0 * totalSupply_) / $.reserve0, (amount1 * totalSupply_) / $.reserve1);
     }
 
-    require(liquidity > MINIMUM_LIQUIDITY, "FPMM: INSUFFICIENT_LIQUIDITY_MINTED");
+    if (liquidity <= MINIMUM_LIQUIDITY) revert InsufficientLiquidityMinted();
     _mint(to, liquidity);
 
     _update();
@@ -358,7 +358,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     amount0 = (liquidity * balance0) / _totalSupply;
     amount1 = (liquidity * balance1) / _totalSupply;
 
-    require(amount0 > 0 && amount1 > 0, "FPMM: INSUFFICIENT_LIQUIDITY_BURNED");
+    if (amount0 == 0 || amount1 == 0) revert InsufficientLiquidityBurned();
 
     _burn(address(this), liquidity);
 
@@ -378,9 +378,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(amount0Out > 0 || amount1Out > 0, "FPMM: INSUFFICIENT_OUTPUT_AMOUNT");
-    require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
-    require(to != $.token0 && to != $.token1, "FPMM: INVALID_TO_ADDRESS");
+    if (amount0Out == 0 && amount1Out == 0) revert InsufficientOutputAmount();
+    if (amount0Out >= $.reserve0 || amount1Out >= $.reserve1) revert InsufficientLiquidity();
+    if (to == $.token0 || to == $.token1) revert InvalidToAddress();
 
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
@@ -411,7 +411,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     swapData.amount1In = swapData.balance1 > $.reserve1 - amount1Out
       ? swapData.balance1 - ($.reserve1 - amount1Out)
       : 0;
-    require(swapData.amount0In > 0 || swapData.amount1In > 0, "FPMM: INSUFFICIENT_INPUT_AMOUNT");
+    if (swapData.amount0In == 0 && swapData.amount1In == 0) revert InsufficientInputAmount();
 
     _transferProtocolFee(swapData.amount0In, swapData.amount1In);
 
@@ -429,9 +429,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external nonReentrant {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require($.liquidityStrategy[msg.sender], "FPMM: NOT_LIQUIDITY_STRATEGY");
-    require((amount0Out > 0) != (amount1Out > 0), "FPMM: ONE_OUTPUT_AMOUNT_REQUIRED");
-    require(amount0Out < $.reserve0 && amount1Out < $.reserve1, "FPMM: INSUFFICIENT_LIQUIDITY");
+    if (!$.liquidityStrategy[msg.sender]) revert NotLiquidityStrategy();
+    if ((amount0Out > 0) == (amount1Out > 0)) revert OneOutputAmountRequired();
+    if (amount0Out >= $.reserve0 || amount1Out >= $.reserve1) revert InsufficientLiquidity();
 
     // used to avoid stack too deep error
     // slither-disable-next-line uninitialized-local
@@ -457,7 +457,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     );
 
     uint256 threshold = swapData.reservePriceAboveOraclePrice ? $.rebalanceThresholdAbove : $.rebalanceThresholdBelow;
-    require(swapData.initialPriceDifference >= threshold, "FPMM: PRICE_DIFFERENCE_TOO_SMALL");
+    if (swapData.initialPriceDifference < threshold) revert PriceDifferenceTooSmall();
 
     if (amount0Out > 0) IERC20($.token0).safeTransfer(msg.sender, amount0Out);
     if (amount1Out > 0) IERC20($.token1).safeTransfer(msg.sender, amount1Out);
@@ -471,10 +471,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     uint256 amount1In = balance1 > $.reserve1 - amount1Out ? balance1 - ($.reserve1 - amount1Out) : 0;
 
     // slither-disable-next-line incorrect-equality
-    require(
-      (amount0Out > 0 && amount1In > 0 && amount0In == 0) || (amount1Out > 0 && amount0In > 0 && amount1In == 0),
-      "FPMM: REBALANCE_DIRECTION_INVALID"
-    );
+    if (!((amount0Out > 0 && amount1In > 0 && amount0In == 0) || (amount1Out > 0 && amount0In > 0 && amount1In == 0)))
+      revert RebalanceDirectionInvalid();
 
     swapData.amount0In = amount0In;
     swapData.amount1In = amount1In;
@@ -493,7 +491,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function setLPFee(uint256 _lpFee) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(_lpFee + $.protocolFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1% combined
+    if (_lpFee + $.protocolFee > 100) revert FeeTooHigh(); // Max 1% combined
 
     uint256 oldFee = $.lpFee;
     $.lpFee = _lpFee;
@@ -504,8 +502,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function setProtocolFee(uint256 _protocolFee) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(_protocolFee == 0 || $.protocolFeeRecipient != address(0), "FPMM: PROTOCOL_FEE_RECIPIENT_REQUIRED");
-    require(_protocolFee + $.lpFee <= 100, "FPMM: FEE_TOO_HIGH"); // Max 1% combined
+    if (_protocolFee > 0 && $.protocolFeeRecipient == address(0)) revert ProtocolFeeRecipientRequired();
+    if (_protocolFee + $.lpFee > 100) revert FeeTooHigh(); // Max 1% combined
 
     uint256 oldFee = $.protocolFee;
     $.protocolFee = _protocolFee;
@@ -516,7 +514,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function setProtocolFeeRecipient(address _protocolFeeRecipient) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(_protocolFeeRecipient != address(0), "FPMM: ZERO_ADDRESS");
+    if (_protocolFeeRecipient == address(0)) revert ZeroAddress();
 
     address oldRecipient = $.protocolFeeRecipient;
     $.protocolFeeRecipient = _protocolFeeRecipient;
@@ -527,7 +525,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function setRebalanceIncentive(uint256 _rebalanceIncentive) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(_rebalanceIncentive <= 100, "FPMM: REBALANCE_INCENTIVE_TOO_HIGH"); // Max 1%
+    if (_rebalanceIncentive > 100) revert RebalanceIncentiveTooHigh(); // Max 1%
     uint256 oldIncentive = $.rebalanceIncentive;
     $.rebalanceIncentive = _rebalanceIncentive;
     emit RebalanceIncentiveUpdated(oldIncentive, _rebalanceIncentive);
@@ -537,8 +535,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function setRebalanceThresholds(uint256 _rebalanceThresholdAbove, uint256 _rebalanceThresholdBelow) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    require(_rebalanceThresholdAbove <= 1000, "FPMM: REBALANCE_THRESHOLD_TOO_HIGH"); // Max 10%
-    require(_rebalanceThresholdBelow <= 1000, "FPMM: REBALANCE_THRESHOLD_TOO_HIGH"); // Max 10%
+    if (_rebalanceThresholdAbove > 1000) revert RebalanceThresholdTooHigh(); // Max 10%
+    if (_rebalanceThresholdBelow > 1000) revert RebalanceThresholdTooHigh(); // Max 10%
     uint256 oldThresholdAbove = $.rebalanceThresholdAbove;
     uint256 oldThresholdBelow = $.rebalanceThresholdBelow;
     $.rebalanceThresholdAbove = _rebalanceThresholdAbove;
@@ -562,7 +560,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
   /// @inheritdoc IFPMM
   function setOracleAdapter(address _oracleAdapter) public onlyOwner {
-    require(_oracleAdapter != address(0), "FPMM: ORACLE_ADAPTER_ADDRESS_MUST_BE_SET");
+    if (_oracleAdapter == address(0)) revert ZeroAddress();
     FPMMStorage storage $ = _getFPMMStorage();
 
     address oldOracleAdapter = address($.oracleAdapter);
@@ -577,7 +575,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
   /// @inheritdoc IFPMM
   function setReferenceRateFeedID(address _referenceRateFeedID) public onlyOwner {
-    require(_referenceRateFeedID != address(0), "FPMM: REFERENCE_RATE_FEED_ID_MUST_BE_SET");
+    if (_referenceRateFeedID == address(0)) revert ZeroAddress();
     FPMMStorage storage $ = _getFPMMStorage();
 
     address oldRateFeedID = $.referenceRateFeedID;
@@ -680,12 +678,10 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     (, , , , newPriceDifference, reservePriceAboveOraclePrice) = getPrices();
 
     // Ensure price difference is smaller than before
-    require(newPriceDifference < swapData.initialPriceDifference, "FPMM: PRICE_DIFFERENCE_NOT_IMPROVED");
+    if (newPriceDifference >= swapData.initialPriceDifference) revert PriceDifferenceNotImproved();
     // slither-disable-next-line incorrect-equality
-    require(
-      reservePriceAboveOraclePrice == swapData.reservePriceAboveOraclePrice || newPriceDifference == 0,
-      "FPMM: PRICE_DIFFERENCE_MOVED_IN_WRONG_DIRECTION"
-    );
+    if (reservePriceAboveOraclePrice != swapData.reservePriceAboveOraclePrice && newPriceDifference != 0)
+      revert PriceDifferenceMovedInWrongDirection();
 
     if (swapData.amount0In > 0) {
       uint256 expectedAmount0In = convertWithRate(
@@ -697,7 +693,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
       );
       uint256 minAmount0In = expectedAmount0In - (expectedAmount0In * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
 
-      require(swapData.amount0In >= minAmount0In, "FPMM: INSUFFICIENT_AMOUNT_0_IN");
+      if (swapData.amount0In < minAmount0In) revert InsufficientAmount0In();
     } else {
       uint256 expectedAmount1In = convertWithRate(
         swapData.amount0Out,
@@ -709,7 +705,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
       // slither-disable-next-line divide-before-multiply
       expectedAmount1In = expectedAmount1In / (1e18 / $.decimals1);
       uint256 minAmount1In = expectedAmount1In - (expectedAmount1In * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR;
-      require(swapData.amount1In >= minAmount1In, "FPMM: INSUFFICIENT_AMOUNT_1_IN");
+      if (swapData.amount1In < minAmount1In) revert InsufficientAmount1In();
     }
   }
 
@@ -772,6 +768,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     // Check the reserve value is not decreased
     uint256 expectedReserveValue = swapData.initialReserveValue + totalFeeInToken1;
-    require(newReserveValue >= expectedReserveValue, "FPMM: RESERVE_VALUE_DECREASED");
+    if (newReserveValue < expectedReserveValue) revert ReserveValueDecreased();
   }
 }

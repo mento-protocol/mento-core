@@ -8,6 +8,7 @@ import { ReentrancyExploiter } from "./helpers/ReentrancyExploiter.sol";
 import { MockExchange } from "./helpers/MockExchange.sol";
 import { ArbitrageFlashLoanReceiver } from "./helpers/ArbitrageFlashLoanReceiver.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract FPMMFlashLoanTest is FPMMBaseTest {
   address public flashLoanReceiver;
@@ -127,7 +128,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
 
     // try to pay back slightly less than expected at the 2:1 rate
     FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(loan, feeInToken1 - 1);
-    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    vm.expectRevert(IFPMM.ReserveValueDecreased.selector);
     fpmm.swap(loan, 0, address(flashLoanReceiver), bytes("flash loan data"));
 
     FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(loan, feeInToken1);
@@ -321,7 +322,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(false, 0, 0);
 
     // Flash loan should fail because it's not repaid
-    vm.expectRevert("FPMM: INSUFFICIENT_INPUT_AMOUNT");
+    vm.expectRevert(IFPMM.InsufficientInputAmount.selector);
     fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), "data");
   }
 
@@ -342,7 +343,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, lessThanRequiredFee0, 0);
 
     // Flash loan should fail because it's not repaid correctly
-    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    vm.expectRevert(IFPMM.ReserveValueDecreased.selector);
     fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), "data");
   }
 
@@ -363,7 +364,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
 
     FlashLoanReceiver(flashLoanReceiver).setRepayBehavior(true, almostFullFee, 0);
 
-    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    vm.expectRevert(IFPMM.ReserveValueDecreased.selector);
     fpmm.swap(flashLoanAmount, 0, address(flashLoanReceiver), "data");
   }
 
@@ -472,7 +473,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     uint256 expectedRepayInT1 = scaledLoan + feeScaled - 1;
 
     FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(0, expectedRepayInT1 - 1);
-    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    vm.expectRevert(IFPMM.ReserveValueDecreased.selector);
     fpmm.swap(loan, 0, address(flashLoanReceiver), "loan");
 
     FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(0, expectedRepayInT1);
@@ -510,7 +511,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
 
     FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(0, expectedRepaymentT1 - 1);
-    vm.expectRevert("FPMM: RESERVE_VALUE_DECREASED");
+    vm.expectRevert(IFPMM.ReserveValueDecreased.selector);
     fpmm.swap(loan, 0, address(flashLoanReceiver), "loan");
 
     FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(0, expectedRepaymentT1);

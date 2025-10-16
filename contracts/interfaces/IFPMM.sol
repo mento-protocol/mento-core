@@ -80,6 +80,55 @@ interface IFPMM is IRPool {
     bool reservePriceAboveOraclePrice;
   }
 
+  /* ========== ERRORS ========== */
+
+  // @notice Throw when trying to get a price for a rate feed that is not set
+  error ReferenceRateNotSet();
+  // @notice Throw when the reserves are empty
+  error ReservesEmpty();
+  // @notice Throw when requesting an amount out for a token that is not the pool's tokens
+  error InvalidToken();
+  // @notice Throw when trying to set a zero address as a contract address
+  error ZeroAddress();
+  // @notice Throw when trying to set a protocol fee without a protocol fee recipient
+  error ProtocolFeeRecipientRequired();
+  // @notice Throw when trying to set a fee that is too high
+  error FeeTooHigh();
+  // @notice Throw when trying to mint less than the minimum liquidity
+  error InsufficientLiquidityMinted();
+  // @notice Throw when trying to burn only one of the pool's tokens
+  error InsufficientLiquidityBurned();
+  // @notice Throw when trying to swap with no output amount
+  error InsufficientOutputAmount();
+  // @notice Throw when trying to swap more than the available liquidity
+  error InsufficientLiquidity();
+  // @notice Throw when trying to swap to one of the pool's tokens as the to address
+  error InvalidToAddress();
+  // @notice Throw when trying to swap without an input amount
+  error InsufficientInputAmount();
+  // @notice Throw when a non-liquidity strategy tries to call rebalance
+  error NotLiquidityStrategy();
+  // @notice Throw when trying to rebalance with no output amount
+  error OneOutputAmountRequired();
+  // @notice Throw when trying to rebalance when the price difference is too small
+  error PriceDifferenceTooSmall();
+  // @notice Throw when the price difference doesnt improve after rebalance
+  error PriceDifferenceNotImproved();
+  // @notice Throw when a rebalance operation moves the price difference in the wrong direction
+  error PriceDifferenceMovedInWrongDirection();
+  // @notice Throw when trying to rebalance with an insufficient amount of token0 input
+  error InsufficientAmount0In();
+  // @notice Throw when trying to rebalance with an insufficient amount of token1 input
+  error InsufficientAmount1In();
+  // @notice Throw when the reserve value decreases after a swap
+  error ReserveValueDecreased();
+  // @notice Throw when trying to set a rebalance incentive that is too high
+  error RebalanceIncentiveTooHigh();
+  // @notice Throw when trying to set a rebalance threshold that is too high
+  error RebalanceThresholdTooHigh();
+  // @notice Throw when trying to rebalance with an invalid direction
+  error RebalanceDirectionInvalid();
+
   /* ========== EVENTS ========== */
 
   /**
