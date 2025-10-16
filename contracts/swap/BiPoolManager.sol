@@ -92,11 +92,7 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     _;
   }
 
-  modifier verifyExchangeTokens(
-    address tokenIn,
-    address tokenOut,
-    PoolExchange memory exchange
-  ) {
+  modifier verifyExchangeTokens(address tokenIn, address tokenOut, PoolExchange memory exchange) {
     require(
       (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
         (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),
