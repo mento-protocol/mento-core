@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
+// solhint-disable max-line-length
 pragma solidity ^0.8;
 
 import { CDPLiquidityStrategy_BaseTest } from "./CDPLiquidityStrategy_BaseTest.sol";
@@ -12,207 +13,238 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
   }
 
   /* ============================================================ */
-  /* ============= Contraction Token 0 Debt Tests ============== */
+  /* ============== Contraction target liquidity ================ */
   /* ============================================================ */
 
-  function test_determineAction_whenToken0DebtPoolPriceBelowAndRedemptionFeeAllows_shouldContractToOraclePrice()
+  function test_determineAction_whenToken0DebtPoolPriceBelowAndRedemptionFeeEqualToIncentive_shouldContractAndBringPriceBackToOraclePrice()
     public
     fpmmToken0Debt(18, 6)
     addFpmm(0, 50, 9000)
   {
-    // Setup: Pool price below oracle (excess debt scenario for token0 debt)
-    LQ.Context memory ctx = _createContextWithDecimals({
-      reserveDen: 1_500_000e18, // token0 (debt) reserves
-      reserveNum: 1_000_000e6, // token1 (collateral) reserves (6 decimals)
-      oracleNum: 1e18,
-      oracleDen: 1e18,
-      poolPriceAbove: false,
-      incentiveBps: 50, // 0.5%
-      token0Dec: 1e18,
-      token1Dec: 1e6
-    });
+    uint256 reserve0 = 7_089_031 * 1e18; // brl.m 1.3Mio in $
+    uint256 reserve1 = 1_000_000 * 1e6; // usd.m 1Mio in $
 
-    // Mock redemption rate at 0.25% (leaves 0.25% room for redemption within 0.5% incentive)
-    mockRedemptionRateWithDecay(0.0025 * 1e18);
-
-    // Set total supply high enough that redemption fee stays below incentive
-    uint256 totalSupply = (ctx.reserves.reserveNum * 1e12 * ctx.prices.oracleDen * 10_000) / ctx.prices.oracleNum;
-    setDebtTokenTotalSupply(totalSupply);
-
-    // Mock collateral registry oracle rate
-    mockCollateralRegistryOracleRate(ctx.prices.oracleNum, ctx.prices.oracleDen);
-
-    (uint256 priceDiffBefore, bool poolPriceAboveBefore) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.reserves.reserveNum * 1e12, // normalize to 18 decimals
-      ctx.reserves.reserveDen
-    );
-
-    assertFalse(poolPriceAboveBefore, "Pool price should be below oracle");
-    assertGt(priceDiffBefore, 0, "Price difference should be positive");
-
-    LQ.Action memory action = strategy.determineAction(ctx);
-
-    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
-    assertGt(action.amount0Out, 0, "Debt should flow out during contraction");
-    assertEq(action.amount1Out, 0, "No collateral should flow out during contraction");
-    assertGt(action.amountOwedToPool, 0, "Collateral should flow in via amountOwedToPool");
-
-    // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    uint256 reserve1After = ctx.reserves.reserveNum * 1e12 + action.amountOwedToPool * 1e12;
-
-    (uint256 priceDiffAfter, ) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      reserve1After,
-      reserve0After
-    );
-
-    // Price should improve (may not reach zero due to redemption fee)
-    assertLt(priceDiffAfter, priceDiffBefore, "Price difference should decrease");
-    assertIncentive(
-      ctx.incentiveBps,
-      true,
-      action.amount0Out,
-      action.amountOwedToPool * 1e12,
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen
-    );
-  }
-
-  function test_determineAction_whenToken0DebtAndRedemptionFeeLimitsContraction_shouldContractPartially()
-    public
-    fpmmToken0Debt(18, 6)
-    addFpmm(0, 50, 9000)
-  {
-    // Setup: Pool price below oracle but redemption fee limits contraction amount
-    LQ.Context memory ctx = _createContextWithDecimals({
-      reserveDen: 1_500_000e18, // token0 (debt) reserves
-      reserveNum: 1_000_000e6, // token1 (collateral) reserves
-      oracleNum: 1e18,
-      oracleDen: 1e18,
+    LQ.Context memory ctx = _createContextWithTokenOrder({
+      reserveDen: reserve0,
+      reserveNum: reserve1 * 1e12,
+      oracleNum: 1e18, // USD/BRL rate
+      oracleDen: 5476912800000000000,
       poolPriceAbove: false,
       incentiveBps: 50,
-      token0Dec: 1e18,
-      token1Dec: 1e6
+      isToken0Debt: true
     });
 
-    // Mock redemption rate at 0.25%
-    mockRedemptionRateWithDecay(0.0025 * 1e18);
-
-    // Set lower total supply so redemption fraction increases redemption fee faster
-    uint256 totalSupply = 100_000_000e18;
+    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(0.0025 * 1e18, ctx); // 0.25% resulting in redemption fee being 0.25% + 0.25% = 0.5%
     setDebtTokenTotalSupply(totalSupply);
-
-    mockCollateralRegistryOracleRate(ctx.prices.oracleNum, ctx.prices.oracleDen);
-
-    (uint256 priceDiffBefore, ) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.reserves.reserveNum * 1e12,
-      ctx.reserves.reserveDen
-    );
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
+    // amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 808079.298245614035087719
+    uint256 expectedAmount0Out = 808079298245614035087719;
+    uint256 expectedAmount1Out = 0;
+    // input amount in token 1 := (amountOut * ON * (1-i))/OD = 146805.131123
+    uint256 expectedAmountOwedToPool = 146805131123;
 
-    // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    uint256 reserve1After = ctx.reserves.reserveNum * 1e12 + action.amountOwedToPool * 1e12;
-
-    (uint256 priceDiffAfter, ) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      reserve1After,
-      reserve0After
-    );
-
-    // Price should improve but not reach zero due to redemption fee constraints
-    assertLt(priceDiffAfter, priceDiffBefore, "Price difference should decrease");
-    assertGt(priceDiffAfter, 0, "Price difference should still be positive (partial contraction)");
-
-    // Verify the contraction was limited by redemption fee
-    // Maximum redeemable should be limited by (incentive - decayedBaseFee) * totalSupply * beta
-    uint256 maxRedeemable = (totalSupply * 1 * (50 * 1e14 - 0.0025 * 1e18)) / 1e18;
-    assertLe(action.amount0Out, maxRedeemable, "Contraction should be limited by redemption fee");
+    assertEq(action.dir, LQ.Direction.Contract);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
   }
 
-  /* ============================================================ */
-  /* ============= Contraction Token 1 Debt Tests ============== */
-  /* ============================================================ */
-
-  function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeAllows_shouldContractToOraclePrice()
+  function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeEqualToIncentive_shouldContractAndBringPriceBackToOraclePrice()
     public
     fpmmToken1Debt(6, 18)
     addFpmm(0, 50, 9000)
   {
-    // Setup: Pool price above oracle (excess debt scenario for token1 debt)
-    LQ.Context memory ctx = _createContextWithDecimals({
-      reserveDen: 1_000_000e6, // token0 (collateral) reserves (6 decimals)
-      reserveNum: 1_500_000e18, // token1 (debt) reserves
+    uint256 reserve0 = 10_000_000 * 1e18; // usd.m
+    uint256 reserve1 = 14_500_000 * 1e6; // chf.m
+
+    LQ.Context memory ctx = _createContextWithTokenOrder({
+      reserveDen: reserve0,
+      reserveNum: reserve1 * 1e12,
       oracleNum: 1e18,
-      oracleDen: 1e18,
+      oracleDen: 1242930830000000000,
       poolPriceAbove: true,
       incentiveBps: 50,
-      token0Dec: 1e6,
-      token1Dec: 1e18
+      isToken0Debt: false
     });
 
-    ctx.isToken0Debt = false;
-    ctx.token0 = collToken;
-    ctx.token1 = debtToken;
-
-    // Mock redemption rate at 0.25%
-    mockRedemptionRateWithDecay(0.0025 * 1e18);
-
-    // Set total supply high enough
-    uint256 totalSupply = (ctx.reserves.reserveDen * 1e12 * ctx.prices.oracleNum * 10_000) / ctx.prices.oracleDen;
+    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(0.0025 * 1e18, ctx); // 0.25% resulting in redemption fee being 0.25% + 0.25% = 0.5%
     setDebtTokenTotalSupply(totalSupply);
-
-    // For token1 debt, oracle rate is inverted
-    mockCollateralRegistryOracleRate(ctx.prices.oracleDen, ctx.prices.oracleNum);
-
-    (uint256 priceDiffBefore, bool poolPriceAboveBefore) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.reserves.reserveNum,
-      ctx.reserves.reserveDen * 1e12
-    );
-
-    assertTrue(poolPriceAboveBefore, "Pool price should be above oracle");
-    assertGt(priceDiffBefore, 0, "Price difference should be positive");
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
-    assertEq(action.amount0Out, 0, "No collateral should flow out during contraction");
-    assertGt(action.amount1Out, 0, "Debt should flow out during contraction");
-    assertGt(action.amountOwedToPool, 0, "Collateral should flow in via amountOwedToPool");
+    uint256 expectedAmount0Out = 0;
+    // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 3_235_338.342946
+    uint256 expectedAmount1Out = 3235338342946;
+    // input amount in token 1 := (amountOut * OD * (1-i))/ON = 4_001_195.263069052943054100
+    uint256 expectedAmountOwedToPool = 4001195263069052943054100;
 
-    // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen * 1e12 + action.amountOwedToPool * 1e12;
-    uint256 reserve1After = ctx.reserves.reserveNum - action.amount1Out;
+    assertEq(action.dir, LQ.Direction.Contract);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+  }
 
-    (uint256 priceDiffAfter, ) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      reserve1After,
-      reserve0After
-    );
+  /* ============================================================ */
+  /* ============== Contraction non-target liquidity ============ */
+  /* ============================================================ */
 
-    // Price should improve
-    assertLe(priceDiffAfter, priceDiffBefore, "Price difference should decrease or stay same");
-    assertIncentive(
-      ctx.incentiveBps,
-      false,
-      action.amount1Out,
-      action.amountOwedToPool * 1e12,
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen
-    );
+  function test_determineAction_whenToken0DebtPoolPriceBelowAndRedemptionFeeLessIncentive_shouldContractAndBringPriceAboveOraclePrice()
+    public
+    fpmmToken0Debt(6, 18)
+    addFpmm(0, 50, 9000)
+  {
+    uint256 reserve0 = 10_956_675_007 * 1e6; // ngnm 7.5 mio in $
+    uint256 reserve1 = 6_000_000 * 1e18; // usdm 6 mio in $
+
+    LQ.Context memory ctx = _createContextWithTokenOrder({
+      reserveDen: reserve0 * 1e12, // reserve token 0 ngnm
+      reserveNum: reserve1, // reserve token 1 usdm
+      oracleNum: 684510000000000,
+      oracleDen: 1e18,
+      poolPriceAbove: false,
+      incentiveBps: 50,
+      isToken0Debt: true
+    });
+
+    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(0.0015 * 1e18, ctx); // 0.15% resulting in redemption fee being 0.25% + 0.15% = 0.4%
+    setDebtTokenTotalSupply(totalSupply);
+
+    LQ.Action memory action = strategy.determineAction(ctx);
+
+    // amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 1_098_386_357.591375
+    uint256 expectedAmount0Out = 1098386357591375;
+    uint256 expectedAmount1Out = 0;
+    // input amount in token 1 := (amountOut * ON * (1-0.004))/OD = 748_849.019852332612845000
+    // 0.004 = 0.4% redemption fee
+    uint256 expectedAmountOwedToPool = 748849019852332612845000;
+
+    assertEq(action.dir, LQ.Direction.Contract);
+
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+  }
+
+  function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeLessIncentive_shouldContractAndBringPriceBelowOraclePrice()
+    public
+    fpmmToken1Debt(18, 6)
+    addFpmm(0, 50, 9000)
+  {
+    uint256 reserve0 = 555_555 * 1e6; // 555555 usd.m
+    uint256 reserve1 = 43_629_738 * 1e18; // php.m 750k in $
+
+    LQ.Context memory ctx = _createContextWithTokenOrder({
+      reserveDen: reserve0 * 1e12, // reserve token 0 usd.m
+      reserveNum: reserve1, // reserve token 1 php.m
+      oracleNum: 1e18,
+      oracleDen: 17190990000000000,
+      poolPriceAbove: true,
+      incentiveBps: 50,
+      isToken0Debt: false
+    });
+
+    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(0.001 * 1e18, ctx); // 0.1% resulting in redemption fee being 0.25% + 0.1% = 0.35%
+    setDebtTokenTotalSupply(totalSupply);
+
+    LQ.Action memory action = strategy.determineAction(ctx);
+
+    uint256 expectedAmount0Out = 0;
+    // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 5_670_726.837208791926748374
+    uint256 expectedAmount1Out = 5670726837208791926748374;
+    // input amount in token 0 := (amountOut * OD * (1-0.0035))/ON = 97_144.209421
+    // 0.0035 = 0.35% redemption fee
+    uint256 expectedAmountOwedToPool = 97144209421;
+
+    assertEq(action.dir, LQ.Direction.Contract);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+  }
+
+  function test_determineAction_whenToken0DebtPoolPriceBelowAndRedemptionFeeGreaterIncentive_shouldContractAndBringPriceCloserToOraclePrice()
+    public
+    fpmmToken0Debt(6, 18)
+    addFpmm(0, 50, 9000)
+  {
+    uint256 reserve0 = 10_956_675_007 * 1e6; // ngnm 7.5 mio in $
+    uint256 reserve1 = 6_000_000 * 1e18; // usdm 6 mio in $
+
+    LQ.Context memory ctx = _createContextWithTokenOrder({
+      reserveDen: reserve0 * 1e12, // reserve token 0 ngnm
+      reserveNum: reserve1, // reserve token 1 usdm
+      oracleNum: 684510000000000,
+      oracleDen: 1e18,
+      poolPriceAbove: false,
+      incentiveBps: 50,
+      isToken0Debt: true
+    });
+
+    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(0.0035 * 1e18, ctx); // 0.35% resulting in redemption fee being 0.25% + 0.35% = 0.6%
+    setDebtTokenTotalSupply(totalSupply);
+
+    LQ.Action memory action = strategy.determineAction(ctx);
+
+    // target amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 1_098_386_357.591375
+    // since redemption fee for target amount is greater than incentive.
+    // we will redeem an amount that results in a redemption fee equal to incentive.
+    // maximum amount that can be redeemed is: totalSupply * redemptionBeta * (incentive - decayedBaseFee) =
+    // = 313824673597535714 * 1 * (0.005 - 0.0025) =  784_561_683.993839
+    uint256 expectedAmount0Out = 784561683993839;
+    uint256 expectedAmount1Out = 0;
+    // input amount in token 1 := (amountOut * ON * (1-0.0025 - amountOut / totalSupply))/OD = 534_355.116719069620757590
+    uint256 expectedAmountOwedToPool = 534355116719069620757590;
+
+    assertEq(action.dir, LQ.Direction.Contract);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+  }
+
+  function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeGreaterIncentive_shouldContractAndBringPriceCloserToOraclePrice()
+    public
+    fpmmToken1Debt(18, 6)
+    addFpmm(0, 50, 9000)
+  {
+    uint256 reserve0 = 555_555 * 1e6; // 555555 usd.m
+    uint256 reserve1 = 43_629_738 * 1e18; // php.m 750k in $
+
+    LQ.Context memory ctx = _createContextWithTokenOrder({
+      reserveDen: reserve0 * 1e12, // reserve token 0 usd.m
+      reserveNum: reserve1, // reserve token 1 php.m
+      oracleNum: 1e18,
+      oracleDen: 17190990000000000,
+      poolPriceAbove: true,
+      incentiveBps: 50,
+      isToken0Debt: false
+    });
+
+    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
+    uint256 totalSupply = calculateTargetSupply(0.005 * 1e18, ctx); // 0.5% resulting in redemption fee being 0.25% + 0.5% = 0.75%
+    setDebtTokenTotalSupply(totalSupply);
+
+    LQ.Action memory action = strategy.determineAction(ctx);
+
+    uint256 expectedAmount0Out = 0;
+    // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 5_670_726.837208791926748374
+    // since redemption fee for target amount is greater than incentive.
+    // we will redeem an amount that results in a redemption fee equal to incentive.
+    // maximum amount that can be redeemed is: totalSupply * redemptionBeta * (incentive - decayedBaseFee) =
+    // = 1134145367441758385349674800 * 1 * (0.005 - 0.0025) =  2_835_363.418604395963374187
+    uint256 expectedAmount1Out = 2835363418604395963374187;
+    // input amount in token 1 := (amountOut * ON * (1-0.0025 - amountOut / totalSupply))/OD = 484_989.90654
+    uint256 expectedAmountOwedToPool = 48498990654;
+
+    assertEq(action.dir, LQ.Direction.Contract);
+    assertEq(action.amount0Out, expectedAmount0Out);
+    assertEq(action.amount1Out, expectedAmount1Out);
+    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
   }
 
   /* ============================================================ */
@@ -243,123 +275,5 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     // Should revert because redemption fee exceeds incentive
     vm.expectRevert();
     strategy.determineAction(ctx);
-  }
-
-  function test_determineAction_whenRedemptionFeeEqualsIncentive_shouldContractToExactOraclePrice()
-    public
-    fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 9000)
-  {
-    // Setup: Calculate supply that makes redemption fee exactly equal to incentive
-    LQ.Context memory ctx = _createContext({
-      reserveDen: 1_500_000e18,
-      reserveNum: 1_000_000e18,
-      oracleNum: 1e18,
-      oracleDen: 1e18,
-      poolPriceAbove: false,
-      incentiveBps: 50
-    });
-
-    // Mock base redemption rate at 0.25%
-    uint256 baseRate = 0.0025 * 1e18;
-    mockRedemptionRateWithDecay(baseRate);
-
-    // Calculate target amount to redeem (from ideal contraction formula)
-    uint256 targetAmountToRedeem = (ctx.reserves.reserveNum *
-      ctx.prices.oracleDen -
-      ctx.reserves.reserveDen *
-      ctx.prices.oracleNum) / ctx.prices.oracleDen;
-
-    // Calculate supply where redemption fee equals incentive:
-    // targetSupply = (targetAmount * 1e18) / (incentive - baseRate)
-    uint256 targetSupply = (targetAmountToRedeem * 1e18) / (50 * 1e14 - baseRate);
-
-    setDebtTokenTotalSupply(targetSupply);
-    mockCollateralRegistryOracleRate(ctx.prices.oracleNum, ctx.prices.oracleDen);
-
-    LQ.Action memory action = strategy.determineAction(ctx);
-
-    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
-
-    // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    uint256 reserve1After = ctx.reserves.reserveNum + action.amountOwedToPool;
-
-    (uint256 priceDiffAfter, ) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      reserve1After,
-      reserve0After
-    );
-
-    // Price should reach exactly zero (or very close due to rounding)
-    assertLe(priceDiffAfter, 1, "Price difference should be at or near zero");
-  }
-
-  /* ============================================================ */
-  /* ================ Specific Scenario Tests ================== */
-  /* ============================================================ */
-
-  function test_determineAction_whenToken0DebtPoolPriceBelowWith10PercentDifference_shouldContractCorrectly()
-    public
-    fpmmToken0Debt(18, 6)
-    addFpmm(0, 50, 9000)
-  {
-    // Specific scenario: 1.5M USDFX (debt) and 1M USDC (collateral)
-    // Pool price is 10% below oracle price
-    LQ.Context memory ctx = _createContextWithDecimals({
-      reserveDen: 1_500_000e18, // token0 (debt) reserves
-      reserveNum: 1_000_000e6, // token1 (collateral) reserves (6 decimals)
-      oracleNum: 999884980000000000, // ~1.0 USD/USDC
-      oracleDen: 1e18,
-      poolPriceAbove: false,
-      incentiveBps: 50, // 0.5%
-      token0Dec: 1e18,
-      token1Dec: 1e6
-    });
-
-    // Setup redemption parameters
-    mockRedemptionRateWithDecay(3e15); // 0.3%
-    setDebtTokenTotalSupply(10_000_000e18);
-    mockCollateralRegistryOracleRate(ctx.prices.oracleNum, ctx.prices.oracleDen);
-
-    (uint256 priceDiffBefore, bool poolPriceAboveBefore) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.reserves.reserveNum * 1e12, // normalize to 18 decimals
-      ctx.reserves.reserveDen
-    );
-
-    assertFalse(poolPriceAboveBefore, "Pool price should be below oracle");
-    assertGt(priceDiffBefore, 0, "Price difference should be positive");
-
-    LQ.Action memory action = strategy.determineAction(ctx);
-
-    assertEq(action.dir, LQ.Direction.Contract, "Should contract");
-    assertGt(action.amount0Out, 0, "Debt should flow out");
-    assertEq(action.amount1Out, 0, "No collateral should flow out");
-    assertGt(action.amountOwedToPool, 0, "Collateral should flow in");
-
-    // Calculate reserves after action
-    uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    uint256 reserve1After = ctx.reserves.reserveNum * 1e12 + action.amountOwedToPool * 1e12;
-
-    (uint256 priceDiffAfter, ) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      reserve1After,
-      reserve0After
-    );
-
-    // Price should improve
-    assertLt(priceDiffAfter, priceDiffBefore, "Price difference should decrease");
-    assertIncentive(
-      ctx.incentiveBps,
-      true,
-      action.amount0Out,
-      action.amountOwedToPool * 1e12,
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen
-    );
   }
 }

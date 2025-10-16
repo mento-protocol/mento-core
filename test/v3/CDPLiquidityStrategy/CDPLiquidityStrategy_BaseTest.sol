@@ -7,6 +7,9 @@ import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrate
 import { CDPLiquidityStrategyHarness } from "test/utils/harnesses/CDPLiquidityStrategyHarness.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 
+import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
+import { IERC20 } from "contracts/interfaces/IERC20.sol";
+
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
@@ -164,14 +167,16 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 incentiveBps,
     bool isToken0Debt
   ) internal view returns (LQ.Context memory) {
+    uint256 token0Dec = 10 ** (isToken0Debt ? IERC20(debtToken).decimals() : IERC20(collToken).decimals());
+    uint256 token1Dec = 10 ** (isToken0Debt ? IERC20(collToken).decimals() : IERC20(debtToken).decimals());
     return
       LQ.Context({
         pool: address(fpmm),
         reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
         prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
         incentiveBps: uint128(incentiveBps),
-        token0Dec: 1e18,
-        token1Dec: 1e18,
+        token0Dec: uint64(token0Dec),
+        token1Dec: uint64(token1Dec),
         token0: isToken0Debt ? debtToken : collToken,
         token1: isToken0Debt ? collToken : debtToken,
         isToken0Debt: isToken0Debt
@@ -355,5 +360,95 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 toDec
   ) public pure returns (uint256) {
     return (amount * rateNumerator * toDec) / (rateDenominator * fromDec);
+  }
+  /**
+   * @notice Calculate the stability pool balance in order to cover a percentage of the target amount needed to rebalance
+   * @param stabilityPoolPercentage The percentage of the target amount to calculate
+   * @return desiredStabilityPoolBalance
+   */
+  function calculateTargetStabilityPoolBalance(
+    uint256 stabilityPoolPercentage,
+    LQ.Context memory ctx
+  ) internal view returns (uint256 desiredStabilityPoolBalance) {
+    uint256 targetStabilityPoolBalance;
+
+    if (ctx.prices.poolPriceAbove) {
+      uint256 numerator = ctx.prices.oracleDen *
+        ctx.reserves.reserveNum -
+        ctx.prices.oracleNum *
+        ctx.reserves.reserveDen;
+      uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+        LQ.BASIS_POINTS_DENOMINATOR;
+      uint256 amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token1Dec, numerator, denominator);
+
+      targetStabilityPoolBalance = LQ.convertWithRateScalingAndFee(
+        amountOut,
+        ctx.token1Dec,
+        ctx.token0Dec,
+        ctx.prices.oracleDen,
+        ctx.prices.oracleNum,
+        LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+        LQ.BASIS_POINTS_DENOMINATOR
+      );
+    } else {
+      uint256 numerator = ctx.prices.oracleNum *
+        ctx.reserves.reserveDen -
+        ctx.prices.oracleDen *
+        ctx.reserves.reserveNum;
+      uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+        LQ.BASIS_POINTS_DENOMINATOR;
+
+      uint256 amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token0Dec, numerator, denominator);
+
+      targetStabilityPoolBalance = LQ.convertWithRateScalingAndFee(
+        amountOut,
+        ctx.token0Dec,
+        ctx.token1Dec,
+        ctx.prices.oracleNum,
+        ctx.prices.oracleDen,
+        LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+        LQ.BASIS_POINTS_DENOMINATOR
+      );
+    }
+    desiredStabilityPoolBalance = (targetStabilityPoolBalance * stabilityPoolPercentage) / 1e18;
+    ICDPLiquidityStrategy.CDPConfig memory config = strategy.getCDPConfig(ctx.pool);
+    uint256 a = mockStabilityPool.MIN_BOLD_AFTER_REBALANCE() + desiredStabilityPoolBalance;
+    uint256 b = (desiredStabilityPoolBalance * LQ.BASIS_POINTS_DENOMINATOR + config.stabilityPoolPercentage - 1) /
+      config.stabilityPoolPercentage;
+
+    // take the higher of the two
+    desiredStabilityPoolBalance = a > b ? a : b;
+  }
+
+  /**
+   * @notice Calculate the target supply such that the redemption fraction is equal to the target fraction
+   * @param targetFraction the redemption fraction to target
+   * @return targetSupply
+   */
+  function calculateTargetSupply(
+    uint256 targetFraction,
+    LQ.Context memory ctx
+  ) internal view returns (uint256 targetSupply) {
+    uint256 amountOut;
+    if (ctx.prices.poolPriceAbove) {
+      uint256 numerator = ctx.prices.oracleDen *
+        ctx.reserves.reserveNum -
+        ctx.prices.oracleNum *
+        ctx.reserves.reserveDen;
+      uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+        LQ.BASIS_POINTS_DENOMINATOR;
+      amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token1Dec, numerator, denominator);
+    } else {
+      uint256 numerator = ctx.prices.oracleNum *
+        ctx.reserves.reserveDen -
+        ctx.prices.oracleDen *
+        ctx.reserves.reserveNum;
+      uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+        LQ.BASIS_POINTS_DENOMINATOR;
+
+      amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token0Dec, numerator, denominator);
+    }
+
+    targetSupply = (amountOut * 1e18) / targetFraction;
   }
 }
