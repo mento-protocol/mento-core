@@ -7,6 +7,7 @@ import { FPMM } from "contracts/swap/FPMM.sol";
 // solhint-disable-next-line max-line-length
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
+import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 
 contract FPMMFactoryTest is Test {
   /* ------- Events from FPMMFactory ------- */
@@ -129,13 +130,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   }
 
   function test_constructor_whenCreateXNotDeployed_shouldRevert() public {
-    vm.expectRevert("FPMMFactory: CREATEX_BYTECODE_HASH_MISMATCH");
+    vm.expectRevert(IFPMMFactory.CreateXBytecodeHashMismatch.selector);
     factoryCelo = new FPMMFactory(false);
   }
 
   function test_constructor_whenDifferentContractIsDeployedToCreateXAddress_shouldRevert() public {
     deployCodeTo("ERC20", abi.encode("Token 0", "T0"), createX);
-    vm.expectRevert("FPMMFactory: CREATEX_BYTECODE_HASH_MISMATCH");
+    vm.expectRevert(IFPMMFactory.CreateXBytecodeHashMismatch.selector);
     factoryCelo = new FPMMFactory(false);
   }
 
@@ -156,7 +157,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_initialize_whenOracleAdapterIsZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     factoryCelo.initialize(
       address(0),
       proxyAdminCelo,
@@ -169,7 +170,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_initialize_whenProxyAdminIsZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     factoryCelo.initialize(
       oracleAdapterCelo,
       address(0),
@@ -182,14 +183,14 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
   function test_initialize_whenFPMMImplementationIsZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     factoryCelo.initialize(oracleAdapterCelo, proxyAdminCelo, governanceCelo, address(0), defaultFpmmParamsCelo);
   }
 
   function test_initialize_whenGovernanceIsZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     factoryCelo.initialize(
       oracleAdapterCelo,
       proxyAdminCelo,
@@ -205,7 +206,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
 
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    vm.expectRevert("FPMMFactory: LP_FEE_TOO_HIGH");
+    vm.expectRevert(IFPMMFactory.FeeTooHigh.selector);
     factoryCelo.initialize(
       oracleAdapterCelo,
       proxyAdminCelo,
@@ -275,7 +276,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       defaultFpmmParamsCelo
     );
 
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     vm.prank(governanceCelo);
     factoryCelo.setOracleAdapter(address(0));
   }
@@ -327,7 +328,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       defaultFpmmParamsCelo
     );
 
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     vm.prank(governanceCelo);
     factoryCelo.setProxyAdmin(address(0));
   }
@@ -379,7 +380,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       defaultFpmmParamsCelo
     );
 
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     vm.prank(governanceCelo);
     factoryCelo.setGovernance(address(0));
   }
@@ -435,7 +436,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
     invalidDefaultFpmmParams.lpFee = 101;
 
-    vm.expectRevert("FPMMFactory: LP_FEE_TOO_HIGH");
+    vm.expectRevert(IFPMMFactory.FeeTooHigh.selector);
     vm.prank(governanceCelo);
     factoryCelo.setDefaultParams(invalidDefaultFpmmParams);
   }
@@ -454,7 +455,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
     invalidDefaultFpmmParams.protocolFee = 101;
 
-    vm.expectRevert("FPMMFactory: PROTOCOL_FEE_TOO_HIGH");
+    vm.expectRevert(IFPMMFactory.FeeTooHigh.selector);
     vm.prank(governanceCelo);
     factoryCelo.setDefaultParams(invalidDefaultFpmmParams);
   }
@@ -474,7 +475,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     invalidDefaultFpmmParams.lpFee = 50;
     invalidDefaultFpmmParams.protocolFee = 51;
 
-    vm.expectRevert("FPMMFactory: COMBINED_FEE_TOO_HIGH");
+    vm.expectRevert(IFPMMFactory.FeeTooHigh.selector);
     vm.prank(governanceCelo);
     factoryCelo.setDefaultParams(invalidDefaultFpmmParams);
   }
@@ -493,7 +494,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
     invalidDefaultFpmmParams.protocolFeeRecipient = address(0);
 
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     vm.prank(governanceCelo);
     factoryCelo.setDefaultParams(invalidDefaultFpmmParams);
   }
@@ -512,7 +513,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
     invalidDefaultFpmmParams.rebalanceIncentive = 101;
 
-    vm.expectRevert("FPMMFactory: REBALANCE_INCENTIVE_TOO_HIGH");
+    vm.expectRevert(IFPMMFactory.RebalanceIncentiveTooHigh.selector);
     vm.prank(governanceCelo);
     factoryCelo.setDefaultParams(invalidDefaultFpmmParams);
   }
@@ -531,7 +532,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
     invalidDefaultFpmmParams.rebalanceThresholdAbove = 1001;
 
-    vm.expectRevert("FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
+    vm.expectRevert(IFPMMFactory.RebalanceThresholdTooHigh.selector);
     vm.prank(governanceCelo);
     factoryCelo.setDefaultParams(invalidDefaultFpmmParams);
   }
@@ -550,7 +551,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
     invalidDefaultFpmmParams.rebalanceThresholdBelow = 1001;
 
-    vm.expectRevert("FPMMFactory: REBALANCE_THRESHOLD_TOO_HIGH");
+    vm.expectRevert(IFPMMFactory.RebalanceThresholdTooHigh.selector);
     vm.prank(governanceCelo);
     factoryCelo.setDefaultParams(invalidDefaultFpmmParams);
   }
@@ -608,7 +609,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       address(fpmmImplementationCelo),
       defaultFpmmParamsCelo
     );
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
     vm.prank(governanceCelo);
     factoryCelo.registerFPMMImplementation(address(0));
   }
@@ -625,7 +626,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     );
     vm.startPrank(governanceCelo);
     factoryCelo.registerFPMMImplementation(makeAddr("Implementation2"));
-    vm.expectRevert("FPMMFactory: IMPLEMENTATION_ALREADY_REGISTERED");
+    vm.expectRevert(IFPMMFactory.ImplementationAlreadyRegistered.selector);
     factoryCelo.registerFPMMImplementation(makeAddr("Implementation2"));
     vm.stopPrank();
   }
@@ -674,7 +675,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       address(fpmmImplementationCelo),
       defaultFpmmParamsCelo
     );
-    vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+    vm.expectRevert(IFPMMFactory.ImplementationNotRegistered.selector);
     vm.prank(governanceCelo);
     factoryCelo.unregisterFPMMImplementation(makeAddr("Implementation2"), 0);
   }
@@ -689,7 +690,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       address(fpmmImplementationCelo),
       defaultFpmmParamsCelo
     );
-    vm.expectRevert("FPMMFactory: INDEX_OUT_OF_BOUNDS");
+    vm.expectRevert(IFPMMFactory.IndexOutOfBounds.selector);
     vm.prank(governanceCelo);
     factoryCelo.unregisterFPMMImplementation(address(fpmmImplementationCelo), 1);
   }
@@ -706,7 +707,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     );
     vm.startPrank(governanceCelo);
     factoryCelo.registerFPMMImplementation(makeAddr("Implementation2"));
-    vm.expectRevert("FPMMFactory: IMPLEMENTATION_INDEX_MISMATCH");
+    vm.expectRevert(IFPMMFactory.ImplementationIndexMismatch.selector);
     factoryCelo.unregisterFPMMImplementation(makeAddr("Implementation2"), 0);
     vm.stopPrank();
   }
@@ -821,34 +822,34 @@ abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
   function test_deployFPMM_whenImplementationIsNotRegistered_shouldRevert() public {
     fpmmImplementationCeloAddress = makeAddr("Not Registered Implementation");
     vm.prank(governanceCelo);
-    vm.expectRevert("FPMMFactory: IMPLEMENTATION_NOT_REGISTERED");
+    vm.expectRevert(IFPMMFactory.ImplementationNotRegistered.selector);
     deploy("celo");
   }
 
   function test_deployFPMM_whenToken0OrToken1IsZeroAddress_shouldRevert() public {
     token0Celo = address(0);
     vm.prank(governanceCelo);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.SortTokensZeroAddress.selector);
     deploy("celo");
 
     token0Celo = makeAddr("Token 0 Celo");
     token1Celo = address(0);
     vm.prank(governanceCelo);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.SortTokensZeroAddress.selector);
     deploy("celo");
   }
 
   function test_deployFPMM_whenToken0AndToken1AreSame_shouldRevert() public {
     token0Celo = token1Celo;
     vm.prank(governanceCelo);
-    vm.expectRevert("FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    vm.expectRevert(IFPMMFactory.IdenticalTokenAddresses.selector);
     deploy("celo");
   }
 
   function test_deployFPMM_whenPairAlreadyExists_shouldRevert() public {
     vm.prank(governanceCelo);
     deploy("celo");
-    vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
+    vm.expectRevert(IFPMMFactory.PairAlreadyExists.selector);
     vm.prank(governanceCelo);
     deploy("celo");
   }
@@ -856,7 +857,7 @@ abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
   function test_deployFPMM_whenReferenceRateFeedIDIsZeroAddress_shouldRevert() public {
     referenceRateFeedID = address(0);
     vm.prank(governanceCelo);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.InvalidReferenceRateFeedID.selector);
     deploy("celo");
   }
 
@@ -902,7 +903,7 @@ abstract contract FPMMFactoryTest_DeployFPMM is FPMMFactoryTest {
     token0Celo = expectedToken1;
     token1Celo = expectedToken0;
     vm.prank(governanceCelo);
-    vm.expectRevert("FPMMFactory: PAIR_ALREADY_EXISTS");
+    vm.expectRevert(IFPMMFactory.PairAlreadyExists.selector);
     deploy("celo");
   }
 
@@ -1011,21 +1012,21 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
   function test_deployFPMM_whenCustomOracleAdapterIsZeroAddress_shouldRevert() public {
     expectedOracleAdapter = address(0);
     vm.prank(governanceCelo);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.InvalidOracleAdapter.selector);
     deploy("celo");
   }
 
   function test_deployFPMM_whenCustomProxyAdminIsZeroAddress_shouldRevert() public {
     expectedProxyAdmin = address(0);
     vm.prank(governanceCelo);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.InvalidProxyAdmin.selector);
     deploy("celo");
   }
 
   function test_deployFPMM_whenCustomGovernanceIsZeroAddress_shouldRevert() public {
     expectedGovernance = address(0);
     vm.prank(governanceCelo);
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.InvalidGovernance.selector);
     deploy("celo");
   }
 }
@@ -1068,7 +1069,7 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
     address tokenA = address(0x1000);
     address tokenB = address(0x1000);
 
-    vm.expectRevert("FPMMFactory: IDENTICAL_TOKEN_ADDRESSES");
+    vm.expectRevert(IFPMMFactory.IdenticalTokenAddresses.selector);
     factoryCelo.sortTokens(tokenA, tokenB);
   }
 
@@ -1076,7 +1077,7 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
     address tokenA = address(0);
     address tokenB = address(0x1000);
 
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.SortTokensZeroAddress.selector);
     factoryCelo.sortTokens(tokenA, tokenB);
   }
 
@@ -1084,7 +1085,7 @@ contract FPMMFactoryTest_SortTokens is FPMMFactoryTest {
     address tokenA = address(0x1000);
     address tokenB = address(0);
 
-    vm.expectRevert("FPMMFactory: ZERO_ADDRESS");
+    vm.expectRevert(IFPMMFactory.SortTokensZeroAddress.selector);
     factoryCelo.sortTokens(tokenA, tokenB);
   }
 
