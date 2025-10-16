@@ -58,7 +58,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
     fpmmImplementation = new FPMM(true);
 
     oracleAdapter = new OracleAdapter(false);
-    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), marketHoursBreaker);
+    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), marketHoursBreaker, governance);
     router = new Router(forwarder, factoryRegistry, address(fpmmFactory));
 
     fpmmFactory.initialize(address(oracleAdapter), proxyAdmin, governance, address(fpmmImplementation));
