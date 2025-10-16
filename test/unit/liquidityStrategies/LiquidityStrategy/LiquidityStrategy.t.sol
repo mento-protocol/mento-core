@@ -55,6 +55,24 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     strategy.addPool(address(fpmm), debtToken, 3600, 50);
   }
 
+  function test_addPool_whenDebtTokenNotInPool_shouldRevert() public fpmmToken0Debt(18, 18) {
+    // Create a random token that's not in the pool
+    address wrongToken = address(new MockERC20("WrongToken", "WT", 18));
+
+    vm.prank(owner);
+    vm.expectRevert(ILiquidityStrategy.LS_DEBT_TOKEN_NOT_IN_POOL.selector);
+    strategy.addPool(address(fpmm), wrongToken, 3600, 50);
+  }
+
+  function test_addPool_whenDebtTokenNotInPoolandToken1Debt_shouldRevert() public fpmmToken1Debt(18, 18) {
+    // Create a random token that's not in the pool
+    address wrongToken = address(new MockERC20("WrongToken", "WT", 18));
+
+    vm.prank(owner);
+    vm.expectRevert(ILiquidityStrategy.LS_DEBT_TOKEN_NOT_IN_POOL.selector);
+    strategy.addPool(address(fpmm), wrongToken, 3600, 50);
+  }
+
   function test_removePool_whenPoolExists_shouldRemovePool() public fpmmToken0Debt(18, 18) {
     // Add pool first
     vm.prank(owner);
