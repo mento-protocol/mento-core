@@ -46,6 +46,7 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
    */
   function clearTransientStorage(address pool) external {
     bytes32 key = bytes32(uint256(uint160(pool)));
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       tstore(key, 0)
     }
@@ -105,12 +106,8 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
     return (debtToContract, collateralToReceive);
   }
 
-  function _handleCallback(
-    address pool,
-    uint256 amount0Out,
-    uint256 amount1Out,
-    LQ.CallbackData memory cb
-  ) internal override {
+  // solhint-disable-next-line no-unused-vars
+  function _handleCallback(address pool, uint256, uint256, LQ.CallbackData memory cb) internal override {
     // Determine which token goes into the pool
     address tokenIn;
 
@@ -122,12 +119,9 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
       tokenIn = cb.collToken;
     }
 
-    // Calculate amounts (incentive stays with strategy, rest goes to pool)
-    uint256 incentiveAmount = LQ.incentiveAmount(cb.amountOwedToPool, cb.incentiveBps);
-    uint256 amountToPool = cb.amountOwedToPool - incentiveAmount;
-
     // Transfer tokenIn to the pool
     // Assumes harness has been funded with tokens in test setup
+    // Note: incentive stays with strategy, rest goes to pool
     IERC20(tokenIn).transfer(pool, cb.amountOwedToPool);
 
     // Note: Tokens coming OUT of the pool (amount0Out/amount1Out) have already been

@@ -11,7 +11,6 @@ import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
-import { ILiquidityStrategy } from "contracts/v3/interfaces/ILiquidityStrategy.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 
 /**

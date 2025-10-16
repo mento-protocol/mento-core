@@ -3,11 +3,9 @@
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
-import { Test } from "mento-std/Test.sol";
 import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrategy_BaseTest.sol";
 import { CDPLiquidityStrategyHarness } from "test/utils/harnesses/CDPLiquidityStrategyHarness.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
-import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";

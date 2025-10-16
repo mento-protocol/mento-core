@@ -135,9 +135,6 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     fpmmToken1Debt(6, 18)
     addFpmm(0, 50, 9000)
   {
-    uint256 reserve0 = 1_300_000 * 1e18; // usdm
-    uint256 reserve1 = 1_000_000 * 1e6; // eurm
-
     // Setup: Pool price below oracle (excess collateral scenario for token1 debt)
     LQ.Context memory ctx = _createContextWithDecimals({
       reserveDen: 1_000_000e6, // token0 (collateral) reserves (6 decimals)

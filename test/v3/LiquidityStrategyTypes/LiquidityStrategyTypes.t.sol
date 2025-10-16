@@ -6,7 +6,6 @@ pragma solidity ^0.8;
 import { Test } from "mento-std/Test.sol";
 import { LiquidityStrategyTypesHarness } from "test/utils/harnesses/LiquidityStrategyTypesHarness.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
-import { ILiquidityStrategy } from "contracts/v3/interfaces/ILiquidityStrategy.sol";
 
 contract LiquidityStrategyTypes_Test is Test {
   LiquidityStrategyTypesHarness public harness;
@@ -394,6 +393,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newExpansion(ctx, expansionAmount, collateralPayed);
 
+    // solhint-disable-next-line explicit-types
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
     assertEq(action.amountOwedToPool, expansionAmount);
     assertEq(action.amount0Out, 0); // No debt out
@@ -410,6 +410,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newExpansion(ctx, expansionAmount, collateralPayed);
 
+    // solhint-disable-next-line explicit-types
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
     assertEq(action.amountOwedToPool, expansionAmount);
     assertEq(action.amount0Out, collateralPayed); // Collateral out (token0)
@@ -426,6 +427,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newContraction(ctx, contractionAmount, collateralReceived);
 
+    // solhint-disable-next-line explicit-types
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
     assertEq(action.amountOwedToPool, collateralReceived);
     assertEq(action.amount0Out, contractionAmount);
@@ -442,6 +444,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newContraction(ctx, contractionAmount, collateralReceived);
 
+    // solhint-disable-next-line explicit-types
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
     assertEq(action.amountOwedToPool, collateralReceived);
     assertEq(action.amount0Out, 0);

@@ -6,12 +6,7 @@ pragma solidity 0.8.24;
 import { ICDPLiquidityStrategy } from "contracts/v3/interfaces/ICDPLiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
 import { CDPLiquidityStrategy_BaseTest } from "../CDPLiquidityStrategy/CDPLiquidityStrategy_BaseTest.sol";
-import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
-import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
-import { console } from "forge-std/console.sol";
-import { uints, addresses } from "mento-std/Array.sol";
-import { Test } from "forge-std/Test.sol";
 
 contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
   LQ.Context public ctx;
@@ -1158,7 +1153,6 @@ contract CDPLiquidityStrategy_ActionTest is CDPLiquidityStrategy_BaseTest {
         LQ.BASIS_POINTS_DENOMINATOR
       );
     }
-    address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
     ICDPLiquidityStrategy.CDPConfig memory config = strategy.getCDPConfig(ctx.pool);
 
     desiredStabilityPoolBalance = (targetStabilityPoolBalance * stabilityPoolPercentage) / 1e18;

@@ -5,7 +5,6 @@ pragma solidity ^0.8;
 
 import { LiquidityStrategy_BaseTest } from "./LiquidityStrategy_BaseTest.sol";
 import { LiquidityStrategyHarness } from "test/utils/harnesses/LiquidityStrategyHarness.sol";
-import { MockFPMM } from "test/utils/mocks/MockFPMM.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
@@ -138,6 +137,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     // Should be expansion: add debt (token0), take collateral (token1)
     assertEq(ctx.prices.poolPriceAbove, true);
+    // solhint-disable-next-line explicit-types
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
     assertTrue(action.amountOwedToPool > 0); // Debt in
     assertEq(action.amount0Out, 0); // No debt out
@@ -157,6 +157,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     // Should be contraction: add collateral (token1), take debt (token0)
     assertEq(ctx.prices.poolPriceAbove, false);
+    // solhint-disable-next-line explicit-types
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
     assertTrue(action.amountOwedToPool > 0); // Collateral in
     assertTrue(action.amount0Out > 0); // Debt out
@@ -177,6 +178,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     // Should be contraction: take debt (token1) from pool, add collateral (token0)
     assertEq(ctx.prices.poolPriceAbove, true);
+    // solhint-disable-next-line explicit-types
     assertEq(uint(action.dir), uint(LQ.Direction.Contract));
     assertTrue(action.amountOwedToPool > 0); // Collateral in
     assertTrue(action.amount1Out > 0); // Debt out (token1)
@@ -197,6 +199,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     // Should be expansion: add debt (token1), take collateral (token0)
     assertEq(ctx.prices.poolPriceAbove, false);
+    // solhint-disable-next-line explicit-types
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
     assertTrue(action.amountOwedToPool > 0); // Debt in
     assertTrue(action.amount0Out > 0); // Collateral out (token0)
@@ -212,9 +215,10 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     vm.prank(owner);
     strategy.addPool(address(fpmm), debtToken, 3600, 50);
 
-    (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(address(fpmm));
+    (, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
     // Should handle decimal scaling correctly
+    // solhint-disable-next-line explicit-types
     assertEq(uint(action.dir), uint(LQ.Direction.Expand));
     assertTrue(action.amountOwedToPool > 0);
     assertTrue(action.amount1Out > 0);
