@@ -5,7 +5,7 @@
 pragma solidity ^0.8;
 
 import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_BaseTest.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 
 contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest {
   function setUp() public override {

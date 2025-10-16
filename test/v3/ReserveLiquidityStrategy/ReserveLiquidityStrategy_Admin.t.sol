@@ -4,8 +4,8 @@
 pragma solidity ^0.8;
 
 import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_BaseTest.sol";
-import { ReserveLiquidityStrategy } from "contracts/v3/ReserveLiquidityStrategy.sol";
-import { ILiquidityStrategy } from "contracts/v3/interfaces/ILiquidityStrategy.sol";
+import { ReserveLiquidityStrategy } from "contracts/liquidityStrategies/ReserveLiquidityStrategy.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 
 contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest {
   event TrustedPoolUpdated(address indexed pool, bool isTrusted);

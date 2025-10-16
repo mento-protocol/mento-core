@@ -17,7 +17,9 @@ import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 /**
  * @title BiPoolExchangeManager
+ * @author Mento Labs
  * @notice An exchange manager that manages asset exchanges consisting of two assets
+ * @dev Mento V2
  */
 contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Ownable {
   using FixidityLib for FixidityLib.Fraction;
@@ -90,7 +92,11 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     _;
   }
 
-  modifier verifyExchangeTokens(address tokenIn, address tokenOut, PoolExchange memory exchange) {
+  modifier verifyExchangeTokens(
+    address tokenIn,
+    address tokenOut,
+    PoolExchange memory exchange
+  ) {
     require(
       (tokenIn == exchange.asset0 && tokenOut == exchange.asset1) ||
         (tokenIn == exchange.asset1 && tokenOut == exchange.asset0),

@@ -7,8 +7,8 @@ import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
-import { ICDPLiquidityStrategy } from "./interfaces/ICDPLiquidityStrategy.sol";
-import { LiquidityStrategyTypes as LQ } from "./libraries/LiquidityStrategyTypes.sol";
+import { ICDPLiquidityStrategy } from "../interfaces/ICDPLiquidityStrategy.sol";
+import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
 
 contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   using SafeERC20 for IERC20;

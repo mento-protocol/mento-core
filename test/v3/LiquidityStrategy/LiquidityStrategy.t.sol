@@ -7,8 +7,8 @@ import { LiquidityStrategy_BaseTest } from "./LiquidityStrategy_BaseTest.sol";
 import { LiquidityStrategyHarness } from "test/utils/harnesses/LiquidityStrategyHarness.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
-import { ILiquidityStrategy } from "contracts/v3/interfaces/ILiquidityStrategy.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 
 contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
   LiquidityStrategyHarness public strategy;

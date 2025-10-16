@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 
 import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrategy_BaseTest.sol";
 import { CDPLiquidityStrategyHarness } from "test/utils/harnesses/CDPLiquidityStrategyHarness.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";

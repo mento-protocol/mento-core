@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
 import { LiquidityStrategyTypesHarness } from "test/utils/harnesses/LiquidityStrategyTypesHarness.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 
 contract LiquidityStrategyTypes_Test is Test {
   LiquidityStrategyTypesHarness public harness;

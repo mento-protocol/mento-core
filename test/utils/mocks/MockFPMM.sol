@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8;
 
-import { ILiquidityStrategy } from "contracts/v3/interfaces/ILiquidityStrategy.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 
 contract MockFPMM {
   address public token0;

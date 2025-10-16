@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 
 import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrategy_BaseTest.sol";
 import { ReserveLiquidityStrategyHarness } from "test/utils/harnesses/ReserveLiquidityStrategyHarness.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 
 contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {

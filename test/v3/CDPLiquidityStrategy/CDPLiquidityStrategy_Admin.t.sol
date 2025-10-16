@@ -4,7 +4,7 @@
 pragma solidity ^0.8;
 
 import { CDPLiquidityStrategy_BaseTest } from "./CDPLiquidityStrategy_BaseTest.sol";
-import { ICDPLiquidityStrategy } from "contracts/v3/interfaces/ICDPLiquidityStrategy.sol";
+import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
 

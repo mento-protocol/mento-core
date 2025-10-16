@@ -8,10 +8,9 @@ import { EnumerableSet } from "openzeppelin-contracts-next/contracts/utils/struc
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20Upgradeable as SafeERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-import { IFPMM } from "../interfaces/IFPMM.sol"; // TODO: Confirm location
-import { ILiquidityStrategy } from "./interfaces/ILiquidityStrategy.sol";
-
-import { LiquidityStrategyTypes as LQ } from "./libraries/LiquidityStrategyTypes.sol";
+import { IFPMM } from "../interfaces/IFPMM.sol";
+import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
+import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
 
 /**
  * @title LiquidityStrategy

@@ -4,7 +4,7 @@
 pragma solidity ^0.8;
 
 import { CDPLiquidityStrategy_BaseTest } from "./CDPLiquidityStrategy_BaseTest.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 
 contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTest {
   function setUp() public override {

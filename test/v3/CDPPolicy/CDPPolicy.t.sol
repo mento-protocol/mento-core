@@ -3,8 +3,8 @@ pragma solidity 0.8.24;
 // solhint-disable max-line-length
 
 // import { CDPPolicy } from "contracts/v3/CDPPolicy.sol";
-import { ICDPLiquidityStrategy } from "contracts/v3/interfaces/ICDPLiquidityStrategy.sol";
-import { LiquidityStrategyTypes as LQ } from "contracts/v3/libraries/LiquidityStrategyTypes.sol";
+import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { CDPLiquidityStrategy_BaseTest } from "../CDPLiquidityStrategy/CDPLiquidityStrategy_BaseTest.sol";
 import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 
