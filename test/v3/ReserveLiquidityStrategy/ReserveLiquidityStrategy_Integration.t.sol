@@ -67,7 +67,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when excess collateral");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand when excess collateral");
     assertGt(action.amount0Out, 0, "Should have collateral (token0) flowing out");
     assertEq(action.amount1Out, 0, "No debt (token1) should flow out");
     assertGt(action.amountOwedToPool, 0, "Should have debt input amount");
@@ -94,7 +94,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract), "Should contract when excess debt");
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract when excess debt");
     assertEq(action.amount0Out, 0, "No collateral (token0) should flow out");
     assertGt(action.amount1Out, 0, "Should have debt (token1) flowing out");
     assertGt(action.amountOwedToPool, 0, "Should have collateral input amount");
@@ -118,7 +118,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     LQ.Action memory action = strategy.determineAction(ctx);
 
     // For expansion when token0 is debt: collateral (token1) flows out, debt (token0) flows in via inputAmount
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand when pool price above oracle");
     assertEq(action.amount0Out, 0, "No debt should flow out during expansion");
     assertGt(action.amount1Out, 0, "Collateral should flow out during expansion");
     assertGt(action.amountOwedToPool, 0, "Debt should flow in via inputAmount");
@@ -143,7 +143,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     LQ.Action memory action = strategy.determineAction(ctx);
 
     // For expansion when token1 is debt: collateral (token0) flows out, debt (token1) flows in via inputAmount
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand), "Should expand when pool price above oracle");
+    assertEq(action.dir, LQ.Direction.Expand, "Should expand when pool price above oracle");
     assertGt(action.amount0Out, 0, "Collateral (token0) should flow out during expansion");
     assertEq(action.amount1Out, 0, "No debt (token1) should flow out during expansion");
     assertGt(action.amountOwedToPool, 0, "Debt should flow in via inputAmount");

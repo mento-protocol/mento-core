@@ -151,6 +151,25 @@ abstract contract LiquidityStrategy_BaseTest is Test {
     }
   }
 
+  /**
+   * @notice Assert that two Direction enum values are equal with a custom error message
+   * @param expected The expected Direction value
+   * @param given The actual Direction value
+   * @param message Custom error message to display on assertion failure
+   */
+  function assertEq(LQ.Direction expected, LQ.Direction given, string memory message) internal pure {
+    assertEq(uint256(expected), uint256(given), message);
+  }
+
+  /**
+   * @notice Assert that two Direction enum values are equal
+   * @param expected The expected Direction value
+   * @param given The actual Direction value
+   */
+  function assertEq(LQ.Direction expected, LQ.Direction given) internal pure {
+    assertEq(uint256(expected), uint256(given));
+  }
+
   /* ============================================================ */
   /* ======================= Events ============================= */
   /* ============================================================ */

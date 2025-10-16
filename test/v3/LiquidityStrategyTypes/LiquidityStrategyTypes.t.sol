@@ -393,7 +393,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newExpansion(ctx, expansionAmount, collateralPayed);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
+    assertEq(action.dir, LQ.Direction.Expand);
     assertEq(action.amountOwedToPool, expansionAmount);
     assertEq(action.amount0Out, 0); // No debt out
     assertEq(action.amount1Out, collateralPayed); // Collateral out (token1)
@@ -409,7 +409,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newExpansion(ctx, expansionAmount, collateralPayed);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Expand));
+    assertEq(action.dir, LQ.Direction.Expand);
     assertEq(action.amountOwedToPool, expansionAmount);
     assertEq(action.amount0Out, collateralPayed); // Collateral out (token0)
     assertEq(action.amount1Out, 0); // No debt out
@@ -425,7 +425,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newContraction(ctx, contractionAmount, collateralReceived);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+    assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amountOwedToPool, collateralReceived);
     assertEq(action.amount0Out, contractionAmount);
     assertEq(action.amount1Out, 0);
@@ -441,7 +441,7 @@ contract LiquidityStrategyTypes_Test is Test {
 
     LQ.Action memory action = harness.newContraction(ctx, contractionAmount, collateralReceived);
 
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
+    assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amountOwedToPool, collateralReceived);
     assertEq(action.amount0Out, 0);
     assertEq(action.amount1Out, contractionAmount);
@@ -481,5 +481,24 @@ contract LiquidityStrategyTypes_Test is Test {
     );
 
     assertEq(result, 202e18);
+  }
+
+  /**
+   * @notice Assert that two Direction enum values are equal with a custom error message
+   * @param expected The expected Direction value
+   * @param given The actual Direction value
+   * @param message Custom error message to display on assertion failure
+   */
+  function assertEq(LQ.Direction expected, LQ.Direction given, string memory message) internal pure {
+    assertEq(uint256(expected), uint256(given), message);
+  }
+
+  /**
+   * @notice Assert that two Direction enum values are equal
+   * @param expected The expected Direction value
+   * @param given The actual Direction value
+   */
+  function assertEq(LQ.Direction expected, LQ.Direction given) internal pure {
+    assertEq(uint256(expected), uint256(given));
   }
 }
