@@ -65,7 +65,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     address _oracleAdapter,
     address _referenceRateFeedID,
     bool _invertRateFeed,
-    address owner_
+    address _initialOwner,
+    FPMMParams calldata _params
   ) external initializer {
     FPMMStorage storage $ = _getFPMMStorage();
 
@@ -84,15 +85,16 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     $.decimals0 = 10 ** ERC20Upgradeable(_token0).decimals();
     $.decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
 
-    setLPFee(30); // .3% fee (30 basis points)
-    // TODO: add protocol fee + recipient
-    setRebalanceIncentive(50); // Default .5% incentive tolerance (50 basis points)
-    setRebalanceThresholds(500, 500); // Default 5% rebalance threshold (500 basis points)
+    setLPFee(_params.lpFee);
+    setProtocolFeeRecipient(_params.protocolFeeRecipient);
+    setProtocolFee(_params.protocolFee);
+    setRebalanceIncentive(_params.rebalanceIncentive);
+    setRebalanceThresholds(_params.rebalanceThresholdAbove, _params.rebalanceThresholdBelow);
 
     setOracleAdapter(_oracleAdapter);
     setReferenceRateFeedID(_referenceRateFeedID);
     setInvertRateFeed(_invertRateFeed);
-    transferOwnership(owner_);
+    transferOwnership(_initialOwner);
   }
 
   /* ========== VIEW FUNCTIONS ========== */

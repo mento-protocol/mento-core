@@ -9,6 +9,7 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 
@@ -33,6 +34,16 @@ contract OneToOneFPMMBaseTest is Test {
   uint256 public constant TRADING_MODE_BIDIRECTIONAL = 0;
   uint256 public constant TRADING_MODE_DISABLED = 3;
 
+  IFPMM.FPMMParams public defaultFpmmParams =
+    IFPMM.FPMMParams({
+      lpFee: 30,
+      protocolFee: 0,
+      protocolFeeRecipient: makeAddr("protocolFeeRecipient"),
+      rebalanceIncentive: 50,
+      rebalanceThresholdAbove: 500,
+      rebalanceThresholdBelow: 500
+    });
+
   function setUp() public virtual {
     fpmm = new OneToOneFPMM(false);
     oracleAdapter = IOracleAdapter(new OracleAdapter(false));
@@ -51,7 +62,7 @@ contract OneToOneFPMMBaseTest is Test {
     token0 = address(new ERC20DecimalsMock("token0", "T0", decimals0));
     token1 = address(new ERC20DecimalsMock("token1", "T1", decimals1));
 
-    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner);
+    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner, defaultFpmmParams);
 
     deal(token0, ALICE, 1_000 * 10 ** decimals0);
     deal(token1, ALICE, 1_000 * 10 ** decimals1);

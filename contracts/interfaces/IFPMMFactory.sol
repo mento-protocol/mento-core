@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 
 import { IRPoolFactory } from "../swap/router/interfaces/IRPoolFactory.sol";
+import { IFPMM } from "./IFPMM.sol";
 
 interface IFPMMFactory is IRPoolFactory {
   /* ========================================== */
@@ -47,6 +48,12 @@ interface IFPMMFactory is IRPoolFactory {
    */
   event GovernanceSet(address indexed governance);
 
+  /**
+   * @notice Emitted when the default parameters are set.
+   * @param defaultParams The new default parameters
+   */
+  event DefaultParamsSet(IFPMM.FPMMParams defaultParams);
+
   /* ======================================================== */
   /* ==================== View Functions ==================== */
   /* ======================================================== */
@@ -68,6 +75,12 @@ interface IFPMMFactory is IRPoolFactory {
    * @return The address of the governance contract
    */
   function governance() external view returns (address);
+
+  /**
+   * @notice Gets the default parameters for deployed FPMMs.
+   * @return The default parameters for deployed FPMMs
+   */
+  function defaultParams() external view returns (IFPMM.FPMMParams memory);
 
   /**
    * @notice Gets the list of deployed FPMM addresses.
@@ -107,12 +120,14 @@ interface IFPMMFactory is IRPoolFactory {
    * @param _proxyAdmin The address of the proxy admin contract
    * @param _governance The address of the governance contract
    * @param _fpmmImplementation The address of the FPMM implementation
+   * @param _defaultParams The default parameters for deployed FPMMs
    */
   function initialize(
     address _oracleAdapter,
     address _proxyAdmin,
     address _governance,
-    address _fpmmImplementation
+    address _fpmmImplementation,
+    IFPMM.FPMMParams calldata _defaultParams
   ) external;
 
   /**
@@ -132,6 +147,12 @@ interface IFPMMFactory is IRPoolFactory {
    * @param _governance The new address of the governance contract
    */
   function setGovernance(address _governance) external;
+
+  /**
+   * @notice Sets the default parameters for deployed FPMMs.
+   * @param _defaultParams The new default parameters for deployed FPMMs
+   */
+  function setDefaultParams(IFPMM.FPMMParams calldata _defaultParams) external;
 
   /**
    * @notice Registers a new FPMM implementation address.
@@ -173,6 +194,7 @@ interface IFPMMFactory is IRPoolFactory {
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
    * @param invertRateFeed Wether to invert the rate feed so that the base is asset0 and quote is asset1
+   * @param customParams The custom parameters for the deployed FPMM
    * @return proxy The address of the deployed FPMM proxy
    */
   function deployFPMM(
@@ -183,6 +205,7 @@ interface IFPMMFactory is IRPoolFactory {
     address token0,
     address token1,
     address referenceRateFeedID,
-    bool invertRateFeed
+    bool invertRateFeed,
+    IFPMM.FPMMParams memory customParams
   ) external returns (address proxy);
 }

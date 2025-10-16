@@ -12,6 +12,7 @@ import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract VirtualPoolBaseIntegration is ProtocolTest {
   FPMMFactory public fpmmFactory;
@@ -35,6 +36,16 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
 
   // Test environment
   uint256 public celoFork = vm.createFork("https://forno.celo.org");
+
+  IFPMM.FPMMParams public defaultFpmmParams =
+    IFPMM.FPMMParams({
+      lpFee: 30,
+      protocolFee: 0,
+      protocolFeeRecipient: makeAddr("protocolFeeRecipient"),
+      rebalanceIncentive: 50,
+      rebalanceThresholdAbove: 500,
+      rebalanceThresholdBelow: 500
+    });
 
   function setUp() public virtual override {
     vm.warp(10 days); // Start at a non-zero timestamp
@@ -61,7 +72,13 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
     oracleAdapter.initialize(address(sortedOracles), address(breakerBox), marketHoursBreaker, governance);
     router = new Router(forwarder, factoryRegistry, address(fpmmFactory));
 
-    fpmmFactory.initialize(address(oracleAdapter), proxyAdmin, governance, address(fpmmImplementation));
+    fpmmFactory.initialize(
+      address(oracleAdapter),
+      proxyAdmin,
+      governance,
+      address(fpmmImplementation),
+      defaultFpmmParams
+    );
   }
 
   function _setupMocks() internal {
