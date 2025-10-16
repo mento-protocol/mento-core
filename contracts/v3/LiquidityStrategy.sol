@@ -419,6 +419,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    */
   function _setHookCalled(address pool) internal {
     bytes32 key = bytes32(uint256(uint160(pool)));
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       tstore(key, true)
     }
@@ -433,6 +434,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    */
   function _getHookCalled(address pool) private view returns (bool hookCalled) {
     bytes32 key = bytes32(uint256(uint160(pool)));
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       hookCalled := tload(key)
     }

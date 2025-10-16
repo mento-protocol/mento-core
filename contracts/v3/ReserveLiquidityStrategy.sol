@@ -8,7 +8,6 @@ import { IERC20MintableBurnable } from "../common/IERC20MintableBurnable.sol";
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { IReserve } from "../interfaces/IReserve.sol";
 import { IReserveLiquidityStrategy } from "./interfaces/IReserveLiquidityStrategy.sol";
-import { IFPMM } from "../interfaces/IFPMM.sol";
 import { LiquidityStrategyTypes as LQ } from "./libraries/LiquidityStrategyTypes.sol";
 
 contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrategy {

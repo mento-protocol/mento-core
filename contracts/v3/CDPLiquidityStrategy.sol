@@ -8,15 +8,14 @@ import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "./interfaces/ICDPLiquidityStrategy.sol";
-import { IFPMM } from "../interfaces/IFPMM.sol";
 import { LiquidityStrategyTypes as LQ } from "./libraries/LiquidityStrategyTypes.sol";
 
 contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   using SafeERC20 for IERC20;
   using LQ for LQ.Context;
 
-  uint256 constant BPS_TO_FEE_SCALER = 1e14;
-  uint256 constant BPS_DENOMINATOR = 10_000;
+  uint256 private constant BPS_TO_FEE_SCALER = 1e14;
+  uint256 private constant BPS_DENOMINATOR = 10_000;
 
   mapping(address => CDPConfig) private cdpConfigs;
 
