@@ -99,7 +99,7 @@ contract LiquityV2Deployer is Test {
     return IBoldToken(address(debtToken));
   }
 
-  function test_deploys() public {
+  function test_openTrove() public {
     LiquityContractsDev memory contracts;
     ICollateralRegistry collateralRegistry;
     IBoldToken boldToken;
@@ -163,7 +163,8 @@ contract LiquityV2Deployer is Test {
     IBorrowerOperations borrowerOperations = IBorrowerOperations(address(contracts.borrowerOperations));
     ISystemParams systemParams = ISystemParams(address(contracts.systemParams));
 
-    console2.log("debt Token address", address(_debtToken));
+    console2.log("\n");
+    console2.log("-- trying to open trove --");
 
     vm.startPrank(A);
     MockERC20(address(_collateralToken)).approve(address(borrowerOperations), 10_000e18);
@@ -184,6 +185,10 @@ contract LiquityV2Deployer is Test {
 
     trovesCount = troveManager.getTroveIdsCount();
     assertEq(trovesCount, 1);
+
+    console2.log("# of troves", trovesCount);
+    console2.log("eur.M A", MockERC20(address(_debtToken)).balanceOf(A));
+    console2.log("gas pool balance", MockERC20(address(_collateralToken)).balanceOf(address(contracts.pools.gasPool)));
 
     assertEq(MockERC20(address(_debtToken)).balanceOf(A), 2000e18);
   }
@@ -320,15 +325,11 @@ contract LiquityV2Deployer is Test {
     LiquityContractsDev[] memory contractsArray;
     TroveManagerParams[] memory troveManagerParamsArray = new TroveManagerParams[](1);
     troveManagerParamsArray[0] = troveManagerParams;
-    console2.log("deploying contracts");
-    console2.log("debtToken address", address(debtToken));
-    console2.log("collateralToken address", address(collateralToken));
     (contractsArray, collateralRegistry, boldToken, hintHelpers, multiTroveGetter) = deployAndConnectContractsMultiColl(
       debtToken,
       collateralToken,
       troveManagerParamsArray
     );
-    console2.log("returned bold token address", address(boldToken));
     contracts = contractsArray[0];
   }
   function deployAndConnectContractsMultiColl(
@@ -371,7 +372,6 @@ contract LiquityV2Deployer is Test {
     // Deploy Bold
     vars.bytecode = abi.encodePacked(type(BoldToken).creationCode, abi.encode(address(this)));
 
-    console2.log("\t received debt token address", address(debtToken));
     vars.boldTokenAddress = address(debtToken);
     // vars.boldTokenAddress = getAddress(address(this), vars.bytecode, SALT);
     // boldToken = new BoldToken{ salt: SALT }(address(this));
@@ -383,7 +383,6 @@ contract LiquityV2Deployer is Test {
     vars.troveManagers = new ITroveManager[](vars.numCollaterals);
     ISystemParams[] memory systemParamsArray = new ISystemParams[](vars.numCollaterals);
     for (vars.i = 0; vars.i < vars.numCollaterals; vars.i++) {
-      console2.log("deploying system params for collateral", vars.i);
       systemParamsArray[vars.i] = deploySystemParamsDev(troveManagerParamsArray[vars.i], vars.i);
       break;
     }
@@ -603,9 +602,6 @@ contract LiquityV2Deployer is Test {
     assert(address(contracts.pools.collSurplusPool) == addresses.collSurplusPool);
     assert(address(contracts.sortedTroves) == addresses.sortedTroves);
 
-    console2.log("about to initialize stability pool");
-    console2.log("boldtoken address", address(contracts.addressesRegistry.boldToken()));
-    console2.log("expected boldtoken address", address(_boldToken));
     contracts.stabilityPool.initialize(contracts.addressesRegistry);
 
     // TODO: remove
