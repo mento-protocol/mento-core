@@ -3,9 +3,9 @@ pragma solidity 0.8.24;
 
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
-import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
-import { ISystemParams } from "bold/Interfaces/ISystemParams.sol";
+import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
+import { IStabilityPool } from "bold/src/Interfaces/IStabilityPool.sol";
+import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "../interfaces/ICDPLiquidityStrategy.sol";

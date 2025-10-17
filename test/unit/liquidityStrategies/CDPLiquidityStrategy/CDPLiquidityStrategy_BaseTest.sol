@@ -12,9 +12,9 @@ import { IERC20 } from "contracts/interfaces/IERC20.sol";
 
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
-import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
-import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
-import { ISystemParams } from "bold/Interfaces/ISystemParams.sol";
+import { IStabilityPool } from "bold/src/Interfaces/IStabilityPool.sol";
+import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
+import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
