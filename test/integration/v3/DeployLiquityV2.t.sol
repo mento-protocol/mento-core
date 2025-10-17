@@ -29,35 +29,163 @@ import "bold/src/SystemParams.sol";
 import "bold/src/Interfaces/IBorrowerOperations.sol";
 import "bold/src/Interfaces/ITroveManager.sol";
 
+import "contracts/tokens/StableTokenV3.sol";
+import "contracts/interfaces/IStableTokenV3.sol";
+
 import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 
 uint256 constant _24_HOURS = 86400;
 uint256 constant _48_HOURS = 172800;
 
-contract MockInterestRouter is IInterestRouter {}
+interface IMockFXPriceFeed is IPriceFeed {
+  function REVERT_MSG() external view returns (string memory);
+  function setPrice(uint256 _price) external;
+  function getPrice() external view returns (uint256);
+  function setValidPrice(bool valid) external;
+}
 
-contract MockFXPriceFeed is IPriceFeed {
+contract MockFXPriceFeed is IMockFXPriceFeed {
+  string private _revertMsg = "MockFXPriceFeed: no valid price";
+  uint256 private _price = 200 * 1e18;
+  bool private _hasValidPrice = true;
+
+  function getPrice() external view override returns (uint256) {
+    return _price;
+  }
+
+  function setValidPrice(bool valid) external {
+    _hasValidPrice = valid;
+  }
+
+  function setPrice(uint256 price) external {
+    _price = price;
+  }
+
   function fetchPrice() external view override returns (uint256) {
-    return 200 * 1e18;
+    require(_hasValidPrice, _revertMsg);
+
+    return _price;
+  }
+
+  function REVERT_MSG() external view override returns (string memory) {
+    return _revertMsg;
   }
 }
 
+contract MockInterestRouter is IInterestRouter {}
+
+// contract MockFXPriceFeed is IPriceFeed {
+//   function fetchPrice() external view override returns (uint256) {
+//     return 200 * 1e18;
+//   }
+// }
+
 contract LiquityV2Deployer is Test {
-  // IBoldToken public _boldToken;
-  IERC20Metadata public _debtToken;
+  IBoldToken public _debtToken;
   IERC20Metadata public _collateralToken;
 
   function setUp() public {
-    _debtToken = IERC20Metadata(address(new MockERC20("Debt Token", "DEBT", 18)));
+    _debtToken = deployDebtToken();
     _collateralToken = IERC20Metadata(address(new MockERC20("Collateral Token", "COLL", 18)));
   }
 
+  function deployDebtToken() public returns (IBoldToken) {
+    StableTokenV3 debtToken = new StableTokenV3(false);
+    uint256[] memory numbers = new uint256[](0);
+    address[] memory addresses = new address[](0);
+    debtToken.initialize("Debt Token", "DEBT", addresses, numbers, addresses, addresses, addresses);
+
+    return IBoldToken(address(debtToken));
+  }
+
   function test_deploys() public {
+    LiquityContractsDev memory contracts;
+    ICollateralRegistry collateralRegistry;
+    IBoldToken boldToken;
+    HintHelpers hintHelpers;
+    MultiTroveGetter multiTroveGetter;
+
+    (contracts, collateralRegistry, boldToken, hintHelpers, multiTroveGetter) = deployAndConnectContracts(
+      _debtToken,
+      _collateralToken
+    );
+
+    // console.
+    console2.log("contracts.systemParams", address(contracts.systemParams));
+    console2.log("contracts.addressesRegistry", address(contracts.addressesRegistry));
+    console2.log("contracts.priceFeed", address(contracts.priceFeed));
+    console2.log("contracts.interestRouter", address(contracts.interestRouter));
+    console2.log("contracts.borrowerOperations", address(contracts.borrowerOperations));
+    console2.log("contracts.troveManager", address(contracts.troveManager));
+    console2.log("contracts.troveNFT", address(contracts.troveNFT));
+    console2.log("contracts.stabilityPool", address(contracts.stabilityPool));
+    console2.log("contracts.activePool", address(contracts.activePool));
+    // console2.log("contracts.defaultPool", address(contracts.defaultPool));
+    // console2.log("contracts.gasPool", address(contracts.gasPool));
+    // console2.log("contracts.collSurplusPool", address(contracts.collSurplusPool));
+    console2.log("contracts.sortedTroves", address(contracts.sortedTroves));
+    // console2.log("contracts.hintHelpers", address(contracts.hintHelpers));
+    // console2.log("contracts.multiTroveGetter", address(contracts.multiTroveGetter));
+
+    /*
+          LiquityContractsDev memory contracts,
+      ICollateralRegistry collateralRegistry,
+      IBoldToken boldToken,
+      HintHelpers hintHelpers,
+      MultiTroveGetter multiTroveGetter,
+      MockERC20 WETH // for gas compensation
+      */
+
     // TestDeployer deployer = new TestDeployer();
     // TestDeployer.LiquityContractsDev memory contracts;
     // (contracts, collateralRegistry, boldToken, hintHelpers,, WETH) = deployer.deployAndConnectContracts();
-    // deployAndConnectContracts(debtToken, collateralToken);
+    // (contracts, collateralRegistry, boldToken, hintHelpers, , WETH) = deployer.deployAndConnectContracts();
+
+    // deployAndConnectContracts(_debtToken, _collateralToken);
+
+    _openTrove(contracts);
+  }
+
+  function _openTrove(LiquityContractsDev memory contracts) public {
+    IMockFXPriceFeed feed = IMockFXPriceFeed(address(contracts.priceFeed));
+    ITroveManager troveManager = ITroveManager(address(contracts.troveManager));
+
+    feed.setPrice(2000e18);
+    uint256 trovesCount = troveManager.getTroveIdsCount();
+    assertEq(trovesCount, 0);
+
+    address A = makeAddr("A");
+    MockERC20(address(_collateralToken)).mint(A, 10_000e18);
+
+    assertEq(MockERC20(address(_collateralToken)).balanceOf(A), 10_000e18);
+
+    IBorrowerOperations borrowerOperations = IBorrowerOperations(address(contracts.borrowerOperations));
+    ISystemParams systemParams = ISystemParams(address(contracts.systemParams));
+
+    console2.log("debt Token address", address(_debtToken));
+
+    vm.startPrank(A);
+    MockERC20(address(_collateralToken)).approve(address(borrowerOperations), 10_000e18);
+    borrowerOperations.openTrove(
+      A,
+      0,
+      2e18,
+      2000e18,
+      0,
+      0,
+      systemParams.MIN_ANNUAL_INTEREST_RATE(),
+      1000e18,
+      address(0),
+      address(0),
+      address(0)
+    );
+    vm.stopPrank();
+
+    trovesCount = troveManager.getTroveIdsCount();
+    assertEq(trovesCount, 1);
+
+    assertEq(MockERC20(address(_debtToken)).balanceOf(A), 2000e18);
   }
 
   // constructor(IBoldToken boldToken, IERC20Metadata debtToken, IERC20Metadata collateralToken) {
@@ -156,22 +284,28 @@ contract LiquityV2Deployer is Test {
     return address(uint160(uint256(hash)));
   }
   function deployAndConnectContracts(
-    IERC20Metadata _debtToken,
-    IERC20Metadata _collateralToken
+    IBoldToken debtToken,
+    IERC20Metadata collateralToken
   )
-    external
+    public
     returns (
       LiquityContractsDev memory contracts,
       ICollateralRegistry collateralRegistry,
       IBoldToken boldToken,
       HintHelpers hintHelpers,
-      MultiTroveGetter multiTroveGetter,
-      MockERC20 WETH // for gas compensation
+      MultiTroveGetter multiTroveGetter
     )
   {
-    return deployAndConnectContracts(TroveManagerParams(150e16, 110e16, 10e16, 110e16, 5e16, 10e16));
+    return
+      deployAndConnectContracts(
+        debtToken,
+        collateralToken,
+        TroveManagerParams(150e16, 110e16, 10e16, 110e16, 5e16, 10e16)
+      );
   }
   function deployAndConnectContracts(
+    IBoldToken debtToken,
+    IERC20Metadata collateralToken,
     TroveManagerParams memory troveManagerParams
   )
     public
@@ -180,62 +314,54 @@ contract LiquityV2Deployer is Test {
       ICollateralRegistry collateralRegistry,
       IBoldToken boldToken,
       HintHelpers hintHelpers,
-      MultiTroveGetter multiTroveGetter,
-      MockERC20 WETH // for gas compensation
+      MultiTroveGetter multiTroveGetter
     )
   {
     LiquityContractsDev[] memory contractsArray;
     TroveManagerParams[] memory troveManagerParamsArray = new TroveManagerParams[](1);
     troveManagerParamsArray[0] = troveManagerParams;
-    (
-      contractsArray,
-      collateralRegistry,
-      boldToken,
-      hintHelpers,
-      multiTroveGetter,
-      WETH
-    ) = deployAndConnectContractsMultiColl(troveManagerParamsArray);
+    console2.log("deploying contracts");
+    console2.log("debtToken address", address(debtToken));
+    console2.log("collateralToken address", address(collateralToken));
+    (contractsArray, collateralRegistry, boldToken, hintHelpers, multiTroveGetter) = deployAndConnectContractsMultiColl(
+      debtToken,
+      collateralToken,
+      troveManagerParamsArray
+    );
+    console2.log("returned bold token address", address(boldToken));
     contracts = contractsArray[0];
   }
   function deployAndConnectContractsMultiColl(
+    IBoldToken debtToken,
+    IERC20Metadata collateralToken,
     TroveManagerParams[] memory troveManagerParamsArray
   )
     public
     returns (
       LiquityContractsDev[] memory contractsArray,
       ICollateralRegistry collateralRegistry,
-      IBoldToken boldToken,
+      IBoldToken boldToken, // TODO: rename to debtToken
       HintHelpers hintHelpers,
-      MultiTroveGetter multiTroveGetter,
-      MockERC20 WETH // for gas compensation
+      MultiTroveGetter multiTroveGetter
     )
   {
-    // used for gas compensation and as collateral of the first branch
-    WETH = new MockERC20("Wrapped Ether", "WETH", 18);
     (contractsArray, collateralRegistry, boldToken, hintHelpers, multiTroveGetter) = deployAndConnectContracts(
+      debtToken,
       troveManagerParamsArray,
-      WETH
+      collateralToken
     );
   }
-  function _nameToken(uint256 _index) internal pure returns (string memory) {
-    if (_index == 1) return "Wrapped Staked Ether";
-    if (_index == 2) return "Rocket Pool ETH";
-    return "LST Tester";
-  }
-  function _symboltoken(uint256 _index) internal pure returns (string memory) {
-    if (_index == 1) return "wstETH";
-    if (_index == 2) return "rETH";
-    return "LST";
-  }
+
   function deployAndConnectContracts(
+    IBoldToken debtToken,
     TroveManagerParams[] memory troveManagerParamsArray,
-    MockERC20 _WETH
+    IERC20Metadata collateralToken
   )
     public
     returns (
       LiquityContractsDev[] memory contractsArray,
       ICollateralRegistry collateralRegistry,
-      IBoldToken boldToken,
+      IBoldToken boldToken, // TODO: rename to debtToken
       HintHelpers hintHelpers,
       MultiTroveGetter multiTroveGetter
     )
@@ -244,66 +370,79 @@ contract LiquityV2Deployer is Test {
     vars.numCollaterals = troveManagerParamsArray.length;
     // Deploy Bold
     vars.bytecode = abi.encodePacked(type(BoldToken).creationCode, abi.encode(address(this)));
-    vars.boldTokenAddress = getAddress(address(this), vars.bytecode, SALT);
-    boldToken = new BoldToken{ salt: SALT }(address(this));
-    assert(address(boldToken) == vars.boldTokenAddress);
+
+    console2.log("\t received debt token address", address(debtToken));
+    vars.boldTokenAddress = address(debtToken);
+    // vars.boldTokenAddress = getAddress(address(this), vars.bytecode, SALT);
+    // boldToken = new BoldToken{ salt: SALT }(address(this));
+    // assert(address(boldToken) == vars.boldTokenAddress);
+
     contractsArray = new LiquityContractsDev[](vars.numCollaterals);
     vars.collaterals = new IERC20Metadata[](vars.numCollaterals);
     vars.addressesRegistries = new IAddressesRegistry[](vars.numCollaterals);
     vars.troveManagers = new ITroveManager[](vars.numCollaterals);
     ISystemParams[] memory systemParamsArray = new ISystemParams[](vars.numCollaterals);
     for (vars.i = 0; vars.i < vars.numCollaterals; vars.i++) {
+      console2.log("deploying system params for collateral", vars.i);
       systemParamsArray[vars.i] = deploySystemParamsDev(troveManagerParamsArray[vars.i], vars.i);
+      break;
     }
     // Deploy the first branch with WETH collateral
-    vars.collaterals[0] = IERC20Metadata(address(_WETH));
+    vars.collaterals[0] = collateralToken;
     (IAddressesRegistry addressesRegistry, address troveManagerAddress) = _deployAddressesRegistryDev(
       systemParamsArray[0]
     );
     vars.addressesRegistries[0] = addressesRegistry;
     vars.troveManagers[0] = ITroveManager(troveManagerAddress);
-    for (vars.i = 1; vars.i < vars.numCollaterals; vars.i++) {
-      MockERC20 collToken = new MockERC20(
-        _nameToken(vars.i), // _name
-        _symboltoken(vars.i), // _symbol
-        18
-      );
-      vars.collaterals[vars.i] = IERC20Metadata(address(collToken));
-      // Addresses registry and TM address
-      (addressesRegistry, troveManagerAddress) = _deployAddressesRegistryDev(systemParamsArray[vars.i]);
-      vars.addressesRegistries[vars.i] = addressesRegistry;
-      vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
-    }
+
+    // TODO: delete, only 1 collateral
+    // for (vars.i = 1; vars.i < vars.numCollaterals; vars.i++) {
+    //   MockERC20 collToken = new MockERC20(
+    //     _nameToken(vars.i), // _name
+    //     _symboltoken(vars.i), // _symbol
+    //     18
+    //   );
+    //   vars.collaterals[vars.i] = IERC20Metadata(address(collToken));
+    //   // Addresses registry and TM address
+    //   (addressesRegistry, troveManagerAddress) = _deployAddressesRegistryDev(systemParamsArray[vars.i]);
+    //   vars.addressesRegistries[vars.i] = addressesRegistry;
+    //   vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
+    // }
+
     collateralRegistry = new CollateralRegistry(boldToken, vars.collaterals, vars.troveManagers, systemParamsArray[0]);
     hintHelpers = new HintHelpers(collateralRegistry, systemParamsArray[0]);
     multiTroveGetter = new MultiTroveGetter(collateralRegistry);
     contractsArray[0] = _deployAndConnectCollateralContractsDev(
-      IERC20Metadata(address(_WETH)),
-      boldToken,
+      collateralToken,
+      debtToken,
       collateralRegistry,
-      IERC20Metadata(address(_WETH)),
+      collateralToken,
       vars.addressesRegistries[0],
       address(vars.troveManagers[0]),
       hintHelpers,
       multiTroveGetter,
       systemParamsArray[0]
     );
+
+    // TODO: delete, only 1 collateral
     // Deploy the remaining branches with LST collateral
-    for (vars.i = 1; vars.i < vars.numCollaterals; vars.i++) {
-      contractsArray[vars.i] = _deployAndConnectCollateralContractsDev(
-        vars.collaterals[vars.i],
-        boldToken,
-        collateralRegistry,
-        IERC20Metadata(address(_WETH)),
-        vars.addressesRegistries[vars.i],
-        address(vars.troveManagers[vars.i]),
-        hintHelpers,
-        multiTroveGetter,
-        systemParamsArray[vars.i]
-      );
-    }
-    boldToken.setCollateralRegistry(address(collateralRegistry));
+    // for (vars.i = 1; vars.i < vars.numCollaterals; vars.i++) {
+    //   contractsArray[vars.i] = _deployAndConnectCollateralContractsDev(
+    //     vars.collaterals[vars.i],
+    //     boldToken,
+    //     collateralRegistry,
+    //     collateralToken,
+    //     vars.addressesRegistries[vars.i],
+    //     address(vars.troveManagers[vars.i]),
+    //     hintHelpers,
+    //     multiTroveGetter,
+    //     systemParamsArray[vars.i]
+    //   );
+    // }
+
+    // boldToken.setCollateralRegistry(address(collateralRegistry));
   }
+
   function _deployAddressesRegistryDev(ISystemParams _systemParams) internal returns (IAddressesRegistry, address) {
     IAddressesRegistry addressesRegistry = new AddressesRegistry(address(this));
     address troveManagerAddress = getAddress(
@@ -313,6 +452,7 @@ contract LiquityV2Deployer is Test {
     );
     return (addressesRegistry, troveManagerAddress);
   }
+
   function deploySystemParamsDev(TroveManagerParams memory params, uint256 index) public returns (ISystemParams) {
     bytes32 uniqueSalt = keccak256(abi.encodePacked(SALT, index));
     // Create parameter structs based on constants
@@ -441,8 +581,7 @@ contract LiquityV2Deployer is Test {
       boldToken: _boldToken,
       collToken: _collToken,
       gasToken: _gasToken,
-      // TODO: add liquidity strategy
-      liquidityStrategy: address(123)
+      liquidityStrategy: address(123) // TODO: add LiquidityStrategy address
     });
     contracts.addressesRegistry.setAddresses(addressVars);
     contracts.borrowerOperations = new BorrowerOperations{ salt: SALT }(contracts.addressesRegistry, _systemParams);
@@ -463,13 +602,29 @@ contract LiquityV2Deployer is Test {
     assert(address(contracts.pools.gasPool) == addresses.gasPool);
     assert(address(contracts.pools.collSurplusPool) == addresses.collSurplusPool);
     assert(address(contracts.sortedTroves) == addresses.sortedTroves);
+
+    console2.log("about to initialize stability pool");
+    console2.log("boldtoken address", address(contracts.addressesRegistry.boldToken()));
+    console2.log("expected boldtoken address", address(_boldToken));
     contracts.stabilityPool.initialize(contracts.addressesRegistry);
+
+    // TODO: remove
     // Connect contracts
-    _boldToken.setBranchAddresses(
-      address(contracts.troveManager),
-      address(contracts.stabilityPool),
-      address(contracts.borrowerOperations),
-      address(contracts.activePool)
-    );
+    // _boldToken.setBranchAddresses(
+    //   address(contracts.troveManager),
+    //   address(contracts.stabilityPool),
+    //   address(contracts.borrowerOperations),
+    //   address(contracts.activePool)
+    // );
+
+    IStableTokenV3(address(_boldToken)).setMinter(address(contracts.borrowerOperations), true);
+    IStableTokenV3(address(_boldToken)).setMinter(address(contracts.activePool), true);
+
+    IStableTokenV3(address(_boldToken)).setBurner(address(addressVars.collateralRegistry), true);
+    IStableTokenV3(address(_boldToken)).setBurner(address(contracts.borrowerOperations), true);
+    IStableTokenV3(address(_boldToken)).setBurner(address(contracts.troveManager), true);
+    IStableTokenV3(address(_boldToken)).setBurner(address(contracts.stabilityPool), true);
+
+    IStableTokenV3(address(_boldToken)).setOperator(address(contracts.stabilityPool), true);
   }
 }
