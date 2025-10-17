@@ -65,6 +65,7 @@ contract StableTokenV3Test is Test {
     token.initialize(
       "cUSD",
       "cUSD",
+      address(this),
       addresses(holder0, holder1, holder2, validators, borrowerOperations, activePool, troveManager, stabilityPool1),
       uints(1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000),
       minters,
@@ -103,7 +104,16 @@ contract StableTokenV3Test is Test {
     address[] memory operators = new address[](0);
 
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
-    disabledToken.initialize("cUSD", "cUSD", initialAddresses, initialBalances, minters, burners, operators);
+    disabledToken.initialize(
+      "cUSD",
+      "cUSD",
+      address(this),
+      initialAddresses,
+      initialBalances,
+      minters,
+      burners,
+      operators
+    );
 
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
     token.initializeV3(minters, burners, operators);

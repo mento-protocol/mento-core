@@ -93,6 +93,7 @@ contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
     // slither-disable-start shadowing-local
     string memory _name,
     string memory _symbol,
+    address _initialOwner,
     // slither-disable-end shadowing-local
     address[] memory initialBalanceAddresses,
     uint256[] memory initialBalanceValues,
@@ -102,7 +103,7 @@ contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
   ) external reinitializer(3) {
     __ERC20_init_unchained(_name, _symbol);
     __ERC20Permit_init(_symbol);
-    _transferOwnership(_msgSender());
+    _transferOwnership(_initialOwner);
 
     require(initialBalanceAddresses.length == initialBalanceValues.length, "Array length mismatch");
     for (uint256 i = 0; i < initialBalanceAddresses.length; i += 1) {

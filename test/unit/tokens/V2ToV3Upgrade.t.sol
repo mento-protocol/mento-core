@@ -99,7 +99,7 @@ contract V2ToV3UpgradeTest is Test {
     address[] memory emptyAddresses = new address[](0);
     uint256[] memory emptyBalances = new uint256[](0);
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
-    tokenV3.initialize("cUSD", "cUSD", emptyAddresses, emptyBalances, minters, burners, operators);
+    tokenV3.initialize("cUSD", "cUSD", address(this), emptyAddresses, emptyBalances, minters, burners, operators);
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
     tokenV3.initializeV3(minters, burners, operators);
   }
