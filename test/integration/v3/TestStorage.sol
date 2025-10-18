@@ -21,7 +21,9 @@ import { ITroveNFT } from "bold/src/Interfaces/ITroveNFT.sol";
 import { IPriceFeed } from "bold/src/Interfaces/IPriceFeed.sol";
 import { IInterestRouter } from "bold/src/Interfaces/IInterestRouter.sol";
 import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
-
+import { GasPool } from "bold/src/GasPool.sol";
+import { ICollSurplusPool } from "bold/src/Interfaces/ICollSurplusPool.sol";
+import { IDefaultPool } from "bold/src/Interfaces/IDefaultPool.sol";
 import { console2 as console } from "forge-std/console2.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 
@@ -33,6 +35,12 @@ abstract contract TestStorage is Test {
     $addresses.marketHoursBreaker = makeAddr("marketHoursBreaker");
     $addresses.protocolFeeRecipient = makeAddr("protocolFeeRecipient");
     $addresses.referenceRateFeedID = makeAddr("referenceRateFeedID");
+  }
+
+  struct LiquityDeploymentPools {
+    IDefaultPool defaultPool;
+    ICollSurplusPool collSurplusPool;
+    GasPool gasPool;
   }
 
   struct LiquityDeployments {
@@ -47,7 +55,6 @@ abstract contract TestStorage is Test {
     IPriceFeed priceFeed;
     IInterestRouter interestRouter;
     IERC20Metadata collToken;
-    // LiquityContractsDevPools pools;
     ISystemParams systemParams;
   }
 
@@ -78,6 +85,7 @@ abstract contract TestStorage is Test {
   }
 
   LiquityDeployments public $liquity;
+  LiquityDeploymentPools public $liquityInternalPools;
   TokenDeployments public $tokens;
   FPMMDeployments public $fpmm;
   MockAddresses public $addresses;

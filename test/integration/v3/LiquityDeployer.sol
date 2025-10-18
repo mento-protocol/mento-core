@@ -5,7 +5,6 @@ pragma solidity 0.8.24;
 
 import { AddressesRegistry } from "bold/src/AddressesRegistry.sol";
 import { ActivePool } from "bold/src/ActivePool.sol";
-import { BoldToken } from "bold/src/BoldToken.sol";
 import { IBoldToken, IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 import { BorrowerOperations } from "bold/src/BorrowerOperations.sol";
 import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
@@ -106,8 +105,10 @@ contract LiquityDeployer is TestStorage {
     require($tokens.deployed, "LIQUITY_DEPLOYER: tokens not deployed");
 
     LiquityContracts memory contracts;
+    ICollateralRegistry collateralRegistry;
 
-    (contracts, , , , ) = deployAndConnectContracts(
+    // (contracts, collateralRegistry, hintHelpers, multiTroveGetter) = deployer.deployAndConnectContracts();
+    (contracts, collateralRegistry, , ) = deployAndConnectContracts(
       $tokens.debtToken,
       IERC20Metadata(address($tokens.collateralToken))
     );
@@ -123,6 +124,12 @@ contract LiquityDeployer is TestStorage {
     $liquity.interestRouter = contracts.interestRouter;
     $liquity.collToken = contracts.collToken;
     $liquity.systemParams = contracts.systemParams;
+
+    $liquityInternalPools.defaultPool = contracts.pools.defaultPool;
+    $liquityInternalPools.collSurplusPool = contracts.pools.collSurplusPool;
+    $liquityInternalPools.gasPool = contracts.pools.gasPool;
+
+    _configureDebtToken(contracts, collateralRegistry);
 
     $liquity.deployed = true;
   }
@@ -161,7 +168,6 @@ contract LiquityDeployer is TestStorage {
     returns (
       LiquityContracts memory contracts,
       ICollateralRegistry collateralRegistry,
-      IStableTokenV3 boldToken,
       HintHelpers hintHelpers,
       MultiTroveGetter multiTroveGetter
     )
@@ -189,7 +195,6 @@ contract LiquityDeployer is TestStorage {
     returns (
       LiquityContracts memory contracts,
       ICollateralRegistry collateralRegistry,
-      IStableTokenV3 boldToken,
       HintHelpers hintHelpers,
       MultiTroveGetter multiTroveGetter
     )
@@ -197,7 +202,7 @@ contract LiquityDeployer is TestStorage {
     LiquityContracts[] memory contractsArray;
     TroveManagerParams[] memory troveManagerParamsArray = new TroveManagerParams[](1);
     troveManagerParamsArray[0] = troveManagerParams;
-    (contractsArray, collateralRegistry, boldToken, hintHelpers, multiTroveGetter) = deployAndConnectContractsMultiColl(
+    (contractsArray, collateralRegistry, hintHelpers, multiTroveGetter) = deployAndConnectContractsMultiColl(
       debtToken,
       collateralToken,
       troveManagerParamsArray
@@ -213,12 +218,11 @@ contract LiquityDeployer is TestStorage {
     returns (
       LiquityContracts[] memory contractsArray,
       ICollateralRegistry collateralRegistry,
-      IStableTokenV3 boldToken, // TODO: rename to debtToken
       HintHelpers hintHelpers,
       MultiTroveGetter multiTroveGetter
     )
   {
-    (contractsArray, collateralRegistry, boldToken, hintHelpers, multiTroveGetter) = deployAndConnectContracts(
+    (contractsArray, collateralRegistry, hintHelpers, multiTroveGetter) = deployAndConnectContracts(
       debtToken,
       troveManagerParamsArray,
       collateralToken
@@ -234,7 +238,6 @@ contract LiquityDeployer is TestStorage {
     returns (
       LiquityContracts[] memory contractsArray,
       ICollateralRegistry collateralRegistry,
-      IStableTokenV3 boldToken, // TODO: rename to debtToken
       HintHelpers hintHelpers,
       MultiTroveGetter multiTroveGetter
     )
@@ -251,7 +254,6 @@ contract LiquityDeployer is TestStorage {
       systemParamsArray[vars.i] = deploySystemParamsDev(troveManagerParamsArray[vars.i], vars.i);
     }
 
-    // Deploy the first branch
     vars.collaterals[0] = collateralToken;
     (IAddressesRegistry addressesRegistry, address troveManagerAddress) = _deployAddressesRegistryDev(
       systemParamsArray[0]
@@ -260,7 +262,7 @@ contract LiquityDeployer is TestStorage {
     vars.troveManagers[0] = ITroveManager(troveManagerAddress);
 
     collateralRegistry = new CollateralRegistry(
-      IBoldToken(address(boldToken)),
+      IBoldToken(address(debtToken)),
       vars.collaterals,
       vars.troveManagers,
       systemParamsArray[0]
@@ -337,9 +339,10 @@ contract LiquityDeployer is TestStorage {
     systemParams.initialize();
     return ISystemParams(systemParams);
   }
+
   function _deployAndConnectCollateralContractsDev(
     IERC20Metadata _collToken,
-    IStableTokenV3 _boldToken,
+    IStableTokenV3 _debtToken,
     ICollateralRegistry _collateralRegistry,
     IERC20Metadata _gasToken,
     IAddressesRegistry _addressesRegistry,
@@ -354,6 +357,7 @@ contract LiquityDeployer is TestStorage {
     contracts.addressesRegistry = _addressesRegistry;
     contracts.priceFeed = IPriceFeed(address(new MockFXPriceFeed()));
     contracts.interestRouter = IInterestRouter(address(new MockInterestRouter()));
+
     // Pre-calc addresses
     addresses.borrowerOperations = getAddress(
       address(this),
@@ -414,7 +418,7 @@ contract LiquityDeployer is TestStorage {
       hintHelpers: _hintHelpers,
       multiTroveGetter: _multiTroveGetter,
       collateralRegistry: _collateralRegistry,
-      boldToken: IBoldToken(address(_boldToken)),
+      boldToken: IBoldToken(address(_debtToken)),
       collToken: _collToken,
       gasToken: _gasToken,
       liquidityStrategy: address(123) // TODO: add LiquidityStrategy address
@@ -440,19 +444,21 @@ contract LiquityDeployer is TestStorage {
     assert(address(contracts.sortedTroves) == addresses.sortedTroves);
 
     contracts.stabilityPool.initialize(contracts.addressesRegistry);
+  }
 
-    address stableOwner = Ownable(address(_boldToken)).owner();
+  function _configureDebtToken(LiquityContracts memory contracts, ICollateralRegistry collateralRegistry) private {
+    address stableOwner = Ownable(address($tokens.debtToken)).owner();
 
     vm.startPrank(stableOwner);
-    IStableTokenV3(address(_boldToken)).setMinter(address(contracts.borrowerOperations), true);
-    IStableTokenV3(address(_boldToken)).setMinter(address(contracts.activePool), true);
+    IStableTokenV3(address($tokens.debtToken)).setMinter(address(contracts.borrowerOperations), true);
+    IStableTokenV3(address($tokens.debtToken)).setMinter(address(contracts.activePool), true);
 
-    IStableTokenV3(address(_boldToken)).setBurner(address(addressVars.collateralRegistry), true);
-    IStableTokenV3(address(_boldToken)).setBurner(address(contracts.borrowerOperations), true);
-    IStableTokenV3(address(_boldToken)).setBurner(address(contracts.troveManager), true);
-    IStableTokenV3(address(_boldToken)).setBurner(address(contracts.stabilityPool), true);
+    IStableTokenV3(address($tokens.debtToken)).setBurner(address(collateralRegistry), true);
+    IStableTokenV3(address($tokens.debtToken)).setBurner(address(contracts.borrowerOperations), true);
+    IStableTokenV3(address($tokens.debtToken)).setBurner(address(contracts.troveManager), true);
+    IStableTokenV3(address($tokens.debtToken)).setBurner(address(contracts.stabilityPool), true);
 
-    IStableTokenV3(address(_boldToken)).setOperator(address(contracts.stabilityPool), true);
+    IStableTokenV3(address($tokens.debtToken)).setOperator(address(contracts.stabilityPool), true);
     vm.stopPrank();
   }
 }
