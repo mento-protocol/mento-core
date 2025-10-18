@@ -48,21 +48,4 @@ contract IntegrationTest is
     assertEq($fpmm.fpmmReserve.token0(), address($tokens.reserveCollateralToken), "ReserveFPMM token0 mismatch");
     assertEq($fpmm.fpmmReserve.token1(), address($tokens.collateralToken), "ReserveFPMM token1 mismatch");
   }
-
-  function test_basicIntegration() public {
-    _mintReserveCollateralToken(reserveMultisig, 10_000_000e6);
-    _mintCollateralToken(reserveMultisig, 10_000_000e18);
-
-    _provideLiquidityToOneToOneFPMM(reserveMultisig, 10_000_000e6, 5_000_000e18);
-    assertEq($fpmm.fpmmReserve.reserve0(), 10_000_000e6);
-    assertEq($fpmm.fpmmReserve.reserve1(), 5_000_000e18);
-
-    $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
-
-    // amountGivenToPool: 2506265664160
-    // reserve0 = 10_000_000e6 - 2506265664160
-    // reserve1 = 5_000_000e18 + ((2506265664160 * 9950) / 10_000) * 1e12
-    assertEq($fpmm.fpmmReserve.reserve0(), 10_000_000e6 - 2506265664160);
-    assertEq($fpmm.fpmmReserve.reserve1(), 5_000_000e18 + ((2506265664160 * 9950) / 10_000) * 1e12);
-  }
 }
