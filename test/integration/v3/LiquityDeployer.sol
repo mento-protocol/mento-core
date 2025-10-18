@@ -1,106 +1,62 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable max-line-length, function-max-lines
 
 pragma solidity 0.8.24;
 
-import "bold/src/AddressesRegistry.sol";
-import "bold/src/ActivePool.sol";
-import "bold/src/BoldToken.sol";
-import "bold/src/BorrowerOperations.sol";
-import "bold/src/CollSurplusPool.sol";
-import "bold/src/DefaultPool.sol";
-import "bold/src/GasPool.sol";
-import "bold/src/HintHelpers.sol";
-import "bold/src/MultiTroveGetter.sol";
-import "bold/src/SortedTroves.sol";
-import "bold/src/StabilityPool.sol";
-import "bold/src/TroveManager.sol";
+import { AddressesRegistry } from "bold/src/AddressesRegistry.sol";
+import { ActivePool } from "bold/src/ActivePool.sol";
+import { BoldToken } from "bold/src/BoldToken.sol";
+import { IBoldToken, IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
+import { BorrowerOperations } from "bold/src/BorrowerOperations.sol";
+import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import { CollSurplusPool } from "bold/src/CollSurplusPool.sol";
+import { DefaultPool } from "bold/src/DefaultPool.sol";
+import { GasPool } from "bold/src/GasPool.sol";
+import { HintHelpers } from "bold/src/HintHelpers.sol";
+import { MultiTroveGetter } from "bold/src/MultiTroveGetter.sol";
+import { SortedTroves } from "bold/src/SortedTroves.sol";
+import { StabilityPool } from "bold/src/StabilityPool.sol";
+import { TroveManager } from "bold/src/TroveManager.sol";
+import { ICollSurplusPool } from "bold/src/Interfaces/ICollSurplusPool.sol";
+import { IDefaultPool } from "bold/src/Interfaces/IDefaultPool.sol";
+import { IHintHelpers } from "bold/src/Interfaces/IHintHelpers.sol";
+import { IMultiTroveGetter } from "bold/src/Interfaces/IMultiTroveGetter.sol";
+import { ISortedTroves } from "bold/src/Interfaces/ISortedTroves.sol";
+import { IStabilityPool } from "bold/src/Interfaces/IStabilityPool.sol";
+import { ITroveManager } from "bold/src/Interfaces/ITroveManager.sol";
+import { IBorrowerOperations } from "bold/src/Interfaces/IBorrowerOperations.sol";
+import { IAddressesRegistry } from "bold/src/Interfaces/IAddressesRegistry.sol";
+import { IActivePool } from "bold/src/Interfaces/IActivePool.sol";
+import { ITroveNFT } from "bold/src/Interfaces/ITroveNFT.sol";
+import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
+import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
+import { IMetadataNFT } from "bold/src/NFTMetadata/MetadataNFT.sol";
 
-import "bold/src/Interfaces/IPriceFeed.sol";
-import "bold/src/TroveNFT.sol";
-import "bold/src/CollateralRegistry.sol";
-import "bold/src/Interfaces/IInterestRouter.sol";
+import { IPriceFeed } from "bold/src/Interfaces/IPriceFeed.sol";
+import { TroveNFT } from "bold/src/TroveNFT.sol";
+import { CollateralRegistry } from "bold/src/CollateralRegistry.sol";
+import { IInterestRouter } from "bold/src/Interfaces/IInterestRouter.sol";
 
-import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
+import { SystemParams } from "bold/src/SystemParams.sol";
 
-import "bold/src/NFTMetadata/MetadataNFT.sol";
+import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
+import { MockFXPriceFeed } from "bold/test/TestContracts/MockFXPriceFeed.sol";
+import { MockInterestRouter } from "bold/test/TestContracts/MockInterestRouter.sol";
 
-import "bold/src/SystemParams.sol";
-
-import "bold/src/Interfaces/IBorrowerOperations.sol";
-import "bold/src/Interfaces/ITroveManager.sol";
-
-import "contracts/tokens/StableTokenV3.sol";
-import "contracts/interfaces/IStableTokenV3.sol";
-
-// import "openzeppelin-contracts/contracts/access/Ownable.sol";
-
-import "forge-std/Test.sol";
-import "forge-std/console2.sol";
+import { TestStorage } from "./TestStorage.sol";
+import "bold/src/Dependencies/Constants.sol";
 
 uint256 constant _24_HOURS = 86400;
 uint256 constant _48_HOURS = 172800;
 
-interface IMockFXPriceFeed is IPriceFeed {
-  function REVERT_MSG() external view returns (string memory);
-  function setPrice(uint256 _price) external;
-  function getPrice() external view returns (uint256);
-  function setValidPrice(bool valid) external;
-}
-
-contract MockFXPriceFeed is IMockFXPriceFeed {
-  string private _revertMsg = "MockFXPriceFeed: no valid price";
-  uint256 private _price = 200 * 1e18;
-  bool private _hasValidPrice = true;
-
-  function getPrice() external view override returns (uint256) {
-    return _price;
-  }
-
-  function setValidPrice(bool valid) external {
-    _hasValidPrice = valid;
-  }
-
-  function setPrice(uint256 price) external {
-    _price = price;
-  }
-
-  function fetchPrice() external view override returns (uint256) {
-    require(_hasValidPrice, _revertMsg);
-
-    return _price;
-  }
-
-  function REVERT_MSG() external view override returns (string memory) {
-    return _revertMsg;
-  }
-}
-
-contract MockInterestRouter is IInterestRouter {}
-
-// contract MockFXPriceFeed is IPriceFeed {
-//   function fetchPrice() external view override returns (uint256) {
-//     return 200 * 1e18;
-//   }
-// }
-
-abstract contract LiquityDeployer is Test {
+abstract contract LiquityDeployer is TestStorage {
   IBoldToken public _debtToken;
   IERC20Metadata public _collateralToken;
-
-  // function setUp() public {
-  //   _debtToken = deployDebtToken();
-  //   _collateralToken = IERC20Metadata(address(new MockERC20("Collateral Token", "COLL", 18)));
-  // }
 
   function setTokens(IBoldToken debtToken, IERC20Metadata collateralToken) public {
     _debtToken = debtToken;
     _collateralToken = collateralToken;
   }
-
-  // constructor(IBoldToken debtToken, IERC20Metadata collateralToken) {
-  //   _debtToken = debtToken;
-  //   _collateralToken = collateralToken;
-  // }
 
   function deploy() public returns (LiquityContractsDev memory) {
     LiquityContractsDev memory contracts;
@@ -536,8 +492,8 @@ abstract contract LiquityDeployer is Test {
     contracts.systemParams = _systemParams;
     // Deploy all contracts, using testers for TM and PriceFeed
     contracts.addressesRegistry = _addressesRegistry;
-    contracts.priceFeed = new MockFXPriceFeed();
-    contracts.interestRouter = new MockInterestRouter();
+    contracts.priceFeed = IPriceFeed(address(new MockFXPriceFeed()));
+    contracts.interestRouter = IInterestRouter(address(new MockInterestRouter()));
     // Pre-calc addresses
     addresses.borrowerOperations = getAddress(
       address(this),

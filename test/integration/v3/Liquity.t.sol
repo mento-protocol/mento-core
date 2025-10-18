@@ -2,17 +2,12 @@
 
 pragma solidity 0.8.24;
 
-import "forge-std/Test.sol";
-import "forge-std/console2.sol";
+import { console2, LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
 
-import "test/integration/v3/LiquityDeployer.sol";
+import { StableTokenV3 } from "contracts/tokens/StableTokenV3.sol";
 
-import "contracts/tokens/StableTokenV3.sol";
-import "contracts/interfaces/IStableTokenV3.sol";
-
-// import { IERC20Metadata } from "openzeppelin-contracts-next/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
-import "bold/src/Interfaces/IBoldToken.sol";
+import { IBoldToken, IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
+import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 contract Liquity is LiquityDeployer {
   LiquityDeployer deployer;
