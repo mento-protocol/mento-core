@@ -30,8 +30,8 @@ contract FPMMDeployer is TestStorage {
     require($tokens.deployed, "FPMM_DEPLOYER: tokens not deployed");
     require($oracle.deployed, "FPMM_DEPLOYER: oracle not deployed");
 
-    $addresses.fpmmImplementation = address(new FPMM(true));
-    $addresses.oneToOneFPMMImplementation = address(new OneToOneFPMM(true));
+    $fpmm.fpmmImplementation = address(new FPMM(true));
+    $fpmm.oneToOneFPMMImplementation = address(new OneToOneFPMM(true));
 
     $fpmm.proxyAdmin = IProxyAdmin(address(new ProxyAdmin()));
     vm.label(address($fpmm.proxyAdmin), "FPMM:ProxyAdmin");
@@ -52,7 +52,7 @@ contract FPMMDeployer is TestStorage {
       address($oracle.adapter),
       address($fpmm.proxyAdmin),
       $addresses.governance,
-      $addresses.fpmmImplementation,
+      $fpmm.fpmmImplementation,
       fpmmParams
     );
 
@@ -63,7 +63,7 @@ contract FPMMDeployer is TestStorage {
     vm.prank($addresses.governance);
     $fpmm.fpmmCDP = IFPMM(
       $fpmm.fpmmFactory.deployFPMM(
-        $addresses.fpmmImplementation,
+        $fpmm.fpmmImplementation,
         address($tokens.collateralToken),
         address($tokens.reserveCollateralToken),
         $addresses.referenceRateFeedCDPFPMM,
@@ -72,16 +72,18 @@ contract FPMMDeployer is TestStorage {
     );
     vm.label(address($fpmm.fpmmCDP), "FPMMCDP");
 
-    vm.prank($addresses.governance);
+    vm.startPrank($addresses.governance);
+    $fpmm.fpmmFactory.registerFPMMImplementation(address($fpmm.oneToOneFPMMImplementation));
     $fpmm.fpmmReserve = IFPMM(
       $fpmm.fpmmFactory.deployFPMM(
-        $addresses.oneToOneFPMMImplementation,
+        $fpmm.oneToOneFPMMImplementation,
         address($tokens.collateralToken),
         address($tokens.debtToken),
         $addresses.referenceRateFeedReserveFPMM,
         invertReserveFPMMRate
       )
     );
+    vm.stopPrank();
     vm.label(address($fpmm.fpmmReserve), "FPMMReserve");
     $fpmm.deployed = true;
   }

@@ -79,6 +79,8 @@ abstract contract TestStorage is Test {
     IFPMM fpmmCDP;
     IFPMM fpmmReserve;
     IProxyAdmin proxyAdmin;
+    address fpmmImplementation;
+    address oneToOneFPMMImplementation;
   }
 
   struct OracleDeployments {
@@ -93,8 +95,6 @@ abstract contract TestStorage is Test {
     address breakerBox;
     address marketHoursBreaker;
     address protocolFeeRecipient;
-    address fpmmImplementation;
-    address oneToOneFPMMImplementation;
     address referenceRateFeedCDPFPMM;
     address referenceRateFeedReserveFPMM;
   }
