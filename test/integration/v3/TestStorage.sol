@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 
 import { Test } from "forge-std/Test.sol";
 import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
-import { IBoldToken, IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
+import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 import { IAddressesRegistry } from "bold/src/Interfaces/IAddressesRegistry.sol";
 import { IActivePool } from "bold/src/Interfaces/IActivePool.sol";
 import { IBorrowerOperations } from "bold/src/Interfaces/IBorrowerOperations.sol";
@@ -53,7 +53,7 @@ abstract contract TestStorage is Test {
 
   struct TokenDeployments {
     bool deployed;
-    IBoldToken debtToken;
+    IStableTokenV3 debtToken;
     IStableTokenV3 collateralToken;
     IERC20Metadata reserveCollateralToken;
   }
