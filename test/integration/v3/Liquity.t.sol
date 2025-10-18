@@ -7,15 +7,6 @@ import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
 import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 
-import { Test, console2 as console } from "forge-std/Test.sol";
-
-import { StableTokenV3 } from "contracts/tokens/StableTokenV3.sol";
-import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
-
-import { IBoldToken, IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
-import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
-import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
-import { IMockFXPriceFeed } from "bold/test/TestContracts/Interfaces/IMockFXPriceFeed.sol";
 import { ITroveManager } from "bold/src/Interfaces/ITroveManager.sol";
 import { IBorrowerOperations } from "bold/src/Interfaces/IBorrowerOperations.sol";
 import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
@@ -30,7 +21,6 @@ contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDep
   function test_deployLiquity() public {
     _deployLiquity();
 
-    IMockFXPriceFeed feed = IMockFXPriceFeed(address($liquity.priceFeed));
     ITroveManager troveManager = ITroveManager(address($liquity.troveManager));
     IStableTokenV3 collateralToken = $tokens.collateralToken;
     IBorrowerOperations borrowerOperations = IBorrowerOperations(address($liquity.borrowerOperations));

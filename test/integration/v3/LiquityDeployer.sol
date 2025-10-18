@@ -39,7 +39,6 @@ import { IInterestRouter } from "bold/src/Interfaces/IInterestRouter.sol";
 import { SystemParams } from "bold/src/SystemParams.sol";
 
 import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
-import { MockFXPriceFeed } from "bold/test/TestContracts/MockFXPriceFeed.sol";
 import { FXPriceFeed } from "bold/src/PriceFeeds/FXPriceFeed.sol";
 import { MockInterestRouter } from "bold/test/TestContracts/MockInterestRouter.sol";
 

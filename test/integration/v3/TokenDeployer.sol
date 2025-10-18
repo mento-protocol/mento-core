@@ -7,7 +7,6 @@ import { TestStorage } from "./TestStorage.sol";
 import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
-import { console2 as console } from "forge-std/console2.sol";
 
 contract TokenDeployer is TestStorage {
   bool private _collateralTokenDeployed;

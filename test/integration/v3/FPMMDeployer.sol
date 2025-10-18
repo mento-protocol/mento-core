@@ -4,11 +4,8 @@
 pragma solidity 0.8.24;
 import { TestStorage } from "./TestStorage.sol";
 
-import { IBoldToken, IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
-import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
-import { StableTokenV3 } from "contracts/tokens/StableTokenV3.sol";
+import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
-import { Router } from "contracts/swap/router/Router.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { OneToOneFPMM } from "contracts/swap/OneToOneFPMM.sol";
 import { FactoryRegistry } from "contracts/swap/FactoryRegistry.sol";
@@ -16,10 +13,7 @@ import { ProxyAdmin } from "openzeppelin-contracts/contracts/proxy/transparent/P
 import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
-import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
-
-import { console2 as console } from "forge-std/console2.sol";
 
 contract FPMMDeployer is TestStorage {
   bytes private constant createXBytecode =

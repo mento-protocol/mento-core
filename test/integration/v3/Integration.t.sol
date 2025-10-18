@@ -8,8 +8,6 @@ import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategy
 import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
 
-import { console2 as console } from "forge-std/console2.sol";
-
 contract IntegrationTest is
   TokenDeployer,
   OracleAdapterDeployer,
