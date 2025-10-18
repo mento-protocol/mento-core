@@ -144,6 +144,8 @@ contract LiquityDeployer is TestStorage {
     $liquityInternalPools.collSurplusPool = contracts.pools.collSurplusPool;
     vm.label(address(contracts.pools.gasPool), "GasPool");
     $liquityInternalPools.gasPool = contracts.pools.gasPool;
+    vm.label(address(collateralRegistry), "CollateralRegistry");
+    $collateralRegistry = collateralRegistry;
 
     _configureDebtToken(contracts, collateralRegistry);
     assertEq(

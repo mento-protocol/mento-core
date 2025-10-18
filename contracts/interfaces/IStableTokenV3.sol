@@ -7,6 +7,25 @@ pragma solidity 0.8.24;
  */
 interface IStableTokenV3 {
   /**
+   * @notice Checks if an address is a minter.
+   * @param account The address to check.
+   * @return bool True if the address is a minter, false otherwise.
+   */
+  function isMinter(address account) external view returns (bool);
+  /**
+   * @notice Checks if an address is a burner.
+   * @param account The address to check.
+   * @return bool True if the address is a burner, false otherwise.
+   */
+  function isBurner(address account) external view returns (bool);
+  /**
+   * @notice Checks if an address is an operator.
+   * @param account The address to check.
+   * @return bool True if the address is an operator, false otherwise.
+   */
+  function isOperator(address account) external view returns (bool);
+
+  /**
    * @notice Initializes a StableTokenV3.
    * @param _name The name of the stable token (English)
    * @param _symbol A short symbol identifying the token (e.g. "cUSD")

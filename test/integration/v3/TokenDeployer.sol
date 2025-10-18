@@ -7,7 +7,7 @@ import { TestStorage } from "./TestStorage.sol";
 import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
-import { StableTokenV3 } from "contracts/tokens/StableTokenV3.sol";
+import { console2 as console } from "forge-std/console2.sol";
 
 contract TokenDeployer is TestStorage {
   bool private _collateralTokenDeployed;
@@ -44,7 +44,16 @@ contract TokenDeployer is TestStorage {
 
     uint256[] memory numbers = new uint256[](0);
     address[] memory addresses = new address[](0);
-    IStableTokenV3(targetAddress).initialize("Mento USD", "USD.m", addresses, numbers, addresses, addresses, addresses);
+    IStableTokenV3(targetAddress).initialize(
+      "Mento USD",
+      "USD.m",
+      $addresses.governance,
+      addresses,
+      numbers,
+      addresses,
+      addresses,
+      addresses
+    );
     $tokens.collateralToken = IStableTokenV3(targetAddress);
     vm.label(targetAddress, "CollateralToken");
 
@@ -60,6 +69,7 @@ contract TokenDeployer is TestStorage {
     IStableTokenV3(targetAddress).initialize(
       "Mento Euro",
       "EUR.m",
+      $addresses.governance,
       addresses,
       numbers,
       addresses,
@@ -85,5 +95,29 @@ contract TokenDeployer is TestStorage {
     if (_collateralTokenDeployed && _debtTokenDeployed && _reserveCollateralTokenDeployed) {
       $tokens.deployed = true;
     }
+  }
+
+  function _mintReserveCollateralToken(address targetAddress, uint256 amount) internal {
+    require($tokens.deployed, "TOKEN_DEPLOYER: tokens not deployed");
+
+    MockERC20 reserveCollateralToken = MockERC20(address($tokens.reserveCollateralToken));
+
+    uint256 balanceBefore = reserveCollateralToken.balanceOf(targetAddress);
+    reserveCollateralToken.mint(targetAddress, amount);
+    uint256 balanceAfter = reserveCollateralToken.balanceOf(targetAddress);
+
+    require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint reserve collateral token failed");
+  }
+
+  function _mintCollateralToken(address targetAddress, uint256 amount) internal {
+    require($tokens.deployed, "TOKEN_DEPLOYER: tokens not deployed");
+
+    vm.startPrank(address($liquidityStrategies.reserveLiquidityStrategy));
+    uint256 balanceBefore = $tokens.collateralToken.balanceOf(targetAddress);
+    $tokens.collateralToken.mint(targetAddress, amount);
+    uint256 balanceAfter = $tokens.collateralToken.balanceOf(targetAddress);
+    vm.stopPrank();
+
+    require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint collateral token failed");
   }
 }

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable max-line-length
 
 pragma solidity 0.8.24;
 
@@ -31,6 +32,7 @@ import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
+import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
 
 abstract contract TestStorage is Test {
   constructor() {
@@ -63,6 +65,7 @@ abstract contract TestStorage is Test {
     IInterestRouter interestRouter;
     IERC20Metadata collToken;
     ISystemParams systemParams;
+    // ICollateralRegistry collateralRegistry; // adding this causes a stack too deep error
   }
 
   struct TokenDeployments {
@@ -113,6 +116,7 @@ abstract contract TestStorage is Test {
   OracleDeployments public $oracle;
   MockAddresses public $addresses;
   LiquidityStrategiesDeployments public $liquidityStrategies;
+  ICollateralRegistry public $collateralRegistry; // adding it here instead of LiquityDeployment because of stack too deep error
 
   /* ============================================================ */
   /* ======================== Helper functions ================== */

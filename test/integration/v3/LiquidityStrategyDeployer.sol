@@ -26,31 +26,35 @@ contract LiquidityStrategyDeployer is TestStorage {
     uint256 maxIterations
   ) internal {
     require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
+    require($liquity.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquity not deployed");
 
+    vm.startPrank($addresses.governance);
     $liquidityStrategies.cdpLiquidityStrategy.addPool(
       address($fpmm.fpmmCDP),
       address($tokens.debtToken),
       cooldown,
       incentiveBps,
       address($liquity.stabilityPool),
-      makeAddr("collateralRegistry"), // TODO: Deploy collateral registry
+      address($collateralRegistry),
       address($liquity.systemParams),
       stabilityPoolPercentage,
       maxIterations
     );
+    vm.stopPrank();
   }
 
   function _configureReserveLiquidityStrategy(uint64 cooldown, uint32 incentiveBps) internal {
     require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
     require($tokens.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: tokens not deployed");
+    vm.startPrank($addresses.governance);
     $liquidityStrategies.reserveLiquidityStrategy.addPool(
       address($fpmm.fpmmReserve),
       address($tokens.collateralToken),
       cooldown,
       incentiveBps
     );
-    vm.startPrank($addresses.governance);
-    $tokens.collateralToken.setMinter(address($liquidityStrategies.reserve), true);
+    $tokens.collateralToken.setMinter(address($liquidityStrategies.reserveLiquidityStrategy), true);
+    $tokens.collateralToken.setBurner(address($liquidityStrategies.reserveLiquidityStrategy), true);
     vm.stopPrank();
   }
 

@@ -44,8 +44,11 @@ contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDep
 
     assertEq(collateralToken.balanceOf(A), 0);
 
+    vm.startPrank($addresses.governance);
     collateralToken.setMinter(address(this), true);
-    collateralToken.mint(A, mintAmount);
+    vm.stopPrank();
+
+    $tokens.collateralToken.mint(A, mintAmount);
     assertEq(collateralToken.balanceOf(A), mintAmount);
 
     console.log("> attempt to open trove");
