@@ -10,6 +10,11 @@ interface IFactoryRegistry {
   event Approve(address indexed poolFactory);
   event Unapprove(address indexed poolFactory);
 
+  /// @notice Initialize the registry with a fallback pool factory (auto-approved).
+  /// @param fallbackFactory Address of the fallback pool factory
+  /// @param governance Address of the governance (which will be the owner of this instance)
+  function initialize(address fallbackFactory, address governance) external;
+
   /// @notice Approve a Pool Factory to be used in the protocol.
   ///         Router.sol is able to swap any poolFactories currently approved.
   ///         Cannot approve an address(0) factory.

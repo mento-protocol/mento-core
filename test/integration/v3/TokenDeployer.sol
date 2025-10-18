@@ -10,6 +10,12 @@ import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
 import { StableTokenV3 } from "contracts/tokens/StableTokenV3.sol";
 
 contract TokenDeployer is TestStorage {
+  function _deployTokens() internal {
+    _deployCollateralToken("Collateral Token", "COLL", 18);
+    _deployDebtToken("Debt Token", "DEBT");
+    $tokens.deployed = true;
+  }
+
   function _deployCollateralToken(string memory name, string memory symbol, uint8 decimals) internal {
     $tokens.collateralToken = IStableTokenV3(address(new MockERC20(name, symbol, decimals)));
   }

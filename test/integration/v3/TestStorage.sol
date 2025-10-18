@@ -23,6 +23,7 @@ import { IInterestRouter } from "bold/src/Interfaces/IInterestRouter.sol";
 import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
 import { console2 as console } from "forge-std/console2.sol";
+import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 
 abstract contract TestStorage is Test {
   constructor() {
@@ -30,9 +31,12 @@ abstract contract TestStorage is Test {
     $addresses.sortedOracles = makeAddr("sortedOracles");
     $addresses.breakerBox = makeAddr("breakerBox");
     $addresses.marketHoursBreaker = makeAddr("marketHoursBreaker");
+    $addresses.protocolFeeRecipient = makeAddr("protocolFeeRecipient");
+    $addresses.referenceRateFeedID = makeAddr("referenceRateFeedID");
   }
 
   struct LiquityDeployments {
+    bool deployed;
     IAddressesRegistry addressesRegistry;
     IBorrowerOperations borrowerOperations;
     ISortedTroves sortedTroves;
@@ -48,16 +52,19 @@ abstract contract TestStorage is Test {
   }
 
   struct TokenDeployments {
+    bool deployed;
     IBoldToken debtToken;
     IStableTokenV3 collateralToken;
     IERC20Metadata reserveCollateralToken;
   }
 
   struct FPMMDeployments {
+    bool deployed;
     IOracleAdapter oracleAdapter;
     IFactoryRegistry factoryRegistry;
     IFPMMFactory fpmmFactory;
     IFPMM fpmm;
+    IProxyAdmin proxyAdmin;
   }
 
   struct MockAddresses {
@@ -65,6 +72,9 @@ abstract contract TestStorage is Test {
     address sortedOracles;
     address breakerBox;
     address marketHoursBreaker;
+    address protocolFeeRecipient;
+    address fpmmImplementation;
+    address referenceRateFeedID;
   }
 
   LiquityDeployments public $liquity;
