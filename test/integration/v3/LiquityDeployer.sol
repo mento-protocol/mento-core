@@ -32,6 +32,8 @@ import "bold/src/Interfaces/ITroveManager.sol";
 import "contracts/tokens/StableTokenV3.sol";
 import "contracts/interfaces/IStableTokenV3.sol";
 
+// import "openzeppelin-contracts/contracts/access/Ownable.sol";
+
 import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 
@@ -81,54 +83,73 @@ contract MockInterestRouter is IInterestRouter {}
 //   }
 // }
 
-contract LiquityV2Deployer is Test {
+abstract contract LiquityDeployer is Test {
   IBoldToken public _debtToken;
   IERC20Metadata public _collateralToken;
 
-  function setUp() public {
-    _debtToken = deployDebtToken();
-    _collateralToken = IERC20Metadata(address(new MockERC20("Collateral Token", "COLL", 18)));
+  // function setUp() public {
+  //   _debtToken = deployDebtToken();
+  //   _collateralToken = IERC20Metadata(address(new MockERC20("Collateral Token", "COLL", 18)));
+  // }
+
+  function setTokens(IBoldToken debtToken, IERC20Metadata collateralToken) public {
+    _debtToken = debtToken;
+    _collateralToken = collateralToken;
   }
 
-  function deployDebtToken() public returns (IBoldToken) {
-    StableTokenV3 debtToken = new StableTokenV3(false);
-    uint256[] memory numbers = new uint256[](0);
-    address[] memory addresses = new address[](0);
-    debtToken.initialize("Debt Token", "DEBT", addresses, numbers, addresses, addresses, addresses);
+  // constructor(IBoldToken debtToken, IERC20Metadata collateralToken) {
+  //   _debtToken = debtToken;
+  //   _collateralToken = collateralToken;
+  // }
 
-    return IBoldToken(address(debtToken));
-  }
-
-  function test_openTrove() public {
+  function deploy() public returns (LiquityContractsDev memory) {
     LiquityContractsDev memory contracts;
-    ICollateralRegistry collateralRegistry;
-    IBoldToken boldToken;
-    HintHelpers hintHelpers;
-    MultiTroveGetter multiTroveGetter;
 
-    (contracts, collateralRegistry, boldToken, hintHelpers, multiTroveGetter) = deployAndConnectContracts(
-      _debtToken,
-      _collateralToken
-    );
+    (contracts, , , , ) = deployAndConnectContracts(_debtToken, _collateralToken);
 
-    // console.
-    console2.log("contracts.systemParams", address(contracts.systemParams));
-    console2.log("contracts.addressesRegistry", address(contracts.addressesRegistry));
-    console2.log("contracts.priceFeed", address(contracts.priceFeed));
-    console2.log("contracts.interestRouter", address(contracts.interestRouter));
-    console2.log("contracts.borrowerOperations", address(contracts.borrowerOperations));
-    console2.log("contracts.troveManager", address(contracts.troveManager));
-    console2.log("contracts.troveNFT", address(contracts.troveNFT));
-    console2.log("contracts.stabilityPool", address(contracts.stabilityPool));
-    console2.log("contracts.activePool", address(contracts.activePool));
-    // console2.log("contracts.defaultPool", address(contracts.defaultPool));
-    // console2.log("contracts.gasPool", address(contracts.gasPool));
-    // console2.log("contracts.collSurplusPool", address(contracts.collSurplusPool));
-    console2.log("contracts.sortedTroves", address(contracts.sortedTroves));
-    // console2.log("contracts.hintHelpers", address(contracts.hintHelpers));
-    // console2.log("contracts.multiTroveGetter", address(contracts.multiTroveGetter));
+    return contracts;
+    // return deployAndConnectContracts(_debtToken, _collateralToken);
+  }
 
-    /*
+  // function deployDebtToken() public returns (IBoldToken) {
+  //   StableTokenV3 debtToken = new StableTokenV3(false);
+  //   uint256[] memory numbers = new uint256[](0);
+  //   address[] memory addresses = new address[](0);
+  //   debtToken.initialize("Debt Token", "DEBT", addresses, numbers, addresses, addresses, addresses);
+
+  //   return IBoldToken(address(debtToken));
+  // }
+
+  // function test_openTrove() public {
+  //   LiquityContractsDev memory contracts;
+  //   ICollateralRegistry collateralRegistry;
+  //   IBoldToken boldToken;
+  //   HintHelpers hintHelpers;
+  //   MultiTroveGetter multiTroveGetter;
+
+  //   (contracts, collateralRegistry, boldToken, hintHelpers, multiTroveGetter) = deployAndConnectContracts(
+  //     _debtToken,
+  //     _collateralToken
+  //   );
+
+  //   // console.
+  //   console2.log("contracts.systemParams", address(contracts.systemParams));
+  //   console2.log("contracts.addressesRegistry", address(contracts.addressesRegistry));
+  //   console2.log("contracts.priceFeed", address(contracts.priceFeed));
+  //   console2.log("contracts.interestRouter", address(contracts.interestRouter));
+  //   console2.log("contracts.borrowerOperations", address(contracts.borrowerOperations));
+  //   console2.log("contracts.troveManager", address(contracts.troveManager));
+  //   console2.log("contracts.troveNFT", address(contracts.troveNFT));
+  //   console2.log("contracts.stabilityPool", address(contracts.stabilityPool));
+  //   console2.log("contracts.activePool", address(contracts.activePool));
+  //   // console2.log("contracts.defaultPool", address(contracts.defaultPool));
+  //   // console2.log("contracts.gasPool", address(contracts.gasPool));
+  //   // console2.log("contracts.collSurplusPool", address(contracts.collSurplusPool));
+  //   console2.log("contracts.sortedTroves", address(contracts.sortedTroves));
+  // console2.log("contracts.hintHelpers", address(contracts.hintHelpers));
+  // console2.log("contracts.multiTroveGetter", address(contracts.multiTroveGetter));
+
+  /*
           LiquityContractsDev memory contracts,
       ICollateralRegistry collateralRegistry,
       IBoldToken boldToken,
@@ -137,61 +158,61 @@ contract LiquityV2Deployer is Test {
       MockERC20 WETH // for gas compensation
       */
 
-    // TestDeployer deployer = new TestDeployer();
-    // TestDeployer.LiquityContractsDev memory contracts;
-    // (contracts, collateralRegistry, boldToken, hintHelpers,, WETH) = deployer.deployAndConnectContracts();
-    // (contracts, collateralRegistry, boldToken, hintHelpers, , WETH) = deployer.deployAndConnectContracts();
+  // TestDeployer deployer = new TestDeployer();
+  // TestDeployer.LiquityContractsDev memory contracts;
+  // (contracts, collateralRegistry, boldToken, hintHelpers,, WETH) = deployer.deployAndConnectContracts();
+  // (contracts, collateralRegistry, boldToken, hintHelpers, , WETH) = deployer.deployAndConnectContracts();
 
-    // deployAndConnectContracts(_debtToken, _collateralToken);
+  // deployAndConnectContracts(_debtToken, _collateralToken);
 
-    _openTrove(contracts);
-  }
+  // _openTrove(contracts);
+  // }
 
-  function _openTrove(LiquityContractsDev memory contracts) public {
-    IMockFXPriceFeed feed = IMockFXPriceFeed(address(contracts.priceFeed));
-    ITroveManager troveManager = ITroveManager(address(contracts.troveManager));
+  // function _openTrove(LiquityContractsDev memory contracts) public {
+  //   IMockFXPriceFeed feed = IMockFXPriceFeed(address(contracts.priceFeed));
+  //   ITroveManager troveManager = ITroveManager(address(contracts.troveManager));
 
-    feed.setPrice(2000e18);
-    uint256 trovesCount = troveManager.getTroveIdsCount();
-    assertEq(trovesCount, 0);
+  //   feed.setPrice(2000e18);
+  //   uint256 trovesCount = troveManager.getTroveIdsCount();
+  //   assertEq(trovesCount, 0);
 
-    address A = makeAddr("A");
-    MockERC20(address(_collateralToken)).mint(A, 10_000e18);
+  //   address A = makeAddr("A");
+  //   MockERC20(address(_collateralToken)).mint(A, 10_000e18);
 
-    assertEq(MockERC20(address(_collateralToken)).balanceOf(A), 10_000e18);
+  //   assertEq(MockERC20(address(_collateralToken)).balanceOf(A), 10_000e18);
 
-    IBorrowerOperations borrowerOperations = IBorrowerOperations(address(contracts.borrowerOperations));
-    ISystemParams systemParams = ISystemParams(address(contracts.systemParams));
+  //   IBorrowerOperations borrowerOperations = IBorrowerOperations(address(contracts.borrowerOperations));
+  //   ISystemParams systemParams = ISystemParams(address(contracts.systemParams));
 
-    console2.log("\n");
-    console2.log("-- trying to open trove --");
+  //   console2.log("\n");
+  //   console2.log("-- trying to open trove --");
 
-    vm.startPrank(A);
-    MockERC20(address(_collateralToken)).approve(address(borrowerOperations), 10_000e18);
-    borrowerOperations.openTrove(
-      A,
-      0,
-      2e18,
-      2000e18,
-      0,
-      0,
-      systemParams.MIN_ANNUAL_INTEREST_RATE(),
-      1000e18,
-      address(0),
-      address(0),
-      address(0)
-    );
-    vm.stopPrank();
+  //   vm.startPrank(A);
+  //   MockERC20(address(_collateralToken)).approve(address(borrowerOperations), 10_000e18);
+  //   borrowerOperations.openTrove(
+  //     A,
+  //     0,
+  //     2e18,
+  //     2000e18,
+  //     0,
+  //     0,
+  //     systemParams.MIN_ANNUAL_INTEREST_RATE(),
+  //     1000e18,
+  //     address(0),
+  //     address(0),
+  //     address(0)
+  //   );
+  //   vm.stopPrank();
 
-    trovesCount = troveManager.getTroveIdsCount();
-    assertEq(trovesCount, 1);
+  //   trovesCount = troveManager.getTroveIdsCount();
+  //   assertEq(trovesCount, 1);
 
-    console2.log("# of troves", trovesCount);
-    console2.log("eur.M A", MockERC20(address(_debtToken)).balanceOf(A));
-    console2.log("gas pool balance", MockERC20(address(_collateralToken)).balanceOf(address(contracts.pools.gasPool)));
+  //   console2.log("# of troves", trovesCount);
+  //   console2.log("eur.M A", MockERC20(address(_debtToken)).balanceOf(A));
+  //   console2.log("gas pool balance", MockERC20(address(_collateralToken)).balanceOf(address(contracts.pools.gasPool)));
 
-    assertEq(MockERC20(address(_debtToken)).balanceOf(A), 2000e18);
-  }
+  //   assertEq(MockERC20(address(_debtToken)).balanceOf(A), 2000e18);
+  // }
 
   // constructor(IBoldToken boldToken, IERC20Metadata debtToken, IERC20Metadata collateralToken) {
   //   _boldToken = boldToken;
@@ -613,6 +634,10 @@ contract LiquityV2Deployer is Test {
     //   address(contracts.activePool)
     // );
 
+    address stableOwner = Ownable(address(_boldToken)).owner();
+    // console.log("stableOwner", stableOwner);
+
+    vm.startPrank(stableOwner);
     IStableTokenV3(address(_boldToken)).setMinter(address(contracts.borrowerOperations), true);
     IStableTokenV3(address(_boldToken)).setMinter(address(contracts.activePool), true);
 
@@ -622,5 +647,6 @@ contract LiquityV2Deployer is Test {
     IStableTokenV3(address(_boldToken)).setBurner(address(contracts.stabilityPool), true);
 
     IStableTokenV3(address(_boldToken)).setOperator(address(contracts.stabilityPool), true);
+    vm.stopPrank();
   }
 }
