@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.18;
+pragma solidity 0.8.19;
 pragma experimental ABIEncoderV2;
 
 import { TradingLimits } from "contracts/libraries/TradingLimits.sol";
