@@ -18,7 +18,7 @@ contract LiquidityStrategyDeployer is TestStorage {
     $liquidityStrategies.deployed = true;
   }
 
-  function configureCDPLiquidityStrategy(
+  function _configureCDPLiquidityStrategy(
     uint64 cooldown,
     uint32 incentiveBps,
     uint256 stabilityPoolPercentage,
@@ -39,14 +39,16 @@ contract LiquidityStrategyDeployer is TestStorage {
     );
   }
 
-  function configureReserveLiquidityStrategy(uint64 cooldown, uint32 incentiveBps) internal {
+  function _configureReserveLiquidityStrategy(uint64 cooldown, uint32 incentiveBps) internal {
     require($liquidityStrategies.deployed, "LiquidityStrategies not deployed");
+    require($tokens.deployed, "Tokens not deployed");
     $liquidityStrategies.reserveLiquidityStrategy.addPool(
       address($fpmm.fpmmReserve),
       address($tokens.collateralToken),
       cooldown,
       incentiveBps
-    );    
+    );
+    $tokens.collateralToken.setMinter(address($liquidityStrategies.reserve), true);
   }
 
   function _deployCDPLiquidityStrategy() private {
@@ -60,8 +62,10 @@ contract LiquidityStrategyDeployer is TestStorage {
       address($liquidityStrategies.reserve)
     );
     $liquidityStrategies.reserveLiquidityStrategy = IReserveLiquidityStrategy(address(newReserveLiquidityStrategy));
+    $liquidityStrategies.reserve.addExchangeSpender(address($liquidityStrategies.reserveLiquidityStrategy));
   }
   function _deployReserve() private {
+    require(!$tokens.deployed, "Tokens not deployed");
     IReserve reserve = IReserve(deployCode("Reserve", abi.encode(true)));
     $liquidityStrategies.reserve = reserve;
 
@@ -94,5 +98,6 @@ contract LiquidityStrategyDeployer is TestStorage {
       _collateralAssetDailySpendingRatios: new uint256[](0)
     });
     reserve.addToken(address($tokens.collateralToken));
+    reserve.addCollateralAsset(address($tokens.reserveCollateralToken));
   }
 }
