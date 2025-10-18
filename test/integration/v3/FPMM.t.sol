@@ -12,7 +12,7 @@ import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 contract FPMMTest is TokenDeployer, FPMMDeployer {
   function test_integrationV3_fpmmTest() public {
-    _deployTokens();
-    _deployFPMM();
+    _deployTokens(false, false);
+    _deployFPMM(false, false);
   }
 }

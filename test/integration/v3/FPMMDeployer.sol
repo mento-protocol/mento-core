@@ -10,6 +10,7 @@ import { StableTokenV3 } from "contracts/tokens/StableTokenV3.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { Router } from "contracts/swap/router/Router.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
+import { OneToOneFPMM } from "contracts/swap/OneToOneFPMM.sol";
 import { FactoryRegistry } from "contracts/swap/FactoryRegistry.sol";
 import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { ProxyAdmin } from "openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
@@ -28,11 +29,15 @@ contract FPMMDeployer is TestStorage {
     vm.etch(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed, createXBytecode);
   }
 
-  function _deployFPMM() internal {
+  function _deployFPMM(bool invertCDPFPMMRate, bool invertReserveFPMMRate) internal {
     require($tokens.deployed, "Tokens must be deployed first");
+
     $addresses.fpmmImplementation = address(new FPMM(true));
+    $addresses.oneToOneFPMMImplementation = address(new OneToOneFPMM(true));
+
     $fpmm.proxyAdmin = IProxyAdmin(address(new ProxyAdmin()));
     $fpmm.proxyAdmin.transferOwnership($addresses.governance);
+
     IFPMM.FPMMParams memory fpmmParams = IFPMM.FPMMParams({
       lpFee: 30,
       protocolFee: 0,
@@ -41,6 +46,7 @@ contract FPMMDeployer is TestStorage {
       rebalanceThresholdAbove: 500,
       rebalanceThresholdBelow: 500
     });
+
     $fpmm.oracleAdapter = IOracleAdapter(new OracleAdapter(false));
     $fpmm.oracleAdapter.initialize(
       $addresses.sortedOracles,
@@ -48,6 +54,7 @@ contract FPMMDeployer is TestStorage {
       $addresses.marketHoursBreaker,
       $addresses.governance
     );
+
     $fpmm.fpmmFactory = IFPMMFactory(new FPMMFactory(false));
     $fpmm.fpmmFactory.initialize(
       address($fpmm.oracleAdapter),
@@ -56,18 +63,32 @@ contract FPMMDeployer is TestStorage {
       $addresses.fpmmImplementation,
       fpmmParams
     );
+
     $fpmm.factoryRegistry = IFactoryRegistry(new FactoryRegistry(false));
     $fpmm.factoryRegistry.initialize(address($fpmm.fpmmFactory), $addresses.governance);
+
     vm.prank($addresses.governance);
-    $fpmm.fpmm = IFPMM(
+    $fpmm.fpmmCDP = IFPMM(
       $fpmm.fpmmFactory.deployFPMM(
         $addresses.fpmmImplementation,
-        address($tokens.debtToken),
         address($tokens.collateralToken),
-        $addresses.referenceRateFeedID,
-        false
+        address($tokens.reserveCollateralToken),
+        $addresses.referenceRateFeedCDPFPMM,
+        invertCDPFPMMRate
       )
     );
+
+    vm.prank($addresses.governance);
+    $fpmm.fpmmReserve = IFPMM(
+      $fpmm.fpmmFactory.deployFPMM(
+        $addresses.oneToOneFPMMImplementation,
+        address($tokens.collateralToken),
+        address($tokens.debtToken),
+        $addresses.referenceRateFeedReserveFPMM,
+        invertReserveFPMMRate
+      )
+    );
+
     $fpmm.deployed = true;
   }
 }

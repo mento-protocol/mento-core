@@ -17,6 +17,7 @@ import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
+
 import { ITroveNFT } from "bold/src/Interfaces/ITroveNFT.sol";
 import { IPriceFeed } from "bold/src/Interfaces/IPriceFeed.sol";
 import { IInterestRouter } from "bold/src/Interfaces/IInterestRouter.sol";
@@ -27,6 +28,10 @@ import { IDefaultPool } from "bold/src/Interfaces/IDefaultPool.sol";
 import { console2 as console } from "forge-std/console2.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 
+import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
+import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
+
 abstract contract TestStorage is Test {
   constructor() {
     $addresses.governance = makeAddr("governance");
@@ -34,7 +39,8 @@ abstract contract TestStorage is Test {
     $addresses.breakerBox = makeAddr("breakerBox");
     $addresses.marketHoursBreaker = makeAddr("marketHoursBreaker");
     $addresses.protocolFeeRecipient = makeAddr("protocolFeeRecipient");
-    $addresses.referenceRateFeedID = makeAddr("referenceRateFeedID");
+    $addresses.referenceRateFeedCDPFPMM = makeAddr("referenceRateFeedCDPFPMM");
+    $addresses.referenceRateFeedReserveFPMM = makeAddr("referenceRateFeedReserveFPMM");
   }
 
   struct LiquityDeploymentPools {
@@ -70,7 +76,8 @@ abstract contract TestStorage is Test {
     IOracleAdapter oracleAdapter;
     IFactoryRegistry factoryRegistry;
     IFPMMFactory fpmmFactory;
-    IFPMM fpmm;
+    IFPMM fpmmCDP;
+    IFPMM fpmmReserve;
     IProxyAdmin proxyAdmin;
   }
 
@@ -81,7 +88,16 @@ abstract contract TestStorage is Test {
     address marketHoursBreaker;
     address protocolFeeRecipient;
     address fpmmImplementation;
-    address referenceRateFeedID;
+    address oneToOneFPMMImplementation;
+    address referenceRateFeedCDPFPMM;
+    address referenceRateFeedReserveFPMM;
+  }
+
+  struct LiquidityStrategiesDeployments {
+    bool deployed;
+    ICDPLiquidityStrategy cdpLiquidityStrategy;
+    IReserveLiquidityStrategy reserveLiquidityStrategy;
+    IReserve reserve;
   }
 
   LiquityDeployments public $liquity;
@@ -89,6 +105,7 @@ abstract contract TestStorage is Test {
   TokenDeployments public $tokens;
   FPMMDeployments public $fpmm;
   MockAddresses public $addresses;
+  LiquidityStrategiesDeployments public $liquidityStrategies;
 
   /* ============================================================ */
   /* ======================== Helper functions ================== */
@@ -108,6 +125,12 @@ abstract contract TestStorage is Test {
       IERC20Metadata(address($tokens.collateralToken)).decimals(),
       address($tokens.collateralToken)
     );
+    console.log(
+      "> ",
+      IERC20Metadata(address($tokens.reserveCollateralToken)).symbol(),
+      IERC20Metadata(address($tokens.reserveCollateralToken)).decimals(),
+      address($tokens.reserveCollateralToken)
+    );
     console.log();
   }
 
@@ -125,5 +148,22 @@ abstract contract TestStorage is Test {
     console.log("> collToken:", address($liquity.collToken));
     console.log("> systemParams:", address($liquity.systemParams));
     console.log();
+  }
+
+  function printFPMMAddresses() public view {
+    console.log("===== FPMM Deployment addresses =====");
+    console.log("> oracleAdapter:", address($fpmm.oracleAdapter));
+    console.log("> factoryRegistry:", address($fpmm.factoryRegistry));
+    console.log("> fpmmFactory:", address($fpmm.fpmmFactory));
+    console.log("> fpmmCDP:", address($fpmm.fpmmCDP));
+    console.log("> fpmmReserve:", address($fpmm.fpmmReserve));
+    console.log("> proxyAdmin:", address($fpmm.proxyAdmin));
+  }
+
+  function printLiquidityStrategiesAddresses() public view {
+    console.log("===== Liquidity Strategies Deployment addresses =====");
+    console.log("> cdpLiquidityStrategy:", address($liquidityStrategies.cdpLiquidityStrategy));
+    console.log("> reserveLiquidityStrategy:", address($liquidityStrategies.reserveLiquidityStrategy));
+    console.log("> reserve:", address($liquidityStrategies.reserve));
   }
 }

@@ -19,8 +19,7 @@ import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
 contract Liquity is LiquityDeployer, TokenDeployer {
   function setUp() public {
-    _deployCollateralToken("Mento USD", "USD.m", 18);
-    _deployDebtToken("Celo Euro", "cEUR");
+    _deployTokens(false, false);
   }
 
   function test_deployLiquity() public {

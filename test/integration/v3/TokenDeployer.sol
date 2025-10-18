@@ -12,32 +12,75 @@ import { StableTokenV3 } from "contracts/tokens/StableTokenV3.sol";
 contract TokenDeployer is TestStorage {
   bool private _collateralTokenDeployed;
   bool private _debtTokenDeployed;
+  bool private _reserveCollateralTokenDeployed;
 
-  function _deployTokens() internal {
-    _deployCollateralToken("Collateral Token", "COLL", 18);
-    _deployDebtToken("Debt Token", "DEBT");
+  function _deployTokens(bool isCollateralTokenToken0, bool isDebtTokenToken0) internal {
+    address lowest = address(1001);
+    address middle = address(1002);
+    address highest = address(1003);
+
+    if (!isCollateralTokenToken0 && !isDebtTokenToken0) {
+      _deployReserveCollateralToken(lowest);
+      _deployCollateralToken(middle);
+      _deployDebtToken(highest);
+    } else if (isCollateralTokenToken0 && isDebtTokenToken0) {
+      _deployDebtToken(lowest);
+      _deployCollateralToken(middle);
+      _deployReserveCollateralToken(highest);
+    } else if (isCollateralTokenToken0 && !isDebtTokenToken0) {
+      _deployCollateralToken(lowest);
+      _deployReserveCollateralToken(middle);
+      _deployDebtToken(highest);
+    } else if (!isCollateralTokenToken0 && isDebtTokenToken0) {
+      _deployDebtToken(lowest);
+      _deployReserveCollateralToken(middle);
+      _deployCollateralToken(highest);
+    }
+    $tokens.deployed = true;
   }
 
-  function _deployCollateralToken(string memory name, string memory symbol, uint8 decimals) internal {
-    $tokens.collateralToken = IStableTokenV3(address(new MockERC20(name, symbol, decimals)));
+  function _deployCollateralToken(address targetAddress) private {
+    deployCodeTo("StableTokenV3.sol:StableTokenV3", abi.encode(false), targetAddress);
 
-    _collateralTokenDeployed = true;
-    _checkIfBothDeployed();
-  }
-
-  function _deployDebtToken(string memory name, string memory symbol) internal {
-    StableTokenV3 newDebtToken = new StableTokenV3(false);
     uint256[] memory numbers = new uint256[](0);
     address[] memory addresses = new address[](0);
-    newDebtToken.initialize(name, symbol, addresses, numbers, addresses, addresses, addresses);
-    $tokens.debtToken = newDebtToken;
+    IStableTokenV3(targetAddress).initialize("Mento USD", "USD.m", addresses, numbers, addresses, addresses, addresses);
+    $tokens.collateralToken = IStableTokenV3(targetAddress);
 
-    _debtTokenDeployed = true;
-    _checkIfBothDeployed();
+    _collateralTokenDeployed = true;
+    _checkAllTokensDeployed();
   }
 
-  function _checkIfBothDeployed() private {
-    if (_collateralTokenDeployed && _debtTokenDeployed) {
+  function _deployDebtToken(address targetAddress) private {
+    deployCodeTo("StableTokenV3.sol:StableTokenV3", abi.encode(false), targetAddress);
+
+    uint256[] memory numbers = new uint256[](0);
+    address[] memory addresses = new address[](0);
+    IStableTokenV3(targetAddress).initialize(
+      "Mento Euro",
+      "EUR.m",
+      addresses,
+      numbers,
+      addresses,
+      addresses,
+      addresses
+    );
+    $tokens.debtToken = IStableTokenV3(targetAddress);
+
+    _debtTokenDeployed = true;
+    _checkAllTokensDeployed();
+  }
+
+  function _deployReserveCollateralToken(address targetAddress) private {
+    deployCodeTo("out/MockERC20.sol/MockERC20.0.8.24.json", abi.encode("Circle USD", "USDC", 6), targetAddress);
+
+    $tokens.reserveCollateralToken = IERC20Metadata(targetAddress);
+    _reserveCollateralTokenDeployed = true;
+    _checkAllTokensDeployed();
+  }
+
+  function _checkAllTokensDeployed() private {
+    if (_collateralTokenDeployed && _debtTokenDeployed && _reserveCollateralTokenDeployed) {
       $tokens.deployed = true;
     }
   }
