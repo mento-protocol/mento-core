@@ -46,6 +46,7 @@ contract TokenDeployer is TestStorage {
     address[] memory addresses = new address[](0);
     IStableTokenV3(targetAddress).initialize("Mento USD", "USD.m", addresses, numbers, addresses, addresses, addresses);
     $tokens.collateralToken = IStableTokenV3(targetAddress);
+    vm.label(targetAddress, "CollateralToken");
 
     _collateralTokenDeployed = true;
     _checkAllTokensDeployed();
@@ -66,7 +67,7 @@ contract TokenDeployer is TestStorage {
       addresses
     );
     $tokens.debtToken = IStableTokenV3(targetAddress);
-
+    vm.label(targetAddress, "DebtToken");
     _debtTokenDeployed = true;
     _checkAllTokensDeployed();
   }
@@ -75,6 +76,7 @@ contract TokenDeployer is TestStorage {
     deployCodeTo("out/MockERC20.sol/MockERC20.0.8.24.json", abi.encode("Circle USD", "USDC", 6), targetAddress);
 
     $tokens.reserveCollateralToken = IERC20Metadata(targetAddress);
+    vm.label(targetAddress, "ReserveCollateralToken");
     _reserveCollateralTokenDeployed = true;
     _checkAllTokensDeployed();
   }

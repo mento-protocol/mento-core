@@ -14,6 +14,9 @@ contract LiquidityStrategyDeployer is TestStorage {
     _deployCDPLiquidityStrategy();
     _deployReserveLiquidityStrategy();
     $liquidityStrategies.deployed = true;
+    vm.label(address($liquidityStrategies.cdpLiquidityStrategy), "CDPLiquidityStrategy");
+    vm.label(address($liquidityStrategies.reserveLiquidityStrategy), "ReserveLiquidityStrategy");
+    vm.label(address($liquidityStrategies.reserve), "Reserve");
   }
 
   function _configureCDPLiquidityStrategy(

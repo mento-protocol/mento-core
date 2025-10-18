@@ -34,6 +34,7 @@ contract FPMMDeployer is TestStorage {
     $addresses.oneToOneFPMMImplementation = address(new OneToOneFPMM(true));
 
     $fpmm.proxyAdmin = IProxyAdmin(address(new ProxyAdmin()));
+    vm.label(address($fpmm.proxyAdmin), "FPMM:ProxyAdmin");
     $fpmm.proxyAdmin.transferOwnership($addresses.governance);
 
     IFPMM.FPMMParams memory fpmmParams = IFPMM.FPMMParams({
@@ -46,6 +47,7 @@ contract FPMMDeployer is TestStorage {
     });
 
     $fpmm.fpmmFactory = IFPMMFactory(new FPMMFactory(false));
+    vm.label(address($fpmm.fpmmFactory), "FPMMFactory");
     $fpmm.fpmmFactory.initialize(
       address($oracle.adapter),
       address($fpmm.proxyAdmin),
@@ -55,6 +57,7 @@ contract FPMMDeployer is TestStorage {
     );
 
     $fpmm.factoryRegistry = IFactoryRegistry(new FactoryRegistry(false));
+    vm.label(address($fpmm.factoryRegistry), "FactoryRegistry");
     $fpmm.factoryRegistry.initialize(address($fpmm.fpmmFactory), $addresses.governance);
 
     vm.prank($addresses.governance);
@@ -67,6 +70,7 @@ contract FPMMDeployer is TestStorage {
         invertCDPFPMMRate
       )
     );
+    vm.label(address($fpmm.fpmmCDP), "FPMMCDP");
 
     vm.prank($addresses.governance);
     $fpmm.fpmmReserve = IFPMM(
@@ -78,7 +82,7 @@ contract FPMMDeployer is TestStorage {
         invertReserveFPMMRate
       )
     );
-
+    vm.label(address($fpmm.fpmmReserve), "FPMMReserve");
     $fpmm.deployed = true;
   }
 }

@@ -25,6 +25,7 @@ import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 contract OracleAdapterDeployer is TestStorage {
   function _deployOracleAdapter() internal {
     $oracle.adapter = IOracleAdapter(new OracleAdapter(false));
+    vm.label(address($oracle.adapter), "OracleAdapter");
     $oracle.adapter.initialize(
       $addresses.sortedOracles,
       $addresses.breakerBox,

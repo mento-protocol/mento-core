@@ -116,20 +116,33 @@ contract LiquityDeployer is TestStorage {
       IERC20Metadata(address($tokens.collateralToken))
     );
 
+    vm.label(address(contracts.addressesRegistry), "AddressesRegistry");
     $liquity.addressesRegistry = contracts.addressesRegistry;
+    vm.label(address(contracts.borrowerOperations), "BorrowerOperations");
     $liquity.borrowerOperations = contracts.borrowerOperations;
+    vm.label(address(contracts.sortedTroves), "SortedTroves");
     $liquity.sortedTroves = contracts.sortedTroves;
+    vm.label(address(contracts.activePool), "ActivePool");
     $liquity.activePool = contracts.activePool;
+    vm.label(address(contracts.stabilityPool), "StabilityPool");
     $liquity.stabilityPool = contracts.stabilityPool;
+    vm.label(address(contracts.troveManager), "TroveManager");
     $liquity.troveManager = contracts.troveManager;
+    vm.label(address(contracts.troveNFT), "TroveNFT");
     $liquity.troveNFT = contracts.troveNFT;
+    vm.label(address(contracts.priceFeed), "PriceFeed");
     $liquity.priceFeed = contracts.priceFeed;
+    vm.label(address(contracts.interestRouter), "InterestRouter");
     $liquity.interestRouter = contracts.interestRouter;
+    vm.label(address(contracts.collToken), "CollToken");
     $liquity.collToken = contracts.collToken;
+    vm.label(address(contracts.systemParams), "SystemParams");
     $liquity.systemParams = contracts.systemParams;
-
+    vm.label(address(contracts.pools.defaultPool), "DefaultPool");
     $liquityInternalPools.defaultPool = contracts.pools.defaultPool;
+    vm.label(address(contracts.pools.collSurplusPool), "CollSurplusPool");
     $liquityInternalPools.collSurplusPool = contracts.pools.collSurplusPool;
+    vm.label(address(contracts.pools.gasPool), "GasPool");
     $liquityInternalPools.gasPool = contracts.pools.gasPool;
 
     _configureDebtToken(contracts, collateralRegistry);
