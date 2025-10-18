@@ -8,6 +8,7 @@ import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
 import { Test, console2 as console } from "forge-std/Test.sol";
 
 import { StableTokenV3 } from "contracts/tokens/StableTokenV3.sol";
+import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
 
 import { IBoldToken, IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
@@ -27,7 +28,7 @@ contract Liquity is LiquityDeployer, TokenDeployer {
 
     IMockFXPriceFeed feed = IMockFXPriceFeed(address($liquity.priceFeed));
     ITroveManager troveManager = ITroveManager(address($liquity.troveManager));
-    MockERC20 collateralToken = MockERC20(address($tokens.collateralToken));
+    IStableTokenV3 collateralToken = $tokens.collateralToken;
     IBorrowerOperations borrowerOperations = IBorrowerOperations(address($liquity.borrowerOperations));
     ISystemParams systemParams = ISystemParams(address($liquity.systemParams));
 
@@ -37,7 +38,10 @@ contract Liquity is LiquityDeployer, TokenDeployer {
 
     address A = makeAddr("A");
     uint256 mintAmount = 10_000e18;
+
     assertEq(collateralToken.balanceOf(A), 0);
+
+    collateralToken.setMinter(address(this), true);
     collateralToken.mint(A, mintAmount);
     assertEq(collateralToken.balanceOf(A), mintAmount);
 
