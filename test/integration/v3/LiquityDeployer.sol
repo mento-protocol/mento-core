@@ -51,6 +51,8 @@ contract LiquityDeployer is TestStorage {
   IERC20Metadata private _collateralToken;
 
   function _deployLiquity() internal {
+    require($tokens.deployed, "LIQUITY_DEPLOYER:Tokens not deployed");
+
     LiquityContractsDev memory contracts;
 
     _debtToken = $tokens.debtToken;
