@@ -14,8 +14,18 @@ import { ISortedTroves } from "bold/src/Interfaces/ISortedTroves.sol";
 import { IStabilityPool } from "bold/src/Interfaces/IStabilityPool.sol";
 import { ITroveManager } from "bold/src/Interfaces/ITroveManager.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
+import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
+import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
+import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 
 abstract contract TestStorage is Test {
+  constructor() {
+    $addresses.governance = makeAddr("governance");
+    $addresses.sortedOracles = makeAddr("sortedOracles");
+    $addresses.breakerBox = makeAddr("breakerBox");
+    $addresses.marketHoursBreaker = makeAddr("marketHoursBreaker");
+  }
+
   struct LiquityDeployments {
     IAddressesRegistry addressesRegistry;
     IActivePool activePool;
@@ -34,10 +44,21 @@ abstract contract TestStorage is Test {
   }
 
   struct FPMMDeployments {
+    IOracleAdapter oracleAdapter;
+    IFactoryRegistry factoryRegistry;
+    IFPMMFactory fpmmFactory;
     IFPMM fpmm;
   }
 
-  LiquityDeployments public liquidity;
-  TokenDeployments public tokens;
-  FPMMDeployments public fpmm;
+  struct MockAddresses {
+    address governance;
+    address sortedOracles;
+    address breakerBox;
+    address marketHoursBreaker;
+  }
+
+  LiquityDeployments public $liquidity;
+  TokenDeployments public $tokens;
+  FPMMDeployments public $fpmm;
+  MockAddresses public $addresses;
 }
