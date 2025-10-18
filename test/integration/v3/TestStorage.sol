@@ -35,6 +35,7 @@ import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrateg
 abstract contract TestStorage is Test {
   constructor() {
     $addresses.governance = makeAddr("governance");
+    $addresses.watchdog = makeAddr("watchdog");
     $addresses.sortedOracles = makeAddr("sortedOracles");
     $addresses.breakerBox = makeAddr("breakerBox");
     $addresses.marketHoursBreaker = makeAddr("marketHoursBreaker");
@@ -73,7 +74,6 @@ abstract contract TestStorage is Test {
 
   struct FPMMDeployments {
     bool deployed;
-    IOracleAdapter oracleAdapter;
     IFactoryRegistry factoryRegistry;
     IFPMMFactory fpmmFactory;
     IFPMM fpmmCDP;
@@ -81,8 +81,14 @@ abstract contract TestStorage is Test {
     IProxyAdmin proxyAdmin;
   }
 
+  struct OracleDeployments {
+    bool deployed;
+    IOracleAdapter adapter;
+  }
+
   struct MockAddresses {
     address governance;
+    address watchdog;
     address sortedOracles;
     address breakerBox;
     address marketHoursBreaker;
@@ -104,6 +110,7 @@ abstract contract TestStorage is Test {
   LiquityDeploymentPools public $liquityInternalPools;
   TokenDeployments public $tokens;
   FPMMDeployments public $fpmm;
+  OracleDeployments public $oracle;
   MockAddresses public $addresses;
   LiquidityStrategiesDeployments public $liquidityStrategies;
 
@@ -147,12 +154,15 @@ abstract contract TestStorage is Test {
     console.log("> interestRouter:", address($liquity.interestRouter));
     console.log("> collToken:", address($liquity.collToken));
     console.log("> systemParams:", address($liquity.systemParams));
+    console.log("> defaultPool:", address($liquityInternalPools.defaultPool));
+    console.log("> collSurplusPool:", address($liquityInternalPools.collSurplusPool));
+    console.log("> gasPool:", address($liquityInternalPools.gasPool));
     console.log();
   }
 
   function printFPMMAddresses() public view {
     console.log("===== FPMM Deployment addresses =====");
-    console.log("> oracleAdapter:", address($fpmm.oracleAdapter));
+    console.log("> oracleAdapter:", address($oracle.adapter));
     console.log("> factoryRegistry:", address($fpmm.factoryRegistry));
     console.log("> fpmmFactory:", address($fpmm.fpmmFactory));
     console.log("> fpmmCDP:", address($fpmm.fpmmCDP));

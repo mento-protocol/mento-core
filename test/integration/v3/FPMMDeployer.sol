@@ -12,14 +12,11 @@ import { Router } from "contracts/swap/router/Router.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { OneToOneFPMM } from "contracts/swap/OneToOneFPMM.sol";
 import { FactoryRegistry } from "contracts/swap/FactoryRegistry.sol";
-import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { ProxyAdmin } from "openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
-import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
 import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
-import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 
 contract FPMMDeployer is TestStorage {
@@ -30,7 +27,8 @@ contract FPMMDeployer is TestStorage {
   }
 
   function _deployFPMM(bool invertCDPFPMMRate, bool invertReserveFPMMRate) internal {
-    require($tokens.deployed, "Tokens must be deployed first");
+    require($tokens.deployed, "FPMM_DEPLOYER: tokens not deployed");
+    require($oracle.deployed, "FPMM_DEPLOYER: oracle not deployed");
 
     $addresses.fpmmImplementation = address(new FPMM(true));
     $addresses.oneToOneFPMMImplementation = address(new OneToOneFPMM(true));
@@ -47,17 +45,9 @@ contract FPMMDeployer is TestStorage {
       rebalanceThresholdBelow: 500
     });
 
-    $fpmm.oracleAdapter = IOracleAdapter(new OracleAdapter(false));
-    $fpmm.oracleAdapter.initialize(
-      $addresses.sortedOracles,
-      $addresses.breakerBox,
-      $addresses.marketHoursBreaker,
-      $addresses.governance
-    );
-
     $fpmm.fpmmFactory = IFPMMFactory(new FPMMFactory(false));
     $fpmm.fpmmFactory.initialize(
-      address($fpmm.oracleAdapter),
+      address($oracle.adapter),
       address($fpmm.proxyAdmin),
       $addresses.governance,
       $addresses.fpmmImplementation,

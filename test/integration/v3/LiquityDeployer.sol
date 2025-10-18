@@ -40,6 +40,7 @@ import { SystemParams } from "bold/src/SystemParams.sol";
 
 import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
 import { MockFXPriceFeed } from "bold/test/TestContracts/MockFXPriceFeed.sol";
+import { FXPriceFeed } from "bold/src/PriceFeeds/FXPriceFeed.sol";
 import { MockInterestRouter } from "bold/test/TestContracts/MockInterestRouter.sol";
 
 import { TestStorage } from "./TestStorage.sol";
@@ -103,6 +104,8 @@ contract LiquityDeployer is TestStorage {
 
   function _deployLiquity() internal {
     require($tokens.deployed, "LIQUITY_DEPLOYER: tokens not deployed");
+    require($oracle.deployed, "LIQUITY_DEPLOYER: oracle not deployed");
+    require($liquidityStrategies.deployed, "LIQUITY_DEPLOYER: liquidity strategies not deployed");
 
     LiquityContracts memory contracts;
     ICollateralRegistry collateralRegistry;
@@ -130,6 +133,11 @@ contract LiquityDeployer is TestStorage {
     $liquityInternalPools.gasPool = contracts.pools.gasPool;
 
     _configureDebtToken(contracts, collateralRegistry);
+    assertEq(
+      contracts.stabilityPool.liquidityStrategy(),
+      address($liquidityStrategies.cdpLiquidityStrategy),
+      "LIQUITY_DEPLOYER: liquidity strategy misconfigured in StabilityPool"
+    );
 
     $liquity.deployed = true;
   }
@@ -296,7 +304,7 @@ contract LiquityDeployer is TestStorage {
     bytes32 uniqueSalt = keccak256(abi.encodePacked(SALT, index));
     // Create parameter structs based on constants
     ISystemParams.DebtParams memory debtParams = ISystemParams.DebtParams({
-      minDebt: 2000e18 // MIN_DEBT
+      minDebt: 100e18 // MIN_DEBT
     });
     ISystemParams.LiquidationParams memory liquidationParams = ISystemParams.LiquidationParams({
       liquidationPenaltySP: params.LIQUIDATION_PENALTY_SP,
@@ -355,7 +363,6 @@ contract LiquityDeployer is TestStorage {
     contracts.collToken = _collToken;
     contracts.systemParams = _systemParams;
     contracts.addressesRegistry = _addressesRegistry;
-    contracts.priceFeed = IPriceFeed(address(new MockFXPriceFeed()));
     contracts.interestRouter = IInterestRouter(address(new MockInterestRouter()));
 
     // Pre-calc addresses
@@ -401,6 +408,9 @@ contract LiquityDeployer is TestStorage {
       getBytecode(type(SortedTroves).creationCode, address(contracts.addressesRegistry)),
       SALT
     );
+
+    contracts.priceFeed = _deployFXPriceFeed(addresses.borrowerOperations);
+
     // Deploy contracts
     IAddressesRegistry.AddressVars memory addressVars = IAddressesRegistry.AddressVars({
       borrowerOperations: IBorrowerOperations(addresses.borrowerOperations),
@@ -421,8 +431,9 @@ contract LiquityDeployer is TestStorage {
       boldToken: IBoldToken(address(_debtToken)),
       collToken: _collToken,
       gasToken: _gasToken,
-      liquidityStrategy: address(123) // TODO: add LiquidityStrategy address
+      liquidityStrategy: address($liquidityStrategies.cdpLiquidityStrategy)
     });
+
     contracts.addressesRegistry.setAddresses(addressVars);
     contracts.borrowerOperations = new BorrowerOperations{ salt: SALT }(contracts.addressesRegistry, _systemParams);
     contracts.troveManager = new TroveManager{ salt: SALT }(contracts.addressesRegistry, _systemParams);
@@ -460,5 +471,18 @@ contract LiquityDeployer is TestStorage {
 
     IStableTokenV3(address($tokens.debtToken)).setOperator(address(contracts.stabilityPool), true);
     vm.stopPrank();
+  }
+
+  function _deployFXPriceFeed(address borrowerOperationsAddress) private returns (IPriceFeed) {
+    FXPriceFeed feed = new FXPriceFeed(false);
+    feed.initialize(
+      address($oracle.adapter),
+      address($addresses.referenceRateFeedCDPFPMM),
+      borrowerOperationsAddress,
+      address($addresses.watchdog),
+      address($addresses.governance)
+    );
+
+    return IPriceFeed(address(feed));
   }
 }

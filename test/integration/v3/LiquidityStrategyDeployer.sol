@@ -10,8 +10,6 @@ import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidit
 import { IReserve } from "contracts/interfaces/IReserve.sol";
 
 contract LiquidityStrategyDeployer is TestStorage {
-  constructor() {}
-
   function _deployLiquidityStrategies() internal {
     _deployCDPLiquidityStrategy();
     _deployReserveLiquidityStrategy();
@@ -24,7 +22,7 @@ contract LiquidityStrategyDeployer is TestStorage {
     uint256 stabilityPoolPercentage,
     uint256 maxIterations
   ) internal {
-    require($liquidityStrategies.deployed, "LiquidityStrategies not deployed");
+    require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
 
     $liquidityStrategies.cdpLiquidityStrategy.addPool(
       address($fpmm.fpmmCDP),
@@ -40,15 +38,17 @@ contract LiquidityStrategyDeployer is TestStorage {
   }
 
   function _configureReserveLiquidityStrategy(uint64 cooldown, uint32 incentiveBps) internal {
-    require($liquidityStrategies.deployed, "LiquidityStrategies not deployed");
-    require($tokens.deployed, "Tokens not deployed");
+    require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
+    require($tokens.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: tokens not deployed");
     $liquidityStrategies.reserveLiquidityStrategy.addPool(
       address($fpmm.fpmmReserve),
       address($tokens.collateralToken),
       cooldown,
       incentiveBps
     );
+    vm.startPrank($addresses.governance);
     $tokens.collateralToken.setMinter(address($liquidityStrategies.reserve), true);
+    vm.stopPrank();
   }
 
   function _deployCDPLiquidityStrategy() private {
@@ -62,10 +62,12 @@ contract LiquidityStrategyDeployer is TestStorage {
       address($liquidityStrategies.reserve)
     );
     $liquidityStrategies.reserveLiquidityStrategy = IReserveLiquidityStrategy(address(newReserveLiquidityStrategy));
+    vm.startPrank($addresses.governance);
     $liquidityStrategies.reserve.addExchangeSpender(address($liquidityStrategies.reserveLiquidityStrategy));
+    vm.stopPrank();
   }
   function _deployReserve() private {
-    require(!$tokens.deployed, "Tokens not deployed");
+    require($tokens.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: tokens not deployed");
     IReserve reserve = IReserve(deployCode("Reserve", abi.encode(true)));
     $liquidityStrategies.reserve = reserve;
 
@@ -99,5 +101,6 @@ contract LiquidityStrategyDeployer is TestStorage {
     });
     reserve.addToken(address($tokens.collateralToken));
     reserve.addCollateralAsset(address($tokens.reserveCollateralToken));
+    vm.stopPrank();
   }
 }

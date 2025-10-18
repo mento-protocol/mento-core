@@ -4,6 +4,8 @@ pragma solidity 0.8.24;
 
 import { TokenDeployer } from "test/integration/v3/TokenDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
+import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
+import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 
 import { Test, console2 as console } from "forge-std/Test.sol";
 
@@ -18,9 +20,11 @@ import { ITroveManager } from "bold/src/Interfaces/ITroveManager.sol";
 import { IBorrowerOperations } from "bold/src/Interfaces/IBorrowerOperations.sol";
 import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
-contract Liquity is LiquityDeployer, TokenDeployer {
+contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDeployer, TokenDeployer {
   function setUp() public {
     _deployTokens(false, false);
+    _deployOracleAdapter();
+    _deployLiquidityStrategies();
   }
 
   function test_deployLiquity() public {
@@ -32,7 +36,6 @@ contract Liquity is LiquityDeployer, TokenDeployer {
     IBorrowerOperations borrowerOperations = IBorrowerOperations(address($liquity.borrowerOperations));
     ISystemParams systemParams = ISystemParams(address($liquity.systemParams));
 
-    feed.setPrice(2000e18);
     uint256 trovesCount = troveManager.getTroveIdsCount();
     assertEq(trovesCount, 0);
 
@@ -52,8 +55,8 @@ contract Liquity is LiquityDeployer, TokenDeployer {
     borrowerOperations.openTrove(
       A,
       0,
-      2e18,
-      2000e18,
+      200e18,
+      200e18,
       0,
       0,
       systemParams.MIN_ANNUAL_INTEREST_RATE(),
