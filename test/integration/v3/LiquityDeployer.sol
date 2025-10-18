@@ -49,32 +49,21 @@ import "bold/src/Dependencies/Constants.sol";
 uint256 constant _24_HOURS = 86400;
 uint256 constant _48_HOURS = 172800;
 
-abstract contract LiquityDeployer is TestStorage {
+contract LiquityDeployer is TestStorage {
   IBoldToken public _debtToken;
   IERC20Metadata public _collateralToken;
 
-  function setTokens(IBoldToken debtToken, IERC20Metadata collateralToken) public {
-    _debtToken = debtToken;
-    _collateralToken = collateralToken;
-  }
-
   function deploy() public returns (LiquityContractsDev memory) {
     LiquityContractsDev memory contracts;
+
+    _debtToken = $tokens.debtToken;
+    _collateralToken = IERC20Metadata(address($tokens.collateralToken));
 
     (contracts, , , , ) = deployAndConnectContracts(_debtToken, _collateralToken);
 
     return contracts;
     // return deployAndConnectContracts(_debtToken, _collateralToken);
   }
-
-  // function deployDebtToken() public returns (IBoldToken) {
-  //   StableTokenV3 debtToken = new StableTokenV3(false);
-  //   uint256[] memory numbers = new uint256[](0);
-  //   address[] memory addresses = new address[](0);
-  //   debtToken.initialize("Debt Token", "DEBT", addresses, numbers, addresses, addresses, addresses);
-
-  //   return IBoldToken(address(debtToken));
-  // }
 
   // function test_openTrove() public {
   //   LiquityContractsDev memory contracts;
@@ -170,12 +159,6 @@ abstract contract LiquityDeployer is TestStorage {
   //   assertEq(MockERC20(address(_debtToken)).balanceOf(A), 2000e18);
   // }
 
-  // constructor(IBoldToken boldToken, IERC20Metadata debtToken, IERC20Metadata collateralToken) {
-  //   _boldToken = boldToken;
-  //   _debtToken = debtToken;
-  //   _collateralToken = collateralToken;
-  // }
-
   bytes32 constant SALT = keccak256("LiquityV2");
   struct LiquityContractsDevPools {
     IDefaultPool defaultPool;
@@ -184,18 +167,19 @@ abstract contract LiquityDeployer is TestStorage {
   }
   struct LiquityContractsDev {
     IAddressesRegistry addressesRegistry;
-    IBorrowerOperations borrowerOperations; // Tester
+    IBorrowerOperations borrowerOperations;
     ISortedTroves sortedTroves;
     IActivePool activePool;
     IStabilityPool stabilityPool;
-    ITroveManager troveManager; // Tester
+    ITroveManager troveManager;
     ITroveNFT troveNFT;
-    IPriceFeed priceFeed; // Tester
+    IPriceFeed priceFeed;
     IInterestRouter interestRouter;
     IERC20Metadata collToken;
     LiquityContractsDevPools pools;
     ISystemParams systemParams;
   }
+
   struct LiquityContractAddresses {
     address activePool;
     address borrowerOperations;
@@ -210,6 +194,7 @@ abstract contract LiquityDeployer is TestStorage {
     address gasPool;
     address interestRouter;
   }
+
   struct TroveManagerParams {
     uint256 CCR;
     uint256 MCR;
@@ -218,6 +203,7 @@ abstract contract LiquityDeployer is TestStorage {
     uint256 LIQUIDATION_PENALTY_SP;
     uint256 LIQUIDATION_PENALTY_REDISTRIBUTION;
   }
+
   struct DeploymentVarsDev {
     uint256 numCollaterals;
     IERC20Metadata[] collaterals;
@@ -227,18 +213,7 @@ abstract contract LiquityDeployer is TestStorage {
     address boldTokenAddress;
     uint256 i;
   }
-  struct ExternalAddresses {
-    address ETHOracle;
-    address STETHOracle;
-    address RETHOracle;
-    address WSTETHToken;
-    address RETHToken;
-  }
-  struct OracleParams {
-    uint256 ethStalenessThreshold;
-    uint256 stEthUsdStalenessThreshold;
-    uint256 rEthEthStalenessThreshold;
-  }
+
   // See: https://solidity-by-example.org/app/create2/
   function getBytecode(bytes memory _creationCode, address _addressesRegistry) public pure returns (bytes memory) {
     return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry));
@@ -361,7 +336,6 @@ abstract contract LiquityDeployer is TestStorage {
     ISystemParams[] memory systemParamsArray = new ISystemParams[](vars.numCollaterals);
     for (vars.i = 0; vars.i < vars.numCollaterals; vars.i++) {
       systemParamsArray[vars.i] = deploySystemParamsDev(troveManagerParamsArray[vars.i], vars.i);
-      break;
     }
     // Deploy the first branch with WETH collateral
     vars.collaterals[0] = collateralToken;
@@ -370,20 +344,6 @@ abstract contract LiquityDeployer is TestStorage {
     );
     vars.addressesRegistries[0] = addressesRegistry;
     vars.troveManagers[0] = ITroveManager(troveManagerAddress);
-
-    // TODO: delete, only 1 collateral
-    // for (vars.i = 1; vars.i < vars.numCollaterals; vars.i++) {
-    //   MockERC20 collToken = new MockERC20(
-    //     _nameToken(vars.i), // _name
-    //     _symboltoken(vars.i), // _symbol
-    //     18
-    //   );
-    //   vars.collaterals[vars.i] = IERC20Metadata(address(collToken));
-    //   // Addresses registry and TM address
-    //   (addressesRegistry, troveManagerAddress) = _deployAddressesRegistryDev(systemParamsArray[vars.i]);
-    //   vars.addressesRegistries[vars.i] = addressesRegistry;
-    //   vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
-    // }
 
     collateralRegistry = new CollateralRegistry(boldToken, vars.collaterals, vars.troveManagers, systemParamsArray[0]);
     hintHelpers = new HintHelpers(collateralRegistry, systemParamsArray[0]);
@@ -399,24 +359,6 @@ abstract contract LiquityDeployer is TestStorage {
       multiTroveGetter,
       systemParamsArray[0]
     );
-
-    // TODO: delete, only 1 collateral
-    // Deploy the remaining branches with LST collateral
-    // for (vars.i = 1; vars.i < vars.numCollaterals; vars.i++) {
-    //   contractsArray[vars.i] = _deployAndConnectCollateralContractsDev(
-    //     vars.collaterals[vars.i],
-    //     boldToken,
-    //     collateralRegistry,
-    //     collateralToken,
-    //     vars.addressesRegistries[vars.i],
-    //     address(vars.troveManagers[vars.i]),
-    //     hintHelpers,
-    //     multiTroveGetter,
-    //     systemParamsArray[vars.i]
-    //   );
-    // }
-
-    // boldToken.setCollateralRegistry(address(collateralRegistry));
   }
 
   function _deployAddressesRegistryDev(ISystemParams _systemParams) internal returns (IAddressesRegistry, address) {

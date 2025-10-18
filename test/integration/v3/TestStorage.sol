@@ -17,6 +17,12 @@ import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
+import { ITroveNFT } from "bold/src/Interfaces/ITroveNFT.sol";
+import { IPriceFeed } from "bold/src/Interfaces/IPriceFeed.sol";
+import { IInterestRouter } from "bold/src/Interfaces/IInterestRouter.sol";
+import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
+
+import { console2 as console } from "forge-std/console2.sol";
 
 abstract contract TestStorage is Test {
   constructor() {
@@ -28,13 +34,17 @@ abstract contract TestStorage is Test {
 
   struct LiquityDeployments {
     IAddressesRegistry addressesRegistry;
-    IActivePool activePool;
     IBorrowerOperations borrowerOperations;
-    ICollSurplusPool collSurplusPool;
-    IDefaultPool defaultPool;
     ISortedTroves sortedTroves;
+    IActivePool activePool;
     IStabilityPool stabilityPool;
     ITroveManager troveManager;
+    ITroveNFT troveNFT;
+    IPriceFeed priceFeed;
+    IInterestRouter interestRouter;
+    IERC20Metadata collToken;
+    // LiquityContractsDevPools pools;
+    ISystemParams systemParams;
   }
 
   struct TokenDeployments {
@@ -57,8 +67,45 @@ abstract contract TestStorage is Test {
     address marketHoursBreaker;
   }
 
-  LiquityDeployments public $liquidity;
+  LiquityDeployments public $liquity;
   TokenDeployments public $tokens;
   FPMMDeployments public $fpmm;
   MockAddresses public $addresses;
+
+  /* ============================================================ */
+  /* ======================== Helper functions ================== */
+  /* ============================================================ */
+
+  function printTokenAddresses() public view {
+    console.log("===== Token Deployment addresses =====");
+    console.log(
+      "> ",
+      IERC20Metadata(address($tokens.debtToken)).symbol(),
+      IERC20Metadata(address($tokens.debtToken)).decimals(),
+      address($tokens.debtToken)
+    );
+    console.log(
+      "> ",
+      IERC20Metadata(address($tokens.collateralToken)).symbol(),
+      IERC20Metadata(address($tokens.collateralToken)).decimals(),
+      address($tokens.collateralToken)
+    );
+    console.log();
+  }
+
+  function printLiquityAddresses() public view {
+    console.log("===== Liquity Deployment addresses =====");
+    console.log("> addressesRegistry:", address($liquity.addressesRegistry));
+    console.log("> borrowerOperations:", address($liquity.borrowerOperations));
+    console.log("> sortedTroves:", address($liquity.sortedTroves));
+    console.log("> activePool:", address($liquity.activePool));
+    console.log("> stabilityPool:", address($liquity.stabilityPool));
+    console.log("> troveManager:", address($liquity.troveManager));
+    console.log("> troveNFT:", address($liquity.troveNFT));
+    console.log("> priceFeed:", address($liquity.priceFeed));
+    console.log("> interestRouter:", address($liquity.interestRouter));
+    console.log("> collToken:", address($liquity.collToken));
+    console.log("> systemParams:", address($liquity.systemParams));
+    console.log();
+  }
 }
