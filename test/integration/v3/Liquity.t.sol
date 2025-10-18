@@ -65,6 +65,6 @@ contract Liquity is LiquityDeployer, TokenDeployer {
 
     console.log("troves count:", troveManager.getTroveIdsCount());
     console.log("debt token balance of A:", $tokens.debtToken.balanceOf(A));
-    // console.log("gas pool balance:", collateralToken.balanceOf(address($liquity.pools.gasPool)));
+    console.log("gas pool balance:", collateralToken.balanceOf(address($liquityInternalPools.gasPool)));
   }
 }
