@@ -169,6 +169,12 @@ contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
   }
 
   /// @inheritdoc IStableTokenV3
+  function burn(address account, uint256 value) external onlyBurner returns (bool) {
+    _burn(account, value);
+    return true;
+  }
+
+  /// @inheritdoc IStableTokenV3
   function sendToPool(address _sender, address _poolAddress, uint256 _amount) external onlyOperator {
     _transfer(_sender, _poolAddress, _amount);
   }
