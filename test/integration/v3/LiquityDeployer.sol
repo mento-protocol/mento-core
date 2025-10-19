@@ -43,9 +43,10 @@ import { FXPriceFeed } from "bold/src/PriceFeeds/FXPriceFeed.sol";
 import { MockInterestRouter } from "bold/test/TestContracts/MockInterestRouter.sol";
 
 import { TestStorage } from "./TestStorage.sol";
+import { LiquityHelpers } from "./LiquityHelpers.sol";
 import "bold/src/Dependencies/Constants.sol";
 
-contract LiquityDeployer is TestStorage {
+contract LiquityDeployer is TestStorage, LiquityHelpers {
   bytes32 constant SALT = keccak256("LiquityV2");
 
   struct LiquityPools {
@@ -160,6 +161,7 @@ contract LiquityDeployer is TestStorage {
   function getBytecode(bytes memory _creationCode, address _addressesRegistry) public pure returns (bytes memory) {
     return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry));
   }
+
   function getBytecode(
     bytes memory _creationCode,
     address _addressesRegistry,
@@ -167,9 +169,11 @@ contract LiquityDeployer is TestStorage {
   ) public pure returns (bytes memory) {
     return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry, _systemParams));
   }
+
   function getBytecode(bytes memory _creationCode, bool _disable) public pure returns (bytes memory) {
     return abi.encodePacked(_creationCode, abi.encode(_disable));
   }
+
   function getBytecode(
     bytes memory _creationCode,
     bool _disable,
@@ -177,11 +181,13 @@ contract LiquityDeployer is TestStorage {
   ) public pure returns (bytes memory) {
     return abi.encodePacked(_creationCode, abi.encode(_disable, _systemParams));
   }
+
   function getAddress(address _deployer, bytes memory _bytecode, bytes32 _salt) public pure returns (address) {
     bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), _deployer, _salt, keccak256(_bytecode)));
     // NOTE: cast last 20 bytes of hash to address
     return address(uint160(uint256(hash)));
   }
+
   function deployAndConnectContracts(
     IStableTokenV3 debtToken,
     IERC20Metadata collateralToken
@@ -208,6 +214,7 @@ contract LiquityDeployer is TestStorage {
         })
       );
   }
+
   function deployAndConnectContracts(
     IStableTokenV3 debtToken,
     IERC20Metadata collateralToken,
@@ -231,6 +238,7 @@ contract LiquityDeployer is TestStorage {
     );
     contracts = contractsArray[0];
   }
+
   function deployAndConnectContractsMultiColl(
     IStableTokenV3 debtToken,
     IERC20Metadata collateralToken,

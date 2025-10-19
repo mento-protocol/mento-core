@@ -9,7 +9,7 @@ contract ReserveFPMM is IntegrationTest {
     _mintReserveCollateralToken(reserveMultisig, 10_000_000e6);
     _mintCollateralToken(reserveMultisig, 10_000_000e18);
 
-    _provideLiquidityToOneToOneFPMM(reserveMultisig, 10_000_000e6, 5_000_000e18);
+    _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, 10_000_000e6, 5_000_000e18);
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
 
     // amountGivenToPool: 2506265664160
@@ -24,7 +24,7 @@ contract ReserveFPMM is IntegrationTest {
     _mintReserveCollateralToken(reserveMultisig, 10_000_000e6);
     _mintCollateralToken(reserveMultisig, 10_000_000e18);
 
-    _provideLiquidityToOneToOneFPMM(reserveMultisig, 5_000_000e6, 10_000_000e18);
+    _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, 5_000_000e6, 10_000_000e18);
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
 
     // amountTakenFromPool: 2506265664160401002506265
@@ -39,7 +39,7 @@ contract ReserveFPMM is IntegrationTest {
     _mintReserveCollateralToken(reserveMultisig, 10_000_000e6);
     _mintCollateralToken(reserveMultisig, 10_000_000e18);
 
-    _provideLiquidityToOneToOneFPMM(reserveMultisig, 5_000_000e6, 10_000_000e18);
+    _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, 5_000_000e6, 10_000_000e18);
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
 
     // amountGivenToPool: 1_000_000e6 (reserve0)
@@ -58,9 +58,9 @@ contract ReserveFPMM is IntegrationTest {
 
     bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.debtToken);
     if (isDebtToken0) {
-      _provideLiquidityToOneToOneFPMM(reserveMultisig, fpmmDebt, fpmmColl);
+      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
     } else {
-      _provideLiquidityToOneToOneFPMM(reserveMultisig, fpmmColl, fpmmDebt);
+      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmColl, fpmmDebt);
     }
 
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmReserve);
@@ -124,9 +124,9 @@ contract ReserveFPMM is IntegrationTest {
 
     bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.debtToken);
     if (isDebtToken0) {
-      _provideLiquidityToOneToOneFPMM(reserveMultisig, fpmmDebt, fpmmColl);
+      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
     } else {
-      _provideLiquidityToOneToOneFPMM(reserveMultisig, fpmmColl, fpmmDebt);
+      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmColl, fpmmDebt);
     }
 
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmReserve);

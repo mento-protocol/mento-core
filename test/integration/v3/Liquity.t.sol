@@ -23,38 +23,33 @@ contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDep
   function test_deployLiquity() public {
     _deployLiquity();
 
-    ITroveManager troveManager = ITroveManager(address($liquity.troveManager));
-    IStableTokenV3 collateralToken = $tokens.collateralToken;
-    IBorrowerOperations borrowerOperations = IBorrowerOperations(address($liquity.borrowerOperations));
-    ISystemParams systemParams = ISystemParams(address($liquity.systemParams));
-
-    uint256 trovesCount = troveManager.getTroveIdsCount();
+    uint256 trovesCount = $liquity.troveManager.getTroveIdsCount();
     assertEq(trovesCount, 0);
 
     address A = makeAddr("A");
     uint256 mintAmount = 10_000e18;
 
-    assertEq(collateralToken.balanceOf(A), 0);
+    assertEq($tokens.collateralToken.balanceOf(A), 0);
 
     vm.startPrank($addresses.governance);
-    collateralToken.setMinter(address(this), true);
+    $tokens.collateralToken.setMinter(address(this), true);
     vm.stopPrank();
 
     $tokens.collateralToken.mint(A, mintAmount);
-    assertEq(collateralToken.balanceOf(A), mintAmount);
+    assertEq($tokens.collateralToken.balanceOf(A), mintAmount);
 
     console.log("> attempt to open trove");
 
     vm.startPrank(A);
-    collateralToken.approve(address(borrowerOperations), mintAmount);
-    borrowerOperations.openTrove(
+    $tokens.collateralToken.approve(address($liquity.borrowerOperations), mintAmount);
+    $liquity.borrowerOperations.openTrove(
       A,
       0,
       200e18,
       200e18,
       0,
       0,
-      systemParams.MIN_ANNUAL_INTEREST_RATE(),
+      $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(),
       1000e18,
       address(0),
       address(0),
@@ -62,10 +57,10 @@ contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDep
     );
     vm.stopPrank();
 
-    assertEq(troveManager.getTroveIdsCount(), 1);
+    assertEq($liquity.troveManager.getTroveIdsCount(), 1);
 
-    console.log("troves count:", troveManager.getTroveIdsCount());
+    console.log("troves count:", $liquity.troveManager.getTroveIdsCount());
     console.log("debt token balance of A:", $tokens.debtToken.balanceOf(A));
-    console.log("gas pool balance:", collateralToken.balanceOf(address($liquityInternalPools.gasPool)));
+    console.log("gas pool balance:", $tokens.collateralToken.balanceOf(address($liquityInternalPools.gasPool)));
   }
 }

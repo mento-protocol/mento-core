@@ -119,4 +119,16 @@ contract TokenDeployer is TestStorage {
 
     require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint collateral token failed");
   }
+
+  function _mintDebtToken(address targetAddress, uint256 amount) internal {
+    require($tokens.deployed, "TOKEN_DEPLOYER: tokens not deployed");
+
+    vm.startPrank(address($liquity.borrowerOperations));
+    uint256 balanceBefore = $tokens.debtToken.balanceOf(targetAddress);
+    $tokens.debtToken.mint(targetAddress, amount);
+    uint256 balanceAfter = $tokens.debtToken.balanceOf(targetAddress);
+    vm.stopPrank();
+
+    require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint debt token failed");
+  }
 }

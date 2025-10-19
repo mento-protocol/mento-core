@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
+import { ILiquidityStrategy } from "./ILiquidityStrategy.sol";
+
 /**
  * @title ICDPLiquidityStrategy
  * @notice Interface for liquidity strategy that uses CDP (Collateralized Debt Position) protocols
  * @dev This strategy integrates with stability pools for expansions and redemption mechanisms for contractions
  */
-interface ICDPLiquidityStrategy {
+interface ICDPLiquidityStrategy is ILiquidityStrategy {
   /* ============================================================ */
   /* ======================== Errors ============================ */
   /* ============================================================ */

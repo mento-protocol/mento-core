@@ -42,7 +42,7 @@ contract IntegrationTest is
     _configureCDPLiquidityStrategy({
       cooldown: 60,
       incentiveBps: 50,
-      stabilityPoolPercentage: 900, // 90%
+      stabilityPoolPercentage: 9000, // 90%
       maxIterations: 100
     });
     _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
