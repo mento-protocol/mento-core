@@ -11,6 +11,8 @@ import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
 import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 
+import { console } from "forge-std/console.sol";
+
 contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeployer, FPMMDeployer, LiquityDeployer {
   address reserveMultisig = makeAddr("reserveMultisig");
 
@@ -27,6 +29,8 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
       maxIterations: 100
     });
     _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
+    // skip 20 days to allow the base rate to decay
+    skip(20 days);
   }
 
   function test_expansion() public {
@@ -49,7 +53,7 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
     assertEq(fpmmCollAfter, 10_000_000e18 - uint256(997493734335839598997493 * 2 * 10000) / 9950 - 1);
   }
 
-  function test_clampedExpansion() public {
+  function test_clampedExpansion3() public {
     // Price is 2:1
     _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
     _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // EUR.m
@@ -69,39 +73,73 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
     assertEq(fpmmCollAfter, 10_000_000e18 - uint256(450000000000000000000000 * 2 * 10000) / 9950);
   }
 
-  function test_contraction3() public {
+  function test_clampedContraction() public {
     // Price is 2:1
     _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
-    _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // EUR.m
-    skip(10 days);
-    _redeemCollateral(100, reserveMultisig);
-    _openDemoTroves(10_000_000e18, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e14, reserveMultisig, 10);
+    _openDemoTroves(11_000_000e18, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e14, reserveMultisig, 10);
 
-    console.log("balance of cdp debt token", $tokens.cdpDebtToken.balanceOf(reserveMultisig));
-    console.log("total supply of cdp debt token", $tokens.cdpDebtToken.totalSupply());
-    console.log(
-      "$tokens.cdpDebtToken.isBurner(address($collateralRegistry))",
-      $tokens.cdpDebtToken.isBurner(address($collateralRegistry))
-    );
+    // price is 10:3 below oracle price
+    _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 10_000_000e18, 3_000_000e18);
 
-    skip(10 days);
-    // FPMMPrices memory pricesBeforeRedeem = _snapshotPrices($fpmm.fpmmCDP);
-    _redeemCollateral(1, reserveMultisig);
+    FPMMPrices memory pricesBeforeRebalance = _snapshotPrices($fpmm.fpmmCDP);
 
-    console.log("reserves after redeem");
-    console.log("t0", $fpmm.fpmmCDP.reserve0());
-    console.log("t1", $fpmm.fpmmCDP.reserve1());
+    uint256 expectedDebtToRedeem = ($tokens.cdpDebtToken.totalSupply() * 25) / 10_000;
 
-    // skip(10 days);
-    // _redeemCollateral(1, reserveMultisig);
+    uint256 expectedRedemptionFee = $collateralRegistry.getRedemptionRateForRedeemedAmount(expectedDebtToRedeem);
 
-    // skip(10 days);
-    // _redeemCollateral(1, reserveMultisig);
-
-    // skip(10 days);
-
-    FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+    uint256 expectedCollInflow = (expectedDebtToRedeem *
+      (1e18 - expectedRedemptionFee) *
+      pricesBeforeRebalance.oraclePriceNumerator) / (pricesBeforeRebalance.oraclePriceDenominator * 1e18);
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
+
+    FPMMPrices memory pricesAfterRebalance = _snapshotPrices($fpmm.fpmmCDP);
+
+    // base rate has decayed to min 0.25% so the amount redeemed is equal to 0.25% of the total supply.
+    // in order for the total redemption fee to be equal to the incentive( 0.50%)
+    uint256 reserveDebtOutflow = pricesBeforeRebalance.reservePriceDenominator -
+      pricesAfterRebalance.reservePriceDenominator;
+
+    uint256 reserveCollInflow = pricesAfterRebalance.reservePriceNumerator -
+      pricesBeforeRebalance.reservePriceNumerator;
+
+    assertEq(reserveDebtOutflow, expectedDebtToRedeem);
+    assertEq(reserveCollInflow, expectedCollInflow);
+    assertLt(pricesAfterRebalance.priceDifference, pricesBeforeRebalance.priceDifference);
+  }
+
+  function test_clampedContraction() public {
+    // Price is 2:1
+    _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
+    _openDemoTroves(11_000_000e18, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e14, reserveMultisig, 10);
+
+    // price is 10:3 below oracle price
+    _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 10_000_000e18, 3_000_000e18);
+
+    FPMMPrices memory pricesBeforeRebalance = _snapshotPrices($fpmm.fpmmCDP);
+
+    uint256 expectedDebtToRedeem = ($tokens.cdpDebtToken.totalSupply() * 25) / 10_000;
+
+    uint256 expectedRedemptionFee = $collateralRegistry.getRedemptionRateForRedeemedAmount(expectedDebtToRedeem);
+
+    uint256 expectedCollInflow = (expectedDebtToRedeem *
+      (1e18 - expectedRedemptionFee) *
+      pricesBeforeRebalance.oraclePriceNumerator) / (pricesBeforeRebalance.oraclePriceDenominator * 1e18);
+
+    $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
+
+    FPMMPrices memory pricesAfterRebalance = _snapshotPrices($fpmm.fpmmCDP);
+
+    // base rate has decayed to min 0.25% so the amount redeemed is equal to 0.25% of the total supply.
+    // in order for the total redemption fee to be equal to the incentive( 0.50%)
+    uint256 reserveDebtOutflow = pricesBeforeRebalance.reservePriceDenominator -
+      pricesAfterRebalance.reservePriceDenominator;
+
+    uint256 reserveCollInflow = pricesAfterRebalance.reservePriceNumerator -
+      pricesBeforeRebalance.reservePriceNumerator;
+
+    assertEq(reserveDebtOutflow, expectedDebtToRedeem);
+    assertEq(reserveCollInflow, expectedCollInflow);
+    assertLt(pricesAfterRebalance.priceDifference, pricesBeforeRebalance.priceDifference);
   }
 }
