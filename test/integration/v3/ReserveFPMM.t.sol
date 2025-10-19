@@ -44,7 +44,7 @@ contract ReserveFPMM is IntegrationTest {
 
     // amountGivenToPool: 1_000_000e6 (reserve0)
     // amountTakenFromPool: 1_000_000 * 1e18 * 10000 / 9950 = 1005025125628140703517587
-    assertEq($fpmm.fpmmReserve.reserve0(), 6_000_000e6);
+    assertEq($fpmm.fpmmReserve.reserve0(), 5_000_000e6 + 1_000_000e6);
     assertEq($fpmm.fpmmReserve.reserve1(), 10_000_000e18 - 1005025125628140703517587);
   }
 
@@ -74,6 +74,9 @@ contract ReserveFPMM is IntegrationTest {
     assertGt(reserveBalanceAfter, reserveBalanceBefore, "Reserve should have more collateral");
     assertEq(pricesAfter.priceDifference, 0, "Expansion should always rebalance perfectly");
 
+    assertGt(usdmTotalSupplyAfter, usdmTotalSupplyBefore, "USD.m should be minted");
+    uint256 usdmTotalSupplyDelta = usdmTotalSupplyAfter - usdmTotalSupplyBefore;
+
     if (isDebtToken0) {
       assertGt(
         pricesAfter.reservePriceDenominator,
@@ -84,6 +87,11 @@ contract ReserveFPMM is IntegrationTest {
         pricesAfter.reservePriceNumerator,
         pricesBefore.reservePriceNumerator,
         "There should be less of asset1 (coll)"
+      );
+      assertEq(
+        pricesAfter.reservePriceDenominator - pricesBefore.reservePriceDenominator,
+        usdmTotalSupplyDelta,
+        "Minted amount should equal reserve delta"
       );
     } else {
       assertLt(
@@ -96,9 +104,12 @@ contract ReserveFPMM is IntegrationTest {
         pricesBefore.reservePriceNumerator,
         "There should be more of asset1 (debt)"
       );
+      assertEq(
+        pricesAfter.reservePriceNumerator - pricesBefore.reservePriceNumerator,
+        usdmTotalSupplyDelta,
+        "Minted amount should equal reserve delta"
+      );
     }
-
-    assertGt(usdmTotalSupplyAfter, usdmTotalSupplyBefore, "USD.m should be minted");
   }
 
   function testFuzz_contraction(uint256 fpmmDebt, uint256 fpmmColl, uint256 reserveColl) public {
@@ -132,6 +143,8 @@ contract ReserveFPMM is IntegrationTest {
     } else {
       assertLt(pricesAfter.priceDifference, pricesBefore.priceDifference, "Countration should reduce price difference");
     }
+    assertLt(usdmTotalSupplyAfter, usdmTotalSupplyBefore, "USD.m should be burned");
+    uint256 usdmTotalSupplyDelta = usdmTotalSupplyBefore - usdmTotalSupplyAfter;
 
     if (isDebtToken0) {
       assertLt(
@@ -144,6 +157,11 @@ contract ReserveFPMM is IntegrationTest {
         pricesBefore.reservePriceNumerator,
         "There should be more of asset1 (coll)"
       );
+      assertEq(
+        pricesBefore.reservePriceDenominator - pricesAfter.reservePriceDenominator,
+        usdmTotalSupplyDelta,
+        "Burned amount should equal reserve delta"
+      );
     } else {
       assertGt(
         pricesAfter.reservePriceDenominator,
@@ -155,9 +173,12 @@ contract ReserveFPMM is IntegrationTest {
         pricesBefore.reservePriceNumerator,
         "There should be less of asset1 (debt)"
       );
+      assertEq(
+        pricesBefore.reservePriceNumerator - pricesAfter.reservePriceNumerator,
+        usdmTotalSupplyDelta,
+        "Burned amount should equal reserve delta"
+      );
     }
-
-    assertLt(usdmTotalSupplyAfter, usdmTotalSupplyBefore, "USD.m should be burned");
   }
 
   function _isDebtToken0() internal view returns (bool) {}
