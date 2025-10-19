@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.24;
 
-import { console } from "forge-std/console.sol";
 import { TokenDeployer } from "test/integration/v3/TokenDeployer.sol";
 import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
@@ -63,7 +62,6 @@ abstract contract ReserveFPMM_BaseTest is
 
     uint256 fpmmDebt = 10_000_000e18;
     uint256 fpmmColl = 5_000_000e6;
-    bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.resDebtToken);
     _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
 
@@ -87,7 +85,6 @@ abstract contract ReserveFPMM_BaseTest is
     _mintResDebtToken(reserveMultisig, 10_000_000e18);
     uint256 fpmmDebt = 10_000_000e18;
     uint256 fpmmColl = 5_000_000e6;
-    bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.resDebtToken);
     _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
 

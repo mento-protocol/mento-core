@@ -46,7 +46,7 @@ abstract contract LiquityHelpers is TestStorage {
     for (uint256 i = 0; i < numberOfTroves; i++) {
       vm.startPrank(_owner);
       $tokens.cdpCollToken.approve(address($liquity.borrowerOperations), collAmountPerTroveWithGasCompensation);
-      uint256 troveId = _openTrove(_owner, i, collAmountPerTrove, debtPerTrove, _startingInterestRate);
+      _openTrove(_owner, i, collAmountPerTrove, debtPerTrove, _startingInterestRate);
       vm.stopPrank();
       _startingInterestRate += _interestRateSteps;
     }

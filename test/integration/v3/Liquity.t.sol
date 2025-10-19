@@ -7,11 +7,6 @@ import { TokenDeployer } from "test/integration/v3/TokenDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
 import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
-import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
-
-import { ITroveManager } from "bold/src/Interfaces/ITroveManager.sol";
-import { IBorrowerOperations } from "bold/src/Interfaces/IBorrowerOperations.sol";
-import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
 contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDeployer, TokenDeployer {
   function setUp() public {
