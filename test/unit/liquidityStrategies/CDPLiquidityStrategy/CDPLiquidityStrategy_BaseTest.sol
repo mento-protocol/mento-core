@@ -116,6 +116,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    */
   function setStabilityPoolBalance(address token, uint256 balance) internal {
     deal(token, address(mockStabilityPool), balance);
+    mockStabilityPool.setTotalBoldDeposits(balance);
   }
 
   /**
