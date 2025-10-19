@@ -12,6 +12,7 @@ import { IFPMM } from "../interfaces/IFPMM.sol";
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
 
+import { console } from "forge-std/console.sol";
 /**
  * @title LiquidityStrategy
  * @notice Base liquidity strategy which determines the current state of the pool in contrast
@@ -310,7 +311,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       LQ.BASIS_POINTS_DENOMINATOR;
 
     uint256 token0Out = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token0Dec);
-
+    console.log("token0Out", token0Out);
     uint256 token1In = LQ.convertWithRateScalingAndFee(
       token0Out,
       ctx.token0Dec,
