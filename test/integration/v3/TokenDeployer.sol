@@ -76,7 +76,7 @@ contract TokenDeployer is TestStorage {
       addresses
     );
     $tokens.debtToken = IStableTokenV3(targetAddress);
-    vm.label(targetAddress, "JPY.m");
+    vm.label(targetAddress, "EUR.m");
     _debtTokenDeployed = true;
     _checkAllTokensDeployed();
   }
