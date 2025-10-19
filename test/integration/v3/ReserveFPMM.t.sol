@@ -180,6 +180,4 @@ contract ReserveFPMM is IntegrationTest {
       );
     }
   }
-
-  function _isDebtToken0() internal view returns (bool) {}
 }
