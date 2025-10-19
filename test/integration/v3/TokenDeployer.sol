@@ -55,6 +55,12 @@ contract TokenDeployer is TestStorage {
     );
     $tokens.resDebtToken = IStableTokenV3(targetAddress);
     $tokens.cdpCollToken = IStableTokenV3(targetAddress);
+
+    // Set the governance address as a minter for the Reserve Debt Token for easier testing
+    vm.startPrank($addresses.governance);
+    $tokens.cdpCollToken.setMinter(address($addresses.governance), true);
+    vm.stopPrank();
+
     vm.label(targetAddress, "USD.m");
 
     _resDebtTokenDeployed = true;

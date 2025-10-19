@@ -38,26 +38,14 @@ contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDep
     $tokens.cdpCollToken.mint(A, mintAmount);
     assertEq($tokens.cdpCollToken.balanceOf(A), mintAmount);
 
-    console.log("> attempt to open trove");
+    _openDemoTroves(200_000e18, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e15, A, 50);
 
-    vm.startPrank(A);
-    $tokens.cdpCollToken.approve(address($liquity.borrowerOperations), mintAmount);
-    $liquity.borrowerOperations.openTrove(
-      A,
-      0,
-      200e18,
-      200e18,
-      0,
-      0,
-      $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(),
-      1000e18,
-      address(0),
-      address(0),
-      address(0)
+    assertEq($liquity.troveManager.getTroveIdsCount(), 50);
+    assertEq($tokens.cdpDebtToken.balanceOf(A), 200_000e18);
+    assertEq(
+      $tokens.cdpCollToken.balanceOf(address($liquityInternalPools.gasPool)),
+      50 * $liquity.systemParams.ETH_GAS_COMPENSATION()
     );
-    vm.stopPrank();
-
-    assertEq($liquity.troveManager.getTroveIdsCount(), 1);
 
     console.log("troves count:", $liquity.troveManager.getTroveIdsCount());
     console.log("debt token balance of A:", $tokens.cdpDebtToken.balanceOf(A));
