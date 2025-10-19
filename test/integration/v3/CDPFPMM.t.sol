@@ -2,16 +2,11 @@
 
 pragma solidity 0.8.24;
 
-import { console } from "forge-std/console.sol";
-import { IntegrationTest } from "./Integration.t.sol";
 import { TokenDeployer } from "test/integration/v3/TokenDeployer.sol";
 import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
-import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
-
-import { console } from "forge-std/console.sol";
 
 contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeployer, FPMMDeployer, LiquityDeployer {
   address reserveMultisig = makeAddr("reserveMultisig");
@@ -43,8 +38,6 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
     vm.prank(reserveMultisig);
     $liquity.stabilityPool.provideToSP(5_000_000e18, false);
 
-    (uint256 fpmmDebtBefore, uint256 fpmmCollBefore) = _fpmmReserves($fpmm.fpmmCDP);
-
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
     (uint256 fpmmDebtAfter, uint256 fpmmCollAfter) = _fpmmReserves($fpmm.fpmmCDP);
@@ -65,8 +58,6 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
 
     vm.prank(reserveMultisig);
     $liquity.stabilityPool.provideToSP(500_000e18, false);
-
-    (uint256 fpmmDebtBefore, uint256 fpmmCollBefore) = _fpmmReserves($fpmm.fpmmCDP);
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
@@ -141,7 +132,6 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
     _mintCDPDebtToken(makeAddr("alice"), targetSupply - $tokens.cdpDebtToken.totalSupply());
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
-    console.log("pricesBeforeRebalance", pricesBeforeRebalance.priceDifference);
 
     FPMMPrices memory pricesAfterRebalance = _snapshotPrices($fpmm.fpmmCDP);
     // base rate has decayed to min 0.25% so the amount redeemed is equal to 0.25% of the total supply.

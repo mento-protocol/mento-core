@@ -5,7 +5,7 @@ pragma solidity 0.8.24;
 import { TokenDeployer } from "test/integration/v3/TokenDeployer.sol";
 import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
-import { FPMMDeployer, IFPMM } from "test/integration/v3/FPMMDeployer.sol";
+import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
 
 abstract contract ReserveFPMM_BaseTest is

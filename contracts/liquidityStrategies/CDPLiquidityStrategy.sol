@@ -11,8 +11,6 @@ import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "../interfaces/ICDPLiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
 
-import { console } from "forge-std/console.sol";
-
 contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   using SafeERC20 for IERC20;
   using LQ for LQ.Context;
@@ -235,9 +233,6 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     // redemption fee is capped at 100%
     redemptionFee = redemptionFee > 1e18 ? 1e18 : redemptionFee;
 
-    console.log("redemptionFee", redemptionFee);
-
     collateralReceived = ctx.convertToCollateralWithFee(contractionAmount, 1e18 - redemptionFee, 1e18);
-    console.log("collateralReceived", collateralReceived);
   }
 }

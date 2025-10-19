@@ -5,7 +5,6 @@ pragma solidity 0.8.24;
 
 import { TestStorage } from "./TestStorage.sol";
 import { IERC20Metadata } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { console } from "forge-std/console.sol";
 
 abstract contract LiquityHelpers is TestStorage {
   struct TroveSetup {
