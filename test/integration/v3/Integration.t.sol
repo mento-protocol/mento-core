@@ -17,15 +17,6 @@ contract IntegrationTest is
 {
   address reserveMultisig = makeAddr("reserveMultisig");
 
-  struct FPMMPrices {
-    uint256 oraclePriceNumerator;
-    uint256 oraclePriceDenominator;
-    uint256 reservePriceNumerator;
-    uint256 reservePriceDenominator;
-    uint256 priceDifference;
-    bool reservePriceAboveOraclePrice;
-  }
-
   function setUp() public {
     // ReserveFPMM:  token0 = USDC, token1 = USD.m
     // CDPFPMM:      token0 = EUR.m, token1 = USD.m
@@ -56,16 +47,5 @@ contract IntegrationTest is
 
     assertEq($fpmm.fpmmReserve.token0(), address($tokens.resCollToken), "ReserveFPMM token0 mismatch");
     assertEq($fpmm.fpmmReserve.token1(), address($tokens.resDebtToken), "ReserveFPMM token1 mismatch");
-  }
-
-  function _snapshotPrices(IFPMM fpmm) internal returns (FPMMPrices memory prices) {
-    (
-      prices.oraclePriceNumerator,
-      prices.oraclePriceDenominator,
-      prices.reservePriceNumerator,
-      prices.reservePriceDenominator,
-      prices.priceDifference,
-      prices.reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
   }
 }

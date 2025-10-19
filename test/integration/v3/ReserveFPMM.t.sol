@@ -17,26 +17,6 @@ abstract contract ReserveFPMM_BaseTest is
 {
   address reserveMultisig = makeAddr("reserveMultisig");
 
-  struct FPMMPrices {
-    uint256 oraclePriceNumerator;
-    uint256 oraclePriceDenominator;
-    uint256 reservePriceNumerator;
-    uint256 reservePriceDenominator;
-    uint256 priceDifference;
-    bool reservePriceAboveOraclePrice;
-  }
-
-  function _snapshotPrices(IFPMM fpmm) internal returns (FPMMPrices memory prices) {
-    (
-      prices.oraclePriceNumerator,
-      prices.oraclePriceDenominator,
-      prices.reservePriceNumerator,
-      prices.reservePriceDenominator,
-      prices.priceDifference,
-      prices.reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
-  }
-
   function test_expansion() public {
     _mintResCollToken(reserveMultisig, 10_000_000e6);
     _mintResDebtToken(reserveMultisig, 10_000_000e18);

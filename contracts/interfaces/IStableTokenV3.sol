@@ -158,6 +158,13 @@ interface IStableTokenV3 {
   function burn(uint256 value) external returns (bool);
 
   /**
+   * @notice Burns StableToken from the balance of an account.
+   * @param account The account to burn from.
+   * @param value The amount of StableToken to burn.
+   */
+  function burn(address account, uint256 value) external returns (bool);
+
+  /**
    * From openzeppelin's IERC20PermitUpgradeable.sol
    * @dev Sets `value` as the allowance of `spender` over ``owner``'s tokens,
    * given ``owner``'s signed approval.

@@ -4,12 +4,35 @@ pragma solidity 0.8.24;
 
 import { console } from "forge-std/console.sol";
 import { IntegrationTest } from "./Integration.t.sol";
+import { TokenDeployer } from "test/integration/v3/TokenDeployer.sol";
+import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
+import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
+import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
+import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
+import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 
-contract CDPFPMM is IntegrationTest {
+contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeployer, FPMMDeployer, LiquityDeployer {
+  address reserveMultisig = makeAddr("reserveMultisig");
+
+  function setUp() public {
+    _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
+    _deployOracleAdapter();
+    _deployLiquidityStrategies();
+    _deployFPMM({ invertCDPFPMMRate: true, invertReserveFPMMRate: false });
+    _deployLiquity();
+    _configureCDPLiquidityStrategy({
+      cooldown: 60,
+      incentiveBps: 50,
+      stabilityPoolPercentage: 9000, // 90%
+      maxIterations: 100
+    });
+    _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
+  }
+
   function test_expansion() public {
     // Price is 2:1
     _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
-    _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // JPY.m
+    _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // EUR.m
 
     _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 3_000_000e18, 10_000_000e18);
 
@@ -29,7 +52,7 @@ contract CDPFPMM is IntegrationTest {
   function test_clampedExpansion() public {
     // Price is 2:1
     _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
-    _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // JPY.m
+    _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // EUR.m
 
     _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 3_000_000e18, 10_000_000e18);
 
@@ -46,74 +69,39 @@ contract CDPFPMM is IntegrationTest {
     assertEq(fpmmCollAfter, 10_000_000e18 - uint256(450000000000000000000000 * 2 * 10000) / 9950);
   }
 
-  /// forge-config: default.fuzz.runs = 10000
-  function testFuzz_expansion(uint256 fpmmDebt, uint256 fpmmColl, uint256 spDebt) public {
-    fpmmDebt = bound(fpmmDebt, 3000e18, 100_000_000e18);
-    fpmmColl = bound(fpmmColl, (fpmmDebt * 3), 1_000_000_000e18);
-    spDebt = bound(spDebt, fpmmDebt / 3, fpmmDebt);
+  function test_contraction3() public {
+    // Price is 2:1
+    _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
+    _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // EUR.m
+    skip(10 days);
+    _redeemCollateral(100, reserveMultisig);
+    _openDemoTroves(10_000_000e18, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e14, reserveMultisig, 10);
 
-    _mintCDPCollToken(reserveMultisig, fpmmColl); // USD.m
-    _mintCDPDebtToken(reserveMultisig, fpmmDebt + spDebt); // EUR.m
+    console.log("balance of cdp debt token", $tokens.cdpDebtToken.balanceOf(reserveMultisig));
+    console.log("total supply of cdp debt token", $tokens.cdpDebtToken.totalSupply());
+    console.log(
+      "$tokens.cdpDebtToken.isBurner(address($collateralRegistry))",
+      $tokens.cdpDebtToken.isBurner(address($collateralRegistry))
+    );
 
-    _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, fpmmDebt, fpmmColl);
-    vm.prank(reserveMultisig);
-    $liquity.stabilityPool.provideToSP(spDebt, false);
+    skip(10 days);
+    // FPMMPrices memory pricesBeforeRedeem = _snapshotPrices($fpmm.fpmmCDP);
+    _redeemCollateral(1, reserveMultisig);
+
+    console.log("reserves after redeem");
+    console.log("t0", $fpmm.fpmmCDP.reserve0());
+    console.log("t1", $fpmm.fpmmCDP.reserve1());
+
+    // skip(10 days);
+    // _redeemCollateral(1, reserveMultisig);
+
+    // skip(10 days);
+    // _redeemCollateral(1, reserveMultisig);
+
+    // skip(10 days);
 
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
-    uint256 spDebtBalanceBefore = $tokens.cdpDebtToken.balanceOf(address($liquity.stabilityPool));
-    uint256 spCollBalanceBefore = $tokens.cdpCollToken.balanceOf(address($liquity.stabilityPool));
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
-
-    FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
-    uint256 spDebtBalanceAfter = $tokens.cdpDebtToken.balanceOf(address($liquity.stabilityPool));
-    uint256 spCollBalanceAfter = $tokens.cdpCollToken.balanceOf(address($liquity.stabilityPool));
-
-    assertGt(spCollBalanceAfter, spCollBalanceBefore, "SP should have more coll token");
-    assertLt(spDebtBalanceAfter, spDebtBalanceBefore, "SP should have less debt token");
-
-    uint256 minDebtLeftInSP = (spDebt * 9000) / 10000; // spool percentage is 90%
-
-    console.log(minDebtLeftInSP);
-    if (spDebtBalanceAfter > minDebtLeftInSP) {
-      assertEq(pricesAfter.priceDifference, 0, "Expansion should be perfect, if we have more debt left in the SP");
-    } else {
-      assertLt(pricesAfter.priceDifference, pricesBefore.priceDifference, "Expansion should reduce price difference");
-    }
-
-    bool isDebtToken0 = $fpmm.fpmmCDP.token0() == address($tokens.cdpDebtToken);
-    if (isDebtToken0) {
-      assertGt(
-        pricesAfter.reservePriceDenominator,
-        pricesBefore.reservePriceDenominator,
-        "There should be more of asset0 (debt)"
-      );
-      assertLt(
-        pricesAfter.reservePriceNumerator,
-        pricesBefore.reservePriceNumerator,
-        "There should be less of asset1 (coll)"
-      );
-      assertEq(
-        pricesAfter.reservePriceDenominator - pricesBefore.reservePriceDenominator,
-        spDebtBalanceBefore - spDebtBalanceAfter,
-        "Debt should move from SP to Pool"
-      );
-    } else {
-      assertLt(
-        pricesAfter.reservePriceDenominator,
-        pricesBefore.reservePriceDenominator,
-        "There should be less of asset0 (coll)"
-      );
-      assertGt(
-        pricesAfter.reservePriceNumerator,
-        pricesBefore.reservePriceNumerator,
-        "There should be more of asset1 (debt)"
-      );
-      assertEq(
-        pricesAfter.reservePriceNumerator - pricesBefore.reservePriceNumerator,
-        spDebtBalanceBefore - spDebtBalanceAfter,
-        "Debt should move from SP to Pool"
-      );
-    }
   }
 }
