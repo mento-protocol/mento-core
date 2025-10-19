@@ -85,21 +85,41 @@ contract FPMMDeployer is TestStorage {
     $fpmm.fpmmReserve.setLiquidityStrategy(address($liquidityStrategies.reserveLiquidityStrategy), true);
     vm.stopPrank();
     vm.label(address($fpmm.fpmmReserve), "FPMMReserve");
+
+    $fpmm.isToken0DebtInCDPFPMM = $fpmm.fpmmCDP.token0() == address($tokens.cdpDebtToken);
+    $fpmm.isToken0DebtInResFPMM = $fpmm.fpmmReserve.token0() == address($tokens.resDebtToken);
+
     $fpmm.deployed = true;
   }
 
-  function _provideLiquidityToFPMM(IFPMM fpmm, address provider, uint256 amount0, uint256 amount1) internal {
+  function _fpmmTokens(IFPMM fpmm) internal view returns (address debtToken, address collToken) {
+    if (address(fpmm) == address($fpmm.fpmmReserve)) {
+      return (address($tokens.resDebtToken), address($tokens.resCollToken));
+    } else if (address(fpmm) == address($fpmm.fpmmCDP)) {
+      return (address($tokens.cdpDebtToken), address($tokens.cdpCollToken));
+    }
+  }
+
+  function _fpmmReserves(IFPMM fpmm) internal view returns (uint256 debtAmount, uint256 collAmount) {
+    (address debtToken, ) = _fpmmTokens(fpmm);
+    if (debtToken == fpmm.token0()) {
+      return (fpmm.reserve0(), fpmm.reserve1());
+    } else {
+      return (fpmm.reserve1(), fpmm.reserve0());
+    }
+  }
+
+  function _provideLiquidityToFPMM(IFPMM fpmm, address provider, uint256 debtAmount, uint256 collAmount) internal {
     vm.startPrank(provider);
 
-    address t0 = fpmm.token0();
-    address t1 = fpmm.token1();
+    (address debtToken, address collToken) = _fpmmTokens(fpmm);
 
-    if (amount0 > 0) {
-      IERC20Metadata(t0).transfer(address(fpmm), amount0);
+    if (debtAmount > 0) {
+      IERC20Metadata(debtToken).transfer(address(fpmm), debtAmount);
     }
 
-    if (amount1 > 0) {
-      IERC20Metadata(t1).transfer(address(fpmm), amount1);
+    if (collAmount > 0) {
+      IERC20Metadata(collToken).transfer(address(fpmm), collAmount);
     }
 
     uint256 lpTokensBefore = IERC20Metadata(address(fpmm)).balanceOf(provider);

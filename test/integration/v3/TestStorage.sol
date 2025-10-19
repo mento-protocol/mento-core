@@ -86,6 +86,8 @@ abstract contract TestStorage is Test {
     IProxyAdmin proxyAdmin;
     address fpmmImplementation;
     address oneToOneFPMMImplementation;
+    bool isToken0DebtInCDPFPMM;
+    bool isToken0DebtInResFPMM;
   }
 
   struct OracleDeployments {

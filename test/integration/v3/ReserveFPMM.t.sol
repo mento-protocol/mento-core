@@ -44,11 +44,7 @@ abstract contract ReserveFPMM_BaseTest is
     uint256 fpmmDebt = 5_000_000e18;
     uint256 fpmmColl = 10_000_000e6;
     bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.resDebtToken);
-    if (isDebtToken0) {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
-    } else {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmColl, fpmmDebt);
-    }
+    _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
 
     // amountGivenToPool: 2506265664160
@@ -68,19 +64,13 @@ abstract contract ReserveFPMM_BaseTest is
     uint256 fpmmDebt = 10_000_000e18;
     uint256 fpmmColl = 5_000_000e6;
     bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.resDebtToken);
-    console.log("isDebtToken0: ", isDebtToken0);
-    if (isDebtToken0) {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
-    } else {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmColl, fpmmDebt);
-    }
+    _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
 
     // amountTakenFromPool: 2506265664160401002506265
     // reserve0 = 5_000_000e6 + 2506265664160401002506265 * 9950 / 10000 / 1e12
     // reserve1 = 10_000_000e18 - 2506265664160401002506265
-    uint256 fpmmDebtAfter = isDebtToken0 ? $fpmm.fpmmReserve.reserve0() : $fpmm.fpmmReserve.reserve1();
-    uint256 fpmmCollAfter = isDebtToken0 ? $fpmm.fpmmReserve.reserve1() : $fpmm.fpmmReserve.reserve0();
+    (uint256 fpmmDebtAfter, uint256 fpmmCollAfter) = _fpmmReserves($fpmm.fpmmReserve);
     assertEq(fpmmCollAfter, 5_000_000e6 + uint256(2506265664160401002506265 * 9950) / 1e16);
     assertEq(fpmmDebtAfter, 10_000_000e18 - 2506265664160401002506265);
   }
@@ -98,17 +88,12 @@ abstract contract ReserveFPMM_BaseTest is
     uint256 fpmmDebt = 10_000_000e18;
     uint256 fpmmColl = 5_000_000e6;
     bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.resDebtToken);
-    if (isDebtToken0) {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
-    } else {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmColl, fpmmDebt);
-    }
+    _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
 
     // amountGivenToPool: 1_000_000e6 (reserve0)
     // amountTakenFromPool: 1_000_000 * 1e18 * 10000 / 9950 = 1005025125628140703517587
-    uint256 fpmmDebtAfter = isDebtToken0 ? $fpmm.fpmmReserve.reserve0() : $fpmm.fpmmReserve.reserve1();
-    uint256 fpmmCollAfter = isDebtToken0 ? $fpmm.fpmmReserve.reserve1() : $fpmm.fpmmReserve.reserve0();
+    (uint256 fpmmDebtAfter, uint256 fpmmCollAfter) = _fpmmReserves($fpmm.fpmmReserve);
     assertEq(fpmmCollAfter, 5_000_000e6 + 1_000_000e6);
     assertEq(fpmmDebtAfter, 10_000_000e18 - 1005025125628140703517587);
   }
@@ -122,11 +107,7 @@ abstract contract ReserveFPMM_BaseTest is
     _mintResDebtToken(reserveMultisig, fpmmDebt);
 
     bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.resDebtToken);
-    if (isDebtToken0) {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
-    } else {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmColl, fpmmDebt);
-    }
+    _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
 
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmReserve);
     uint256 reserveBalanceBefore = $tokens.resCollToken.balanceOf(address($liquidityStrategies.reserve));
@@ -188,11 +169,7 @@ abstract contract ReserveFPMM_BaseTest is
     _mintResCollToken(address($liquidityStrategies.reserve), reserveColl);
 
     bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.resDebtToken);
-    if (isDebtToken0) {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
-    } else {
-      _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmColl, fpmmDebt);
-    }
+    _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
 
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmReserve);
     uint256 reserveBalanceBefore = $tokens.resCollToken.balanceOf(address($liquidityStrategies.reserve));
