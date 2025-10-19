@@ -6,11 +6,6 @@ pragma solidity 0.8.24;
 import { TestStorage } from "./TestStorage.sol";
 
 abstract contract LiquityHelpers is TestStorage {
-  function _provideLiquidityToStabilityPool(address provider, uint256 debtAmount) internal {
-    vm.prank(provider);
-    $liquity.stabilityPool.provideToSP(debtAmount, false);
-  }
-
   function _openTrove(address owner, uint256 collAmount, uint256 debtAmount) internal {
     vm.startPrank(owner);
     $tokens.collateralToken.approve(address($liquity.borrowerOperations), collAmount);
