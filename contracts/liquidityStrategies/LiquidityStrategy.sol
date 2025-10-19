@@ -310,6 +310,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
       LQ.BASIS_POINTS_DENOMINATOR;
 
     uint256 token0Out = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token0Dec);
+
     uint256 token1In = LQ.convertWithRateScalingAndFee(
       token0Out,
       ctx.token0Dec,
