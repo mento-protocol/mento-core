@@ -184,7 +184,6 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    * @notice Calculates the available balance in the stability pool for rebalancing
    * @dev Takes into account minimum balance requirements and configured percentage limits
    * @param cdpConfig The CDP configuration for the pool
-   * @param debtToken The address of the debt token
    * @return availableAmount The amount of debt tokens available for expansion
    */
   function _calculateAvailableDebtInSP(CDPConfig storage cdpConfig) private view returns (uint256 availableAmount) {
