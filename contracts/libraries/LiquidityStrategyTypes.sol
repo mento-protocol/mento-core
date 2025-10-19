@@ -425,7 +425,6 @@ library LiquidityStrategyTypes {
     uint256 incentiveNum,
     uint256 incentiveDen
   ) internal pure returns (uint256) {
-    // return (amount * oracleNum * toDec * incentiveNum) / (fromDec * oracleDen * incentiveDen);
     return (amount * oracleNum).mulDiv(toDec * incentiveNum, fromDec * incentiveDen) / oracleDen;
   }
 
