@@ -3,9 +3,9 @@ pragma solidity 0.8.24;
 
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ICollateralRegistry } from "bold/Interfaces/ICollateralRegistry.sol";
-import { IStabilityPool } from "bold/Interfaces/IStabilityPool.sol";
-import { ISystemParams } from "bold/Interfaces/ISystemParams.sol";
+import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
+import { IStabilityPool } from "bold/src/Interfaces/IStabilityPool.sol";
+import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "../interfaces/ICDPLiquidityStrategy.sol";
@@ -94,7 +94,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     uint256 idealDebtToExpand,
     uint256 idealCollateralToPay
   ) internal view override returns (uint256 debtToExpand, uint256 collateralToPay) {
-    uint256 availableDebtToken = _calculateAvailableDebtInSP(cdpConfigs[ctx.pool], ctx.debtToken());
+    uint256 availableDebtToken = _calculateAvailableDebtInSP(cdpConfigs[ctx.pool]);
 
     if (idealDebtToExpand > availableDebtToken) {
       debtToExpand = availableDebtToken;
@@ -161,7 +161,11 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
       uint256 debtAmount = amount0Out > 0 ? amount0Out : amount1Out;
       address collateralRegistry = cdpConfigs[pool].collateralRegistry;
       uint256 maxIterations = cdpConfigs[pool].maxIterations;
-      ICollateralRegistry(collateralRegistry).redeemCollateral(debtAmount, maxIterations, cb.incentiveBps);
+      ICollateralRegistry(collateralRegistry).redeemCollateral(
+        debtAmount,
+        maxIterations,
+        cb.incentiveBps * BPS_TO_FEE_SCALER
+      );
 
       uint256 collateralBalance = IERC20(cb.collToken).balanceOf(address(this));
       if (collateralBalance < cb.amountOwedToPool) revert CDPLS_INSUFFICIENT_COLLATERAL_FROM_REDEMPTION();
@@ -178,14 +182,10 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    * @notice Calculates the available balance in the stability pool for rebalancing
    * @dev Takes into account minimum balance requirements and configured percentage limits
    * @param cdpConfig The CDP configuration for the pool
-   * @param debtToken The address of the debt token
    * @return availableAmount The amount of debt tokens available for expansion
    */
-  function _calculateAvailableDebtInSP(
-    CDPConfig storage cdpConfig,
-    address debtToken
-  ) private view returns (uint256 availableAmount) {
-    uint256 stabilityPoolBalance = IERC20(debtToken).balanceOf(cdpConfig.stabilityPool);
+  function _calculateAvailableDebtInSP(CDPConfig storage cdpConfig) private view returns (uint256 availableAmount) {
+    uint256 stabilityPoolBalance = IStabilityPool(cdpConfig.stabilityPool).getTotalBoldDeposits();
     uint256 stabilityPoolMinBalance = IStabilityPool(cdpConfig.stabilityPool).MIN_BOLD_AFTER_REBALANCE();
     if (stabilityPoolBalance <= stabilityPoolMinBalance) revert CDPLS_STABILITY_POOL_BALANCE_TOO_LOW();
 

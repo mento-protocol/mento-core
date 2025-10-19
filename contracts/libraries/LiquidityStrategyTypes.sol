@@ -4,12 +4,15 @@ pragma solidity ^0.8.0;
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 
+import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+
 /**
  * @title LiquidityStrategyTypes ()
  * @author Mento Labs
  * @notice Shared types and helpers for the Liquidity Controller, Policies & Strategies.
  */
 library LiquidityStrategyTypes {
+  using Math for uint256;
   /* ============================================================ */
   /* ====================== Constants =========================== */
   /* ============================================================ */
@@ -422,7 +425,7 @@ library LiquidityStrategyTypes {
     uint256 incentiveNum,
     uint256 incentiveDen
   ) internal pure returns (uint256) {
-    return (amount * oracleNum * toDec * incentiveNum) / (fromDec * oracleDen * incentiveDen);
+    return (amount * oracleNum).mulDiv(toDec * incentiveNum, fromDec * incentiveDen) / oracleDen;
   }
 
   /**

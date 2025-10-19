@@ -7,7 +7,7 @@ import { CDPLiquidityStrategy_BaseTest } from "./CDPLiquidityStrategy_BaseTest.s
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
-import { ISystemParams } from "bold/Interfaces/ISystemParams.sol";
+import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
 contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
   function setUp() public override {
