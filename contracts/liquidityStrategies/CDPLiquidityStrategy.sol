@@ -96,7 +96,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     uint256 idealDebtToExpand,
     uint256 idealCollateralToPay
   ) internal view override returns (uint256 debtToExpand, uint256 collateralToPay) {
-    uint256 availableDebtToken = _calculateAvailableDebtInSP(cdpConfigs[ctx.pool], ctx.debtToken());
+    uint256 availableDebtToken = _calculateAvailableDebtInSP(cdpConfigs[ctx.pool]);
 
     if (idealDebtToExpand > availableDebtToken) {
       debtToExpand = availableDebtToken;
@@ -187,11 +187,8 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    * @param debtToken The address of the debt token
    * @return availableAmount The amount of debt tokens available for expansion
    */
-  function _calculateAvailableDebtInSP(
-    CDPConfig storage cdpConfig,
-    address debtToken
-  ) private view returns (uint256 availableAmount) {
-    uint256 stabilityPoolBalance = IERC20(debtToken).balanceOf(cdpConfig.stabilityPool);
+  function _calculateAvailableDebtInSP(CDPConfig storage cdpConfig) private view returns (uint256 availableAmount) {
+    uint256 stabilityPoolBalance = IStabilityPool(cdpConfig.stabilityPool).getTotalBoldDeposits();
     uint256 stabilityPoolMinBalance = IStabilityPool(cdpConfig.stabilityPool).MIN_BOLD_AFTER_REBALANCE();
     if (stabilityPoolBalance <= stabilityPoolMinBalance) revert CDPLS_STABILITY_POOL_BALANCE_TOO_LOW();
 

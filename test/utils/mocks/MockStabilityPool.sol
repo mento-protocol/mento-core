@@ -7,6 +7,7 @@ contract MockStabilityPool {
   address public debtToken;
   address public collToken;
   uint256 public MIN_BOLD_AFTER_REBALANCE;
+  uint256 internal totalBoldDeposits;
 
   constructor(address _debtToken, address _collToken) {
     debtToken = _debtToken;
@@ -24,5 +25,13 @@ contract MockStabilityPool {
       "StabilityPoolMock: Insufficient balance"
     );
     MockERC20(debtToken).transfer(msg.sender, amountStableOut);
+  }
+
+  function setTotalBoldDeposits(uint256 _newTotalBoldDeposits) external {
+    totalBoldDeposits = _newTotalBoldDeposits;
+  }
+
+  function getTotalBoldDeposits() external view returns (uint256) {
+    return totalBoldDeposits;
   }
 }
