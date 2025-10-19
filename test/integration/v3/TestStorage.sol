@@ -68,11 +68,13 @@ abstract contract TestStorage is Test {
     // ICollateralRegistry collateralRegistry; // adding this causes a stack too deep error
   }
 
+  // @dev cdpColl == reserveDebt
   struct TokenDeployments {
     bool deployed;
-    IStableTokenV3 debtToken;
-    IStableTokenV3 collateralToken;
-    IERC20Metadata reserveCollateralToken;
+    IStableTokenV3 cdpDebtToken;
+    IStableTokenV3 cdpCollToken;
+    IStableTokenV3 resDebtToken;
+    IERC20Metadata resCollToken;
   }
 
   struct FPMMDeployments {
@@ -126,21 +128,21 @@ abstract contract TestStorage is Test {
     console.log("===== Token Deployment addresses =====");
     console.log(
       "> ",
-      IERC20Metadata(address($tokens.debtToken)).symbol(),
-      IERC20Metadata(address($tokens.debtToken)).decimals(),
-      address($tokens.debtToken)
+      IERC20Metadata(address($tokens.cdpDebtToken)).symbol(),
+      IERC20Metadata(address($tokens.cdpDebtToken)).decimals(),
+      address($tokens.cdpDebtToken)
     );
     console.log(
       "> ",
-      IERC20Metadata(address($tokens.collateralToken)).symbol(),
-      IERC20Metadata(address($tokens.collateralToken)).decimals(),
-      address($tokens.collateralToken)
+      IERC20Metadata(address($tokens.resDebtToken)).symbol(),
+      IERC20Metadata(address($tokens.resDebtToken)).decimals(),
+      address($tokens.resDebtToken)
     );
     console.log(
       "> ",
-      IERC20Metadata(address($tokens.reserveCollateralToken)).symbol(),
-      IERC20Metadata(address($tokens.reserveCollateralToken)).decimals(),
-      address($tokens.reserveCollateralToken)
+      IERC20Metadata(address($tokens.resCollToken)).symbol(),
+      IERC20Metadata(address($tokens.resCollToken)).decimals(),
+      address($tokens.resCollToken)
     );
     console.log();
   }

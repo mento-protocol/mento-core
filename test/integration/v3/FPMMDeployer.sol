@@ -62,8 +62,8 @@ contract FPMMDeployer is TestStorage {
     $fpmm.fpmmCDP = IFPMM(
       $fpmm.fpmmFactory.deployFPMM(
         $fpmm.fpmmImplementation,
-        address($tokens.collateralToken),
-        address($tokens.debtToken),
+        address($tokens.cdpCollToken),
+        address($tokens.cdpDebtToken),
         $addresses.referenceRateFeedCDPFPMM,
         invertCDPFPMMRate
       )
@@ -76,8 +76,8 @@ contract FPMMDeployer is TestStorage {
     $fpmm.fpmmReserve = IFPMM(
       $fpmm.fpmmFactory.deployFPMM(
         $fpmm.oneToOneFPMMImplementation,
-        address($tokens.collateralToken),
-        address($tokens.reserveCollateralToken),
+        address($tokens.resDebtToken),
+        address($tokens.resCollToken),
         $addresses.referenceRateFeedReserveFPMM,
         invertReserveFPMMRate
       )

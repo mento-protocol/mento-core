@@ -7,8 +7,8 @@ import { IntegrationTest } from "./Integration.t.sol";
 contract CDPFPMM is IntegrationTest {
   function test_expansion() public {
     // Price is 2:1
-    _mintCollateralToken(reserveMultisig, 10_000_000e18); // USD.m
-    _mintDebtToken(reserveMultisig, 10_000_000e18); // JPY.m
+    _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
+    _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // JPY.m
 
     _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 3_000_000e18, 10_000_000e18);
 

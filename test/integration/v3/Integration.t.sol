@@ -51,11 +51,11 @@ contract IntegrationTest is
   }
 
   function _checkSetup() private {
-    assertEq($fpmm.fpmmCDP.token0(), address($tokens.debtToken), "CDPFPMM token0 mismatch");
-    assertEq($fpmm.fpmmCDP.token1(), address($tokens.collateralToken), "CDPFPMM token1 mismatch");
+    assertEq($fpmm.fpmmCDP.token0(), address($tokens.cdpDebtToken), "CDPFPMM token0 mismatch");
+    assertEq($fpmm.fpmmCDP.token1(), address($tokens.cdpCollToken), "CDPFPMM token1 mismatch");
 
-    assertEq($fpmm.fpmmReserve.token0(), address($tokens.reserveCollateralToken), "ReserveFPMM token0 mismatch");
-    assertEq($fpmm.fpmmReserve.token1(), address($tokens.collateralToken), "ReserveFPMM token1 mismatch");
+    assertEq($fpmm.fpmmReserve.token0(), address($tokens.resCollToken), "ReserveFPMM token0 mismatch");
+    assertEq($fpmm.fpmmReserve.token1(), address($tokens.resDebtToken), "ReserveFPMM token1 mismatch");
   }
 
   function _snapshotPrices(IFPMM fpmm) internal returns (FPMMPrices memory prices) {

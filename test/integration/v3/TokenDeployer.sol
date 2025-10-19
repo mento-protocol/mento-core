@@ -9,9 +9,9 @@ import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
 
 contract TokenDeployer is TestStorage {
-  bool private _collateralTokenDeployed;
-  bool private _debtTokenDeployed;
-  bool private _reserveCollateralTokenDeployed;
+  bool private _resDebtTokenDeployed;
+  bool private _cdpDebtTokenDeployed;
+  bool private _resCollTokenDeployed;
 
   function _deployTokens(bool isCollateralTokenToken0, bool isDebtTokenToken0) internal {
     address lowest = address(1001);
@@ -19,26 +19,26 @@ contract TokenDeployer is TestStorage {
     address highest = address(1003);
 
     if (!isCollateralTokenToken0 && !isDebtTokenToken0) {
-      _deployReserveCollateralToken(lowest);
-      _deployCollateralToken(middle);
-      _deployDebtToken(highest);
+      _deployReserveCollToken(lowest);
+      _deployReserveDebtToken(middle);
+      _deployCDPDebtToken(highest);
     } else if (isCollateralTokenToken0 && isDebtTokenToken0) {
-      _deployDebtToken(lowest);
-      _deployCollateralToken(middle);
-      _deployReserveCollateralToken(highest);
+      _deployCDPDebtToken(lowest);
+      _deployReserveDebtToken(middle);
+      _deployReserveCollToken(highest);
     } else if (isCollateralTokenToken0 && !isDebtTokenToken0) {
-      _deployCollateralToken(lowest);
-      _deployReserveCollateralToken(middle);
-      _deployDebtToken(highest);
+      _deployReserveDebtToken(lowest);
+      _deployReserveCollToken(middle);
+      _deployCDPDebtToken(highest);
     } else if (!isCollateralTokenToken0 && isDebtTokenToken0) {
-      _deployDebtToken(lowest);
-      _deployReserveCollateralToken(middle);
-      _deployCollateralToken(highest);
+      _deployCDPDebtToken(lowest);
+      _deployReserveCollToken(middle);
+      _deployReserveDebtToken(highest);
     }
     $tokens.deployed = true;
   }
 
-  function _deployCollateralToken(address targetAddress) private {
+  function _deployReserveDebtToken(address targetAddress) private {
     deployCodeTo("StableTokenV3.sol:StableTokenV3", abi.encode(false), targetAddress);
 
     uint256[] memory numbers = new uint256[](0);
@@ -53,14 +53,15 @@ contract TokenDeployer is TestStorage {
       addresses,
       addresses
     );
-    $tokens.collateralToken = IStableTokenV3(targetAddress);
+    $tokens.resDebtToken = IStableTokenV3(targetAddress);
+    $tokens.cdpCollToken = IStableTokenV3(targetAddress);
     vm.label(targetAddress, "USD.m");
 
-    _collateralTokenDeployed = true;
+    _resDebtTokenDeployed = true;
     _checkAllTokensDeployed();
   }
 
-  function _deployDebtToken(address targetAddress) private {
+  function _deployCDPDebtToken(address targetAddress) private {
     deployCodeTo("StableTokenV3.sol:StableTokenV3", abi.encode(false), targetAddress);
 
     uint256[] memory numbers = new uint256[](0);
@@ -75,60 +76,64 @@ contract TokenDeployer is TestStorage {
       addresses,
       addresses
     );
-    $tokens.debtToken = IStableTokenV3(targetAddress);
+    $tokens.cdpDebtToken = IStableTokenV3(targetAddress);
     vm.label(targetAddress, "EUR.m");
-    _debtTokenDeployed = true;
+    _cdpDebtTokenDeployed = true;
     _checkAllTokensDeployed();
   }
 
-  function _deployReserveCollateralToken(address targetAddress) private {
+  function _deployReserveCollToken(address targetAddress) private {
     deployCodeTo("out/MockERC20.sol/MockERC20.0.8.24.json", abi.encode("Circle USD", "USDC", 6), targetAddress);
 
-    $tokens.reserveCollateralToken = IERC20Metadata(targetAddress);
+    $tokens.resCollToken = IERC20Metadata(targetAddress);
     vm.label(targetAddress, "USDC");
-    _reserveCollateralTokenDeployed = true;
+    _resCollTokenDeployed = true;
     _checkAllTokensDeployed();
   }
 
   function _checkAllTokensDeployed() private {
-    if (_collateralTokenDeployed && _debtTokenDeployed && _reserveCollateralTokenDeployed) {
+    if (_resDebtTokenDeployed && _cdpDebtTokenDeployed && _resCollTokenDeployed) {
       $tokens.deployed = true;
     }
   }
 
-  function _mintReserveCollateralToken(address targetAddress, uint256 amount) internal {
+  function _mintResCollToken(address targetAddress, uint256 amount) internal {
     require($tokens.deployed, "TOKEN_DEPLOYER: tokens not deployed");
 
-    MockERC20 reserveCollateralToken = MockERC20(address($tokens.reserveCollateralToken));
+    MockERC20 reserveCollateralToken = MockERC20(address($tokens.resCollToken));
 
     uint256 balanceBefore = reserveCollateralToken.balanceOf(targetAddress);
     reserveCollateralToken.mint(targetAddress, amount);
     uint256 balanceAfter = reserveCollateralToken.balanceOf(targetAddress);
 
-    require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint reserve collateral token failed");
+    require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint res coll token failed");
   }
 
-  function _mintCollateralToken(address targetAddress, uint256 amount) internal {
+  function _mintResDebtToken(address targetAddress, uint256 amount) internal {
     require($tokens.deployed, "TOKEN_DEPLOYER: tokens not deployed");
 
     vm.startPrank(address($liquidityStrategies.reserveLiquidityStrategy));
-    uint256 balanceBefore = $tokens.collateralToken.balanceOf(targetAddress);
-    $tokens.collateralToken.mint(targetAddress, amount);
-    uint256 balanceAfter = $tokens.collateralToken.balanceOf(targetAddress);
+    uint256 balanceBefore = $tokens.resDebtToken.balanceOf(targetAddress);
+    $tokens.resDebtToken.mint(targetAddress, amount);
+    uint256 balanceAfter = $tokens.resDebtToken.balanceOf(targetAddress);
     vm.stopPrank();
 
-    require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint collateral token failed");
+    require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint res debt/cdp coll token failed");
   }
 
-  function _mintDebtToken(address targetAddress, uint256 amount) internal {
+  function _mintCDPCollToken(address targetAddress, uint256 amount) internal {
+    _mintResDebtToken(targetAddress, amount);
+  }
+
+  function _mintCDPDebtToken(address targetAddress, uint256 amount) internal {
     require($tokens.deployed, "TOKEN_DEPLOYER: tokens not deployed");
 
     vm.startPrank(address($liquity.borrowerOperations));
-    uint256 balanceBefore = $tokens.debtToken.balanceOf(targetAddress);
-    $tokens.debtToken.mint(targetAddress, amount);
-    uint256 balanceAfter = $tokens.debtToken.balanceOf(targetAddress);
+    uint256 balanceBefore = $tokens.cdpDebtToken.balanceOf(targetAddress);
+    $tokens.cdpDebtToken.mint(targetAddress, amount);
+    uint256 balanceAfter = $tokens.cdpDebtToken.balanceOf(targetAddress);
     vm.stopPrank();
 
-    require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint debt token failed");
+    require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint cdp debt token failed");
   }
 }

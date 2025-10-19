@@ -112,8 +112,8 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
 
     // (contracts, collateralRegistry, hintHelpers, multiTroveGetter) = deployer.deployAndConnectContracts();
     (contracts, collateralRegistry, , ) = deployAndConnectContracts(
-      $tokens.debtToken,
-      IERC20Metadata(address($tokens.collateralToken))
+      $tokens.cdpDebtToken,
+      IERC20Metadata(address($tokens.cdpCollToken))
     );
 
     vm.label(address(contracts.addressesRegistry), "AddressesRegistry");
@@ -480,18 +480,18 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
   }
 
   function _configureDebtToken(LiquityContracts memory contracts, ICollateralRegistry collateralRegistry) private {
-    address stableOwner = Ownable(address($tokens.debtToken)).owner();
+    address stableOwner = Ownable(address($tokens.cdpDebtToken)).owner();
 
     vm.startPrank(stableOwner);
-    IStableTokenV3(address($tokens.debtToken)).setMinter(address(contracts.borrowerOperations), true);
-    IStableTokenV3(address($tokens.debtToken)).setMinter(address(contracts.activePool), true);
+    IStableTokenV3(address($tokens.cdpDebtToken)).setMinter(address(contracts.borrowerOperations), true);
+    IStableTokenV3(address($tokens.cdpDebtToken)).setMinter(address(contracts.activePool), true);
 
-    IStableTokenV3(address($tokens.debtToken)).setBurner(address(collateralRegistry), true);
-    IStableTokenV3(address($tokens.debtToken)).setBurner(address(contracts.borrowerOperations), true);
-    IStableTokenV3(address($tokens.debtToken)).setBurner(address(contracts.troveManager), true);
-    IStableTokenV3(address($tokens.debtToken)).setBurner(address(contracts.stabilityPool), true);
+    IStableTokenV3(address($tokens.cdpDebtToken)).setBurner(address(collateralRegistry), true);
+    IStableTokenV3(address($tokens.cdpDebtToken)).setBurner(address(contracts.borrowerOperations), true);
+    IStableTokenV3(address($tokens.cdpDebtToken)).setBurner(address(contracts.troveManager), true);
+    IStableTokenV3(address($tokens.cdpDebtToken)).setBurner(address(contracts.stabilityPool), true);
 
-    IStableTokenV3(address($tokens.debtToken)).setOperator(address(contracts.stabilityPool), true);
+    IStableTokenV3(address($tokens.cdpDebtToken)).setOperator(address(contracts.stabilityPool), true);
     vm.stopPrank();
   }
 

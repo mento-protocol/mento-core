@@ -31,7 +31,7 @@ contract LiquidityStrategyDeployer is TestStorage {
     vm.startPrank($addresses.governance);
     $liquidityStrategies.cdpLiquidityStrategy.addPool(
       address($fpmm.fpmmCDP),
-      address($tokens.debtToken),
+      address($tokens.cdpDebtToken),
       cooldown,
       incentiveBps,
       address($liquity.stabilityPool),
@@ -49,12 +49,12 @@ contract LiquidityStrategyDeployer is TestStorage {
     vm.startPrank($addresses.governance);
     $liquidityStrategies.reserveLiquidityStrategy.addPool(
       address($fpmm.fpmmReserve),
-      address($tokens.collateralToken),
+      address($tokens.cdpCollToken),
       cooldown,
       incentiveBps
     );
-    $tokens.collateralToken.setMinter(address($liquidityStrategies.reserveLiquidityStrategy), true);
-    $tokens.collateralToken.setBurner(address($liquidityStrategies.reserveLiquidityStrategy), true);
+    $tokens.cdpCollToken.setMinter(address($liquidityStrategies.reserveLiquidityStrategy), true);
+    $tokens.cdpCollToken.setBurner(address($liquidityStrategies.reserveLiquidityStrategy), true);
     vm.stopPrank();
   }
 
@@ -62,6 +62,7 @@ contract LiquidityStrategyDeployer is TestStorage {
     CDPLiquidityStrategy newCDPLiquidityStrategy = new CDPLiquidityStrategy($addresses.governance);
     $liquidityStrategies.cdpLiquidityStrategy = ICDPLiquidityStrategy(address(newCDPLiquidityStrategy));
   }
+
   function _deployReserveLiquidityStrategy() private {
     _deployReserve();
     ReserveLiquidityStrategy newReserveLiquidityStrategy = new ReserveLiquidityStrategy(
@@ -73,6 +74,7 @@ contract LiquidityStrategyDeployer is TestStorage {
     $liquidityStrategies.reserve.addExchangeSpender(address($liquidityStrategies.reserveLiquidityStrategy));
     vm.stopPrank();
   }
+
   function _deployReserve() private {
     require($tokens.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: tokens not deployed");
     IReserve reserve = IReserve(deployCode("Reserve", abi.encode(true)));
@@ -88,7 +90,7 @@ contract LiquidityStrategyDeployer is TestStorage {
     initialAssetAllocationWeights[1] = 5e23;
 
     address[] memory collateralAssets = new address[](1);
-    collateralAssets[0] = address($tokens.reserveCollateralToken);
+    collateralAssets[0] = address($tokens.resCollToken);
 
     uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
     collateralAssetDailySpendingRatios[0] = 1e24;
@@ -106,8 +108,8 @@ contract LiquidityStrategyDeployer is TestStorage {
       _collateralAssets: new address[](0),
       _collateralAssetDailySpendingRatios: new uint256[](0)
     });
-    reserve.addToken(address($tokens.collateralToken));
-    reserve.addCollateralAsset(address($tokens.reserveCollateralToken));
+    reserve.addToken(address($tokens.resDebtToken));
+    reserve.addCollateralAsset(address($tokens.resCollToken));
     vm.stopPrank();
   }
 }

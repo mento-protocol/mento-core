@@ -8,7 +8,7 @@ import { TestStorage } from "./TestStorage.sol";
 abstract contract LiquityHelpers is TestStorage {
   function _openTrove(address owner, uint256 collAmount, uint256 debtAmount) internal {
     vm.startPrank(owner);
-    $tokens.collateralToken.approve(address($liquity.borrowerOperations), collAmount);
+    $tokens.cdpCollToken.approve(address($liquity.borrowerOperations), collAmount);
     $liquity.borrowerOperations.openTrove(
       owner,
       0,

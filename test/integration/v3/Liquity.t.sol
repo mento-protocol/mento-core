@@ -29,19 +29,19 @@ contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDep
     address A = makeAddr("A");
     uint256 mintAmount = 10_000e18;
 
-    assertEq($tokens.collateralToken.balanceOf(A), 0);
+    assertEq($tokens.cdpCollToken.balanceOf(A), 0);
 
     vm.startPrank($addresses.governance);
-    $tokens.collateralToken.setMinter(address(this), true);
+    $tokens.cdpCollToken.setMinter(address(this), true);
     vm.stopPrank();
 
-    $tokens.collateralToken.mint(A, mintAmount);
-    assertEq($tokens.collateralToken.balanceOf(A), mintAmount);
+    $tokens.cdpCollToken.mint(A, mintAmount);
+    assertEq($tokens.cdpCollToken.balanceOf(A), mintAmount);
 
     console.log("> attempt to open trove");
 
     vm.startPrank(A);
-    $tokens.collateralToken.approve(address($liquity.borrowerOperations), mintAmount);
+    $tokens.cdpCollToken.approve(address($liquity.borrowerOperations), mintAmount);
     $liquity.borrowerOperations.openTrove(
       A,
       0,
@@ -60,7 +60,7 @@ contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDep
     assertEq($liquity.troveManager.getTroveIdsCount(), 1);
 
     console.log("troves count:", $liquity.troveManager.getTroveIdsCount());
-    console.log("debt token balance of A:", $tokens.debtToken.balanceOf(A));
-    console.log("gas pool balance:", $tokens.collateralToken.balanceOf(address($liquityInternalPools.gasPool)));
+    console.log("debt token balance of A:", $tokens.cdpDebtToken.balanceOf(A));
+    console.log("gas pool balance:", $tokens.cdpCollToken.balanceOf(address($liquityInternalPools.gasPool)));
   }
 }
