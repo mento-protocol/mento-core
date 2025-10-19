@@ -43,17 +43,20 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
     vm.prank(reserveMultisig);
     $liquity.stabilityPool.provideToSP(5_000_000e18, false);
 
+    (uint256 fpmmDebtBefore, uint256 fpmmCollBefore) = _fpmmReserves($fpmm.fpmmCDP);
+
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
     (uint256 fpmmDebtAfter, uint256 fpmmCollAfter) = _fpmmReserves($fpmm.fpmmCDP);
-    // amountGivenToPool: 997493734335839598997493
-    // debt = 3_000_000e18 + 997493734335839598997493
-    // coll = 10_000_000e18 - 997493734335839598997493 * 2 * 9950 / 10_000
-    assertEq(fpmmDebtAfter, 3_000_000e18 + 997493734335839598997493);
-    assertEq(fpmmCollAfter, 10_000_000e18 - uint256(997493734335839598997493 * 2 * 10000) / 9950 - 1);
+
+    // amountGivenToPool: 4500000000000000000000000
+    // debt = 3_000_000e18 + 4500000000000000000000000
+    // coll = 10_000_000e18 - 4500000000000000000000000 / 2 * 9950 / 10_000
+    assertEq(fpmmDebtAfter, 3_000_000e18 + 4500000000000000000000000);
+    assertEq(fpmmCollAfter, 10_000_000e18 - uint256((4500000000000000000000000 / 2) * 10000) / 9950);
   }
 
-  function test_clampedExpansion3() public {
+  function test_clampedExpansion() public {
     // Price is 2:1
     _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
     _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // EUR.m
@@ -63,14 +66,17 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
     vm.prank(reserveMultisig);
     $liquity.stabilityPool.provideToSP(500_000e18, false);
 
+    (uint256 fpmmDebtBefore, uint256 fpmmCollBefore) = _fpmmReserves($fpmm.fpmmCDP);
+
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
     (uint256 fpmmDebtAfter, uint256 fpmmCollAfter) = _fpmmReserves($fpmm.fpmmCDP);
+
     // amountGivenToPool: 450000000000000000000000
     // debt = 3_000_000e18 + 450000000000000000000000
-    // coll = 10_000_000e18 - 450000000000000000000000 * 2 * 9950 / 10_000
+    // coll = 10_000_000e18 - 450000000000000000000000 / 2 * 9950 / 10_000
     assertEq(fpmmDebtAfter, 3_000_000e18 + 450000000000000000000000);
-    assertEq(fpmmCollAfter, 10_000_000e18 - uint256(450000000000000000000000 * 2 * 10000) / 9950);
+    assertEq(fpmmCollAfter, 10_000_000e18 - uint256((450000000000000000000000 / 2) * 10000) / 9950);
   }
 
   function test_clampedContraction() public {
