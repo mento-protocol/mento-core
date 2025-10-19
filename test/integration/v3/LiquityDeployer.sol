@@ -133,7 +133,7 @@ contract LiquityDeployer is TestStorage {
     $liquity.priceFeed = contracts.priceFeed;
     vm.label(address(contracts.interestRouter), "InterestRouter");
     $liquity.interestRouter = contracts.interestRouter;
-    vm.label(address(contracts.collToken), "CollToken");
+    vm.label(address(contracts.collToken), "USD.m");
     $liquity.collToken = contracts.collToken;
     vm.label(address(contracts.systemParams), "SystemParams");
     $liquity.systemParams = contracts.systemParams;

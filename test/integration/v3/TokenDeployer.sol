@@ -54,7 +54,7 @@ contract TokenDeployer is TestStorage {
       addresses
     );
     $tokens.collateralToken = IStableTokenV3(targetAddress);
-    vm.label(targetAddress, "CollateralToken");
+    vm.label(targetAddress, "USD.m");
 
     _collateralTokenDeployed = true;
     _checkAllTokensDeployed();
@@ -76,7 +76,7 @@ contract TokenDeployer is TestStorage {
       addresses
     );
     $tokens.debtToken = IStableTokenV3(targetAddress);
-    vm.label(targetAddress, "DebtToken");
+    vm.label(targetAddress, "JPY.m");
     _debtTokenDeployed = true;
     _checkAllTokensDeployed();
   }
@@ -85,7 +85,7 @@ contract TokenDeployer is TestStorage {
     deployCodeTo("out/MockERC20.sol/MockERC20.0.8.24.json", abi.encode("Circle USD", "USDC", 6), targetAddress);
 
     $tokens.reserveCollateralToken = IERC20Metadata(targetAddress);
-    vm.label(targetAddress, "ReserveCollateralToken");
+    vm.label(targetAddress, "USDC");
     _reserveCollateralTokenDeployed = true;
     _checkAllTokensDeployed();
   }
