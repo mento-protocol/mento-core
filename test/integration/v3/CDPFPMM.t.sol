@@ -118,6 +118,10 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
     // Debt amount to redeem :=  (ON*RD - OD*RN)/(ON*(2-i)) = 2005012531328320802005012
     uint256 expectedDebtToRedeem = 2005012531328320802005012;
 
+    uint256 expectedCollInflow = (expectedDebtToRedeem *
+      (1e18 - 0.005e18) *
+      pricesBeforeRebalance.oraclePriceNumerator) / (pricesBeforeRebalance.oraclePriceDenominator * 1e18);
+
     uint256 targetSupply = (expectedDebtToRedeem * 1e18) / (0.0025e18);
 
     // need better way to open troves in order to get to target supply
@@ -143,5 +147,7 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
       pricesBeforeRebalance.reservePriceNumerator;
 
     assertEq(pricesAfterRebalance.priceDifference, 0);
+    assertEq(reserveDebtOutflow, expectedDebtToRedeem);
+    assertEq(reserveCollInflow, expectedCollInflow);
   }
 }

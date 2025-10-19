@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.24;
 
-import { console } from "forge-std/console.sol";
 import { TokenDeployer } from "test/integration/v3/TokenDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
 import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
@@ -41,9 +40,5 @@ contract Liquity is LiquityDeployer, OracleAdapterDeployer, LiquidityStrategyDep
       $tokens.cdpCollToken.balanceOf(address($liquityInternalPools.gasPool)),
       50 * $liquity.systemParams.ETH_GAS_COMPENSATION()
     );
-
-    console.log("troves count:", $liquity.troveManager.getTroveIdsCount());
-    console.log("debt token balance of A:", $tokens.cdpDebtToken.balanceOf(A));
-    console.log("gas pool balance:", $tokens.cdpCollToken.balanceOf(address($liquityInternalPools.gasPool)));
   }
 }

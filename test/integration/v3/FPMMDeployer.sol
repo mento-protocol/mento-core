@@ -16,7 +16,6 @@ import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { console } from "forge-std/console.sol";
 
 contract FPMMDeployer is TestStorage {
   bytes private constant createXBytecode =
@@ -115,12 +114,7 @@ contract FPMMDeployer is TestStorage {
   function _provideLiquidityToFPMM(IFPMM fpmm, address provider, uint256 debtAmount, uint256 collAmount) internal {
     vm.startPrank(provider);
 
-    console.log("debtAmount ", debtAmount);
-    console.log("collAmount ", collAmount);
-
     (address debtToken, address collToken) = _fpmmTokens(fpmm);
-    console.log(IERC20(debtToken).balanceOf(provider));
-    console.log(IERC20(collToken).balanceOf(provider));
 
     if (debtAmount > 0) {
       IERC20Metadata(debtToken).transfer(address(fpmm), debtAmount);
