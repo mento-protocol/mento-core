@@ -2,7 +2,7 @@ ETHERSCAN_V2_KEY=
 ETHERSCAN_V2_RPC_URL=https://api.etherscan.io/v2/api?chainid=50
 CELO_MAINNET_RPC_URL=https://forno.celo.org
 ALFAJORES_RPC_URL=https://alfajores-forno.celo-testnet.org
-XDC_RPC_URL=https://erpc.xinfin.network
+XDC_RPC_URL=https://rpc.xdc.org
 
 PUBLICK_KEY=0x2CeADe86A04e474F3cf9BD87208514d818010627
 

@@ -159,5 +159,71 @@ contract XDC_GoodDollarSwapForkTest is XDC_GoodDollarBaseForkTest(XDC_ID) {
     assertEq(amountOut, reserveToken.balanceOf(trader));
     assertEq(reserveBalanceBefore - amountOut, reserveBalanceAfter);
     assertTrue(priceAfter < priceBefore);
+  }  
+
+  function test_swapIn_large_goodDollarToReserveToken() public {
+    uint256 amountIn = 30000000 * 1e18;
+
+    uint256 reserveBalanceBefore = reserveToken.balanceOf(address(goodDollarReserve));
+    uint256 priceBefore = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 expectedAmountOut = broker.getAmountOut(
+      address(goodDollarExchangeProvider),
+      exchangeId,
+      address(goodDollarToken),
+      address(reserveToken),
+      amountIn
+    );
+
+    mintGoodDollar(amountIn, trader);
+
+    vm.startPrank(trader);
+    goodDollarToken.approve(address(broker), amountIn);
+    broker.swapIn(
+      address(goodDollarExchangeProvider),
+      exchangeId,
+      address(goodDollarToken),
+      address(reserveToken),
+      amountIn,
+      expectedAmountOut
+    );
+    uint256 priceAfter = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 reserveBalanceAfter = reserveToken.balanceOf(address(goodDollarReserve));
+
+    assertEq(expectedAmountOut, reserveToken.balanceOf(trader));
+    assertEq(reserveBalanceBefore - expectedAmountOut, reserveBalanceAfter);
+    assertTrue(priceAfter < priceBefore);
   }
+
+  function test_swapOut_large_goodDollarToReserveToken() public {
+    uint256 amountOut = 5000 * 1e6;
+
+    uint256 reserveBalanceBefore = reserveToken.balanceOf(address(goodDollarReserve));
+    uint256 priceBefore = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 expectedAmountIn = broker.getAmountIn(
+      address(goodDollarExchangeProvider),
+      exchangeId,
+      address(goodDollarToken),
+      address(reserveToken),
+      amountOut
+    );
+
+    mintGoodDollar(expectedAmountIn, trader);
+
+    vm.startPrank(trader);
+    goodDollarToken.approve(address(broker), expectedAmountIn);
+    broker.swapOut(
+      address(goodDollarExchangeProvider),
+      exchangeId,
+      address(goodDollarToken),
+      address(reserveToken),
+      amountOut,
+      expectedAmountIn
+    );
+    uint256 priceAfter = IBancorExchangeProvider(address(goodDollarExchangeProvider)).currentPrice(exchangeId);
+    uint256 reserveBalanceAfter = reserveToken.balanceOf(address(goodDollarReserve));
+
+    assertEq(amountOut, reserveToken.balanceOf(trader));
+    assertEq(reserveBalanceBefore - amountOut, reserveBalanceAfter);
+    assertTrue(priceAfter < priceBefore);
+  }  
 }
