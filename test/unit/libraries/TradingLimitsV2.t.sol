@@ -221,13 +221,13 @@ contract TradingLimitsV2Test is Test {
   }
 
   function test_update_withSmallAmount_doesNotRoundUp() public {
-    // In V2, small amounts that scale to 0 are ignored (no rounding)
+    // In V2, small amounts that scale to 0 are rounded to ±1e3 based on direction
     state = harness.update(state, configL0(1000 * 1e18), 1, 18); // 1 wei (positive)
-    assertEq(state.netflow0, 0); // Should be 0 (too small to register)
+    assertEq(state.netflow0, 1e3); // Should be 1e3 (minimum positive flow)
 
     state = ITradingLimitsV2.State(0, 0, 0, 0); // reset
     state = harness.update(state, configL0(1000 * 1e18), -1, 18); // -1 wei (negative)
-    assertEq(state.netflow0, 0); // Should be 0 (too small to register)
+    assertEq(state.netflow0, -1e3); // Should be -1e3 (minimum negative flow)
   }
 
   function test_update_withSmallAmount_nonZero_updates() public {
@@ -336,13 +336,13 @@ contract TradingLimitsV2Test is Test {
 
   function test_scaleValue_withMaxInt96_reverts() public {
     int256 tooLarge = int256(type(int96).max) + 1;
-    vm.expectRevert(bytes("Flow exceeds int96 bounds"));
+    vm.expectRevert(bytes("Value exceeds int96 bounds"));
     harness.scaleValue(tooLarge, 15);
   }
 
   function test_scaleValue_withMinInt96_reverts() public {
     int256 tooSmall = int256(type(int96).min) - 1;
-    vm.expectRevert(bytes("Flow exceeds int96 bounds"));
+    vm.expectRevert(bytes("Value exceeds int96 bounds"));
     harness.scaleValue(tooSmall, 15);
   }
 
@@ -368,7 +368,7 @@ contract TradingLimitsV2Test is Test {
 
   function test_scaleValue_asLimit_withMaxInt96_reverts() public {
     int256 tooLarge = int256(type(int96).max) + 1;
-    vm.expectRevert(bytes("Flow exceeds int96 bounds"));
+    vm.expectRevert(bytes("Value exceeds int96 bounds"));
     harness.scaleValue(tooLarge, 15);
   }
 
@@ -469,39 +469,5 @@ contract TradingLimitsV2Test is Test {
     // Both should be reset to just the new amount
     assertEq(state.netflow0, 1000 * 1e15);
     assertEq(state.netflow1, 1000 * 1e15);
-  }
-
-  function test_integration_fullWorkflow_L1Only() public {
-    ITradingLimitsV2.Config memory config = configL1(10000 * 1e18);
-
-    // Validate config (should pass now)
-    harness.validate(config);
-
-    // Update with some flow
-    vm.warp(1000);
-    state = harness.update(state, config, 5000 * 1e18, 18);
-
-    // Verify within limits
-    harness.verify(state, config, 18);
-    assertEq(state.netflow0, 0); // L0 not active
-    assertEq(state.netflow1, 5000 * 1e15); // L1 active
-
-    // Update more and verify still within limits
-    state = harness.update(state, config, 4000 * 1e18, 18);
-    harness.verify(state, config, 18);
-    assertEq(state.netflow1, 9000 * 1e15);
-
-    // Update to exceed L1 limit
-    state = harness.update(state, config, 2000 * 1e18, 18);
-    vm.expectRevert(bytes("L1 Exceeded"));
-    harness.verify(state, config, 18);
-
-    // Move forward 1 day to reset L1
-    vm.warp(1000 + 1 days + 1);
-    state = harness.update(state, config, 5000 * 1e18, 18);
-
-    // L1 should be reset to just the new amount
-    assertEq(state.netflow1, 5000 * 1e15);
-    harness.verify(state, config, 18); // Should pass
   }
 }

@@ -5,6 +5,8 @@ pragma solidity ^0.8.0;
 import { IOracleAdapter } from "./IOracleAdapter.sol";
 
 import { IRPool } from "../swap/router/interfaces/IRPool.sol";
+import { ITradingLimitsV2 } from "./ITradingLimitsV2.sol";
+
 
 interface IFPMM is IRPool {
   /* ============================================================ */
@@ -49,6 +51,8 @@ interface IFPMM is IRPool {
     uint256 rebalanceThresholdBelow;
     // true if the address is a trusted liquidity strategy
     mapping(address => bool) liquidityStrategy;
+    // Trading limits per token
+    mapping(address => ITradingLimitsV2.TradingLimits) tradingLimits;
   }
 
   /// @notice Struct containing the initialization parameters for the FPMM contract
@@ -242,6 +246,13 @@ interface IFPMM is IRPool {
    */
   event UpdateReserves(uint256 reserve0, uint256 reserve1, uint256 blockTimestamp);
 
+  /**
+   * @notice Emitted when trading limits are configured
+   * @param token Address of the token
+   * @param config Trading limits configuration
+   */
+  event TradingLimitConfigured(address indexed token, ITradingLimitsV2.Config config);
+
   /* ============================================================ */
   /* ====================== View Functions ====================== */
   /* ============================================================ */
@@ -353,6 +364,17 @@ interface IFPMM is IRPool {
       bool reservePriceAboveOraclePrice
     );
 
+  /**
+   * @notice Gets trading limits config and state for a token
+   * @param token Address of the token
+   * @return config Trading limits config for the token
+   * @return state Trading limits state for the token
+   */
+  function getTradingLimits(
+    address token
+  ) external view returns (ITradingLimitsV2.Config memory config, ITradingLimitsV2.State memory state);
+
+
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */
@@ -456,4 +478,11 @@ interface IFPMM is IRPool {
    * @param _referenceRateFeedID Address of the reference rate feed
    */
   function setReferenceRateFeedID(address _referenceRateFeedID) external;
+
+  /**
+   * @notice Configure trading limits for a token
+   * @param token The token to configure limits for
+   * @param config The trading limits configuration
+   */
+  function configureTradingLimit(address token, ITradingLimitsV2.Config memory config) external;
 }

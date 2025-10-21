@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >0.5.13 <0.9;
+pragma solidity ^0.8.0;
 
 interface ITradingLimitsV2 {
   /**
@@ -26,5 +26,10 @@ interface ITradingLimitsV2 {
     int112 limit0;
     int112 limit1;
     uint8 flags;
+  }
+
+  struct TradingLimits {
+    State state;
+    Config config;
   }
 }

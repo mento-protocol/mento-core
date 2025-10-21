@@ -14,6 +14,8 @@ import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contrac
 import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { IOracleAdapter } from "../interfaces/IOracleAdapter.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
+import { TradingLimitsV2 } from "../libraries/TradingLimitsV2.sol";
+import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
 
 /**
  * @title Fixed Price Market Maker (FPMM)
@@ -29,6 +31,9 @@ import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
  */
 contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
+  using TradingLimitsV2 for ITradingLimitsV2.State;
+  using TradingLimitsV2 for ITradingLimitsV2.Config;
+  using TradingLimitsV2 for ITradingLimitsV2.TradingLimits;
 
   /* ============================================================ */
   /* ======================== Constants ========================= */
@@ -314,6 +319,17 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     }
   }
 
+  /// @inheritdoc IFPMM
+  function getTradingLimits(
+    address token
+  ) external view returns (ITradingLimitsV2.Config memory config, ITradingLimitsV2.State memory state) {
+    FPMMStorage storage $ = _getFPMMStorage();
+    require(token == $.token0 || token == $.token1, "FPMM: INVALID_TOKEN");
+
+    config = $.tradingLimits[token].config;
+    state = $.tradingLimits[token].state;
+  }
+
   /* ============================================================ */
   /* ====================== External Functions ================== */
   /* ============================================================ */
@@ -419,6 +435,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     if (swapData.amount0In == 0 && swapData.amount1In == 0) revert InsufficientInputAmount();
 
     _transferProtocolFee(swapData.amount0In, swapData.amount1In);
+
+    _applyTradingLimits($.token0, swapData.amount0In, swapData.amount0Out);
+    _applyTradingLimits($.token1, swapData.amount1In, swapData.amount1Out);
 
     _update();
 
@@ -598,6 +617,19 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     address oldRateFeedID = $.referenceRateFeedID;
     $.referenceRateFeedID = _referenceRateFeedID;
     emit ReferenceRateFeedIDUpdated(oldRateFeedID, _referenceRateFeedID);
+  }
+
+  /// @inheritdoc IFPMM
+  function configureTradingLimit(address token, ITradingLimitsV2.Config memory config) external onlyOwner {
+    FPMMStorage storage $ = _getFPMMStorage();
+    require(token == $.token0 || token == $.token1, "FPMM: INVALID_TOKEN");
+
+    config.validate();
+
+    $.tradingLimits[token].config = config;
+    $.tradingLimits[token].state = $.tradingLimits[token].state.reset(config);
+
+    emit TradingLimitConfigured(token, config);
   }
 
   /* ============================================================ */
@@ -812,5 +844,17 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     uint256 incentiveDen
   ) internal pure returns (uint256) {
     return (amount * numerator * toDecimals * incentiveNum) / (denominator * fromDecimals * incentiveDen);
+  }
+
+  /**
+   * @notice Apply trading limits for a token
+   * @param token Address of the token
+   * @param amountIn Amount of token flowing into the pool
+   * @param amountOut Amount of token flowing out of the pool
+   */
+  function _applyTradingLimits(address token, uint256 amountIn, uint256 amountOut) internal {
+    FPMMStorage storage $ = _getFPMMStorage();
+    uint8 decimals = ERC20Upgradeable(token).decimals();
+    $.tradingLimits[token].state = $.tradingLimits[token].applyTradingLimits(amountIn, amountOut, decimals);
   }
 }
