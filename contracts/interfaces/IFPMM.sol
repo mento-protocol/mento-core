@@ -7,7 +7,6 @@ import { IOracleAdapter } from "./IOracleAdapter.sol";
 import { IRPool } from "../swap/router/interfaces/IRPool.sol";
 import { ITradingLimitsV2 } from "./ITradingLimitsV2.sol";
 
-
 interface IFPMM is IRPool {
   /* ============================================================ */
   /* ======================== Structs ============================ */
@@ -373,7 +372,6 @@ interface IFPMM is IRPool {
   function getTradingLimits(
     address token
   ) external view returns (ITradingLimitsV2.Config memory config, ITradingLimitsV2.State memory state);
-
 
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
