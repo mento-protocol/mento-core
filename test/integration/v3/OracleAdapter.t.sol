@@ -134,6 +134,24 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
   }
 
+  function test_oracleAdapter_revertsWhenNoRatesWereEverReported() public {
+    _deployOracleAdapter();
+
+    address invalidRateFeed = makeAddr("rateFeedWithoutRates");
+    address fakeOracleReporter = makeAddr("fakeOracleReporter");
+
+    vm.startPrank($addresses.governance);
+    $oracle.sortedOracles.addOracle(invalidRateFeed, fakeOracleReporter);
+    $oracle.breakerBox.addRateFeed(invalidRateFeed);
+    vm.stopPrank();
+
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
+    $oracle.adapter.getFXRateIfValid(invalidRateFeed);
+
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
+    $oracle.adapter.ensureRateValid(invalidRateFeed);
+  }
+
   function _toFixidity(uint256 rate) internal pure returns (uint256) {
     return rate * 1e6;
   }
