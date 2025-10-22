@@ -22,6 +22,7 @@ import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
 
 import { ITroveNFT } from "bold/src/Interfaces/ITroveNFT.sol";
 import { IPriceFeed } from "bold/src/Interfaces/IPriceFeed.sol";
@@ -104,6 +105,7 @@ abstract contract TestStorage is Test {
     IBreakerBox breakerBox;
     IMarketHoursBreaker marketHoursBreaker;
     IMedianDeltaBreaker medianDeltaBreaker;
+    IValueDeltaBreaker valueDeltaBreaker;
   }
 
   struct MockAddresses {

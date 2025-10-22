@@ -9,10 +9,12 @@ import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
 import { MarketHoursBreaker } from "contracts/oracles/breakers/MarketHoursBreaker.sol";
+import { IOwnable } from "contracts/interfaces/IOwnable.sol";
 
-import { addresses } from "mento-std/Array.sol";
+import { addresses, uints } from "mento-std/Array.sol";
 
 contract OracleAdapterDeployer is TestStorage {
   function _deployOracleAdapter() internal {
@@ -68,6 +70,8 @@ contract OracleAdapterDeployer is TestStorage {
 
     $oracle.sortedOracles.addOracle($addresses.referenceRateFeedCDPFPMM, $addresses.whitelistedOracle);
     $oracle.sortedOracles.addOracle($addresses.referenceRateFeedReserveFPMM, $addresses.whitelistedOracle);
+
+    IOwnable(address($oracle.sortedOracles)).transferOwnership($addresses.governance);
   }
 
   function _deployCircuitBreaker() private {
@@ -98,26 +102,39 @@ contract OracleAdapterDeployer is TestStorage {
     );
     vm.label(address($oracle.medianDeltaBreaker), "MedianDeltaBreaker");
 
+    $oracle.valueDeltaBreaker = IValueDeltaBreaker(
+      deployCode(
+        "ValueDeltaBreaker",
+        abi.encode(
+          10 minutes,
+          0.5 * 10 ** 24, // 0.5% change before tripping breaker
+          $oracle.sortedOracles,
+          new address[](0),
+          new uint256[](0),
+          new uint256[](0),
+          $addresses.governance
+        )
+      )
+    );
+    vm.label(address($oracle.valueDeltaBreaker), "ValueDeltaBreaker");
+
     vm.startPrank($addresses.governance);
     $oracle.breakerBox.addBreaker(address($oracle.medianDeltaBreaker), 1);
     $oracle.breakerBox.addBreaker(address($oracle.marketHoursBreaker), 1);
+    $oracle.breakerBox.addBreaker(address($oracle.valueDeltaBreaker), 1);
 
     $oracle.breakerBox.toggleBreaker(address($oracle.medianDeltaBreaker), $addresses.referenceRateFeedCDPFPMM, true);
     $oracle.breakerBox.toggleBreaker(address($oracle.marketHoursBreaker), $addresses.referenceRateFeedCDPFPMM, true);
 
-    // TODO: Replace with ValueDeltaBreaker for "USDC/USD" rate
-    $oracle.breakerBox.toggleBreaker(
-      address($oracle.medianDeltaBreaker),
-      $addresses.referenceRateFeedReserveFPMM,
-      true
-    );
+    $oracle.valueDeltaBreaker.setReferenceValues(addresses($addresses.referenceRateFeedReserveFPMM), uints(1e24));
+    $oracle.breakerBox.toggleBreaker(address($oracle.valueDeltaBreaker), $addresses.referenceRateFeedReserveFPMM, true);
     $oracle.breakerBox.toggleBreaker(
       address($oracle.marketHoursBreaker),
       $addresses.referenceRateFeedReserveFPMM,
       true
     );
-    vm.stopPrank();
 
     $oracle.sortedOracles.setBreakerBox($oracle.breakerBox);
+    vm.stopPrank();
   }
 }
