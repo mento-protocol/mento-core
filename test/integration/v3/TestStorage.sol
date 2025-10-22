@@ -47,10 +47,10 @@ abstract contract TestStorage is Test {
     $addresses.referenceRateFeedCDPFPMM = makeAddr("referenceRateFeedCDPFPMM");
     $addresses.referenceRateFeedReserveFPMM = makeAddr("referenceRateFeedReserveFPMM");
 
-    // Start all tests from a non-zero timestamp (2025-10-22 13:55:11)
+    // Start all tests from a non-zero timestamp (2025-10-22 09:00:00)
     // This is required when setting up the circuit breaker, since otherwise it reverts when trying to configure
     // the market hours breaker because of the isFXMarketOpen() check.
-    vm.warp(1761141311);
+    vm.warp(1761123600);
   }
 
   struct LiquityDeploymentPools {

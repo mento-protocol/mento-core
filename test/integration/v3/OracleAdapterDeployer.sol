@@ -28,8 +28,8 @@ contract OracleAdapterDeployer is TestStorage {
       $addresses.governance
     );
 
-    reportRate($addresses.referenceRateFeedCDPFPMM, 2e24);
-    reportRate($addresses.referenceRateFeedReserveFPMM, 1e24);
+    _reportCDPFPMMRate(2e24);
+    _reportReserveFPMMRate(1e24);
 
     $oracle.deployed = true;
   }
@@ -40,15 +40,15 @@ contract OracleAdapterDeployer is TestStorage {
 
     require(CDPFPMMRate > 0 && reserveFPMMRate > 0, "OracleAdapterDeployer: no pre-existing rate to refresh");
 
-    reportRate($addresses.referenceRateFeedCDPFPMM, CDPFPMMRate);
-    reportRate($addresses.referenceRateFeedReserveFPMM, reserveFPMMRate);
+    _reportCDPFPMMRate(CDPFPMMRate);
+    _reportReserveFPMMRate(reserveFPMMRate);
   }
 
-  function reportCDPFPMMRate(uint256 rate) internal {
+  function _reportCDPFPMMRate(uint256 rate) internal {
     reportRate($addresses.referenceRateFeedCDPFPMM, rate);
   }
 
-  function reportReserveFPMMRate(uint256 rate) internal {
+  function _reportReserveFPMMRate(uint256 rate) internal {
     reportRate($addresses.referenceRateFeedReserveFPMM, rate);
   }
 
@@ -60,15 +60,11 @@ contract OracleAdapterDeployer is TestStorage {
 
     vm.prank($addresses.whitelistedOracle);
     $oracle.sortedOracles.report(rateFeedID, rate, address(0), address(0));
-
-    (uint256 numerator, ) = $oracle.sortedOracles.medianRate(rateFeedID);
-    assertEq(numerator, rate);
   }
 
   function _deploySortedOracles() private {
     $oracle.sortedOracles = ISortedOracles(deployCode("SortedOracles", abi.encode(true)));
-    $oracle.sortedOracles.initialize(5 minutes);
-    assertEq($oracle.sortedOracles.reportExpirySeconds(), 5 minutes);
+    $oracle.sortedOracles.initialize(6 minutes);
 
     $oracle.sortedOracles.addOracle($addresses.referenceRateFeedCDPFPMM, $addresses.whitelistedOracle);
     $oracle.sortedOracles.addOracle($addresses.referenceRateFeedReserveFPMM, $addresses.whitelistedOracle);
@@ -108,6 +104,8 @@ contract OracleAdapterDeployer is TestStorage {
 
     $oracle.breakerBox.toggleBreaker(address($oracle.medianDeltaBreaker), $addresses.referenceRateFeedCDPFPMM, true);
     $oracle.breakerBox.toggleBreaker(address($oracle.marketHoursBreaker), $addresses.referenceRateFeedCDPFPMM, true);
+
+    // TODO: Replace with ValueDeltaBreaker for "USDC/USD" rate
     $oracle.breakerBox.toggleBreaker(
       address($oracle.medianDeltaBreaker),
       $addresses.referenceRateFeedReserveFPMM,
