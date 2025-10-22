@@ -110,6 +110,30 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     assertReserveFPMMRateEqual(backToNormalRate / 1e6, DENOMINATOR);
   }
 
+  function test_oracleAdapter_revertsWhenRatesAreStale() public {
+    _deployOracleAdapter();
+
+    $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedCDPFPMM);
+    $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
+
+    uint256 expiryTime = $oracle.sortedOracles.getTokenReportExpirySeconds($addresses.referenceRateFeedCDPFPMM);
+    skip(expiryTime - 1 seconds);
+    // rates are still valid 1 second before expiry
+    $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedCDPFPMM);
+    $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
+
+    skip(1 seconds); // rates are now expired
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
+    $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedCDPFPMM);
+
+    vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
+    $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
+
+    _refreshOracleRates(); // back to normal after new reports
+    $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedCDPFPMM);
+    $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
+  }
+
   function _toFixidity(uint256 rate) internal pure returns (uint256) {
     return rate * 1e6;
   }
