@@ -622,7 +622,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   /// @inheritdoc IFPMM
   function configureTradingLimit(address token, ITradingLimitsV2.Config memory config) external onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
-    require(token == $.token0 || token == $.token1, "FPMM: INVALID_TOKEN");
+    if (token != $.token0 && token != $.token1) revert InvalidToken();
 
     config.validate();
 
