@@ -26,6 +26,8 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
     _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
     // skip 20 days to allow the base rate to decay
     skip(20 days);
+    // Refresh old rates after the skip for the staleness check to pass
+    _refreshOracleRates();
   }
 
   function test_expansion() public {
