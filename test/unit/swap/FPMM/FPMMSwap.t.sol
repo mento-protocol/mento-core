@@ -6,6 +6,7 @@ import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
+import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
 
 contract FPMMSwapTest is FPMMBaseTest {
   function setUp() public override {
@@ -328,5 +329,190 @@ contract FPMMSwapTest is FPMMBaseTest {
   {
     vm.expectRevert(IOracleAdapter.NoRecentRate.selector);
     fpmm.swap(0, 10e18, BOB, "");
+  }
+
+  function test_swap_whenL0LimitExceeded_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    // Configure L0 limit of 100 tokens (5 minute window)
+    ITradingLimitsV2.Config memory config;
+    config.limit0 = 100e18;
+    config.flags = 1; // L0 enabled
+
+    vm.prank(owner);
+    fpmm.configureTradingLimit(token0, config);
+
+    // First swap: 80 tokens (within limit)
+    uint256 amount0In = 80e18;
+    uint256 amount1Out = 79.76e18;
+
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), amount0In);
+    fpmm.swap(0, amount1Out, CHARLIE, "");
+
+    // Second swap: 30 more tokens (total 110, exceeds 100 limit)
+    uint256 amount0In2 = 30e18;
+    uint256 amount1Out2 = 29.91e18;
+
+    IERC20(token0).transfer(address(fpmm), amount0In2);
+    vm.expectRevert(ITradingLimitsV2.L0LimitExceeded.selector);
+    fpmm.swap(0, amount1Out2, CHARLIE, "");
+    vm.stopPrank();
+  }
+
+  function test_swap_whenL1LimitExceeded_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    // Configure L1 limit of 80 tokens (1 day window)
+    ITradingLimitsV2.Config memory config;
+    config.limit1 = 80e18;
+    config.flags = 2; // L1 enabled
+
+    vm.prank(owner);
+    fpmm.configureTradingLimit(token1, config);
+
+    // First swap: 60 tokens (within limit)
+    uint256 amount1In = 60e18;
+    uint256 amount0Out = 59.82e18;
+
+    vm.startPrank(ALICE);
+    IERC20(token1).transfer(address(fpmm), amount1In);
+    fpmm.swap(amount0Out, 0, CHARLIE, "");
+
+    // Second swap: 30 more tokens (total 90, exceeds 80 limit)
+    uint256 amount1In2 = 30e18;
+    uint256 amount0Out2 = 29.91e18;
+
+    IERC20(token1).transfer(address(fpmm), amount1In2);
+    vm.expectRevert(ITradingLimitsV2.L1LimitExceeded.selector);
+    fpmm.swap(amount0Out2, 0, CHARLIE, "");
+    vm.stopPrank();
+  }
+
+  function test_swap_whenWithinTradingLimits_shouldSucceed()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    // Configure both L0 and L1 limits
+    ITradingLimitsV2.Config memory config;
+    config.limit0 = 100e18; // 5 minute limit
+    config.limit1 = 1000e18; // 1 day limit
+    config.flags = 3; // L0 and L1 enabled
+
+    vm.prank(owner);
+    fpmm.configureTradingLimit(token0, config);
+
+    // Swap within both limits should succeed
+    // Trading limits track netflow: amountOut - amountIn
+    // For this swap: amountIn = 50, amountOut = 0, so netflow = -50 (negative = outflow)
+    uint256 amount0In = 50e18;
+    uint256 amount1Out = 49.85e18;
+
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), amount0In);
+    fpmm.swap(0, amount1Out, CHARLIE, "");
+    vm.stopPrank();
+
+    assertEq(IERC20(token1).balanceOf(CHARLIE), amount1Out);
+
+    // Verify limits were updated
+    // Netflow = amountOut - amountIn = 0 - 50 = -50 (scaled to 15 decimals)
+    (, ITradingLimitsV2.State memory state) = fpmm.getTradingLimits(token0);
+    assertEq(state.netflow0, -50e15); // Negative netflow (more token0 coming in than going out)
+    assertEq(state.netflow1, -50e15);
+  }
+
+  function test_swap_whenL0ResetsAfter5Minutes_shouldAllowMoreSwaps()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    // Configure L0 limit
+    ITradingLimitsV2.Config memory config;
+    config.limit0 = 100e18;
+    config.flags = 1; // L0 enabled
+
+    vm.prank(owner);
+    fpmm.configureTradingLimit(token0, config);
+
+    vm.warp(1000);
+
+    // First swap: 90 tokens
+    uint256 amount0In = 90e18;
+    uint256 amount1Out = 89.73e18;
+
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), amount0In);
+    fpmm.swap(0, amount1Out, CHARLIE, "");
+
+    // Warp time by 5 minutes + 1 second to reset L0
+    vm.warp(1000 + 5 minutes + 1);
+
+    // Second swap: Another 90 tokens (should succeed after reset)
+    uint256 amount0In2 = 90e18;
+    uint256 amount1Out2 = 89.73e18;
+
+    IERC20(token0).transfer(address(fpmm), amount0In2);
+    fpmm.swap(0, amount1Out2, CHARLIE, "");
+    vm.stopPrank();
+
+    assertEq(IERC20(token1).balanceOf(CHARLIE), amount1Out + amount1Out2);
+  }
+
+  function test_swap_whenL1OnlyConfigured_shouldEnforceL1Only()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    // Configure only L1 limit (no L0)
+    ITradingLimitsV2.Config memory config;
+    config.limit1 = 80e18;
+    config.flags = 2; // Only L1 enabled
+
+    vm.prank(owner);
+    fpmm.configureTradingLimit(token1, config);
+
+    // First swap: 60 tokens (within L1 limit)
+    uint256 amount1In = 60e18;
+    uint256 amount0Out = 59.82e18;
+
+    vm.startPrank(ALICE);
+    IERC20(token1).transfer(address(fpmm), amount1In);
+    fpmm.swap(amount0Out, 0, CHARLIE, "");
+
+    // Second swap: 30 more tokens (total 90, exceeds 80 limit)
+    uint256 amount1In2 = 30e18;
+    uint256 amount0Out2 = 29.91e18;
+
+    IERC20(token1).transfer(address(fpmm), amount1In2);
+    vm.expectRevert(ITradingLimitsV2.L1LimitExceeded.selector);
+    fpmm.swap(amount0Out2, 0, CHARLIE, "");
+    vm.stopPrank();
+
+    // Verify only L1 is tracked (netflow0 should be 0)
+    // Netflow = amountOut - amountIn = 0 - 60 = -60 (negative because token1 is coming in)
+    (, ITradingLimitsV2.State memory state) = fpmm.getTradingLimits(token1);
+    assertEq(state.netflow0, 0); // L0 not configured
+    assertEq(state.netflow1, -60e15); // L1 tracked (negative netflow)
   }
 }
