@@ -88,6 +88,28 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     assertCDPFPMMRateEqual(backToNormalRate / 1e6, DENOMINATOR);
   }
 
+  function test_oracleAdapter_revertsWhenValueDeltaBreakerTrips() public {
+    _deployOracleAdapter();
+
+    assertEq($oracle.adapter.getTradingMode($addresses.referenceRateFeedReserveFPMM), 0);
+
+    uint256 threshold = $oracle.valueDeltaBreaker.defaultRateChangeThreshold();
+    uint256 referenceValue = $oracle.valueDeltaBreaker.referenceValues($addresses.referenceRateFeedReserveFPMM);
+
+    uint256 priceThatTripsBreaker = (referenceValue * (FIXED1 + threshold)) / FIXED1 + 1;
+    _reportReserveFPMMRate(priceThatTripsBreaker);
+
+    assertEq($oracle.adapter.getTradingMode($addresses.referenceRateFeedReserveFPMM), 1);
+
+    // wait for the cooldown and report back a back to normal rate that resets the breaker
+    uint256 backToNormalRate = referenceValue + 0.001e24;
+    skip($oracle.valueDeltaBreaker.getCooldown($addresses.referenceRateFeedReserveFPMM));
+    _reportReserveFPMMRate(backToNormalRate);
+
+    assertEq($oracle.adapter.getTradingMode($addresses.referenceRateFeedReserveFPMM), 0);
+    assertReserveFPMMRateEqual(backToNormalRate / 1e6, DENOMINATOR);
+  }
+
   function _toFixidity(uint256 rate) internal pure returns (uint256) {
     return rate * 1e6;
   }
