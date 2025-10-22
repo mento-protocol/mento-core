@@ -9,6 +9,8 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
   // Sorted oracles always returns 1e24 as the denominator, which is then divided by 1e6 in the OracleAdapter
   uint256 constant DENOMINATOR = 1e18;
 
+  uint256 constant FIXED1 = 1e24;
+
   function test_oracleAdapter_revertsWhenMarketIsClosed() public {
     _deployOracleAdapter();
 
@@ -53,8 +55,7 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     vm.expectRevert(IOracleAdapter.FXMarketClosed.selector);
     $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedReserveFPMM);
 
-    // Markets are now open
-    skip(1 seconds);
+    skip(1 seconds); // Markets are now open
 
     uint256 newCDPFPMMRate = 2.05e24;
     _reportCDPFPMMRate(newCDPFPMMRate);
@@ -63,6 +64,32 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     uint256 newReserveFPMMRate = 1.0005e24;
     _reportReserveFPMMRate(newReserveFPMMRate);
     assertReserveFPMMRateEqual(newReserveFPMMRate / 1e6, DENOMINATOR);
+  }
+
+  function test_oracleAdapter_revertsWhenMedianDeltaBreakerTrips() public {
+    _deployOracleAdapter();
+
+    (uint256 initialRate, ) = $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedCDPFPMM);
+    assertEq($oracle.adapter.getTradingMode($addresses.referenceRateFeedCDPFPMM), 0);
+
+    uint256 threshold = $oracle.medianDeltaBreaker.defaultRateChangeThreshold();
+
+    uint256 priceThatTripsBreaker = (_toFixidity(initialRate) * (FIXED1 + threshold)) / FIXED1 + 1;
+    _reportCDPFPMMRate(priceThatTripsBreaker);
+
+    assertEq($oracle.adapter.getTradingMode($addresses.referenceRateFeedCDPFPMM), 1);
+
+    // wait for the cooldown and report back a back to normal rate that resets the breaker
+    uint256 backToNormalRate = _toFixidity(initialRate) + 0.2e24;
+    skip($oracle.medianDeltaBreaker.getCooldown($addresses.referenceRateFeedCDPFPMM));
+    _reportCDPFPMMRate(backToNormalRate);
+
+    assertEq($oracle.adapter.getTradingMode($addresses.referenceRateFeedCDPFPMM), 0);
+    assertCDPFPMMRateEqual(backToNormalRate / 1e6, DENOMINATOR);
+  }
+
+  function _toFixidity(uint256 rate) internal pure returns (uint256) {
+    return rate * 1e6;
   }
 
   function assertCDPFPMMRateEqual(uint256 expectedNumerator, uint256 expectedDenominator) internal {
