@@ -301,10 +301,7 @@ contract FPMMAdminTest is FPMMBaseTest {
     fpmm.configureTradingLimit(token0, config);
   }
 
-  function test_configureTradingLimit_whenOwner_shouldConfigureLimit()
-    public
-    initializeFPMM_withDecimalTokens(18, 18)
-  {
+  function test_configureTradingLimit_whenOwner_shouldConfigureLimit() public initializeFPMM_withDecimalTokens(18, 18) {
     ITradingLimitsV2.Config memory config;
     config.limit0 = 1000e18;
     config.limit1 = 10000e18;
