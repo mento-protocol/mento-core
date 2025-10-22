@@ -43,9 +43,11 @@ library TradingLimitsV2 {
    * @param self the Config struct to check.
    */
   function validate(ITradingLimitsV2.Config memory self) internal pure {
-    require(self.flags & L0 == 0 || self.limit0 > 0, "limit0 can't be zero if active");
-    require(self.flags & L1 == 0 || self.limit1 > 0, "limit1 can't be zero if active");
-    require(self.flags & (L0 | L1) != 3 || self.limit0 < self.limit1, "limit1 must be greater than limit0");
+    if (self.flags & L0 != 0 && self.limit0 == 0) revert ITradingLimitsV2.Limit0ZeroWhenActive();
+    if (self.flags & L1 != 0 && self.limit1 == 0) revert ITradingLimitsV2.Limit1ZeroWhenActive();
+    if (self.flags & (L0 | L1) == 3 && self.limit0 >= self.limit1) {
+      revert ITradingLimitsV2.Limit1MustBeGreaterThanLimit0();
+    }
   }
 
   /**
@@ -66,13 +68,13 @@ library TradingLimitsV2 {
     if (config.flags & L0 > 0) {
       int96 scaledConfigLimit0 = scaleValue(int256(config.limit0), decimals);
       if (self.netflow0 < -scaledConfigLimit0 || self.netflow0 > scaledConfigLimit0) {
-        revert("L0 Exceeded");
+        revert ITradingLimitsV2.L0LimitExceeded();
       }
     }
     if (config.flags & L1 > 0) {
       int96 scaledConfigLimit1 = scaleValue(int256(config.limit1), decimals);
       if (self.netflow1 < -scaledConfigLimit1 || self.netflow1 > scaledConfigLimit1) {
-        revert("L1 Exceeded");
+        revert ITradingLimitsV2.L1LimitExceeded();
       }
     }
   }
@@ -197,7 +199,7 @@ library TradingLimitsV2 {
       scaledValue = value / int256(scaleFactor);
     }
 
-    require(scaledValue <= MAX_INT96 && scaledValue >= MIN_INT96, "Value exceeds int96 bounds");
+    if (scaledValue > MAX_INT96 || scaledValue < MIN_INT96) revert ITradingLimitsV2.ValueExceedsInt96Bounds();
     return int96(scaledValue);
   }
 
@@ -210,7 +212,7 @@ library TradingLimitsV2 {
    */
   function safeAdd(int96 a, int96 b) internal pure returns (int96) {
     int256 c = int256(a) + int256(b);
-    require(c >= MIN_INT96 && c <= MAX_INT96, "int96 addition overflow");
+    if (c < MIN_INT96 || c > MAX_INT96) revert ITradingLimitsV2.Int96AdditionOverflow();
     return int96(c);
   }
 }
