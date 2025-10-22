@@ -19,6 +19,9 @@ import { addresses, uints } from "mento-std/Array.sol";
 contract OracleAdapterDeployer is TestStorage {
   function _deployOracleAdapter() internal {
     _deploySortedOracles();
+    _reportCDPFPMMRate(2e24);
+    _reportReserveFPMMRate(1e24);
+
     _deployCircuitBreaker();
 
     $oracle.adapter = IOracleAdapter(new OracleAdapter(false));
@@ -29,9 +32,6 @@ contract OracleAdapterDeployer is TestStorage {
       address($oracle.marketHoursBreaker),
       $addresses.governance
     );
-
-    _reportCDPFPMMRate(2e24);
-    _reportReserveFPMMRate(1e24);
 
     $oracle.deployed = true;
   }
