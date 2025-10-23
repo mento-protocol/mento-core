@@ -62,8 +62,8 @@ contract FPMMDeployer is TestStorage {
     $fpmm.fpmmCDP = IFPMM(
       $fpmm.fpmmFactory.deployFPMM(
         $fpmm.fpmmImplementation,
-        address($tokens.cdpCollToken),
-        address($tokens.cdpDebtToken),
+        address($tokens.usdm),
+        address($tokens.eurm),
         $addresses.referenceRateFeedCDPFPMM,
         invertCDPFPMMRate
       )
@@ -76,8 +76,8 @@ contract FPMMDeployer is TestStorage {
     $fpmm.fpmmReserve = IFPMM(
       $fpmm.fpmmFactory.deployFPMM(
         $fpmm.oneToOneFPMMImplementation,
-        address($tokens.resDebtToken),
-        address($tokens.resCollToken),
+        address($tokens.usdm),
+        address($tokens.usdc),
         $addresses.referenceRateFeedReserveFPMM,
         invertReserveFPMMRate
       )
@@ -86,17 +86,17 @@ contract FPMMDeployer is TestStorage {
     vm.stopPrank();
     vm.label(address($fpmm.fpmmReserve), "FPMMReserve");
 
-    $fpmm.isToken0DebtInCDPFPMM = $fpmm.fpmmCDP.token0() == address($tokens.cdpDebtToken);
-    $fpmm.isToken0DebtInResFPMM = $fpmm.fpmmReserve.token0() == address($tokens.resDebtToken);
+    $fpmm.isToken0DebtInCDPFPMM = $fpmm.fpmmCDP.token0() == address($tokens.eurm);
+    $fpmm.isToken0DebtInResFPMM = $fpmm.fpmmReserve.token0() == address($tokens.usdm);
 
     $fpmm.deployed = true;
   }
 
   function _fpmmTokens(IFPMM fpmm) internal view returns (address debtToken, address collToken) {
     if (address(fpmm) == address($fpmm.fpmmReserve)) {
-      return (address($tokens.resDebtToken), address($tokens.resCollToken));
+      return (address($tokens.usdm), address($tokens.usdc));
     } else if (address(fpmm) == address($fpmm.fpmmCDP)) {
-      return (address($tokens.cdpDebtToken), address($tokens.cdpCollToken));
+      return (address($tokens.eurm), address($tokens.usdm));
     }
   }
 
