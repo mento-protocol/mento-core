@@ -43,10 +43,6 @@ import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
-import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
-import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
-import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
-import { USDC } from "test/utils/mocks/USDC.sol";
 
 import { IVirtualPoolFactory } from "contracts/interfaces/IVirtualPoolFactory.sol";
 import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";

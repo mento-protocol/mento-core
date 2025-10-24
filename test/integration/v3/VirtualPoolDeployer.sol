@@ -4,11 +4,7 @@
 pragma solidity 0.8.24;
 import { TestStorage } from "./TestStorage.sol";
 
-import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 import { VirtualPoolFactory } from "contracts/swap/virtual/VirtualPoolFactory.sol";
-import { VirtualPool } from "contracts/swap/virtual/VirtualPool.sol";
-import { FactoryRegistry } from "contracts/swap/FactoryRegistry.sol";
-import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IVirtualPoolFactory } from "contracts/interfaces/IVirtualPoolFactory.sol";
 import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";
 

@@ -7,7 +7,6 @@ import { CDPLiquidityStrategy } from "contracts/liquidityStrategies/CDPLiquidity
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { ReserveLiquidityStrategy } from "contracts/liquidityStrategies/ReserveLiquidityStrategy.sol";
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
-import { IReserve } from "contracts/interfaces/IReserve.sol";
 
 contract LiquidityStrategyDeployer is TestStorage {
   function _deployLiquidityStrategies() internal {
