@@ -9,7 +9,6 @@ import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
-import { console } from "forge-std/console.sol";
 
 contract TokenDeployer is TestStorage {
   bool private _resDebtTokenDeployed;
@@ -70,7 +69,6 @@ contract TokenDeployer is TestStorage {
 
     uint256[] memory numbers = new uint256[](0);
     address[] memory addresses = new address[](0);
-    console.log("USD.m deployed", targetAddress);
     IStableTokenV3(targetAddress).initialize(
       "Mento USD",
       "USD.m",
@@ -117,11 +115,7 @@ contract TokenDeployer is TestStorage {
 
   function _deployReserveCollToken(address targetAddress) private {
     address usdc = address(new MockERC20("Circle USD", "USDC", 6));
-    bytes32[] memory slots = new bytes32[](3);
-    slots[0] = bytes32(bytes1(0x00)); // _name
-    slots[1] = bytes32(bytes1(0x01)); // _symbol
-    slots[2] = bytes32(bytes1(0x02)); // _decimals
-    _cloneContract(usdc, targetAddress, slots);
+    _cloneContract(usdc, targetAddress, 10);
 
     $tokens.usdc = IERC20Metadata(targetAddress);
     vm.label(targetAddress, "USDC");
@@ -181,10 +175,11 @@ contract TokenDeployer is TestStorage {
     require(balanceAfter == balanceBefore + amount, "TOKEN_DEPLOYER: mint cdp debt token failed");
   }
 
-  function _cloneContract(address src, address dest, bytes32[] memory slots) internal {
+  function _cloneContract(address src, address dest, uint256 slots) internal {
     vm.etch(dest, src.code);
-    for (uint256 i = 0; i < slots.length; ++i) {
-      vm.store(dest, slots[i], vm.load(src, slots[i])); // _name
+    for (uint256 i = 0; i < slots; ++i) {
+      bytes32 slot = bytes32(i);
+      vm.store(dest, slot, vm.load(src, slot));
     }
   }
 }
