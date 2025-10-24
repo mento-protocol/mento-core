@@ -7,9 +7,11 @@ import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
+import { MentoV2Deployer } from "test/integration/v3/MentoV2Deployer.sol";
 
 contract IntegrationTest is
   TokenDeployer,
+  MentoV2Deployer,
   OracleAdapterDeployer,
   LiquidityStrategyDeployer,
   FPMMDeployer,
@@ -21,6 +23,8 @@ contract IntegrationTest is
     // ReserveFPMM:  token0 = USDC, token1 = USD.m
     // CDPFPMM:      token0 = EUR.m, token1 = USD.m
     _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
+
+    _deployMentoV2();
 
     _deployOracleAdapter();
 

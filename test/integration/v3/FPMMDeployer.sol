@@ -140,7 +140,7 @@ contract FPMMDeployer is TestStorage {
     bool reservePriceAboveOraclePrice;
   }
 
-  function _snapshotPrices(IFPMM fpmm) internal returns (FPMMPrices memory prices) {
+  function _snapshotPrices(IFPMM fpmm) internal view returns (FPMMPrices memory prices) {
     (
       prices.oraclePriceNumerator,
       prices.oraclePriceDenominator,

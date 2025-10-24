@@ -48,6 +48,9 @@ import { ITradingLimits } from "contracts/interfaces/ITradingLimits.sol";
 import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
 import { USDC } from "test/utils/mocks/USDC.sol";
 
+import { IVirtualPoolFactory } from "contracts/interfaces/IVirtualPoolFactory.sol";
+import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";
+
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
@@ -113,6 +116,13 @@ abstract contract TestStorage is Test {
     bytes32 pair_exof_usdm_id;
   }
 
+  struct VirtualPoolDeployments {
+    bool deployed;
+    IVirtualPoolFactory factory;
+    IRPool usdm_celo_vp;
+    IRPool exof_usdm_vp;
+  }
+
   struct FPMMDeployments {
     bool deployed;
     IFactoryRegistry factoryRegistry;
@@ -159,6 +169,7 @@ abstract contract TestStorage is Test {
   MockAddresses public $addresses;
   LiquidityStrategiesDeployments public $liquidityStrategies;
   MentoV2Deployments public $mentoV2;
+  VirtualPoolDeployments public $virtualPool;
 
   /* ============================================================ */
   /* ======================== Helper functions ================== */
