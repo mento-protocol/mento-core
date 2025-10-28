@@ -107,16 +107,16 @@ abstract contract TestStorage is Test {
     ISortedOracles sortedOracles;
     IBreakerBox breakerBox;
     IMedianDeltaBreaker medianDeltaBreaker;
-    address usdm_celo_referenceRateFeedID;
+    address exof_celo_referenceRateFeedID;
     address exof_usdm_referenceRateFeedID;
-    bytes32 pair_usdm_celo_id;
+    bytes32 pair_exof_celo_id;
     bytes32 pair_exof_usdm_id;
   }
 
   struct VirtualPoolDeployments {
     bool deployed;
     IVirtualPoolFactory factory;
-    IRPool usdm_celo_vp;
+    IRPool exof_celo_vp;
     IRPool exof_usdm_vp;
   }
 

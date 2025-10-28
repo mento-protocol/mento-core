@@ -17,11 +17,11 @@ contract VirtualPoolDeployer is TestStorage {
 
     vm.startPrank($addresses.governance);
     $virtualPool.factory = IVirtualPoolFactory(address(new VirtualPoolFactory()));
-    $virtualPool.usdm_celo_vp = IRPool(
-      $virtualPool.factory.deployVirtualPool(address($mentoV2.biPoolManager), $mentoV2.pair_usdm_celo_id)
-    );
     $virtualPool.exof_usdm_vp = IRPool(
       $virtualPool.factory.deployVirtualPool(address($mentoV2.biPoolManager), $mentoV2.pair_exof_usdm_id)
+    );
+    $virtualPool.exof_celo_vp = IRPool(
+      $virtualPool.factory.deployVirtualPool(address($mentoV2.biPoolManager), $mentoV2.pair_exof_celo_id)
     );
     $fpmm.factoryRegistry.approve(address($virtualPool.factory));
     vm.stopPrank();

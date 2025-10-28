@@ -72,14 +72,14 @@ contract MentoV2Deployer is TestStorage {
     $mentoV2.sortedOracles = ISortedOracles(deployCode("SortedOracles", abi.encode(true)));
     $mentoV2.sortedOracles.initialize(60 * 10);
 
-    $mentoV2.usdm_celo_referenceRateFeedID = address($tokens.usdm);
+    $mentoV2.exof_celo_referenceRateFeedID = address($tokens.exof);
     $mentoV2.exof_usdm_referenceRateFeedID = address(bytes20(keccak256("XOF/USDm")));
 
-    _configureOracleRate($mentoV2.usdm_celo_referenceRateFeedID, 4e24);
+    _configureOracleRate($mentoV2.exof_celo_referenceRateFeedID, 72e20);
     _configureOracleRate($mentoV2.exof_usdm_referenceRateFeedID, 18e20);
 
     address[] memory rateFeedIDs = new address[](2);
-    rateFeedIDs[0] = $mentoV2.usdm_celo_referenceRateFeedID;
+    rateFeedIDs[0] = $mentoV2.exof_celo_referenceRateFeedID;
     rateFeedIDs[1] = $mentoV2.exof_usdm_referenceRateFeedID;
 
     $mentoV2.breakerBox = IBreakerBox(
@@ -88,7 +88,7 @@ contract MentoV2Deployer is TestStorage {
     $mentoV2.sortedOracles.setBreakerBox($mentoV2.breakerBox);
 
     address[] memory medianDeltaBreakerRateFeedIDs = new address[](2);
-    medianDeltaBreakerRateFeedIDs[0] = $mentoV2.usdm_celo_referenceRateFeedID;
+    medianDeltaBreakerRateFeedIDs[0] = $mentoV2.exof_celo_referenceRateFeedID;
     medianDeltaBreakerRateFeedIDs[1] = $mentoV2.exof_usdm_referenceRateFeedID;
 
     uint256[] memory medianDeltaBreakerRateChangeThresholds = new uint256[](2);
@@ -121,7 +121,7 @@ contract MentoV2Deployer is TestStorage {
     $mentoV2.breakerBox.addBreaker(address($mentoV2.medianDeltaBreaker), 3);
     $mentoV2.breakerBox.toggleBreaker(
       address($mentoV2.medianDeltaBreaker),
-      $mentoV2.usdm_celo_referenceRateFeedID,
+      $mentoV2.exof_celo_referenceRateFeedID,
       true
     );
     $mentoV2.breakerBox.toggleBreaker(
@@ -163,18 +163,18 @@ contract MentoV2Deployer is TestStorage {
     $mentoV2.reserve.addExchangeSpender(address($mentoV2.broker));
     $mentoV2.biPoolManager.setPricingModules(pricingModuleIdentifiers, pricingModules);
 
-    IBiPoolManager.PoolExchange memory pair_usdm_celo;
-    pair_usdm_celo.asset0 = address($tokens.usdm);
-    pair_usdm_celo.asset1 = address($tokens.celo);
-    pair_usdm_celo.pricingModule = $mentoV2.constantProduct;
-    pair_usdm_celo.lastBucketUpdate = block.timestamp;
-    pair_usdm_celo.config.spread = FixidityLib.newFixedFraction(5, 100);
-    pair_usdm_celo.config.referenceRateResetFrequency = 60 * 5;
-    pair_usdm_celo.config.minimumReports = 1;
-    pair_usdm_celo.config.referenceRateFeedID = $mentoV2.usdm_celo_referenceRateFeedID;
-    pair_usdm_celo.config.stablePoolResetSize = 1e24;
+    IBiPoolManager.PoolExchange memory pair_exof_celo;
+    pair_exof_celo.asset0 = address($tokens.exof);
+    pair_exof_celo.asset1 = address($tokens.celo);
+    pair_exof_celo.pricingModule = $mentoV2.constantProduct;
+    pair_exof_celo.lastBucketUpdate = block.timestamp;
+    pair_exof_celo.config.spread = FixidityLib.newFixedFraction(5, 100);
+    pair_exof_celo.config.referenceRateResetFrequency = 60 * 5;
+    pair_exof_celo.config.minimumReports = 1;
+    pair_exof_celo.config.referenceRateFeedID = $mentoV2.exof_celo_referenceRateFeedID;
+    pair_exof_celo.config.stablePoolResetSize = 1e24;
 
-    $mentoV2.pair_usdm_celo_id = $mentoV2.biPoolManager.createExchange(pair_usdm_celo);
+    $mentoV2.pair_exof_celo_id = $mentoV2.biPoolManager.createExchange(pair_exof_celo);
 
     IBiPoolManager.PoolExchange memory pair_exof_usdm;
     pair_exof_usdm.asset0 = address($tokens.exof);
