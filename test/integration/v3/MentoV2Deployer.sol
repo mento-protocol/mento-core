@@ -170,7 +170,7 @@ contract MentoV2Deployer is TestStorage {
     pair_usdm_celo.lastBucketUpdate = block.timestamp;
     pair_usdm_celo.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_usdm_celo.config.referenceRateResetFrequency = 60 * 5;
-    pair_usdm_celo.config.minimumReports = 5;
+    pair_usdm_celo.config.minimumReports = 1;
     pair_usdm_celo.config.referenceRateFeedID = $mentoV2.usdm_celo_referenceRateFeedID;
     pair_usdm_celo.config.stablePoolResetSize = 1e24;
 
@@ -183,7 +183,7 @@ contract MentoV2Deployer is TestStorage {
     pair_exof_usdm.lastBucketUpdate = block.timestamp;
     pair_exof_usdm.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_exof_usdm.config.referenceRateResetFrequency = 60 * 5;
-    pair_exof_usdm.config.minimumReports = 5;
+    pair_exof_usdm.config.minimumReports = 1;
     pair_exof_usdm.config.referenceRateFeedID = $mentoV2.exof_usdm_referenceRateFeedID;
     pair_exof_usdm.config.stablePoolResetSize = 1e24;
 
@@ -198,20 +198,10 @@ contract MentoV2Deployer is TestStorage {
   }
 
   function _configureOracleRate(address id, uint256 medianRate) internal {
-    for (uint256 oracleIndex = 0; oracleIndex < 10; oracleIndex++) {
-      address oracleAddress = vm.addr(uint256(keccak256(abi.encode(id, oracleIndex))));
-      $mentoV2.sortedOracles.addOracle(id, oracleAddress);
-      vm.startPrank(oracleAddress);
-      address lesserKey;
-      address greaterKey;
-      (address[] memory keys, uint256[] memory values, ) = $mentoV2.sortedOracles.getRates(id);
-      for (uint256 i = 0; i < keys.length; i++) {
-        if (keys[i] == oracleAddress) continue;
-        if (values[i] < medianRate) lesserKey = keys[i];
-        if (values[i] >= medianRate) greaterKey = keys[i];
-      }
-      $mentoV2.sortedOracles.report(id, medianRate, lesserKey, greaterKey);
-      vm.stopPrank();
-    }
+    address oracleAddress = vm.addr(uint256(keccak256(abi.encode(id))));
+    $mentoV2.sortedOracles.addOracle(id, oracleAddress);
+    vm.startPrank(oracleAddress);
+    $mentoV2.sortedOracles.report(id, medianRate, address(0), address(0));
+    vm.stopPrank();
   }
 }
