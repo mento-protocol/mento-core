@@ -75,8 +75,8 @@ contract MentoV2Deployer is TestStorage {
     $mentoV2.usdm_celo_referenceRateFeedID = address($tokens.usdm);
     $mentoV2.exof_usdm_referenceRateFeedID = address(bytes20(keccak256("XOF/USDm")));
 
-    _configureOracleRate($mentoV2.usdm_celo_referenceRateFeedID, 4e18);
-    _configureOracleRate($mentoV2.exof_usdm_referenceRateFeedID, 18e14);
+    _configureOracleRate($mentoV2.usdm_celo_referenceRateFeedID, 4e24);
+    _configureOracleRate($mentoV2.exof_usdm_referenceRateFeedID, 18e20);
 
     address[] memory rateFeedIDs = new address[](2);
     rateFeedIDs[0] = $mentoV2.usdm_celo_referenceRateFeedID;
