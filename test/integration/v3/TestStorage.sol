@@ -18,6 +18,7 @@ import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
+import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
@@ -126,6 +127,7 @@ abstract contract TestStorage is Test {
     IFPMM fpmmCDP;
     IFPMM fpmmReserve;
     IProxyAdmin proxyAdmin;
+    IRouter router;
     address fpmmImplementation;
     address oneToOneFPMMImplementation;
     bool isToken0DebtInCDPFPMM;

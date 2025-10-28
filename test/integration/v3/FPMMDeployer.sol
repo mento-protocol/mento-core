@@ -5,10 +5,12 @@ pragma solidity 0.8.24;
 import { TestStorage } from "./TestStorage.sol";
 
 import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
+import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 import { FPMMFactory } from "contracts/swap/FPMMFactory.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { OneToOneFPMM } from "contracts/swap/OneToOneFPMM.sol";
 import { FactoryRegistry } from "contracts/swap/FactoryRegistry.sol";
+import { Router } from "contracts/swap/router/Router.sol";
 import { ProxyAdmin } from "openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
@@ -82,6 +84,7 @@ contract FPMMDeployer is TestStorage {
         invertReserveFPMMRate
       )
     );
+    $fpmm.router = IRouter(address(new Router(address(0), address($fpmm.factoryRegistry), address($fpmm.fpmmFactory))));
     $fpmm.fpmmReserve.setLiquidityStrategy(address($liquidityStrategies.reserveLiquidityStrategy), true);
     vm.stopPrank();
     vm.label(address($fpmm.fpmmReserve), "FPMMReserve");

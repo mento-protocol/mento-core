@@ -59,6 +59,7 @@ contract TokenDeployer is TestStorage {
     IStableTokenV2 eXOFToken = IStableTokenV2(deployCode("StableTokenV2", abi.encode(false)));
     eXOFToken.initialize("eXOF", "eXOF", initialAddresses, initialBalances);
     vm.stopPrank();
+    vm.label(address(eXOFToken), "eXOF");
     $tokens.exof = IStableTokenV2(address(eXOFToken));
     _eXOFTokenDeployed = true;
     _checkAllTokensDeployed();
