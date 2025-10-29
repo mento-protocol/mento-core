@@ -18,6 +18,11 @@ import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
+import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
+import { IValueDeltaBreaker } from "contracts/interfaces/IValueDeltaBreaker.sol";
 
 import { ITroveNFT } from "bold/src/Interfaces/ITroveNFT.sol";
 import { IPriceFeed } from "bold/src/Interfaces/IPriceFeed.sol";
@@ -38,12 +43,15 @@ abstract contract TestStorage is Test {
   constructor() {
     $addresses.governance = makeAddr("governance");
     $addresses.watchdog = makeAddr("watchdog");
-    $addresses.sortedOracles = makeAddr("sortedOracles");
-    $addresses.breakerBox = makeAddr("breakerBox");
-    $addresses.marketHoursBreaker = makeAddr("marketHoursBreaker");
+    $addresses.whitelistedOracle = makeAddr("whitelistedOracle");
     $addresses.protocolFeeRecipient = makeAddr("protocolFeeRecipient");
     $addresses.referenceRateFeedCDPFPMM = makeAddr("referenceRateFeedCDPFPMM");
     $addresses.referenceRateFeedReserveFPMM = makeAddr("referenceRateFeedReserveFPMM");
+
+    // Start all tests from a non-zero timestamp (2025-10-22 09:00:00)
+    // This is required when setting up the circuit breaker, since otherwise it reverts when trying to configure
+    // the market hours breaker because of the isFXMarketOpen() check.
+    vm.warp(1761123600);
   }
 
   struct LiquityDeploymentPools {
@@ -93,14 +101,17 @@ abstract contract TestStorage is Test {
   struct OracleDeployments {
     bool deployed;
     IOracleAdapter adapter;
+    ISortedOracles sortedOracles;
+    IBreakerBox breakerBox;
+    IMarketHoursBreaker marketHoursBreaker;
+    IMedianDeltaBreaker medianDeltaBreaker;
+    IValueDeltaBreaker valueDeltaBreaker;
   }
 
   struct MockAddresses {
     address governance;
     address watchdog;
-    address sortedOracles;
-    address breakerBox;
-    address marketHoursBreaker;
+    address whitelistedOracle;
     address protocolFeeRecipient;
     address referenceRateFeedCDPFPMM;
     address referenceRateFeedReserveFPMM;
@@ -147,6 +158,15 @@ abstract contract TestStorage is Test {
       address($tokens.resCollToken)
     );
     console.log();
+  }
+
+  function printOracleAddresses() public view {
+    console.log("===== Oracle Deployment addresses =====");
+    console.log("> adapter:", address($oracle.adapter));
+    console.log("> sortedOracles:", address($oracle.sortedOracles));
+    console.log("> breakerBox:", address($oracle.breakerBox));
+    console.log("> marketHoursBreaker:", address($oracle.marketHoursBreaker));
+    console.log("> medianDeltaBreaker:", address($oracle.medianDeltaBreaker));
   }
 
   function printLiquityAddresses() public view {
