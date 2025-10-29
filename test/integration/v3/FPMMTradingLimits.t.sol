@@ -6,12 +6,9 @@ import { TokenDeployer } from "test/integration/v3/TokenDeployer.sol";
 import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
 import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
-import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
 import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
-import { console2 as console } from "forge-std/console2.sol";
-import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeployer, FPMMDeployer {
   address public trader = makeAddr("trader");
