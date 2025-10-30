@@ -89,7 +89,7 @@ contract TokenDeployer is TestStorage {
   }
 
   function _deployReserveCollToken(address targetAddress) private {
-    deployCodeTo("out/MockERC20.sol/MockERC20.0.8.26.json", abi.encode("Circle USD", "USDC", 6), targetAddress);
+    deployCodeTo("out/MockERC20.sol/MockERC20.0.8.24.json", abi.encode("Circle USD", "USDC", 6), targetAddress);
 
     $tokens.resCollToken = IERC20Metadata(targetAddress);
     vm.label(targetAddress, "USDC");
