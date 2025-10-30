@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8;
+pragma solidity ^0.8.0;
+
 pragma experimental ABIEncoderV2;
 
 import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
@@ -43,9 +43,11 @@ library TradingLimitsV2 {
    * @param self the Config struct to check.
    */
   function validate(ITradingLimitsV2.Config memory self) internal pure {
-    require(self.flags & L0 == 0 || self.limit0 > 0, "limit0 can't be zero if active");
-    require(self.flags & L1 == 0 || self.limit1 > 0, "limit1 can't be zero if active");
-    require(self.flags & (L0 | L1) != 3 || self.limit0 < self.limit1, "limit1 must be greater than limit0");
+    if (self.flags & L0 != 0 && self.limit0 == 0) revert ITradingLimitsV2.Limit0ZeroWhenActive();
+    if (self.flags & L1 != 0 && self.limit1 == 0) revert ITradingLimitsV2.Limit1ZeroWhenActive();
+    if (self.flags & (L0 | L1) == 3 && self.limit0 >= self.limit1) {
+      revert ITradingLimitsV2.Limit1MustBeGreaterThanLimit0();
+    }
   }
 
   /**
@@ -64,15 +66,15 @@ library TradingLimitsV2 {
     uint8 decimals
   ) internal pure {
     if (config.flags & L0 > 0) {
-      int96 scaledConfigLimit0 = scaleLimit(config.limit0, decimals);
+      int96 scaledConfigLimit0 = scaleValue(int256(config.limit0), decimals);
       if (self.netflow0 < -scaledConfigLimit0 || self.netflow0 > scaledConfigLimit0) {
-        revert("L0 Exceeded");
+        revert ITradingLimitsV2.L0LimitExceeded();
       }
     }
     if (config.flags & L1 > 0) {
-      int96 scaledConfigLimit1 = scaleLimit(config.limit1, decimals);
+      int96 scaledConfigLimit1 = scaleValue(int256(config.limit1), decimals);
       if (self.netflow1 < -scaledConfigLimit1 || self.netflow1 > scaledConfigLimit1) {
-        revert("L1 Exceeded");
+        revert ITradingLimitsV2.L1LimitExceeded();
       }
     }
   }
@@ -103,6 +105,33 @@ library TradingLimitsV2 {
   }
 
   /**
+   * @notice Apply trading limits by updating state and verifying against config.
+   * @dev This is the main entry point for applying trading limits. It loads state and config
+   * in memory, updates the state, verifies limits, and returns the updated TradingLimits struct.
+   * The caller should write the returned struct back to storage.
+   * @param self the trading limits (state + config) to apply.
+   * @param amountIn amount of token flowing in.
+   * @param amountOut amount of token flowing out.
+   * @param decimals the token's decimal places.
+   * @return the updated trading limits.
+   */
+  function applyTradingLimits(
+    ITradingLimitsV2.TradingLimits memory self,
+    uint256 amountIn,
+    uint256 amountOut,
+    uint8 decimals
+  ) internal view returns (ITradingLimitsV2.State memory) {
+    if (self.config.flags == 0) {
+      return self.state;
+    }
+
+    int256 deltaFlow = int256(amountOut) - int256(amountIn);
+    self.state = update(self.state, self.config, deltaFlow, decimals);
+    verify(self.state, self.config, decimals);
+    return self.state;
+  }
+
+  /**
    * @notice Updates a trading limit State in the context of a Config with the deltaFlow provided.
    * @dev Reverts if the values provided cause overflows.
    * The deltaFlow is provided in the token's native decimals and is scaled to 15 decimals internally.
@@ -123,10 +152,10 @@ library TradingLimitsV2 {
       return self;
     }
 
-    int96 scaledDelta = scaleFlow(_deltaFlow, decimals);
+    int96 scaledDelta = scaleValue(_deltaFlow, decimals);
 
     if (scaledDelta == 0) {
-      return self;
+      scaledDelta = _deltaFlow > 0 ? int96(1e3) : int96(-1e3);
     }
 
     if (config.flags & L0 > 0) {
@@ -149,53 +178,29 @@ library TradingLimitsV2 {
   }
 
   /**
-   * @notice Scale a flow amount from token decimals to internal precision (15 decimals).
+   * @notice Scale a value from token decimals to internal precision (15 decimals).
    * @dev Handles both scaling up (for tokens with < 15 decimals) and scaling down (> 15 decimals).
-   * @param flow the flow amount in token decimals.
+   * @param value the value in token decimals.
    * @param decimals the token's decimal places.
-   * @return the scaled flow amount in 15 decimal precision.
+   * @return the scaled value in 15 decimal precision.
    */
-  function scaleFlow(int256 flow, uint8 decimals) internal pure returns (int96) {
-    int256 scaledFlow;
+  function scaleValue(int256 value, uint8 decimals) internal pure returns (int96) {
+    if (value == 0) return 0;
+
+    int256 scaledValue;
 
     if (decimals == INTERNAL_DECIMALS) {
-      scaledFlow = flow;
+      scaledValue = value;
     } else if (decimals < INTERNAL_DECIMALS) {
       uint256 scaleFactor = 10 ** (INTERNAL_DECIMALS - decimals);
-      scaledFlow = flow * int256(scaleFactor);
+      scaledValue = value * int256(scaleFactor);
     } else {
       uint256 scaleFactor = 10 ** (decimals - INTERNAL_DECIMALS);
-      scaledFlow = flow / int256(scaleFactor);
+      scaledValue = value / int256(scaleFactor);
     }
 
-    require(scaledFlow <= MAX_INT96 && scaledFlow >= MIN_INT96, "Flow exceeds int96 bounds");
-    return int96(scaledFlow);
-  }
-
-  /**
-   * @notice Scale a limit from token decimals to internal precision (15 decimals).
-   * @dev Used to scale config limits for comparison with state netflows.
-   * @param limit the limit amount in token decimals.
-   * @param decimals the token's decimal places.
-   * @return the scaled limit in 15 decimal precision.
-   */
-  function scaleLimit(int112 limit, uint8 decimals) internal pure returns (int96) {
-    if (limit == 0) return 0;
-
-    int256 scaledLimit;
-
-    if (decimals == INTERNAL_DECIMALS) {
-      scaledLimit = int256(limit);
-    } else if (decimals < INTERNAL_DECIMALS) {
-      uint256 scaleFactor = 10 ** (INTERNAL_DECIMALS - decimals);
-      scaledLimit = int256(limit) * int256(scaleFactor);
-    } else {
-      uint256 scaleFactor = 10 ** (decimals - INTERNAL_DECIMALS);
-      scaledLimit = int256(limit) / int256(scaleFactor);
-    }
-
-    require(scaledLimit <= MAX_INT96 && scaledLimit >= MIN_INT96, "Limit exceeds int96 bounds");
-    return int96(scaledLimit);
+    if (scaledValue > MAX_INT96 || scaledValue < MIN_INT96) revert ITradingLimitsV2.ValueExceedsInt96Bounds();
+    return int96(scaledValue);
   }
 
   /**
@@ -207,7 +212,7 @@ library TradingLimitsV2 {
    */
   function safeAdd(int96 a, int96 b) internal pure returns (int96) {
     int256 c = int256(a) + int256(b);
-    require(c >= MIN_INT96 && c <= MAX_INT96, "int96 addition overflow");
+    if (c < MIN_INT96 || c > MAX_INT96) revert ITradingLimitsV2.Int96AdditionOverflow();
     return int96(c);
   }
 }

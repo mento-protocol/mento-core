@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity 0.8.24;
 pragma experimental ABIEncoderV2;
 
 import { TradingLimitsV2 } from "contracts/libraries/TradingLimitsV2.sol";
@@ -39,7 +39,7 @@ contract TradingLimitsV2Harness is ITradingLimitsV2Harness {
   }
 
   function scaleValue(int256 value, uint8 decimals) public pure returns (int96) {
-    return TradingLimitsV2.scaleFlow(value, decimals);
+    return TradingLimitsV2.scaleValue(value, decimals);
   }
 
   function safeAdd(int96 a, int96 b) public pure returns (int96) {
