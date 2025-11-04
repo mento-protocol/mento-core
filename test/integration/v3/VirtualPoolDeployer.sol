@@ -23,6 +23,8 @@ contract VirtualPoolDeployer is TestStorage {
     $virtualPool.exof_celo_vp = IRPool(
       $virtualPool.factory.deployVirtualPool(address($mentoV2.biPoolManager), $mentoV2.pair_exof_celo_id)
     );
+    vm.label(address($virtualPool.exof_usdm_vp), "eXOF/USDm VirtualPool");
+    vm.label(address($virtualPool.exof_celo_vp), "eXOF/Celo VirtualPool");
     $fpmm.factoryRegistry.approve(address($virtualPool.factory));
     vm.stopPrank();
 

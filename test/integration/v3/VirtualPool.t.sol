@@ -33,6 +33,7 @@ contract VirtualPoolTest is
     vm.startPrank($addresses.governance);
     $tokens.eurm.setMinter(minter, true);
     $tokens.usdm.setMinter(minter, true);
+    $tokens.exof.setValidators(minter);
     vm.stopPrank();
     vm.startPrank(minter);
     IStableTokenV3(address($tokens.celo)).mint(address($mentoV2.reserve), 50_000_000e18);
@@ -41,11 +42,11 @@ contract VirtualPoolTest is
     $tokens.eurm.mint(minter, 50_000_000e18);
     vm.stopPrank();
     _provideLiquidityToFPMM($fpmm.fpmmCDP, minter, 50_000_000e18, 50_000_000e18);
-    vm.warp(1761645000);
   }
 
   function test_stableTokenV3ToV2_swap() public {
     address user = makeAddr("user");
+    _reportReserveFPMMRate(1000000000000000000000000);
 
     vm.prank(user);
     $tokens.eurm.approve(address($fpmm.router), type(uint256).max);
@@ -128,21 +129,21 @@ contract VirtualPoolTest is
     address user = makeAddr("user");
 
     vm.prank(user);
-    $tokens.exof.approve(address($fpmm.router), type(uint256).max);
+    $tokens.usdm.approve(address($fpmm.router), type(uint256).max);
     vm.prank(minter);
-    $tokens.exof.mint(user, 5_000e18);
+    $tokens.usdm.mint(user, 5_000e18);
 
     uint256 celoBalanceBefore = $tokens.celo.balanceOf(user);
 
     vm.startPrank(user);
     IRouter.Route[] memory routes = new IRouter.Route[](2);
-    routes[0] = _createVirtualRoute(address($tokens.exof), address($tokens.usdm));
-    routes[1] = _createVirtualRoute(address($tokens.usdm), address($tokens.celo));
+    routes[0] = _createVirtualRoute(address($tokens.usdm), address($tokens.exof));
+    routes[1] = _createVirtualRoute(address($tokens.exof), address($tokens.celo));
 
     uint256 swapAmount = 1_000e18;
 
-    uint256 expectedUsdmOut = $virtualPool.exof_usdm_vp.getAmountOut(swapAmount, address($tokens.exof));
-    uint256 expectedCeloOut = $virtualPool.exof_celo_vp.getAmountOut(expectedUsdmOut, address($tokens.usdm));
+    uint256 expectedExofOut = $virtualPool.exof_usdm_vp.getAmountOut(swapAmount, address($tokens.usdm));
+    uint256 expectedCeloOut = $virtualPool.exof_celo_vp.getAmountOut(expectedExofOut, address($tokens.exof));
 
     $fpmm.router.swapExactTokensForTokens(swapAmount, 0, routes, user, block.timestamp);
     vm.stopPrank();
