@@ -446,5 +446,4 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     vm.expectRevert("Ownable: new owner is the zero address");
     factory.transferOwnership(address(0));
   }
-
 }

@@ -79,7 +79,6 @@ interface IFPMMFactory is IRPoolFactory {
    */
   event OracleAdapterSet(address indexed oracleAdapter);
 
-
   /**
    * @notice Emitted when the default parameters are set.
    * @param defaultParams The new default parameters
@@ -101,7 +100,6 @@ interface IFPMMFactory is IRPoolFactory {
    * @return The address of the proxy admin contract
    */
   function proxyAdmin() external view returns (address);
-
 
   /**
    * @notice Gets the default parameters for deployed FPMMs.
@@ -168,7 +166,6 @@ interface IFPMMFactory is IRPoolFactory {
    * @param _proxyAdmin The new address of the proxy admin contract
    */
   function setProxyAdmin(address _proxyAdmin) external;
-
 
   /**
    * @notice Sets the default parameters for deployed FPMMs.
