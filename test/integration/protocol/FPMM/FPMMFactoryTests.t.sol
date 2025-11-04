@@ -32,7 +32,6 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     // Verify factory configuration
     assertEq(factory.oracleAdapter(), oracleAdapter);
     assertEq(factory.proxyAdmin(), address(proxyAdmin));
-    assertEq(factory.governance(), governance);
     assertEq(factory.owner(), governance);
 
     // Verify implementation registration
@@ -425,27 +424,27 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     factory.setProxyAdmin(address(0));
   }
 
-  function test_setGovernance_whenCalledByOwner_shouldUpdateAddress() public {
-    address newGovernance = makeAddr("newGovernance");
+  function test_transferOwnership_whenCalledByOwner_shouldUpdateOwner() public {
+    address newOwner = makeAddr("newOwner");
 
     vm.prank(governance);
-    factory.setGovernance(newGovernance);
+    factory.transferOwnership(newOwner);
 
-    assertEq(factory.governance(), newGovernance);
-    assertEq(factory.owner(), newGovernance);
+    assertEq(factory.owner(), newOwner);
   }
 
-  function test_setGovernance_whenCalledByNonOwner_shouldRevert() public {
-    address newGovernance = makeAddr("newGovernance");
+  function test_transferOwnership_whenCalledByNonOwner_shouldRevert() public {
+    address newOwner = makeAddr("newOwner");
 
     vm.prank(alice);
     vm.expectRevert("Ownable: caller is not the owner");
-    factory.setGovernance(newGovernance);
+    factory.transferOwnership(newOwner);
   }
 
-  function test_setGovernance_whenZeroAddress_shouldRevert() public {
+  function test_transferOwnership_whenZeroAddress_shouldRevert() public {
     vm.prank(governance);
-    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
-    factory.setGovernance(address(0));
+    vm.expectRevert("Ownable: new owner is the zero address");
+    factory.transferOwnership(address(0));
   }
+
 }
