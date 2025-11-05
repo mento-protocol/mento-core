@@ -41,6 +41,13 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
     newStrategy.initialize(address(0), reserve);
   }
 
+  function test_initialize_whenCalledTwice_shouldRevert() public {
+    ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(false);
+    newStrategy.initialize(owner, reserve);
+    vm.expectRevert("Initializable: contract is already initialized");
+    newStrategy.initialize(owner, reserve);
+  }
+
   /* ============================================================ */
   /* ===================== Reserve Management =================== */
   /* ============================================================ */
