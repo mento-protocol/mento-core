@@ -79,7 +79,7 @@ abstract contract LiquityHelpers is TestStorage {
       0,
       0,
       interestRate,
-      1000e18,
+      debtAmount,
       address(0),
       address(0),
       address(0)
