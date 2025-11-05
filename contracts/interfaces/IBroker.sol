@@ -179,4 +179,8 @@ interface IBroker {
    * @return isExchangeProvider True if the address is an exchange provider, false otherwise.
    */
   function isExchangeProvider(address exchangeProvider) external view returns (bool);
+
+  function tradingLimitsState(bytes32) external view returns (ITradingLimits.State memory);
+
+  function tradingLimitsConfig(bytes32) external view returns (ITradingLimits.Config memory);
 }
