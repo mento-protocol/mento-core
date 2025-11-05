@@ -60,6 +60,8 @@ abstract contract TestStorage is Test {
     $addresses.protocolFeeRecipient = makeAddr("protocolFeeRecipient");
     $addresses.referenceRateFeedCDPFPMM = makeAddr("referenceRateFeedCDPFPMM");
     $addresses.referenceRateFeedReserveFPMM = makeAddr("referenceRateFeedReserveFPMM");
+    $addresses.referenceRateFeedeXOFCELO = makeAddr("referenceRateFeedeXOFCELO");
+    $addresses.referenceRateFeedeXOFUSDM = makeAddr("referenceRateFeedeXOFUSDM");
 
     // Start all tests from a non-zero timestamp (2025-10-22 09:00:00)
     // This is required when setting up the circuit breaker, since otherwise it reverts when trying to configure
@@ -104,11 +106,6 @@ abstract contract TestStorage is Test {
     IBiPoolManager biPoolManager;
     IReserve reserve;
     IPricingModule constantProduct;
-    ISortedOracles sortedOracles;
-    IBreakerBox breakerBox;
-    IMedianDeltaBreaker medianDeltaBreaker;
-    address exof_celo_referenceRateFeedID;
-    address exof_usdm_referenceRateFeedID;
     bytes32 pair_exof_celo_id;
     bytes32 pair_exof_usdm_id;
   }
@@ -151,6 +148,8 @@ abstract contract TestStorage is Test {
     address protocolFeeRecipient;
     address referenceRateFeedCDPFPMM;
     address referenceRateFeedReserveFPMM;
+    address referenceRateFeedeXOFCELO;
+    address referenceRateFeedeXOFUSDM;
   }
 
   struct LiquidityStrategiesDeployments {

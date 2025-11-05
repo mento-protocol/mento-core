@@ -13,9 +13,9 @@ import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
 
 contract VirtualPoolTest is
   TokenDeployer,
-  MentoV2Deployer,
   VirtualPoolDeployer,
   OracleAdapterDeployer,
+  MentoV2Deployer,
   LiquidityStrategyDeployer,
   FPMMDeployer
 {
@@ -23,8 +23,8 @@ contract VirtualPoolTest is
 
   function setUp() public {
     _deployTokens(false, false);
-    _deployMentoV2();
     _deployOracleAdapter();
+    _deployMentoV2();
     _deployLiquidityStrategies();
     _deployFPMM(false, false);
     _initializeV3($tokens.eurm);

@@ -9,19 +9,18 @@ import { IReserve } from "contracts/interfaces/IReserve.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
-import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
 import { IBroker } from "contracts/interfaces/IBroker.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 
 contract MentoV2Deployer is TestStorage {
   bool private _brokerDeployed;
   bool private _reserveDeployed;
-  bool private _oraclesDeployed;
+  bool private _oraclesConfigured;
 
   function _deployMentoV2() internal {
     if ($mentoV2.deployed) return;
     _deployReserve();
-    _deployOracles();
+    _configureOracles();
     _deployBroker();
     _initializeAssets();
     $mentoV2.deployed = true;
@@ -68,28 +67,19 @@ contract MentoV2Deployer is TestStorage {
     _reserveDeployed = true;
   }
 
-  function _deployOracles() private {
-    $mentoV2.sortedOracles = ISortedOracles(deployCode("SortedOracles", abi.encode(true)));
-    $mentoV2.sortedOracles.initialize(60 * 10);
+  function _configureOracles() private {
+    require($oracle.deployed, "MentoV2Deployer: OracleAdapter must be deployed first");
 
-    $mentoV2.exof_celo_referenceRateFeedID = address($tokens.exof);
-    $mentoV2.exof_usdm_referenceRateFeedID = address(bytes20(keccak256("XOF/USDm")));
-
-    _configureOracleRate($mentoV2.exof_celo_referenceRateFeedID, 72e20);
-    _configureOracleRate($mentoV2.exof_usdm_referenceRateFeedID, 18e20);
+    _configureOracleRate($addresses.referenceRateFeedeXOFCELO, 72e20);
+    _configureOracleRate($addresses.referenceRateFeedeXOFUSDM, 18e20);
 
     address[] memory rateFeedIDs = new address[](2);
-    rateFeedIDs[0] = $mentoV2.exof_celo_referenceRateFeedID;
-    rateFeedIDs[1] = $mentoV2.exof_usdm_referenceRateFeedID;
-
-    $mentoV2.breakerBox = IBreakerBox(
-      deployCode("BreakerBox", abi.encode(rateFeedIDs, $mentoV2.sortedOracles, $addresses.governance))
-    );
-    $mentoV2.sortedOracles.setBreakerBox($mentoV2.breakerBox);
+    rateFeedIDs[0] = $addresses.referenceRateFeedeXOFCELO;
+    rateFeedIDs[1] = $addresses.referenceRateFeedeXOFUSDM;
 
     address[] memory medianDeltaBreakerRateFeedIDs = new address[](2);
-    medianDeltaBreakerRateFeedIDs[0] = $mentoV2.exof_celo_referenceRateFeedID;
-    medianDeltaBreakerRateFeedIDs[1] = $mentoV2.exof_usdm_referenceRateFeedID;
+    medianDeltaBreakerRateFeedIDs[0] = $addresses.referenceRateFeedeXOFCELO;
+    medianDeltaBreakerRateFeedIDs[1] = $addresses.referenceRateFeedeXOFUSDM;
 
     uint256[] memory medianDeltaBreakerRateChangeThresholds = new uint256[](2);
     medianDeltaBreakerRateChangeThresholds[0] = 1e22;
@@ -98,44 +88,24 @@ contract MentoV2Deployer is TestStorage {
     medianDeltaBreakerCooldownTimes[0] = 5 minutes;
     medianDeltaBreakerCooldownTimes[1] = 0;
 
-    uint256 medianDeltaBreakerDefaultThreshold = 1e22;
-    uint256 medianDeltaBreakerDefaultCooldown = 0;
-
-    $mentoV2.medianDeltaBreaker = IMedianDeltaBreaker(
-      deployCode(
-        "MedianDeltaBreaker",
-        abi.encode(
-          medianDeltaBreakerDefaultCooldown,
-          medianDeltaBreakerDefaultThreshold,
-          $mentoV2.sortedOracles,
-          address($mentoV2.breakerBox),
-          medianDeltaBreakerRateFeedIDs,
-          medianDeltaBreakerRateChangeThresholds,
-          medianDeltaBreakerCooldownTimes,
-          $addresses.governance
-        )
-      )
-    );
-
     vm.startPrank($addresses.governance);
-    $mentoV2.breakerBox.addBreaker(address($mentoV2.medianDeltaBreaker), 3);
-    $mentoV2.breakerBox.toggleBreaker(
-      address($mentoV2.medianDeltaBreaker),
-      $mentoV2.exof_celo_referenceRateFeedID,
-      true
+    $oracle.breakerBox.addRateFeeds(medianDeltaBreakerRateFeedIDs);
+
+    $oracle.medianDeltaBreaker.setCooldownTime(medianDeltaBreakerRateFeedIDs, medianDeltaBreakerCooldownTimes);
+    $oracle.medianDeltaBreaker.setRateChangeThresholds(
+      medianDeltaBreakerRateFeedIDs,
+      medianDeltaBreakerRateChangeThresholds
     );
-    $mentoV2.breakerBox.toggleBreaker(
-      address($mentoV2.medianDeltaBreaker),
-      $mentoV2.exof_usdm_referenceRateFeedID,
-      true
-    );
+
+    $oracle.breakerBox.toggleBreaker(address($oracle.medianDeltaBreaker), $addresses.referenceRateFeedeXOFCELO, true);
+    $oracle.breakerBox.toggleBreaker(address($oracle.medianDeltaBreaker), $addresses.referenceRateFeedeXOFUSDM, true);
     vm.stopPrank();
-    _oraclesDeployed = true;
+    _oraclesConfigured = true;
   }
 
   function _deployBroker() private {
-    require(_reserveDeployed, "MENTO_V2_DEPLOYER: Reserve must be deployed before the Broker");
-    require(_oraclesDeployed, "MENTO_V2_DEPLOYER: Oracles must be deployed before the Broker");
+    require(_reserveDeployed, "MENTO_V2_DEPLOYER: Reserve must be deployed before");
+    require(_oraclesConfigured, "MENTO_V2_DEPLOYER: Oracles must be configured before");
     vm.startPrank($addresses.governance);
     $mentoV2.broker = IBroker(deployCode("Broker", abi.encode(true)));
     $mentoV2.constantProduct = IPricingModule(deployCode("ConstantProductPricingModule"));
@@ -150,8 +120,8 @@ contract MentoV2Deployer is TestStorage {
     $mentoV2.biPoolManager.initialize(
       address($mentoV2.broker),
       IReserve($mentoV2.reserve),
-      ISortedOracles(address($mentoV2.sortedOracles)),
-      IBreakerBox(address($mentoV2.breakerBox))
+      ISortedOracles(address($oracle.sortedOracles)),
+      IBreakerBox(address($oracle.breakerBox))
     );
     address[] memory exchangeProviders = new address[](1);
     exchangeProviders[0] = address($mentoV2.biPoolManager);
@@ -171,7 +141,7 @@ contract MentoV2Deployer is TestStorage {
     pair_exof_celo.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_exof_celo.config.referenceRateResetFrequency = 60 * 5;
     pair_exof_celo.config.minimumReports = 1;
-    pair_exof_celo.config.referenceRateFeedID = $mentoV2.exof_celo_referenceRateFeedID;
+    pair_exof_celo.config.referenceRateFeedID = $addresses.referenceRateFeedeXOFCELO;
     pair_exof_celo.config.stablePoolResetSize = 1e24;
 
     $mentoV2.pair_exof_celo_id = $mentoV2.biPoolManager.createExchange(pair_exof_celo);
@@ -184,7 +154,7 @@ contract MentoV2Deployer is TestStorage {
     pair_exof_usdm.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_exof_usdm.config.referenceRateResetFrequency = 60 * 5;
     pair_exof_usdm.config.minimumReports = 1;
-    pair_exof_usdm.config.referenceRateFeedID = $mentoV2.exof_usdm_referenceRateFeedID;
+    pair_exof_usdm.config.referenceRateFeedID = $addresses.referenceRateFeedeXOFUSDM;
     pair_exof_usdm.config.stablePoolResetSize = 1e24;
 
     $mentoV2.pair_exof_usdm_id = $mentoV2.biPoolManager.createExchange(pair_exof_usdm);
@@ -199,9 +169,9 @@ contract MentoV2Deployer is TestStorage {
 
   function _configureOracleRate(address id, uint256 medianRate) internal {
     address oracleAddress = vm.addr(uint256(keccak256(abi.encode(id))));
-    $mentoV2.sortedOracles.addOracle(id, oracleAddress);
-    vm.startPrank(oracleAddress);
-    $mentoV2.sortedOracles.report(id, medianRate, address(0), address(0));
-    vm.stopPrank();
+    vm.prank($addresses.governance);
+    $oracle.sortedOracles.addOracle(id, oracleAddress);
+    vm.prank(oracleAddress);
+    $oracle.sortedOracles.report(id, medianRate, address(0), address(0));
   }
 }

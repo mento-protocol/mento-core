@@ -21,8 +21,8 @@ contract CDPFPMM is
 
   function setUp() public {
     _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
-    _deployMentoV2();
     _deployOracleAdapter();
+    _deployMentoV2();
     _deployLiquidityStrategies();
     _deployFPMM({ invertCDPFPMMRate: true, invertReserveFPMMRate: false });
     _deployLiquity();

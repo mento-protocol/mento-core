@@ -11,8 +11,8 @@ import { MentoV2Deployer } from "test/integration/v3/MentoV2Deployer.sol";
 
 abstract contract ReserveFPMM_BaseTest is
   TokenDeployer,
-  MentoV2Deployer,
   OracleAdapterDeployer,
+  MentoV2Deployer,
   LiquidityStrategyDeployer,
   FPMMDeployer,
   LiquityDeployer
@@ -209,9 +209,9 @@ contract ReserveFPMM_Token1Debt_Test is ReserveFPMM_BaseTest {
     // CDPFPMM:      token0 = EUR.m, token1 = USD.m
     _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
 
-    _deployMentoV2();
-
     _deployOracleAdapter();
+
+    _deployMentoV2();
 
     _deployLiquidityStrategies();
 
@@ -245,9 +245,9 @@ contract ReserveFPMM_Token0Debt_Test is ReserveFPMM_BaseTest {
     // CDPFPMM:      token0 = EUR.m, token1 = USD.m
     _deployTokens({ isCollateralTokenToken0: true, isDebtTokenToken0: true });
 
-    _deployMentoV2();
-
     _deployOracleAdapter();
+
+    _deployMentoV2();
 
     _deployLiquidityStrategies();
 

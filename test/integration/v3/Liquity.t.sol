@@ -8,11 +8,11 @@ import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 import { MentoV2Deployer } from "test/integration/v3/MentoV2Deployer.sol";
 
-contract Liquity is LiquityDeployer, MentoV2Deployer, OracleAdapterDeployer, LiquidityStrategyDeployer, TokenDeployer {
+contract Liquity is LiquityDeployer, OracleAdapterDeployer, MentoV2Deployer, LiquidityStrategyDeployer, TokenDeployer {
   function setUp() public {
     _deployTokens(false, false);
-    _deployMentoV2();
     _deployOracleAdapter();
+    _deployMentoV2();
     _deployLiquidityStrategies();
   }
 
