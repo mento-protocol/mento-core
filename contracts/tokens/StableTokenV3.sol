@@ -6,13 +6,14 @@ import { ERC20PermitUpgradeable } from "./patched/ERC20PermitUpgradeable.sol";
 import { ERC20Upgradeable } from "./patched/ERC20Upgradeable.sol";
 
 import { IStableTokenV3 } from "../interfaces/IStableTokenV3.sol";
+import { IFeeCurrency } from "../interfaces/IFeeCurrency.sol";
 import { CalledByVm } from "celo/contracts/common/CalledByVm.sol";
 
 /**
  * @title ERC20 token with minting and burning permissiones to a minter and burner roles.
  * Direct transfers between the protocol and the user are done by the operator role.
  */
-contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
+contract StableTokenV3 is IStableTokenV3, IFeeCurrency, ERC20PermitUpgradeable, CalledByVm {
   /* ========================================================= */
   /* ==================== State Variables ==================== */
   /* ========================================================= */
@@ -234,46 +235,33 @@ contract StableTokenV3 is ERC20PermitUpgradeable, IStableTokenV3, CalledByVm {
     ERC20PermitUpgradeable.permit(owner, spender, value, deadline, v, r, s);
   }
 
-  /// @inheritdoc IStableTokenV3
+  /// @inheritdoc IFeeCurrency
   function debitGasFees(address from, uint256 value) external onlyVm {
     _burn(from, value);
   }
 
-  /// @inheritdoc IStableTokenV3
+  /// @inheritdoc IFeeCurrency
   function creditGasFees(
     address from,
     address feeRecipient,
-    address gatewayFeeRecipient,
+    address, // gatewayFeeRecipient, unused
     address communityFund,
     uint256 refund,
     uint256 tipTxFee,
-    uint256 gatewayFee,
+    uint256, // gatewayFee, unused
     uint256 baseTxFee
-  ) external onlyVm {
-    // slither-disable-next-line uninitialized-local
-    uint256 amountToBurn;
-    _mint(from, refund + tipTxFee + gatewayFee + baseTxFee);
+  ) public onlyVm {
+    _mint(from, refund);
+    _mint(feeRecipient, tipTxFee);
+    _mint(communityFund, baseTxFee);
+  }
 
-    if (feeRecipient != address(0)) {
-      _transfer(from, feeRecipient, tipTxFee);
-    } else if (tipTxFee > 0) {
-      amountToBurn += tipTxFee;
-    }
+  /// @inheritdoc IFeeCurrency
+  function creditGasFees(address[] calldata recipients, uint256[] calldata amounts) external onlyVm {
+    require(recipients.length == amounts.length, "StableTokenV3: recipients and amounts must be the same length.");
 
-    if (gatewayFeeRecipient != address(0)) {
-      _transfer(from, gatewayFeeRecipient, gatewayFee);
-    } else if (gatewayFee > 0) {
-      amountToBurn += gatewayFee;
-    }
-
-    if (communityFund != address(0)) {
-      _transfer(from, communityFund, baseTxFee);
-    } else if (baseTxFee > 0) {
-      amountToBurn += baseTxFee;
-    }
-
-    if (amountToBurn > 0) {
-      _burn(from, amountToBurn);
+    for (uint256 i = 0; i < recipients.length; i++) {
+      _mint(recipients[i], amounts[i]);
     }
   }
 
