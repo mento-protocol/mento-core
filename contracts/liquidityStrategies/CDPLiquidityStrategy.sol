@@ -214,18 +214,16 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     uint256 decayedBaseFee = ICollateralRegistry(cdpConfig.collateralRegistry).getRedemptionRateWithDecay();
     uint256 totalDebtTokenSupply = IERC20(ctx.debtToken()).totalSupply();
     uint256 redemptionBeta = ISystemParams(cdpConfig.systemParams).REDEMPTION_BETA();
-    {
-      uint256 maxRedemptionFee = ctx.incentiveBps * BPS_TO_FEE_SCALER;
+    uint256 maxRedemptionFee = ctx.incentiveBps * BPS_TO_FEE_SCALER;
 
-      if (maxRedemptionFee < decayedBaseFee) revert CDPLS_REDEMPTION_FEE_TOO_LARGE();
+    if (maxRedemptionFee < decayedBaseFee) revert CDPLS_REDEMPTION_FEE_TOO_LARGE();
 
-      uint256 maxAmountToRedeem = (totalDebtTokenSupply * redemptionBeta * (maxRedemptionFee - decayedBaseFee)) / 1e18;
+    uint256 maxAmountToRedeem = (totalDebtTokenSupply * redemptionBeta * (maxRedemptionFee - decayedBaseFee)) / 1e18;
 
-      if (targetContractionAmount > maxAmountToRedeem) {
-        contractionAmount = maxAmountToRedeem;
-      } else {
-        contractionAmount = targetContractionAmount;
-      }
+    if (targetContractionAmount > maxAmountToRedeem) {
+      contractionAmount = maxAmountToRedeem;
+    } else {
+      contractionAmount = targetContractionAmount;
     }
   }
 }
