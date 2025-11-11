@@ -272,7 +272,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
       reservePriceNumerator,
       reservePriceDenominator
     );
-    
+
     return (
       oraclePriceNumerator,
       oraclePriceDenominator,
@@ -761,7 +761,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
       reservePriceNumerator,
       reservePriceDenominator
     );
-    
+
     // Ensure price difference is smaller than before
     if (newPriceDifference >= swapData.initialPriceDifference) revert PriceDifferenceNotImproved();
     // we allow the price difference to be moved in the wrong direction but not by more than the rebalance incentive
