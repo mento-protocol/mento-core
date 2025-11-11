@@ -266,14 +266,13 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
     // slither-disable-end divide-before-multiply
 
-    uint256 oracleCrossProduct = oraclePriceNumerator * reservePriceDenominator;
-    uint256 reserveCrossProduct = reservePriceNumerator * oraclePriceDenominator;
-    reservePriceAboveOraclePrice = reserveCrossProduct > oracleCrossProduct;
-
-    uint256 absolutePriceDiff = reservePriceAboveOraclePrice
-      ? reserveCrossProduct - oracleCrossProduct
-      : oracleCrossProduct - reserveCrossProduct;
-    priceDifference = (absolutePriceDiff * BASIS_POINTS_DENOMINATOR) / oracleCrossProduct;
+    (priceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference(
+      oraclePriceNumerator,
+      oraclePriceDenominator,
+      reservePriceNumerator,
+      reservePriceDenominator
+    );
+    
     return (
       oraclePriceNumerator,
       oraclePriceDenominator,
@@ -716,6 +715,31 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /**
+   * @notice Calculates the price difference between oracle and reserve prices
+   * @param oraclePriceNumerator Oracle price numerator
+   * @param oraclePriceDenominator Oracle price denominator
+   * @param reservePriceNumerator Reserve price numerator
+   * @param reservePriceDenominator Reserve price denominator
+   * @return priceDifference Price difference in basis points
+   * @return reservePriceAboveOraclePrice Whether reserve price is above oracle price
+   */
+  function _calculatePriceDifference(
+    uint256 oraclePriceNumerator,
+    uint256 oraclePriceDenominator,
+    uint256 reservePriceNumerator,
+    uint256 reservePriceDenominator
+  ) internal pure returns (uint256 priceDifference, bool reservePriceAboveOraclePrice) {
+    uint256 oracleCrossProduct = oraclePriceNumerator * reservePriceDenominator;
+    uint256 reserveCrossProduct = reservePriceNumerator * oraclePriceDenominator;
+    reservePriceAboveOraclePrice = reserveCrossProduct > oracleCrossProduct;
+
+    uint256 absolutePriceDiff = reservePriceAboveOraclePrice
+      ? reserveCrossProduct - oracleCrossProduct
+      : oracleCrossProduct - reserveCrossProduct;
+    priceDifference = (absolutePriceDiff * BASIS_POINTS_DENOMINATOR) / oracleCrossProduct;
+  }
+
+  /**
    * @notice Rebalance checks to ensure the price difference is smaller than before,
    * the direction of the price difference is not changed,
    * and the reserve value is not decreased more than the rebalance incentive
@@ -725,8 +749,19 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function _rebalanceCheck(SwapData memory swapData) private view returns (uint256 newPriceDifference) {
     FPMMStorage storage $ = _getFPMMStorage();
 
+    // slither-disable-start divide-before-multiply
+    uint256 reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
+    uint256 reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
+    // slither-disable-end divide-before-multiply
+
     bool reservePriceAboveOraclePrice;
-    (, , , , newPriceDifference, reservePriceAboveOraclePrice) = getPrices();
+    (newPriceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference(
+      swapData.rateNumerator,
+      swapData.rateDenominator,
+      reservePriceNumerator,
+      reservePriceDenominator
+    );
+    
     // Ensure price difference is smaller than before
     if (newPriceDifference >= swapData.initialPriceDifference) revert PriceDifferenceNotImproved();
     // we allow the price difference to be moved in the wrong direction but not by more than the rebalance incentive
