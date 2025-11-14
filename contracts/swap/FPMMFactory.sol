@@ -141,12 +141,12 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-start encode-packed-collision
   /// @inheritdoc IRPoolFactory
   function getOrPrecomputeProxyAddress(address token0, address token1) public view returns (address) {
-    (token0, token1) = sortTokens(token0, token1);
-
     address pool = getPool(token0, token1);
     if (pool != address(0)) {
       return pool;
     }
+
+    (token0, token1) = sortTokens(token0, token1);
 
     (address precomputedProxyAddress, ) = _computeProxyAddressAndSalt(token0, token1);
     return precomputedProxyAddress;

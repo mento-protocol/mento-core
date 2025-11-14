@@ -1,35 +1,37 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8;
 
-import { Test } from "mento-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 import { VirtualPoolFactory } from "contracts/swap/virtual/VirtualPoolFactory.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
 import { IVirtualPoolFactory } from "contracts/interfaces/IVirtualPoolFactory.sol";
 import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
+import { CreateXHelper } from "test/utils/CreateXHelper.sol";
 
-contract VirtualPoolFactoryTest is Test {
+contract VirtualPoolFactoryTest is Test, CreateXHelper {
   event VirtualPoolDeployed(address indexed pool, address indexed token0, address indexed token1);
 
   VirtualPoolFactory public factory;
   address public tokenA;
   address public tokenB;
   address public broker = makeAddr("Broker");
+  address public governance = makeAddr("Governance");
   address public exchangeProvider = makeAddr("ExchangeProvider");
 
   function setUp() public {
+    deployCreateX();
     tokenA = address(new MockERC20("Token A", "TOKA", 18));
     tokenB = address(new MockERC20("Token B", "TOKB", 18));
-    factory = new VirtualPoolFactory();
+    factory = new VirtualPoolFactory(governance);
     _setupMocks();
   }
 
   function test_deployFactory_shouldInitializeCorrectly() public {
     assertEq(factory.isPool(makeAddr("pool")), false);
-    assertEq(factory.getOrPrecomputeProxyAddress(tokenA, tokenB), address(0));
     assertEq(factory.getPool(tokenA, tokenB), address(0));
-    assertEq(factory.owner(), address(this));
+    assertEq(factory.owner(), governance);
   }
 
   function test_deployPool_shouldFailIfNotOwner() public {
@@ -70,13 +72,16 @@ contract VirtualPoolFactoryTest is Test {
       abi.encode(_makeQuickExchange(address(0), makeAddr("someToken")))
     );
     vm.expectRevert(IVirtualPoolFactory.InvalidExchangeId.selector);
+    vm.prank(governance);
     factory.deployVirtualPool(wrongExchangeProvider, bytes32(0));
   }
 
   function test_deployPool_shouldEmitEventAndSavePool() public {
-    vm.expectEmit(false, true, true, true, address(factory));
     (address t0, address t1) = (tokenA < tokenB) ? (tokenA, tokenB) : (tokenB, tokenA);
-    emit VirtualPoolDeployed(address(0), t0, t1);
+    address precomputedAddress = factory.getOrPrecomputeProxyAddress(t0, t1);
+    vm.prank(governance);
+    vm.expectEmit();
+    emit VirtualPoolDeployed(precomputedAddress, t0, t1);
     address pool = factory.deployVirtualPool(exchangeProvider, bytes32(0));
     assertEq(factory.isPool(pool), true);
     assertEq(factory.getPool(tokenA, tokenB), pool);
@@ -86,6 +91,7 @@ contract VirtualPoolFactoryTest is Test {
   }
 
   function test_deployPool_whenPairAlreadyExists_shouldRevert() public {
+    vm.startPrank(governance);
     factory.deployVirtualPool(exchangeProvider, bytes32(0));
     vm.expectRevert(IVirtualPoolFactory.VirtualPoolAlreadyExistsForThisPair.selector);
     factory.deployVirtualPool(exchangeProvider, bytes32(0));
@@ -96,6 +102,7 @@ contract VirtualPoolFactoryTest is Test {
     );
     vm.expectRevert(IVirtualPoolFactory.VirtualPoolAlreadyExistsForThisPair.selector);
     factory.deployVirtualPool(exchangeProvider, bytes32(0));
+    vm.stopPrank();
   }
 
   function _bpsToFraction(uint256 bps) internal pure returns (FixidityLib.Fraction memory) {
