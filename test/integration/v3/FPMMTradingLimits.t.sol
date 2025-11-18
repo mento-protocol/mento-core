@@ -234,6 +234,8 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
     uint256 amount0In = 90_000e6;
     uint256 amount1Out = 89_730e18;
 
+    uint256 balanceBefore = IERC20Metadata($fpmm.fpmmReserve.token1()).balanceOf(trader);
+
     _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, amount0In, 0, 0, amount1Out);
 
     // Warp time by 5 minutes + 1 second to reset L0
@@ -246,9 +248,9 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
     _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, amount0In2, 0, 0, amount1Out2);
 
     // Verify swap succeeded
-    assertGt(
+    assertEq(
       IERC20Metadata($fpmm.fpmmReserve.token1()).balanceOf(trader),
-      amount1Out + amount1Out2,
+      balanceBefore + amount1Out + amount1Out2,
       "Trader should have received both swap amounts"
     );
   }
