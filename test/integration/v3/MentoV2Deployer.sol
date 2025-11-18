@@ -30,6 +30,7 @@ contract MentoV2Deployer is TestStorage {
     require($tokens.deployed, "MENTO_V2_DEPLOYER: tokens not deployed");
     IReserve reserve = IReserve(deployCode("Reserve", abi.encode(true)));
     $mentoV2.reserve = reserve;
+    vm.label(address(reserve), "Reserve");
 
     vm.startPrank($addresses.governance);
     bytes32[] memory initialAssetAllocationSymbols = new bytes32[](2);
@@ -109,13 +110,16 @@ contract MentoV2Deployer is TestStorage {
     vm.startPrank($addresses.governance);
     $mentoV2.broker = IBroker(deployCode("Broker", abi.encode(true)));
     $mentoV2.constantProduct = IPricingModule(deployCode("ConstantProductPricingModule"));
+    $mentoV2.constantSum = IPricingModule(deployCode("ConstantSumPricingModule"));
     $mentoV2.biPoolManager = IBiPoolManager(deployCode("BiPoolManager", abi.encode(true)));
 
-    bytes32[] memory pricingModuleIdentifiers = new bytes32[](1);
+    bytes32[] memory pricingModuleIdentifiers = new bytes32[](2);
     pricingModuleIdentifiers[0] = keccak256(abi.encodePacked($mentoV2.constantProduct.name()));
+    pricingModuleIdentifiers[1] = keccak256(abi.encodePacked($mentoV2.constantSum.name()));
 
-    address[] memory pricingModules = new address[](1);
+    address[] memory pricingModules = new address[](2);
     pricingModules[0] = address($mentoV2.constantProduct);
+    pricingModules[1] = address($mentoV2.constantSum);
 
     $mentoV2.biPoolManager.initialize(
       address($mentoV2.broker),
@@ -149,7 +153,7 @@ contract MentoV2Deployer is TestStorage {
     IBiPoolManager.PoolExchange memory pair_exof_usdm;
     pair_exof_usdm.asset0 = address($tokens.exof);
     pair_exof_usdm.asset1 = address($tokens.usdm);
-    pair_exof_usdm.pricingModule = $mentoV2.constantProduct;
+    pair_exof_usdm.pricingModule = $mentoV2.constantSum;
     pair_exof_usdm.lastBucketUpdate = block.timestamp;
     pair_exof_usdm.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_exof_usdm.config.referenceRateResetFrequency = 60 * 5;

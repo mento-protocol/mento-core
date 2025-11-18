@@ -106,6 +106,7 @@ abstract contract TestStorage is Test {
     IBiPoolManager biPoolManager;
     IReserve reserve;
     IPricingModule constantProduct;
+    IPricingModule constantSum;
     bytes32 pair_exof_celo_id;
     bytes32 pair_exof_usdm_id;
   }

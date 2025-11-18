@@ -16,7 +16,6 @@ contract LiquidityStrategyDeployer is TestStorage {
     $liquidityStrategies.deployed = true;
     vm.label(address($liquidityStrategies.cdpLiquidityStrategy), "CDPLiquidityStrategy");
     vm.label(address($liquidityStrategies.reserveLiquidityStrategy), "ReserveLiquidityStrategy");
-    vm.label(address($mentoV2.reserve), "Reserve");
   }
 
   function _configureCDPLiquidityStrategy(
