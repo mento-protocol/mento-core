@@ -253,75 +253,62 @@ contract FPMMAdminTest is FPMMBaseTest {
   }
 
   function test_configureTradingLimit_whenNotOwner_shouldRevert() public {
-    ITradingLimitsV2.Config memory config;
-    config.limit0 = 1000e18;
-    config.flags = 1; // L0 enabled
-
     vm.prank(notOwner);
     vm.expectRevert("Ownable: caller is not the owner");
-    fpmm.configureTradingLimit(token0, config);
+    fpmm.configureTradingLimit(token0, 1000e18, 0);
   }
 
   function test_configureTradingLimit_whenInvalidToken_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
-    ITradingLimitsV2.Config memory config;
-    config.limit0 = 1000e18;
-    config.flags = 1; // L0 enabled
-
     address invalidToken = makeAddr("INVALID_TOKEN");
 
     vm.prank(owner);
     vm.expectRevert(IFPMM.InvalidToken.selector);
-    fpmm.configureTradingLimit(invalidToken, config);
-  }
-
-  function test_configureTradingLimit_whenLimit0ZeroButActive_shouldRevert()
-    public
-    initializeFPMM_withDecimalTokens(18, 18)
-  {
-    ITradingLimitsV2.Config memory config;
-    config.limit0 = 0; // Invalid: zero limit
-    config.flags = 1; // L0 enabled
-
-    vm.prank(owner);
-    vm.expectRevert(ITradingLimitsV2.Limit0ZeroWhenActive.selector);
-    fpmm.configureTradingLimit(token0, config);
+    fpmm.configureTradingLimit(invalidToken, 1000e18, 0);
   }
 
   function test_configureTradingLimit_whenLimit1NotGreaterThanLimit0_shouldRevert()
     public
     initializeFPMM_withDecimalTokens(18, 18)
   {
-    ITradingLimitsV2.Config memory config;
-    config.limit0 = 1000e18;
-    config.limit1 = 500e18; // Invalid: limit1 must be > limit0
-    config.flags = 3; // L0 and L1 enabled
-
     vm.prank(owner);
     vm.expectRevert(ITradingLimitsV2.Limit1MustBeGreaterThanLimit0.selector);
-    fpmm.configureTradingLimit(token0, config);
+    // Invalid: limit1 must be > limit0
+    fpmm.configureTradingLimit(token0, 1000e18, 500e18);
   }
 
   function test_configureTradingLimit_whenOwner_shouldConfigureLimit() public initializeFPMM_withDecimalTokens(18, 18) {
-    ITradingLimitsV2.Config memory config;
-    config.limit0 = 1000e18;
-    config.limit1 = 10000e18;
-    config.flags = 3; // L0 and L1 enabled
-
     vm.prank(owner);
     vm.expectEmit();
-    emit TradingLimitConfigured(token0, config);
-    fpmm.configureTradingLimit(token0, config);
+    emit TradingLimitConfigured(
+      token0,
+      ITradingLimitsV2.Config({ limit0: int120(1000e15), limit1: int120(10000e15), decimals: 18 })
+    );
+    fpmm.configureTradingLimit(token0, 1000e18, 10000e18);
 
     (ITradingLimitsV2.Config memory returnedConfig, ITradingLimitsV2.State memory returnedState) = fpmm
       .getTradingLimits(token0);
 
-    assertEq(returnedConfig.limit0, config.limit0);
-    assertEq(returnedConfig.limit1, config.limit1);
-    assertEq(returnedConfig.flags, config.flags);
+    assertEq(returnedConfig.limit0, 1000e15);
+    assertEq(returnedConfig.limit1, 10000e15);
     assertEq(returnedState.netflow0, 0);
     assertEq(returnedState.netflow1, 0);
     assertEq(returnedState.lastUpdated0, 0);
     assertEq(returnedState.lastUpdated1, 0);
+  }
+
+  function test_configureTradingLimits_whenLimitExceedsInt120_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(15, 18) // 15 decimals for token0 so limit is not scaled down/up
+  {
+    // Limit0 exceeds int120
+    vm.prank(owner);
+    vm.expectRevert(IFPMM.LimitDoesNotFitInInt120.selector);
+    fpmm.configureTradingLimit(token0, uint256(uint120(type(int120).max)) + 1, 0);
+
+    // Limit1 exceeds int120
+    vm.prank(owner);
+    vm.expectRevert(IFPMM.LimitDoesNotFitInInt120.selector);
+    fpmm.configureTradingLimit(token0, 0, uint256(uint120(type(int120).max)) + 1);
   }
 
   function test_getTradingLimits_whenInvalidToken_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
@@ -332,20 +319,14 @@ contract FPMMAdminTest is FPMMBaseTest {
   }
 
   function test_getTradingLimits_whenValidToken_shouldReturnLimits() public initializeFPMM_withDecimalTokens(18, 18) {
-    ITradingLimitsV2.Config memory config;
-    config.limit0 = 5000e18;
-    config.limit1 = 50000e18;
-    config.flags = 3; // L0 and L1 enabled
-
     vm.prank(owner);
-    fpmm.configureTradingLimit(token1, config);
+    fpmm.configureTradingLimit(token1, 5000e18, 50000e18);
 
     (ITradingLimitsV2.Config memory returnedConfig, ITradingLimitsV2.State memory returnedState) = fpmm
       .getTradingLimits(token1);
 
-    assertEq(returnedConfig.limit0, 5000e18);
-    assertEq(returnedConfig.limit1, 50000e18);
-    assertEq(returnedConfig.flags, 3);
+    assertEq(returnedConfig.limit0, 5000e15);
+    assertEq(returnedConfig.limit1, 50000e15);
     assertEq(returnedState.netflow0, 0);
     assertEq(returnedState.netflow1, 0);
   }
