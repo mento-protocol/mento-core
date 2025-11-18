@@ -135,6 +135,8 @@ interface IFPMM is IRPool {
   error RebalanceThresholdTooHigh();
   // @notice Throw when trying to rebalance with an invalid direction
   error RebalanceDirectionInvalid();
+  // @notice Throw when token decimals are invalid
+  error InvalidTokenDecimals();
 
   /* ============================================================ */
   /* ======================== Events ============================ */
