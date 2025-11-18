@@ -118,6 +118,7 @@ contract Reserve is IReserve, ICeloVersionedContract, Ownable, Initializable, Us
    * of an ERC20 collateral asset for the reserve spender.
    * @param _collateralAssetDailySpendingRatios The address of an ERC20 collateral asset
    */
+
   function initialize(
     address registryAddress,
     uint256 _tobinTaxStalenessThreshold,
