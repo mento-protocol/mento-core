@@ -211,40 +211,4 @@ interface IStableTokenV3 {
    * @param _amount The amount to be transferred.
    */
   function returnFromPool(address _poolAddress, address _receiver, uint256 _amount) external;
-
-  /**
-   * @notice Reserve balance for making payments for gas in this StableToken currency.
-   * @param from The account to reserve balance from
-   * @param value The amount of balance to reserve
-   * @dev Note that this function is called by the protocol when paying for tx fees in this
-   * currency. After the tx is executed, gas is refunded to the sender and credited to the
-   * various tx fee recipients via a call to `creditGasFees`.
-   */
-  function debitGasFees(address from, uint256 value) external;
-
-  /**
-   * @notice Alternative function to credit balance after making payments
-   * for gas in this StableToken currency.
-   * @param from The account to debit balance from
-   * @param feeRecipient Coinbase address
-   * @param gatewayFeeRecipient Gateway address
-   * @param communityFund Community fund address
-   * @param refund amount to be refunded by the VM
-   * @param tipTxFee Coinbase fee
-   * @param baseTxFee Community fund fee
-   * @param gatewayFee Gateway fee
-   * @dev Note that this function is called by the protocol when paying for tx fees in this
-   * currency. Before the tx is executed, gas is debited from the sender via a call to
-   * `debitGasFees`.
-   */
-  function creditGasFees(
-    address from,
-    address feeRecipient,
-    address gatewayFeeRecipient,
-    address communityFund,
-    uint256 refund,
-    uint256 tipTxFee,
-    uint256 gatewayFee,
-    uint256 baseTxFee
-  ) external;
 }
