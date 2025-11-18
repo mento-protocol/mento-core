@@ -242,18 +242,18 @@ contract StableTokenV3 is IStableTokenV3, IFeeCurrency, ERC20PermitUpgradeable, 
 
   /// @inheritdoc IFeeCurrency
   function creditGasFees(
-    address from,
-    address feeRecipient,
-    address, // gatewayFeeRecipient, unused
-    address communityFund,
-    uint256 refund,
-    uint256 tipTxFee,
-    uint256, // gatewayFee, unused
-    uint256 baseTxFee
-  ) public onlyVm {
-    _mint(from, refund);
-    _mint(feeRecipient, tipTxFee);
-    _mint(communityFund, baseTxFee);
+    address refundRecipient,
+    address tipRecipient,
+    address, // _gatewayFeeRecipient, unused
+    address baseFeeRecipient,
+    uint256 refundAmount,
+    uint256 tipAmount,
+    uint256, // _gatewayFeeAmount, unused
+    uint256 baseFeeAmount
+  ) external onlyVm {
+    _mint(refundRecipient, refundAmount);
+    _mint(tipRecipient, tipAmount);
+    _mint(baseFeeRecipient, baseFeeAmount);
   }
 
   /// @inheritdoc IFeeCurrency
