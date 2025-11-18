@@ -127,6 +127,8 @@ contract StableTokenV3 is IStableTokenV3, IFeeCurrency, ERC20PermitUpgradeable, 
     address[] memory _burners,
     address[] memory _operators
   ) public reinitializer(3) onlyOwner {
+    __EIP712_init_unchained(symbol(), "2");
+
     for (uint256 i = 0; i < _minters.length; i += 1) {
       _setMinter(_minters[i], true);
     }

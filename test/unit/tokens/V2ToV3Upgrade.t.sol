@@ -65,6 +65,8 @@ contract V2ToV3UpgradeTest is Test {
     uint8 initialized = uint8(uint256(slot0) >> 160);
     assertEq(initialized, 2);
 
+    bytes32 domainSeparatorBefore = StableTokenV3(cUSDProxy).DOMAIN_SEPARATOR();
+
     // upgrade to StableTokenV3
     IProxy(cUSDProxy)._setImplementation(StableTokenV3Implementation);
 
@@ -78,6 +80,21 @@ contract V2ToV3UpgradeTest is Test {
     assertEq(IProxy(cUSDProxy)._getOwner(), owner);
 
     tokenV3.initializeV3(minters, burners, operators);
+
+    bytes32 domainSeparatorAfter = tokenV3.DOMAIN_SEPARATOR();
+    assertTrue(domainSeparatorBefore != domainSeparatorAfter, "Domain separator should change after upgrade");
+
+    // make sure the new domain separator uses version "2"
+    bytes32 expectedDomainSeparator = keccak256(
+      abi.encode(
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+        keccak256(bytes(tokenV3.symbol())),
+        keccak256(bytes("2")),
+        block.chainid,
+        address(tokenV3)
+      )
+    );
+    assertEq(domainSeparatorAfter, expectedDomainSeparator, "Domain separator should use version 2");
 
     assertEq(tokenV3.isMinter(minters[0]), true);
     assertEq(tokenV3.isMinter(minters[1]), true);
