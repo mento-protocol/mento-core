@@ -114,6 +114,15 @@ contract RouterTests is FPMMBaseIntegration {
     assertEq(amounts[1], amountOutExpected);
   }
 
+  function test_getAmountsOut_whenPoolDoesNotExist_shouldRevert() public {
+    // Create a route for tokens that don't have a pool deployed
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = _createRoute(address(tokenA), address(tokenB));
+
+    vm.expectRevert(IRouter.PoolDoesNotExist.selector);
+    router.getAmountsOut(10e18, routes);
+  }
+
   function test_getReserves_whenLiquidityAdded_shouldReturnCorrectReserves() public {
     address fpmm = _deployFPMM(address(tokenA), address(tokenB));
     (address token0, address token1) = router.sortTokens(address(tokenA), address(tokenB));

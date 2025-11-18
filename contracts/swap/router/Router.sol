@@ -91,9 +91,8 @@ contract Router is IRouter, ERC2771Context {
     for (uint256 i = 0; i < _length; i++) {
       address factory = routes[i].factory == address(0) ? defaultFactory : routes[i].factory;
       address pool = poolFor(routes[i].from, routes[i].to, factory);
-      if (IRPoolFactory(factory).isPool(pool)) {
-        amounts[i + 1] = IRPool(pool).getAmountOut(amounts[i], routes[i].from);
-      }
+      if (!IRPoolFactory(factory).isPool(pool)) revert PoolDoesNotExist();
+      amounts[i + 1] = IRPool(pool).getAmountOut(amounts[i], routes[i].from);
     }
   }
 
