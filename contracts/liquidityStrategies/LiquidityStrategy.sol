@@ -116,7 +116,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @param amount1Out The amount of token1 to be sent from the pool
    * @param data Encoded callback data containing rebalance parameters
    */
-  function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external virtual {
+  function onRebalance(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external virtual {
     address pool = msg.sender;
     _ensurePool(pool);
     if (sender != address(this)) revert LS_INVALID_SENDER();

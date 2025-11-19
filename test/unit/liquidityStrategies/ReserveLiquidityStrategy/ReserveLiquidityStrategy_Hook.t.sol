@@ -37,7 +37,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     expectERC20Transfer(collToken, address(reserve), amount1Out);
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   function test_hook_whenValidContractionCallback_shouldExecuteCorrectly()
@@ -67,7 +67,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     expectReserveTransfer(collToken, address(fpmm), amountOwedToPool);
     expectERC20Burn(debtToken, amount0Out);
     vm.prank(address(fpmm));
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   function test_hook_whenUntrustedPool_shouldRevert() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
@@ -90,7 +90,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     address untrustedPool = makeAddr("untrustedPool");
     vm.prank(untrustedPool);
     vm.expectRevert("LS_POOL_NOT_FOUND()");
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   function test_hook_whenInvalidSender_shouldRevert() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
@@ -111,7 +111,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
 
     vm.prank(address(fpmm));
     vm.expectRevert("LS_INVALID_SENDER()");
-    strategy.hook(owner, amount0Out, amount1Out, hookData); // Wrong sender (should be strategy)
+    strategy.onRebalance(owner, amount0Out, amount1Out, hookData); // Wrong sender (should be strategy)
   }
 
   function test_hook_whenReversedTokenOrder_shouldHandleCorrectly() public fpmmToken1Debt(18, 18) addFpmm(0, 100) {
@@ -133,7 +133,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     expectERC20Transfer(collToken, address(reserve), amount0Out);
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   /* ============================================================ */
@@ -163,7 +163,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     expectERC20Transfer(collToken, address(reserve), amount1Out);
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   function test_hook_expansionCallback_whenToken1IsDebt_shouldMintAndTransferCorrectly()
@@ -189,7 +189,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     expectERC20Transfer(collToken, address(reserve), amount0Out);
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   /* ============================================================ */
@@ -219,7 +219,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     expectReserveTransfer(collToken, address(fpmm), amountOwedToPool);
     expectERC20Burn(debtToken, amount0Out);
     vm.prank(address(fpmm));
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   function test_hook_contractionCallback_whenToken1IsDebt_shouldBurnAndTransferCorrectly()
@@ -245,7 +245,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     expectReserveTransfer(collToken, address(fpmm), amountOwedToPool);
     expectERC20Burn(debtToken, amount1Out);
     vm.prank(address(fpmm));
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   function test_hook_contractionCallback_whenReserveTransferFails_shouldRevert()
@@ -273,7 +273,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
 
     vm.prank(address(fpmm));
     vm.expectRevert("RLS_COLLATERAL_TO_POOL_FAILED()");
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   /* ============================================================ */
@@ -300,7 +300,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     expectERC20Transfer(collToken, address(reserve), amount1Out);
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
   function test_hook_withMaxIncentive_shouldExecuteCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
@@ -323,6 +323,6 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     expectReserveTransfer(collToken, address(fpmm), amountOwedToPool);
     expectERC20Burn(debtToken, amount0Out);
     vm.prank(address(fpmm));
-    strategy.hook(address(strategy), amount0Out, amount1Out, hookData);
+    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 }

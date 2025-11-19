@@ -14,6 +14,7 @@ import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contrac
 import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { IOracleAdapter } from "../interfaces/IOracleAdapter.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
+import { ILiquidityStrategyHook } from "../interfaces/ILiquidityStrategyHook.sol";
 import { TradingLimitsV2 } from "../libraries/TradingLimitsV2.sol";
 import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
 
@@ -491,7 +492,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     if (amount0Out > 0) IERC20($.token0).safeTransfer(msg.sender, amount0Out);
     if (amount1Out > 0) IERC20($.token1).safeTransfer(msg.sender, amount1Out);
 
-    if (data.length > 0) IFPMMCallee(msg.sender).hook(msg.sender, amount0Out, amount1Out, data);
+    if (data.length > 0) ILiquidityStrategyHook(msg.sender).onRebalance(msg.sender, amount0Out, amount1Out, data);
 
     uint256 balance0 = IERC20($.token0).balanceOf(address(this));
     uint256 balance1 = IERC20($.token1).balanceOf(address(this));
