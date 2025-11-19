@@ -146,8 +146,9 @@ interface IFPMM is IRPool {
    * @param amount0 Amount of token0 added
    * @param amount1 Amount of token1 added
    * @param liquidity Amount of LP tokens minted
+   * @param to Address that receives LP tokens
    */
-  event Mint(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity);
+  event Mint(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity, address indexed to);
 
   /**
    * @notice Emitted when liquidity is removed from the pool

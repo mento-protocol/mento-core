@@ -357,7 +357,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     _update();
 
-    emit Mint(msg.sender, amount0, amount1, liquidity);
+    emit Mint(msg.sender, amount0, amount1, liquidity, to);
   }
 
   // slither-disable-start reentrancy-benign
