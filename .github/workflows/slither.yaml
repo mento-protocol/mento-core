@@ -35,7 +35,3 @@ jobs:
           sarif: results.sarif
           fail-on: "low"
           continue-on-error: true
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: ${{ steps.slither.outputs.sarif }}

@@ -271,7 +271,6 @@ contract StableTokenV3Test is Test {
   function test_creditGasFees_whenCalledByVm_shouldCreditFees() public {
     uint256 refund = 20;
     uint256 tipTxFee = 30;
-    uint256 gatewayFee = 10;
     uint256 baseTxFee = 40;
     uint256 tokenSupplyBefore = token.totalSupply();
 
@@ -279,7 +278,89 @@ contract StableTokenV3Test is Test {
     token.creditGasFees(
       holder0,
       feeRecipient,
-      gatewayFeeRecipient,
+      address(0), // gatewayFeeRecipient will always be 0
+      communityFund,
+      refund,
+      tipTxFee,
+      0, // gatewayFee will always be 0
+      baseTxFee
+    );
+
+    assertEq(token.balanceOf(holder0), 1000 + refund);
+    assertEq(token.balanceOf(feeRecipient), tipTxFee);
+    assertEq(token.balanceOf(communityFund), baseTxFee);
+    assertEq(token.totalSupply(), tokenSupplyBefore + refund + tipTxFee + baseTxFee);
+  }
+
+  function test_creditGasFees_whenCalledByVm_withMultiple0Amounts_shouldReturnFeesToHolder0() public {
+    uint256 refund = 20;
+    uint256 holder0InitialBalance = token.balanceOf(holder0);
+    uint256 tokenSupplyBefore0 = token.totalSupply();
+
+    vm.prank(address(0));
+    token.creditGasFees(holder0, feeRecipient, gatewayFeeRecipient, communityFund, refund, 0, 0, 0);
+
+    assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
+    assertEq(token.balanceOf(feeRecipient), 0);
+    assertEq(token.balanceOf(gatewayFeeRecipient), 0);
+    assertEq(token.balanceOf(communityFund), 0);
+    assertEq(token.totalSupply(), tokenSupplyBefore0 + refund);
+  }
+
+  function test_creditGasFees_whenCalledByVm_withAllZeroAmounts_shouldNotChangeBalances() public {
+    uint256 holder0InitialBalance = token.balanceOf(holder0);
+    uint256 tokenSupplyBefore = token.totalSupply();
+
+    vm.prank(address(0));
+    token.creditGasFees(holder0, feeRecipient, gatewayFeeRecipient, communityFund, 0, 0, 0, 0);
+
+    assertEq(token.balanceOf(holder0), holder0InitialBalance);
+    assertEq(token.balanceOf(feeRecipient), 0);
+    assertEq(token.balanceOf(gatewayFeeRecipient), 0);
+    assertEq(token.balanceOf(communityFund), 0);
+    assertEq(token.totalSupply(), tokenSupplyBefore);
+  }
+
+  function test_creditGasFees_whenCalledByVm_withOnlyTipTxFee_shouldCreditOnlyFeeRecipient() public {
+    uint256 tipTxFee = 50;
+    uint256 tokenSupplyBefore = token.totalSupply();
+
+    vm.prank(address(0));
+    token.creditGasFees(holder0, feeRecipient, gatewayFeeRecipient, communityFund, 0, tipTxFee, 0, 0);
+
+    assertEq(token.balanceOf(holder0), 1000);
+    assertEq(token.balanceOf(feeRecipient), tipTxFee);
+    assertEq(token.balanceOf(gatewayFeeRecipient), 0);
+    assertEq(token.balanceOf(communityFund), 0);
+    assertEq(token.totalSupply(), tokenSupplyBefore + tipTxFee);
+  }
+
+  function test_creditGasFees_whenCalledByVm_withOnlyBaseTxFee_shouldCreditOnlyCommunityFund() public {
+    uint256 baseTxFee = 60;
+    uint256 tokenSupplyBefore = token.totalSupply();
+
+    vm.prank(address(0));
+    token.creditGasFees(holder0, feeRecipient, gatewayFeeRecipient, communityFund, 0, 0, 0, baseTxFee);
+
+    assertEq(token.balanceOf(holder0), 1000);
+    assertEq(token.balanceOf(feeRecipient), 0);
+    assertEq(token.balanceOf(gatewayFeeRecipient), 0);
+    assertEq(token.balanceOf(communityFund), baseTxFee);
+    assertEq(token.totalSupply(), tokenSupplyBefore + baseTxFee);
+  }
+
+  function test_creditGasFees_whenCalledByVm_withGatewayFee_shouldIgnoreGatewayFee() public {
+    uint256 refund = 10;
+    uint256 tipTxFee = 20;
+    uint256 gatewayFee = 100; // This should be ignored even if it's not 0
+    uint256 baseTxFee = 30;
+    uint256 tokenSupplyBefore = token.totalSupply();
+
+    vm.prank(address(0));
+    token.creditGasFees(
+      holder0,
+      feeRecipient,
+      address(0), // gatewayFeeRecipient
       communityFund,
       refund,
       tipTxFee,
@@ -289,126 +370,97 @@ contract StableTokenV3Test is Test {
 
     assertEq(token.balanceOf(holder0), 1000 + refund);
     assertEq(token.balanceOf(feeRecipient), tipTxFee);
-    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
     assertEq(token.balanceOf(communityFund), baseTxFee);
-    assertEq(token.totalSupply(), tokenSupplyBefore + refund + tipTxFee + gatewayFee + baseTxFee);
+    // Gateway fee is ignored, so total supply should increase by refund + tipTxFee + baseTxFee only
+    assertEq(token.totalSupply(), tokenSupplyBefore + refund + tipTxFee + baseTxFee);
   }
 
-  function test_creditGasFees_whenCalledByVm_with0xFeeRecipient_shouldBurnTipTxFee() public {
-    uint256 refund = 20;
-    uint256 tipTxFee = 30;
-    uint256 gatewayFee = 10;
-    uint256 baseTxFee = 40;
-    uint256 holder0InitialBalance = token.balanceOf(holder0);
+  function test_creditGasFeesArray_whenCallerNotVM_shouldRevert() public {
+    address[] memory recipients = new address[](1);
+    recipients[0] = holder0;
+    uint256[] memory amounts = new uint256[](1);
+    amounts[0] = 100;
+
+    vm.expectRevert("Only VM can call");
+    token.creditGasFees(recipients, amounts);
+  }
+
+  function test_creditGasFeesArray_whenCalledByVm_withSingleRecipient_shouldCreditCorrectly() public {
+    address[] memory recipients = new address[](1);
+    recipients[0] = holder0;
+    uint256[] memory amounts = new uint256[](1);
+    amounts[0] = 100;
     uint256 tokenSupplyBefore = token.totalSupply();
-    uint256 newlyMinted = refund + tipTxFee + gatewayFee + baseTxFee;
 
     vm.prank(address(0));
-    token.creditGasFees(
-      holder0,
-      address(0),
-      gatewayFeeRecipient,
-      communityFund,
-      refund,
-      tipTxFee,
-      gatewayFee,
-      baseTxFee
-    );
+    token.creditGasFees(recipients, amounts);
 
-    assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
-    assertEq(token.balanceOf(feeRecipient), 0);
-    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
-    assertEq(token.balanceOf(communityFund), baseTxFee);
-    assertEq(token.totalSupply(), tokenSupplyBefore + newlyMinted - tipTxFee);
+    assertEq(token.balanceOf(holder0), 1000 + 100);
+    assertEq(token.totalSupply(), tokenSupplyBefore + 100);
   }
 
-  function test_creditGasFees_whenCalledByVm_with0xGatewayFeeRecipient_shouldBurnGateWayFee() public {
-    uint256 refund = 20;
-    uint256 tipTxFee = 30;
-    uint256 gatewayFee = 10;
-    uint256 baseTxFee = 40;
-    uint256 holder0InitialBalance = token.balanceOf(holder0);
+  function test_creditGasFeesArray_whenCalledByVm_withMultipleRecipients_shouldCreditCorrectly() public {
+    address[] memory recipients = new address[](3);
+    recipients[0] = holder0;
+    recipients[1] = feeRecipient;
+    recipients[2] = communityFund;
+    uint256[] memory amounts = new uint256[](3);
+    amounts[0] = 50;
+    amounts[1] = 100;
+    amounts[2] = 150;
     uint256 tokenSupplyBefore = token.totalSupply();
-    uint256 newlyMinted = refund + tipTxFee + gatewayFee + baseTxFee;
 
     vm.prank(address(0));
-    token.creditGasFees(holder0, feeRecipient, address(0), communityFund, refund, tipTxFee, gatewayFee, baseTxFee);
+    token.creditGasFees(recipients, amounts);
 
-    assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
-    assertEq(token.balanceOf(feeRecipient), tipTxFee);
-    assertEq(token.balanceOf(gatewayFeeRecipient), 0);
-    assertEq(token.balanceOf(communityFund), baseTxFee);
-    assertEq(token.totalSupply(), tokenSupplyBefore + newlyMinted - gatewayFee);
+    assertEq(token.balanceOf(holder0), 1000 + 50);
+    assertEq(token.balanceOf(feeRecipient), 100);
+    assertEq(token.balanceOf(communityFund), 150);
+    assertEq(token.totalSupply(), tokenSupplyBefore + 50 + 100 + 150);
   }
 
-  function test_creditGasFees_whenCalledByVm_with0xCommunityFund_shouldBurnBaseTxFee() public {
-    uint256 refund = 20;
-    uint256 tipTxFee = 30;
-    uint256 gatewayFee = 10;
-    uint256 baseTxFee = 40;
-    uint256 holder0InitialBalance = token.balanceOf(holder0);
+  function test_creditGasFeesArray_whenCalledByVm_withEmptyArrays_shouldDoNothing() public {
+    address[] memory recipients = new address[](0);
+    uint256[] memory amounts = new uint256[](0);
     uint256 tokenSupplyBefore = token.totalSupply();
-    uint256 newlyMinted = refund + tipTxFee + gatewayFee + baseTxFee;
 
     vm.prank(address(0));
-    token.creditGasFees(
-      holder0,
-      feeRecipient,
-      gatewayFeeRecipient,
-      address(0),
-      refund,
-      tipTxFee,
-      gatewayFee,
-      baseTxFee
-    );
+    token.creditGasFees(recipients, amounts);
 
-    assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
-    assertEq(token.balanceOf(feeRecipient), tipTxFee);
-    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFee);
-    assertEq(token.balanceOf(communityFund), 0);
-    assertEq(token.totalSupply(), tokenSupplyBefore + newlyMinted - baseTxFee);
+    assertEq(token.totalSupply(), tokenSupplyBefore);
   }
 
-  function test_creditGasFees_whenCalledByVm_withMultiple0xRecipients_shouldBurnTheirRespectiveFees0() public {
-    uint256 refund = 20;
-    uint256 tipTxFee = 30;
-    uint256 gatewayFee = 10;
-    uint256 baseTxFee = 40;
-    uint256 holder0InitialBalance = token.balanceOf(holder0);
-    uint256 tokenSupplyBefore0 = token.totalSupply();
-    uint256 newlyMinted0 = refund + tipTxFee + gatewayFee + baseTxFee;
+  function test_creditGasFeesArray_whenCalledByVm_withMismatchedArrayLengths_shouldRevert() public {
+    address[] memory recipients = new address[](2);
+    recipients[0] = holder0;
+    recipients[1] = holder1;
+    uint256[] memory amounts = new uint256[](3);
+    amounts[0] = 50;
+    amounts[1] = 100;
+    amounts[2] = 150;
 
     vm.prank(address(0));
-    // gateWayFeeRecipient and communityFund both 0x
-    token.creditGasFees(holder0, feeRecipient, address(0), address(0), refund, tipTxFee, gatewayFee, baseTxFee);
-
-    assertEq(token.balanceOf(holder0), holder0InitialBalance + refund);
-    assertEq(token.balanceOf(feeRecipient), tipTxFee);
-    assertEq(token.balanceOf(gatewayFeeRecipient), 0);
-    assertEq(token.balanceOf(communityFund), 0);
-    assertEq(token.totalSupply(), tokenSupplyBefore0 + newlyMinted0 - gatewayFee - baseTxFee);
+    vm.expectRevert("StableTokenV3: recipients and amounts must be the same length.");
+    token.creditGasFees(recipients, amounts);
   }
 
-  function test_creditGasFees_whenCalledByVm_withMultiple0xRecipients_shouldBurnTheirRespectiveFees1() public {
-    uint256 refund = 20;
-    uint256 tipTxFee = 30;
-    uint256 gatewayFee = 10;
-    uint256 baseTxFee = 40;
-    // case with both feeRecipient and communityFund both 0x
-    uint256 holder1InitialBalance = token.balanceOf(holder1);
-    uint256 feeRecipientBalance = token.balanceOf(feeRecipient);
-    uint256 gatewayFeeRecipientBalance = token.balanceOf(gatewayFeeRecipient);
-    uint256 communityFundBalance = token.balanceOf(communityFund);
-    uint256 tokenSupplyBefore1 = token.totalSupply();
-    uint256 newlyMinted1 = refund + tipTxFee + gatewayFee + baseTxFee;
-    vm.prank(address(0));
-    token.creditGasFees(holder1, address(0), gatewayFeeRecipient, address(0), refund, tipTxFee, gatewayFee, baseTxFee);
+  function test_creditGasFeesArray_whenCalledByVm_withZeroAmounts_shouldnotRevert() public {
+    address[] memory recipients = new address[](2);
+    recipients[0] = holder0;
+    recipients[1] = holder1;
+    uint256[] memory amounts = new uint256[](2);
+    amounts[0] = 0;
+    amounts[1] = 0;
+    uint256 holder0BalanceBefore = token.balanceOf(holder0);
+    uint256 holder1BalanceBefore = token.balanceOf(holder1);
+    uint256 tokenSupplyBefore = token.totalSupply();
 
-    assertEq(token.balanceOf(holder1), holder1InitialBalance + refund);
-    assertEq(token.balanceOf(feeRecipient), feeRecipientBalance);
-    assertEq(token.balanceOf(gatewayFeeRecipient), gatewayFeeRecipientBalance + gatewayFee);
-    assertEq(token.balanceOf(communityFund), communityFundBalance);
-    assertEq(token.totalSupply(), tokenSupplyBefore1 + newlyMinted1 - tipTxFee - baseTxFee);
+    vm.prank(address(0));
+    token.creditGasFees(recipients, amounts);
+
+    assertEq(token.balanceOf(holder0), holder0BalanceBefore);
+    assertEq(token.balanceOf(holder1), holder1BalanceBefore);
+    assertEq(token.totalSupply(), tokenSupplyBefore);
   }
 
   function buildTypedDataHash(

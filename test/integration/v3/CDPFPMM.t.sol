@@ -300,6 +300,7 @@ contract CDPFPMM_Token0Debt_Test is CDPFPMM_BaseTest {
     _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
     // skip 20 days to allow the base rate to decay
     skip(20 days);
+    _refreshOracleRates();
     _checkSetup();
   }
 
@@ -325,6 +326,7 @@ contract CDPFPMM_Token1Debt_Test is CDPFPMM_BaseTest {
     _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
     // skip 20 days to allow the base rate to decay
     skip(20 days);
+    _refreshOracleRates();
     _checkSetup();
   }
 
