@@ -178,7 +178,7 @@ interface IFPMM is IRPool {
    * @param oldRecipient Previous recipient of the protocol fee
    * @param newRecipient New recipient of the protocol fee
    */
-  event ProtocolFeeRecipientUpdated(address oldRecipient, address newRecipient);
+  event ProtocolFeeRecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
 
   /**
    * @notice Emitted when the rebalance incentive is updated
@@ -213,14 +213,14 @@ interface IFPMM is IRPool {
    * @param oldRateFeedID Previous rate feed ID
    * @param newRateFeedID New rate feed ID
    */
-  event ReferenceRateFeedIDUpdated(address oldRateFeedID, address newRateFeedID);
+  event ReferenceRateFeedIDUpdated(address indexed oldRateFeedID, address indexed newRateFeedID);
 
   /**
    * @notice Emitted when the OracleAdapter contract is updated
    * @param oldOracleAdapter Previous OracleAdapter address
    * @param newOracleAdapter New OracleAdapter address
    */
-  event OracleAdapterUpdated(address oldOracleAdapter, address newOracleAdapter);
+  event OracleAdapterUpdated(address indexed oldOracleAdapter, address indexed newOracleAdapter);
 
   /**
    * @notice Emitted when the invert rate feed flag is updated
