@@ -67,14 +67,12 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
     assertEq(pool, actualPool);
   }
 
-  function test_getAmountsOut_whenPoolDoesNotExist_shouldReturnZero() public view {
+  function test_getAmountsOut_whenPoolDoesNotExist_shouldRevert() public {
     IRouter.Route[] memory routes = new IRouter.Route[](1);
     routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(0) });
 
-    uint256[] memory amounts = router.getAmountsOut(1000e18, routes);
-    assertEq(amounts.length, 2);
-    assertEq(amounts[0], 1000e18);
-    assertEq(amounts[1], 0);
+    vm.expectRevert(IRouter.PoolDoesNotExist.selector);
+    router.getAmountsOut(1000e18, routes);
   }
 
   function test_getAmountsOut_whenFactoryIsNotApproved_shouldRevert() public {
@@ -96,10 +94,8 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
     vm.prank(governance);
     factoryRegistry.approve(address(customFactory));
 
-    uint256[] memory amounts = router.getAmountsOut(1000e18, routes);
-    assertEq(amounts.length, 2);
-    assertEq(amounts[0], 1000e18);
-    assertEq(amounts[1], 0);
+    vm.expectRevert(IRouter.PoolDoesNotExist.selector);
+    router.getAmountsOut(1000e18, routes);
   }
 
   function test_addLiquidity_whenPoolDoesNotExist_shouldRevert() public {

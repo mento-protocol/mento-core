@@ -143,6 +143,11 @@ contract RouterZapTests is FPMMBaseIntegration {
     address fpmm = _deployFPMM(tokens[1], tokens[2]);
     _addInitialLiquidity(tokens[1], tokens[2], fpmm);
 
+    address fpmm2 = _deployFPMM(tokens[0], tokens[1]);
+    address fpmm3 = _deployFPMM(tokens[0], tokens[2]);
+    _addInitialLiquidity(tokens[0], tokens[1], fpmm2);
+    _addInitialLiquidity(tokens[0], tokens[2], fpmm3);
+
     vm.startPrank(alice);
 
     IRouter.Zap memory zapInPool = IRouter.Zap({
