@@ -137,6 +137,8 @@ interface IFPMM is IRPool {
   error RebalanceDirectionInvalid();
   // @notice Throw when trying to configure trading limits with a limit that doesn't fit in int120
   error LimitDoesNotFitInInt120();
+  // @notice Throw when token decimals are invalid
+  error InvalidTokenDecimals();
 
   /* ============================================================ */
   /* ======================== Events ============================ */
