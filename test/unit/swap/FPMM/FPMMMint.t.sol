@@ -7,7 +7,7 @@ import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 
 contract FPMMMintTest is FPMMBaseTest {
-  event Mint(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity);
+  event Mint(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity, address indexed to);
 
   function test_mint_whenCalledWithLessThanMinLiquidity_shouldRevert() public initializeFPMM_withDecimalTokens(18, 18) {
     uint256 amount0 = 1_000;
@@ -92,11 +92,44 @@ contract FPMMMintTest is FPMMBaseTest {
     uint256 expectedLiquidity = 141421356237309504880 / 2; // half of the initial liquidity
 
     vm.expectEmit(true, true, true, true);
-    emit Mint(BOB, amount0, amount1, expectedLiquidity);
+    emit Mint(BOB, amount0, amount1, expectedLiquidity, BOB);
     uint256 liquidity = fpmm.mint(BOB);
 
     assertEq(liquidity, expectedLiquidity);
     assertEq(fpmm.balanceOf(BOB), expectedLiquidity);
+    assertEq(fpmm.totalSupply(), 3 * expectedLiquidity);
+
+    assertEq(fpmm.reserve0(), initialReserve0 + amount0);
+    assertEq(fpmm.reserve1(), initialReserve1 + amount1);
+
+    vm.stopPrank();
+  }
+
+  function test_mint_whenRecipientIsDifferentFromSender_shouldCalculateLiquidityCorrectly()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+  {
+    uint256 amount0 = 50e18;
+    uint256 amount1 = 100e18;
+
+    uint256 initialReserve0 = fpmm.reserve0();
+    uint256 initialReserve1 = fpmm.reserve1();
+
+    uint256 aliceInitialBalance = fpmm.balanceOf(ALICE);
+
+    vm.startPrank(BOB);
+    IERC20(token0).transfer(address(fpmm), amount0);
+    IERC20(token1).transfer(address(fpmm), amount1);
+
+    uint256 expectedLiquidity = 141421356237309504880 / 2; // half of the initial liquidity
+
+    vm.expectEmit(true, true, true, true);
+    emit Mint(BOB, amount0, amount1, expectedLiquidity, ALICE);
+    uint256 liquidity = fpmm.mint(ALICE);
+
+    assertEq(liquidity, expectedLiquidity);
+    assertEq(fpmm.balanceOf(ALICE), aliceInitialBalance + expectedLiquidity);
     assertEq(fpmm.totalSupply(), 3 * expectedLiquidity);
 
     assertEq(fpmm.reserve0(), initialReserve0 + amount0);
