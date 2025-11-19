@@ -117,36 +117,28 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
     // Configure limits for token0 (USDC)
     // L0: 100k USDC (5 minute window)
     // L1: 1M USDC (1 day window)
-    ITradingLimitsV2.Config memory configToken0;
-    configToken0.limit0 = 100_000e6;
-    configToken0.limit1 = 1_000_000e6;
-    configToken0.flags = 3; // Both L0 and L1 enabled
-    _configureTradingLimits($fpmm.fpmmReserve, $fpmm.fpmmReserve.token0(), configToken0);
+    uint256 limit0token0 = 100_000e6;
+    uint256 limit1token0 = 1_000_000e6;
+    _configureTradingLimits($fpmm.fpmmReserve, $fpmm.fpmmReserve.token0(), limit0token0, limit1token0);
 
     // Configure limits for token1 (USD.m)
-    ITradingLimitsV2.Config memory configToken1;
-    configToken1.limit0 = 100_000e18;
-    configToken1.limit1 = 1_000_000e18;
-    configToken1.flags = 3;
-    _configureTradingLimits($fpmm.fpmmReserve, $fpmm.fpmmReserve.token1(), configToken1);
+    uint256 limit0token1 = 100_000e18;
+    uint256 limit1token1 = 1_000_000e18;
+    _configureTradingLimits($fpmm.fpmmReserve, $fpmm.fpmmReserve.token1(), limit0token1, limit1token1);
   }
 
   function _configureTradingLimitsCDPFPMM() internal {
     // Configure limits for token0 (EUR.m)
     // L0: 50k EUR.m (5 minute window)
     // L1: 500k EUR.m (1 day window)
-    ITradingLimitsV2.Config memory configToken0;
-    configToken0.limit0 = 50_000e18;
-    configToken0.limit1 = 500_000e18;
-    configToken0.flags = 3;
-    _configureTradingLimits($fpmm.fpmmCDP, $fpmm.fpmmCDP.token0(), configToken0);
+    uint256 limit0token0 = 50_000e18;
+    uint256 limit1token0 = 500_000e18;
+    _configureTradingLimits($fpmm.fpmmCDP, $fpmm.fpmmCDP.token0(), limit0token0, limit1token0);
 
     // Configure limits for token1 (USD.m)
-    ITradingLimitsV2.Config memory configToken1;
-    configToken1.limit0 = 50_000e18;
-    configToken1.limit1 = 500_000e18;
-    configToken1.flags = 3;
-    _configureTradingLimits($fpmm.fpmmCDP, $fpmm.fpmmCDP.token1(), configToken1);
+    uint256 limit0token1 = 50_000e18;
+    uint256 limit1token1 = 500_000e18;
+    _configureTradingLimits($fpmm.fpmmCDP, $fpmm.fpmmCDP.token1(), limit0token1, limit1token1);
   }
 
   function _checkSetup() internal {
@@ -165,18 +157,18 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
     // Verify trading limits configured on Reserve FPMM
     (ITradingLimitsV2.Config memory config0Reserve, ) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
     (ITradingLimitsV2.Config memory config1Reserve, ) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
-    assertEq(config0Reserve.limit0, 100_000e6, "ReserveFPMM token0 L0 limit mismatch");
-    assertEq(config0Reserve.limit1, 1_000_000e6, "ReserveFPMM token0 L1 limit mismatch");
-    assertEq(config1Reserve.limit0, 100_000e18, "ReserveFPMM token1 L0 limit mismatch");
-    assertEq(config1Reserve.limit1, 1_000_000e18, "ReserveFPMM token1 L1 limit mismatch");
+    assertEq(config0Reserve.limit0, 100_000e15, "ReserveFPMM token0 L0 limit mismatch");
+    assertEq(config0Reserve.limit1, 1_000_000e15, "ReserveFPMM token0 L1 limit mismatch");
+    assertEq(config1Reserve.limit0, 100_000e15, "ReserveFPMM token1 L0 limit mismatch");
+    assertEq(config1Reserve.limit1, 1_000_000e15, "ReserveFPMM token1 L1 limit mismatch");
 
     // Verify trading limits configured on CDP FPMM
     (ITradingLimitsV2.Config memory config0CDP, ) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
     (ITradingLimitsV2.Config memory config1CDP, ) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token1());
-    assertEq(config0CDP.limit0, 50_000e18, "CDPFPMM token0 L0 limit mismatch");
-    assertEq(config0CDP.limit1, 500_000e18, "CDPFPMM token0 L1 limit mismatch");
-    assertEq(config1CDP.limit0, 50_000e18, "CDPFPMM token1 L0 limit mismatch");
-    assertEq(config1CDP.limit1, 500_000e18, "CDPFPMM token1 L1 limit mismatch");
+    assertEq(config0CDP.limit0, 50_000e15, "CDPFPMM token0 L0 limit mismatch");
+    assertEq(config0CDP.limit1, 500_000e15, "CDPFPMM token0 L1 limit mismatch");
+    assertEq(config1CDP.limit0, 50_000e15, "CDPFPMM token1 L0 limit mismatch");
+    assertEq(config1CDP.limit1, 500_000e15, "CDPFPMM token1 L1 limit mismatch");
   }
 
   // ============================================================
@@ -204,11 +196,9 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
 
   function test_reserveFPMM_L1LimitEnforcement_whenMultipleSwapsWithin1Day_shouldRevert() public {
     // Set lower L0 limit to test L1
-    ITradingLimitsV2.Config memory configToken0;
-    configToken0.limit0 = 70_000e6;
-    configToken0.limit1 = 80_000e6;
-    configToken0.flags = 3;
-    _configureTradingLimits($fpmm.fpmmReserve, $fpmm.fpmmReserve.token0(), configToken0);
+    uint256 limit0token0 = 70_000e6;
+    uint256 limit1token0 = 80_000e6;
+    _configureTradingLimits($fpmm.fpmmReserve, $fpmm.fpmmReserve.token0(), limit0token0, limit1token0);
 
     // First swap: 60k USDC (within both L0 and L1 limits)
     uint256 amount0In = 60_000e6;
@@ -267,9 +257,13 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
     assertEq(trader1BalanceAfter - trader1BalanceBefore, amount1Out, "Trader should receive expected amount");
 
     // Verify limits were updated
-    (, ITradingLimitsV2.State memory state) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
-    assertEq(state.netflow0, -50_000e15, "Netflow0 should be -50k");
-    assertEq(state.netflow1, -50_000e15, "Netflow1 should be -50k");
+    (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
+    assertEq(stateToken0.netflow0, 50_000e15, "Netflow0 for token0 should be 50k");
+    assertEq(stateToken0.netflow1, 50_000e15, "Netflow1 for token0 should be 50k");
+
+    (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
+    assertEq(stateToken1.netflow0, -49_850e15, "Netflow0 for token1 should be -49.85k");
+    assertEq(stateToken1.netflow1, -49_850e15, "Netflow1 for token1 should be -49.85k");
   }
 
   function test_reserveFPMM_netflowTracking_withBidirectionalSwaps_shouldAccumulateCorrectly() public {
@@ -279,8 +273,13 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
 
     _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, amount0In, 0, 0, amount1Out);
 
-    (, ITradingLimitsV2.State memory state1) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
-    assertEq(state1.netflow0, -50_000e15, "Netflow should be -50k after first swap");
+    (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
+    assertEq(stateToken0.netflow0, 50_000e15, "Netflow0 for token0 should be 50k after first swap");
+    assertEq(stateToken0.netflow1, 50_000e15, "Netflow1 for token0 should be 50k after first swap");
+
+    (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
+    assertEq(stateToken1.netflow0, -49_850e15, "Netflow0 for token1 should be -49.85k");
+    assertEq(stateToken1.netflow1, -49_850e15, "Netflow1 for token1 should be -49.85k");
 
     // Swap 2: Receive 20k USDC out (netflow = -50k + 20k = -30k)
     uint256 amount0Out = 20_000e6;
@@ -288,8 +287,65 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
 
     _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, 0, amount1In, amount0Out, 0);
 
-    (, ITradingLimitsV2.State memory state2) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
-    assertEq(state2.netflow0, -30_000e15, "Netflow should be -30k after bidirectional swaps");
+    (, stateToken0) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
+    assertEq(stateToken0.netflow0, 30_000e15, "Netflow0 for token0 should be 30k after bidirectional swaps");
+    assertEq(stateToken0.netflow1, 30_000e15, "Netflow1 for token0 should be 30k after bidirectional swaps");
+
+    (, stateToken1) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
+    // 49.85k - 20.10k = 29.75k
+    assertEq(stateToken1.netflow0, -29_750e15, "Netflow0 for token1 should be -29.94k after bidirectional swaps");
+    // 49.85k - 20.10k = 29.75k
+    assertEq(stateToken1.netflow1, -29_750e15, "Netflow1 for token1 should be -29.95k after bidirectional swaps");
+  }
+
+  function test_reserveFPMM_netflowTracking_withSmallAmounts_shouldAccountCorrectly() public {
+    // Swap 1: 1 wei USDC -> USD.m
+    uint256 amount0In = 1;
+    uint256 amount1Out = $fpmm.fpmmReserve.getAmountOut(amount0In, $fpmm.fpmmReserve.token0());
+
+    _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, amount0In, 0, 0, amount1Out);
+
+    (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
+    // accounting in 15 decimals so 1 wei usdc is 1e9 in 15 decimals
+    assertEq(stateToken0.netflow0, 1e9, "Netflow0 for token0 should be 1 wei");
+    assertEq(stateToken0.netflow1, 1e9, "Netflow1 for token0 should be 1 wei");
+
+    (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
+    // accounting in 15 decimals so usd.m amounts are scaled down by 1e3
+    assertEq(stateToken1.netflow0, -int256(amount1Out / 1e3), "Netflow0 for token1 should be -amount1Out / 1e3");
+    assertEq(stateToken1.netflow1, -int256(amount1Out / 1e3), "Netflow1 for token1 should be -amount1Out / 1e3");
+
+    // Swap 2: 1e18 + 999 wei USD.m -> USDC
+    uint256 amount1In = 1e18 + 999;
+    uint256 amount0Out = $fpmm.fpmmReserve.getAmountOut(amount1In, $fpmm.fpmmReserve.token1());
+
+    _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, 0, amount1In, amount0Out, 0);
+
+    (, ITradingLimitsV2.State memory stateToken0After) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
+    // amountOut in USDC(6dec) is scaled up to 15 decimals so * 1e9
+    assertEq(
+      stateToken0After.netflow0,
+      stateToken0.netflow0 - int256(amount0Out * 1e9),
+      "Netflow0 for token0 should be the same as before - amount0Out * 1e9"
+    );
+    assertEq(
+      stateToken0After.netflow1,
+      stateToken0.netflow1 - int256(amount0Out * 1e9),
+      "Netflow1 for token0 should be the same as before - amount0Out * 1e9"
+    );
+
+    (, ITradingLimitsV2.State memory stateToken1After) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
+    // 1e18 + 999 wei USD.m is scaled down to 15 decimals so 1e15, 999 is dropped
+    assertEq(
+      stateToken1After.netflow0,
+      stateToken1.netflow0 + 1e15,
+      "Netflow0 for token1 should be the same as before + amount1In / 1e3"
+    );
+    assertEq(
+      stateToken1After.netflow1,
+      stateToken1.netflow1 + 1e15,
+      "Netflow1 for token1 should be the same as before + amount1In / 1e3"
+    );
   }
 
   // ============================================================
@@ -316,11 +372,9 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
   }
 
   function test_cdpFPMM_L1LimitEnforcement_whenMultipleSwapsWithin1Day_shouldRevert() public {
-    ITradingLimitsV2.Config memory configToken0;
-    configToken0.limit0 = 55_000e18;
-    configToken0.limit1 = 60_000e18;
-    configToken0.flags = 3;
-    _configureTradingLimits($fpmm.fpmmCDP, $fpmm.fpmmCDP.token0(), configToken0);
+    uint256 limit0token0 = 55_000e18;
+    uint256 limit1token0 = 60_000e18;
+    _configureTradingLimits($fpmm.fpmmCDP, $fpmm.fpmmCDP.token0(), limit0token0, limit1token0);
 
     uint256 amount0In = 45_000e18;
     uint256 amount1Out = 44_865e18;
@@ -342,6 +396,7 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
   function test_cdpFPMM_limitReset_whenL0WindowExpires_shouldAllowNewSwaps() public {
     uint256 amount0In = 45_000e18;
     uint256 amount1Out = 44_865e18;
+    uint256 traderBalanceBefore = IERC20Metadata($fpmm.fpmmCDP.token1()).balanceOf(trader);
 
     _transferToFPMMAndSwap($fpmm.fpmmCDP, trader, amount0In, 0, 0, amount1Out);
 
@@ -352,9 +407,11 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
 
     _transferToFPMMAndSwap($fpmm.fpmmCDP, trader, amount0In2, 0, 0, amount1Out2);
 
-    assertGt(
-      IERC20Metadata($fpmm.fpmmCDP.token1()).balanceOf(trader),
-      amount1Out + amount1Out2 - 1e18,
+    uint256 traderBalanceAfter = IERC20Metadata($fpmm.fpmmCDP.token1()).balanceOf(trader);
+
+    assertEq(
+      traderBalanceAfter - traderBalanceBefore,
+      amount1Out + amount1Out2,
       "Trader should have received both swap amounts"
     );
   }
@@ -371,9 +428,13 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
 
     assertEq(traderBalanceAfter - traderBalanceBefore, amount1Out, "Trader should receive expected amount");
 
-    (, ITradingLimitsV2.State memory state) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
-    assertEq(state.netflow0, -30_000e15, "Netflow0 should be -30k");
-    assertEq(state.netflow1, -30_000e15, "Netflow1 should be -30k");
+    (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
+    assertEq(stateToken0.netflow0, 30_000e15, "Netflow0 for token0 should be 30k");
+    assertEq(stateToken0.netflow1, 30_000e15, "Netflow1 for token0 should be 30k");
+
+    (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token1());
+    assertEq(stateToken1.netflow0, -29_910e15, "Netflow0 for token1 should be -29.91k");
+    assertEq(stateToken1.netflow1, -29_910e15, "Netflow1 for token1 should be -29.91k");
   }
 
   function test_cdpFPMM_netflowTracking_withBidirectionalSwaps_shouldAccumulateCorrectly() public {
@@ -382,21 +443,36 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
 
     _transferToFPMMAndSwap($fpmm.fpmmCDP, trader, amount0In, 0, 0, amount1Out);
 
-    (, ITradingLimitsV2.State memory state1) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
-    assertEq(state1.netflow0, -30_000e15, "Netflow should be -30k after first swap");
+    (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
+    assertEq(stateToken0.netflow0, 30_000e15, "Netflow0 for token0 should be 30k after first swap");
+    assertEq(stateToken0.netflow1, 30_000e15, "Netflow1 for token0 should be 30k after first swap");
+
+    (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token1());
+    assertEq(stateToken1.netflow0, -29_910e15, "Netflow0 for token1 should be -29.91k after first swap");
+    assertEq(stateToken1.netflow1, -29_910e15, "Netflow1 for token1 should be -29.91k after first swap");
 
     uint256 amount0Out = 10_000e18;
     uint256 amount1In = 20_100e18;
 
     _transferToFPMMAndSwap($fpmm.fpmmCDP, trader, 0, amount1In, amount0Out, 0);
 
-    (, ITradingLimitsV2.State memory state2) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
-    assertEq(state2.netflow0, -20_000e15, "Netflow should be -20k after bidirectional swaps");
+    (, stateToken0) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
+    assertEq(stateToken0.netflow0, 20_000e15, "Netflow0 for token0 should be 20k after bidirectional swaps");
+    assertEq(stateToken0.netflow1, 20_000e15, "Netflow1 for token0 should be 20k after bidirectional swaps");
+
+    (, stateToken1) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token1());
+    // -29.91k + 20.10k = -9.81k
+    assertEq(stateToken1.netflow0, -9_810e15, "Netflow0 for token1 should be -9.81k after bidirectional swaps");
+    // -29.91k + 20.10k = -9.81k
+    assertEq(stateToken1.netflow1, -9_810e15, "Netflow1 for token1 should be -9.81k after bidirectional swaps");
   }
 
   function test_bothPools_configureTradingLimit_onBothTokens_shouldApplyIndependently() public {
     uint256 amount0In = 90_000e6;
     uint256 amount1Out = 89_730e18;
+
+    uint256 traderBalanceToken0Before = IERC20Metadata($fpmm.fpmmReserve.token0()).balanceOf(trader);
+    uint256 traderBalanceToken1Before = IERC20Metadata($fpmm.fpmmReserve.token1()).balanceOf(trader);
 
     // Swap token0 (USDC) - should respect token0 limits
     _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, amount0In, 0, 0, amount1Out);
@@ -412,7 +488,18 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
 
     _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, 0, amount1In, amount0Out, 0);
 
-    // Verify token1 swap succeeded
-    assertGt(IERC20Metadata($fpmm.fpmmReserve.token0()).balanceOf(trader), amount0Out - 1e6);
+    uint256 traderBalanceToken0After = IERC20Metadata($fpmm.fpmmReserve.token0()).balanceOf(trader);
+    uint256 traderBalanceToken1After = IERC20Metadata($fpmm.fpmmReserve.token1()).balanceOf(trader);
+
+    assertEq(
+      traderBalanceToken0Before - amount0In + amount0Out - 20_000e6, // 20k deducted for the L0 limit exceeded attempt
+      traderBalanceToken0After,
+      "Trader should have received expected amount for token0"
+    );
+    assertEq(
+      traderBalanceToken1Before - amount1In + amount1Out,
+      traderBalanceToken1After,
+      "Trader should have received expected amount for token1"
+    );
   }
 }
