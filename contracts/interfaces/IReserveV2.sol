@@ -8,24 +8,46 @@ interface IReserveV2 {
 
   // @notice Throw when trying to add a stable token that is already added
   error StableTokenAlreadyAdded();
+  // @notice Throw when trying to remove a stable token that is not added
+  error StableTokenNotAdded();
   // @notice Throw when trying to add a stable token that is zero address
   error StableTokenZeroAddress();
+
   // @notice Throw when trying to add a collateral token that is already added
   error CollateralTokenAlreadyAdded();
+  // @notice Throw when trying to remove a collateral token that is not added
+  error CollateralTokenNotRegistered();
   // @notice Throw when trying to add a collateral token that is zero address
   error CollateralTokenZeroAddress();
+
   // @notice Throw when trying to add an other reserve address that is already added
   error OtherReserveAddressAlreadyAdded();
+  // @notice Throw when trying to remove an other reserve address that is not added
+  error OtherReserveAddressNotRegistered();
   // @notice Throw when trying to add an other reserve address that is zero address
   error OtherReserveAddressZeroAddress();
+
   // @notice Throw when trying to add an exchange spender that is already added
   error ExchangeSpenderAlreadyAdded();
+  // @notice Throw when an address is not an registered exchange spender
+  error ExchangeSpenderNotRegistered();
   // @notice Throw when trying to add an exchange spender that is zero address
   error ExchangeSpenderZeroAddress();
+
   // @notice Throw when trying to add a spender that is already added
   error SpenderAlreadyAdded();
+  // @notice Throw when trying to remove a spender that is not added
+  error SpenderNotRegistered();
   // @notice Throw when trying to add a spender that is zero address
   error SpenderZeroAddress();
+
+  // @notice Throw when trying to remove an address from an empty array
+  error ArrayEmpty();
+  // @notice Throw when trying to remove an address that is not in the array
+  error AddressNotInArray();
+
+  // @notice Throw when trying to transfer an amount that is greater than the balance of the reserve
+  error InsufficientReserveBalance();
 
   /* ============================================================ */
   /* ======================== Events ============================ */
@@ -37,25 +59,78 @@ interface IReserveV2 {
    */
   event StableTokenAdded(address indexed token);
   /**
+   * @notice Emitted when a stable token is removed
+   * @param token The address of the stable token
+   */
+  event StableTokenRemoved(address indexed token);
+  /**
    * @notice Emitted when a collateral token is added
    * @param token The address of the collateral token
    */
   event CollateralTokenAdded(address indexed token);
+  /**
+   * @notice Emitted when a collateral token is removed
+   * @param token The address of the collateral token
+   */
+  event CollateralTokenRemoved(address indexed token);
   /**
    * @notice Emitted when an other reserve address is added
    * @param otherReserveAddress The address of the other reserve address
    */
   event OtherReserveAddressAdded(address indexed otherReserveAddress);
   /**
+   * @notice Emitted when an other reserve address is removed
+   * @param otherReserveAddress The address of the other reserve address
+   */
+  event OtherReserveAddressRemoved(address indexed otherReserveAddress);
+  /**
    * @notice Emitted when an exchange spender is added
    * @param exchangeSpender The address of the exchange spender
    */
   event ExchangeSpenderAdded(address indexed exchangeSpender);
   /**
+   * @notice Emitted when an exchange spender is removed
+   * @param exchangeSpender The address of the exchange spender
+   */
+  event ExchangeSpenderRemoved(address indexed exchangeSpender);
+  /**
    * @notice Emitted when a spender is added
    * @param spender The address of the spender
    */
   event SpenderAdded(address indexed spender);
+  /**
+   * @notice Emitted when a spender is removed
+   * @param spender The address of the spender
+   */
+  event SpenderRemoved(address indexed spender);
+  /**
+   * @notice Emitted when a collateral asset is transferred by a spender
+   * @param spender The address of the spender
+   * @param collateralAsset The address of the collateral asset
+   * @param to The address to transfer the collateral asset to
+   * @param value The amount of collateral asset to transfer
+   */
+  event CollateralAssetTransferredSpender(
+    address indexed spender,
+    address indexed collateralAsset,
+    address indexed to,
+    uint256 value
+  );
+  /**
+
+  /**
+   * @notice Emitted when a collateral asset is transferred by an exchange spender
+   * @param exchangeSpender The address of the exchange spender
+   * @param collateralAsset The address of the collateral asset
+   * @param to The address to transfer the collateral asset to
+   * @param value The amount of collateral asset to transfer
+   */
+  event CollateralAssetTransferredExchangeSpender(
+    address indexed exchangeSpender,
+    address indexed collateralAsset,
+    address indexed to,
+    uint256 value
+  );
 
   /* ============================================================ */
   /* ====================== View Functions ====================== */
@@ -111,29 +186,112 @@ interface IReserveV2 {
     address[] calldata _spenders,
     address _initialOwner
   ) external;
+
+  /**
+   * @notice Returns the list of stable tokens
+   * @return An array of addresses of stable tokens
+   */
+  function getStableTokens() external view returns (address[] memory);
+  /**
+   * @notice Returns the list of collateral tokens
+   * @return An array of addresses of collateral tokens
+   */
+  function getCollateralTokens() external view returns (address[] memory);
+  /**
+   * @notice Returns the list of other reserve addresses
+   * @return An array of addresses of other reserve addresses
+   */
+  function getOtherReserveAddresses() external view returns (address[] memory);
+  /**
+   * @notice Returns the list of exchange spenders
+   * @return An array of addresses of exchange spenders
+   */
+  function getExchangeSpenders() external view returns (address[] memory);
+  /**
+   * @notice Returns the list of spenders
+   * @return An array of addresses of spenders
+   */
+  function getSpenders() external view returns (address[] memory);
+
   /**
    * @notice Adds a stable token to the reserve
    * @param _stableToken The address of the stable token
    */
   function addStableToken(address _stableToken) external;
+
+  /**
+   * @notice Removes a stable token from the reserve
+   * @param _stableToken The address of the stable token
+   */
+  function removeStableToken(address _stableToken) external;
+
   /**
    * @notice Adds a collateral token to the reserve
    * @param _collateralToken The address of the collateral token
    */
   function addCollateralToken(address _collateralToken) external;
+
+  /**
+   * @notice Removes a collateral token from the reserve
+   * @param _collateralToken The address of the collateral token
+   */
+  function removeCollateralToken(address _collateralToken) external;
+
   /**
    * @notice Adds an other reserve address to the reserve
    * @param _otherReserveAddress The address of the other reserve address
    */
   function addOtherReserveAddress(address _otherReserveAddress) external;
+
+  /**
+   * @notice Removes an other reserve address from the reserve
+   * @param _otherReserveAddress The address of the other reserve address
+   */
+  function removeOtherReserveAddress(address _otherReserveAddress) external;
+
   /**
    * @notice Adds an exchange spender to the reserve
    * @param _exchangeSpender The address of the exchange spender
    */
   function addExchangeSpender(address _exchangeSpender) external;
+
+  /**
+   * @notice Removes an exchange spender from the reserve
+   * @param _exchangeSpender The address of the exchange spender
+   */
+  function removeExchangeSpender(address _exchangeSpender) external;
+
   /**
    * @notice Adds a spender to the reserve
    * @param _spender The address of the spender
    */
   function addSpender(address _spender) external;
+
+  /**
+   * @notice Removes a spender from the reserve
+   * @param _spender The address of the spender
+   */
+  function removeSpender(address _spender) external;
+
+  /* ============================================================ */
+  /* ====================== External Functions ================== */
+  /* ============================================================ */
+
+  /**
+   * @notice Transfers collateral asset to an address, by a spender
+   * @param collateralAsset The address of the collateral asset
+   * @param to The address to transfer the collateral asset to
+   * @param value The amount of collateral asset to transfer
+   * @return True if the transaction succeeds
+   */
+  function transferCollateralAsset(address collateralAsset, address to, uint256 value) external returns (bool);
+
+  /**
+   * @notice Transfers collateral asset to an address, by an exchange spender
+   * @param collateralAsset The address of the collateral asset
+   * @param to The address to transfer the collateral asset to
+   * @param value The amount of collateral asset to transfer
+   * @return True if the transaction succeeds
+   */
+  function transferExchangeCollateralAsset(address collateralAsset, address to, uint256 value) external returns (bool);
 }

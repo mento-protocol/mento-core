@@ -15,7 +15,6 @@ interface IReserve {
   function transferCollateralAsset(address collateralAsset, address payable to, uint256 value) external returns (bool);
 
   function getReserveGoldBalance() external view returns (uint256);
-  
 
   function getUnfrozenReserveGoldBalance() external view returns (uint256);
 
