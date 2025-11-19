@@ -15,6 +15,8 @@ import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
+import { TradingLimitsV2 } from "contracts/libraries/TradingLimitsV2.sol";
+import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
 
 contract FPMMDeployer is TestStorage, CreateXHelper {
   constructor() {
@@ -138,7 +140,7 @@ contract FPMMDeployer is TestStorage, CreateXHelper {
     bool reservePriceAboveOraclePrice;
   }
 
-  function _snapshotPrices(IFPMM fpmm) internal returns (FPMMPrices memory prices) {
+  function _snapshotPrices(IFPMM fpmm) internal view returns (FPMMPrices memory prices) {
     (
       prices.oraclePriceNumerator,
       prices.oraclePriceDenominator,
@@ -147,5 +149,13 @@ contract FPMMDeployer is TestStorage, CreateXHelper {
       prices.priceDifference,
       prices.reservePriceAboveOraclePrice
     ) = fpmm.getPrices();
+  }
+
+  function _configureTradingLimits(IFPMM fpmm, address token, ITradingLimitsV2.Config memory config) internal {
+    require($fpmm.deployed, "FPMM_DEPLOYER: FPMM not deployed");
+
+    vm.startPrank($addresses.governance);
+    fpmm.configureTradingLimit(token, config);
+    vm.stopPrank();
   }
 }

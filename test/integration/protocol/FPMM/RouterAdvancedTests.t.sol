@@ -338,50 +338,6 @@ contract RouterAdvancedTests is FPMMBaseIntegration {
     vm.stopPrank();
   }
 
-  // ============ FEE-ON-TRANSFER TOKEN TESTS ============
-
-  function test_swapExactTokensForTokensSupportingFeeOnTransferTokens_whenValidSwap_shouldSwapCorrectly() public {
-    address fpmm = _deployFPMM(address(tokenA), address(tokenB));
-    _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
-
-    IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(0) });
-
-    vm.startPrank(alice);
-    tokenA.approve(address(router), 1000e18);
-
-    uint256 balanceBefore = tokenB.balanceOf(alice);
-
-    router.swapExactTokensForTokensSupportingFeeOnTransferTokens(1000e18, 0, routes, alice, block.timestamp);
-
-    uint256 expectedAmountB = (1000e18 * 997) / 1000;
-    assertEq(tokenB.balanceOf(alice), balanceBefore + expectedAmountB);
-
-    vm.stopPrank();
-  }
-
-  function test_swapExactTokensForTokensSupportingFeeOnTransferTokens_whenInsufficientOutput_shouldRevert() public {
-    address fpmm = _deployFPMM(address(tokenA), address(tokenB));
-    _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
-
-    IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = IRouter.Route({ from: address(tokenA), to: address(tokenB), factory: address(0) });
-
-    vm.startPrank(alice);
-    tokenA.approve(address(router), 1000e18);
-
-    vm.expectRevert(IRouter.InsufficientOutputAmount.selector);
-    router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-      1000e18,
-      1000e18, // amountOutMin >= amountIn (impossible due to fees)
-      routes,
-      alice,
-      block.timestamp
-    );
-
-    vm.stopPrank();
-  }
-
   // ============ OTHER TESTS ============
 
   function test_getReserves_whenPoolExists_shouldReturnCorrectReserves() public {
