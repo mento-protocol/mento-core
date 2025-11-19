@@ -180,22 +180,6 @@ interface IRouter {
     uint256 deadline
   ) external returns (uint256[] memory amounts);
 
-  // **** SWAP (supporting fee-on-transfer tokens) ****
-
-  /// @notice Swap one token for another supporting fee-on-transfer tokens
-  /// @param amountIn     Amount of token in
-  /// @param amountOutMin Minimum amount of desired token received
-  /// @param routes       Array of trade routes used in the swap
-  /// @param to           Recipient of the tokens received
-  /// @param deadline     Deadline to receive tokens
-  function swapExactTokensForTokensSupportingFeeOnTransferTokens(
-    uint256 amountIn,
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external;
-
   /// @notice Zap a token A into a pool (B, C). (A can be equal to B or C).
   ///         Supports standard ERC20 tokens only (i.e. not fee-on-transfer tokens etc).
   ///         Slippage is required for the initial swap.
