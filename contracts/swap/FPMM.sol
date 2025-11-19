@@ -27,7 +27,7 @@ import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
  * 1. Swap does not decrease the total value of the pool
  * 2. Rebalance does not decrease the reserve value more than the rebalance incentive
  * 3. Rebalance moves the price difference towards 0
- * 4. Rebalance does not change the direction of the price difference
+ * 4. Rebalance can change the direction of the price difference but not by more than the rebalance incentive
  */
 contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
