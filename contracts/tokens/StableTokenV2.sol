@@ -79,7 +79,7 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
     uint256[] calldata initialBalanceValues
   ) external initializer {
     __ERC20_init_unchained(_name, _symbol);
-    __ERC20Permit_init(_symbol);
+    __ERC20Permit_init(_name);
     _transferOwnership(_msgSender());
 
     require(initialBalanceAddresses.length == initialBalanceValues.length, "Array length mismatch");
@@ -102,7 +102,7 @@ contract StableTokenV2 is ERC20PermitUpgradeable, IStableTokenV2, CalledByVm {
     _setBroker(_broker);
     _setValidators(_validators);
     _setExchange(_exchange);
-    __ERC20Permit_init(symbol());
+    __ERC20Permit_init(name());
   }
 
   /**
