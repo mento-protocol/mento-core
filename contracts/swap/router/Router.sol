@@ -222,14 +222,24 @@ contract Router is IRouter, ERC2771Context {
   /// @dev requires the initial amount to have already been sent to the first pool
   function _swap(uint256[] memory amounts, Route[] memory routes, address _to) internal virtual {
     uint256 _length = routes.length;
+    IRouter.Route memory firstRoute = routes[0];
+    address currentPool = poolFor(firstRoute.from, firstRoute.to, firstRoute.factory);
     for (uint256 i = 0; i < _length; i++) {
-      (address token0, ) = sortTokens(routes[i].from, routes[i].to);
+      IRouter.Route memory currentRoute = routes[i];
+      (address token0, ) = sortTokens(currentRoute.from, currentRoute.to);
       uint256 amountOut = amounts[i + 1];
-      (uint256 amount0Out, uint256 amount1Out) = routes[i].from == token0
+      (uint256 amount0Out, uint256 amount1Out) = currentRoute.from == token0
         ? (uint256(0), amountOut)
         : (amountOut, uint256(0));
-      address to = i < routes.length - 1 ? poolFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].factory) : _to;
-      IRPool(poolFor(routes[i].from, routes[i].to, routes[i].factory)).swap(amount0Out, amount1Out, to, new bytes(0));
+      address to;
+      if (i < _length - 1) {
+        IRouter.Route memory nextRoute = routes[i + 1];
+        to = poolFor(nextRoute.from, nextRoute.to, nextRoute.factory);
+      } else {
+        to = _to;
+      }
+      IRPool(currentPool).swap(amount0Out, amount1Out, to, new bytes(0));
+      currentPool = to;
     }
   }
 
