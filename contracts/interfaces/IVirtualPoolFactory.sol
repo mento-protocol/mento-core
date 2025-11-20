@@ -17,6 +17,9 @@ interface IVirtualPoolFactory is IRPoolFactory {
   /// @dev Used when trying to deploy a VirtualPool for a pair that already has one.
   error VirtualPoolAlreadyExistsForThisPair();
 
+  /// @dev Used when the CREATEX bytecode hash doesn't match the expected value.
+  error InvalidCreateXBytecode();
+
   /* ========================================== */
   /* ================= Events ================= */
   /* ========================================== */
