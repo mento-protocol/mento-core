@@ -7,15 +7,28 @@ import { CDPLiquidityStrategy } from "contracts/liquidityStrategies/CDPLiquidity
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { ReserveLiquidityStrategy } from "contracts/liquidityStrategies/ReserveLiquidityStrategy.sol";
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
+import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
+// solhint-disable-next-line max-line-length
+import { TransparentUpgradeableProxy, ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract LiquidityStrategyDeployer is TestStorage {
   function _deployLiquidityStrategies() internal {
     require($mentoV2.deployed, "Mento V2 (Reserve) needs to be deployed first");
+
+    _deployProxyAdmin();
     _deployCDPLiquidityStrategy();
     _deployReserveLiquidityStrategy();
     $liquidityStrategies.deployed = true;
     vm.label(address($liquidityStrategies.cdpLiquidityStrategy), "CDPLiquidityStrategy");
     vm.label(address($liquidityStrategies.reserveLiquidityStrategy), "ReserveLiquidityStrategy");
+    vm.label(address($liquidityStrategies.proxyAdmin), "LiquidityStrategiesProxyAdmin");
+  }
+
+  function _deployProxyAdmin() private {
+    // Deploy ProxyAdmin owned by governance
+    ProxyAdmin proxyAdmin = new ProxyAdmin();
+    proxyAdmin.transferOwnership($addresses.governance);
+    $liquidityStrategies.proxyAdmin = proxyAdmin;
   }
 
   function _configureCDPLiquidityStrategy(
@@ -58,19 +71,102 @@ contract LiquidityStrategyDeployer is TestStorage {
   }
 
   function _deployCDPLiquidityStrategy() private {
-    CDPLiquidityStrategy newCDPLiquidityStrategy = new CDPLiquidityStrategy($addresses.governance);
-    $liquidityStrategies.cdpLiquidityStrategy = ICDPLiquidityStrategy(address(newCDPLiquidityStrategy));
+    CDPLiquidityStrategy implementation = new CDPLiquidityStrategy(true);
+
+    bytes memory initData = abi.encodeWithSelector(CDPLiquidityStrategy.initialize.selector, $addresses.governance);
+
+    TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+      address(implementation),
+      address($liquidityStrategies.proxyAdmin),
+      initData
+    );
+
+    $liquidityStrategies.cdpLiquidityStrategy = ICDPLiquidityStrategy(address(proxy));
   }
 
   function _deployReserveLiquidityStrategy() private {
     require($mentoV2.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: MentoV2 (Reserve) not deployed");
-    ReserveLiquidityStrategy newReserveLiquidityStrategy = new ReserveLiquidityStrategy(
+
+    ReserveLiquidityStrategy implementation = new ReserveLiquidityStrategy(true);
+
+    bytes memory initData = abi.encodeWithSelector(
+      ReserveLiquidityStrategy.initialize.selector,
       $addresses.governance,
       address($mentoV2.reserve)
     );
-    $liquidityStrategies.reserveLiquidityStrategy = IReserveLiquidityStrategy(address(newReserveLiquidityStrategy));
+
+    TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+      address(implementation),
+      address($liquidityStrategies.proxyAdmin),
+      initData
+    );
+
+    $liquidityStrategies.reserveLiquidityStrategy = IReserveLiquidityStrategy(address(proxy));
+
     vm.startPrank($addresses.governance);
     $mentoV2.reserve.addExchangeSpender(address($liquidityStrategies.reserveLiquidityStrategy));
     vm.stopPrank();
+  }
+
+  /* ============================================================ */
+  /* ================ Upgradeability Test Helpers =============== */
+  /* ============================================================ */
+
+  /**
+   * @notice Upgrades the CDPLiquidityStrategy to a new implementation
+   * @param newImplementation The address of the new implementation
+   */
+  function _upgradeCDPLiquidityStrategy(address newImplementation) internal {
+    require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
+
+    vm.prank($addresses.governance);
+    $liquidityStrategies.proxyAdmin.upgrade(
+      ITransparentUpgradeableProxy(address($liquidityStrategies.cdpLiquidityStrategy)),
+      newImplementation
+    );
+  }
+
+  /**
+   * @notice Upgrades the ReserveLiquidityStrategy to a new implementation
+   * @param newImplementation The address of the new implementation
+   */
+  function _upgradeReserveLiquidityStrategy(address newImplementation) internal {
+    require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
+
+    vm.prank($addresses.governance);
+    $liquidityStrategies.proxyAdmin.upgrade(
+      ITransparentUpgradeableProxy(address($liquidityStrategies.reserveLiquidityStrategy)),
+      newImplementation
+    );
+  }
+
+  /**
+   * @notice Gets the current implementation address of CDPLiquidityStrategy
+   * @return The implementation address
+   */
+  function _getCDPLiquidityStrategyImplementation() internal view returns (address) {
+    return
+      $liquidityStrategies.proxyAdmin.getProxyImplementation(
+        ITransparentUpgradeableProxy(address($liquidityStrategies.cdpLiquidityStrategy))
+      );
+  }
+
+  /**
+   * @notice Gets the current implementation address of ReserveLiquidityStrategy
+   * @return The implementation address
+   */
+  function _getReserveLiquidityStrategyImplementation() internal view returns (address) {
+    return
+      $liquidityStrategies.proxyAdmin.getProxyImplementation(
+        ITransparentUpgradeableProxy(address($liquidityStrategies.reserveLiquidityStrategy))
+      );
+  }
+
+  /**
+   * @notice Gets the ProxyAdmin contract
+   * @return The ProxyAdmin
+   */
+  function _getProxyAdmin() internal view returns (ProxyAdmin) {
+    return $liquidityStrategies.proxyAdmin;
   }
 }

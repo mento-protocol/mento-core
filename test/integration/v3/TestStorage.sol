@@ -34,6 +34,7 @@ import { ICollSurplusPool } from "bold/src/Interfaces/ICollSurplusPool.sol";
 import { IDefaultPool } from "bold/src/Interfaces/IDefaultPool.sol";
 import { console2 as console } from "forge-std/console2.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
+import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
 import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
 import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
@@ -157,6 +158,7 @@ abstract contract TestStorage is Test {
     bool deployed;
     ICDPLiquidityStrategy cdpLiquidityStrategy;
     IReserveLiquidityStrategy reserveLiquidityStrategy;
+    ProxyAdmin proxyAdmin;
   }
 
   LiquityDeployments public $liquity;

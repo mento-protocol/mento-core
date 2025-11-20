@@ -9,7 +9,9 @@ import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrat
  * @notice Test harness that exposes internal methods for testing
  */
 contract CDPLiquidityStrategyHarness is CDPLiquidityStrategy {
-  constructor(address _initialOwner) CDPLiquidityStrategy(_initialOwner) {}
+  constructor(address _initialOwner) CDPLiquidityStrategy(false) {
+    initialize(_initialOwner);
+  }
 
   /**
    * @notice Exposes the internal _determineAction method for testing
