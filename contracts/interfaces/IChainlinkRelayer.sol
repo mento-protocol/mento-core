@@ -5,8 +5,8 @@ pragma experimental ABIEncoderV2;
 interface IChainlinkRelayer {
   /**
    * @notice Struct used to represent a segment in the price path.
-   * @member aggregator The address of the Chainlink aggregator.
-   * @member invert Wether to invert the aggregator's price feed, i.e. convert CELO/USD to USD/CELO.
+   * @custom:member aggregator The address of the Chainlink aggregator.
+   * @custom:member invert Wether to invert the aggregator's price feed, i.e. convert CELO/USD to USD/CELO.
    */
   struct ChainlinkAggregator {
     address aggregator;

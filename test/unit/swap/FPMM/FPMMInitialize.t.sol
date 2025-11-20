@@ -4,6 +4,8 @@ pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
+import { IFPMM } from "contracts/interfaces/IFPMM.sol";
+import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
 
 contract FPMMInitializeTest is FPMMBaseTest {
   function test_initialize_whenDisablingInitializers_shouldRevertWhenCalledAfterConstructor() public {
@@ -42,5 +44,29 @@ contract FPMMInitializeTest is FPMMBaseTest {
   {
     assertEq(fpmm.decimals0(), 1e6);
     assertEq(fpmm.decimals1(), 1e12);
+  }
+
+  function test_initialize_whenToken0HasMoreThan18Decimals_shouldRevert() public {
+    token0 = address(new ERC20DecimalsMock("token0", "T0", 19));
+    token1 = address(new ERC20DecimalsMock("token1", "T1", 18));
+
+    vm.expectRevert(IFPMM.InvalidTokenDecimals.selector);
+    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner, defaultFpmmParams);
+  }
+
+  function test_initialize_whenToken1HasMoreThan18Decimals_shouldRevert() public {
+    token0 = address(new ERC20DecimalsMock("token0", "T0", 18));
+    token1 = address(new ERC20DecimalsMock("token1", "T1", 19));
+
+    vm.expectRevert(IFPMM.InvalidTokenDecimals.selector);
+    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner, defaultFpmmParams);
+  }
+
+  function test_initialize_whenBothTokensHaveMoreThan18Decimals_shouldRevert() public {
+    token0 = address(new ERC20DecimalsMock("token0", "T0", 24));
+    token1 = address(new ERC20DecimalsMock("token1", "T1", 20));
+
+    vm.expectRevert(IFPMM.InvalidTokenDecimals.selector);
+    fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner, defaultFpmmParams);
   }
 }
