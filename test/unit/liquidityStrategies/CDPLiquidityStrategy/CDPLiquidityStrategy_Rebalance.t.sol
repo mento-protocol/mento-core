@@ -368,7 +368,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Set stability pool balance high enough to cover expansion
     setStabilityPoolBalance(debtToken, 100_000_000e12);
-    setStabilityPoolMinBalance(1e18);
+    setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     // Snapshot before rebalance
     (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
@@ -428,7 +428,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Set stability pool balance insufficient for full expansion
     setStabilityPoolBalance(debtToken, 5_000_000e12);
-    setStabilityPoolMinBalance(1e18);
+    setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     // Snapshot before rebalance
     (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
@@ -483,7 +483,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Set stability pool balance high enough
     setStabilityPoolBalance(debtToken, 100_000e18);
-    setStabilityPoolMinBalance(1e18);
+    setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     // Snapshot before rebalance
     (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
@@ -545,7 +545,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
 
     // Set stability pool balance to less than full expansion
     setStabilityPoolBalance(debtToken, 25_000e18);
-    setStabilityPoolMinBalance(1e18);
+    setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     // Snapshot before rebalance
     (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
