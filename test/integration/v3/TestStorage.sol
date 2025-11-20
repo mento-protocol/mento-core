@@ -61,7 +61,7 @@ abstract contract TestStorage is Test {
     $addresses.referenceRateFeedCDPFPMM = makeAddr("referenceRateFeedCDPFPMM");
     $addresses.referenceRateFeedReserveFPMM = makeAddr("referenceRateFeedReserveFPMM");
     $addresses.referenceRateFeedeXOFCELO = makeAddr("referenceRateFeedeXOFCELO");
-    $addresses.referenceRateFeedeXOFUSDM = makeAddr("referenceRateFeedeXOFUSDM");
+    $addresses.referenceRateFeedeXOFUSD = makeAddr("referenceRateFeedeXOFUSD");
 
     // Start all tests from a non-zero timestamp (2025-10-22 09:00:00)
     // This is required when setting up the circuit breaker, since otherwise it reverts when trying to configure
@@ -150,7 +150,7 @@ abstract contract TestStorage is Test {
     address referenceRateFeedCDPFPMM;
     address referenceRateFeedReserveFPMM;
     address referenceRateFeedeXOFCELO;
-    address referenceRateFeedeXOFUSDM;
+    address referenceRateFeedeXOFUSD;
   }
 
   struct LiquidityStrategiesDeployments {

@@ -72,15 +72,15 @@ contract MentoV2Deployer is TestStorage {
     require($oracle.deployed, "MentoV2Deployer: OracleAdapter must be deployed first");
 
     _configureOracleRate($addresses.referenceRateFeedeXOFCELO, 72e20);
-    _configureOracleRate($addresses.referenceRateFeedeXOFUSDM, 18e20);
+    _configureOracleRate($addresses.referenceRateFeedeXOFUSD, 18e20);
 
     address[] memory rateFeedIDs = new address[](2);
     rateFeedIDs[0] = $addresses.referenceRateFeedeXOFCELO;
-    rateFeedIDs[1] = $addresses.referenceRateFeedeXOFUSDM;
+    rateFeedIDs[1] = $addresses.referenceRateFeedeXOFUSD;
 
     address[] memory medianDeltaBreakerRateFeedIDs = new address[](2);
     medianDeltaBreakerRateFeedIDs[0] = $addresses.referenceRateFeedeXOFCELO;
-    medianDeltaBreakerRateFeedIDs[1] = $addresses.referenceRateFeedeXOFUSDM;
+    medianDeltaBreakerRateFeedIDs[1] = $addresses.referenceRateFeedeXOFUSD;
 
     uint256[] memory medianDeltaBreakerRateChangeThresholds = new uint256[](2);
     medianDeltaBreakerRateChangeThresholds[0] = 1e22;
@@ -99,7 +99,7 @@ contract MentoV2Deployer is TestStorage {
     );
 
     $oracle.breakerBox.toggleBreaker(address($oracle.medianDeltaBreaker), $addresses.referenceRateFeedeXOFCELO, true);
-    $oracle.breakerBox.toggleBreaker(address($oracle.medianDeltaBreaker), $addresses.referenceRateFeedeXOFUSDM, true);
+    $oracle.breakerBox.toggleBreaker(address($oracle.medianDeltaBreaker), $addresses.referenceRateFeedeXOFUSD, true);
     vm.stopPrank();
     _oraclesConfigured = true;
   }
@@ -158,7 +158,7 @@ contract MentoV2Deployer is TestStorage {
     pair_exof_usdm.config.spread = FixidityLib.newFixedFraction(5, 100);
     pair_exof_usdm.config.referenceRateResetFrequency = 60 * 5;
     pair_exof_usdm.config.minimumReports = 1;
-    pair_exof_usdm.config.referenceRateFeedID = $addresses.referenceRateFeedeXOFUSDM;
+    pair_exof_usdm.config.referenceRateFeedID = $addresses.referenceRateFeedeXOFUSD;
     pair_exof_usdm.config.stablePoolResetSize = 1e24;
 
     $mentoV2.pair_exof_usdm_id = $mentoV2.biPoolManager.createExchange(pair_exof_usdm);
