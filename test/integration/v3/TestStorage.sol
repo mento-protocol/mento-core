@@ -3,8 +3,6 @@
 
 pragma solidity 0.8.24;
 
-pragma solidity 0.8.24;
-
 import { Test } from "forge-std/Test.sol";
 import { IStableTokenV3 } from "contracts/interfaces/IStableTokenV3.sol";
 import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
