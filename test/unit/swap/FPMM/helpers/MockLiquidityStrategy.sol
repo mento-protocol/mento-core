@@ -2,9 +2,12 @@
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 pragma solidity ^0.8;
 
-import { ILiquidityStrategyHook } from "contracts/interfaces/ILiquidityStrategyHook.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
+
+interface ILiquidityStrategyHook {
+  function onRebalance(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external;
+}
 
 contract MockLiquidityStrategy is ILiquidityStrategyHook {
   FPMM public fpmm;
