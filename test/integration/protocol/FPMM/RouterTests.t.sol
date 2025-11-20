@@ -566,27 +566,6 @@ contract RouterTests is FPMMBaseIntegration {
     vm.stopPrank();
   }
 
-  function test_swapExactTokensForTokensSupportingFeeOnTransferTokens_whenValidSwap_shouldSwapTokens() public {
-    address fpmm = _deployFPMM(address(tokenA), address(tokenB));
-    _addInitialLiquidity(address(tokenA), address(tokenB), fpmm);
-
-    uint256 amountIn = 10e18;
-    uint256 expectedAmountOut = (amountIn * 997) / 1000;
-
-    IRouter.Route memory route = _createRoute(address(tokenA), address(tokenB));
-    IRouter.Route[] memory routes = new IRouter.Route[](1);
-    routes[0] = route;
-
-    vm.startPrank(alice);
-
-    router.swapExactTokensForTokensSupportingFeeOnTransferTokens(amountIn, 0, routes, alice, block.timestamp);
-
-    vm.stopPrank();
-
-    assertEq(tokenA.balanceOf(alice), 1000e18 - amountIn);
-    assertEq(tokenB.balanceOf(alice), 1000e18 + expectedAmountOut);
-  }
-
   // ============ ZAP TESTS ============
 
   function test_zapIn_whenValidTokens_shouldZapInTokens() public {

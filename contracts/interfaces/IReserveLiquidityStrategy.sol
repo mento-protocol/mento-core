@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { ILiquidityStrategy } from "./ILiquidityStrategy.sol";
+import { IReserveV2 } from "./IReserveV2.sol";
 
 /**
  * @title IReserveLiquidityStrategy
@@ -58,4 +59,14 @@ interface IReserveLiquidityStrategy is ILiquidityStrategy {
    * @param _reserve The new reserve contract address
    */
   function setReserve(address _reserve) external;
+
+  /* ============================================================ */
+  /* ===================== View Functions ======================= */
+  /* ============================================================ */
+
+  /**
+   * @notice Returns the reserve contract
+   * @return The reserve contract interface
+   */
+  function reserve() external view returns (IReserveV2);
 }

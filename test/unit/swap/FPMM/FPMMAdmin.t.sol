@@ -9,9 +9,9 @@ import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
 contract FPMMAdminTest is FPMMBaseTest {
   event LPFeeUpdated(uint256 oldFee, uint256 newFee);
   event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
-  event ProtocolFeeRecipientUpdated(address oldRecipient, address newRecipient);
-  event ReferenceRateFeedIDUpdated(address oldRateFeedID, address newRateFeedID);
-  event OracleAdapterUpdated(address oldOracleAdapter, address newOracleAdapter);
+  event ProtocolFeeRecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
+  event ReferenceRateFeedIDUpdated(address indexed oldRateFeedID, address indexed newRateFeedID);
+  event OracleAdapterUpdated(address indexed oldOracleAdapter, address indexed newOracleAdapter);
   event LiquidityStrategyUpdated(address indexed strategy, bool status);
   event InvertRateFeedUpdated(bool oldInvertRateFeed, bool newInvertRateFeed);
   event TradingLimitConfigured(address indexed token, ITradingLimitsV2.Config config);
