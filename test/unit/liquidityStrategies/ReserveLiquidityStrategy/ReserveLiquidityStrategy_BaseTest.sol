@@ -6,7 +6,7 @@ pragma solidity ^0.8;
 import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrategy_BaseTest.sol";
 import { ReserveLiquidityStrategyHarness } from "test/utils/harnesses/ReserveLiquidityStrategyHarness.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
-import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { IReserveV2 } from "contracts/interfaces/IReserveV2.sol";
 
 contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   ReserveLiquidityStrategyHarness public strategy;
@@ -47,7 +47,11 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @param isCollateral Whether the asset is collateral
    */
   function mockReserveCollateral(address asset, bool isCollateral) internal {
-    vm.mockCall(reserve, abi.encodeWithSelector(IReserve.isCollateralAsset.selector, asset), abi.encode(isCollateral));
+    vm.mockCall(
+      reserve,
+      abi.encodeWithSelector(IReserveV2.isCollateralAsset.selector, asset),
+      abi.encode(isCollateral)
+    );
   }
 
   /**
@@ -56,7 +60,7 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @param isStable Whether the asset is stable
    */
   function mockReserveStable(address asset, bool isStable) internal {
-    vm.mockCall(reserve, abi.encodeWithSelector(IReserve.isStableAsset.selector, asset), abi.encode(isStable));
+    vm.mockCall(reserve, abi.encodeWithSelector(IReserveV2.isStableAsset.selector, asset), abi.encode(isStable));
   }
 
   /**
@@ -203,7 +207,7 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     // Mock the specific reserve transfer call to return true
     vm.mockCall(
       reserve,
-      abi.encodeWithSelector(IReserve.transferExchangeCollateralAsset.selector, token, to, amount),
+      abi.encodeWithSelector(IReserveV2.transferCollateralAsset.selector, token, to, amount),
       abi.encode(true)
     );
   }
@@ -218,7 +222,7 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     // Mock the specific reserve transfer call to return false
     vm.mockCall(
       reserve,
-      abi.encodeWithSelector(IReserve.transferExchangeCollateralAsset.selector, token, to, amount),
+      abi.encodeWithSelector(IReserveV2.transferCollateralAsset.selector, token, to, amount),
       abi.encode(false)
     );
   }

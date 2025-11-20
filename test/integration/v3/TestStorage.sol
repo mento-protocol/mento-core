@@ -34,7 +34,7 @@ import { IDefaultPool } from "bold/src/Interfaces/IDefaultPool.sol";
 import { console2 as console } from "forge-std/console2.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 
-import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { IReserveV2 } from "contracts/interfaces/IReserveV2.sol";
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
@@ -121,7 +121,7 @@ abstract contract TestStorage is Test {
     bool deployed;
     ICDPLiquidityStrategy cdpLiquidityStrategy;
     IReserveLiquidityStrategy reserveLiquidityStrategy;
-    IReserve reserve;
+    IReserveV2 reserve;
   }
 
   LiquityDeployments public $liquity;

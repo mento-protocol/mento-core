@@ -7,7 +7,7 @@ import { CDPLiquidityStrategy } from "contracts/liquidityStrategies/CDPLiquidity
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { ReserveLiquidityStrategy } from "contracts/liquidityStrategies/ReserveLiquidityStrategy.sol";
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
-import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { ReserveV2 } from "contracts/swap/ReserveV2.sol";
 
 contract LiquidityStrategyDeployer is TestStorage {
   function _deployLiquidityStrategies() internal {
@@ -71,45 +71,33 @@ contract LiquidityStrategyDeployer is TestStorage {
     );
     $liquidityStrategies.reserveLiquidityStrategy = IReserveLiquidityStrategy(address(newReserveLiquidityStrategy));
     vm.startPrank($addresses.governance);
-    $liquidityStrategies.reserve.addExchangeSpender(address($liquidityStrategies.reserveLiquidityStrategy));
+    $liquidityStrategies.reserve.registerLiquidityStrategySpender(
+      address($liquidityStrategies.reserveLiquidityStrategy)
+    );
     vm.stopPrank();
   }
 
   function _deployReserve() private {
     require($tokens.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: tokens not deployed");
-    IReserve reserve = IReserve(deployCode("Reserve", abi.encode(true)));
+    ReserveV2 reserve = new ReserveV2(false);
     $liquidityStrategies.reserve = reserve;
 
-    vm.startPrank($addresses.governance);
-    bytes32[] memory initialAssetAllocationSymbols = new bytes32[](2);
-    initialAssetAllocationSymbols[0] = bytes32("cGLD");
-    initialAssetAllocationSymbols[1] = bytes32("cUSD");
-
-    uint256[] memory initialAssetAllocationWeights = new uint256[](2);
-    initialAssetAllocationWeights[0] = 5e23;
-    initialAssetAllocationWeights[1] = 5e23;
+    address[] memory stableAssets = new address[](1);
+    stableAssets[0] = address($tokens.resDebtToken);
 
     address[] memory collateralAssets = new address[](1);
     collateralAssets[0] = address($tokens.resCollToken);
 
-    uint256[] memory collateralAssetDailySpendingRatios = new uint256[](1);
-    collateralAssetDailySpendingRatios[0] = 1e24;
-
-    reserve.initialize({
-      registryAddress: address(makeAddr("registry")),
-      _tobinTaxStalenessThreshold: 600,
-      _spendingRatioForCelo: 1e24,
-      _frozenGold: 0,
-      _frozenDays: 0,
-      _assetAllocationSymbols: initialAssetAllocationSymbols,
-      _assetAllocationWeights: initialAssetAllocationWeights,
-      _tobinTax: 5e21,
-      _tobinTaxReserveRatio: 2e24,
-      _collateralAssets: new address[](0),
-      _collateralAssetDailySpendingRatios: new uint256[](0)
-    });
-    reserve.addToken(address($tokens.resDebtToken));
-    reserve.addCollateralAsset(address($tokens.resCollToken));
-    vm.stopPrank();
+    address[] memory otherReserveAddresses = new address[](0);
+    address[] memory liquidityStrategySpenders = new address[](0);
+    address[] memory reserveManagerSpenders = new address[](0);
+    reserve.initialize(
+      stableAssets,
+      collateralAssets,
+      otherReserveAddresses,
+      liquidityStrategySpenders,
+      reserveManagerSpenders,
+      $addresses.governance
+    );
   }
 }
