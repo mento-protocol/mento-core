@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// solhint-disable-next-line max-line-length
 pragma solidity 0.8.24;
 
 import { Test } from "forge-std/Test.sol";
@@ -15,37 +16,37 @@ contract ReserveV2Test is Test {
   ProxyAdmin public proxyAdmin;
   TransparentUpgradeableProxy public proxy;
 
-  MockERC20 public collateralToken;
-  MockERC20 public collateralToken2;
-  MockERC20 public stableToken;
-  MockERC20 public stableToken2;
+  MockERC20 public collateralAsset;
+  MockERC20 public collateralAsset2;
+  MockERC20 public stableAsset;
+  MockERC20 public stableAsset2;
 
   address public owner;
   address public notOwner;
-  address public spender;
-  address public exchangeSpender;
+  address public reserveManagerSpender;
+  address public liquidityStrategySpender;
   address public otherReserveAddress;
 
   /* ---------------- Events from ReserveV2 --------------- */
 
-  event StableTokenAdded(address indexed token);
-  event StableTokenRemoved(address indexed token);
-  event CollateralTokenAdded(address indexed token);
-  event CollateralTokenRemoved(address indexed token);
-  event OtherReserveAddressAdded(address indexed otherReserveAddress);
-  event OtherReserveAddressRemoved(address indexed otherReserveAddress);
-  event ExchangeSpenderAdded(address indexed exchangeSpender);
-  event ExchangeSpenderRemoved(address indexed exchangeSpender);
-  event SpenderAdded(address indexed spender);
-  event SpenderRemoved(address indexed spender);
-  event CollateralAssetTransferredSpender(
-    address indexed spender,
+  event StableAssetRegistered(address indexed stableAsset);
+  event StableAssetUnregistered(address indexed stableAsset);
+  event CollateralAssetRegistered(address indexed collateralAsset);
+  event CollateralAssetUnregistered(address indexed collateralAsset);
+  event OtherReserveAddressRegistered(address indexed otherReserveAddress);
+  event OtherReserveAddressUnregistered(address indexed otherReserveAddress);
+  event LiquidityStrategySpenderRegistered(address indexed liquidityStrategySpender);
+  event LiquidityStrategySpenderUnregistered(address indexed liquidityStrategySpender);
+  event ReserveManagerSpenderRegistered(address indexed reserveManagerSpender);
+  event ReserveManagerSpenderUnregistered(address indexed reserveManagerSpender);
+  event CollateralAssetTransferredReserveManagerSpender(
+    address indexed reserveManagerSpender,
     address indexed collateralAsset,
-    address indexed to,
+    address indexed otherReserveAddress,
     uint256 value
   );
-  event CollateralAssetTransferredExchangeSpender(
-    address indexed exchangeSpender,
+  event CollateralAssetTransferredLiquidityStrategySpender(
+    address indexed liquidityStrategySpender,
     address indexed collateralAsset,
     address indexed to,
     uint256 value
@@ -56,33 +57,40 @@ contract ReserveV2Test is Test {
   function setUp() public {
     owner = makeAddr("owner");
     notOwner = makeAddr("notOwner");
-    spender = makeAddr("spender");
-    exchangeSpender = makeAddr("exchangeSpender");
+    reserveManagerSpender = makeAddr("reserveManagerSpender");
+    liquidityStrategySpender = makeAddr("liquidityStrategySpender");
     otherReserveAddress = makeAddr("otherReserveAddress");
 
-    collateralToken = new MockERC20("Collateral Token", "CT", 18);
-    collateralToken2 = new MockERC20("Collateral Token 2", "CT2", 18);
-    stableToken = new MockERC20("Stable Token", "ST", 18);
-    stableToken2 = new MockERC20("Stable Token 2", "ST2", 18);
+    collateralAsset = new MockERC20("Collateral Asset", "CA", 18);
+    collateralAsset2 = new MockERC20("Collateral Asset 2", "CA2", 18);
+    stableAsset = new MockERC20("Stable Asset", "SA", 18);
+    stableAsset2 = new MockERC20("Stable Asset 2", "SA2", 18);
 
     reserveImplementation = new ReserveV2(true);
     reserve = new ReserveV2(false);
 
-    address[] memory stableTokens = new address[](1);
-    stableTokens[0] = address(stableToken);
+    address[] memory stableAssets = new address[](1);
+    stableAssets[0] = address(stableAsset);
 
-    address[] memory collateralTokens = new address[](1);
-    collateralTokens[0] = address(collateralToken);
+    address[] memory collateralAssets = new address[](1);
+    collateralAssets[0] = address(collateralAsset);
 
     address[] memory otherReserveAddresses = new address[](1);
     otherReserveAddresses[0] = otherReserveAddress;
 
-    address[] memory exchangeSpenders = new address[](1);
-    exchangeSpenders[0] = exchangeSpender;
+    address[] memory liquidityStrategySpenders = new address[](1);
+    liquidityStrategySpenders[0] = liquidityStrategySpender;
 
-    address[] memory spenders = new address[](0);
+    address[] memory reserveManagerSpenders = new address[](0);
 
-    reserve.initialize(stableTokens, collateralTokens, otherReserveAddresses, exchangeSpenders, spenders, owner);
+    reserve.initialize(
+      stableAssets,
+      collateralAssets,
+      otherReserveAddresses,
+      liquidityStrategySpenders,
+      reserveManagerSpenders,
+      owner
+    );
   }
 
   /* ============================================================ */
@@ -111,79 +119,86 @@ contract ReserveV2Test is Test {
   function test_initialize_shouldSetOwnerAndAddAllParameters() public {
     ReserveV2 newReserve = new ReserveV2(false);
 
-    address[] memory stableTokens = new address[](2);
-    stableTokens[0] = address(stableToken);
-    stableTokens[1] = address(stableToken2);
+    address[] memory stableAssets = new address[](2);
+    stableAssets[0] = address(stableAsset);
+    stableAssets[1] = address(stableAsset2);
 
-    address[] memory collateralTokens = new address[](2);
-    collateralTokens[0] = address(collateralToken);
-    collateralTokens[1] = address(collateralToken2);
+    address[] memory collateralAssets = new address[](2);
+    collateralAssets[0] = address(collateralAsset);
+    collateralAssets[1] = address(collateralAsset2);
 
     address otherReserve2 = makeAddr("otherReserve2");
     address[] memory otherReserves = new address[](2);
     otherReserves[0] = otherReserveAddress;
     otherReserves[1] = otherReserve2;
 
-    address exchangeSpender2 = makeAddr("exchangeSpender2");
-    address[] memory exchangeSpenders = new address[](2);
-    exchangeSpenders[0] = exchangeSpender;
-    exchangeSpenders[1] = exchangeSpender2;
+    address liquidityStrategySpender2 = makeAddr("liquidityStrategySpender2");
+    address[] memory liquidityStrategySpenders = new address[](2);
+    liquidityStrategySpenders[0] = liquidityStrategySpender;
+    liquidityStrategySpenders[1] = liquidityStrategySpender2;
 
-    address spender2 = makeAddr("spender2");
-    address[] memory spenders = new address[](2);
-    spenders[0] = spender;
-    spenders[1] = spender2;
+    address reserveManagerSpender2 = makeAddr("reserveManagerSpender2");
+    address[] memory reserveManagerSpenders = new address[](2);
+    reserveManagerSpenders[0] = reserveManagerSpender;
+    reserveManagerSpenders[1] = reserveManagerSpender2;
 
     // Expect all events
     vm.expectEmit(true, true, true, true);
-    emit StableTokenAdded(address(stableToken));
+    emit StableAssetRegistered(address(stableAsset));
     vm.expectEmit(true, true, true, true);
-    emit StableTokenAdded(address(stableToken2));
+    emit StableAssetRegistered(address(stableAsset2));
     vm.expectEmit(true, true, true, true);
-    emit CollateralTokenAdded(address(collateralToken));
+    emit CollateralAssetRegistered(address(collateralAsset));
     vm.expectEmit(true, true, true, true);
-    emit CollateralTokenAdded(address(collateralToken2));
+    emit CollateralAssetRegistered(address(collateralAsset2));
     vm.expectEmit(true, true, true, true);
-    emit OtherReserveAddressAdded(otherReserveAddress);
+    emit OtherReserveAddressRegistered(otherReserveAddress);
     vm.expectEmit(true, true, true, true);
-    emit OtherReserveAddressAdded(otherReserve2);
+    emit OtherReserveAddressRegistered(otherReserve2);
     vm.expectEmit(true, true, true, true);
-    emit ExchangeSpenderAdded(exchangeSpender);
+    emit LiquidityStrategySpenderRegistered(liquidityStrategySpender);
     vm.expectEmit(true, true, true, true);
-    emit ExchangeSpenderAdded(exchangeSpender2);
+    emit LiquidityStrategySpenderRegistered(liquidityStrategySpender2);
     vm.expectEmit(true, true, true, true);
-    emit SpenderAdded(spender);
+    emit ReserveManagerSpenderRegistered(reserveManagerSpender);
     vm.expectEmit(true, true, true, true);
-    emit SpenderAdded(spender2);
+    emit ReserveManagerSpenderRegistered(reserveManagerSpender2);
 
-    newReserve.initialize(stableTokens, collateralTokens, otherReserves, exchangeSpenders, spenders, owner);
+    newReserve.initialize(
+      stableAssets,
+      collateralAssets,
+      otherReserves,
+      liquidityStrategySpenders,
+      reserveManagerSpenders,
+      owner
+    );
 
     // Verify owner
     assertEq(newReserve.owner(), owner);
 
     // Verify mappings
-    assertTrue(newReserve.isStableToken(address(stableToken)));
-    assertTrue(newReserve.isStableToken(address(stableToken2)));
-    assertTrue(newReserve.isCollateralToken(address(collateralToken)));
-    assertTrue(newReserve.isCollateralToken(address(collateralToken2)));
+    assertTrue(newReserve.isStableAsset(address(stableAsset)));
+    assertTrue(newReserve.isStableAsset(address(stableAsset2)));
+    assertTrue(newReserve.isCollateralAsset(address(collateralAsset)));
+    assertTrue(newReserve.isCollateralAsset(address(collateralAsset2)));
     assertTrue(newReserve.isOtherReserveAddress(otherReserveAddress));
     assertTrue(newReserve.isOtherReserveAddress(otherReserve2));
-    assertTrue(newReserve.isExchangeSpender(exchangeSpender));
-    assertTrue(newReserve.isExchangeSpender(exchangeSpender2));
-    assertTrue(newReserve.isSpender(spender));
-    assertTrue(newReserve.isSpender(spender2));
+    assertTrue(newReserve.isLiquidityStrategySpender(liquidityStrategySpender));
+    assertTrue(newReserve.isLiquidityStrategySpender(liquidityStrategySpender2));
+    assertTrue(newReserve.isReserveManagerSpender(reserveManagerSpender));
+    assertTrue(newReserve.isReserveManagerSpender(reserveManagerSpender2));
 
     // Verify arrays (via public getters)
-    assertEq(newReserve.stableTokens(0), address(stableToken));
-    assertEq(newReserve.stableTokens(1), address(stableToken2));
-    assertEq(newReserve.collateralTokens(0), address(collateralToken));
-    assertEq(newReserve.collateralTokens(1), address(collateralToken2));
+    assertEq(newReserve.stableAssets(0), address(stableAsset));
+    assertEq(newReserve.stableAssets(1), address(stableAsset2));
+    assertEq(newReserve.collateralAssets(0), address(collateralAsset));
+    assertEq(newReserve.collateralAssets(1), address(collateralAsset2));
     assertEq(newReserve.otherReserveAddresses(0), otherReserveAddress);
     assertEq(newReserve.otherReserveAddresses(1), otherReserve2);
-    assertEq(newReserve.exchangeSpenders(0), exchangeSpender);
-    assertEq(newReserve.exchangeSpenders(1), exchangeSpender2);
-    assertEq(newReserve.spenders(0), spender);
-    assertEq(newReserve.spenders(1), spender2);
+    assertEq(newReserve.liquidityStrategySpenders(0), liquidityStrategySpender);
+    assertEq(newReserve.liquidityStrategySpenders(1), liquidityStrategySpender2);
+    assertEq(newReserve.reserveManagerSpenders(0), reserveManagerSpender);
+    assertEq(newReserve.reserveManagerSpenders(1), reserveManagerSpender2);
   }
 
   function test_initialize_whenCalledTwice_shouldRevert() public {
@@ -193,160 +208,161 @@ contract ReserveV2Test is Test {
   }
 
   /* ============================================================ */
-  /* ============== Stable Token Management Tests =============== */
+  /* ============== Stable Asset Management Tests =============== */
   /* ============================================================ */
 
-  function test_addStableToken_shouldUpdateStorageEmitEventAndUpdateArray() public {
+  function test_registerStableAsset_shouldUpdateStorageEmitEventAndUpdateArray() public {
     vm.expectEmit(true, true, true, true);
-    emit StableTokenAdded(address(stableToken2));
+    emit StableAssetRegistered(address(stableAsset2));
 
     vm.prank(owner);
-    reserve.addStableToken(address(stableToken2));
+    reserve.registerStableAsset(address(stableAsset2));
 
     // Verify mapping
-    assertTrue(reserve.isStableToken(address(stableToken2)));
+    assertTrue(reserve.isStableAsset(address(stableAsset2)));
 
     // Verify array
-    address[] memory tokens = reserve.getStableTokens();
-    assertEq(tokens[0], address(stableToken));
-    assertEq(tokens[1], address(stableToken2));
+    address[] memory assets = reserve.getStableAssets();
+    assertEq(assets.length, 2);
+    assertEq(assets[0], address(stableAsset));
+    assertEq(assets[1], address(stableAsset2));
   }
 
-  function test_addStableToken_whenCallerIsNotOwner_shouldRevert() public {
+  function test_registerStableAsset_whenCallerIsNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.addStableToken(address(stableToken2));
+    reserve.registerStableAsset(address(stableAsset2));
   }
 
-  function test_addStableToken_whenTokenIsZeroAddress_shouldRevert() public {
+  function test_registerStableAsset_whenAssetIsZeroAddress_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.StableTokenZeroAddress.selector);
-    reserve.addStableToken(address(0));
+    vm.expectRevert(IReserveV2.StableAssetZeroAddress.selector);
+    reserve.registerStableAsset(address(0));
   }
 
-  function test_addStableToken_whenTokenAlreadyAdded_shouldRevert() public {
+  function test_registerStableAsset_whenAssetAlreadyRegistered_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.StableTokenAlreadyAdded.selector);
-    reserve.addStableToken(address(stableToken));
+    vm.expectRevert(IReserveV2.StableAssetAlreadyRegistered.selector);
+    reserve.registerStableAsset(address(stableAsset));
   }
 
-  function test_removeStableToken_shouldUpdateStorageEmitEventAndUpdateArray() public {
-    // Add second token first
+  function test_unregisterStableAsset_shouldUpdateStorageEmitEventAndUpdateArray() public {
+    // Add second asset first
     vm.prank(owner);
-    reserve.addStableToken(address(stableToken2));
+    reserve.registerStableAsset(address(stableAsset2));
 
     vm.expectEmit(true, true, true, true);
-    emit StableTokenRemoved(address(stableToken));
+    emit StableAssetUnregistered(address(stableAsset));
 
     vm.prank(owner);
-    reserve.removeStableToken(address(stableToken));
+    reserve.unregisterStableAsset(address(stableAsset));
 
     // Verify mapping
-    assertFalse(reserve.isStableToken(address(stableToken)));
-    assertTrue(reserve.isStableToken(address(stableToken2)));
+    assertFalse(reserve.isStableAsset(address(stableAsset)));
+    assertTrue(reserve.isStableAsset(address(stableAsset2)));
 
     // Verify array
-    address[] memory tokens = reserve.getStableTokens();
-    assertEq(tokens.length, 1);
-    assertEq(tokens[0], address(stableToken2));
+    address[] memory assets = reserve.getStableAssets();
+    assertEq(assets.length, 1);
+    assertEq(assets[0], address(stableAsset2));
   }
 
-  function test_removeStableToken_whenCallerIsNotOwner_shouldRevert() public {
+  function test_unregisterStableAsset_whenCallerIsNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.removeStableToken(address(stableToken));
+    reserve.unregisterStableAsset(address(stableAsset));
   }
 
-  function test_removeStableToken_whenTokenNotAdded_shouldRevert() public {
+  function test_unregisterStableAsset_whenAssetNotRegistered_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.StableTokenNotAdded.selector);
-    reserve.removeStableToken(address(stableToken2));
+    vm.expectRevert(IReserveV2.StableAssetNotRegistered.selector);
+    reserve.unregisterStableAsset(address(stableAsset2));
   }
 
   /* ============================================================ */
-  /* ============ Collateral Token Management Tests ============= */
+  /* ============ Collateral Asset Management Tests ============= */
   /* ============================================================ */
 
-  function test_addCollateralToken_shouldUpdateStorageEmitEventAndUpdateArray() public {
+  function test_registerCollateralAsset_shouldUpdateStorageEmitEventAndUpdateArray() public {
     vm.expectEmit(true, true, true, true);
-    emit CollateralTokenAdded(address(collateralToken2));
+    emit CollateralAssetRegistered(address(collateralAsset2));
 
     vm.prank(owner);
-    reserve.addCollateralToken(address(collateralToken2));
+    reserve.registerCollateralAsset(address(collateralAsset2));
 
     // Verify mapping
-    assertTrue(reserve.isCollateralToken(address(collateralToken2)));
+    assertTrue(reserve.isCollateralAsset(address(collateralAsset2)));
 
     // Verify array
-    address[] memory tokens = reserve.getCollateralTokens();
-    assertEq(tokens.length, 2);
-    assertEq(tokens[0], address(collateralToken));
-    assertEq(tokens[1], address(collateralToken2));
+    address[] memory assets = reserve.getCollateralAssets();
+    assertEq(assets.length, 2);
+    assertEq(assets[0], address(collateralAsset));
+    assertEq(assets[1], address(collateralAsset2));
   }
 
-  function test_addCollateralToken_whenCallerIsNotOwner_shouldRevert() public {
+  function test_registerCollateralAsset_whenCallerIsNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.addCollateralToken(address(collateralToken2));
+    reserve.registerCollateralAsset(address(collateralAsset2));
   }
 
-  function test_addCollateralToken_whenTokenIsZeroAddress_shouldRevert() public {
+  function test_registerCollateralAsset_whenAssetIsZeroAddress_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.CollateralTokenZeroAddress.selector);
-    reserve.addCollateralToken(address(0));
+    vm.expectRevert(IReserveV2.CollateralAssetZeroAddress.selector);
+    reserve.registerCollateralAsset(address(0));
   }
 
-  function test_addCollateralToken_whenTokenAlreadyAdded_shouldRevert() public {
+  function test_registerCollateralAsset_whenAssetAlreadyRegistered_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.CollateralTokenAlreadyAdded.selector);
-    reserve.addCollateralToken(address(collateralToken));
+    vm.expectRevert(IReserveV2.CollateralAssetAlreadyRegistered.selector);
+    reserve.registerCollateralAsset(address(collateralAsset));
   }
 
-  function test_removeCollateralToken_shouldUpdateStorageEmitEventAndUpdateArray() public {
-    // Add second token first
+  function test_unregisterCollateralAsset_shouldUpdateStorageEmitEventAndUpdateArray() public {
+    // Add second asset first
     vm.prank(owner);
-    reserve.addCollateralToken(address(collateralToken2));
+    reserve.registerCollateralAsset(address(collateralAsset2));
 
     vm.expectEmit(true, true, true, true);
-    emit CollateralTokenRemoved(address(collateralToken));
+    emit CollateralAssetUnregistered(address(collateralAsset));
 
     vm.prank(owner);
-    reserve.removeCollateralToken(address(collateralToken));
+    reserve.unregisterCollateralAsset(address(collateralAsset));
 
     // Verify mapping
-    assertFalse(reserve.isCollateralToken(address(collateralToken)));
-    assertTrue(reserve.isCollateralToken(address(collateralToken2)));
+    assertFalse(reserve.isCollateralAsset(address(collateralAsset)));
+    assertTrue(reserve.isCollateralAsset(address(collateralAsset2)));
 
     // Verify array
-    address[] memory tokens = reserve.getCollateralTokens();
-    assertEq(tokens.length, 1);
-    assertEq(tokens[0], address(collateralToken2));
+    address[] memory assets = reserve.getCollateralAssets();
+    assertEq(assets.length, 1);
+    assertEq(assets[0], address(collateralAsset2));
   }
 
-  function test_removeCollateralToken_whenCallerIsNotOwner_shouldRevert() public {
+  function test_unregisterCollateralAsset_whenCallerIsNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.removeCollateralToken(address(collateralToken));
+    reserve.unregisterCollateralAsset(address(collateralAsset));
   }
 
-  function test_removeCollateralToken_whenTokenNotAdded_shouldRevert() public {
+  function test_unregisterCollateralAsset_whenAssetNotRegistered_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.CollateralTokenNotRegistered.selector);
-    reserve.removeCollateralToken(address(collateralToken2));
+    vm.expectRevert(IReserveV2.CollateralAssetNotRegistered.selector);
+    reserve.unregisterCollateralAsset(address(collateralAsset2));
   }
 
   /* ============================================================ */
   /* ========== Other Reserve Address Management Tests ========== */
   /* ============================================================ */
 
-  function test_addOtherReserveAddress_shouldUpdateStorageEmitEventAndUpdateArray() public {
+  function test_registerOtherReserveAddress_shouldUpdateStorageEmitEventAndUpdateArray() public {
     address newReserveAddress = makeAddr("newReserveAddress");
 
     vm.expectEmit(true, true, true, true);
-    emit OtherReserveAddressAdded(newReserveAddress);
+    emit OtherReserveAddressRegistered(newReserveAddress);
 
     vm.prank(owner);
-    reserve.addOtherReserveAddress(newReserveAddress);
+    reserve.registerOtherReserveAddress(newReserveAddress);
 
     // Verify mapping
     assertTrue(reserve.isOtherReserveAddress(newReserveAddress));
@@ -358,35 +374,35 @@ contract ReserveV2Test is Test {
     assertEq(addresses[1], newReserveAddress);
   }
 
-  function test_addOtherReserveAddress_whenCallerIsNotOwner_shouldRevert() public {
+  function test_registerOtherReserveAddress_whenCallerIsNotOwner_shouldRevert() public {
     address newReserveAddress = makeAddr("newReserveAddress");
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.addOtherReserveAddress(newReserveAddress);
+    reserve.registerOtherReserveAddress(newReserveAddress);
   }
 
-  function test_addOtherReserveAddress_whenAddressIsZero_shouldRevert() public {
+  function test_registerOtherReserveAddress_whenAddressIsZero_shouldRevert() public {
     vm.prank(owner);
     vm.expectRevert(IReserveV2.OtherReserveAddressZeroAddress.selector);
-    reserve.addOtherReserveAddress(address(0));
+    reserve.registerOtherReserveAddress(address(0));
   }
 
-  function test_addOtherReserveAddress_whenAddressAlreadyAdded_shouldRevert() public {
+  function test_registerOtherReserveAddress_whenAddressAlreadyRegistered_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.OtherReserveAddressAlreadyAdded.selector);
-    reserve.addOtherReserveAddress(otherReserveAddress);
+    vm.expectRevert(IReserveV2.OtherReserveAddressAlreadyRegistered.selector);
+    reserve.registerOtherReserveAddress(otherReserveAddress);
   }
 
-  function test_removeOtherReserveAddress_shouldUpdateStorageEmitEventAndUpdateArray() public {
+  function test_unregisterOtherReserveAddress_shouldUpdateStorageEmitEventAndUpdateArray() public {
     address newReserveAddress = makeAddr("newReserveAddress");
     vm.prank(owner);
-    reserve.addOtherReserveAddress(newReserveAddress);
+    reserve.registerOtherReserveAddress(newReserveAddress);
 
     vm.expectEmit(true, true, true, true);
-    emit OtherReserveAddressRemoved(otherReserveAddress);
+    emit OtherReserveAddressUnregistered(otherReserveAddress);
 
     vm.prank(owner);
-    reserve.removeOtherReserveAddress(otherReserveAddress);
+    reserve.unregisterOtherReserveAddress(otherReserveAddress);
 
     // Verify mapping
     assertFalse(reserve.isOtherReserveAddress(otherReserveAddress));
@@ -398,301 +414,311 @@ contract ReserveV2Test is Test {
     assertEq(addresses[0], newReserveAddress);
   }
 
-  function test_removeOtherReserveAddress_whenCallerIsNotOwner_shouldRevert() public {
+  function test_unregisterOtherReserveAddress_whenCallerIsNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.removeOtherReserveAddress(otherReserveAddress);
+    reserve.unregisterOtherReserveAddress(otherReserveAddress);
   }
 
-  function test_removeOtherReserveAddress_whenAddressNotAdded_shouldRevert() public {
+  function test_unregisterOtherReserveAddress_whenAddressNotRegistered_shouldRevert() public {
     address newAddress = makeAddr("newAddress");
     vm.prank(owner);
     vm.expectRevert(IReserveV2.OtherReserveAddressNotRegistered.selector);
-    reserve.removeOtherReserveAddress(newAddress);
+    reserve.unregisterOtherReserveAddress(newAddress);
   }
 
   /* ============================================================ */
-  /* ============ Exchange Spender Management Tests ============= */
+  /* ======== Liquidity Strategy Spender Management Tests ======= */
   /* ============================================================ */
 
-  function test_addExchangeSpender_shouldUpdateStorageEmitEventAndUpdateArray() public {
-    address newExchangeSpender = makeAddr("newExchangeSpender");
+  function test_registerLiquidityStrategySpender_shouldUpdateStorageEmitEventAndUpdateArray() public {
+    address newLiquidityStrategySpender = makeAddr("newLiquidityStrategySpender");
 
     vm.expectEmit(true, true, true, true);
-    emit ExchangeSpenderAdded(newExchangeSpender);
+    emit LiquidityStrategySpenderRegistered(newLiquidityStrategySpender);
 
     vm.prank(owner);
-    reserve.addExchangeSpender(newExchangeSpender);
+    reserve.registerLiquidityStrategySpender(newLiquidityStrategySpender);
 
     // Verify mapping
-    assertTrue(reserve.isExchangeSpender(newExchangeSpender));
+    assertTrue(reserve.isLiquidityStrategySpender(newLiquidityStrategySpender));
 
     // Verify array
-    address[] memory spenders = reserve.getExchangeSpenders();
+    address[] memory spenders = reserve.getLiquidityStrategySpenders();
     assertEq(spenders.length, 2);
-    assertEq(spenders[0], exchangeSpender);
-    assertEq(spenders[1], newExchangeSpender);
+    assertEq(spenders[0], liquidityStrategySpender);
+    assertEq(spenders[1], newLiquidityStrategySpender);
   }
 
-  function test_addExchangeSpender_whenCallerIsNotOwner_shouldRevert() public {
-    address newExchangeSpender = makeAddr("newExchangeSpender");
+  function test_registerLiquidityStrategySpender_whenCallerIsNotOwner_shouldRevert() public {
+    address newLiquidityStrategySpender = makeAddr("newLiquidityStrategySpender");
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.addExchangeSpender(newExchangeSpender);
+    reserve.registerLiquidityStrategySpender(newLiquidityStrategySpender);
   }
 
-  function test_addExchangeSpender_whenAddressIsZero_shouldRevert() public {
+  function test_registerLiquidityStrategySpender_whenAddressIsZero_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.ExchangeSpenderZeroAddress.selector);
-    reserve.addExchangeSpender(address(0));
+    vm.expectRevert(IReserveV2.LiquidityStrategySpenderZeroAddress.selector);
+    reserve.registerLiquidityStrategySpender(address(0));
   }
 
-  function test_addExchangeSpender_whenSpenderAlreadyAdded_shouldRevert() public {
+  function test_registerLiquidityStrategySpender_whenSpenderAlreadyRegistered_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.ExchangeSpenderAlreadyAdded.selector);
-    reserve.addExchangeSpender(exchangeSpender);
+    vm.expectRevert(IReserveV2.LiquidityStrategySpenderAlreadyRegistered.selector);
+    reserve.registerLiquidityStrategySpender(liquidityStrategySpender);
   }
 
-  function test_removeExchangeSpender_shouldUpdateStorageEmitEventAndUpdateArray() public {
-    address newExchangeSpender = makeAddr("newExchangeSpender");
+  function test_unregisterLiquidityStrategySpender_shouldUpdateStorageEmitEventAndUpdateArray() public {
+    address newLiquidityStrategySpender = makeAddr("newLiquidityStrategySpender");
     vm.prank(owner);
-    reserve.addExchangeSpender(newExchangeSpender);
+    reserve.registerLiquidityStrategySpender(newLiquidityStrategySpender);
 
     vm.expectEmit(true, true, true, true);
-    emit ExchangeSpenderRemoved(exchangeSpender);
+    emit LiquidityStrategySpenderUnregistered(liquidityStrategySpender);
 
     vm.prank(owner);
-    reserve.removeExchangeSpender(exchangeSpender);
+    reserve.unregisterLiquidityStrategySpender(liquidityStrategySpender);
 
     // Verify mapping
-    assertFalse(reserve.isExchangeSpender(exchangeSpender));
-    assertTrue(reserve.isExchangeSpender(newExchangeSpender));
+    assertFalse(reserve.isLiquidityStrategySpender(liquidityStrategySpender));
+    assertTrue(reserve.isLiquidityStrategySpender(newLiquidityStrategySpender));
 
     // Verify array
-    address[] memory spenders = reserve.getExchangeSpenders();
+    address[] memory spenders = reserve.getLiquidityStrategySpenders();
     assertEq(spenders.length, 1);
-    assertEq(spenders[0], newExchangeSpender);
+    assertEq(spenders[0], newLiquidityStrategySpender);
   }
 
-  function test_removeExchangeSpender_whenCallerIsNotOwner_shouldRevert() public {
+  function test_unregisterLiquidityStrategySpender_whenCallerIsNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.removeExchangeSpender(exchangeSpender);
+    reserve.unregisterLiquidityStrategySpender(liquidityStrategySpender);
   }
 
-  function test_removeExchangeSpender_whenSpenderNotAdded_shouldRevert() public {
+  function test_unregisterLiquidityStrategySpender_whenSpenderNotRegistered_shouldRevert() public {
     address newSpender = makeAddr("newSpender");
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.ExchangeSpenderNotRegistered.selector);
-    reserve.removeExchangeSpender(newSpender);
+    vm.expectRevert(IReserveV2.LiquidityStrategySpenderNotRegistered.selector);
+    reserve.unregisterLiquidityStrategySpender(newSpender);
   }
 
   /* ============================================================ */
-  /* ================ Spender Management Tests ================== */
+  /* ======== Reserve Manager Spender Management Tests ========== */
   /* ============================================================ */
 
-  function test_addSpender_shouldUpdateStorageEmitEventAndUpdateArray() public {
+  function test_registerReserveManagerSpender_shouldUpdateStorageEmitEventAndUpdateArray() public {
     vm.expectEmit(true, true, true, true);
-    emit SpenderAdded(spender);
+    emit ReserveManagerSpenderRegistered(reserveManagerSpender);
 
     vm.prank(owner);
-    reserve.addSpender(spender);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
 
     // Verify mapping
-    assertTrue(reserve.isSpender(spender));
+    assertTrue(reserve.isReserveManagerSpender(reserveManagerSpender));
 
     // Verify array
-    address[] memory spenders = reserve.getSpenders();
+    address[] memory spenders = reserve.getReserveManagerSpenders();
     assertEq(spenders.length, 1);
-    assertEq(spenders[0], spender);
+    assertEq(spenders[0], reserveManagerSpender);
   }
 
-  function test_addSpender_whenCallerIsNotOwner_shouldRevert() public {
+  function test_registerReserveManagerSpender_whenCallerIsNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.addSpender(spender);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
   }
 
-  function test_addSpender_whenAddressIsZero_shouldRevert() public {
+  function test_registerReserveManagerSpender_whenAddressIsZero_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.SpenderZeroAddress.selector);
-    reserve.addSpender(address(0));
+    vm.expectRevert(IReserveV2.ReserveManagerSpenderZeroAddress.selector);
+    reserve.registerReserveManagerSpender(address(0));
   }
 
-  function test_addSpender_whenSpenderAlreadyAdded_shouldRevert() public {
+  function test_registerReserveManagerSpender_whenSpenderAlreadyRegistered_shouldRevert() public {
     vm.prank(owner);
-    reserve.addSpender(spender);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
 
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.SpenderAlreadyAdded.selector);
-    reserve.addSpender(spender);
+    vm.expectRevert(IReserveV2.ReserveManagerSpenderAlreadyRegistered.selector);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
   }
 
-  function test_removeSpender_shouldUpdateStorageEmitEventAndUpdateArray() public {
-    address spender2 = makeAddr("spender2");
+  function test_unregisterReserveManagerSpender_shouldUpdateStorageEmitEventAndUpdateArray() public {
+    address reserveManagerSpender2 = makeAddr("reserveManagerSpender2");
     vm.startPrank(owner);
-    reserve.addSpender(spender);
-    reserve.addSpender(spender2);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
+    reserve.registerReserveManagerSpender(reserveManagerSpender2);
     vm.stopPrank();
 
     vm.expectEmit(true, true, true, true);
-    emit SpenderRemoved(spender);
+    emit ReserveManagerSpenderUnregistered(reserveManagerSpender);
 
     vm.prank(owner);
-    reserve.removeSpender(spender);
+    reserve.unregisterReserveManagerSpender(reserveManagerSpender);
 
     // Verify mapping
-    assertFalse(reserve.isSpender(spender));
-    assertTrue(reserve.isSpender(spender2));
+    assertFalse(reserve.isReserveManagerSpender(reserveManagerSpender));
+    assertTrue(reserve.isReserveManagerSpender(reserveManagerSpender2));
 
     // Verify array
-    address[] memory spenders = reserve.getSpenders();
+    address[] memory spenders = reserve.getReserveManagerSpenders();
     assertEq(spenders.length, 1);
-    assertEq(spenders[0], spender2);
+    assertEq(spenders[0], reserveManagerSpender2);
   }
 
-  function test_removeSpender_whenCallerIsNotOwner_shouldRevert() public {
+  function test_unregisterReserveManagerSpender_whenCallerIsNotOwner_shouldRevert() public {
     vm.prank(owner);
-    reserve.addSpender(spender);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
 
     vm.prank(notOwner);
     vm.expectRevert();
-    reserve.removeSpender(spender);
+    reserve.unregisterReserveManagerSpender(reserveManagerSpender);
   }
 
-  function test_removeSpender_whenSpenderNotAdded_shouldRevert() public {
+  function test_unregisterReserveManagerSpender_whenSpenderNotRegistered_shouldRevert() public {
     vm.prank(owner);
-    vm.expectRevert(IReserveV2.SpenderNotRegistered.selector);
-    reserve.removeSpender(spender);
+    vm.expectRevert(IReserveV2.ReserveManagerSpenderNotRegistered.selector);
+    reserve.unregisterReserveManagerSpender(reserveManagerSpender);
   }
 
   /* ============================================================ */
   /* =================== Transfer Tests ========================= */
   /* ============================================================ */
 
-  function test_transferCollateralAsset_shouldUpdateBalancesAndEmitEvent() public {
+  function test_transferCollateralAssetToOtherReserve_shouldUpdateBalancesAndEmitEvent() public {
     vm.prank(owner);
-    reserve.addSpender(spender);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
 
     uint256 amount = 1000e18;
-    collateralToken.mint(address(reserve), amount);
+    collateralAsset.mint(address(reserve), amount);
 
-    uint256 initialReserveBalance = collateralToken.balanceOf(address(reserve));
-    uint256 initialRecipientBalance = collateralToken.balanceOf(otherReserveAddress);
+    uint256 initialReserveBalance = collateralAsset.balanceOf(address(reserve));
+    uint256 initialRecipientBalance = collateralAsset.balanceOf(otherReserveAddress);
 
     vm.expectEmit(true, true, true, true);
-    emit CollateralAssetTransferredSpender(spender, address(collateralToken), otherReserveAddress, amount);
+    emit CollateralAssetTransferredReserveManagerSpender(
+      reserveManagerSpender,
+      address(collateralAsset),
+      otherReserveAddress,
+      amount
+    );
 
-    vm.prank(spender);
-    bool success = reserve.transferCollateralAsset(otherReserveAddress, address(collateralToken), amount);
+    vm.prank(reserveManagerSpender);
+    bool success = reserve.transferCollateralAssetToOtherReserve(otherReserveAddress, address(collateralAsset), amount);
 
     // Verify return value
     assertTrue(success);
 
     // Verify balances
-    assertEq(collateralToken.balanceOf(address(reserve)), initialReserveBalance - amount);
-    assertEq(collateralToken.balanceOf(otherReserveAddress), initialRecipientBalance + amount);
+    assertEq(collateralAsset.balanceOf(address(reserve)), initialReserveBalance - amount);
+    assertEq(collateralAsset.balanceOf(otherReserveAddress), initialRecipientBalance + amount);
   }
 
-  function test_transferCollateralAsset_whenCallerIsNotSpender_shouldRevert() public {
+  function test_transferCollateralAssetToOtherReserve_whenCallerIsNotReserveManagerSpender_shouldRevert() public {
     uint256 amount = 1000e18;
-    collateralToken.mint(address(reserve), amount);
+    collateralAsset.mint(address(reserve), amount);
 
     vm.prank(notOwner);
-    vm.expectRevert(IReserveV2.SpenderNotRegistered.selector);
-    reserve.transferCollateralAsset(otherReserveAddress, address(collateralToken), amount);
+    vm.expectRevert(IReserveV2.ReserveManagerSpenderNotRegistered.selector);
+    reserve.transferCollateralAssetToOtherReserve(otherReserveAddress, address(collateralAsset), amount);
   }
 
-  function test_transferCollateralAsset_whenToIsNotOtherReserveAddress_shouldRevert() public {
+  function test_transferCollateralAssetToOtherReserve_whenToIsNotOtherReserveAddress_shouldRevert() public {
     vm.prank(owner);
-    reserve.addSpender(spender);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
 
     uint256 amount = 1000e18;
-    collateralToken.mint(address(reserve), amount);
+    collateralAsset.mint(address(reserve), amount);
 
     address randomAddress = makeAddr("randomAddress");
 
-    vm.prank(spender);
+    vm.prank(reserveManagerSpender);
     vm.expectRevert(IReserveV2.OtherReserveAddressNotRegistered.selector);
-    reserve.transferCollateralAsset(randomAddress, address(collateralToken), amount);
+    reserve.transferCollateralAssetToOtherReserve(randomAddress, address(collateralAsset), amount);
   }
 
-  function test_transferCollateralAsset_whenCollateralTokenNotRegistered_shouldRevert() public {
+  function test_transferCollateralAssetToOtherReserve_whenCollateralAssetNotRegistered_shouldRevert() public {
     vm.prank(owner);
-    reserve.addSpender(spender);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
 
-    MockERC20 unregisteredToken = new MockERC20("Unregistered", "UNR", 18);
+    MockERC20 unregisteredAsset = new MockERC20("Unregistered", "UNR", 18);
     uint256 amount = 1000e18;
-    unregisteredToken.mint(address(reserve), amount);
+    unregisteredAsset.mint(address(reserve), amount);
 
-    vm.prank(spender);
-    vm.expectRevert(IReserveV2.CollateralTokenNotRegistered.selector);
-    reserve.transferCollateralAsset(otherReserveAddress, address(unregisteredToken), amount);
+    vm.prank(reserveManagerSpender);
+    vm.expectRevert(IReserveV2.CollateralAssetNotRegistered.selector);
+    reserve.transferCollateralAssetToOtherReserve(otherReserveAddress, address(unregisteredAsset), amount);
   }
 
-  function test_transferCollateralAsset_whenInsufficientBalance_shouldRevert() public {
+  function test_transferCollateralAssetToOtherReserve_whenInsufficientBalance_shouldRevert() public {
     vm.prank(owner);
-    reserve.addSpender(spender);
+    reserve.registerReserveManagerSpender(reserveManagerSpender);
 
     uint256 amount = 1000e18;
 
-    vm.prank(spender);
+    vm.prank(reserveManagerSpender);
     vm.expectRevert(IReserveV2.InsufficientReserveBalance.selector);
-    reserve.transferCollateralAsset(otherReserveAddress, address(collateralToken), amount);
+    reserve.transferCollateralAssetToOtherReserve(otherReserveAddress, address(collateralAsset), amount);
   }
 
-  function test_transferExchangeCollateralAsset_shouldUpdateBalancesAndEmitEvent() public {
+  function test_transferCollateralAsset_shouldUpdateBalancesAndEmitEvent() public {
     uint256 amount = 1000e18;
-    collateralToken.mint(address(reserve), amount);
+    collateralAsset.mint(address(reserve), amount);
 
     address recipient = makeAddr("recipient");
-    uint256 initialReserveBalance = collateralToken.balanceOf(address(reserve));
-    uint256 initialRecipientBalance = collateralToken.balanceOf(recipient);
+    uint256 initialReserveBalance = collateralAsset.balanceOf(address(reserve));
+    uint256 initialRecipientBalance = collateralAsset.balanceOf(recipient);
 
     vm.expectEmit(true, true, true, true);
-    emit CollateralAssetTransferredExchangeSpender(exchangeSpender, address(collateralToken), recipient, amount);
+    emit CollateralAssetTransferredLiquidityStrategySpender(
+      liquidityStrategySpender,
+      address(collateralAsset),
+      recipient,
+      amount
+    );
 
-    vm.prank(exchangeSpender);
-    bool success = reserve.transferExchangeCollateralAsset(address(collateralToken), recipient, amount);
+    vm.prank(liquidityStrategySpender);
+    bool success = reserve.transferCollateralAsset(address(collateralAsset), recipient, amount);
 
     // Verify return value
     assertTrue(success);
 
     // Verify balances
-    assertEq(collateralToken.balanceOf(address(reserve)), initialReserveBalance - amount);
-    assertEq(collateralToken.balanceOf(recipient), initialRecipientBalance + amount);
+    assertEq(collateralAsset.balanceOf(address(reserve)), initialReserveBalance - amount);
+    assertEq(collateralAsset.balanceOf(recipient), initialRecipientBalance + amount);
   }
 
-  function test_transferExchangeCollateralAsset_whenCallerIsNotExchangeSpender_shouldRevert() public {
+  function test_transferCollateralAsset_whenCallerIsNotLiquidityStrategySpender_shouldRevert() public {
     uint256 amount = 1000e18;
-    collateralToken.mint(address(reserve), amount);
+    collateralAsset.mint(address(reserve), amount);
 
     address recipient = makeAddr("recipient");
 
     vm.prank(notOwner);
-    vm.expectRevert(IReserveV2.ExchangeSpenderNotRegistered.selector);
-    reserve.transferExchangeCollateralAsset(address(collateralToken), recipient, amount);
+    vm.expectRevert(IReserveV2.LiquidityStrategySpenderNotRegistered.selector);
+    reserve.transferCollateralAsset(address(collateralAsset), recipient, amount);
   }
 
-  function test_transferExchangeCollateralAsset_whenCollateralTokenNotRegistered_shouldRevert() public {
-    MockERC20 unregisteredToken = new MockERC20("Unregistered", "UNR", 18);
+  function test_transferCollateralAsset_whenCollateralAssetNotRegistered_shouldRevert() public {
+    MockERC20 unregisteredAsset = new MockERC20("Unregistered", "UNR", 18);
     uint256 amount = 1000e18;
-    unregisteredToken.mint(address(reserve), amount);
+    unregisteredAsset.mint(address(reserve), amount);
 
     address recipient = makeAddr("recipient");
 
-    vm.prank(exchangeSpender);
-    vm.expectRevert(IReserveV2.CollateralTokenNotRegistered.selector);
-    reserve.transferExchangeCollateralAsset(address(unregisteredToken), recipient, amount);
+    vm.prank(liquidityStrategySpender);
+    vm.expectRevert(IReserveV2.CollateralAssetNotRegistered.selector);
+    reserve.transferCollateralAsset(address(unregisteredAsset), recipient, amount);
   }
 
-  function test_transferExchangeCollateralAsset_whenInsufficientBalance_shouldRevert() public {
+  function test_transferCollateralAsset_whenInsufficientBalance_shouldRevert() public {
     uint256 amount = 1000e18;
     address recipient = makeAddr("recipient");
 
-    vm.prank(exchangeSpender);
+    vm.prank(liquidityStrategySpender);
     vm.expectRevert(IReserveV2.InsufficientReserveBalance.selector);
-    reserve.transferExchangeCollateralAsset(address(collateralToken), recipient, amount);
+    reserve.transferCollateralAsset(address(collateralAsset), recipient, amount);
   }
 
   /* ============================================================ */
@@ -706,27 +732,27 @@ contract ReserveV2Test is Test {
     proxyAdmin.transferOwnership(owner);
 
     // Prepare initialization data
-    address[] memory stableTokens = new address[](1);
-    stableTokens[0] = address(stableToken);
+    address[] memory stableAssets = new address[](1);
+    stableAssets[0] = address(stableAsset);
 
-    address[] memory collateralTokens = new address[](1);
-    collateralTokens[0] = address(collateralToken);
+    address[] memory collateralAssets = new address[](1);
+    collateralAssets[0] = address(collateralAsset);
 
     address[] memory otherReserves = new address[](1);
     otherReserves[0] = otherReserveAddress;
 
-    address[] memory exchangeSpenders = new address[](1);
-    exchangeSpenders[0] = exchangeSpender;
+    address[] memory liquidityStrategySpenders = new address[](1);
+    liquidityStrategySpenders[0] = liquidityStrategySpender;
 
-    address[] memory spenders = new address[](0);
+    address[] memory reserveManagerSpenders = new address[](0);
 
     bytes memory initData = abi.encodeWithSelector(
       ReserveV2.initialize.selector,
-      stableTokens,
-      collateralTokens,
+      stableAssets,
+      collateralAssets,
       otherReserves,
-      exchangeSpenders,
-      spenders,
+      liquidityStrategySpenders,
+      reserveManagerSpenders,
       owner
     );
 
@@ -737,10 +763,10 @@ contract ReserveV2Test is Test {
 
     // Verify initialization
     assertEq(proxyReserve.owner(), owner);
-    assertTrue(proxyReserve.isStableToken(address(stableToken)));
-    assertTrue(proxyReserve.isCollateralToken(address(collateralToken)));
+    assertTrue(proxyReserve.isStableAsset(address(stableAsset)));
+    assertTrue(proxyReserve.isCollateralAsset(address(collateralAsset)));
     assertTrue(proxyReserve.isOtherReserveAddress(otherReserveAddress));
-    assertTrue(proxyReserve.isExchangeSpender(exchangeSpender));
+    assertTrue(proxyReserve.isLiquidityStrategySpender(liquidityStrategySpender));
   }
 
   function test_proxy_shouldAllowUpgrade() public {
@@ -767,12 +793,12 @@ contract ReserveV2Test is Test {
 
     ReserveV2 proxyReserve = ReserveV2(payable(address(proxy)));
 
-    // Add a token
+    // Add an asset
     vm.prank(owner);
-    proxyReserve.addStableToken(address(stableToken));
+    proxyReserve.registerStableAsset(address(stableAsset));
 
-    // Verify token was added
-    assertTrue(proxyReserve.isStableToken(address(stableToken)));
+    // Verify asset was added
+    assertTrue(proxyReserve.isStableAsset(address(stableAsset)));
 
     // Deploy new implementation
     ReserveV2 newImplementation = new ReserveV2(true);
@@ -782,7 +808,7 @@ contract ReserveV2Test is Test {
     proxyAdmin.upgrade(ITransparentUpgradeableProxy(address(proxy)), address(newImplementation));
 
     // Verify state is preserved after upgrade
-    assertTrue(proxyReserve.isStableToken(address(stableToken)));
+    assertTrue(proxyReserve.isStableAsset(address(stableAsset)));
   }
 
   function test_proxy_shouldWorkWithAllFunctions() public {
@@ -792,27 +818,27 @@ contract ReserveV2Test is Test {
     proxyAdmin.transferOwnership(owner);
 
     // Prepare initialization data
-    address[] memory stableTokens = new address[](1);
-    stableTokens[0] = address(stableToken);
+    address[] memory stableAssets = new address[](1);
+    stableAssets[0] = address(stableAsset);
 
-    address[] memory collateralTokens = new address[](1);
-    collateralTokens[0] = address(collateralToken);
+    address[] memory collateralAssets = new address[](1);
+    collateralAssets[0] = address(collateralAsset);
 
     address[] memory otherReserves = new address[](1);
     otherReserves[0] = otherReserveAddress;
 
-    address[] memory exchangeSpenders = new address[](1);
-    exchangeSpenders[0] = exchangeSpender;
+    address[] memory liquidityStrategySpenders = new address[](1);
+    liquidityStrategySpenders[0] = liquidityStrategySpender;
 
-    address[] memory spenders = new address[](0);
+    address[] memory reserveManagerSpenders = new address[](0);
 
     bytes memory initData = abi.encodeWithSelector(
       ReserveV2.initialize.selector,
-      stableTokens,
-      collateralTokens,
+      stableAssets,
+      collateralAssets,
       otherReserves,
-      exchangeSpenders,
-      spenders,
+      liquidityStrategySpenders,
+      reserveManagerSpenders,
       owner
     );
 
@@ -821,36 +847,40 @@ contract ReserveV2Test is Test {
 
     ReserveV2 proxyReserve = ReserveV2(payable(address(proxy)));
 
-    // Test add/remove stable token
+    // Test register/unregister stable asset
     vm.startPrank(owner);
-    proxyReserve.addStableToken(address(stableToken2));
-    assertTrue(proxyReserve.isStableToken(address(stableToken2)));
+    proxyReserve.registerStableAsset(address(stableAsset2));
+    assertTrue(proxyReserve.isStableAsset(address(stableAsset2)));
 
-    proxyReserve.removeStableToken(address(stableToken2));
-    assertFalse(proxyReserve.isStableToken(address(stableToken2)));
+    proxyReserve.unregisterStableAsset(address(stableAsset2));
+    assertFalse(proxyReserve.isStableAsset(address(stableAsset2)));
 
-    // Test add/remove collateral token
-    proxyReserve.addCollateralToken(address(collateralToken2));
-    assertTrue(proxyReserve.isCollateralToken(address(collateralToken2)));
+    // Test register/unregister collateral asset
+    proxyReserve.registerCollateralAsset(address(collateralAsset2));
+    assertTrue(proxyReserve.isCollateralAsset(address(collateralAsset2)));
 
-    proxyReserve.removeCollateralToken(address(collateralToken2));
-    assertFalse(proxyReserve.isCollateralToken(address(collateralToken2)));
+    proxyReserve.unregisterCollateralAsset(address(collateralAsset2));
+    assertFalse(proxyReserve.isCollateralAsset(address(collateralAsset2)));
 
-    // Test add/remove spender
-    proxyReserve.addSpender(spender);
-    assertTrue(proxyReserve.isSpender(spender));
+    // Test register/unregister reserve manager spender
+    proxyReserve.registerReserveManagerSpender(reserveManagerSpender);
+    assertTrue(proxyReserve.isReserveManagerSpender(reserveManagerSpender));
 
     vm.stopPrank();
 
     // Test transfer with proxy
     uint256 amount = 1000e18;
-    collateralToken.mint(address(proxyReserve), amount);
+    collateralAsset.mint(address(proxyReserve), amount);
 
-    vm.prank(spender);
-    bool success = proxyReserve.transferCollateralAsset(otherReserveAddress, address(collateralToken), amount);
+    vm.prank(reserveManagerSpender);
+    bool success = proxyReserve.transferCollateralAssetToOtherReserve(
+      otherReserveAddress,
+      address(collateralAsset),
+      amount
+    );
 
     assertTrue(success);
-    assertEq(collateralToken.balanceOf(otherReserveAddress), amount);
+    assertEq(collateralAsset.balanceOf(otherReserveAddress), amount);
   }
 
   function test_proxy_implementationShouldNotBeInitializable() public {
