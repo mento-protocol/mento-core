@@ -7,20 +7,21 @@ import { CDPLiquidityStrategy } from "contracts/liquidityStrategies/CDPLiquidity
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { ReserveLiquidityStrategy } from "contracts/liquidityStrategies/ReserveLiquidityStrategy.sol";
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
-import { ReserveV2 } from "contracts/swap/ReserveV2.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
+import { ReserveV2 } from "contracts/swap/ReserveV2.sol";
 // solhint-disable-next-line max-line-length
 import { TransparentUpgradeableProxy, ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract LiquidityStrategyDeployer is TestStorage {
   function _deployLiquidityStrategies() internal {
+    require($mentoV2.deployed, "Mento V2 (Reserve) needs to be deployed first");
+
     _deployProxyAdmin();
     _deployCDPLiquidityStrategy();
     _deployReserveLiquidityStrategy();
     $liquidityStrategies.deployed = true;
     vm.label(address($liquidityStrategies.cdpLiquidityStrategy), "CDPLiquidityStrategy");
     vm.label(address($liquidityStrategies.reserveLiquidityStrategy), "ReserveLiquidityStrategy");
-    vm.label(address($liquidityStrategies.reserve), "Reserve");
     vm.label(address($liquidityStrategies.proxyAdmin), "LiquidityStrategiesProxyAdmin");
   }
 
@@ -43,11 +44,11 @@ contract LiquidityStrategyDeployer is TestStorage {
     vm.startPrank($addresses.governance);
     $liquidityStrategies.cdpLiquidityStrategy.addPool(
       address($fpmm.fpmmCDP),
-      address($tokens.cdpDebtToken),
+      address($tokens.eurm),
       cooldown,
       incentiveBps,
       address($liquity.stabilityPool),
-      address($collateralRegistry),
+      address($liquity.collateralRegistry),
       address($liquity.systemParams),
       stabilityPoolPercentage,
       maxIterations
@@ -61,12 +62,12 @@ contract LiquidityStrategyDeployer is TestStorage {
     vm.startPrank($addresses.governance);
     $liquidityStrategies.reserveLiquidityStrategy.addPool(
       address($fpmm.fpmmReserve),
-      address($tokens.cdpCollToken),
+      address($tokens.usdm),
       cooldown,
       incentiveBps
     );
-    $tokens.cdpCollToken.setMinter(address($liquidityStrategies.reserveLiquidityStrategy), true);
-    $tokens.cdpCollToken.setBurner(address($liquidityStrategies.reserveLiquidityStrategy), true);
+    $tokens.usdm.setMinter(address($liquidityStrategies.reserveLiquidityStrategy), true);
+    $tokens.usdm.setBurner(address($liquidityStrategies.reserveLiquidityStrategy), true);
     vm.stopPrank();
   }
 
@@ -85,14 +86,14 @@ contract LiquidityStrategyDeployer is TestStorage {
   }
 
   function _deployReserveLiquidityStrategy() private {
-    _deployReserve();
+    _deployReserveV2();
 
     ReserveLiquidityStrategy implementation = new ReserveLiquidityStrategy(true);
 
     bytes memory initData = abi.encodeWithSelector(
       ReserveLiquidityStrategy.initialize.selector,
       $addresses.governance,
-      address($liquidityStrategies.reserve)
+      address($liquidityStrategies.reserveV2)
     );
 
     TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
@@ -104,27 +105,28 @@ contract LiquidityStrategyDeployer is TestStorage {
     $liquidityStrategies.reserveLiquidityStrategy = IReserveLiquidityStrategy(address(proxy));
 
     vm.startPrank($addresses.governance);
-    $liquidityStrategies.reserve.registerLiquidityStrategySpender(
+    $liquidityStrategies.reserveV2.registerLiquidityStrategySpender(
       address($liquidityStrategies.reserveLiquidityStrategy)
     );
     vm.stopPrank();
   }
 
-  function _deployReserve() private {
+  function _deployReserveV2() private {
     require($tokens.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: tokens not deployed");
-    ReserveV2 reserve = new ReserveV2(false);
-    $liquidityStrategies.reserve = reserve;
+
+    ReserveV2 reserveV2 = new ReserveV2(false);
+    $liquidityStrategies.reserveV2 = reserveV2;
 
     address[] memory stableAssets = new address[](1);
-    stableAssets[0] = address($tokens.resDebtToken);
+    stableAssets[0] = address($tokens.usdm);
 
     address[] memory collateralAssets = new address[](1);
-    collateralAssets[0] = address($tokens.resCollToken);
+    collateralAssets[0] = address($tokens.usdc);
 
     address[] memory otherReserveAddresses = new address[](0);
     address[] memory liquidityStrategySpenders = new address[](0);
     address[] memory reserveManagerSpenders = new address[](0);
-    reserve.initialize(
+    reserveV2.initialize(
       stableAssets,
       collateralAssets,
       otherReserveAddresses,

@@ -25,6 +25,7 @@
 	url = https://github.com/foundry-rs/forge-std
 [submodule "lib/bold"]
 	path = lib/bold
+	branch = "feat/mento-v3"
 	url = https://github.com/mento-protocol/bold.git
 [submodule "lib/BokkyPooBahsDateTimeLibrary"]
 	path = lib/BokkyPooBahsDateTimeLibrary

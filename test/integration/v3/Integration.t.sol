@@ -7,9 +7,11 @@ import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
+import { MentoV2Deployer } from "test/integration/v3/MentoV2Deployer.sol";
 
 contract IntegrationTest is
   TokenDeployer,
+  MentoV2Deployer,
   OracleAdapterDeployer,
   LiquidityStrategyDeployer,
   FPMMDeployer,
@@ -21,6 +23,8 @@ contract IntegrationTest is
     // ReserveFPMM:  token0 = USDC, token1 = USD.m
     // CDPFPMM:      token0 = EUR.m, token1 = USD.m
     _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
+
+    _deployMentoV2();
 
     _deployOracleAdapter();
 
@@ -42,10 +46,10 @@ contract IntegrationTest is
   }
 
   function _checkSetup() private {
-    assertEq($fpmm.fpmmCDP.token0(), address($tokens.cdpDebtToken), "CDPFPMM token0 mismatch");
-    assertEq($fpmm.fpmmCDP.token1(), address($tokens.cdpCollToken), "CDPFPMM token1 mismatch");
+    assertEq($fpmm.fpmmCDP.token0(), address($tokens.eurm), "CDPFPMM token0 mismatch");
+    assertEq($fpmm.fpmmCDP.token1(), address($tokens.usdm), "CDPFPMM token1 mismatch");
 
-    assertEq($fpmm.fpmmReserve.token0(), address($tokens.resCollToken), "ReserveFPMM token0 mismatch");
-    assertEq($fpmm.fpmmReserve.token1(), address($tokens.resDebtToken), "ReserveFPMM token1 mismatch");
+    assertEq($fpmm.fpmmReserve.token0(), address($tokens.usdc), "ReserveFPMM token0 mismatch");
+    assertEq($fpmm.fpmmReserve.token1(), address($tokens.usdm), "ReserveFPMM token1 mismatch");
   }
 }

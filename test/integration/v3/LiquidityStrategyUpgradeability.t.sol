@@ -9,14 +9,24 @@ import { ReserveLiquidityStrategy } from "contracts/liquidityStrategies/ReserveL
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 // solhint-disable-next-line max-line-length
 import { ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { MentoV2Deployer } from "test/integration/v3/MentoV2Deployer.sol";
+import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer.sol";
 
 /**
  * @title LiquidityStrategyUpgradeabilityTest
  * @notice Tests for upgradeability of liquidity strategies using ProxyAdmin
  */
-contract LiquidityStrategyUpgradeabilityTest is Test, LiquidityStrategyDeployer, TokenDeployer {
+contract LiquidityStrategyUpgradeabilityTest is
+  Test,
+  LiquidityStrategyDeployer,
+  TokenDeployer,
+  MentoV2Deployer,
+  OracleAdapterDeployer
+{
   function setUp() public {
     _deployTokens(false, false);
+    _deployOracleAdapter();
+    _deployMentoV2();
     _deployLiquidityStrategies();
   }
 
@@ -75,7 +85,7 @@ contract LiquidityStrategyUpgradeabilityTest is Test, LiquidityStrategyDeployer,
     );
     assertEq(
       address(ReserveLiquidityStrategy(address($liquidityStrategies.reserveLiquidityStrategy)).reserve()),
-      address($liquidityStrategies.reserve),
+      address($liquidityStrategies.reserveV2),
       "Reserve address should be preserved after upgrade"
     );
   }

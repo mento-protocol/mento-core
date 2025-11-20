@@ -18,6 +18,7 @@ import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
+import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
@@ -36,6 +37,19 @@ import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
 import { IReserveV2 } from "contracts/interfaces/IReserveV2.sol";
+import { IStableTokenV2 } from "contracts/interfaces/IStableTokenV2.sol";
+import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
+import { IReserve } from "contracts/interfaces/IReserve.sol";
+import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
+import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
+import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
+import { IBroker } from "contracts/interfaces/IBroker.sol";
+import { IPricingModule } from "contracts/interfaces/IPricingModule.sol";
+import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.sol";
+
+import { IVirtualPoolFactory } from "contracts/interfaces/IVirtualPoolFactory.sol";
+import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";
+
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
@@ -48,6 +62,8 @@ abstract contract TestStorage is Test {
     $addresses.protocolFeeRecipient = makeAddr("protocolFeeRecipient");
     $addresses.referenceRateFeedCDPFPMM = makeAddr("referenceRateFeedCDPFPMM");
     $addresses.referenceRateFeedReserveFPMM = makeAddr("referenceRateFeedReserveFPMM");
+    $addresses.referenceRateFeedeXOFCELO = makeAddr("referenceRateFeedeXOFCELO");
+    $addresses.referenceRateFeedeXOFUSD = makeAddr("referenceRateFeedeXOFUSD");
 
     // Start all tests from a non-zero timestamp (2025-10-22 09:00:00)
     // This is required when setting up the circuit breaker, since otherwise it reverts when trying to configure
@@ -72,18 +88,36 @@ abstract contract TestStorage is Test {
     ITroveNFT troveNFT;
     IPriceFeed priceFeed;
     IInterestRouter interestRouter;
-    IERC20Metadata collToken;
     ISystemParams systemParams;
-    // ICollateralRegistry collateralRegistry; // adding this causes a stack too deep error
+    ICollateralRegistry collateralRegistry;
   }
 
   // @dev cdpColl == reserveDebt
   struct TokenDeployments {
     bool deployed;
-    IStableTokenV3 cdpDebtToken;
-    IStableTokenV3 cdpCollToken;
-    IStableTokenV3 resDebtToken;
-    IERC20Metadata resCollToken;
+    IStableTokenV3 eurm;
+    IStableTokenV3 usdm;
+    IERC20Metadata usdc;
+    IERC20Metadata celo;
+    IStableTokenV2 exof;
+  }
+
+  struct MentoV2Deployments {
+    bool deployed;
+    IBroker broker;
+    IBiPoolManager biPoolManager;
+    IReserve reserve;
+    IPricingModule constantProduct;
+    IPricingModule constantSum;
+    bytes32 pair_exof_celo_id;
+    bytes32 pair_exof_usdm_id;
+  }
+
+  struct VirtualPoolDeployments {
+    bool deployed;
+    IVirtualPoolFactory factory;
+    IRPool exof_celo_vp;
+    IRPool exof_usdm_vp;
   }
 
   struct FPMMDeployments {
@@ -93,6 +127,7 @@ abstract contract TestStorage is Test {
     IFPMM fpmmCDP;
     IFPMM fpmmReserve;
     IProxyAdmin proxyAdmin;
+    IRouter router;
     address fpmmImplementation;
     address oneToOneFPMMImplementation;
     bool isToken0DebtInCDPFPMM;
@@ -116,13 +151,15 @@ abstract contract TestStorage is Test {
     address protocolFeeRecipient;
     address referenceRateFeedCDPFPMM;
     address referenceRateFeedReserveFPMM;
+    address referenceRateFeedeXOFCELO;
+    address referenceRateFeedeXOFUSD;
   }
 
   struct LiquidityStrategiesDeployments {
     bool deployed;
     ICDPLiquidityStrategy cdpLiquidityStrategy;
     IReserveLiquidityStrategy reserveLiquidityStrategy;
-    IReserveV2 reserve;
+    IReserveV2 reserveV2;
     ProxyAdmin proxyAdmin;
   }
 
@@ -133,7 +170,8 @@ abstract contract TestStorage is Test {
   OracleDeployments public $oracle;
   MockAddresses public $addresses;
   LiquidityStrategiesDeployments public $liquidityStrategies;
-  ICollateralRegistry public $collateralRegistry; // adding it here instead of LiquityDeployment because of stack too deep error
+  MentoV2Deployments public $mentoV2;
+  VirtualPoolDeployments public $virtualPool;
 
   /* ============================================================ */
   /* ======================== Helper functions ================== */
@@ -141,24 +179,32 @@ abstract contract TestStorage is Test {
 
   function printTokenAddresses() public view {
     console.log("===== Token Deployment addresses =====");
+    if (!$tokens.deployed) {
+      console.log("Tokens aren't deployed");
+      return;
+    }
     console.log(
       "> ",
-      IERC20Metadata(address($tokens.cdpDebtToken)).symbol(),
-      IERC20Metadata(address($tokens.cdpDebtToken)).decimals(),
-      address($tokens.cdpDebtToken)
+      IERC20Metadata(address($tokens.eurm)).symbol(),
+      IERC20Metadata(address($tokens.eurm)).decimals(),
+      address($tokens.eurm)
     );
     console.log(
       "> ",
-      IERC20Metadata(address($tokens.resDebtToken)).symbol(),
-      IERC20Metadata(address($tokens.resDebtToken)).decimals(),
-      address($tokens.resDebtToken)
+      IERC20Metadata(address($tokens.usdm)).symbol(),
+      IERC20Metadata(address($tokens.usdm)).decimals(),
+      address($tokens.usdm)
     );
     console.log(
       "> ",
-      IERC20Metadata(address($tokens.resCollToken)).symbol(),
-      IERC20Metadata(address($tokens.resCollToken)).decimals(),
-      address($tokens.resCollToken)
+      IERC20Metadata(address($tokens.usdc)).symbol(),
+      IERC20Metadata(address($tokens.usdc)).decimals(),
+      address($tokens.usdc)
     );
+    console.log();
+    console.log("===== Mento V2 Tokens =====");
+    console.log("> ", $tokens.celo.symbol(), $tokens.celo.decimals(), address($tokens.celo));
+    console.log("> ", $tokens.usdc.symbol(), $tokens.usdc.decimals(), address($tokens.usdc));
     console.log();
   }
 
@@ -182,7 +228,7 @@ abstract contract TestStorage is Test {
     console.log("> troveNFT:", address($liquity.troveNFT));
     console.log("> priceFeed:", address($liquity.priceFeed));
     console.log("> interestRouter:", address($liquity.interestRouter));
-    console.log("> collToken:", address($liquity.collToken));
+    console.log("> collToken:", address($tokens.usdm));
     console.log("> systemParams:", address($liquity.systemParams));
     console.log("> defaultPool:", address($liquityInternalPools.defaultPool));
     console.log("> collSurplusPool:", address($liquityInternalPools.collSurplusPool));
@@ -204,6 +250,7 @@ abstract contract TestStorage is Test {
     console.log("===== Liquidity Strategies Deployment addresses =====");
     console.log("> cdpLiquidityStrategy:", address($liquidityStrategies.cdpLiquidityStrategy));
     console.log("> reserveLiquidityStrategy:", address($liquidityStrategies.reserveLiquidityStrategy));
-    console.log("> reserve:", address($liquidityStrategies.reserve));
+    console.log("> reserve V1:", address($mentoV2.reserve));
+    console.log("> reserve V2:", address($liquidityStrategies.reserveV2));
   }
 }
