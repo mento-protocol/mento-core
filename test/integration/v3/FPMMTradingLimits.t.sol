@@ -9,8 +9,15 @@ import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
 import { IERC20Metadata } from "bold/src/Interfaces/IBoldToken.sol";
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
+import { MentoV2Deployer } from "test/integration/v3/MentoV2Deployer.sol";
 
-contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeployer, FPMMDeployer {
+contract FPMMTradingLimitsTest is
+  TokenDeployer,
+  MentoV2Deployer,
+  OracleAdapterDeployer,
+  LiquidityStrategyDeployer,
+  FPMMDeployer
+{
   address public trader = makeAddr("trader");
   address public lpProvider = makeAddr("lpProvider");
 
@@ -22,6 +29,7 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
     // CDPFPMM:      token0 = EUR.m, token1 = USD.m
     _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
     _deployOracleAdapter();
+    _deployMentoV2();
     _deployLiquidityStrategies();
     _deployFPMM({ invertCDPFPMMRate: false, invertReserveFPMMRate: false });
 
@@ -40,24 +48,24 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
   }
 
   function _setupLiquidityReserveFPMM() internal {
-    deal(address($tokens.resCollToken), lpProvider, 10_000_000e6);
-    deal(address($tokens.resDebtToken), lpProvider, 10_000_000e18);
+    deal(address($tokens.usdc), lpProvider, 10_000_000e6);
+    deal(address($tokens.usdm), lpProvider, 10_000_000e18);
 
     _provideLiquidityToFPMM($fpmm.fpmmReserve, lpProvider, 5_000_000e18, 5_000_000e6);
   }
 
   function _setupLiquidityCDPFPMM() internal {
-    deal(address($tokens.cdpCollToken), lpProvider, 10_000_000e18);
-    deal(address($tokens.cdpDebtToken), lpProvider, 10_000_000e18);
+    deal(address($tokens.usdm), lpProvider, 10_000_000e18);
+    deal(address($tokens.eurm), lpProvider, 10_000_000e18);
 
     _provideLiquidityToFPMM($fpmm.fpmmCDP, lpProvider, 5_000_000e18, 5_000_000e18);
   }
 
   function _mintTokensForTraders() internal {
-    deal(address($tokens.resCollToken), trader, 1_000_000e6);
-    deal(address($tokens.resDebtToken), trader, 1_000_000e18);
-    deal(address($tokens.cdpCollToken), trader, 1_000_000e18);
-    deal(address($tokens.cdpDebtToken), trader, 1_000_000e18);
+    deal(address($tokens.usdc), trader, 1_000_000e6);
+    deal(address($tokens.usdm), trader, 1_000_000e18);
+    deal(address($tokens.usdm), trader, 1_000_000e18);
+    deal(address($tokens.eurm), trader, 1_000_000e18);
   }
 
   function _transferToFPMM(IFPMM fpmm, address sender, uint256 amount0In, uint256 amount1In) internal {
@@ -151,14 +159,14 @@ contract FPMMTradingLimitsTest is TokenDeployer, OracleAdapterDeployer, Liquidit
 
   function _checkSetup() internal {
     // Verify Reserve FPMM setup
-    assertEq($fpmm.fpmmReserve.token0(), address($tokens.resCollToken), "ReserveFPMM token0 mismatch");
-    assertEq($fpmm.fpmmReserve.token1(), address($tokens.resDebtToken), "ReserveFPMM token1 mismatch");
+    assertEq($fpmm.fpmmReserve.token0(), address($tokens.usdc), "ReserveFPMM token0 mismatch");
+    assertEq($fpmm.fpmmReserve.token1(), address($tokens.usdm), "ReserveFPMM token1 mismatch");
     assertGt($fpmm.fpmmReserve.reserve0(), 0, "ReserveFPMM should have liquidity");
     assertGt($fpmm.fpmmReserve.reserve1(), 0, "ReserveFPMM should have liquidity");
 
     // Verify CDP FPMM setup
-    assertEq($fpmm.fpmmCDP.token0(), address($tokens.cdpDebtToken), "CDPFPMM token0 mismatch");
-    assertEq($fpmm.fpmmCDP.token1(), address($tokens.cdpCollToken), "CDPFPMM token1 mismatch");
+    assertEq($fpmm.fpmmCDP.token0(), address($tokens.eurm), "CDPFPMM token0 mismatch");
+    assertEq($fpmm.fpmmCDP.token1(), address($tokens.usdm), "CDPFPMM token1 mismatch");
     assertGt($fpmm.fpmmCDP.reserve0(), 0, "CDPFPMM should have liquidity");
     assertGt($fpmm.fpmmCDP.reserve1(), 0, "CDPFPMM should have liquidity");
 

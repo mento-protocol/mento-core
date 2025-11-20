@@ -46,7 +46,7 @@ contract VirtualPoolTest is
 
   function test_stableTokenV3ToV2_swap() public {
     address user = makeAddr("user");
-    _reportReserveFPMMRate(1000000000000000000000000);
+    _reportReserveFPMMRate(1e24);
 
     vm.prank(user);
     $tokens.eurm.approve(address($fpmm.router), type(uint256).max);
@@ -54,6 +54,7 @@ contract VirtualPoolTest is
     $tokens.eurm.mint(user, 5_000e18);
 
     uint256 exofBalanceBefore = $tokens.exof.balanceOf(user);
+    uint256 eurmBalanceBefore = $tokens.eurm.balanceOf(user);
 
     vm.startPrank(user);
     IRouter.Route[] memory routes = new IRouter.Route[](2);
@@ -70,6 +71,11 @@ contract VirtualPoolTest is
 
     uint256 actualExofOut = $tokens.exof.balanceOf(user) - exofBalanceBefore;
     assertEq(actualExofOut, expectedExofOut, "Expected eXOF output should match actual output");
+    assertEq(
+      $tokens.eurm.balanceOf(user),
+      eurmBalanceBefore - swapAmount,
+      "EUR.m balance should decrease by swap amount"
+    );
   }
 
   function test_stableTokenV2ToV3_swap() public {
@@ -81,6 +87,7 @@ contract VirtualPoolTest is
     $tokens.exof.mint(user, 5_000e18);
 
     uint256 eurmBalanceBefore = $tokens.eurm.balanceOf(user);
+    uint256 exofBalanceBefore = $tokens.exof.balanceOf(user);
 
     vm.startPrank(user);
     IRouter.Route[] memory routes = new IRouter.Route[](2);
@@ -97,6 +104,11 @@ contract VirtualPoolTest is
 
     uint256 actualEurmOut = $tokens.eurm.balanceOf(user) - eurmBalanceBefore;
     assertEq(actualEurmOut, expectedEurmOut, "Expected EUR.m output should match actual output");
+    assertEq(
+      $tokens.exof.balanceOf(user),
+      exofBalanceBefore - swapAmount,
+      "eXOF balance should decrease by swap amount"
+    );
   }
 
   function test_stableTokenV3ToV2ThreeHops_swap() public {
@@ -113,6 +125,8 @@ contract VirtualPoolTest is
     routes[1] = _createVirtualRoute(address($tokens.usdm), address($tokens.exof));
     routes[2] = _createVirtualRoute(address($tokens.exof), address($tokens.celo));
 
+    uint256 eurmBalanceBefore = $tokens.eurm.balanceOf(user);
+
     uint256 swapAmount = 2_500e18;
 
     uint256 expectedUsdmOut = $fpmm.fpmmCDP.getAmountOut(swapAmount, address($tokens.eurm));
@@ -123,6 +137,11 @@ contract VirtualPoolTest is
     vm.stopPrank();
 
     assertEq(expectedCeloOut, $tokens.celo.balanceOf(user));
+    assertEq(
+      $tokens.eurm.balanceOf(user),
+      eurmBalanceBefore - swapAmount,
+      "EUR.m balance should decrease by swap amount"
+    );
   }
 
   function test_virtualPoolToVirtualPool_swap() public {
@@ -134,6 +153,7 @@ contract VirtualPoolTest is
     $tokens.usdm.mint(user, 5_000e18);
 
     uint256 celoBalanceBefore = $tokens.celo.balanceOf(user);
+    uint256 usdmBalanceBefore = $tokens.usdm.balanceOf(user);
 
     vm.startPrank(user);
     IRouter.Route[] memory routes = new IRouter.Route[](2);
@@ -150,6 +170,11 @@ contract VirtualPoolTest is
 
     uint256 actualCeloOut = $tokens.celo.balanceOf(user) - celoBalanceBefore;
     assertEq(actualCeloOut, expectedCeloOut, "Expected CELO output should match actual output");
+    assertEq(
+      $tokens.usdm.balanceOf(user),
+      usdmBalanceBefore - swapAmount,
+      "USD.m balance should decrease by swap amount"
+    );
   }
 
   function test_swapDifferentAmounts_swap() public {
@@ -164,6 +189,8 @@ contract VirtualPoolTest is
     $tokens.eurm.approve(address($fpmm.router), type(uint256).max);
     vm.prank(minter);
     $tokens.eurm.mint(user, 50_000e18);
+
+    uint256 eurmBalanceBefore = $tokens.eurm.balanceOf(user);
 
     for (uint256 i = 0; i < amounts.length; i++) {
       uint256 swapAmount = amounts[i];
@@ -184,6 +211,29 @@ contract VirtualPoolTest is
       uint256 actualExofOut = $tokens.exof.balanceOf(user) - exofBalanceBefore;
       assertEq(actualExofOut, expectedExofOut, "Expected eXOF output should match actual output");
     }
+    assertEq(
+      $tokens.eurm.balanceOf(user),
+      eurmBalanceBefore - amounts[0] - amounts[1] - amounts[2],
+      "EUR.m balance should decrease by total swap amounts"
+    );
+  }
+
+  function test_swapToNonExistentPools_shouldRevert() public {
+    address user = makeAddr("user");
+    vm.prank(user);
+    $tokens.eurm.approve(address($fpmm.router), type(uint256).max);
+    vm.prank(minter);
+    $tokens.eurm.mint(user, 5_000e18);
+
+    IRouter.Route[] memory routes = new IRouter.Route[](1);
+    routes[0] = _createV3Route(address($tokens.eurm), address($tokens.exof));
+
+    vm.expectRevert(IRouter.PoolDoesNotExist.selector);
+    $fpmm.router.swapExactTokensForTokens(1_000e18, 0, routes, user, block.timestamp);
+
+    routes[0] = _createVirtualRoute(address($tokens.eurm), address($tokens.exof));
+    vm.expectRevert(IRouter.PoolDoesNotExist.selector);
+    $fpmm.router.swapExactTokensForTokens(1_000e18, 0, routes, user, block.timestamp);
   }
 
   function _createV3Route(address from, address to) internal view returns (IRouter.Route memory) {

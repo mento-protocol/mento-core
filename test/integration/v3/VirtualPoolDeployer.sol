@@ -16,7 +16,7 @@ contract VirtualPoolDeployer is TestStorage {
     require($mentoV2.deployed, "VIRTUAL_POOL_DEPLOYER: MentoV2 not deployed");
 
     vm.startPrank($addresses.governance);
-    $virtualPool.factory = IVirtualPoolFactory(address(new VirtualPoolFactory()));
+    $virtualPool.factory = IVirtualPoolFactory(address(new VirtualPoolFactory($addresses.governance)));
     $virtualPool.exof_usdm_vp = IRPool(
       $virtualPool.factory.deployVirtualPool(address($mentoV2.biPoolManager), $mentoV2.pair_exof_usdm_id)
     );
