@@ -60,7 +60,7 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
   }
 
   function _deployVirtualPoolFactory() internal {
-    vpFactory = new VirtualPoolFactory();
+    vpFactory = new VirtualPoolFactory(governance);
   }
 
   function _deployV3Contracts() internal {

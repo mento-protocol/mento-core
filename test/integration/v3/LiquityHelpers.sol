@@ -16,7 +16,7 @@ abstract contract LiquityHelpers is TestStorage {
 
   function _openTrove(address owner, uint256 collAmount, uint256 debtAmount) internal {
     vm.startPrank(owner);
-    $tokens.cdpCollToken.approve(address($liquity.borrowerOperations), collAmount);
+    $tokens.usdm.approve(address($liquity.borrowerOperations), collAmount);
     $liquity.borrowerOperations.openTrove(
       owner,
       0,
@@ -51,7 +51,7 @@ abstract contract LiquityHelpers is TestStorage {
       uint256 collAmountForThisTrove = isLastTrove ? troveSetup.lastCollAmount : troveSetup.collAmount;
 
       vm.startPrank($addresses.governance);
-      $tokens.cdpCollToken.mint(_owner, collAmountForThisTrove + $liquity.systemParams.ETH_GAS_COMPENSATION());
+      $tokens.usdm.mint(_owner, collAmountForThisTrove + $liquity.systemParams.ETH_GAS_COMPENSATION());
       vm.stopPrank();
 
       _openTrove(_owner, i, collAmountForThisTrove, debtForThisTrove, _startingInterestRate);
@@ -67,7 +67,7 @@ abstract contract LiquityHelpers is TestStorage {
     uint256 interestRate
   ) private returns (uint256) {
     vm.startPrank(owner);
-    $tokens.cdpCollToken.approve(
+    $tokens.usdm.approve(
       address($liquity.borrowerOperations),
       collAmount + $liquity.systemParams.ETH_GAS_COMPENSATION()
     );
@@ -113,14 +113,14 @@ abstract contract LiquityHelpers is TestStorage {
     uint256 collAmount = (_debtAmount * 1e18) / $liquity.priceFeed.fetchPrice();
 
     collAmount = (collAmount * ($liquity.systemParams.CCR() + 50e16)) / 100e16;
-    collAmount = collAmount / 10 ** (18 - IERC20Metadata(address($tokens.cdpCollToken)).decimals());
+    collAmount = collAmount / 10 ** (18 - IERC20Metadata(address($tokens.usdm)).decimals());
 
     return collAmount;
   }
 
   function _redeemCollateral(uint256 _debtAmount, address _operator) internal {
     vm.startPrank(_operator);
-    $collateralRegistry.redeemCollateral(_debtAmount, 10, 1e18);
+    $liquity.collateralRegistry.redeemCollateral(_debtAmount, 10, 1e18);
     vm.stopPrank();
   }
 }

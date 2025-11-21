@@ -9,7 +9,9 @@ import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrat
  * @notice Test harness that exposes internal methods for testing
  */
 contract ReserveLiquidityStrategyHarness is ReserveLiquidityStrategy {
-  constructor(address _initialOwner, address _reserve) ReserveLiquidityStrategy(_initialOwner, _reserve) {}
+  constructor(address _initialOwner, address _reserve) ReserveLiquidityStrategy(false) {
+    initialize(_initialOwner, _reserve);
+  }
 
   /**
    * @notice Exposes the internal _determineAction method for testing

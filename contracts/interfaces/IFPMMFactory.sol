@@ -21,8 +21,8 @@ interface IFPMMFactory is IRPoolFactory {
   error InvalidOracleAdapter();
   // @notice Throw when trying to deploy an fpmm with a zero address as the proxy admin
   error InvalidProxyAdmin();
-  // @notice Throw when trying to deploy an fpmm with a zero address as the governance address
-  error InvalidGovernance();
+  // @notice Throw when trying to deploy an fpmm with a zero address as the owner
+  error InvalidOwner();
   // @notice Throw when trying to deploy an fpmm with a zero address as the reference rate feed id
   error InvalidReferenceRateFeedID();
   // @notice Throw when trying to deploy an fpmm for a token pair that already exists
@@ -80,12 +80,6 @@ interface IFPMMFactory is IRPoolFactory {
   event OracleAdapterSet(address indexed oracleAdapter);
 
   /**
-   * @notice Emitted when the governance address is set.
-   * @param governance The address of the new governance contract
-   */
-  event GovernanceSet(address indexed governance);
-
-  /**
    * @notice Emitted when the default parameters are set.
    * @param defaultParams The new default parameters
    */
@@ -106,12 +100,6 @@ interface IFPMMFactory is IRPoolFactory {
    * @return The address of the proxy admin contract
    */
   function proxyAdmin() external view returns (address);
-
-  /**
-   * @notice Gets the address of the governance contract.
-   * @return The address of the governance contract
-   */
-  function governance() external view returns (address);
 
   /**
    * @notice Gets the default parameters for deployed FPMMs.
@@ -155,14 +143,14 @@ interface IFPMMFactory is IRPoolFactory {
    * @notice Initializes the factory with required addresses.
    * @param _oracleAdapter The address of the oracle adapter contract
    * @param _proxyAdmin The address of the proxy admin contract
-   * @param _governance The address of the governance contract
+   * @param _owner The address of the owner
    * @param _fpmmImplementation The address of the FPMM implementation
    * @param _defaultParams The default parameters for deployed FPMMs
    */
   function initialize(
     address _oracleAdapter,
     address _proxyAdmin,
-    address _governance,
+    address _owner,
     address _fpmmImplementation,
     IFPMM.FPMMParams calldata _defaultParams
   ) external;
@@ -178,12 +166,6 @@ interface IFPMMFactory is IRPoolFactory {
    * @param _proxyAdmin The new address of the proxy admin contract
    */
   function setProxyAdmin(address _proxyAdmin) external;
-
-  /**
-   * @notice Sets the address of the governance contract.
-   * @param _governance The new address of the governance contract
-   */
-  function setGovernance(address _governance) external;
 
   /**
    * @notice Sets the default parameters for deployed FPMMs.
@@ -226,7 +208,7 @@ interface IFPMMFactory is IRPoolFactory {
    * @param fpmmImplementation The address of the FPMM implementation
    * @param customOracleAdapter The address of the custom oracle adapter contract
    * @param customProxyAdmin The address of the custom proxy admin contract
-   * @param customGovernance The address of the custom governance contract
+   * @param customOwner The address of the custom owner
    * @param token0 The address of the first token
    * @param token1 The address of the second token
    * @param referenceRateFeedID The address of the reference rate feed
@@ -238,7 +220,7 @@ interface IFPMMFactory is IRPoolFactory {
     address fpmmImplementation,
     address customOracleAdapter,
     address customProxyAdmin,
-    address customGovernance,
+    address customOwner,
     address token0,
     address token1,
     address referenceRateFeedID,

@@ -16,8 +16,9 @@ contract FPMMFactoryTest is Test {
   event FPMMImplementationUnregistered(address indexed fpmmImplementation);
   event ProxyAdminSet(address indexed proxyAdmin);
   event OracleAdapterSet(address indexed oracleAdapter);
-  event GovernanceSet(address indexed governance);
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
   event DefaultParamsSet(IFPMM.FPMMParams defaultParams);
+  event Initialized(uint8 version);
   /* --------------------------------------- */
 
   address public deployer;
@@ -187,10 +188,10 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     factoryCelo.initialize(oracleAdapterCelo, proxyAdminCelo, governanceCelo, address(0), defaultFpmmParamsCelo);
   }
 
-  function test_initialize_whenGovernanceIsZeroAddress_shouldRevert() public {
+  function test_initialize_whenInitialOwnerIsZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
-    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
+    vm.expectRevert("Ownable: new owner is the zero address");
     factoryCelo.initialize(
       oracleAdapterCelo,
       proxyAdminCelo,
@@ -221,6 +222,8 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     factoryCelo = new FPMMFactory(false);
 
     vm.expectEmit();
+    emit OwnershipTransferred(address(0), address(this));
+    vm.expectEmit();
     emit ProxyAdminSet(proxyAdminCelo);
     vm.expectEmit();
     emit OracleAdapterSet(oracleAdapterCelo);
@@ -229,7 +232,9 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     vm.expectEmit();
     emit DefaultParamsSet(defaultFpmmParamsCelo);
     vm.expectEmit();
-    emit GovernanceSet(governanceCelo);
+    emit OwnershipTransferred(address(this), governanceCelo);
+    vm.expectEmit();
+    emit Initialized(1);
     factoryCelo.initialize(
       oracleAdapterCelo,
       proxyAdminCelo,
@@ -244,7 +249,6 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     address[] memory registeredImplementations = factoryCelo.registeredImplementations();
     assertEq(registeredImplementations.length, 1);
     assertEq(registeredImplementations[0], address(fpmmImplementationCelo));
-    assertEq(factoryCelo.governance(), governanceCelo);
     assertEq(factoryCelo.owner(), governanceCelo);
     assertEqFPMMParams(defaultFpmmParamsCelo, factoryCelo.defaultParams());
   }
@@ -353,7 +357,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     assertEq(factoryCelo.proxyAdmin(), newProxyAdmin);
   }
 
-  function test_setGovernance_whenCallerIsNotOwner_shouldRevert() public {
+  function test_transferOwnership_whenCallerIsNotOwner_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
     factoryCelo.initialize(
@@ -366,10 +370,10 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
 
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(makeAddr("Not Owner"));
-    factoryCelo.setGovernance(makeAddr("New Governance"));
+    factoryCelo.transferOwnership(makeAddr("New Owner"));
   }
 
-  function test_setGovernance_whenZeroAddress_shouldRevert() public {
+  function test_setOwner_whenZeroAddress_shouldRevert() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
     factoryCelo.initialize(
@@ -380,12 +384,12 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       defaultFpmmParamsCelo
     );
 
-    vm.expectRevert(IFPMMFactory.ZeroAddress.selector);
+    vm.expectRevert("Ownable: new owner is the zero address");
     vm.prank(governanceCelo);
-    factoryCelo.setGovernance(address(0));
+    factoryCelo.transferOwnership(address(0));
   }
 
-  function test_setGovernance_shouldSetGovernanceAndEmitEvent() public {
+  function test_transferOwnership_shouldSetOwnerAndEmitEvent() public {
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
     factoryCelo.initialize(
@@ -396,14 +400,13 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       defaultFpmmParamsCelo
     );
 
-    address newGovernance = makeAddr("New Governance");
+    address newOwner = makeAddr("New Owner");
     vm.expectEmit();
-    emit GovernanceSet(newGovernance);
+    emit OwnershipTransferred(governanceCelo, newOwner);
     vm.prank(governanceCelo);
-    factoryCelo.setGovernance(newGovernance);
+    factoryCelo.transferOwnership(newOwner);
 
-    assertEq(factoryCelo.governance(), newGovernance);
-    assertEq(factoryCelo.owner(), newGovernance);
+    assertEq(factoryCelo.owner(), newOwner);
   }
 
   function test_setDefaultParams_whenCallerIsNotOwner_shouldRevert() public {
@@ -1026,7 +1029,7 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
   function test_deployFPMM_whenCustomGovernanceIsZeroAddress_shouldRevert() public {
     expectedGovernance = address(0);
     vm.prank(governanceCelo);
-    vm.expectRevert(IFPMMFactory.InvalidGovernance.selector);
+    vm.expectRevert(IFPMMFactory.InvalidOwner.selector);
     deploy("celo");
   }
 }

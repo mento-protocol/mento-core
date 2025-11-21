@@ -27,7 +27,7 @@ import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
  * 1. Swap does not decrease the total value of the pool
  * 2. Rebalance does not decrease the reserve value more than the rebalance incentive
  * 3. Rebalance moves the price difference towards 0
- * 4. Rebalance does not change the direction of the price difference
+ * 4. Rebalance can change the direction of the price difference but not by more than the rebalance incentive
  */
 contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
@@ -93,8 +93,13 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     __ERC20_init(name_, symbol_);
     __Ownable_init();
 
-    $.decimals0 = 10 ** ERC20Upgradeable(_token0).decimals();
-    $.decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
+    uint8 token0Decimals = ERC20Upgradeable(_token0).decimals();
+    uint8 token1Decimals = ERC20Upgradeable(_token1).decimals();
+
+    if (token0Decimals > 18 || token1Decimals > 18) revert InvalidTokenDecimals();
+
+    $.decimals0 = 10 ** token0Decimals;
+    $.decimals1 = 10 ** token1Decimals;
 
     setLPFee(_params.lpFee);
     setProtocolFeeRecipient(_params.protocolFeeRecipient);
@@ -357,7 +362,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     _update();
 
-    emit Mint(msg.sender, amount0, amount1, liquidity);
+    emit Mint(msg.sender, amount0, amount1, liquidity, to);
   }
 
   // slither-disable-start reentrancy-benign

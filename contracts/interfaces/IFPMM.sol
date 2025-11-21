@@ -135,6 +135,8 @@ interface IFPMM is IRPool {
   error RebalanceThresholdTooHigh();
   // @notice Throw when trying to rebalance with an invalid direction
   error RebalanceDirectionInvalid();
+  // @notice Throw when token decimals are invalid
+  error InvalidTokenDecimals();
 
   /* ============================================================ */
   /* ======================== Events ============================ */
@@ -146,8 +148,9 @@ interface IFPMM is IRPool {
    * @param amount0 Amount of token0 added
    * @param amount1 Amount of token1 added
    * @param liquidity Amount of LP tokens minted
+   * @param to Address that receives LP tokens
    */
-  event Mint(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity);
+  event Mint(address indexed sender, uint256 amount0, uint256 amount1, uint256 liquidity, address indexed to);
 
   /**
    * @notice Emitted when liquidity is removed from the pool
@@ -178,7 +181,7 @@ interface IFPMM is IRPool {
    * @param oldRecipient Previous recipient of the protocol fee
    * @param newRecipient New recipient of the protocol fee
    */
-  event ProtocolFeeRecipientUpdated(address oldRecipient, address newRecipient);
+  event ProtocolFeeRecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
 
   /**
    * @notice Emitted when the rebalance incentive is updated
@@ -213,14 +216,14 @@ interface IFPMM is IRPool {
    * @param oldRateFeedID Previous rate feed ID
    * @param newRateFeedID New rate feed ID
    */
-  event ReferenceRateFeedIDUpdated(address oldRateFeedID, address newRateFeedID);
+  event ReferenceRateFeedIDUpdated(address indexed oldRateFeedID, address indexed newRateFeedID);
 
   /**
    * @notice Emitted when the OracleAdapter contract is updated
    * @param oldOracleAdapter Previous OracleAdapter address
    * @param newOracleAdapter New OracleAdapter address
    */
-  event OracleAdapterUpdated(address oldOracleAdapter, address newOracleAdapter);
+  event OracleAdapterUpdated(address indexed oldOracleAdapter, address indexed newOracleAdapter);
 
   /**
    * @notice Emitted when the invert rate feed flag is updated

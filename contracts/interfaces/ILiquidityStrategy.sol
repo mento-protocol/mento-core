@@ -144,4 +144,13 @@ interface ILiquidityStrategy {
    * @return An array of all registered pool addresses.
    */
   function getPools() external view returns (address[] memory);
+
+  /**
+   * @notice Determines the rebalance action for a given pool based on current state
+   * @dev View-only version of rebalance logic for external inspection
+   * @param pool The address of the pool to analyze
+   * @return ctx The liquidity context containing pool state and configuration
+   * @return action The determined rebalance action with amounts and direction
+   */
+  function determineAction(address pool) external view returns (LQ.Context memory ctx, LQ.Action memory action);
 }

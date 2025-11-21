@@ -7,9 +7,11 @@ import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
+import { MentoV2Deployer } from "test/integration/v3/MentoV2Deployer.sol";
 
 abstract contract CDPFPMM_BaseTest is
   TokenDeployer,
+  MentoV2Deployer,
   OracleAdapterDeployer,
   LiquidityStrategyDeployer,
   FPMMDeployer,
@@ -78,14 +80,14 @@ abstract contract CDPFPMM_BaseTest is
     vm.prank(reserveMultisig);
     $liquity.stabilityPool.provideToSP(spDebt, false);
 
-    uint256 spDebtBalanceBefore = $tokens.cdpDebtToken.balanceOf(address($liquity.stabilityPool));
-    uint256 spCollBalanceBefore = $tokens.cdpCollToken.balanceOf(address($liquity.stabilityPool));
+    uint256 spDebtBalanceBefore = $tokens.eurm.balanceOf(address($liquity.stabilityPool));
+    uint256 spCollBalanceBefore = $tokens.usdm.balanceOf(address($liquity.stabilityPool));
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
     FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
-    uint256 spDebtBalanceAfter = $tokens.cdpDebtToken.balanceOf(address($liquity.stabilityPool));
-    uint256 spCollBalanceAfter = $tokens.cdpCollToken.balanceOf(address($liquity.stabilityPool));
+    uint256 spDebtBalanceAfter = $tokens.eurm.balanceOf(address($liquity.stabilityPool));
+    uint256 spCollBalanceAfter = $tokens.usdm.balanceOf(address($liquity.stabilityPool));
 
     assertGt(spCollBalanceAfter, spCollBalanceBefore, "SP should have more coll token");
     assertLt(spDebtBalanceAfter, spDebtBalanceBefore, "SP should have less debt token");
@@ -99,7 +101,7 @@ abstract contract CDPFPMM_BaseTest is
       assertLt(pricesAfter.priceDifference, pricesBefore.priceDifference, "Expansion should reduce price difference");
     }
 
-    bool isDebtToken0 = $fpmm.fpmmCDP.token0() == address($tokens.cdpDebtToken);
+    bool isDebtToken0 = $fpmm.fpmmCDP.token0() == address($tokens.eurm);
     if (isDebtToken0) {
       assertGt(
         pricesAfter.reservePriceDenominator,
@@ -149,7 +151,7 @@ abstract contract CDPFPMM_BaseTest is
     uint256 expectedDebtToRedeem = 2005012531328320802005012;
 
     uint256 expectedCollInflow;
-    if ($fpmm.fpmmCDP.token0() == address($tokens.cdpDebtToken)) {
+    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
       expectedCollInflow =
         (expectedDebtToRedeem * (1e18 - 0.005e18) * pricesBeforeRebalance.oraclePriceNumerator) /
         (pricesBeforeRebalance.oraclePriceDenominator * 1e18);
@@ -160,7 +162,7 @@ abstract contract CDPFPMM_BaseTest is
     }
 
     uint256 targetSupply = (expectedDebtToRedeem * 1e18) / (0.0025e18);
-    _mintCDPDebtToken(makeAddr("alice"), targetSupply - $tokens.cdpDebtToken.totalSupply());
+    _mintCDPDebtToken(makeAddr("alice"), targetSupply - $tokens.eurm.totalSupply());
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
@@ -170,7 +172,7 @@ abstract contract CDPFPMM_BaseTest is
 
     uint256 reserveDebtOutflow;
     uint256 reserveCollInflow;
-    if ($fpmm.fpmmCDP.token0() == address($tokens.cdpDebtToken)) {
+    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
       reserveDebtOutflow = pricesBeforeRebalance.reservePriceDenominator - pricesAfterRebalance.reservePriceDenominator;
       reserveCollInflow = pricesAfterRebalance.reservePriceNumerator - pricesBeforeRebalance.reservePriceNumerator;
     } else {
@@ -193,12 +195,14 @@ abstract contract CDPFPMM_BaseTest is
 
     FPMMPrices memory pricesBeforeRebalance = _snapshotPrices($fpmm.fpmmCDP);
 
-    uint256 expectedDebtToRedeem = ($tokens.cdpDebtToken.totalSupply() * 25) / 10_000;
+    uint256 expectedDebtToRedeem = ($tokens.eurm.totalSupply() * 25) / 10_000;
 
-    uint256 expectedRedemptionFee = $collateralRegistry.getRedemptionRateForRedeemedAmount(expectedDebtToRedeem);
+    uint256 expectedRedemptionFee = $liquity.collateralRegistry.getRedemptionRateForRedeemedAmount(
+      expectedDebtToRedeem
+    );
 
     uint256 expectedCollInflow;
-    if ($fpmm.fpmmCDP.token0() == address($tokens.cdpDebtToken)) {
+    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
       expectedCollInflow =
         (expectedDebtToRedeem * (1e18 - expectedRedemptionFee) * pricesBeforeRebalance.oraclePriceNumerator) /
         (pricesBeforeRebalance.oraclePriceDenominator * 1e18);
@@ -216,7 +220,7 @@ abstract contract CDPFPMM_BaseTest is
     // in order for the total redemption fee to be equal to the incentive( 0.50%)
     uint256 reserveDebtOutflow;
     uint256 reserveCollInflow;
-    if ($fpmm.fpmmCDP.token0() == address($tokens.cdpDebtToken)) {
+    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
       reserveDebtOutflow = pricesBeforeRebalance.reservePriceDenominator - pricesAfterRebalance.reservePriceDenominator;
       reserveCollInflow = pricesAfterRebalance.reservePriceNumerator - pricesBeforeRebalance.reservePriceNumerator;
     } else {
@@ -245,12 +249,12 @@ abstract contract CDPFPMM_BaseTest is
 
     // bound targetSupply to allow for at least 20% of debt reserve to be redeemed
     uint256 supplyLowerBound = (((fpmmDebt * 20) / 100) * 1e18) /
-      (50 * 1e14 - $collateralRegistry.getRedemptionRateWithDecay());
+      (50 * 1e14 - $liquity.collateralRegistry.getRedemptionRateWithDecay());
     uint256 supplyUpperBound = (((fpmmDebt * 80) / 100) * 1e18) /
-      (50 * 1e14 - $collateralRegistry.getRedemptionRateWithDecay());
+      (50 * 1e14 - $liquity.collateralRegistry.getRedemptionRateWithDecay());
     targetSupply = bound(targetSupply, supplyLowerBound, supplyUpperBound);
 
-    _mintCDPDebtToken(reserveMultisig, targetSupply - $tokens.cdpDebtToken.totalSupply());
+    _mintCDPDebtToken(reserveMultisig, targetSupply - $tokens.eurm.totalSupply());
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
@@ -258,7 +262,7 @@ abstract contract CDPFPMM_BaseTest is
 
     assertLt(pricesAfter.priceDifference, pricesBefore.priceDifference);
 
-    if ($fpmm.fpmmCDP.token0() == address($tokens.cdpDebtToken)) {
+    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
       assertLt(
         pricesAfter.reservePriceDenominator,
         pricesBefore.reservePriceDenominator,
@@ -288,6 +292,7 @@ contract CDPFPMM_Token0Debt_Test is CDPFPMM_BaseTest {
   function setUp() public {
     _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
     _deployOracleAdapter();
+    _deployMentoV2();
     _deployLiquidityStrategies();
     _deployFPMM({ invertCDPFPMMRate: true, invertReserveFPMMRate: false });
     _deployLiquity();
@@ -305,8 +310,8 @@ contract CDPFPMM_Token0Debt_Test is CDPFPMM_BaseTest {
   }
 
   function _checkSetup() internal {
-    assertEq($fpmm.fpmmCDP.token0(), address($tokens.cdpDebtToken), "CDPFPMM token0 mismatch");
-    assertEq($fpmm.fpmmCDP.token1(), address($tokens.cdpCollToken), "CDPFPMM token1 mismatch");
+    assertEq($fpmm.fpmmCDP.token0(), address($tokens.eurm), "CDPFPMM token0 mismatch");
+    assertEq($fpmm.fpmmCDP.token1(), address($tokens.usdm), "CDPFPMM token1 mismatch");
   }
 }
 
@@ -314,6 +319,7 @@ contract CDPFPMM_Token1Debt_Test is CDPFPMM_BaseTest {
   function setUp() public {
     _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: false });
     _deployOracleAdapter();
+    _deployMentoV2();
     _deployLiquidityStrategies();
     _deployFPMM({ invertCDPFPMMRate: false, invertReserveFPMMRate: false });
     _deployLiquity();
@@ -331,7 +337,7 @@ contract CDPFPMM_Token1Debt_Test is CDPFPMM_BaseTest {
   }
 
   function _checkSetup() internal {
-    assertEq($fpmm.fpmmCDP.token0(), address($tokens.cdpCollToken), "CDPFPMM token0 mismatch");
-    assertEq($fpmm.fpmmCDP.token1(), address($tokens.cdpDebtToken), "CDPFPMM token1 mismatch");
+    assertEq($fpmm.fpmmCDP.token0(), address($tokens.usdm), "CDPFPMM token0 mismatch");
+    assertEq($fpmm.fpmmCDP.token1(), address($tokens.eurm), "CDPFPMM token1 mismatch");
   }
 }
