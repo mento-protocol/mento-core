@@ -301,7 +301,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     vm.prank(notOwner); // Not the pool
     vm.expectRevert(ILiquidityStrategy.LS_POOL_NOT_FOUND.selector);
-    strategy.hook(address(strategy), 0, 100e18, hookData);
+    strategy.onRebalance(address(strategy), 0, 100e18, hookData);
   }
 
   function test_hook_whenSenderIsNotStrategy_shouldRevert() public fpmmToken0Debt(18, 18) {
@@ -322,7 +322,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Call from pool but with wrong sender
     vm.prank(address(fpmm));
     vm.expectRevert(ILiquidityStrategy.LS_INVALID_SENDER.selector);
-    strategy.hook(notOwner, 0, 100e18, hookData);
+    strategy.onRebalance(notOwner, 0, 100e18, hookData);
   }
 
   function test_transientStorage_shouldResetBetweenTransactions() public fpmmToken0Debt(18, 18) {
