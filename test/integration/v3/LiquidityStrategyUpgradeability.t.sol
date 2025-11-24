@@ -85,7 +85,7 @@ contract LiquidityStrategyUpgradeabilityTest is
     );
     assertEq(
       address(ReserveLiquidityStrategy(address($liquidityStrategies.reserveLiquidityStrategy)).reserve()),
-      address($mentoV2.reserve),
+      address($liquidityStrategies.reserveV2),
       "Reserve address should be preserved after upgrade"
     );
   }

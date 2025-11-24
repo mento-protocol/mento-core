@@ -64,8 +64,8 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     // - Full collateral amount goes to pool from reserve
     // - Debt comes OUT of pool and gets burned
 
-    expectReserveTransfer(collToken, address(fpmm), amountOwedToPool);
     expectERC20Burn(debtToken, amount0Out);
+    expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
@@ -216,8 +216,8 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
       })
     );
 
-    expectReserveTransfer(collToken, address(fpmm), amountOwedToPool);
     expectERC20Burn(debtToken, amount0Out);
+    expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
@@ -242,8 +242,8 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
       })
     );
 
-    expectReserveTransfer(collToken, address(fpmm), amountOwedToPool);
     expectERC20Burn(debtToken, amount1Out);
+    expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
@@ -320,8 +320,8 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     );
 
     // Full amount goes to pool
-    expectReserveTransfer(collToken, address(fpmm), amountOwedToPool);
     expectERC20Burn(debtToken, amount0Out);
+    expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }

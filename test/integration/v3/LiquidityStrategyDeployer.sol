@@ -8,6 +8,7 @@ import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrateg
 import { ReserveLiquidityStrategy } from "contracts/liquidityStrategies/ReserveLiquidityStrategy.sol";
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
+import { ReserveV2 } from "contracts/swap/ReserveV2.sol";
 // solhint-disable-next-line max-line-length
 import { TransparentUpgradeableProxy, ITransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
@@ -67,6 +68,25 @@ contract LiquidityStrategyDeployer is TestStorage {
     );
     $tokens.usdm.setMinter(address($liquidityStrategies.reserveLiquidityStrategy), true);
     $tokens.usdm.setBurner(address($liquidityStrategies.reserveLiquidityStrategy), true);
+
+    address[] memory stableAssets = new address[](1);
+    stableAssets[0] = address($tokens.usdm);
+
+    address[] memory collateralAssets = new address[](1);
+    collateralAssets[0] = address($tokens.usdc);
+
+    address[] memory otherReserveAddresses = new address[](0);
+    address[] memory liquidityStrategySpenders = new address[](1);
+    liquidityStrategySpenders[0] = address($liquidityStrategies.reserveLiquidityStrategy);
+    address[] memory reserveManagerSpenders = new address[](0);
+    $liquidityStrategies.reserveV2.initialize(
+      stableAssets,
+      collateralAssets,
+      otherReserveAddresses,
+      liquidityStrategySpenders,
+      reserveManagerSpenders,
+      $addresses.governance
+    );
     vm.stopPrank();
   }
 
@@ -85,14 +105,14 @@ contract LiquidityStrategyDeployer is TestStorage {
   }
 
   function _deployReserveLiquidityStrategy() private {
-    require($mentoV2.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: MentoV2 (Reserve) not deployed");
+    _deployReserveV2();
 
     ReserveLiquidityStrategy implementation = new ReserveLiquidityStrategy(true);
 
     bytes memory initData = abi.encodeWithSelector(
       ReserveLiquidityStrategy.initialize.selector,
       $addresses.governance,
-      address($mentoV2.reserve)
+      address($liquidityStrategies.reserveV2)
     );
 
     TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
@@ -102,10 +122,13 @@ contract LiquidityStrategyDeployer is TestStorage {
     );
 
     $liquidityStrategies.reserveLiquidityStrategy = IReserveLiquidityStrategy(address(proxy));
+  }
 
-    vm.startPrank($addresses.governance);
-    $mentoV2.reserve.addExchangeSpender(address($liquidityStrategies.reserveLiquidityStrategy));
-    vm.stopPrank();
+  function _deployReserveV2() private {
+    require($tokens.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: tokens not deployed");
+
+    ReserveV2 reserveV2 = new ReserveV2(false);
+    $liquidityStrategies.reserveV2 = reserveV2;
   }
 
   /* ============================================================ */

@@ -19,14 +19,14 @@ contract MentoV2Deployer is TestStorage {
 
   function _deployMentoV2() internal {
     if ($mentoV2.deployed) return;
-    _deployReserve();
+    _deployReserveV1();
     _configureOracles();
     _deployBroker();
     _initializeAssets();
     $mentoV2.deployed = true;
   }
 
-  function _deployReserve() private {
+  function _deployReserveV1() private {
     require($tokens.deployed, "MENTO_V2_DEPLOYER: tokens not deployed");
     IReserve reserve = IReserve(deployCode("Reserve", abi.encode(true)));
     $mentoV2.reserve = reserve;

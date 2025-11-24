@@ -38,14 +38,14 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
   function test_initialize_whenZeroOwner_shouldRevert() public {
     ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(false);
     vm.expectRevert("LS_INVALID_OWNER()");
-    newStrategy.initialize(address(0), reserve);
+    newStrategy.initialize(address(0), address(reserve));
   }
 
   function test_initialize_whenCalledTwice_shouldRevert() public {
     ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(false);
-    newStrategy.initialize(owner, reserve);
+    newStrategy.initialize(owner, address(reserve));
     vm.expectRevert("Initializable: contract is already initialized");
-    newStrategy.initialize(owner, reserve);
+    newStrategy.initialize(owner, address(reserve));
   }
 
   /* ============================================================ */
@@ -56,7 +56,7 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
     address newReserve = makeAddr("NewReserve");
 
     vm.expectEmit(true, true, false, false);
-    emit ReserveSet(reserve, newReserve);
+    emit ReserveSet(address(reserve), newReserve);
 
     vm.prank(owner);
     strategy.setReserve(newReserve);

@@ -38,7 +38,7 @@ abstract contract ReserveFPMM_BaseTest is
   }
 
   function test_contraction() public {
-    _mintResCollToken(address($mentoV2.reserve), 10_000_000e6);
+    _mintResCollToken(address($liquidityStrategies.reserveV2), 10_000_000e6);
     _mintResCollToken(reserveMultisig, 10_000_000e6);
     _mintResDebtToken(reserveMultisig, 10_000_000e18);
 
@@ -62,7 +62,7 @@ abstract contract ReserveFPMM_BaseTest is
   // cdpDebt (EURm)
 
   function test_clampedContraction() public {
-    _mintResCollToken(address($mentoV2.reserve), 1_000_000e6);
+    _mintResCollToken(address($liquidityStrategies.reserveV2), 1_000_000e6);
     _mintResCollToken(reserveMultisig, 10_000_000e6);
     _mintResDebtToken(reserveMultisig, 10_000_000e18);
     uint256 fpmmDebt = 10_000_000e18;
@@ -89,11 +89,11 @@ abstract contract ReserveFPMM_BaseTest is
     _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
 
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmReserve);
-    uint256 reserveBalanceBefore = $tokens.usdc.balanceOf(address($mentoV2.reserve));
+    uint256 reserveBalanceBefore = $tokens.usdc.balanceOf(address($liquidityStrategies.reserveV2));
     uint256 usdmTotalSupplyBefore = $tokens.usdm.totalSupply();
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
     FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmReserve);
-    uint256 reserveBalanceAfter = $tokens.usdc.balanceOf(address($mentoV2.reserve));
+    uint256 reserveBalanceAfter = $tokens.usdc.balanceOf(address($liquidityStrategies.reserveV2));
     uint256 usdmTotalSupplyAfter = $tokens.usdm.totalSupply();
 
     assertGt(reserveBalanceAfter, reserveBalanceBefore, "Reserve should have more collateral");
@@ -145,17 +145,17 @@ abstract contract ReserveFPMM_BaseTest is
 
     _mintResCollToken(reserveMultisig, fpmmColl);
     _mintResDebtToken(reserveMultisig, fpmmDebt);
-    _mintResCollToken(address($mentoV2.reserve), reserveColl);
+    _mintResCollToken(address($liquidityStrategies.reserveV2), reserveColl);
 
     bool isDebtToken0 = $fpmm.fpmmReserve.token0() == address($tokens.usdm);
     _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
 
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmReserve);
-    uint256 reserveBalanceBefore = $tokens.usdc.balanceOf(address($mentoV2.reserve));
+    uint256 reserveBalanceBefore = $tokens.usdc.balanceOf(address($liquidityStrategies.reserveV2));
     uint256 usdmTotalSupplyBefore = $tokens.usdm.totalSupply();
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
     FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmReserve);
-    uint256 reserveBalanceAfter = $tokens.usdc.balanceOf(address($mentoV2.reserve));
+    uint256 reserveBalanceAfter = $tokens.usdc.balanceOf(address($liquidityStrategies.reserveV2));
     uint256 usdmTotalSupplyAfter = $tokens.usdm.totalSupply();
 
     assertLt(reserveBalanceAfter, reserveBalanceBefore, "Reserve should have less collateral");
