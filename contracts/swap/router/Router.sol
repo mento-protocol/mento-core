@@ -222,8 +222,7 @@ contract Router is IRouter, ERC2771Context {
   /// @dev requires the initial amount to have already been sent to the first pool
   function _swap(uint256[] memory amounts, Route[] memory routes, address _to) internal virtual {
     uint256 _length = routes.length;
-    IRouter.Route memory firstRoute = routes[0];
-    address currentPool = poolFor(firstRoute.from, firstRoute.to, firstRoute.factory);
+    address currentPool = poolFor(routes[0].from, routes[0].to, routes[0].factory);
     for (uint256 i = 0; i < _length; i++) {
       IRouter.Route memory currentRoute = routes[i];
       (address token0, ) = sortTokens(currentRoute.from, currentRoute.to);
@@ -231,13 +230,8 @@ contract Router is IRouter, ERC2771Context {
       (uint256 amount0Out, uint256 amount1Out) = currentRoute.from == token0
         ? (uint256(0), amountOut)
         : (amountOut, uint256(0));
-      // cache the destination pool address to avoid redundant poolFor() calls and reduce gas usage in loops
-      address to;
-      if (i < _length - 1) {
-        to = poolFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].factory);
-      } else {
-        to = _to;
-      }
+      // cache the destination pool address to use in the next iteration
+      address to = i < _length - 1 ? poolFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].factory) : _to;
       IRPool(currentPool).swap(amount0Out, amount1Out, to, new bytes(0));
       currentPool = to;
     }
