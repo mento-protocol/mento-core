@@ -72,7 +72,7 @@ contract StableTokenSpoke is ERC20PermitUpgradeable, OwnableUpgradeable, IStable
     address[] memory _burners
   ) public initializer {
     __ERC20_init(name, symbol);
-    __ERC20Permit_init(symbol);
+    __EIP712_init_unchained(name, "3");
     _transferOwnership(_msgSender());
 
     require(initialBalanceAddresses.length == initialBalanceValues.length, "Array length mismatch");
