@@ -74,7 +74,7 @@ abstract contract CDPFPMM_BaseTest is
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
 
     // bound spDebt to be at least 1% of fpmmColl and at most the total fpmm collateral reserve
-    spDebt = bound(spDebt, $liquity.stabilityPool.MIN_BOLD_AFTER_REBALANCE() + (fpmmColl * 5) / 100, fpmmColl);
+    spDebt = bound(spDebt, $liquity.systemParams.MIN_BOLD_AFTER_REBALANCE() + (fpmmColl * 5) / 100, fpmmColl);
 
     _mintCDPDebtToken(reserveMultisig, spDebt); // EUR.m
     vm.prank(reserveMultisig);
@@ -93,7 +93,7 @@ abstract contract CDPFPMM_BaseTest is
     assertLt(spDebtBalanceAfter, spDebtBalanceBefore, "SP should have less debt token");
 
     uint256 minDebtLeftInSPPercentage = (spDebt * 9000) / 10000; // spool percentage is 90%
-    uint256 minDebtLeftInSPHardFloor = $liquity.stabilityPool.MIN_BOLD_AFTER_REBALANCE();
+    uint256 minDebtLeftInSPHardFloor = $liquity.systemParams.MIN_BOLD_AFTER_REBALANCE();
 
     if (spDebtBalanceAfter > minDebtLeftInSPPercentage && spDebtBalanceAfter > minDebtLeftInSPHardFloor) {
       assertEq(pricesAfter.priceDifference, 0, "Expansion should be perfect, if we have more debt left in the SP");
