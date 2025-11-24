@@ -43,13 +43,11 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     // amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 808079.298245614035087719
     uint256 expectedAmount0Out = 808079298245614035087719;
     uint256 expectedAmount1Out = 0;
-    // input amount in token 1 := (amountOut * ON * (1-i))/OD = 146805.131123
-    uint256 expectedAmountOwedToPool = 146805131123;
 
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amount1Out, expectedAmount1Out);
-    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
   }
 
   function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeEqualToIncentive_shouldContractAndBringPriceBackToOraclePrice()
@@ -79,13 +77,11 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     uint256 expectedAmount0Out = 0;
     // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 3_235_338.342946
     uint256 expectedAmount1Out = 3235338342946;
-    // input amount in token 1 := (amountOut * OD * (1-i))/ON = 4_001_195.263069052943054100
-    uint256 expectedAmountOwedToPool = 4001195263069052943054100;
 
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amount1Out, expectedAmount1Out);
-    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
   }
 
   /* ============================================================ */
@@ -119,15 +115,12 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     // amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 1_098_386_357.591375
     uint256 expectedAmount0Out = 1098386357591375;
     uint256 expectedAmount1Out = 0;
-    // input amount in token 1 := (amountOut * ON * (1-0.004))/OD = 748_849.019852332612845000
-    // 0.004 = 0.4% redemption fee
-    uint256 expectedAmountOwedToPool = 748849019852332612845000;
 
     assertEq(action.dir, LQ.Direction.Contract);
 
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amount1Out, expectedAmount1Out);
-    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
   }
 
   function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeLessIncentive_shouldContractAndBringPriceBelowOraclePrice()
@@ -157,14 +150,11 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     uint256 expectedAmount0Out = 0;
     // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 5_670_726.837208791926748374
     uint256 expectedAmount1Out = 5670726837208791926748374;
-    // input amount in token 0 := (amountOut * OD * (1-0.0035))/ON = 97_144.209421
-    // 0.0035 = 0.35% redemption fee
-    uint256 expectedAmountOwedToPool = 97144209421;
 
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amount1Out, expectedAmount1Out);
-    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
   }
 
   function test_determineAction_whenToken0DebtPoolPriceBelowAndRedemptionFeeGreaterIncentive_shouldContractAndBringPriceCloserToOraclePrice()
@@ -198,13 +188,11 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     // = 313824673597535714 * 1 * (0.005 - 0.0025) =  784_561_683.993839
     uint256 expectedAmount0Out = 784561683993839;
     uint256 expectedAmount1Out = 0;
-    // input amount in token 1 := (amountOut * ON * (1-0.0025 - amountOut / totalSupply))/OD = 534_355.116719069620757590
-    uint256 expectedAmountOwedToPool = 534355116719069620757590;
 
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amount1Out, expectedAmount1Out);
-    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
   }
 
   function test_determineAction_whenToken1DebtPoolPriceAboveAndRedemptionFeeGreaterIncentive_shouldContractAndBringPriceCloserToOraclePrice()
@@ -238,13 +226,11 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     // maximum amount that can be redeemed is: totalSupply * redemptionBeta * (incentive - decayedBaseFee) =
     // = 1134145367441758385349674800 * 1 * (0.005 - 0.0025) =  2_835_363.418604395963374187
     uint256 expectedAmount1Out = 2835363418604395963374187;
-    // input amount in token 1 := (amountOut * ON * (1-0.0025 - amountOut / totalSupply))/OD = 484_989.90654
-    uint256 expectedAmountOwedToPool = 48498990654;
 
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amount1Out, expectedAmount1Out);
-    assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
   }
 
   /* ============================================================ */

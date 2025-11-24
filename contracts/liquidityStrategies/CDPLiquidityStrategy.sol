@@ -126,14 +126,15 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    * @param ctx The liquidity context containing pool state and configuration
    * @param idealDebtToContract The calculated ideal amount of debt tokens to redeem
    * @return debtToContract The actual debt amount to contract (limited by redemption fee)
-   * @return collateralToReceive The actual collateral amount to send (adjusted based on redemption fee)
+   * @return collateralToReceive - not used in this implementation
+   *         because calculating exact amount depends on number of troves hit.
    */
   function _clampContraction(
     LQ.Context memory ctx,
     uint256 idealDebtToContract,
     uint256 // idealCollateralToReceive - used in other implementations
   ) internal view override returns (uint256 debtToContract, uint256 collateralToReceive) {
-    (debtToContract, collateralToReceive) = _calculateMaxRedeemableDebt(ctx, cdpConfigs[ctx.pool], idealDebtToContract);
+    debtToContract = _calculateMaxRedeemableDebt(ctx, cdpConfigs[ctx.pool], idealDebtToContract);
     return (debtToContract, collateralToReceive);
   }
 
@@ -169,16 +170,16 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
       uint256 debtAmount = amount0Out > 0 ? amount0Out : amount1Out;
       address collateralRegistry = cdpConfigs[pool].collateralRegistry;
       uint256 maxIterations = cdpConfigs[pool].maxIterations;
+      uint256 collateralBalanceBefore = IERC20(cb.collToken).balanceOf(address(this));
       ICollateralRegistry(collateralRegistry).redeemCollateral(
         debtAmount,
         maxIterations,
         cb.incentiveBps * BPS_TO_FEE_SCALER
       );
+      uint256 collateralBalanceAfter = IERC20(cb.collToken).balanceOf(address(this));
 
-      uint256 collateralBalance = IERC20(cb.collToken).balanceOf(address(this));
-      if (collateralBalance < cb.amountOwedToPool) revert CDPLS_INSUFFICIENT_COLLATERAL_FROM_REDEMPTION();
-      // Transfer collateral to FPMM
-      IERC20(cb.collToken).safeTransfer(pool, cb.amountOwedToPool);
+      // Transfer received collateral to FPMM
+      IERC20(cb.collToken).safeTransfer(pool, collateralBalanceAfter - collateralBalanceBefore);
     }
   }
 
@@ -210,20 +211,17 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    * @param cdpConfig The CDP configuration for the pool
    * @param targetContractionAmount The desired amount of debt tokens to redeem
    * @return contractionAmount The actual amount of debt tokens to redeem (may be lower than target)
-   * @return collateralReceived The amount of collateral that will be received
    */
   function _calculateMaxRedeemableDebt(
     LQ.Context memory ctx,
     CDPConfig storage cdpConfig,
     uint256 targetContractionAmount
-  ) private view returns (uint256 contractionAmount, uint256 collateralReceived) {
+  ) private view returns (uint256 contractionAmount) {
     // formula for max amount that can be redeemed given the max fee we are willing to pay:
     // amountToRedeem = totalSupply * REDEMPTION_BETA * (maxFee - decayedBaseFee)
-    address debtToken = ctx.debtToken();
     uint256 decayedBaseFee = ICollateralRegistry(cdpConfig.collateralRegistry).getRedemptionRateWithDecay();
-    uint256 totalDebtTokenSupply = IERC20(debtToken).totalSupply();
+    uint256 totalDebtTokenSupply = IERC20(ctx.debtToken()).totalSupply();
     uint256 redemptionBeta = ISystemParams(cdpConfig.systemParams).REDEMPTION_BETA();
-
     uint256 maxRedemptionFee = ctx.incentiveBps * BPS_TO_FEE_SCALER;
 
     if (maxRedemptionFee < decayedBaseFee) revert CDPLS_REDEMPTION_FEE_TOO_LARGE();
@@ -235,12 +233,5 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     } else {
       contractionAmount = targetContractionAmount;
     }
-
-    uint256 redemptionFee = decayedBaseFee + ((contractionAmount * 1e18) / totalDebtTokenSupply) / redemptionBeta;
-
-    // redemption fee is capped at 100%
-    redemptionFee = redemptionFee > 1e18 ? 1e18 : redemptionFee;
-
-    collateralReceived = ctx.convertToCollateralWithFee(contractionAmount, 1e18 - redemptionFee, 1e18);
   }
 }
