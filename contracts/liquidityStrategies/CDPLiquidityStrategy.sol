@@ -22,10 +22,18 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   /* ============================================================ */
 
   /**
-   * @notice Constructor
+   * @notice Disables initializers on implementation contracts.
+   * @param disable Set to true to disable initializers (for proxy pattern).
+   */
+  constructor(bool disable) LiquidityStrategy(disable) {}
+
+  /**
+   * @notice Initializes the CDPLiquidityStrategy contract
    * @param _initialOwner The initial owner of the contract
    */
-  constructor(address _initialOwner) LiquidityStrategy(_initialOwner) {}
+  function initialize(address _initialOwner) public initializer {
+    __LiquidityStrategy_init(_initialOwner);
+  }
 
   /* ============================================================ */
   /* ==================== External Functions ==================== */
@@ -228,7 +236,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
       contractionAmount = targetContractionAmount;
     }
 
-    uint256 redemptionFee = decayedBaseFee + (contractionAmount * 1e18 * redemptionBeta) / totalDebtTokenSupply;
+    uint256 redemptionFee = decayedBaseFee + ((contractionAmount * 1e18) / totalDebtTokenSupply) / redemptionBeta;
 
     // redemption fee is capped at 100%
     redemptionFee = redemptionFee > 1e18 ? 1e18 : redemptionFee;

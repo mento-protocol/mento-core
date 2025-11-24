@@ -2,10 +2,14 @@
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 pragma solidity ^0.8;
 
-import { IFPMMCallee } from "contracts/interfaces/IFPMMCallee.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
-contract MockLiquidityStrategy is IFPMMCallee {
+
+interface ILiquidityStrategyHook {
+  function onRebalance(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external;
+}
+
+contract MockLiquidityStrategy is ILiquidityStrategyHook {
   FPMM public fpmm;
   address public token0;
   address public token1;
@@ -52,7 +56,7 @@ contract MockLiquidityStrategy is IFPMMCallee {
   }
 
   // The hook function that gets called during the flash loan
-  function hook(address, uint256 amount0, uint256 amount1, bytes calldata) external override {
+  function onRebalance(address, uint256 amount0, uint256 amount1, bytes calldata) external override {
     require(msg.sender == address(fpmm), "Not called by FPMM");
 
     if (shouldFail) {

@@ -112,8 +112,8 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
 
     // (contracts, collateralRegistry, hintHelpers, multiTroveGetter) = deployer.deployAndConnectContracts();
     (contracts, collateralRegistry, , ) = deployAndConnectContracts(
-      $tokens.cdpDebtToken,
-      IERC20Metadata(address($tokens.cdpCollToken))
+      $tokens.eurm,
+      IERC20Metadata(address($tokens.usdm))
     );
 
     vm.label(address(contracts.addressesRegistry), "AddressesRegistry");
@@ -135,7 +135,6 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
     vm.label(address(contracts.interestRouter), "InterestRouter");
     $liquity.interestRouter = contracts.interestRouter;
     vm.label(address(contracts.collToken), "USD.m");
-    $liquity.collToken = contracts.collToken;
     vm.label(address(contracts.systemParams), "SystemParams");
     $liquity.systemParams = contracts.systemParams;
     vm.label(address(contracts.pools.defaultPool), "DefaultPool");
@@ -145,7 +144,7 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
     vm.label(address(contracts.pools.gasPool), "GasPool");
     $liquityInternalPools.gasPool = contracts.pools.gasPool;
     vm.label(address(collateralRegistry), "CollateralRegistry");
-    $collateralRegistry = collateralRegistry;
+    $liquity.collateralRegistry = collateralRegistry;
 
     _configureDebtToken(contracts, collateralRegistry);
     assertEq(
@@ -481,18 +480,18 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
   }
 
   function _configureDebtToken(LiquityContracts memory contracts, ICollateralRegistry collateralRegistry) private {
-    address stableOwner = Ownable(address($tokens.cdpDebtToken)).owner();
+    address stableOwner = Ownable(address($tokens.eurm)).owner();
 
     vm.startPrank(stableOwner);
-    IStableTokenV3(address($tokens.cdpDebtToken)).setMinter(address(contracts.borrowerOperations), true);
-    IStableTokenV3(address($tokens.cdpDebtToken)).setMinter(address(contracts.activePool), true);
+    IStableTokenV3(address($tokens.eurm)).setMinter(address(contracts.borrowerOperations), true);
+    IStableTokenV3(address($tokens.eurm)).setMinter(address(contracts.activePool), true);
 
-    IStableTokenV3(address($tokens.cdpDebtToken)).setBurner(address(collateralRegistry), true);
-    IStableTokenV3(address($tokens.cdpDebtToken)).setBurner(address(contracts.borrowerOperations), true);
-    IStableTokenV3(address($tokens.cdpDebtToken)).setBurner(address(contracts.troveManager), true);
-    IStableTokenV3(address($tokens.cdpDebtToken)).setBurner(address(contracts.stabilityPool), true);
+    IStableTokenV3(address($tokens.eurm)).setBurner(address(collateralRegistry), true);
+    IStableTokenV3(address($tokens.eurm)).setBurner(address(contracts.borrowerOperations), true);
+    IStableTokenV3(address($tokens.eurm)).setBurner(address(contracts.troveManager), true);
+    IStableTokenV3(address($tokens.eurm)).setBurner(address(contracts.stabilityPool), true);
 
-    IStableTokenV3(address($tokens.cdpDebtToken)).setOperator(address(contracts.stabilityPool), true);
+    IStableTokenV3(address($tokens.eurm)).setOperator(address(contracts.stabilityPool), true);
     vm.stopPrank();
   }
 

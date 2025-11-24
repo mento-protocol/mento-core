@@ -222,9 +222,13 @@ interface IRouter {
   ) external;
 
   /// @notice Used to generate params required for zapping in.
-  ///         Zap in => remove liquidity then swap.
-  ///         Apply slippage to expected swap values to account for changes in reserves in between.
-  /// @dev Output token refers to the token you want to zap in from.
+  ///         Zap in => swap input tokens then add liquidity.
+  /// @dev IMPORTANT: These are optimistic estimates based on current pool state. Actual execution may differ due to:
+  ///      - Pool state changes between this call and execution (MEV, other transactions)
+  ///      - Self-inflicted price impact: swaps via routesA/routesB change reserves before liquidity addition
+  ///      - Trading limits (TradingLimitsV2) are not checked and may cause reverts
+  ///      Users SHOULD apply slippage tolerance to returned values.
+  ///      For precise values, simulate the actual zapIn() call via eth_call.
   /// @param tokenA           .
   /// @param tokenB           .
   /// @param _factory         .
@@ -247,9 +251,13 @@ interface IRouter {
   ) external view returns (uint256 amountOutMinA, uint256 amountOutMinB, uint256 amountAMin, uint256 amountBMin);
 
   /// @notice Used to generate params required for zapping out.
-  ///         Zap out => swap then add liquidity.
-  ///         Apply slippage to expected liquidity values to account for changes in reserves in between.
-  /// @dev Output token refers to the token you want to zap out of.
+  ///         Zap out => remove liquidity then swap tokens to output token.
+  /// @dev IMPORTANT: These are optimistic estimates based on current pool state. Actual execution may differ due to:
+  ///      - Pool state changes between this call and execution (MEV, other transactions)
+  ///      - Reduced swap liquidity: removing liquidity first reduces available reserves for subsequent swaps
+  ///      - Trading limits (TradingLimitsV2) are not checked and may cause reverts
+  ///      Users SHOULD apply slippage tolerance to returned values.
+  ///      For precise values, simulate the actual zapOut() call via eth_call.
   /// @param tokenA           .
   /// @param tokenB           .
   /// @param _factory         .
