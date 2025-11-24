@@ -103,7 +103,7 @@ contract StableTokenV3 is IStableTokenV3, IFeeCurrency, ERC20PermitUpgradeable, 
     address[] memory _operators
   ) external reinitializer(3) {
     __ERC20_init_unchained(_name, _symbol);
-    __ERC20Permit_init(_symbol);
+    __ERC20Permit_init(_name);
     _transferOwnership(_initialOwner);
 
     require(initialBalanceAddresses.length == initialBalanceValues.length, "Array length mismatch");
