@@ -19,7 +19,7 @@ contract MarketHoursBreakerTest is Test {
   }
 
   function getOpenMarketHours() public pure returns (uint256[] memory) {
-    uint256[] memory timestamps = new uint256[](10);
+    uint256[] memory timestamps = new uint256[](12);
 
     timestamps[0] = DateTimeLibrary.timestampFromDateTime(2024, 8, 12, 9, 0, 0); // Monday 09:00
     timestamps[1] = DateTimeLibrary.timestampFromDateTime(2024, 8, 13, 15, 30, 0); // Tuesday 15:30
@@ -27,10 +27,12 @@ contract MarketHoursBreakerTest is Test {
     timestamps[3] = DateTimeLibrary.timestampFromDateTime(2024, 8, 15, 18, 45, 0); // Thursday 18:45
     timestamps[4] = DateTimeLibrary.timestampFromDateTime(2024, 8, 9, 20, 59, 0); // Friday 20:59
     timestamps[5] = DateTimeLibrary.timestampFromDateTime(2024, 8, 11, 23, 0, 0); // Sunday 23:00
-    timestamps[6] = DateTimeLibrary.timestampFromDateTime(2024, 12, 24, 23, 59, 59); // Dec 24th
-    timestamps[7] = DateTimeLibrary.timestampFromDateTime(2024, 12, 26, 0, 0, 0); // Dec 26th
+    timestamps[6] = DateTimeLibrary.timestampFromDateTime(2025, 12, 24, 21, 59, 59); // Dec 24th before 22 UTC
+    timestamps[7] = DateTimeLibrary.timestampFromDateTime(2025, 12, 26, 0, 0, 0); // Dec 26th
     timestamps[8] = DateTimeLibrary.timestampFromDateTime(2024, 2, 29, 18, 30, 0); // Feb 29th (Thurs)
     timestamps[9] = DateTimeLibrary.timestampFromDateTime(2024, 3, 1, 20, 59, 0); // Mar 1st (Fri)
+    timestamps[10] = DateTimeLibrary.timestampFromDateTime(2024, 12, 31, 21, 59, 59); // Dec 31th before 22 UTC
+    timestamps[11] = DateTimeLibrary.timestampFromDateTime(2025, 1, 2, 0, 0, 0); // Jan 2nd
 
     return timestamps;
   }
@@ -51,15 +53,21 @@ contract MarketHoursBreakerTest is Test {
   }
 
   function getHolidays() public pure returns (uint256[] memory) {
-    uint256[] memory timestamps = new uint256[](4);
+    uint256[] memory timestamps = new uint256[](6);
+
+    // Christmas Eve
+    timestamps[0] = DateTimeLibrary.timestampFromDateTime(2025, 12, 24, 22, 0, 0);
 
     // Christmas
-    timestamps[0] = DateTimeLibrary.timestampFromDateTime(2024, 12, 25, 0, 0, 0);
-    timestamps[1] = DateTimeLibrary.timestampFromDateTime(2024, 12, 25, 23, 59, 59);
+    timestamps[1] = DateTimeLibrary.timestampFromDateTime(2025, 12, 25, 0, 0, 0);
+    timestamps[2] = DateTimeLibrary.timestampFromDateTime(2025, 12, 25, 23, 59, 59);
+
+    // New Years Eve
+    timestamps[3] = DateTimeLibrary.timestampFromDateTime(2025, 12, 31, 22, 0, 0);
 
     // New Years
-    timestamps[2] = DateTimeLibrary.timestampFromDateTime(2024, 1, 1, 0, 0, 0);
-    timestamps[3] = DateTimeLibrary.timestampFromDateTime(2024, 1, 1, 23, 59, 59);
+    timestamps[4] = DateTimeLibrary.timestampFromDateTime(2026, 1, 1, 0, 0, 0);
+    timestamps[5] = DateTimeLibrary.timestampFromDateTime(2026, 1, 1, 23, 59, 59);
 
     return timestamps;
   }

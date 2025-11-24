@@ -6,7 +6,7 @@ import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/Sa
 import { IERC20MintableBurnable } from "../common/IERC20MintableBurnable.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
-import { IReserve } from "../interfaces/IReserve.sol";
+import { IReserveV2 } from "../interfaces/IReserveV2.sol";
 import { IReserveLiquidityStrategy } from "../interfaces/IReserveLiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
 
@@ -19,20 +19,27 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
   /* ============================================================ */
 
   /// @notice The reserve contract that holds collateral
-  IReserve public reserve;
+  IReserveV2 public reserve;
 
   /* ============================================================ */
   /* ======================= Constructor ======================== */
   /* ============================================================ */
 
   /**
-   * @notice Constructor
+   * @notice Disables initializers on implementation contracts.
+   * @param disable Set to true to disable initializers (for proxy pattern).
+   */
+  constructor(bool disable) LiquidityStrategy(disable) {}
+
+  /**
+   * @notice Initializes the ReserveLiquidityStrategy contract
    * @param _initialOwner The initial owner of the contract
    * @param _reserve The Mento Protocol Reserve contract address
    */
-  constructor(address _initialOwner, address _reserve) LiquidityStrategy(_initialOwner) {
+  function initialize(address _initialOwner, address _reserve) public initializer {
+    __LiquidityStrategy_init(_initialOwner);
     if (_reserve == address(0)) revert RLS_INVALID_RESERVE();
-    reserve = IReserve(_reserve);
+    reserve = IReserveV2(_reserve);
     emit ReserveSet(address(0), _reserve);
   }
 
@@ -55,7 +62,7 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
     if (_reserve == address(0)) revert RLS_INVALID_RESERVE();
 
     address oldReserve = address(reserve);
-    reserve = IReserve(_reserve);
+    reserve = IReserveV2(_reserve);
 
     emit ReserveSet(oldReserve, _reserve);
   }
@@ -141,8 +148,7 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
       IERC20MintableBurnable(token).mint(pool, amount);
     } else if (reserve.isCollateralAsset(token)) {
       // Transfer collateral from reserve
-      if (!reserve.transferExchangeCollateralAsset(token, payable(pool), amount))
-        revert RLS_COLLATERAL_TO_POOL_FAILED();
+      if (!reserve.transferCollateralAsset(token, pool, amount)) revert RLS_COLLATERAL_TO_POOL_FAILED();
     } else {
       revert RLS_TOKEN_IN_NOT_SUPPORTED();
     }

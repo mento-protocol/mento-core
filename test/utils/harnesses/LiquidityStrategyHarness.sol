@@ -18,7 +18,13 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
   bool public shouldLimitContraction;
   uint256 public maxContractionAmount;
 
-  constructor(address _initialOwner) LiquidityStrategy(_initialOwner) {}
+  constructor(address _initialOwner) LiquidityStrategy(false) {
+    __initializeHarness(_initialOwner);
+  }
+
+  function __initializeHarness(address _initialOwner) private initializer {
+    __LiquidityStrategy_init(_initialOwner);
+  }
 
   /* ============================================================ */
   /* ==================== Test Configuration ==================== */

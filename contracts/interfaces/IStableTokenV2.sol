@@ -95,4 +95,6 @@ interface IStableTokenV2 {
     uint256 gatewayFee,
     uint256 baseTxFee
   ) external;
+
+  function setValidators(address _validators) external;
 }

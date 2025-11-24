@@ -73,6 +73,6 @@ contract MockFPMM {
   function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external {
     // Simulate the pool calling back into the strategy's hook
     // In the real FPMM, this would transfer tokens and then call the hook
-    ILiquidityStrategy(msg.sender).hook(msg.sender, amount0Out, amount1Out, data);
+    ILiquidityStrategy(msg.sender).onRebalance(msg.sender, amount0Out, amount1Out, data);
   }
 }

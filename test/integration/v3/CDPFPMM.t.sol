@@ -7,13 +7,22 @@ import { OracleAdapterDeployer } from "test/integration/v3/OracleAdapterDeployer
 import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategyDeployer.sol";
 import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
+import { MentoV2Deployer } from "test/integration/v3/MentoV2Deployer.sol";
 
-contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeployer, FPMMDeployer, LiquityDeployer {
+contract CDPFPMM is
+  TokenDeployer,
+  MentoV2Deployer,
+  OracleAdapterDeployer,
+  LiquidityStrategyDeployer,
+  FPMMDeployer,
+  LiquityDeployer
+{
   address reserveMultisig = makeAddr("reserveMultisig");
 
   function setUp() public {
     _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
     _deployOracleAdapter();
+    _deployMentoV2();
     _deployLiquidityStrategies();
     _deployFPMM({ invertCDPFPMMRate: true, invertReserveFPMMRate: false });
     _deployLiquity();
@@ -82,9 +91,11 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
 
     FPMMPrices memory pricesBeforeRebalance = _snapshotPrices($fpmm.fpmmCDP);
 
-    uint256 expectedDebtToRedeem = ($tokens.cdpDebtToken.totalSupply() * 25) / 10_000;
+    uint256 expectedDebtToRedeem = ($tokens.eurm.totalSupply() * 25) / 10_000;
 
-    uint256 expectedRedemptionFee = $collateralRegistry.getRedemptionRateForRedeemedAmount(expectedDebtToRedeem);
+    uint256 expectedRedemptionFee = $liquity.collateralRegistry.getRedemptionRateForRedeemedAmount(
+      expectedDebtToRedeem
+    );
 
     uint256 expectedCollInflow = (expectedDebtToRedeem *
       (1e18 - expectedRedemptionFee) *
@@ -128,14 +139,14 @@ contract CDPFPMM is TokenDeployer, OracleAdapterDeployer, LiquidityStrategyDeplo
 
     // need better way to open troves in order to get to target supply
     // _openDemoTroves(
-    //   targetSupply - $tokens.cdpDebtToken.totalSupply(),
+    //   targetSupply - $tokens.eurm.totalSupply(),
     //   $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(),
     //   1e14,
     //   makeAddr("alice"),
     //   1
     // );
 
-    _mintCDPDebtToken(makeAddr("alice"), targetSupply - $tokens.cdpDebtToken.totalSupply());
+    _mintCDPDebtToken(makeAddr("alice"), targetSupply - $tokens.eurm.totalSupply());
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 

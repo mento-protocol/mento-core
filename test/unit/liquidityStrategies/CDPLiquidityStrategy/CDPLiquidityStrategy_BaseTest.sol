@@ -12,7 +12,6 @@ import { IERC20 } from "contracts/interfaces/IERC20.sol";
 
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
-import { IStabilityPool } from "bold/src/Interfaces/IStabilityPool.sol";
 import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
 import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
@@ -35,6 +34,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     mockSystemParams = makeAddr("SystemParams");
     // Mock REDEMPTION_BETA to return 1 (default value)
     mockRedemptionBeta(1);
+    setMockSystemParamsMinBoldAfterRebalance(0);
   }
 
   modifier addFpmm(uint64 cooldown, uint32 incentiveBps, uint256 stabilityPoolPercentage) {
@@ -101,10 +101,10 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @notice Set the stability pool minimum BOLD balance after rebalance
    * @param minBalance Minimum balance in BOLD token decimals
    */
-  function setStabilityPoolMinBalance(uint256 minBalance) internal {
+  function setMockSystemParamsMinBoldAfterRebalance(uint256 minBalance) internal {
     vm.mockCall(
-      address(mockStabilityPool),
-      abi.encodeWithSelector(IStabilityPool.MIN_BOLD_AFTER_REBALANCE.selector),
+      mockSystemParams,
+      abi.encodeWithSelector(ISystemParams.MIN_BOLD_AFTER_REBALANCE.selector),
       abi.encode(minBalance)
     );
   }
