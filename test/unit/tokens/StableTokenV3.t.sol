@@ -44,7 +44,7 @@ contract StableTokenV3Test is Test {
     holder2 = vm.addr(holder2Pk);
 
     _HASHED_NAME = keccak256(bytes("cUSD"));
-    _HASHED_VERSION = keccak256(bytes("1"));
+    _HASHED_VERSION = keccak256(bytes("3"));
 
     address[] memory minters = new address[](3);
     minters[0] = validators;

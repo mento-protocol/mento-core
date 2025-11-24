@@ -88,8 +88,8 @@ contract V2ToV3UpgradeTest is Test {
     bytes32 expectedDomainSeparator = keccak256(
       abi.encode(
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-        keccak256(bytes(tokenV3.symbol())),
-        keccak256(bytes("2")),
+        keccak256(bytes(tokenV3.name())),
+        keccak256(bytes("3")),
         block.chainid,
         address(tokenV3)
       )
