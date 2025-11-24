@@ -126,7 +126,7 @@ interface ILiquidityStrategy {
    * @param amount1Out The amount of token1 to be sent from the pool
    * @param data Encoded callback data containing rebalance parameters
    */
-  function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external;
+  function onRebalance(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external;
 
   /* ============================================================ */
   /* ======================== View Functions ==================== */

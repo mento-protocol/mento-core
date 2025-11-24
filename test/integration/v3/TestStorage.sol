@@ -49,6 +49,7 @@ import { IMedianDeltaBreaker } from "contracts/interfaces/IMedianDeltaBreaker.so
 import { IVirtualPoolFactory } from "contracts/interfaces/IVirtualPoolFactory.sol";
 import { IRPool } from "contracts/swap/router/interfaces/IRPool.sol";
 
+import { IReserveV2 } from "contracts/interfaces/IReserveV2.sol";
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
@@ -158,6 +159,7 @@ abstract contract TestStorage is Test {
     bool deployed;
     ICDPLiquidityStrategy cdpLiquidityStrategy;
     IReserveLiquidityStrategy reserveLiquidityStrategy;
+    IReserveV2 reserveV2;
     ProxyAdmin proxyAdmin;
   }
 
@@ -248,6 +250,7 @@ abstract contract TestStorage is Test {
     console.log("===== Liquidity Strategies Deployment addresses =====");
     console.log("> cdpLiquidityStrategy:", address($liquidityStrategies.cdpLiquidityStrategy));
     console.log("> reserveLiquidityStrategy:", address($liquidityStrategies.reserveLiquidityStrategy));
-    console.log("> reserve:", address($mentoV2.reserve));
+    console.log("> reserve V1:", address($mentoV2.reserve));
+    console.log("> reserve V2:", address($liquidityStrategies.reserveV2));
   }
 }

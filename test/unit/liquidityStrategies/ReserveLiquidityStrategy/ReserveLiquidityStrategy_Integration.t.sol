@@ -213,11 +213,11 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       testFpmm.setLiquidityStrategy(address(strategy), true);
       testFpmm.setRebalanceIncentive(100);
 
-      // 3. Mock reserve functions for these specific tokens
-      mockReserveStable(_debtToken, true);
-      mockReserveStable(_collToken, false);
-      mockReserveCollateral(_debtToken, false);
-      mockReserveCollateral(_collToken, true);
+      // 3. Register the tokens with the reserve
+      vm.startPrank(owner);
+      reserve.registerStableAsset(_debtToken);
+      reserve.registerCollateralAsset(_collToken);
+      vm.stopPrank();
 
       // 4. Add this pool to the strategy
       vm.prank(owner);
