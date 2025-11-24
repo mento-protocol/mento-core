@@ -165,27 +165,6 @@ interface IReserveV2 {
    */
   function isReserveManagerSpender(address spender) external view returns (bool);
 
-  /* ============================================================ */
-  /* ==================== Mutative Functions ==================== */
-  /* ============================================================ */
-  /**
-   * @notice Initializes the reserve
-   * @param _stableAssets The addresses of the stable assets
-   * @param _collateralAssets The addresses of the collateral assets
-   * @param _otherReserveAddresses The addresses of the other reserve addresses
-   * @param _liquidityStrategySpenders The addresses of the liquidity strategy spenders
-   * @param _reserveManagerSpenders The addresses of the reserve manager spenders
-   * @param _initialOwner The address of the initial owner
-   */
-  function initialize(
-    address[] calldata _stableAssets,
-    address[] calldata _collateralAssets,
-    address[] calldata _otherReserveAddresses,
-    address[] calldata _liquidityStrategySpenders,
-    address[] calldata _reserveManagerSpenders,
-    address _initialOwner
-  ) external;
-
   /**
    * @notice Returns the list of all registered stable assets
    * @return An array of addresses of stable assets
@@ -211,6 +190,27 @@ interface IReserveV2 {
    * @return An array of addresses of reserve manager spenders
    */
   function getReserveManagerSpenders() external view returns (address[] memory);
+
+  /* ============================================================ */
+  /* ==================== Mutative Functions ==================== */
+  /* ============================================================ */
+  /**
+   * @notice Initializes the reserve
+   * @param _stableAssets The addresses of the stable assets
+   * @param _collateralAssets The addresses of the collateral assets
+   * @param _otherReserveAddresses The addresses of the other reserve addresses
+   * @param _liquidityStrategySpenders The addresses of the liquidity strategy spenders
+   * @param _reserveManagerSpenders The addresses of the reserve manager spenders
+   * @param _initialOwner The address of the initial owner
+   */
+  function initialize(
+    address[] calldata _stableAssets,
+    address[] calldata _collateralAssets,
+    address[] calldata _otherReserveAddresses,
+    address[] calldata _liquidityStrategySpenders,
+    address[] calldata _reserveManagerSpenders,
+    address _initialOwner
+  ) external;
 
   /**
    * @notice Registers a stable asset to the reserve
@@ -277,9 +277,9 @@ interface IReserveV2 {
   /* ============================================================ */
 
   /**
-   * @notice Transfers collateral asset to an other reserve address, by a reserve manager spender
-   * @param to The address of the other reserve address
+   * @notice Transfers collateral asset to another reserve address, by a reserve manager spender
    * @param collateralAsset The address of the collateral asset
+   * @param to The address of the other reserve address
    * @param value The amount of collateral asset to transfer
    * @return True if the transaction succeeds
    */

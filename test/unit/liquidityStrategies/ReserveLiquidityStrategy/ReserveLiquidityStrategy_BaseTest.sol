@@ -7,61 +7,57 @@ import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrate
 import { ReserveLiquidityStrategyHarness } from "test/utils/harnesses/ReserveLiquidityStrategyHarness.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { IReserveV2 } from "contracts/interfaces/IReserveV2.sol";
+import { ReserveV2 } from "contracts/swap/ReserveV2.sol";
+import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   ReserveLiquidityStrategyHarness public strategy;
 
-  // Mock addresses
-  address public reserve = makeAddr("Reserve");
+  // Reserve V2 contract
+  ReserveV2 public reserve;
 
   function setUp() public virtual override {
     LiquidityStrategy_BaseTest.setUp();
-    strategy = new ReserveLiquidityStrategyHarness(owner, reserve);
+    reserve = new ReserveV2(false);
+
+    strategy = new ReserveLiquidityStrategyHarness(owner, address(reserve));
     strategyAddr = address(strategy);
+
+    address[] memory stableAssets = new address[](0);
+    address[] memory collateralAssets = new address[](0);
+    address[] memory otherReserveAddresses = new address[](0);
+    address[] memory liquidityStrategySpenders = new address[](1);
+    liquidityStrategySpenders[0] = strategyAddr;
+    address[] memory reserveManagerSpenders = new address[](0);
+
+    reserve.initialize(
+      stableAssets,
+      collateralAssets,
+      otherReserveAddresses,
+      liquidityStrategySpenders,
+      reserveManagerSpenders,
+      owner
+    );
   }
 
   modifier addFpmm(uint64 cooldown, uint32 incentiveBps) {
-    // Mock reserve to recognize debt token as stable asset and collateral token as collateral asset
-    mockReserveStable(debtToken, true);
-    mockReserveStable(collToken, false);
-    mockReserveCollateral(debtToken, false);
-    mockReserveCollateral(collToken, true);
-
     // Set FPMM rebalance incentive cap to match or exceed strategy incentive
     // Note: FPMM has a maximum cap, typically 1000 bps (10%)
     uint32 fpmmIncentive = incentiveBps > 1000 ? 1000 : incentiveBps;
     fpmm.setRebalanceIncentive(fpmmIncentive);
 
-    vm.prank(owner);
+    vm.startPrank(owner);
     strategy.addPool(address(fpmm), debtToken, cooldown, incentiveBps);
+    reserve.registerCollateralAsset(collToken);
+    reserve.registerStableAsset(debtToken);
+    MockERC20(collToken).mint(address(reserve), 1000000e18);
+    vm.stopPrank();
     _;
   }
 
   /* ============================================================ */
   /* ================= Helper Functions ========================= */
   /* ============================================================ */
-
-  /**
-   * @notice Mock reserve to recognize an asset as collateral
-   * @param asset The asset address
-   * @param isCollateral Whether the asset is collateral
-   */
-  function mockReserveCollateral(address asset, bool isCollateral) internal {
-    vm.mockCall(
-      reserve,
-      abi.encodeWithSelector(IReserveV2.isCollateralAsset.selector, asset),
-      abi.encode(isCollateral)
-    );
-  }
-
-  /**
-   * @notice Mock reserve to recognize an asset as stable
-   * @param asset The asset address
-   * @param isStable Whether the asset is stable
-   */
-  function mockReserveStable(address asset, bool isStable) internal {
-    vm.mockCall(reserve, abi.encodeWithSelector(IReserveV2.isStableAsset.selector, asset), abi.encode(isStable));
-  }
 
   /**
    * @notice Create a liquidity context for testing
@@ -203,13 +199,9 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @param to The destination address
    * @param amount The amount to transfer
    */
-  function expectReserveTransfer(address token, address to, uint256 amount) internal {
-    // Mock the specific reserve transfer call to return true
-    vm.mockCall(
-      reserve,
-      abi.encodeWithSelector(IReserveV2.transferCollateralAsset.selector, token, to, amount),
-      abi.encode(true)
-    );
+  function expectReserveTransfer(address strategyAddr, address token, address to, uint256 amount) internal {
+    vm.expectEmit(true, true, true, true, address(reserve));
+    emit IReserveV2.CollateralAssetTransferredLiquidityStrategySpender(strategyAddr, token, to, amount);
   }
 
   /**
@@ -221,7 +213,7 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   function expectReserveTransferFailure(address token, address to, uint256 amount) internal {
     // Mock the specific reserve transfer call to return false
     vm.mockCall(
-      reserve,
+      address(reserve),
       abi.encodeWithSelector(IReserveV2.transferCollateralAsset.selector, token, to, amount),
       abi.encode(false)
     );

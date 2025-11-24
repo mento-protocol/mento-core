@@ -189,16 +189,26 @@ contract ReserveV2Test is Test {
     assertTrue(newReserve.isReserveManagerSpender(reserveManagerSpender2));
 
     // Verify arrays (via public getters)
-    assertEq(newReserve.stableAssets(0), address(stableAsset));
-    assertEq(newReserve.stableAssets(1), address(stableAsset2));
-    assertEq(newReserve.collateralAssets(0), address(collateralAsset));
-    assertEq(newReserve.collateralAssets(1), address(collateralAsset2));
-    assertEq(newReserve.otherReserveAddresses(0), otherReserveAddress);
-    assertEq(newReserve.otherReserveAddresses(1), otherReserve2);
-    assertEq(newReserve.liquidityStrategySpenders(0), liquidityStrategySpender);
-    assertEq(newReserve.liquidityStrategySpenders(1), liquidityStrategySpender2);
-    assertEq(newReserve.reserveManagerSpenders(0), reserveManagerSpender);
-    assertEq(newReserve.reserveManagerSpenders(1), reserveManagerSpender2);
+    address[] memory stableAssetsContents = newReserve.getStableAssets();
+    assertEq(stableAssetsContents.length, 2);
+    assertEq(stableAssetsContents[0], address(stableAsset));
+    assertEq(stableAssetsContents[1], address(stableAsset2));
+    address[] memory collateralAssetsContents = newReserve.getCollateralAssets();
+    assertEq(collateralAssetsContents.length, 2);
+    assertEq(collateralAssetsContents[0], address(collateralAsset));
+    assertEq(collateralAssetsContents[1], address(collateralAsset2));
+    address[] memory otherReserveAddressesContents = newReserve.getOtherReserveAddresses();
+    assertEq(otherReserveAddressesContents.length, 2);
+    assertEq(otherReserveAddressesContents[0], otherReserveAddress);
+    assertEq(otherReserveAddressesContents[1], otherReserve2);
+    address[] memory liquidityStrategySpendersContents = newReserve.getLiquidityStrategySpenders();
+    assertEq(liquidityStrategySpendersContents.length, 2);
+    assertEq(liquidityStrategySpendersContents[0], liquidityStrategySpender);
+    assertEq(liquidityStrategySpendersContents[1], liquidityStrategySpender2);
+    address[] memory reserveManagerSpendersContents = newReserve.getReserveManagerSpenders();
+    assertEq(reserveManagerSpendersContents.length, 2);
+    assertEq(reserveManagerSpendersContents[0], reserveManagerSpender);
+    assertEq(reserveManagerSpendersContents[1], reserveManagerSpender2);
   }
 
   function test_initialize_whenCalledTwice_shouldRevert() public {
@@ -605,7 +615,7 @@ contract ReserveV2Test is Test {
     );
 
     vm.prank(reserveManagerSpender);
-    bool success = reserve.transferCollateralAssetToOtherReserve(otherReserveAddress, address(collateralAsset), amount);
+    bool success = reserve.transferCollateralAssetToOtherReserve(address(collateralAsset), otherReserveAddress, amount);
 
     // Verify return value
     assertTrue(success);
@@ -621,7 +631,7 @@ contract ReserveV2Test is Test {
 
     vm.prank(notOwner);
     vm.expectRevert(IReserveV2.ReserveManagerSpenderNotRegistered.selector);
-    reserve.transferCollateralAssetToOtherReserve(otherReserveAddress, address(collateralAsset), amount);
+    reserve.transferCollateralAssetToOtherReserve(address(collateralAsset), otherReserveAddress, amount);
   }
 
   function test_transferCollateralAssetToOtherReserve_whenToIsNotOtherReserveAddress_shouldRevert() public {
@@ -635,7 +645,7 @@ contract ReserveV2Test is Test {
 
     vm.prank(reserveManagerSpender);
     vm.expectRevert(IReserveV2.OtherReserveAddressNotRegistered.selector);
-    reserve.transferCollateralAssetToOtherReserve(randomAddress, address(collateralAsset), amount);
+    reserve.transferCollateralAssetToOtherReserve(address(collateralAsset), randomAddress, amount);
   }
 
   function test_transferCollateralAssetToOtherReserve_whenCollateralAssetNotRegistered_shouldRevert() public {
@@ -648,7 +658,7 @@ contract ReserveV2Test is Test {
 
     vm.prank(reserveManagerSpender);
     vm.expectRevert(IReserveV2.CollateralAssetNotRegistered.selector);
-    reserve.transferCollateralAssetToOtherReserve(otherReserveAddress, address(unregisteredAsset), amount);
+    reserve.transferCollateralAssetToOtherReserve(address(unregisteredAsset), otherReserveAddress, amount);
   }
 
   function test_transferCollateralAssetToOtherReserve_whenInsufficientBalance_shouldRevert() public {
@@ -659,7 +669,7 @@ contract ReserveV2Test is Test {
 
     vm.prank(reserveManagerSpender);
     vm.expectRevert(IReserveV2.InsufficientReserveBalance.selector);
-    reserve.transferCollateralAssetToOtherReserve(otherReserveAddress, address(collateralAsset), amount);
+    reserve.transferCollateralAssetToOtherReserve(address(collateralAsset), otherReserveAddress, amount);
   }
 
   function test_transferCollateralAsset_shouldUpdateBalancesAndEmitEvent() public {
@@ -874,8 +884,8 @@ contract ReserveV2Test is Test {
 
     vm.prank(reserveManagerSpender);
     bool success = proxyReserve.transferCollateralAssetToOtherReserve(
-      otherReserveAddress,
       address(collateralAsset),
+      otherReserveAddress,
       amount
     );
 

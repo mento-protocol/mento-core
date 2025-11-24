@@ -6,41 +6,61 @@ import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/Sa
 
 import { IReserveV2 } from "../interfaces/IReserveV2.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+
+// solhint-disable-next-line max-line-length
+import { EnumerableSetUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
+
+/**
+ * @title ReserveV2
+ * @author Mento Labs
+ * @notice This contract implements a reserve for the Mento Protocol.
+ * @dev ReserveV2 is not backwards-compatible with the old Reserve contract.
+ * It is based on the Reserve contract from the Mento Protocol v2 but removed unnecessary functionality.
+ * The ReserveV2 contract maintains a list of:
+ * - stable assets
+ * - collateral assets
+ * - other reserve addresses
+ * - liquidity strategy spenders that can transfer collateral assets to any address
+ * - reserve manager spenders that can transfer collateral assets to other reserve addresses
+ * @dev The reserve is used to manage the assets of the protocol and to facilitate the transfer
+ * of assets between the protocol and other contracts.
+ */
 contract ReserveV2 is IReserveV2, OwnableUpgradeable {
   using SafeERC20 for IERC20;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-  mapping(address => bool) public isStableAsset;
-  address[] public stableAssets;
+  // stable assets registered with the reserve
+  EnumerableSetUpgradeable.AddressSet private stableAssets;
 
-  mapping(address => bool) public isCollateralAsset;
-  address[] public collateralAssets;
+  // collateral assets registered with the reserve
+  EnumerableSetUpgradeable.AddressSet private collateralAssets;
 
-  mapping(address => bool) public isOtherReserveAddress;
-  address[] public otherReserveAddresses;
+  // other reserve addresses registered with the reserve
+  EnumerableSetUpgradeable.AddressSet private otherReserveAddresses;
 
-  mapping(address => bool) public isLiquidityStrategySpender;
-  address[] public liquidityStrategySpenders;
+  // liquidity strategy spenders registered with the reserve
+  EnumerableSetUpgradeable.AddressSet private liquidityStrategySpenders;
 
-  mapping(address => bool) public isReserveManagerSpender;
-  address[] public reserveManagerSpenders;
+  // reserve manager spenders registered with the reserve
+  EnumerableSetUpgradeable.AddressSet private reserveManagerSpenders;
 
   modifier onlyReserveManagerSpender() {
-    if (!isReserveManagerSpender[msg.sender]) revert ReserveManagerSpenderNotRegistered();
+    if (!reserveManagerSpenders.contains(msg.sender)) revert ReserveManagerSpenderNotRegistered();
     _;
   }
 
   modifier onlyLiquidityStrategySpender() {
-    if (!isLiquidityStrategySpender[msg.sender]) revert LiquidityStrategySpenderNotRegistered();
+    if (!liquidityStrategySpenders.contains(msg.sender)) revert LiquidityStrategySpenderNotRegistered();
     _;
   }
 
   modifier onlyCollateralAsset(address collateralAsset) {
-    if (!isCollateralAsset[collateralAsset]) revert CollateralAssetNotRegistered();
+    if (!collateralAssets.contains(collateralAsset)) revert CollateralAssetNotRegistered();
     _;
   }
 
   modifier onlyOtherReserveAddress(address otherReserveAddress) {
-    if (!isOtherReserveAddress[otherReserveAddress]) revert OtherReserveAddressNotRegistered();
+    if (!otherReserveAddresses.contains(otherReserveAddress)) revert OtherReserveAddressNotRegistered();
     _;
   }
 
@@ -91,28 +111,53 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
   /* ============================================================ */
 
   /// @inheritdoc IReserveV2
+  function isStableAsset(address _stableAsset) external view returns (bool) {
+    return stableAssets.contains(_stableAsset);
+  }
+
+  /// @inheritdoc IReserveV2
+  function isCollateralAsset(address _collateralAsset) external view returns (bool) {
+    return collateralAssets.contains(_collateralAsset);
+  }
+
+  /// @inheritdoc IReserveV2
+  function isOtherReserveAddress(address _otherReserveAddress) external view returns (bool) {
+    return otherReserveAddresses.contains(_otherReserveAddress);
+  }
+
+  /// @inheritdoc IReserveV2
+  function isLiquidityStrategySpender(address _liquidityStrategySpender) external view returns (bool) {
+    return liquidityStrategySpenders.contains(_liquidityStrategySpender);
+  }
+
+  /// @inheritdoc IReserveV2
+  function isReserveManagerSpender(address _reserveManagerSpender) external view returns (bool) {
+    return reserveManagerSpenders.contains(_reserveManagerSpender);
+  }
+
+  /// @inheritdoc IReserveV2
   function getStableAssets() external view returns (address[] memory) {
-    return stableAssets;
+    return stableAssets.values();
   }
 
   /// @inheritdoc IReserveV2
   function getCollateralAssets() external view returns (address[] memory) {
-    return collateralAssets;
+    return collateralAssets.values();
   }
 
   /// @inheritdoc IReserveV2
   function getOtherReserveAddresses() external view returns (address[] memory) {
-    return otherReserveAddresses;
+    return otherReserveAddresses.values();
   }
 
   /// @inheritdoc IReserveV2
   function getLiquidityStrategySpenders() external view returns (address[] memory) {
-    return liquidityStrategySpenders;
+    return liquidityStrategySpenders.values();
   }
 
   /// @inheritdoc IReserveV2
   function getReserveManagerSpenders() external view returns (address[] memory) {
-    return reserveManagerSpenders;
+    return reserveManagerSpenders.values();
   }
 
   /* ============================================================ */
@@ -125,9 +170,7 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
 
   /// @inheritdoc IReserveV2
   function unregisterStableAsset(address _stableAsset) external onlyOwner {
-    if (!isStableAsset[_stableAsset]) revert StableAssetNotRegistered();
-    isStableAsset[_stableAsset] = false;
-    _removeAddressFromArray(stableAssets, _stableAsset);
+    if (!stableAssets.remove(_stableAsset)) revert StableAssetNotRegistered();
     emit StableAssetUnregistered(_stableAsset);
   }
 
@@ -138,9 +181,7 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
 
   /// @inheritdoc IReserveV2
   function unregisterCollateralAsset(address _collateralAsset) external onlyOwner {
-    if (!isCollateralAsset[_collateralAsset]) revert CollateralAssetNotRegistered();
-    isCollateralAsset[_collateralAsset] = false;
-    _removeAddressFromArray(collateralAssets, _collateralAsset);
+    if (!collateralAssets.remove(_collateralAsset)) revert CollateralAssetNotRegistered();
     emit CollateralAssetUnregistered(_collateralAsset);
   }
 
@@ -151,9 +192,7 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
 
   /// @inheritdoc IReserveV2
   function unregisterOtherReserveAddress(address _otherReserveAddress) external onlyOwner {
-    if (!isOtherReserveAddress[_otherReserveAddress]) revert OtherReserveAddressNotRegistered();
-    isOtherReserveAddress[_otherReserveAddress] = false;
-    _removeAddressFromArray(otherReserveAddresses, _otherReserveAddress);
+    if (!otherReserveAddresses.remove(_otherReserveAddress)) revert OtherReserveAddressNotRegistered();
     emit OtherReserveAddressUnregistered(_otherReserveAddress);
   }
 
@@ -164,9 +203,7 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
 
   /// @inheritdoc IReserveV2
   function unregisterLiquidityStrategySpender(address _liquidityStrategySpender) external onlyOwner {
-    if (!isLiquidityStrategySpender[_liquidityStrategySpender]) revert LiquidityStrategySpenderNotRegistered();
-    isLiquidityStrategySpender[_liquidityStrategySpender] = false;
-    _removeAddressFromArray(liquidityStrategySpenders, _liquidityStrategySpender);
+    if (!liquidityStrategySpenders.remove(_liquidityStrategySpender)) revert LiquidityStrategySpenderNotRegistered();
     emit LiquidityStrategySpenderUnregistered(_liquidityStrategySpender);
   }
 
@@ -177,9 +214,7 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
 
   /// @inheritdoc IReserveV2
   function unregisterReserveManagerSpender(address _reserveManagerSpender) external onlyOwner {
-    if (!isReserveManagerSpender[_reserveManagerSpender]) revert ReserveManagerSpenderNotRegistered();
-    isReserveManagerSpender[_reserveManagerSpender] = false;
-    _removeAddressFromArray(reserveManagerSpenders, _reserveManagerSpender);
+    if (!reserveManagerSpenders.remove(_reserveManagerSpender)) revert ReserveManagerSpenderNotRegistered();
     emit ReserveManagerSpenderUnregistered(_reserveManagerSpender);
   }
 
@@ -189,8 +224,8 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
 
   /// @inheritdoc IReserveV2
   function transferCollateralAssetToOtherReserve(
-    address to,
     address collateralAsset,
+    address to,
     uint256 value
   ) external onlyReserveManagerSpender onlyOtherReserveAddress(to) onlyCollateralAsset(collateralAsset) returns (bool) {
     _transferCollateralAsset(collateralAsset, to, value);
@@ -217,10 +252,8 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
    * @param _stableAsset The address of the stable asset to register
    */
   function _registerStableAsset(address _stableAsset) internal {
-    if (isStableAsset[_stableAsset]) revert StableAssetAlreadyRegistered();
     if (_stableAsset == address(0)) revert StableAssetZeroAddress();
-    isStableAsset[_stableAsset] = true;
-    stableAssets.push(_stableAsset);
+    if (!stableAssets.add(_stableAsset)) revert StableAssetAlreadyRegistered();
     emit StableAssetRegistered(_stableAsset);
   }
 
@@ -229,10 +262,8 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
    * @param _collateralAsset The address of the collateral asset to register
    */
   function _registerCollateralAsset(address _collateralAsset) internal {
-    if (isCollateralAsset[_collateralAsset]) revert CollateralAssetAlreadyRegistered();
     if (_collateralAsset == address(0)) revert CollateralAssetZeroAddress();
-    isCollateralAsset[_collateralAsset] = true;
-    collateralAssets.push(_collateralAsset);
+    if (!collateralAssets.add(_collateralAsset)) revert CollateralAssetAlreadyRegistered();
     emit CollateralAssetRegistered(_collateralAsset);
   }
 
@@ -241,10 +272,8 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
    * @param _otherReserveAddress The address of the other reserve address to register
    */
   function _registerOtherReserveAddress(address _otherReserveAddress) internal {
-    if (isOtherReserveAddress[_otherReserveAddress]) revert OtherReserveAddressAlreadyRegistered();
     if (_otherReserveAddress == address(0)) revert OtherReserveAddressZeroAddress();
-    isOtherReserveAddress[_otherReserveAddress] = true;
-    otherReserveAddresses.push(_otherReserveAddress);
+    if (!otherReserveAddresses.add(_otherReserveAddress)) revert OtherReserveAddressAlreadyRegistered();
     emit OtherReserveAddressRegistered(_otherReserveAddress);
   }
 
@@ -253,10 +282,8 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
    * @param _liquidityStrategySpender The address of the liquidity strategy spender to register
    */
   function _registerLiquidityStrategySpender(address _liquidityStrategySpender) internal {
-    if (isLiquidityStrategySpender[_liquidityStrategySpender]) revert LiquidityStrategySpenderAlreadyRegistered();
     if (_liquidityStrategySpender == address(0)) revert LiquidityStrategySpenderZeroAddress();
-    isLiquidityStrategySpender[_liquidityStrategySpender] = true;
-    liquidityStrategySpenders.push(_liquidityStrategySpender);
+    if (!liquidityStrategySpenders.add(_liquidityStrategySpender)) revert LiquidityStrategySpenderAlreadyRegistered();
     emit LiquidityStrategySpenderRegistered(_liquidityStrategySpender);
   }
 
@@ -265,37 +292,14 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
    * @param _reserveManagerSpender The address of the reserve manager spender to register
    */
   function _registerReserveManagerSpender(address _reserveManagerSpender) internal {
-    if (isReserveManagerSpender[_reserveManagerSpender]) revert ReserveManagerSpenderAlreadyRegistered();
     if (_reserveManagerSpender == address(0)) revert ReserveManagerSpenderZeroAddress();
-    isReserveManagerSpender[_reserveManagerSpender] = true;
-    reserveManagerSpenders.push(_reserveManagerSpender);
+    if (!reserveManagerSpenders.add(_reserveManagerSpender)) revert ReserveManagerSpenderAlreadyRegistered();
     emit ReserveManagerSpenderRegistered(_reserveManagerSpender);
   }
 
   /* ============================================================ */
   /* ==================== Internal Functions ================== */
   /* ============================================================ */
-
-  /**
-   * @notice Removes an address from an array and returns the new array
-   * @param array The array to remove the address from
-   * @param _address The address to remove from the array
-   */
-  function _removeAddressFromArray(address[] storage array, address _address) internal {
-    if (array.length == 0) revert ArrayEmpty();
-    // slither-disable-next-line uninitialized-local
-    uint256 index;
-    for (uint256 i = 0; i < array.length; i++) {
-      if (array[i] == _address) {
-        index = i;
-        break;
-      }
-    }
-    if (array[index] != _address) revert AddressNotInArray();
-
-    array[index] = array[array.length - 1];
-    array.pop();
-  }
 
   /**
    * @notice Transfers a collateral asset to an address
