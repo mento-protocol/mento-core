@@ -33,7 +33,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     });
 
     // Set stability pool balance high enough to cover full expansion
-    setStabilityPoolMinBalance(1e18);
+    setMockSystemParamsMinBoldAfterRebalance(1e18);
     uint256 requiredBalance = calculateTargetStabilityPoolBalance(1e18, ctx);
     setStabilityPoolBalance(debtToken, requiredBalance);
 
@@ -93,7 +93,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       isToken0Debt: true
     });
 
-    setStabilityPoolMinBalance(1e18);
+    setMockSystemParamsMinBoldAfterRebalance(1e18);
     // Set stability pool balance lower than what's needed for full expansion
     uint256 limitedBalance = calculateTargetStabilityPoolBalance(0.6e18, ctx);
     setStabilityPoolBalance(debtToken, limitedBalance);
@@ -154,7 +154,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     });
 
     // Set stability pool balance high enough to cover full expansion
-    setStabilityPoolMinBalance(1e6);
+    setMockSystemParamsMinBoldAfterRebalance(1e6);
     uint256 requiredBalance = calculateTargetStabilityPoolBalance(1e18, ctx);
     setStabilityPoolBalance(debtToken, requiredBalance);
 
@@ -215,7 +215,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       incentiveBps: 50,
       isToken0Debt: false
     });
-    setStabilityPoolMinBalance(1e6);
+    setMockSystemParamsMinBoldAfterRebalance(1e6);
     uint256 limitedBalance = calculateTargetStabilityPoolBalance(0.6e18, ctx);
     setStabilityPoolBalance(debtToken, limitedBalance);
 
@@ -274,7 +274,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     // Set stability pool balance exactly at minimum
     uint256 minBalance = 1000e18;
     setStabilityPoolBalance(debtToken, minBalance);
-    setStabilityPoolMinBalance(minBalance);
+    setMockSystemParamsMinBoldAfterRebalance(minBalance);
 
     // Should revert when trying to determine action
     vm.expectRevert();
@@ -298,7 +298,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     // Set large stability pool balance
     setStabilityPoolBalance(debtToken, 10_000_000e18);
-    setStabilityPoolMinBalance(1e18);
+    setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     LQ.Action memory action = strategy.determineAction(ctx);
 

@@ -194,7 +194,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    */
   function _calculateAvailableDebtInSP(CDPConfig storage cdpConfig) private view returns (uint256 availableAmount) {
     uint256 stabilityPoolBalance = IStabilityPool(cdpConfig.stabilityPool).getTotalBoldDeposits();
-    uint256 stabilityPoolMinBalance = IStabilityPool(cdpConfig.stabilityPool).MIN_BOLD_AFTER_REBALANCE();
+    uint256 stabilityPoolMinBalance = ISystemParams(cdpConfig.systemParams).MIN_BOLD_AFTER_REBALANCE();
     if (stabilityPoolBalance <= stabilityPoolMinBalance) revert CDPLS_STABILITY_POOL_BALANCE_TOO_LOW();
 
     uint256 targetDebtToExtract = (stabilityPoolBalance * cdpConfig.stabilityPoolPercentage) / BPS_DENOMINATOR;
