@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 // solhint-disable immutable-vars-naming
 pragma solidity 0.8.19;
 
