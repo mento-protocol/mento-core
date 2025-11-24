@@ -340,12 +340,8 @@ contract FPMMSwapTest is FPMMBaseTest {
     withRecentRate(true)
   {
     // Configure L0 limit of 100 tokens (5 minute window)
-    ITradingLimitsV2.Config memory config;
-    config.limit0 = 100e18;
-    config.flags = 1; // L0 enabled
-
     vm.prank(owner);
-    fpmm.configureTradingLimit(token0, config);
+    fpmm.configureTradingLimit(token0, 100e18, 0);
 
     // First swap: 80 tokens (within limit)
     uint256 amount0In = 80e18;
@@ -374,12 +370,8 @@ contract FPMMSwapTest is FPMMBaseTest {
     withRecentRate(true)
   {
     // Configure L1 limit of 80 tokens (1 day window)
-    ITradingLimitsV2.Config memory config;
-    config.limit1 = 80e18;
-    config.flags = 2; // L1 enabled
-
     vm.prank(owner);
-    fpmm.configureTradingLimit(token1, config);
+    fpmm.configureTradingLimit(token1, 0, 80e18);
 
     // First swap: 60 tokens (within limit)
     uint256 amount1In = 60e18;
@@ -408,17 +400,12 @@ contract FPMMSwapTest is FPMMBaseTest {
     withRecentRate(true)
   {
     // Configure both L0 and L1 limits
-    ITradingLimitsV2.Config memory config;
-    config.limit0 = 100e18; // 5 minute limit
-    config.limit1 = 1000e18; // 1 day limit
-    config.flags = 3; // L0 and L1 enabled
-
     vm.prank(owner);
-    fpmm.configureTradingLimit(token0, config);
+    fpmm.configureTradingLimit(token0, 100e18, 1000e18);
 
     // Swap within both limits should succeed
     // Trading limits track netflow: amountOut - amountIn
-    // For this swap: amountIn = 50, amountOut = 0, so netflow = -50 (negative = outflow)
+    // For this swap: amountIn = 50, amountOut = 0, so netflow = 50 (positive = inflow)
     uint256 amount0In = 50e18;
     uint256 amount1Out = 49.85e18;
 
@@ -430,10 +417,10 @@ contract FPMMSwapTest is FPMMBaseTest {
     assertEq(IERC20(token1).balanceOf(CHARLIE), amount1Out);
 
     // Verify limits were updated
-    // Netflow = amountOut - amountIn = 0 - 50 = -50 (scaled to 15 decimals)
+    // Netflow = amountIn - amountOut = 50 - 0 = 50 (scaled to 15 decimals)
     (, ITradingLimitsV2.State memory state) = fpmm.getTradingLimits(token0);
-    assertEq(state.netflow0, -50e15); // Negative netflow (more token0 coming in than going out)
-    assertEq(state.netflow1, -50e15);
+    assertEq(state.netflow0, 50e15);
+    assertEq(state.netflow1, 50e15);
   }
 
   function test_swap_whenL0ResetsAfter5Minutes_shouldAllowMoreSwaps()
@@ -445,12 +432,8 @@ contract FPMMSwapTest is FPMMBaseTest {
     withRecentRate(true)
   {
     // Configure L0 limit
-    ITradingLimitsV2.Config memory config;
-    config.limit0 = 100e18;
-    config.flags = 1; // L0 enabled
-
     vm.prank(owner);
-    fpmm.configureTradingLimit(token0, config);
+    fpmm.configureTradingLimit(token0, 100e18, 0);
 
     vm.warp(1000);
 
@@ -484,13 +467,9 @@ contract FPMMSwapTest is FPMMBaseTest {
     withFXMarketOpen(true)
     withRecentRate(true)
   {
-    // Configure only L1 limit (no L0)
-    ITradingLimitsV2.Config memory config;
-    config.limit1 = 80e18;
-    config.flags = 2; // Only L1 enabled
-
     vm.prank(owner);
-    fpmm.configureTradingLimit(token1, config);
+    // Configure only L1 limit (no L0)
+    fpmm.configureTradingLimit(token1, 0, 80e18);
 
     // First swap: 60 tokens (within L1 limit)
     uint256 amount1In = 60e18;
@@ -510,9 +489,9 @@ contract FPMMSwapTest is FPMMBaseTest {
     vm.stopPrank();
 
     // Verify only L1 is tracked (netflow0 should be 0)
-    // Netflow = amountOut - amountIn = 0 - 60 = -60 (negative because token1 is coming in)
+    // Netflow = amountIn - amountOut = 60 - 0 = 60 (positive because token1 is coming in)
     (, ITradingLimitsV2.State memory state) = fpmm.getTradingLimits(token1);
     assertEq(state.netflow0, 0); // L0 not configured
-    assertEq(state.netflow1, -60e15); // L1 tracked (negative netflow)
+    assertEq(state.netflow1, 60e15); // L1 configured
   }
 }

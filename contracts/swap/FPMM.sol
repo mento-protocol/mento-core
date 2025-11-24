@@ -625,9 +625,21 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /// @inheritdoc IFPMM
-  function configureTradingLimit(address token, ITradingLimitsV2.Config memory config) external onlyOwner {
+  function configureTradingLimit(address token, uint256 limit0, uint256 limit1) external onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
     if (token != $.token0 && token != $.token1) revert InvalidToken();
+
+    // slither-disable-next-line uninitialized-local
+    ITradingLimitsV2.Config memory config;
+    config.decimals = ERC20Upgradeable(token).decimals();
+
+    // scale to 15 decimals for TradingLimitsV2 library internal precision
+    limit0 = (limit0 * 1e15) / 10 ** config.decimals;
+    limit1 = (limit1 * 1e15) / 10 ** config.decimals;
+
+    if (limit0 > uint120(type(int120).max) || limit1 > uint120(type(int120).max)) revert LimitDoesNotFitInInt120();
+    config.limit0 = int120(uint120(limit0));
+    config.limit1 = int120(uint120(limit1));
 
     config.validate();
 
@@ -895,7 +907,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
    */
   function _applyTradingLimits(address token, uint256 amountIn, uint256 amountOut) internal {
     FPMMStorage storage $ = _getFPMMStorage();
-    uint8 decimals = ERC20Upgradeable(token).decimals();
-    $.tradingLimits[token].state = $.tradingLimits[token].applyTradingLimits(amountIn, amountOut, decimals);
+    $.tradingLimits[token].state = $.tradingLimits[token].applyTradingLimits(amountIn, amountOut);
   }
 }

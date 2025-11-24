@@ -6,11 +6,7 @@ import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
 interface ITradingLimitsV2Harness {
   function validate(ITradingLimitsV2.Config memory config) external pure;
 
-  function verify(
-    ITradingLimitsV2.State memory state,
-    ITradingLimitsV2.Config memory config,
-    uint8 decimals
-  ) external pure;
+  function verify(ITradingLimitsV2.State memory state, ITradingLimitsV2.Config memory config) external pure;
 
   function reset(
     ITradingLimitsV2.State memory state,
@@ -20,8 +16,7 @@ interface ITradingLimitsV2Harness {
   function update(
     ITradingLimitsV2.State memory state,
     ITradingLimitsV2.Config memory config,
-    int256 deltaFlow,
-    uint8 decimals
+    int256 deltaFlow
   ) external view returns (ITradingLimitsV2.State memory);
 
   function scaleValue(int256 value, uint8 decimals) external pure returns (int96);

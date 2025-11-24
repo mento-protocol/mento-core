@@ -135,6 +135,8 @@ interface IFPMM is IRPool {
   error RebalanceThresholdTooHigh();
   // @notice Throw when trying to rebalance with an invalid direction
   error RebalanceDirectionInvalid();
+  // @notice Throw when trying to configure trading limits with a limit that doesn't fit in int120
+  error LimitDoesNotFitInInt120();
   // @notice Throw when token decimals are invalid
   error InvalidTokenDecimals();
 
@@ -483,7 +485,8 @@ interface IFPMM is IRPool {
   /**
    * @notice Configure trading limits for a token
    * @param token The token to configure limits for
-   * @param config The trading limits configuration
+   * @param limit0 The limit0 for the token in token decimals
+   * @param limit1 The limit1 for the token in token decimals
    */
-  function configureTradingLimit(address token, ITradingLimitsV2.Config memory config) external;
+  function configureTradingLimit(address token, uint256 limit0, uint256 limit1) external;
 }

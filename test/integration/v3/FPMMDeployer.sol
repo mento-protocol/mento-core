@@ -153,11 +153,11 @@ contract FPMMDeployer is TestStorage, CreateXHelper {
     ) = fpmm.getPrices();
   }
 
-  function _configureTradingLimits(IFPMM fpmm, address token, ITradingLimitsV2.Config memory config) internal {
+  function _configureTradingLimits(IFPMM fpmm, address token, uint256 limit0, uint256 limit1) internal {
     require($fpmm.deployed, "FPMM_DEPLOYER: FPMM not deployed");
 
     vm.startPrank($addresses.governance);
-    fpmm.configureTradingLimit(token, config);
+    fpmm.configureTradingLimit(token, limit0, limit1);
     vm.stopPrank();
   }
 }

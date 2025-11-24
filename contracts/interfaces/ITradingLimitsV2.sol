@@ -6,10 +6,6 @@ interface ITradingLimitsV2 {
   /* ======================== Errors ============================ */
   /* ============================================================ */
 
-  // @notice Throw when limit0 is zero but flag is active
-  error Limit0ZeroWhenActive();
-  // @notice Throw when limit1 is zero but flag is active
-  error Limit1ZeroWhenActive();
   // @notice Throw when limit1 is not greater than limit0 when both are active
   error Limit1MustBeGreaterThanLimit0();
   // @notice Throw when L0 trading limit is exceeded
@@ -20,6 +16,8 @@ interface ITradingLimitsV2 {
   error ValueExceedsInt96Bounds();
   // @notice Throw when int96 addition causes overflow
   error Int96AdditionOverflow();
+  // @notice Throw when decimals are out of range [1, 18]
+  error InvalidDecimals();
 
   /* ============================================================ */
   /* ======================== Structs ============================ */
@@ -41,14 +39,14 @@ interface ITradingLimitsV2 {
 
   /**
    * @dev The Config struct contains the configuration of trading limits.
-   * @param limit0 The limit0 for the asset, using the token's native decimals.
-   * @param limit1 The limit1 for the asset, using the token's native decimals.
-   * @param flags A bitfield of flags to enable/disable the individual limits.
+   * @param limit0 The limit0 for the asset, stored with 15 decimals of precision.
+   * @param limit1 The limit1 for the asset, stored with 15 decimals of precision.
+   * @param decimals The number of decimals of the token the limits are configured for.
    */
   struct Config {
-    int112 limit0;
-    int112 limit1;
-    uint8 flags;
+    int120 limit0;
+    int120 limit1;
+    uint8 decimals;
   }
 
   struct TradingLimits {
