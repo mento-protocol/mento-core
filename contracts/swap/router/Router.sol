@@ -231,10 +231,10 @@ contract Router is IRouter, ERC2771Context {
       (uint256 amount0Out, uint256 amount1Out) = currentRoute.from == token0
         ? (uint256(0), amountOut)
         : (amountOut, uint256(0));
+      // cache the destination pool address to avoid redundant poolFor() calls and reduce gas usage in loops
       address to;
       if (i < _length - 1) {
-        IRouter.Route memory nextRoute = routes[i + 1];
-        to = poolFor(nextRoute.from, nextRoute.to, nextRoute.factory);
+        to = poolFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].factory);
       } else {
         to = _to;
       }
