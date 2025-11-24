@@ -84,7 +84,7 @@ contract V2ToV3UpgradeTest is Test {
     bytes32 domainSeparatorAfter = tokenV3.DOMAIN_SEPARATOR();
     assertTrue(domainSeparatorBefore != domainSeparatorAfter, "Domain separator should change after upgrade");
 
-    // make sure the new domain separator uses version "2"
+    // make sure the new domain separator uses version "3"
     bytes32 expectedDomainSeparator = keccak256(
       abi.encode(
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
