@@ -17,7 +17,6 @@ import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFactoryRegistry } from "contracts/interfaces/IFactoryRegistry.sol";
 import { IProxyAdmin } from "contracts/interfaces/IProxyAdmin.sol";
-import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
 
 contract FPMMDeployer is TestStorage, CreateXHelper {
   constructor() {
