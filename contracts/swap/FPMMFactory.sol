@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.24;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
@@ -34,8 +34,6 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address oracleAdapter;
     // Address of the proxy admin contract.
     address proxyAdmin;
-    // Address of the governance contract.
-    address governance;
     // Mapping of deployed FPMMs.
     mapping(address => mapping(address => address)) deployedFPMMs;
     // Mapping of allowed FPMM implementations.
@@ -80,7 +78,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   function initialize(
     address _oracleAdapter,
     address _proxyAdmin,
-    address _governance,
+    address _initialOwner,
     address _fpmmImplementation,
     IFPMM.FPMMParams calldata _defaultParams
   ) external initializer {
@@ -89,7 +87,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     setOracleAdapter(_oracleAdapter);
     registerFPMMImplementation(_fpmmImplementation);
     setDefaultParams(_defaultParams);
-    setGovernance(_governance);
+    transferOwnership(_initialOwner);
   }
 
   /* ============================================================ */
@@ -106,12 +104,6 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   function proxyAdmin() public view returns (address) {
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     return $.proxyAdmin;
-  }
-
-  /// @inheritdoc IFPMMFactory
-  function governance() public view returns (address) {
-    FPMMFactoryStorage storage $ = _getFPMMStorage();
-    return $.governance;
   }
 
   /// @inheritdoc IFPMMFactory
@@ -141,12 +133,12 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-start encode-packed-collision
   /// @inheritdoc IRPoolFactory
   function getOrPrecomputeProxyAddress(address token0, address token1) public view returns (address) {
-    (token0, token1) = sortTokens(token0, token1);
-
     address pool = getPool(token0, token1);
     if (pool != address(0)) {
       return pool;
     }
+
+    (token0, token1) = sortTokens(token0, token1);
 
     (address precomputedProxyAddress, ) = _computeProxyAddressAndSalt(token0, token1);
     return precomputedProxyAddress;
@@ -194,16 +186,6 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   }
 
   /// @inheritdoc IFPMMFactory
-  function setGovernance(address _governance) public onlyOwner {
-    // TODO: Discuss why do we need a seperate governance address if the governance is set as the owner?
-    if (_governance == address(0)) revert ZeroAddress();
-    FPMMFactoryStorage storage $ = _getFPMMStorage();
-    $.governance = _governance;
-    transferOwnership(_governance);
-    emit GovernanceSet(_governance);
-  }
-
-  /// @inheritdoc IFPMMFactory
   function setDefaultParams(IFPMM.FPMMParams calldata _defaultParams) public onlyOwner {
     if (_defaultParams.protocolFee + _defaultParams.lpFee > 100) revert FeeTooHigh();
     if (_defaultParams.protocolFeeRecipient == address(0)) revert ZeroAddress();
@@ -245,7 +227,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address fpmmImplementation,
     address customOracleAdapter,
     address customProxyAdmin,
-    address customGovernance,
+    address customOwner,
     address token0,
     address token1,
     address referenceRateFeedID,
@@ -259,7 +241,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     if (!$.isRegisteredImplementation[fpmmImplementation]) revert ImplementationNotRegistered();
     if (customOracleAdapter == address(0)) revert InvalidOracleAdapter();
     if (customProxyAdmin == address(0)) revert InvalidProxyAdmin();
-    if (customGovernance == address(0)) revert InvalidGovernance();
+    if (customOwner == address(0)) revert InvalidOwner();
     if (referenceRateFeedID == address(0)) revert InvalidReferenceRateFeedID();
     if (getPool(token0, token1) != address(0)) revert PairAlreadyExists();
 
@@ -267,7 +249,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       fpmmImplementation,
       customOracleAdapter,
       customProxyAdmin,
-      customGovernance,
+      customOwner,
       token0,
       token1,
       referenceRateFeedID,
@@ -300,7 +282,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       fpmmImplementation,
       $.oracleAdapter,
       $.proxyAdmin,
-      $.governance,
+      owner(),
       token0,
       token1,
       referenceRateFeedID,
@@ -323,7 +305,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @param _fpmmImplementation The address of the FPMM implementation
    * @param _oracleAdapter The address of the oracle adapter contract
    * @param _proxyAdmin The address of the proxy admin contract
-   * @param _governance The address of the governance contract
+   * @param _owner The address of the owner
    * @param _token0 The address of the first token
    * @param _token1 The address of the second token
    * @param _referenceRateFeedID The address of the reference rate feed
@@ -338,7 +320,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address _fpmmImplementation,
     address _oracleAdapter,
     address _proxyAdmin,
-    address _governance,
+    address _owner,
     address _token0,
     address _token1,
     address _referenceRateFeedID,
@@ -351,7 +333,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       _fpmmImplementation,
       _oracleAdapter,
       _proxyAdmin,
-      _governance,
+      _owner,
       _token0,
       _token1,
       _referenceRateFeedID,
@@ -372,7 +354,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
    * @param _fpmmImplementation The address of the FPMM implementation
    * @param _oracleAdapter The address of the oracle adapter contract
    * @param _proxyAdmin The address of the proxy admin contract
-   * @param _governance The address of the governance contract
+   * @param _owner The address of the owner
    * @param _token0 The address of the first token
    * @param _token1 The address of the second token
    * @param _referenceRateFeedID The address of the reference rate feed
@@ -384,7 +366,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     address _fpmmImplementation,
     address _oracleAdapter,
     address _proxyAdmin,
-    address _governance,
+    address _owner,
     address _token0,
     address _token1,
     address _referenceRateFeedID,
@@ -399,7 +381,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
       _oracleAdapter,
       _referenceRateFeedID,
       _invertRateFeed,
-      _governance,
+      _owner,
       _params
     );
     bytes memory proxyBytecode = abi.encodePacked(

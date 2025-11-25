@@ -341,10 +341,13 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     assertEq(action.dir, LQ.Direction.Contract);
     assertGt(action.amount0Out, 0);
     assertEq(action.amount1Out, 0);
-    assertGt(action.amountOwedToPool, 0);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
+
+    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
+    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount0Out, ctx);
 
     testContext.reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    testContext.reserve1After = ctx.reserves.reserveNum + action.amountOwedToPool * (1e18 / ctx.token1Dec);
+    testContext.reserve1After = ctx.reserves.reserveNum + expectedCollateralReceived * (1e18 / ctx.token1Dec);
 
     (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -359,7 +362,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.incentiveBps,
       true,
       action.amount0Out,
-      action.amountOwedToPool * (1e18 / ctx.token1Dec),
+      expectedCollateralReceived * (1e18 / ctx.token1Dec),
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
       false
@@ -400,9 +403,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, 0);
     assertGt(action.amount1Out, 0);
-    assertGt(action.amountOwedToPool, 0);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
 
-    testContext.reserve0After = ctx.reserves.reserveDen + action.amountOwedToPool;
+    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
+    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount1Out, ctx);
+
+    testContext.reserve0After = ctx.reserves.reserveDen + expectedCollateralReceived;
     testContext.reserve1After = ctx.reserves.reserveNum - action.amount1Out * (1e18 / ctx.token1Dec);
 
     (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
@@ -416,7 +422,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.incentiveBps,
       false,
       action.amount1Out * (1e18 / ctx.token1Dec),
-      action.amountOwedToPool,
+      expectedCollateralReceived,
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
       false
@@ -461,10 +467,13 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
     assertGt(action.amount0Out, 0);
     assertEq(action.amount1Out, 0);
-    assertGt(action.amountOwedToPool, 0);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
+
+    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
+    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount0Out, ctx);
 
     testContext.reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    testContext.reserve1After = ctx.reserves.reserveNum + action.amountOwedToPool * (1e18 / ctx.token1Dec);
+    testContext.reserve1After = ctx.reserves.reserveNum + expectedCollateralReceived * (1e18 / ctx.token1Dec);
 
     (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -478,7 +487,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.incentiveBps,
       true,
       action.amount0Out,
-      action.amountOwedToPool * (1e18 / ctx.token1Dec),
+      expectedCollateralReceived * (1e18 / ctx.token1Dec),
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
       true
@@ -519,10 +528,13 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     assertEq(action.dir, LQ.Direction.Contract);
     assertGt(action.amount0Out, 0);
     assertEq(action.amount1Out, 0);
-    assertGt(action.amountOwedToPool, 0);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
+
+    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
+    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount0Out, ctx);
 
     testContext.reserve0After = ctx.reserves.reserveDen - action.amount0Out * (1e18 / ctx.token0Dec);
-    testContext.reserve1After = ctx.reserves.reserveNum + action.amountOwedToPool;
+    testContext.reserve1After = ctx.reserves.reserveNum + expectedCollateralReceived;
 
     (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -537,7 +549,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.incentiveBps,
       true,
       action.amount0Out * (1e18 / ctx.token0Dec),
-      action.amountOwedToPool,
+      expectedCollateralReceived,
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
       false
@@ -578,10 +590,13 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, 0);
     assertGt(action.amount1Out, 0);
-    assertGt(action.amountOwedToPool, 0);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
 
-    testContext.reserve0After = ctx.reserves.reserveDen + action.amountOwedToPool * (1e18 / ctx.token0Dec);
-    testContext.reserve1After = ctx.reserves.reserveNum - action.amount1Out * (1e18 / ctx.token1Dec);
+    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
+    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount1Out, ctx);
+
+    testContext.reserve0After = ctx.reserves.reserveDen + expectedCollateralReceived * (1e18 / ctx.token0Dec);
+    testContext.reserve1After = ctx.reserves.reserveNum - action.amount1Out;
 
     (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -595,7 +610,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.incentiveBps,
       false,
       action.amount1Out,
-      action.amountOwedToPool * (1e18 / ctx.token0Dec),
+      expectedCollateralReceived * (1e18 / ctx.token0Dec),
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
       true
@@ -636,9 +651,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, 0);
     assertGt(action.amount1Out, 0);
-    assertGt(action.amountOwedToPool, 0);
+    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
 
-    testContext.reserve0After = ctx.reserves.reserveDen + action.amountOwedToPool * (1e18 / ctx.token0Dec);
+    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
+    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount1Out, ctx);
+
+    testContext.reserve0After = ctx.reserves.reserveDen + expectedCollateralReceived * (1e18 / ctx.token0Dec);
     testContext.reserve1After = ctx.reserves.reserveNum - action.amount1Out * (1e18 / ctx.token1Dec);
 
     (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
@@ -653,7 +671,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.incentiveBps,
       false,
       action.amount1Out,
-      action.amountOwedToPool * (1e18 / ctx.token0Dec),
+      expectedCollateralReceived * (1e18 / ctx.token0Dec),
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
       false

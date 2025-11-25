@@ -15,27 +15,37 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
   /* =================== Initialization Tests ================== */
   /* ============================================================ */
 
-  function test_constructor_whenValidParameters_shouldSetCorrectly() public {
+  function test_initialize_whenValidParameters_shouldSetCorrectly() public {
     // Deploy a new strategy for testing initialization
     address newReserve = makeAddr("NewReserve");
     address newOwner = makeAddr("NewOwner");
 
     vm.expectEmit(true, true, false, false);
     emit ReserveSet(address(0), newReserve);
-    ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(newOwner, newReserve);
+    ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(false);
+    newStrategy.initialize(newOwner, newReserve);
 
     assertEq(address(newStrategy.reserve()), newReserve, "Should set reserve correctly");
     assertEq(newStrategy.owner(), newOwner, "Should set owner correctly");
   }
 
-  function test_constructor_whenZeroReserve_shouldRevert() public {
+  function test_initialize_whenZeroReserve_shouldRevert() public {
+    ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(false);
     vm.expectRevert("RLS_INVALID_RESERVE()");
-    new ReserveLiquidityStrategy(owner, address(0));
+    newStrategy.initialize(owner, address(0));
   }
 
-  function test_constructor_whenZeroOwner_shouldRevert() public {
+  function test_initialize_whenZeroOwner_shouldRevert() public {
+    ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(false);
     vm.expectRevert("LS_INVALID_OWNER()");
-    new ReserveLiquidityStrategy(address(0), reserve);
+    newStrategy.initialize(address(0), address(reserve));
+  }
+
+  function test_initialize_whenCalledTwice_shouldRevert() public {
+    ReserveLiquidityStrategy newStrategy = new ReserveLiquidityStrategy(false);
+    newStrategy.initialize(owner, address(reserve));
+    vm.expectRevert("Initializable: contract is already initialized");
+    newStrategy.initialize(owner, address(reserve));
   }
 
   /* ============================================================ */
@@ -46,7 +56,7 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
     address newReserve = makeAddr("NewReserve");
 
     vm.expectEmit(true, true, false, false);
-    emit ReserveSet(reserve, newReserve);
+    emit ReserveSet(address(reserve), newReserve);
 
     vm.prank(owner);
     strategy.setReserve(newReserve);

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.24;
 // solhint-disable-next-line max-line-length
 import { ERC20PermitUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
@@ -72,7 +72,7 @@ contract StableTokenSpoke is ERC20PermitUpgradeable, OwnableUpgradeable, IStable
     address[] memory _burners
   ) public initializer {
     __ERC20_init(name, symbol);
-    __ERC20Permit_init(symbol);
+    __EIP712_init_unchained(name, "3");
     _transferOwnership(_msgSender());
 
     require(initialBalanceAddresses.length == initialBalanceValues.length, "Array length mismatch");

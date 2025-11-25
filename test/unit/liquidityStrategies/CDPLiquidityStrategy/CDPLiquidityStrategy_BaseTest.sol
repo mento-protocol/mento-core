@@ -12,8 +12,7 @@ import { IERC20 } from "contracts/interfaces/IERC20.sol";
 
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
-import { IStabilityPool } from "bold/src/Interfaces/IStabilityPool.sol";
-import { ICollateralRegistry } from "bold/src/Interfaces/ICollateralRegistry.sol";
+
 import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
 
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
@@ -35,6 +34,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     mockSystemParams = makeAddr("SystemParams");
     // Mock REDEMPTION_BETA to return 1 (default value)
     mockRedemptionBeta(1);
+    setMockSystemParamsMinBoldAfterRebalance(0);
   }
 
   modifier addFpmm(uint64 cooldown, uint32 incentiveBps, uint256 stabilityPoolPercentage) {
@@ -69,11 +69,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @param redemptionRate The redemption rate (base rate) in 18 decimals
    */
   function mockRedemptionRateWithDecay(uint256 redemptionRate) internal {
-    vm.mockCall(
-      address(mockCollateralRegistry),
-      abi.encodeWithSelector(ICollateralRegistry.getRedemptionRateWithDecay.selector),
-      abi.encode(redemptionRate)
-    );
+    mockCollateralRegistry.setRedemptionRateWithDecay(redemptionRate);
   }
 
   /**
@@ -101,10 +97,10 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @notice Set the stability pool minimum BOLD balance after rebalance
    * @param minBalance Minimum balance in BOLD token decimals
    */
-  function setStabilityPoolMinBalance(uint256 minBalance) internal {
+  function setMockSystemParamsMinBoldAfterRebalance(uint256 minBalance) internal {
     vm.mockCall(
-      address(mockStabilityPool),
-      abi.encodeWithSelector(IStabilityPool.MIN_BOLD_AFTER_REBALANCE.selector),
+      mockSystemParams,
+      abi.encodeWithSelector(ISystemParams.MIN_BOLD_AFTER_REBALANCE.selector),
       abi.encode(minBalance)
     );
   }
@@ -477,5 +473,19 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     }
 
     targetSupply = (amountOut * 1e18) / targetFraction;
+  }
+
+  function calculatedExpectedCollateralReceivedFromRedemption(
+    uint256 debtAmount,
+    LQ.Context memory ctx
+  ) internal view returns (uint256 expectedCollateralReceived) {
+    address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
+    uint256 baseFee = mockCollateralRegistry.getRedemptionRateWithDecay();
+
+    uint256 redemptionFee = baseFee + ((debtAmount * 1e18) / IERC20(debtToken).totalSupply());
+
+    expectedCollateralReceived = LQ.convertToCollateralWithFee(ctx, debtAmount, 1e18 - redemptionFee, 1e18);
+
+    return expectedCollateralReceived;
   }
 }

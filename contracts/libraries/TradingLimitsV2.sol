@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
 pragma experimental ABIEncoderV2;
@@ -22,15 +23,13 @@ import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
  *
  * Key differences from V1:
  * 1. Netflows are stored with 15 decimals of precision internally
- * 2. Limits in Config are provided in the token's native decimals
- * 3. No rounding of small amounts to 1 unit
- * 4. Larger data types: int96 for netflows, int112 for limits
- * 5. Removed global limit functionality
- * 6. Fixed timeframes: 5 minutes for L0, 1 day for L1
+ * 2. No rounding of small amounts to 1 unit. For tokens with more than 15 decimals
+ *    the amount is scaled down to 15 decimals.
+ * 3. Larger data types: int96 for netflows, int120 for limits
+ * 4. Removed global limit functionality
+ * 5. Fixed timeframes: 5 minutes for L0, 1 day for L1
  */
 library TradingLimitsV2 {
-  uint8 private constant L0 = 1; // 0b001 Limit0
-  uint8 private constant L1 = 2; // 0b010 Limit1
   uint8 private constant INTERNAL_DECIMALS = 15;
   uint32 private constant TIMESTEP0 = 5 minutes; // 300 seconds
   uint32 private constant TIMESTEP1 = 1 days; // 86400 seconds
@@ -43,39 +42,27 @@ library TradingLimitsV2 {
    * @param self the Config struct to check.
    */
   function validate(ITradingLimitsV2.Config memory self) internal pure {
-    if (self.flags & L0 != 0 && self.limit0 == 0) revert ITradingLimitsV2.Limit0ZeroWhenActive();
-    if (self.flags & L1 != 0 && self.limit1 == 0) revert ITradingLimitsV2.Limit1ZeroWhenActive();
-    if (self.flags & (L0 | L1) == 3 && self.limit0 >= self.limit1) {
+    if (self.limit0 > 0 && self.limit1 > 0 && self.limit1 <= self.limit0) {
       revert ITradingLimitsV2.Limit1MustBeGreaterThanLimit0();
+    }
+    if (0 == self.decimals || 18 < self.decimals) {
+      revert ITradingLimitsV2.InvalidDecimals();
     }
   }
 
   /**
    * @notice Verify a trading limit State with a provided Config.
    * @dev Reverts if the limits are exceeded.
-   * The netflow values in State are stored with 15 decimals, while the limits
-   * in Config are in the token's native decimals, so we need to scale the limits
-   * for comparison.
+   * The netflows and limits are stored with 15 decimals of precision.
    * @param self the trading limit State to check.
    * @param config the trading limit Config to check against.
-   * @param decimals the number of decimals of the token being traded.
    */
-  function verify(
-    ITradingLimitsV2.State memory self,
-    ITradingLimitsV2.Config memory config,
-    uint8 decimals
-  ) internal pure {
-    if (config.flags & L0 > 0) {
-      int96 scaledConfigLimit0 = scaleValue(int256(config.limit0), decimals);
-      if (self.netflow0 < -scaledConfigLimit0 || self.netflow0 > scaledConfigLimit0) {
-        revert ITradingLimitsV2.L0LimitExceeded();
-      }
+  function verify(ITradingLimitsV2.State memory self, ITradingLimitsV2.Config memory config) internal pure {
+    if (config.limit0 > 0 && (self.netflow0 < -config.limit0 || self.netflow0 > config.limit0)) {
+      revert ITradingLimitsV2.L0LimitExceeded();
     }
-    if (config.flags & L1 > 0) {
-      int96 scaledConfigLimit1 = scaleValue(int256(config.limit1), decimals);
-      if (self.netflow1 < -scaledConfigLimit1 || self.netflow1 > scaledConfigLimit1) {
-        revert ITradingLimitsV2.L1LimitExceeded();
-      }
+    if (config.limit1 > 0 && (self.netflow1 < -config.limit1 || self.netflow1 > config.limit1)) {
+      revert ITradingLimitsV2.L1LimitExceeded();
     }
   }
 
@@ -95,10 +82,10 @@ library TradingLimitsV2 {
     // Ensure the next swap will reset the trading limits windows.
     self.lastUpdated0 = 0;
     self.lastUpdated1 = 0;
-    if (config.flags & L0 == 0) {
+    if (config.limit0 == 0) {
       self.netflow0 = 0;
     }
-    if (config.flags & L1 == 0) {
+    if (config.limit1 == 0) {
       self.netflow1 = 0;
     }
     return self;
@@ -112,22 +99,20 @@ library TradingLimitsV2 {
    * @param self the trading limits (state + config) to apply.
    * @param amountIn amount of token flowing in.
    * @param amountOut amount of token flowing out.
-   * @param decimals the token's decimal places.
    * @return the updated trading limits.
    */
   function applyTradingLimits(
     ITradingLimitsV2.TradingLimits memory self,
     uint256 amountIn,
-    uint256 amountOut,
-    uint8 decimals
+    uint256 amountOut
   ) internal view returns (ITradingLimitsV2.State memory) {
-    if (self.config.flags == 0) {
+    if (self.config.limit0 == 0 && self.config.limit1 == 0) {
       return self.state;
     }
 
-    int256 deltaFlow = int256(amountOut) - int256(amountIn);
-    self.state = update(self.state, self.config, deltaFlow, decimals);
-    verify(self.state, self.config, decimals);
+    int256 deltaFlow = int256(amountIn) - int256(amountOut);
+    self.state = update(self.state, self.config, deltaFlow);
+    verify(self.state, self.config);
     return self.state;
   }
 
@@ -139,26 +124,20 @@ library TradingLimitsV2 {
    * @param self the trading limit State to update.
    * @param config the trading limit Config for the provided State.
    * @param _deltaFlow the delta flow to add to the netflow, in the token's native decimals.
-   * @param decimals the number of decimals the _deltaFlow is denominated in.
    * @return State the updated state.
    */
   function update(
     ITradingLimitsV2.State memory self,
     ITradingLimitsV2.Config memory config,
-    int256 _deltaFlow,
-    uint8 decimals
+    int256 _deltaFlow
   ) internal view returns (ITradingLimitsV2.State memory) {
     if (_deltaFlow == 0) {
       return self;
     }
 
-    int96 scaledDelta = scaleValue(_deltaFlow, decimals);
+    int96 scaledDelta = scaleValue(_deltaFlow, config.decimals);
 
-    if (scaledDelta == 0) {
-      scaledDelta = _deltaFlow > 0 ? int96(1e3) : int96(-1e3);
-    }
-
-    if (config.flags & L0 > 0) {
+    if (config.limit0 > 0) {
       if (block.timestamp > self.lastUpdated0 + TIMESTEP0) {
         self.netflow0 = 0;
         self.lastUpdated0 = uint32(block.timestamp);
@@ -166,7 +145,7 @@ library TradingLimitsV2 {
       self.netflow0 = safeAdd(self.netflow0, scaledDelta);
     }
 
-    if (config.flags & L1 > 0) {
+    if (config.limit1 > 0) {
       if (block.timestamp > self.lastUpdated1 + TIMESTEP1) {
         self.netflow1 = 0;
         self.lastUpdated1 = uint32(block.timestamp);
@@ -189,15 +168,7 @@ library TradingLimitsV2 {
 
     int256 scaledValue;
 
-    if (decimals == INTERNAL_DECIMALS) {
-      scaledValue = value;
-    } else if (decimals < INTERNAL_DECIMALS) {
-      uint256 scaleFactor = 10 ** (INTERNAL_DECIMALS - decimals);
-      scaledValue = value * int256(scaleFactor);
-    } else {
-      uint256 scaleFactor = 10 ** (decimals - INTERNAL_DECIMALS);
-      scaledValue = value / int256(scaleFactor);
-    }
+    scaledValue = (value * int256(10 ** INTERNAL_DECIMALS)) / int256(10 ** decimals);
 
     if (scaledValue > MAX_INT96 || scaledValue < MIN_INT96) revert ITradingLimitsV2.ValueExceedsInt96Bounds();
     return int96(scaledValue);

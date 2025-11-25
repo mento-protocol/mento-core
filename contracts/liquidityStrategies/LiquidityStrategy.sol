@@ -1,12 +1,13 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.24;
 // solhint-disable max-line-length
 
-import { Ownable } from "openzeppelin-contracts-next/contracts/access/Ownable.sol";
-import { ReentrancyGuard } from "openzeppelin-contracts-next/contracts/security/ReentrancyGuard.sol";
-import { EnumerableSet } from "openzeppelin-contracts-next/contracts/utils/structs/EnumerableSet.sol";
+import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
+import { EnumerableSetUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20Upgradeable as SafeERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { Initializable } from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
@@ -18,9 +19,14 @@ import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyType
  * to the oracle price and defers to concrete implementations that handle building and
  * executing the rebalance action.
  */
-abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGuard {
+abstract contract LiquidityStrategy is
+  ILiquidityStrategy,
+  Initializable,
+  OwnableUpgradeable,
+  ReentrancyGuardUpgradeable
+{
   using LQ for LQ.Context;
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using SafeERC20 for IERC20;
 
   uint256 public constant BPS_TO_FEE_SCALER = 1e14;
@@ -30,7 +36,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
   /* ==================== State Variables ======================= */
   /* ============================================================ */
 
-  EnumerableSet.AddressSet private pools;
+  EnumerableSetUpgradeable.AddressSet private pools;
   mapping(address => PoolConfig) private poolConfigs;
 
   /* ============================================================ */
@@ -38,11 +44,24 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
   /* ============================================================ */
 
   /**
-   * @notice Constructor
+   * @notice Disables initializers on implementation contracts.
+   * @param disable Set to true to disable initializers (for proxy pattern).
+   */
+  constructor(bool disable) {
+    if (disable) {
+      _disableInitializers();
+    }
+  }
+
+  /**
+   * @notice Initializes the LiquidityStrategy contract
    * @param _initialOwner The initial owner of the contract
    */
-  constructor(address _initialOwner) {
+  // solhint-disable-next-line func-name-mixedcase
+  function __LiquidityStrategy_init(address _initialOwner) internal onlyInitializing {
     if (_initialOwner == address(0)) revert LS_INVALID_OWNER();
+    __Ownable_init();
+    __ReentrancyGuard_init();
     _transferOwnership(_initialOwner);
   }
 
@@ -116,7 +135,7 @@ abstract contract LiquidityStrategy is ILiquidityStrategy, Ownable, ReentrancyGu
    * @param amount1Out The amount of token1 to be sent from the pool
    * @param data Encoded callback data containing rebalance parameters
    */
-  function hook(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external virtual {
+  function onRebalance(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external virtual {
     address pool = msg.sender;
     _ensurePool(pool);
     if (sender != address(this)) revert LS_INVALID_SENDER();

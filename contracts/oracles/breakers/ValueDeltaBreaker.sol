@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.5.13;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";

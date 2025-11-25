@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.24;
 
 import "../interfaces/IFPMM.sol";
@@ -14,6 +14,7 @@ import { SafeERC20Upgradeable } from "openzeppelin-contracts-upgradeable/contrac
 import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { IOracleAdapter } from "../interfaces/IOracleAdapter.sol";
 import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
+import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { TradingLimitsV2 } from "../libraries/TradingLimitsV2.sol";
 import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
 
@@ -27,7 +28,7 @@ import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
  * 1. Swap does not decrease the total value of the pool
  * 2. Rebalance does not decrease the reserve value more than the rebalance incentive
  * 3. Rebalance moves the price difference towards 0
- * 4. Rebalance does not change the direction of the price difference
+ * 4. Rebalance can change the direction of the price difference but not by more than the rebalance incentive
  */
 contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
@@ -93,8 +94,13 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     __ERC20_init(name_, symbol_);
     __Ownable_init();
 
-    $.decimals0 = 10 ** ERC20Upgradeable(_token0).decimals();
-    $.decimals1 = 10 ** ERC20Upgradeable(_token1).decimals();
+    uint8 token0Decimals = ERC20Upgradeable(_token0).decimals();
+    uint8 token1Decimals = ERC20Upgradeable(_token1).decimals();
+
+    if (token0Decimals > 18 || token1Decimals > 18) revert InvalidTokenDecimals();
+
+    $.decimals0 = 10 ** token0Decimals;
+    $.decimals1 = 10 ** token1Decimals;
 
     setLPFee(_params.lpFee);
     setProtocolFeeRecipient(_params.protocolFeeRecipient);
@@ -266,14 +272,13 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
     // slither-disable-end divide-before-multiply
 
-    uint256 oracleCrossProduct = oraclePriceNumerator * reservePriceDenominator;
-    uint256 reserveCrossProduct = reservePriceNumerator * oraclePriceDenominator;
-    reservePriceAboveOraclePrice = reserveCrossProduct > oracleCrossProduct;
+    (priceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference(
+      oraclePriceNumerator,
+      oraclePriceDenominator,
+      reservePriceNumerator,
+      reservePriceDenominator
+    );
 
-    uint256 absolutePriceDiff = reservePriceAboveOraclePrice
-      ? reserveCrossProduct - oracleCrossProduct
-      : oracleCrossProduct - reserveCrossProduct;
-    priceDifference = (absolutePriceDiff * BASIS_POINTS_DENOMINATOR) / oracleCrossProduct;
     return (
       oraclePriceNumerator,
       oraclePriceDenominator,
@@ -358,7 +363,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     _update();
 
-    emit Mint(msg.sender, amount0, amount1, liquidity);
+    emit Mint(msg.sender, amount0, amount1, liquidity, to);
   }
 
   // slither-disable-start reentrancy-benign
@@ -487,7 +492,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     if (amount0Out > 0) IERC20($.token0).safeTransfer(msg.sender, amount0Out);
     if (amount1Out > 0) IERC20($.token1).safeTransfer(msg.sender, amount1Out);
 
-    if (data.length > 0) IFPMMCallee(msg.sender).hook(msg.sender, amount0Out, amount1Out, data);
+    if (data.length > 0) ILiquidityStrategy(msg.sender).onRebalance(msg.sender, amount0Out, amount1Out, data);
 
     uint256 balance0 = IERC20($.token0).balanceOf(address(this));
     uint256 balance1 = IERC20($.token1).balanceOf(address(this));
@@ -620,9 +625,21 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /// @inheritdoc IFPMM
-  function configureTradingLimit(address token, ITradingLimitsV2.Config memory config) external onlyOwner {
+  function configureTradingLimit(address token, uint256 limit0, uint256 limit1) external onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
     if (token != $.token0 && token != $.token1) revert InvalidToken();
+
+    // slither-disable-next-line uninitialized-local
+    ITradingLimitsV2.Config memory config;
+    config.decimals = ERC20Upgradeable(token).decimals();
+
+    // scale to 15 decimals for TradingLimitsV2 library internal precision
+    limit0 = (limit0 * 1e15) / 10 ** config.decimals;
+    limit1 = (limit1 * 1e15) / 10 ** config.decimals;
+
+    if (limit0 > uint120(type(int120).max) || limit1 > uint120(type(int120).max)) revert LimitDoesNotFitInInt120();
+    config.limit0 = int120(uint120(limit0));
+    config.limit1 = int120(uint120(limit1));
 
     config.validate();
 
@@ -716,6 +733,31 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /**
+   * @notice Calculates the price difference between oracle and reserve prices
+   * @param oraclePriceNumerator Oracle price numerator
+   * @param oraclePriceDenominator Oracle price denominator
+   * @param reservePriceNumerator Reserve price numerator
+   * @param reservePriceDenominator Reserve price denominator
+   * @return priceDifference Price difference in basis points
+   * @return reservePriceAboveOraclePrice Whether reserve price is above oracle price
+   */
+  function _calculatePriceDifference(
+    uint256 oraclePriceNumerator,
+    uint256 oraclePriceDenominator,
+    uint256 reservePriceNumerator,
+    uint256 reservePriceDenominator
+  ) internal pure returns (uint256 priceDifference, bool reservePriceAboveOraclePrice) {
+    uint256 oracleCrossProduct = oraclePriceNumerator * reservePriceDenominator;
+    uint256 reserveCrossProduct = reservePriceNumerator * oraclePriceDenominator;
+    reservePriceAboveOraclePrice = reserveCrossProduct > oracleCrossProduct;
+
+    uint256 absolutePriceDiff = reservePriceAboveOraclePrice
+      ? reserveCrossProduct - oracleCrossProduct
+      : oracleCrossProduct - reserveCrossProduct;
+    priceDifference = (absolutePriceDiff * BASIS_POINTS_DENOMINATOR) / oracleCrossProduct;
+  }
+
+  /**
    * @notice Rebalance checks to ensure the price difference is smaller than before,
    * the direction of the price difference is not changed,
    * and the reserve value is not decreased more than the rebalance incentive
@@ -725,8 +767,19 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function _rebalanceCheck(SwapData memory swapData) private view returns (uint256 newPriceDifference) {
     FPMMStorage storage $ = _getFPMMStorage();
 
+    // slither-disable-start divide-before-multiply
+    uint256 reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
+    uint256 reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
+    // slither-disable-end divide-before-multiply
+
     bool reservePriceAboveOraclePrice;
-    (, , , , newPriceDifference, reservePriceAboveOraclePrice) = getPrices();
+    (newPriceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference(
+      swapData.rateNumerator,
+      swapData.rateDenominator,
+      reservePriceNumerator,
+      reservePriceDenominator
+    );
+
     // Ensure price difference is smaller than before
     if (newPriceDifference >= swapData.initialPriceDifference) revert PriceDifferenceNotImproved();
     // we allow the price difference to be moved in the wrong direction but not by more than the rebalance incentive
@@ -854,7 +907,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
    */
   function _applyTradingLimits(address token, uint256 amountIn, uint256 amountOut) internal {
     FPMMStorage storage $ = _getFPMMStorage();
-    uint8 decimals = ERC20Upgradeable(token).decimals();
-    $.tradingLimits[token].state = $.tradingLimits[token].applyTradingLimits(amountIn, amountOut, decimals);
+    $.tradingLimits[token].state = $.tradingLimits[token].applyTradingLimits(amountIn, amountOut);
   }
 }

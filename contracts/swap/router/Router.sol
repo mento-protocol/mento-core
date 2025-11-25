@@ -91,9 +91,8 @@ contract Router is IRouter, ERC2771Context {
     for (uint256 i = 0; i < _length; i++) {
       address factory = routes[i].factory == address(0) ? defaultFactory : routes[i].factory;
       address pool = poolFor(routes[i].from, routes[i].to, factory);
-      if (IRPoolFactory(factory).isPool(pool)) {
-        amounts[i + 1] = IRPool(pool).getAmountOut(amounts[i], routes[i].from);
-      }
+      if (!IRPoolFactory(factory).isPool(pool)) revert PoolDoesNotExist();
+      amounts[i + 1] = IRPool(pool).getAmountOut(amounts[i], routes[i].from);
     }
   }
 
@@ -223,14 +222,18 @@ contract Router is IRouter, ERC2771Context {
   /// @dev requires the initial amount to have already been sent to the first pool
   function _swap(uint256[] memory amounts, Route[] memory routes, address _to) internal virtual {
     uint256 _length = routes.length;
+    address currentPool = poolFor(routes[0].from, routes[0].to, routes[0].factory);
     for (uint256 i = 0; i < _length; i++) {
-      (address token0, ) = sortTokens(routes[i].from, routes[i].to);
+      IRouter.Route memory currentRoute = routes[i];
+      (address token0, ) = sortTokens(currentRoute.from, currentRoute.to);
       uint256 amountOut = amounts[i + 1];
-      (uint256 amount0Out, uint256 amount1Out) = routes[i].from == token0
+      (uint256 amount0Out, uint256 amount1Out) = currentRoute.from == token0
         ? (uint256(0), amountOut)
         : (amountOut, uint256(0));
-      address to = i < routes.length - 1 ? poolFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].factory) : _to;
-      IRPool(poolFor(routes[i].from, routes[i].to, routes[i].factory)).swap(amount0Out, amount1Out, to, new bytes(0));
+      // cache the destination pool address to use in the next iteration
+      address to = i < _length - 1 ? poolFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].factory) : _to;
+      IRPool(currentPool).swap(amount0Out, amount1Out, to, new bytes(0));
+      currentPool = to;
     }
   }
 
@@ -250,45 +253,6 @@ contract Router is IRouter, ERC2771Context {
       amounts[0]
     );
     _swap(amounts, routes, to);
-  }
-
-  // **** SWAP (supporting fee-on-transfer tokens) ****
-  /// @dev requires the initial amount to have already been sent to the first pool
-  function _swapSupportingFeeOnTransferTokens(Route[] memory routes, address _to) internal virtual {
-    uint256 _length = routes.length;
-    for (uint256 i; i < _length; i++) {
-      (address token0, ) = sortTokens(routes[i].from, routes[i].to);
-      address pool = poolFor(routes[i].from, routes[i].to, routes[i].factory);
-      uint256 amountInput;
-      uint256 amountOutput;
-      {
-        // stack too deep
-        // getReserves sorts it for us i.e. reserveA is always for from
-        (uint256 reserveA, ) = getReserves(routes[i].from, routes[i].to, routes[i].factory);
-        amountInput = IERC20(routes[i].from).balanceOf(pool) - reserveA;
-      }
-      amountOutput = IRPool(pool).getAmountOut(amountInput, routes[i].from);
-      (uint256 amount0Out, uint256 amount1Out) = routes[i].from == token0
-        ? (uint256(0), amountOutput)
-        : (amountOutput, uint256(0));
-      address to = i < routes.length - 1 ? poolFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].factory) : _to;
-      IRPool(pool).swap(amount0Out, amount1Out, to, new bytes(0));
-    }
-  }
-
-  /// @inheritdoc IRouter
-  function swapExactTokensForTokensSupportingFeeOnTransferTokens(
-    uint256 amountIn,
-    uint256 amountOutMin,
-    Route[] calldata routes,
-    address to,
-    uint256 deadline
-  ) external ensure(deadline) {
-    _safeTransferFrom(routes[0].from, _msgSender(), poolFor(routes[0].from, routes[0].to, routes[0].factory), amountIn);
-    uint256 _length = routes.length - 1;
-    uint256 balanceBefore = IERC20(routes[_length].to).balanceOf(to);
-    _swapSupportingFeeOnTransferTokens(routes, to);
-    if (IERC20(routes[_length].to).balanceOf(to) - balanceBefore < amountOutMin) revert InsufficientOutputAmount();
   }
 
   /// @inheritdoc IRouter

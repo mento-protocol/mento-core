@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.18;
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.24;
 
 import { IMarketHoursBreaker } from "../../interfaces/IMarketHoursBreaker.sol";
 
@@ -60,7 +60,17 @@ contract MarketHoursBreaker is IMarketHoursBreaker {
     uint256 month = DateTimeLibrary.getMonth(timestamp);
     uint256 day = DateTimeLibrary.getDay(timestamp);
 
-    // slither-disable-next-line incorrect-equality
-    return ((month == 12 && day == 25) || (month == 1 && day == 1));
+    // slither-disable-start incorrect-equality
+    if (month == 12) {
+      if (day == 24 || day == 31) {
+        // Close at 22 UTC on Christmas Eve or New Years Eve
+        return DateTimeLibrary.getHour(timestamp) >= 22;
+      }
+
+      return day == 25; // Christmas
+    }
+
+    return (month == 1 && day == 1); // New Years
+    // slither-disable-end incorrect-equality
   }
 }

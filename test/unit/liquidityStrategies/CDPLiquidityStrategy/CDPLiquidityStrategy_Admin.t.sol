@@ -262,4 +262,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     vm.expectRevert("LS_POOL_NOT_FOUND()");
     strategy.getCDPConfig(address(fpmm));
   }
+
+  function test_initialize_whenCalledTwice_shouldReverts() public {
+    vm.expectRevert("Initializable: contract is already initialized");
+    strategy.initialize(owner);
+  }
 }

@@ -23,8 +23,6 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
   error CDPLS_COLLATERAL_REGISTRY_IS_ZERO();
   /// @notice Thrown when the stability pool address is zero
   error CDPLS_STABILITY_POOL_IS_ZERO();
-  /// @notice Thrown when insufficient collateral is received from redemption
-  error CDPLS_INSUFFICIENT_COLLATERAL_FROM_REDEMPTION();
 
   /* ============================================================ */
   /* ======================= Structs ============================ */

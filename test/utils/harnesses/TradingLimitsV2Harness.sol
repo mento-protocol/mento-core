@@ -14,12 +14,8 @@ contract TradingLimitsV2Harness is ITradingLimitsV2Harness {
     return config.validate();
   }
 
-  function verify(
-    ITradingLimitsV2.State memory state,
-    ITradingLimitsV2.Config memory config,
-    uint8 decimals
-  ) public pure {
-    return state.verify(config, decimals);
+  function verify(ITradingLimitsV2.State memory state, ITradingLimitsV2.Config memory config) public pure {
+    return state.verify(config);
   }
 
   function reset(
@@ -32,10 +28,9 @@ contract TradingLimitsV2Harness is ITradingLimitsV2Harness {
   function update(
     ITradingLimitsV2.State memory state,
     ITradingLimitsV2.Config memory config,
-    int256 deltaFlow,
-    uint8 decimals
+    int256 deltaFlow
   ) public view returns (ITradingLimitsV2.State memory) {
-    return state.update(config, deltaFlow, decimals);
+    return state.update(config, deltaFlow);
   }
 
   function scaleValue(int256 value, uint8 decimals) public pure returns (int96) {

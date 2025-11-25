@@ -16,22 +16,28 @@ contract TradingLimitsV2Test is Test {
   ITradingLimitsV2.State private state;
   TradingLimitsV2Harness private harness;
 
-  function configEmpty() internal pure returns (ITradingLimitsV2.Config memory config) {}
-
-  function configL0(int112 limit0) internal pure returns (ITradingLimitsV2.Config memory config) {
-    config.limit0 = limit0;
-    config.flags = L0;
+  function configEmpty(uint8 decimals) internal pure returns (ITradingLimitsV2.Config memory config) {
+    config.decimals = decimals;
   }
 
-  function configL1(int112 limit1) internal pure returns (ITradingLimitsV2.Config memory config) {
-    config.limit1 = limit1;
-    config.flags = L1;
+  function configL0(int120 limit0, uint8 decimals) internal pure returns (ITradingLimitsV2.Config memory config) {
+    config.limit0 = limit0;
+    config.decimals = decimals;
   }
 
-  function configL0L1(int112 limit0, int112 limit1) internal pure returns (ITradingLimitsV2.Config memory config) {
+  function configL1(int120 limit1, uint8 decimals) internal pure returns (ITradingLimitsV2.Config memory config) {
+    config.limit1 = limit1;
+    config.decimals = decimals;
+  }
+
+  function configL0L1(
+    int120 limit0,
+    int120 limit1,
+    uint8 decimals
+  ) internal pure returns (ITradingLimitsV2.Config memory config) {
     config.limit0 = limit0;
     config.limit1 = limit1;
-    config.flags = L0 | L1;
+    config.decimals = decimals;
   }
 
   function setUp() public {
@@ -41,41 +47,29 @@ contract TradingLimitsV2Test is Test {
   /* ==================== Config#validate ==================== */
 
   function test_validate_withL0_isValid() public view {
-    ITradingLimitsV2.Config memory config = configL0(1000);
-    harness.validate(config);
-  }
-
-  function test_validate_withL0_withoutLimit0_isNotValid() public {
-    ITradingLimitsV2.Config memory config = configL0(0);
-    vm.expectRevert(ITradingLimitsV2.Limit0ZeroWhenActive.selector);
+    ITradingLimitsV2.Config memory config = configL0(1000, 18);
     harness.validate(config);
   }
 
   function test_validate_withL0L1_isValid() public view {
-    ITradingLimitsV2.Config memory config = configL0L1(1000, 10000);
-    harness.validate(config);
-  }
-
-  function test_validate_withL1_withoutLimit1_isNotValid() public {
-    ITradingLimitsV2.Config memory config = configL0L1(1000, 0);
-    vm.expectRevert(ITradingLimitsV2.Limit1ZeroWhenActive.selector);
+    ITradingLimitsV2.Config memory config = configL0L1(1000, 10000, 18);
     harness.validate(config);
   }
 
   function test_validate_withL0L1_withLimit0LargerThanLimit1_isNotValid() public {
-    ITradingLimitsV2.Config memory config = configL0L1(10000, 1000);
+    ITradingLimitsV2.Config memory config = configL0L1(10000, 1000, 18);
     vm.expectRevert(ITradingLimitsV2.Limit1MustBeGreaterThanLimit0.selector);
     harness.validate(config);
   }
 
   function test_validate_withL0L1_withEqualLimits_isNotValid() public {
-    ITradingLimitsV2.Config memory config = configL0L1(10000, 10000);
+    ITradingLimitsV2.Config memory config = configL0L1(10000, 10000, 18);
     vm.expectRevert(ITradingLimitsV2.Limit1MustBeGreaterThanLimit0.selector);
     harness.validate(config);
   }
 
   function test_validate_withL1_withoutL0_isValid() public view {
-    ITradingLimitsV2.Config memory config = configL1(10000);
+    ITradingLimitsV2.Config memory config = configL1(10000, 18);
     harness.validate(config);
   }
 
@@ -83,73 +77,58 @@ contract TradingLimitsV2Test is Test {
 
   function test_verify_withNoLimits_passes() public view {
     ITradingLimitsV2.Config memory config;
-    harness.verify(state, config, 18);
+    harness.verify(state, config);
   }
 
   function test_verify_withL0_withinLimit_passes() public {
     state.netflow0 = 500 * 1e15; // 500 scaled to 15 decimals
-    harness.verify(state, configL0(1000 * 1e18), 18); // 1000 in 18 decimals
+    harness.verify(state, configL0(1000 * 1e15, 18)); // 1000 in 15 decimals
   }
 
   function test_verify_withL0_exceedsPositiveLimit_reverts() public {
     state.netflow0 = 1001 * 1e15; // 1001 scaled to 15 decimals
     vm.expectRevert(ITradingLimitsV2.L0LimitExceeded.selector);
-    harness.verify(state, configL0(1000 * 1e18), 18); // 1000 in 18 decimals
+    harness.verify(state, configL0(1000 * 1e15, 18)); // 1000 in 15 decimals
   }
 
   function test_verify_withL0_exceedsNegativeLimit_reverts() public {
     state.netflow0 = -1001 * 1e15; // -1001 scaled to 15 decimals
     vm.expectRevert(ITradingLimitsV2.L0LimitExceeded.selector);
-    harness.verify(state, configL0(1000 * 1e18), 18); // 1000 in 18 decimals
+    harness.verify(state, configL0(1000 * 1e15, 18)); // 1000 in 15 decimals
   }
 
   function test_verify_withL1_withinLimit_passes() public {
     state.netflow1 = 500 * 1e15; // 500 scaled to 15 decimals
-    harness.verify(state, configL0L1(100 * 1e18, 1000 * 1e18), 18); // 1000 in 18 decimals
+    harness.verify(state, configL0L1(100 * 1e15, 1000 * 1e15, 18)); // 1000 in 15 decimals
   }
 
   function test_verify_withL1_exceedsPositiveLimit_reverts() public {
     state.netflow1 = 1001 * 1e15; // 1001 scaled to 15 decimals
     vm.expectRevert(ITradingLimitsV2.L1LimitExceeded.selector);
-    harness.verify(state, configL0L1(100 * 1e18, 1000 * 1e18), 18); // 1000 in 18 decimals
+    harness.verify(state, configL0L1(100 * 1e15, 1000 * 1e15, 18)); // 1000 in 15 decimals
   }
 
   function test_verify_withL1_exceedsNegativeLimit_reverts() public {
     state.netflow1 = -1001 * 1e15; // -1001 scaled to 15 decimals
     vm.expectRevert(ITradingLimitsV2.L1LimitExceeded.selector);
-    harness.verify(state, configL0L1(100 * 1e18, 1000 * 1e18), 18); // 1000 in 18 decimals
-  }
-
-  function test_verify_withDifferentDecimals_6decimals_passes() public {
-    state.netflow0 = 500 * 1e15; // 500 scaled to 15 decimals
-    harness.verify(state, configL0(500 * 1e6), 6); // 500 in 6 decimals
-  }
-
-  function test_verify_withDifferentDecimals_8decimals_passes() public {
-    state.netflow0 = 500 * 1e15; // 500 scaled to 15 decimals
-    harness.verify(state, configL0(500 * 1e8), 8); // 500 in 8 decimals
-  }
-
-  function test_verify_withDifferentDecimals_24decimals_passes() public {
-    state.netflow0 = 500 * 1e15; // 500 scaled to 15 decimals
-    harness.verify(state, configL0(500 * 1e24), 24); // 500 in 24 decimals
+    harness.verify(state, configL0L1(100 * 1e15, 1000 * 1e15, 18)); // 1000 in 15 decimals
   }
 
   function test_verify_withL1Only_withinLimit_passes() public {
     state.netflow1 = 500 * 1e15; // 500 scaled to 15 decimals
-    harness.verify(state, configL1(1000 * 1e18), 18); // 1000 in 18 decimals
+    harness.verify(state, configL1(1000 * 1e15, 18)); // 1000 in 15 decimals
   }
 
   function test_verify_withL1Only_exceedsPositiveLimit_reverts() public {
     state.netflow1 = 1001 * 1e15; // 1001 scaled to 15 decimals
     vm.expectRevert(ITradingLimitsV2.L1LimitExceeded.selector);
-    harness.verify(state, configL1(1000 * 1e18), 18); // 1000 in 18 decimals
+    harness.verify(state, configL1(1000 * 1e15, 18)); // 1000 in 15 decimals
   }
 
   function test_verify_withL1Only_exceedsNegativeLimit_reverts() public {
     state.netflow1 = -1001 * 1e15; // -1001 scaled to 15 decimals
     vm.expectRevert(ITradingLimitsV2.L1LimitExceeded.selector);
-    harness.verify(state, configL1(1000 * 1e18), 18); // 1000 in 18 decimals
+    harness.verify(state, configL1(1000 * 1e15, 18)); // 1000 in 15 decimals
   }
 
   /* ==================== State#reset ==================== */
@@ -157,7 +136,7 @@ contract TradingLimitsV2Test is Test {
   function test_reset_clearsCheckpoints() public {
     state.lastUpdated0 = 123412412;
     state.lastUpdated1 = 123124412;
-    state = harness.reset(state, configL0(1000));
+    state = harness.reset(state, configL0(1000 * 1e15, 18));
 
     assertEq(uint256(state.lastUpdated0), 0);
     assertEq(uint256(state.lastUpdated1), 0);
@@ -165,7 +144,7 @@ contract TradingLimitsV2Test is Test {
 
   function test_reset_resetsNetflowsOnDisabled() public {
     state.netflow1 = 12312;
-    state = harness.reset(state, configL0(1000));
+    state = harness.reset(state, configL0(1000 * 1e15, 18));
 
     assertEq(state.netflow1, 0);
   }
@@ -173,7 +152,7 @@ contract TradingLimitsV2Test is Test {
   function test_reset_keepsNetflowsOnEnabled() public {
     state.netflow0 = 12312;
     state.netflow1 = 12312;
-    state = harness.reset(state, configL0L1(1000, 10000));
+    state = harness.reset(state, configL0L1(1000 * 1e15, 10000 * 1e15, 18));
 
     assertEq(state.netflow0, 12312);
     assertEq(state.netflow1, 12312);
@@ -182,7 +161,7 @@ contract TradingLimitsV2Test is Test {
   function test_reset_keepsL0_resetsL1_whenOnlyL0Enabled() public {
     state.netflow0 = 12312;
     state.netflow1 = 12312;
-    state = harness.reset(state, configL0(1000));
+    state = harness.reset(state, configL0(1000 * 1e15, 18));
 
     assertEq(state.netflow0, 12312);
     assertEq(state.netflow1, 0);
@@ -191,59 +170,72 @@ contract TradingLimitsV2Test is Test {
   /* ==================== State#update ==================== */
 
   function test_update_withNoLimit_doesNotUpdate() public {
-    state = harness.update(state, configEmpty(), 100 * 1e18, 18);
+    state = harness.update(state, configEmpty(18), 100 * 1e15);
     assertEq(state.netflow0, 0);
     assertEq(state.netflow1, 0);
   }
 
   function test_update_withZeroDeltaFlow_doesNotUpdate() public {
-    state = harness.update(state, configL0L1(1000, 10000), 0, 18);
+    state = harness.update(state, configL0L1(1000 * 1e15, 10000 * 1e15, 18), 0);
     assertEq(state.netflow0, 0);
     assertEq(state.netflow1, 0);
   }
 
   function test_update_withL0_updatesActive() public {
-    state = harness.update(state, configL0(1000 * 1e18), 100 * 1e18, 18);
+    state = harness.update(state, configL0(1000 * 1e15, 18), 100 * 1e18);
     assertEq(state.netflow0, 100 * 1e15); // Scaled to 15 decimals
     assertEq(state.netflow1, 0);
   }
 
   function test_update_withL0L1_updatesActive() public {
-    state = harness.update(state, configL0L1(1000 * 1e18, 10000 * 1e18), 100 * 1e18, 18);
+    state = harness.update(state, configL0L1(1000 * 1e15, 10000 * 1e15, 18), 100 * 1e18);
     assertEq(state.netflow0, 100 * 1e15); // Scaled to 15 decimals
     assertEq(state.netflow1, 100 * 1e15); // Scaled to 15 decimals
   }
 
   function test_update_withL1Only_updatesL1() public {
-    state = harness.update(state, configL1(10000 * 1e18), 100 * 1e18, 18);
+    state = harness.update(state, configL1(10000 * 1e15, 18), 100 * 1e18);
     assertEq(state.netflow0, 0); // L0 not active
     assertEq(state.netflow1, 100 * 1e15); // L1 should be updated
   }
 
   function test_update_withSmallAmount_doesNotRoundUp() public {
-    // In V2, small amounts that scale to 0 are rounded to ±1e3 based on direction
-    state = harness.update(state, configL0(1000 * 1e18), 1, 18); // 1 wei (positive)
-    assertEq(state.netflow0, 1e3); // Should be 1e3 (minimum positive flow)
+    // In V2, small amounts that scale to 0 are rounded to ±1 based on direction
+    state = harness.update(state, configL0(1000 * 1e15, 18), 1e18 + 999);
+    assertEq(state.netflow0, 1e15); // should be 1e15, 999 wei are rounded to 0
 
     state = ITradingLimitsV2.State(0, 0, 0, 0); // reset
-    state = harness.update(state, configL0(1000 * 1e18), -1, 18); // -1 wei (negative)
-    assertEq(state.netflow0, -1e3); // Should be -1e3 (minimum negative flow)
+    state = harness.update(state, configL0(1000 * 1e15, 18), -1e18 - 999);
+    assertEq(state.netflow0, -1e15); // should be -1e15, 999 wei are rounded to 0
   }
 
   function test_update_withSmallAmount_nonZero_updates() public {
-    state = harness.update(state, configL0(1000 * 1e18), 1e4, 18); // 0.0001 tokens = 1e14 scaled
+    state = harness.update(state, configL0(1000 * 1e15, 18), 1e4); // 0.0001 tokens = 1e14 scaled
     assertEq(state.netflow0, 10); // 1e4 / 1e3 = 10 when scaled from 18 to 15 decimals
+
+    state = ITradingLimitsV2.State(0, 0, 0, 0); // reset
+    state = harness.update(state, configL0(1000 * 1e15, 18), -1e4); // 0.0001 tokens = 1e14 scaled
+    assertEq(state.netflow0, -10); // 1e4 / 1e3 = 10 when scaled from 18 to 15 decimals
+  }
+
+  function test_update_WithSmallAmountAnd6Decimals_scalesUpCorrectly() public {
+    state = harness.update(state, configL0(1000 * 1e15, 6), 1e6 + 999);
+    assertEq(state.netflow0, 1e15 + 999e9); // scaled to 15 decimals 1e6 -> 1e15, 999 -> 999e9
+
+    state = ITradingLimitsV2.State(0, 0, 0, 0); // reset
+    state = harness.update(state, configL0(1000 * 1e15, 6), -1e6 - 999);
+    assertEq(state.netflow0, -1e15 - 999e9); // scaled to 15 decimals -1e6 -> -1e15, -999 -> -999e9
   }
 
   function test_update_resetsL0_after5Minutes() public {
     vm.warp(1000);
-    state = harness.update(state, configL0(1000 * 1e18), 100 * 1e18, 18);
+    state = harness.update(state, configL0(1000 * 1e15, 18), 100 * 1e18);
     assertEq(state.netflow0, 100 * 1e15);
     assertEq(state.lastUpdated0, 1000);
 
     // Move forward 5 minutes + 1 second
     vm.warp(1000 + 5 * 60 + 1);
-    state = harness.update(state, configL0(1000 * 1e18), 50 * 1e18, 18);
+    state = harness.update(state, configL0(1000 * 1e15, 18), 50 * 1e18);
 
     assertEq(state.netflow0, 50 * 1e15); // Should be reset to just new amount
     assertEq(state.lastUpdated0, 1000 + 5 * 60 + 1);
@@ -252,13 +244,13 @@ contract TradingLimitsV2Test is Test {
   function test_update_resetsL1_after1Day() public {
     // Start with a time that allows initial L1 timestamp to be set
     vm.warp(1 days + 1000);
-    state = harness.update(state, configL0L1(1000 * 1e18, 10000 * 1e18), 100 * 1e18, 18);
+    state = harness.update(state, configL0L1(1000 * 1e15, 10000 * 1e15, 18), 100 * 1e18);
     assertEq(state.netflow1, 100 * 1e15);
     assertEq(state.lastUpdated1, 1 days + 1000);
 
     // Move forward 1 day + 1 second
     vm.warp(1 days + 1000 + 1 days + 1);
-    state = harness.update(state, configL0L1(1000 * 1e18, 10000 * 1e18), 50 * 1e18, 18);
+    state = harness.update(state, configL0L1(1000 * 1e15, 10000 * 1e15, 18), 50 * 1e18);
 
     // Both L0 and L1 should be reset since both timeframes elapsed
     assertEq(state.netflow0, 50 * 1e15); // Should be reset to just new amount
@@ -269,11 +261,11 @@ contract TradingLimitsV2Test is Test {
 
   function test_update_accumulatesWithinTimeWindow() public {
     vm.warp(1000);
-    state = harness.update(state, configL0(1000 * 1e18), 100 * 1e18, 18);
+    state = harness.update(state, configL0(1000 * 1e15, 18), 100 * 1e18);
 
     // Move forward less than 5 minutes
     vm.warp(1000 + 4 * 60);
-    state = harness.update(state, configL0(1000 * 1e18), 50 * 1e18, 18);
+    state = harness.update(state, configL0(1000 * 1e15, 18), 50 * 1e18);
 
     assertEq(state.netflow0, 150 * 1e15); // Should accumulate
   }
@@ -281,13 +273,13 @@ contract TradingLimitsV2Test is Test {
   function test_update_L1Only_resetsAfter1Day() public {
     // Test that L1 resets after 1 day when used without L0
     vm.warp(1 days + 1000);
-    state = harness.update(state, configL1(10000 * 1e18), 100 * 1e18, 18);
+    state = harness.update(state, configL1(10000 * 1e15, 18), 100 * 1e18);
     assertEq(state.netflow1, 100 * 1e15);
     assertEq(state.lastUpdated1, 1 days + 1000);
 
     // Move forward 1 day + 1 second
     vm.warp(1 days + 1000 + 1 days + 1);
-    state = harness.update(state, configL1(10000 * 1e18), 50 * 1e18, 18);
+    state = harness.update(state, configL1(10000 * 1e15, 18), 50 * 1e18);
 
     // L1 should be reset
     assertEq(state.netflow1, 50 * 1e15); // Should be reset to just new amount
@@ -297,11 +289,11 @@ contract TradingLimitsV2Test is Test {
 
   function test_update_L1Only_accumulatesWithinTimeWindow() public {
     vm.warp(1000);
-    state = harness.update(state, configL1(10000 * 1e18), 100 * 1e18, 18);
+    state = harness.update(state, configL1(10000 * 1e15, 18), 100 * 1e18);
 
     // Move forward less than 1 day
     vm.warp(1000 + 12 hours);
-    state = harness.update(state, configL1(10000 * 1e18), 50 * 1e18, 18);
+    state = harness.update(state, configL1(10000 * 1e15, 18), 50 * 1e18);
 
     assertEq(state.netflow1, 150 * 1e15); // Should accumulate
     assertEq(state.netflow0, 0); // L0 should remain 0
@@ -329,8 +321,13 @@ contract TradingLimitsV2Test is Test {
     assertEq(scaled, 0);
   }
 
-  function test_scaleValue_withNegative_scalesCorrectly() public view {
+  function test_scaleValue_withNegative18Decimals_scalesCorrectly() public view {
     int96 scaled = harness.scaleValue(-100 * 1e18, 18);
+    assertEq(scaled, -100 * 1e15);
+  }
+
+  function test_scaleValue_withNegative6Decimals_scalesCorrectly() public view {
+    int96 scaled = harness.scaleValue(-100 * 1e6, 6);
     assertEq(scaled, -100 * 1e15);
   }
 
@@ -370,6 +367,10 @@ contract TradingLimitsV2Test is Test {
     int256 tooLarge = int256(type(int96).max) + 1;
     vm.expectRevert(ITradingLimitsV2.ValueExceedsInt96Bounds.selector);
     harness.scaleValue(tooLarge, 15);
+
+    int256 tooSmall = int256(type(int96).min) - 1;
+    vm.expectRevert(ITradingLimitsV2.ValueExceedsInt96Bounds.selector);
+    harness.scaleValue(tooSmall, 15);
   }
 
   /* ==================== SafeAdd ==================== */
@@ -402,60 +403,67 @@ contract TradingLimitsV2Test is Test {
   /* ==================== Integration Tests ==================== */
 
   function test_integration_fullWorkflow_18decimals() public {
-    ITradingLimitsV2.Config memory config = configL0L1(1000 * 1e18, 10000 * 1e18);
+    ITradingLimitsV2.Config memory config = configL0L1(1000 * 1e15, 10000 * 1e15, 18);
 
     // Validate config
     harness.validate(config);
 
     // Update with some flow
     vm.warp(1000);
-    state = harness.update(state, config, 500 * 1e18, 18);
+    state = harness.update(state, config, 500 * 1e18);
 
     // Verify within limits
-    harness.verify(state, config, 18);
+    harness.verify(state, config);
+
+    assertEq(state.netflow0, 500 * 1e15); // scaled to 15 decimals
+    assertEq(state.netflow1, 500 * 1e15); // scaled to 15 decimals
 
     // Update more and verify still within limits
-    state = harness.update(state, config, 400 * 1e18, 18);
-    harness.verify(state, config, 18);
+    state = harness.update(state, config, 400 * 1e18);
+    harness.verify(state, config);
+
+    assertEq(state.netflow0, (500 + 400) * 1e15); // scaled to 15 decimals
+    assertEq(state.netflow1, (500 + 400) * 1e15); // scaled to 15 decimals
 
     // Update to exceed L0 limit
-    state = harness.update(state, config, 200 * 1e18, 18);
+    state = harness.update(state, config, 200 * 1e18);
     vm.expectRevert(ITradingLimitsV2.L0LimitExceeded.selector);
-    harness.verify(state, config, 18);
+    harness.verify(state, config);
   }
 
   function test_integration_fullWorkflow_6decimals() public {
-    ITradingLimitsV2.Config memory config = configL0L1(1000 * 1e6, 10000 * 1e6);
+    ITradingLimitsV2.Config memory config = configL0L1(1000 * 1e15, 10000 * 1e15, 6);
 
     // Validate config
     harness.validate(config);
 
     // Update with some flow
     vm.warp(1000);
-    state = harness.update(state, config, 500 * 1e6, 6);
+    state = harness.update(state, config, 500 * 1e6);
 
     // Verify within limits
-    harness.verify(state, config, 6);
+    harness.verify(state, config);
 
     // Check scaled values are correct
     assertEq(state.netflow0, 500 * 1e15); // Should be scaled to 15 decimals
+    assertEq(state.netflow1, 500 * 1e15); // Should be scaled to 15 decimals
   }
 
   function test_integration_timeWindowReset_L0and_L1() public {
-    ITradingLimitsV2.Config memory config = configL0L1(1000 * 1e18, 10000 * 1e18);
+    ITradingLimitsV2.Config memory config = configL0L1(1000 * 1e18, 10000 * 1e18, 18);
 
     vm.warp(1000);
 
     // Fill L0 limit
-    state = harness.update(state, config, 1000 * 1e18, 18);
-    harness.verify(state, config, 18);
+    state = harness.update(state, config, 1000 * 1e18);
+    harness.verify(state, config);
 
     // Move forward 5 minutes to reset L0 but not L1
     vm.warp(1000 + 5 * 60 + 1);
 
     // Should be able to add more to L0 (reset) but L1 accumulates
-    state = harness.update(state, config, 1000 * 1e18, 18);
-    harness.verify(state, config, 18);
+    state = harness.update(state, config, 1000 * 1e18);
+    harness.verify(state, config);
 
     // Now L1 should have 2000, L0 should have 1000
     assertEq(state.netflow0, 1000 * 1e15);
@@ -464,7 +472,7 @@ contract TradingLimitsV2Test is Test {
     // Move forward 1 day to reset L1
     vm.warp(1000 + 1 days + 1);
 
-    state = harness.update(state, config, 1000 * 1e18, 18);
+    state = harness.update(state, config, 1000 * 1e18);
 
     // Both should be reset to just the new amount
     assertEq(state.netflow0, 1000 * 1e15);
