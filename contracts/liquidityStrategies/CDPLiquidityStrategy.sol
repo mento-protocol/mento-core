@@ -44,25 +44,40 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     address pool,
     address debtToken,
     uint64 cooldown,
-    uint32 incentiveBps,
     address stabilityPool,
     address collateralRegistry,
     address systemParams,
     uint256 stabilityPoolPercentage,
-    uint256 maxIterations
+    uint256 maxIterations,
+    uint128 liquiditySourceIncentiveBpsExpansion,
+    uint128 protocolIncentiveBpsExpansion,
+    uint128 liquiditySourceIncentiveBpsContraction,
+    uint128 protocolIncentiveBpsContraction
   ) external onlyOwner {
     if (!(0 < stabilityPoolPercentage && stabilityPoolPercentage < BPS_DENOMINATOR))
       revert CDPLS_INVALID_STABILITY_POOL_PERCENTAGE();
     if (collateralRegistry == address(0)) revert CDPLS_COLLATERAL_REGISTRY_IS_ZERO();
     if (stabilityPool == address(0)) revert CDPLS_STABILITY_POOL_IS_ZERO();
 
-    LiquidityStrategy._addPool(pool, debtToken, cooldown, incentiveBps);
+    LiquidityStrategy._addPool(
+      pool,
+      debtToken,
+      cooldown,
+      liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction
+    );
     cdpConfigs[pool] = CDPConfig({
       stabilityPool: stabilityPool,
       collateralRegistry: collateralRegistry,
       systemParams: systemParams,
       stabilityPoolPercentage: stabilityPoolPercentage,
-      maxIterations: maxIterations
+      maxIterations: maxIterations,
+      liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction: protocolIncentiveBpsContraction,
+      liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion
     });
   }
 

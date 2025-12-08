@@ -369,6 +369,27 @@ interface IFPMM is IRPool {
     );
 
   /**
+   * @notice Gets the rebalancing state of the pool
+   * @return targetNum The numerator of the target price.
+   * @return targetDen The denominator of the target price.
+   * @return reservePriceNumerator The numerator of the pool reserve price.
+   * @return reservePriceDenominator The denominator of the pool reserve price.
+   * @return reservePriceAboveOraclePrice Whether the pool reserve price is above the oracle price.
+   * @return canBeRebalanced Whether the pool can be rebalanced.
+   */
+  function getRebalancingState()
+    external
+    view
+    returns (
+      uint256 targetNum,
+      uint256 targetDen,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      bool reservePriceAboveOraclePrice,
+      bool canBeRebalanced
+    );
+
+  /**
    * @notice Gets trading limits config and state for a token
    * @param token Address of the token
    * @return config Trading limits config for the token

@@ -55,7 +55,9 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       address(mockCollateralRegistry),
       mockSystemParams,
       stabilityPoolPercentage,
-      100 // maxIterations
+      100, // maxIterations
+      25, // troveOwnerRedemptionFee
+      25 // protocolRedemptionFee
     );
     _;
   }

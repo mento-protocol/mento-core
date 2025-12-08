@@ -14,11 +14,21 @@ interface ILiquidityStrategy {
    * @param isToken0Debt Whether token0 is the debt token (true) or token1 is the debt token (false)
    * @param lastRebalance The timestamp of the last rebalance for this pool
    * @param rebalanceCooldown The cooldown period that must pass before the next rebalance
+   * @param liquiditySourceIncentiveBpsExpansion The incentive for the liquidity source in basis points for expansion
+   * @param protocolIncentiveBpsExpansion The incentive for the protocol in basis points for expansion
+   * @param liquiditySourceIncentiveBpsContraction The incentive for the liquidity source in basis points for contraction
+   * @param protocolIncentiveBpsContraction The incentive for the protocol in basis points for contraction
+   * @param protocolFeeRecipient The recipient of the protocol fee
    */
   struct PoolConfig {
     bool isToken0Debt;
     uint64 lastRebalance;
     uint64 rebalanceCooldown;
+    uint128 liquiditySourceIncentiveBpsExpansion;
+    uint128 protocolIncentiveBpsExpansion;
+    uint128 liquiditySourceIncentiveBpsContraction;
+    uint128 protocolIncentiveBpsContraction;
+    address protocolFeeRecipient;
   }
 
   /* ============================================================ */
@@ -49,12 +59,18 @@ interface ILiquidityStrategy {
   error LS_INVALID_DECIMAL();
   /// @notice Thrown when oracle prices are invalid
   error LS_INVALID_PRICES();
+  /// @notice Thrown when the pool cannot be rebalanced
+  error LS_POOL_NOT_REBALANCEABLE();
   /// @notice Thrown when the hook callback isn't called during a rebalance from the FPMM
   error LS_HOOK_NOT_CALLED();
   /// @notice Thrown when the same pool is rebalanced twice in a single transaction
   error LS_CAN_ONLY_REBALANCE_ONCE(address pool);
   /// @notice Thrown when trying to add a pool with a debt token that's not a part of the pool
   error LS_DEBT_TOKEN_NOT_IN_POOL();
+  /// @notice Thrown when trying to add a pool with a protocol fee recipient that is zero address
+  error LS_PROTOCOL_FEE_RECIPIENT_REQUIRED();
+  /// @notice Thrown when the incentive is to high for expansion or contraction
+  error LS_INCENTIVE_TOO_HIGH();
 
   /* ============================================================ */
   /* ======================== Events ============================ */
@@ -65,9 +81,8 @@ interface ILiquidityStrategy {
    * @param pool The address of the pool
    * @param isToken0Debt Whether token0 is the debt token
    * @param cooldown The rebalance cooldown period
-   * @param incentiveBps The rebalance incentive in basis points
    */
-  event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown, uint32 incentiveBps);
+  event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown);
 
   /**
    * @notice Emitted when a pool is removed from the strategy

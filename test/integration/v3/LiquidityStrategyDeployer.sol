@@ -36,7 +36,9 @@ contract LiquidityStrategyDeployer is TestStorage {
     uint64 cooldown,
     uint32 incentiveBps,
     uint256 stabilityPoolPercentage,
-    uint256 maxIterations
+    uint256 maxIterations,
+    uint256 troveOwnerRedemptionFee,
+    uint256 protocolRedemptionFee
   ) internal {
     require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
     require($liquity.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquity not deployed");
@@ -51,7 +53,9 @@ contract LiquidityStrategyDeployer is TestStorage {
       address($liquity.collateralRegistry),
       address($liquity.systemParams),
       stabilityPoolPercentage,
-      maxIterations
+      maxIterations,
+      troveOwnerRedemptionFee,
+      protocolRedemptionFee
     );
     vm.stopPrank();
   }

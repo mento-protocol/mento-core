@@ -17,7 +17,7 @@ import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { TradingLimitsV2 } from "../libraries/TradingLimitsV2.sol";
 import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
-
+import { console2 as console } from "forge-std/console2.sol";
 /**
  * @title Fixed Price Market Maker (FPMM)
  * @author Mento Labs
@@ -287,6 +287,59 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
       priceDifference,
       reservePriceAboveOraclePrice
     );
+  }
+
+  function getRebalancingState()
+    external
+    view
+    returns (
+      uint256 targetNumerator,
+      uint256 targetDenominator,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      bool reservePriceAboveOraclePrice,
+      bool canBeRebalanced
+    )
+  {
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    if ($.referenceRateFeedID == address(0)) revert ReferenceRateNotSet();
+    if ($.reserve0 == 0 || $.reserve1 == 0) revert ReservesEmpty();
+
+    (uint256 oraclePriceNumerator, uint256 oraclePriceDenominator) = _getRateFeed();
+
+    // slither-disable-start divide-before-multiply
+    reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
+    reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
+    // slither-disable-end divide-before-multiply
+
+    (uint256 priceDifference, bool _reservePriceAboveOraclePrice) = _calculatePriceDifference(
+      oraclePriceNumerator,
+      oraclePriceDenominator,
+      reservePriceNumerator,
+      reservePriceDenominator
+    );
+    reservePriceAboveOraclePrice = _reservePriceAboveOraclePrice;
+
+    console.log("priceDifference", priceDifference);
+    console.log("rebalanceThresholdAbove", $.rebalanceThresholdAbove);
+    console.log("rebalanceThresholdBelow", $.rebalanceThresholdBelow);
+    console.log("Oracle Price", oraclePriceNumerator, oraclePriceDenominator);
+    console.log("Reserve Price", reservePriceNumerator, reservePriceDenominator);
+
+    if (_reservePriceAboveOraclePrice && priceDifference >= $.rebalanceThresholdAbove) {
+      targetNumerator =
+        (oraclePriceNumerator * (BASIS_POINTS_DENOMINATOR + $.rebalanceThresholdAbove)) /
+        BASIS_POINTS_DENOMINATOR;
+      targetDenominator = oraclePriceDenominator;
+      canBeRebalanced = true;
+    } else if (!_reservePriceAboveOraclePrice && priceDifference >= $.rebalanceThresholdBelow) {
+      targetNumerator =
+        (oraclePriceNumerator * (BASIS_POINTS_DENOMINATOR - $.rebalanceThresholdBelow)) /
+        BASIS_POINTS_DENOMINATOR;
+      targetDenominator = oraclePriceDenominator;
+      canBeRebalanced = true;
+    }
   }
 
   /// @inheritdoc IRPool

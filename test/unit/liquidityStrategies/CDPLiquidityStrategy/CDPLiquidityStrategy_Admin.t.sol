@@ -36,7 +36,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockCollateralRegistry),
       mockSystemParams,
       9000, // stabilityPoolPercentage (90%)
-      100 // maxIterations
+      100, // maxIterations
+      25, // troveOwnerRedemptionFee
+      25 // protocolRedemptionFee
     );
 
     // Verify pool is registered
@@ -66,7 +68,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockCollateralRegistry),
       mockSystemParams,
       9000,
-      100
+      100,
+      25,
+      25
     );
   }
 
@@ -85,7 +89,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockCollateralRegistry),
       mockSystemParams,
       0, // Invalid: 0%
-      100
+      100,
+      25,
+      25
     );
   }
 
@@ -104,7 +110,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockCollateralRegistry),
       mockSystemParams,
       10000, // Invalid: 100%
-      100
+      100,
+      25,
+      25
     );
   }
 
@@ -122,7 +130,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(0), // Invalid
       mockSystemParams,
       9000,
-      100
+      100,
+      25,
+      25
     );
   }
 
@@ -140,7 +150,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(mockCollateralRegistry),
       mockSystemParams,
       9000,
-      100
+      100,
+      25,
+      25
     );
   }
 
@@ -197,7 +209,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       collateralRegistry: address(newCollateralRegistry),
       systemParams: newSystemParams,
       stabilityPoolPercentage: 8000, // 80%
-      maxIterations: 100
+      maxIterations: 100,
+      troveOwnerRedemptionFee: 25,
+      protocolRedemptionFee: 25
     });
 
     vm.prank(owner);
@@ -218,7 +232,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       collateralRegistry: address(mockCollateralRegistry),
       systemParams: mockSystemParams,
       stabilityPoolPercentage: 8000,
-      maxIterations: 100
+      maxIterations: 100,
+      troveOwnerRedemptionFee: 25,
+      protocolRedemptionFee: 25
     });
 
     vm.expectRevert("Ownable: caller is not the owner");
@@ -232,7 +248,9 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       collateralRegistry: address(mockCollateralRegistry),
       systemParams: mockSystemParams,
       stabilityPoolPercentage: 8000,
-      maxIterations: 100
+      maxIterations: 100,
+      troveOwnerRedemptionFee: 25,
+      protocolRedemptionFee: 25
     });
 
     vm.expectRevert("LS_POOL_NOT_FOUND()");

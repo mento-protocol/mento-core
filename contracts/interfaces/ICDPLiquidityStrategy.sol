@@ -42,6 +42,10 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
     address systemParams;
     uint256 stabilityPoolPercentage;
     uint256 maxIterations;
+    uint128 liquiditySourceIncentiveBpsContraction;
+    uint128 protocolIncentiveBpsContraction;
+    uint128 liquiditySourceIncentiveBpsExpansion;
+    uint128 protocolIncentiveBpsExpansion;
   }
 
   /* ============================================================ */
@@ -53,23 +57,29 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
    * @param pool The address of the FPMM pool to add
    * @param debtToken The address of the debt token (stable asset)
    * @param cooldown The cooldown period between rebalances in seconds
-   * @param incentiveBps The rebalance incentive in basis points
    * @param stabilityPool The address of the stability pool for this debt token
    * @param collateralRegistry The address of the collateral registry for redemptions
    * @param systemParams The address of the system params contract for reading redemption beta
    * @param stabilityPoolPercentage The percentage of stability pool balance to use (in bps)
    * @param maxIterations The maximum number of iterations for redemption operations
+   * @param liquiditySourceIncentiveBpsContraction The incentive for the liquidity source in basis points for contraction
+   * @param protocolIncentiveBpsContraction The incentive for the protocol in basis points for contraction
+   * @param liquiditySourceIncentiveBpsExpansion The incentive for the liquidity source in basis points for expansion
+   * @param protocolIncentiveBpsExpansion The incentive for the protocol in basis points for expansion
    */
   function addPool(
     address pool,
     address debtToken,
     uint64 cooldown,
-    uint32 incentiveBps,
     address stabilityPool,
     address collateralRegistry,
     address systemParams,
     uint256 stabilityPoolPercentage,
-    uint256 maxIterations
+    uint256 maxIterations,
+    uint128 liquiditySourceIncentiveBpsContraction,
+    uint128 protocolIncentiveBpsContraction,
+    uint128 liquiditySourceIncentiveBpsExpansion,
+    uint128 protocolIncentiveBpsExpansion
   ) external;
 
   /**

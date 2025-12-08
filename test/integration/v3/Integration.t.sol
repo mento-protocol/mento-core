@@ -38,7 +38,9 @@ contract IntegrationTest is
       cooldown: 60,
       incentiveBps: 50,
       stabilityPoolPercentage: 9000, // 90%
-      maxIterations: 100
+      maxIterations: 100,
+      troveOwnerRedemptionFee: 25,
+      protocolRedemptionFee: 25
     });
     _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
 

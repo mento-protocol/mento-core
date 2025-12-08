@@ -294,7 +294,8 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
       IBoldToken(address(debtToken)),
       vars.collaterals,
       vars.troveManagers,
-      systemParamsArray[0]
+      systemParamsArray[0],
+      vars.addressesRegistries[0]
     );
     hintHelpers = new HintHelpers(collateralRegistry, systemParamsArray[0]);
     multiTroveGetter = new MultiTroveGetter(collateralRegistry);

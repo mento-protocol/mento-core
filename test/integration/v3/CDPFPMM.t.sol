@@ -300,7 +300,9 @@ contract CDPFPMM_Token0Debt_Test is CDPFPMM_BaseTest {
       cooldown: 60,
       incentiveBps: 50,
       stabilityPoolPercentage: 9000, // 90%
-      maxIterations: 100
+      maxIterations: 100,
+      troveOwnerRedemptionFee: 25,
+      protocolRedemptionFee: 25
     });
     _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
     // skip 20 days to allow the base rate to decay
@@ -327,7 +329,9 @@ contract CDPFPMM_Token1Debt_Test is CDPFPMM_BaseTest {
       cooldown: 60,
       incentiveBps: 50,
       stabilityPoolPercentage: 9000, // 90%
-      maxIterations: 100
+      maxIterations: 100,
+      troveOwnerRedemptionFee: 25,
+      protocolRedemptionFee: 25
     });
     _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
     // skip 20 days to allow the base rate to decay

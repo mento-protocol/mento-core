@@ -61,7 +61,10 @@ library LiquidityStrategyTypes {
     Prices prices;
     address token0;
     address token1;
-    uint128 incentiveBps;
+    uint128 liquiditySourceIncentiveBpsExpansion;
+    uint128 protocolIncentiveBpsExpansion;
+    uint128 liquiditySourceIncentiveBpsContraction;
+    uint128 protocolIncentiveBpsContraction;
     uint64 token0Dec;
     uint64 token1Dec;
     bool isToken0Debt;
@@ -78,7 +81,6 @@ library LiquidityStrategyTypes {
   /// @notice Callback data passed to hook during rebalance
   struct CallbackData {
     uint256 amountOwedToPool;
-    uint256 incentiveBps;
     Direction dir;
     bool isToken0Debt;
     address debtToken;
@@ -96,7 +98,47 @@ library LiquidityStrategyTypes {
    * @param config The pool configuration from the strategy
    * @return ctx The populated context with pool state and configuration
    */
-  function newContext(
+  // function newContext(
+  //   address pool,
+  //   ILiquidityStrategy.PoolConfig memory config
+  // ) internal view returns (Context memory ctx) {
+  //   IFPMM fpmm = IFPMM(pool);
+  //   ctx.pool = pool;
+  //   // Get and set token data
+  //   {
+  //     (uint256 dec0, uint256 dec1, , , address t0, address t1) = fpmm.metadata();
+  //     if (!(dec0 > 0 && dec1 > 0)) revert ILiquidityStrategy.LS_ZERO_DECIMAL();
+  //     if (!(dec0 <= 1e18 && dec1 <= 1e18)) revert ILiquidityStrategy.LS_INVALID_DECIMAL();
+
+  //     ctx.token0 = t0;
+  //     ctx.token1 = t1;
+  //     ctx.token0Dec = uint64(dec0);
+  //     ctx.token1Dec = uint64(dec1);
+  //     ctx.isToken0Debt = config.isToken0Debt;
+
+  //     // Set incentive from FPMM
+  //     ctx.incentiveBps = uint128(fpmm.rebalanceIncentive());
+  //   }
+
+  //   // Get and set price data
+  //   {
+  //     (
+  //       uint256 oracleNum,
+  //       uint256 oracleDen,
+  //       uint256 reserveNum,
+  //       uint256 reserveDen,
+  //       uint256 diffBps,
+  //       bool poolAbove
+  //     ) = fpmm.getPrices();
+
+  //     if (!(oracleNum > 0 && oracleDen > 0)) revert ILiquidityStrategy.LS_INVALID_PRICES();
+
+  //     ctx.reserves = Reserves({ reserveNum: reserveNum, reserveDen: reserveDen });
+  //     ctx.prices = Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolAbove, diffBps: diffBps });
+  //   }
+  // }
+
+  function newRebalanceContext(
     address pool,
     ILiquidityStrategy.PoolConfig memory config
   ) internal view returns (Context memory ctx) {
@@ -115,24 +157,32 @@ library LiquidityStrategyTypes {
       ctx.isToken0Debt = config.isToken0Debt;
 
       // Set incentive from FPMM
-      ctx.incentiveBps = uint128(fpmm.rebalanceIncentive());
+      ctx.liquiditySourceIncentiveBpsExpansion = config.liquiditySourceIncentiveBpsExpansion;
+      ctx.protocolIncentiveBpsExpansion = config.protocolIncentiveBpsExpansion;
+      ctx.liquiditySourceIncentiveBpsContraction = config.liquiditySourceIncentiveBpsContraction;
+      ctx.protocolIncentiveBpsContraction = config.protocolIncentiveBpsContraction;
     }
 
     // Get and set price data
     {
       (
-        uint256 oracleNum,
-        uint256 oracleDen,
+        uint256 targetNum,
+        uint256 targetDen,
         uint256 reserveNum,
         uint256 reserveDen,
-        uint256 diffBps,
-        bool poolAbove
-      ) = fpmm.getPrices();
+        bool reservePriceAboveOraclePrice,
+        bool canBeRebalanced
+      ) = fpmm.getRebalancingState();
 
-      if (!(oracleNum > 0 && oracleDen > 0)) revert ILiquidityStrategy.LS_INVALID_PRICES();
+      if (!canBeRebalanced) revert ILiquidityStrategy.LS_POOL_NOT_REBALANCEABLE();
 
       ctx.reserves = Reserves({ reserveNum: reserveNum, reserveDen: reserveDen });
-      ctx.prices = Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolAbove, diffBps: diffBps });
+      ctx.prices = Prices({
+        oracleNum: targetNum,
+        oracleDen: targetDen,
+        poolPriceAbove: reservePriceAboveOraclePrice,
+        diffBps: 0
+      });
     }
   }
 

@@ -8,7 +8,6 @@ import { EnumerableSetUpgradeable } from "openzeppelin-contracts-upgradeable/con
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20Upgradeable as SafeERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { Initializable } from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
-
 import { IFPMM } from "../interfaces/IFPMM.sol";
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
@@ -37,7 +36,7 @@ abstract contract LiquidityStrategy is
   /* ============================================================ */
 
   EnumerableSetUpgradeable.AddressSet private pools;
-  mapping(address => PoolConfig) private poolConfigs;
+  mapping(address => PoolConfig) internal poolConfigs;
 
   /* ============================================================ */
   /* ======================= Constructor ======================== */
@@ -93,7 +92,7 @@ abstract contract LiquidityStrategy is
       revert LS_COOLDOWN_ACTIVE();
     }
 
-    LQ.Context memory ctx = LQ.newContext(pool, config);
+    LQ.Context memory ctx = LQ.newRebalanceContext(pool, config);
     LQ.Action memory action = _determineAction(ctx);
 
     (address debtToken, address collToken) = ctx.tokens();
@@ -101,7 +100,6 @@ abstract contract LiquidityStrategy is
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: action.amountOwedToPool,
-        incentiveBps: ctx.incentiveBps,
         dir: action.dir,
         isToken0Debt: ctx.isToken0Debt,
         debtToken: debtToken,
@@ -131,8 +129,8 @@ abstract contract LiquidityStrategy is
    * @notice Hook called by FPMM during rebalance to handle token transfers
    * @dev Virtual function that can be overridden for custom callback handling
    * @param sender The address that initiated the rebalance (must be this contract)
-   * @param amount0Out The amount of token0 to be sent from the pool
-   * @param amount1Out The amount of token1 to be sent from the pool
+   * @param amount0Out The amount of token0 sent by the pool
+   * @param amount1Out The amount of token1 sent by the pool
    * @param data Encoded callback data containing rebalance parameters
    */
   function onRebalance(address sender, uint256 amount0Out, uint256 amount1Out, bytes calldata data) external virtual {
@@ -166,10 +164,11 @@ abstract contract LiquidityStrategy is
    * @return ctx The liquidity context containing pool state
    * @return action The determined rebalance action
    */
+
   function determineAction(address pool) external view returns (LQ.Context memory ctx, LQ.Action memory action) {
     _ensurePool(pool);
     PoolConfig memory config = poolConfigs[pool];
-    ctx = LQ.newContext(pool, config);
+    ctx = LQ.newRebalanceContext(pool, config);
     action = _determineAction(ctx);
   }
 
@@ -235,19 +234,50 @@ abstract contract LiquidityStrategy is
    * @param pool The address of the FPMM pool to add
    * @param debtToken The address of the debt token (determines isToken0Debt)
    * @param cooldown The cooldown period between rebalances in seconds
-   * @param incentiveBps The rebalance incentive in basis points (for event emission only)
+   * @param liquiditySourceIncentiveBpsExpansion The liquidity source incentive in basis points for expansion
+   * @param protocolIncentiveBpsExpansion The protocol incentive in basis points for expansion
+   * @param liquiditySourceIncentiveBpsContraction The liquidity source incentive in basis points for contraction
+   * @param protocolIncentiveBpsContraction The protocol incentive in basis points for contraction
+   * @param protocolFeeRecipient The recipient of the protocol fee
    */
-  function _addPool(address pool, address debtToken, uint64 cooldown, uint32 incentiveBps) internal virtual {
+  function _addPool(
+    address pool,
+    address debtToken,
+    uint64 cooldown,
+    uint128 liquiditySourceIncentiveBpsExpansion,
+    uint128 protocolIncentiveBpsExpansion,
+    uint128 liquiditySourceIncentiveBpsContraction,
+    uint128 protocolIncentiveBpsContraction,
+    address protocolFeeRecipient
+  ) internal virtual {
     if (pool == address(0)) revert LS_POOL_MUST_BE_SET();
     if (!pools.add(pool)) revert LS_POOL_ALREADY_EXISTS(); // Ensure pool is added
     bool isToken0Debt = debtToken == IFPMM(pool).token0();
     if (!isToken0Debt && IFPMM(pool).token1() != debtToken) {
       revert LS_DEBT_TOKEN_NOT_IN_POOL();
     }
+    if (protocolIncentiveBpsExpansion + liquiditySourceIncentiveBpsExpansion > BPS_DENOMINATOR) {
+      revert LS_INCENTIVE_TOO_HIGH();
+    }
+    if (protocolIncentiveBpsContraction + liquiditySourceIncentiveBpsContraction > BPS_DENOMINATOR) {
+      revert LS_INCENTIVE_TOO_HIGH();
+    }
+    if (protocolIncentiveBpsExpansion + protocolIncentiveBpsContraction > 0 && protocolFeeRecipient == address(0)) {
+      revert LS_PROTOCOL_FEE_RECIPIENT_REQUIRED();
+    }
 
-    poolConfigs[pool] = PoolConfig({ isToken0Debt: isToken0Debt, lastRebalance: 0, rebalanceCooldown: cooldown });
+    poolConfigs[pool] = PoolConfig({
+      isToken0Debt: isToken0Debt,
+      lastRebalance: 0,
+      rebalanceCooldown: cooldown,
+      liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction: protocolIncentiveBpsContraction,
+      protocolFeeRecipient: protocolFeeRecipient
+    });
 
-    emit PoolAdded(pool, isToken0Debt, cooldown, incentiveBps);
+    emit PoolAdded(pool, isToken0Debt, cooldown);
   }
 
   /**
@@ -291,8 +321,15 @@ abstract contract LiquidityStrategy is
    * @return action The constructed rebalance action
    */
   function _handlePoolPriceAbove(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
+    uint256 totalIncentiveBps;
+    if (ctx.isToken0Debt) {
+      totalIncentiveBps = ctx.liquiditySourceIncentiveBpsExpansion + ctx.protocolIncentiveBpsExpansion;
+    } else {
+      totalIncentiveBps = ctx.liquiditySourceIncentiveBpsContraction + ctx.protocolIncentiveBpsContraction;
+    }
+
     uint256 numerator = ctx.prices.oracleDen * ctx.reserves.reserveNum - ctx.prices.oracleNum * ctx.reserves.reserveDen;
-    uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+    uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
     uint256 token1Out = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token1Dec);
@@ -302,7 +339,7 @@ abstract contract LiquidityStrategy is
       ctx.token0Dec,
       ctx.prices.oracleDen,
       ctx.prices.oracleNum,
-      LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+      LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps,
       LQ.BASIS_POINTS_DENOMINATOR
     );
 
@@ -324,8 +361,14 @@ abstract contract LiquidityStrategy is
    * @return action The constructed rebalance action
    */
   function _handlePoolPriceBelow(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
+    uint256 totalIncentiveBps;
+    if (ctx.isToken0Debt) {
+      totalIncentiveBps = ctx.liquiditySourceIncentiveBpsContraction + ctx.protocolIncentiveBpsContraction;
+    } else {
+      totalIncentiveBps = ctx.liquiditySourceIncentiveBpsExpansion + ctx.protocolIncentiveBpsExpansion;
+    }
     uint256 numerator = ctx.prices.oracleNum * ctx.reserves.reserveDen - ctx.prices.oracleDen * ctx.reserves.reserveNum;
-    uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+    uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps)) /
       LQ.BASIS_POINTS_DENOMINATOR;
 
     uint256 token0Out = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token0Dec);
@@ -336,7 +379,7 @@ abstract contract LiquidityStrategy is
       ctx.token1Dec,
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
-      LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+      LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps,
       LQ.BASIS_POINTS_DENOMINATOR
     );
 
@@ -389,6 +432,25 @@ abstract contract LiquidityStrategy is
     );
 
     return ctx.newContraction(debtToContract, collateralToReceive);
+  }
+
+  /**
+   * @notice Transfer tokens to the protocol fee recipient
+   * @param token The token to transfer
+   * @param amount The amount of tokens to transfer
+   * @param recipient The recipient of the tokens
+   * @param protocolIncentiveBps The incentive in basis points
+   */
+  function _transferToProtocol(
+    address token,
+    uint256 amount,
+    address recipient,
+    uint128 protocolIncentiveBps
+  ) internal {
+    if (protocolIncentiveBps > 0) {
+      uint256 fee = (amount * protocolIncentiveBps) / BPS_DENOMINATOR;
+      IERC20(token).safeTransfer(recipient, fee);
+    }
   }
 
   /**
