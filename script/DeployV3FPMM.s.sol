@@ -14,6 +14,7 @@ import { FactoryRegistry } from "contracts/swap/FactoryRegistry.sol";
 import { Router } from "contracts/swap/router/Router.sol";
 import { OracleAdapter } from "contracts/oracles/OracleAdapter.sol";
 import { ProxyAdmin } from "openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
+import { VirtualPoolFactory } from "contracts/swap/virtual/VirtualPoolFactory.sol";
 
 // Interfaces
 import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
@@ -26,9 +27,6 @@ import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.so
 import { MarketHoursBreaker } from "contracts/oracles/breakers/MarketHoursBreaker.sol";
 
 /**
- * @title DeployV3FPMM
- * @notice Deploys V3 FPMM infrastructure on a local Celo fork for SDK testing
- *
  * Usage:
  *   # Start Anvil fork
  *   anvil --fork-url $CELO_RPC_URL --chain-id 42220
@@ -39,7 +37,7 @@ import { MarketHoursBreaker } from "contracts/oracles/breakers/MarketHoursBreake
  *     --broadcast
  */
 contract DeployV3FPMM is Script, Test {
-    // ============ Celo Mainnet Addresses ============
+    // ============ Celo Mainnet Addresses ============//
     address constant SORTED_ORACLES = 0xefB84935239dAcdecF7c5bA76d8dE40b077B7b33;
     address constant BREAKER_BOX = 0x303ED1Bcb229CC7e9Fc998994aaD34B8FfE0D69b;
 
@@ -67,7 +65,7 @@ contract DeployV3FPMM is Script, Test {
 
         vm.startBroadcast();
 
-        // 1. Deploy OracleAdapter using existing Celo infrastructure
+        // 1. Deploy OracleAdapter
         _deployOracleAdapter(deployer);
 
         // 2. Deploy ProxyAdmin
@@ -101,17 +99,19 @@ contract DeployV3FPMM is Script, Test {
         router = new Router(address(0), address(factoryRegistry), address(factory));
         console.log("Router:", address(router));
 
-        // 7. Deploy FPMM pool (cUSD/USDC - stablecoin pair)
-        rateFeedId = address(uint160(uint256(keccak256("cUSD/USDC"))));
-        fpmmPool = IFPMM(
-            factory.deployFPMM(
-                fpmmImpl,
-                cUSD,
-                USDC,
-                rateFeedId,
-                false // don't invert rate
-            )
-        );
+        // Deploy 
+
+        // // 7. Deploy FPMM pool (cUSD/USDC - stablecoin pair)
+        // rateFeedId = address(uint160(uint256(keccak256("cUSD/USDC"))));
+        // fpmmPool = IFPMM(
+        //     factory.deployFPMM(
+        //         fpmmImpl,
+        //         cUSD,
+        //         USDC,
+        //         rateFeedId,
+        //         false // don't invert rate
+        //     )
+        // );
         console.log("FPMM Pool (cUSD/USDC):", address(fpmmPool));
 
         vm.stopBroadcast();
