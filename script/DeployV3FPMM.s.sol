@@ -186,17 +186,16 @@ contract DeployV3FPMM is Script, Test {
   }
 
   function _provideLiquidity() internal {
-
     console.log("\n=== Providing Liquidity ===");
     uint256 cusdAmount = 1_000_000e18;
     uint256 ckesAmount = 1_000_000e18;
 
     // Add liquidity
     (uint256 amount0, uint256 amount1, uint256 liquidity) = router.addLiquidity(
-      cUSD,
       cKES,
-      100000,
-      100000,
+      cUSD,
+      1E18,
+      1E18,
       0, // amountAMin
       0, // amountBMin
       msg.sender,
