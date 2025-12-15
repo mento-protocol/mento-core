@@ -20,6 +20,12 @@ interface IVirtualPoolFactory is IRPoolFactory {
   /// @dev Used when the CREATEX bytecode hash doesn't match the expected value.
   error InvalidCreateXBytecode();
 
+  /// @dev Used when trying to deprecate a pool that doesn't exist.
+  error PoolNotFound();
+
+  /// @dev Used when trying to deprecate a pool that is already deprecated.
+  error PoolAlreadyDeprecated();
+
   /* ========================================== */
   /* ================= Events ================= */
   /* ========================================== */
@@ -32,6 +38,12 @@ interface IVirtualPoolFactory is IRPoolFactory {
    */
   event VirtualPoolDeployed(address indexed pool, address indexed token0, address indexed token1);
 
+  /**
+   * @notice Emitted when a pool is deprecated.
+   * @param pool The address of the deprecated pool
+   */
+  event PoolDeprecated(address indexed pool);
+
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */
@@ -43,4 +55,27 @@ interface IVirtualPoolFactory is IRPoolFactory {
    * @return pool Address of the deployed pool.
    */
   function deployVirtualPool(address exchangeProvider, bytes32 exchangeId) external returns (address pool);
+
+  /**
+   * @notice Deprecates a VirtualPool.
+   * @param pool The address of the pool to deprecate.
+   */
+  function deprecatePool(address pool) external;
+
+  /* ============================================================ */
+  /* ===================== View Functions ======================= */
+  /* ============================================================ */
+
+  /**
+   * @notice Returns all non-deprecated pools that have been deployed.
+   * @return An array of all active pool addresses.
+   */
+  function getAllPools() external view returns (address[] memory);
+
+  /**
+   * @notice Checks if a pool is deprecated.
+   * @param pool The address of the pool to check.
+   * @return True if the pool is deprecated, false otherwise.
+   */
+  function isPoolDeprecated(address pool) external view returns (bool);
 }
