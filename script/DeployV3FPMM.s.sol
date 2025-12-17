@@ -37,7 +37,7 @@ import { MarketHoursBreaker } from "contracts/oracles/breakers/MarketHoursBreake
 contract DeployV3FPMM is Script {
   // ============ Celo Mainnet Addresses ============//
   address constant SORTED_ORACLES = 0xefB84935239dAcdecF7c5bA76d8dE40b077B7b33;
-  address constant BREAKER_BOX = 0x303ED1Bcb229CC7e9Fc998994aaD34B8FfE0D69b;
+  address constant BREAKER_BOX = 0x303ED1df62Fa067659B586EbEe8De0EcE824Ab39;
   address constant BIPOOL_MANAGER = 0x22d9db95E6Ae61c104A7B6F6C78D7993B94ec901;
 
   // Live tokens on Celo
@@ -47,12 +47,14 @@ contract DeployV3FPMM is Script {
   address constant cEUR = 0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73;
   address constant cGHS = 0xfAeA5F3404bbA20D3cc2f8C4B0A888F55a3c7313;
 
+  address constant CELO = 0x471EcE3750Da237f93B8E339c536989b8978a438;
+
   // Mock tokens
   address usdmMock;
   address eurmMock;
   address kesmMock;
 
-  address constant DEPLOYER = 0x56fD3F2bEE130e9867942D0F463a16fBE49B8d81;
+  address constant DEPLOYER = 0x1234567890123456789012345678901234567890;
 
   // ============ Deployed Contracts ============
   OracleAdapter public oracleAdapter;
@@ -73,10 +75,13 @@ contract DeployV3FPMM is Script {
     console.log("Chain ID:", block.chainid);
     vm.startBroadcast(DEPLOYER);
 
-    // Deploy Mock tokens
-    // usdmMock = address(new MockERC20("Mock USDm", "MOCK_USDm", 18));
-    // eurmMock = address(new MockERC20("Mock EURm", "MOCK_EURm", 18));
-    // kesmMock = address(new MockERC20("Mock KESm", "MOCK_KESm", 18));
+    // Label tokens
+    vm.label(cUSD, "cUSD");
+    vm.label(cKES, "cKES");
+    vm.label(USDC, "USDC");
+    vm.label(cEUR, "cEUR");
+    vm.label(cGHS, "cGHS");
+
     // Deploy OracleAdapter
     _deployOracleAdapter(deployer);
 
@@ -121,7 +126,11 @@ contract DeployV3FPMM is Script {
     console.log("FactoryRegistry:", address(factoryRegistry));
 
     // Approve the virtual pool factory with the factory registry
+    vm.stopBroadcast();
+    vm.startBroadcast(msg.sender);
     factoryRegistry.approve(address(virtualPoolFactory));
+    vm.stopBroadcast();
+    vm.startBroadcast(deployer);
 
     // Deploy OneToOneFPMM & register it with the factory
     fpmmFactory.registerFPMMImplementation(oneToOneFpmmImpl);
@@ -140,20 +149,10 @@ contract DeployV3FPMM is Script {
     address precomputedAddress = virtualPoolFactory.getOrPrecomputeProxyAddress(cUSD, cGHS);
     vm.label(precomputedAddress, "VirtualPool");
     console.log("VirtualPool:", precomputedAddress);
-    bytes32 exchangeId = keccak256(abi.encodePacked(IERC20(cUSD).symbol(), IERC20(cGHS).symbol(), "ConstantSum"));
+    bytes32 exchangeId = 0x3562f9d29eba092b857480a82b03375839c752346b9ebe93a57ab82410328187;
     virtualPool = virtualPoolFactory.deployVirtualPool(BIPOOL_MANAGER, exchangeId);
 
-    // Mint tokens by pranking as the broker (who has mint permission)
-    // _mintCeloToken(cUSD, msg.sender, 1_000_000e18);
-    // _mintCeloToken(cKES, msg.sender, 1_000_000e18);
-
     vm.stopBroadcast();
-
-    _mintCeloToken(cUSD, DEPLOYER, 1_000_000e18);
-    _mintCeloToken(cKES, DEPLOYER, 1_000_000e18);
-
-    // Provide initial liquidity using direct transfer + mint pattern
-    _provideLiquidity();
 
     _printSummary();
   }
@@ -172,64 +171,6 @@ contract DeployV3FPMM is Script {
       governance
     );
     console.log("OracleAdapter:", address(oracleAdapter));
-  }
-
-  function _provideLiquidity() internal {
-    console.log("\n=== Deployer Balance Before Transfer ===");
-    console.log("cUSD Balance:", IERC20(cUSD).balanceOf(DEPLOYER) / 1e18);
-    console.log("cKES Balance:", IERC20(cKES).balanceOf(DEPLOYER) / 1e18);
-    console.log("=========================");
-
-    console.log("\n=== Pool Balance Before Transfer ===");
-    console.log("cUSD Before:", IERC20(cUSD).balanceOf(address(fpmmPool)) / 1e18);
-    console.log("cKES Before:", IERC20(cKES).balanceOf(address(fpmmPool)) / 1e18);
-    console.log("=========================");
-
-    // Mint tokens directly to the pool
-    vm.startBroadcast(DEPLOYER);
-    IERC20(cUSD).transfer(address(fpmmPool), 200_000 ether);
-    IERC20(cKES).transfer(address(fpmmPool), 200_000 ether);
-
-    console.log("\n=== Deployer Balance After Transfer ===");
-    console.log("cUSD Balance:", IERC20(cUSD).balanceOf(DEPLOYER) / 1e18);
-    console.log("cKES Balance:", IERC20(cKES).balanceOf(DEPLOYER) / 1e18);
-    console.log("=========================");
-
-    console.log("\n=== Pool Balance After Transfer ===");
-    console.log("cUSD After:", IERC20(cUSD).balanceOf(address(fpmmPool)) / 1e18);
-    console.log("cKES After:", IERC20(cKES).balanceOf(address(fpmmPool)) / 1e18);
-    console.log("\n=========================");
-
-    console.log("\n=== Pool Reserves Before Mint ===");
-    console.log("cUSD Before:", fpmmPool.reserve0() / 1e18);
-    console.log("cKES Before:", fpmmPool.reserve1() / 1e18);
-    console.log("\n=========================");
-
-    // Mint LP tokens
-    uint256 liquidity = fpmmPool.mint(DEPLOYER);
-    vm.stopBroadcast();
-
-    console.log("\n=== Deployer Balance After Mint ===");
-    console.log("cUSD Balance:", IERC20(cUSD).balanceOf(DEPLOYER) / 1e18);
-    console.log("cKES Balance:", IERC20(cKES).balanceOf(DEPLOYER) / 1e18);
-    console.log("=========================");
-
-    console.log("\n=== Pool Balance After Mint ===");
-    console.log("cUSD After:", IERC20(cUSD).balanceOf(address(fpmmPool)) / 1e18);
-    console.log("Liquidity provided:");
-    console.log("  cUSD:", 200_000 ether / 1e18, "tokens");
-    console.log("  cKES:", 200_000 ether / 1e18, "tokens");
-    console.log("  LP tokens minted:", liquidity / 1e18);
-    console.log("  LP receiver:", DEPLOYER);
-  }
-
-  /// @dev Mints Celo stablecoins by pranking as the broker
-  function _mintCeloToken(address token, address to, uint256 amount) internal {
-    address tokenBroker = IStableTokenV2(token).broker();
-
-    vm.startPrank(tokenBroker);
-    IStableTokenV2(token).mint(to, amount);
-    vm.stopPrank();
   }
 
   function _printSummary() internal view {
@@ -255,30 +196,4 @@ contract DeployV3FPMM is Script {
     console.log("");
   }
 
-  function mintTest() public {
-    vm.startBroadcast();
-    console.log("=== Mint Test ===");
-
-    uint256 cusdAmount = 1000e18;
-    uint256 ckesAmount = 1000e18;
-
-    console.log("\n=== Balances Before Mint ===");
-    uint256 cusdBefore = IERC20(cUSD).balanceOf(msg.sender);
-    uint256 ckesBefore = IERC20(cKES).balanceOf(msg.sender);
-
-    console.log("cUSD Before:", cusdBefore / 1e18);
-    console.log("cKES Before:", ckesBefore / 1e18);
-    console.log("\n=========================");
-
-    // Mint tokens by pranking as the broker
-    _mintCeloToken(cUSD, msg.sender, cusdAmount);
-    _mintCeloToken(cKES, msg.sender, ckesAmount);
-
-    console.log("\n=== Balances After Mint ===");
-    console.log("cUSD After:", IERC20(cUSD).balanceOf(msg.sender) / 1e18);
-    console.log("cKES After:", IERC20(cKES).balanceOf(msg.sender) / 1e18);
-    console.log("\n=========================");
-
-    vm.stopBroadcast();
-  }
 }
