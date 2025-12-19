@@ -91,28 +91,26 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // Get token1 via flash loan and add token0 to rebalance
 
     // init reserve value: 320
-    // Borrow 40 token1 and exchange it for 33.33 token0
-    // 10 % profit -> returns 30 token0
+    // Borrow 36 token1 and exchange it for 30 token0
+    // 10 % profit -> returns 27 token0
     liquidityStrategy.setProfitPercentage(1000);
 
-    // reserve0 = 130.0 reserve 1 = 160
-    // final reserve value = 130 * 1.2 + 160 = 316
-    // 1.25 % loss > .5% threshold it should revert
+    // reserve0 = 127.0 reserve 1 = 164
+    // final reserve value = 127 * 1.2 + 164 = 316.4
+    // 1.11 % loss > .5% threshold it should revert
 
-    uint256 rebalanceAmount = 40e18;
+    uint256 rebalanceAmount = 36e18;
     vm.expectRevert(IFPMM.InsufficientAmount0In.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
     liquidityStrategy.setProfitPercentage(300);
-    // 3 % profit -> returns 32.33 tokens -> takes 1 token as incentive
-    // 32.33 * .5% = 0.16165
+    // 3 % profit
     vm.expectRevert(IFPMM.InsufficientAmount0In.selector);
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
     liquidityStrategy.setProfitPercentage(30);
-    // .3 % profit -> returns 33.23 tokens -> takes .1 token as incentive
-    // 33.23 * .5% = 0.16615
-    // incentive is smaller than allowed, it should not revert
+    // .3 % profit
+    // incentive is smaller than max, it should not revert
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
   }
 
@@ -274,12 +272,13 @@ contract FPMMRebalanceTest is FPMMBaseTest {
 
     // Initial reserve price: 2 token1 per token0
     // Oracle price: 1.2 token1 per token0
+    // rebalance threshold: 5% so target price is 1.26 token1 per token0
     // Current price is too high, need to add token0 and remove token1
     // Get token1 via flash loan and add token0 to rebalance
 
-    // Borrow 40 token1 and exchange it for 33.33 token0
-    // 133.33 / 160 = 1.2
-    uint256 rebalanceAmount = 40e18;
+    // Borrow 36.097560975609756097 token1 and exchange it for 30 token0
+    // 163.9 / 130 = 1.26 token0
+    uint256 rebalanceAmount = 36097560975609756097;
     liquidityStrategy.executeRebalance(0, rebalanceAmount);
 
     (uint256 finalReserve0, uint256 finalReserve1, ) = fpmm.getReserves();
@@ -318,10 +317,10 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // Oracle price: 3 token1 per token0
     // Current price is too low, need to add token1 and remove token0
     // Get token0 via flash loan and add token1 to rebalance
-
-    // Borrow 16 token0 and exchange it for 48 token1
-    // 248 / 84 = 2.952
-    uint256 rebalanceAmount = 16e18;
+    // rebalance threshold: 5% so target price is 2.85 token1 per token0
+    // Borrow 14.52 token0 and exchange it for 43.56 token1
+    // 243.56 / 86.48 = 2.85
+    uint256 rebalanceAmount = 14529914529914529914;
     liquidityStrategy.executeRebalance(rebalanceAmount, 0);
 
     (uint256 finalReserve0, uint256 finalReserve1, ) = fpmm.getReserves();
@@ -358,12 +357,13 @@ contract FPMMRebalanceTest is FPMMBaseTest {
 
     // Initial reserve price: 2 token1 per token0
     // Oracle price: 1.2 token1 per token0
+    // rebalance threshold: 5% so target pool price is 1.26 token1 per token0
     // Current price is too high, need to add token0 and remove token1
     // Get token1 via flash loan and add token0 to rebalance
 
-    // Borrow 40 token1 and exchange it for 33.33 token0
-    // 133.33 / 160 = 1.2
-    uint256 rebalanceAmount = 40e6;
+    // Borrow 36.097560975609756097 token1 and exchange it for 30 token0
+    // 163.9 / 130 = 1.26
+    uint256 rebalanceAmount = 36097560;
     uint256 expectedAmount0In = liquidityStrategy.convertWithRate(
       rebalanceAmount,
       1e6,
@@ -392,16 +392,16 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     fpmm.mint(ALICE);
     vm.stopPrank();
 
-    // Pool is rebalanced to ~510e18, ~510e6 => 1:1
-    liquidityStrategy.executeRebalance(490e18, 0);
+    // Pool is rebalanced to threshold below => 0.95
+    liquidityStrategy.executeRebalance(476e18, 0);
 
-    assertApproxEqRel(fpmm.reserve0(), 510e18, 0.0001e18);
-    assertApproxEqRel(fpmm.reserve1(), 510e6, 0.0001e18);
+    assertApproxEqRel(fpmm.reserve0(), 524e18, 0.0001e18);
+    assertApproxEqRel(fpmm.reserve1(), 496e6, 0.0001e18);
 
-    // Bob mints 510e18 token0 and 510e6 token1 to the same Pool
+    // Bob mints 524e18 token0 and 496e6 token1 to the same Pool
     vm.startPrank(BOB);
-    IERC20(token0).transfer(address(fpmm), 510e18);
-    IERC20(token1).transfer(address(fpmm), 510e6);
+    IERC20(token0).transfer(address(fpmm), 524e18);
+    IERC20(token1).transfer(address(fpmm), 496e6);
     fpmm.mint(BOB);
     vm.stopPrank();
 
@@ -421,8 +421,8 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     uint256 aliceToken0Received = IERC20(token0).balanceOf(ALICE) - aliceToken0BalanceBefore;
     uint256 aliceToken1Received = IERC20(token1).balanceOf(ALICE) - aliceToken1BalanceBefore;
 
-    // Alice should have received ~510e18 token0 and ~510e6 token1
-    assertApproxEqRel(aliceToken0Received, 510e18, 0.0001e18);
-    assertApproxEqRel(aliceToken1Received, 510e6, 0.0001e18);
+    // Alice should have received ~524e18 token0 and ~496e6 token1
+    assertApproxEqRel(aliceToken0Received, 524e18, 0.0001e18);
+    assertApproxEqRel(aliceToken1Received, 496e6, 0.0001e18);
   }
 }

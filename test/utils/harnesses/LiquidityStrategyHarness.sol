@@ -62,8 +62,26 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
   /* =============== Public Pool Management Functions =========== */
   /* ============================================================ */
 
-  function addPool(address pool, address debtToken, uint64 cooldown, uint32 incentiveBps) external onlyOwner {
-    LiquidityStrategy._addPool(pool, debtToken, cooldown, incentiveBps);
+  function addPool(
+    address pool,
+    address debtToken,
+    uint64 cooldown,
+    uint16 liquiditySourceIncentiveBpsExpansion,
+    uint16 protocolIncentiveBpsExpansion,
+    uint16 liquiditySourceIncentiveBpsContraction,
+    uint16 protocolIncentiveBpsContraction,
+    address protocolFeeRecipient
+  ) external onlyOwner {
+    LiquidityStrategy._addPool(
+      pool,
+      debtToken,
+      cooldown,
+      liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction,
+      protocolFeeRecipient
+    );
   }
 
   function removePool(address pool) external onlyOwner {
@@ -85,7 +103,9 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
       collateralToPay = ctx.convertToCollateralWithFee(
         debtToExpand,
         LQ.BASIS_POINTS_DENOMINATOR,
-        LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps
+        LQ.BASIS_POINTS_DENOMINATOR -
+          ctx.incentives.liquiditySourceIncentiveBpsExpansion -
+          ctx.incentives.protocolIncentiveBpsExpansion
       );
     } else {
       debtToExpand = idealDebtToExpand;

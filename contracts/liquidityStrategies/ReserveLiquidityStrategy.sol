@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.24;
 
-import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
+// solhint-disable-next-line max-line-length
 import { SafeERC20Upgradeable as SafeERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { IERC20MintableBurnable } from "../common/IERC20MintableBurnable.sol";
 
@@ -52,10 +53,10 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
     address pool,
     address debtToken,
     uint64 cooldown,
-    uint128 liquiditySourceIncentiveBpsExpansion,
-    uint128 protocolIncentiveBpsExpansion,
-    uint128 liquiditySourceIncentiveBpsContraction,
-    uint128 protocolIncentiveBpsContraction,
+    uint16 liquiditySourceIncentiveBpsExpansion,
+    uint16 protocolIncentiveBpsExpansion,
+    uint16 liquiditySourceIncentiveBpsContraction,
+    uint16 protocolIncentiveBpsContraction,
     address protocolFeeRecipient
   ) external onlyOwner {
     LiquidityStrategy._addPool(
@@ -115,7 +116,8 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
       debtToContract = ctx.convertToDebtWithFee(
         collateralBalance,
         BPS_DENOMINATOR,
-        BPS_DENOMINATOR - (ctx.liquiditySourceIncentiveBpsContraction + ctx.protocolIncentiveBpsContraction)
+        BPS_DENOMINATOR -
+          (ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction)
       );
     } else {
       collateralToReceive = idealCollateralToReceive;
@@ -144,30 +146,55 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
     LQ.CallbackData memory cb
   ) internal override {
     PoolConfig memory config = poolConfigs[pool];
+
+    (
+      address tokenToTransferToReserve,
+      address tokenToTransferToPool,
+      uint256 protocolIncentive,
+      uint256 liquiditySourceIncentive
+    ) = cb.dir == LQ.Direction.Expand
+        ? (
+          cb.collToken,
+          cb.debtToken,
+          config.protocolIncentiveBpsExpansion,
+          config.liquiditySourceIncentiveBpsExpansion
+        )
+        : (
+          cb.debtToken,
+          cb.collToken,
+          config.protocolIncentiveBpsContraction,
+          config.liquiditySourceIncentiveBpsContraction
+        );
+
+    uint256 amountToTransferToReserve = amount0Out > 0 ? amount0Out : amount1Out;
+    uint256 liquiditySourceIncentiveAmount = (amountToTransferToReserve * liquiditySourceIncentive) / BPS_DENOMINATOR;
+    uint256 protocolIncentiveAmount = (amountToTransferToReserve * protocolIncentive) / BPS_DENOMINATOR;
+
     if (cb.dir == LQ.Direction.Expand) {
       // Expansion: Pool price > oracle price
       // Reserve provides debt to pool, receives collateral from pool
-      uint256 collTokenFromPool = cb.isToken0Debt ? amount1Out : amount0Out;
-      _transferToReserve(cb.collToken, collTokenFromPool, config.liquiditySourceIncentiveBpsExpansion);
-      _transferToProtocol(
-        cb.collToken,
-        collTokenFromPool,
-        config.protocolFeeRecipient,
-        config.protocolIncentiveBpsExpansion
-      );
-      _transferToPool(cb.debtToken, pool, cb.amountOwedToPool);
+
+      // Transfer protocol incentive to protocol fee recipient
+      _transferRebalanceIncentive(tokenToTransferToReserve, protocolIncentiveAmount, config.protocolFeeRecipient);
+      // Transfer collateral to reserve this includes the liquidity source incentive since reserve is the liquidity source
+      _transferToReserve(tokenToTransferToReserve, amountToTransferToReserve - protocolIncentiveAmount);
+      // mint stable asset to pool
+      _transferToPool(tokenToTransferToPool, pool, cb.amountOwedToPool);
     } else {
       // Contraction: Pool price < oracle price
       // Reserve provides collateral to pool, receives debt from pool
-      uint256 debtTokenFromPool = cb.isToken0Debt ? amount0Out : amount1Out;
-      _transferToReserve(cb.debtToken, debtTokenFromPool, config.liquiditySourceIncentiveBpsContraction);
-      _transferToProtocol(
-        cb.debtToken,
-        debtTokenFromPool,
-        config.protocolFeeRecipient,
-        config.protocolIncentiveBpsContraction
+
+      // Transfer protocol incentive to protocol fee recipient
+      _transferRebalanceIncentive(tokenToTransferToReserve, protocolIncentiveAmount, config.protocolFeeRecipient);
+      // Transfer liquidity source incentive in stable asset to reserve
+      _transferRebalanceIncentive(tokenToTransferToReserve, liquiditySourceIncentiveAmount, address(reserve));
+      // burn stable assets from pool
+      _transferToReserve(
+        tokenToTransferToReserve,
+        amountToTransferToReserve - (protocolIncentiveAmount + liquiditySourceIncentiveAmount)
       );
-      _transferToPool(cb.collToken, pool, cb.amountOwedToPool);
+      // transfer collateral from reserve to pool
+      _transferToPool(tokenToTransferToPool, pool, cb.amountOwedToPool);
     }
   }
 
@@ -193,9 +220,8 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
    * @notice Transfer tokens out from the pool back to reserve
    * @param token The token to transfer out
    * @param amount The amount to transfer
-   * @param reserveIncentiveBps The incentive in basis points for the reserve
    */
-  function _transferToReserve(address token, uint256 amount, uint128 reserveIncentiveBps) internal {
+  function _transferToReserve(address token, uint256 amount) internal {
     if (amount == 0) return;
 
     if (reserve.isStableAsset(token)) {

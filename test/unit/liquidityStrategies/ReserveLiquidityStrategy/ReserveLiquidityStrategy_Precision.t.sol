@@ -24,7 +24,7 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
   function test_determineAction_whenDecimalConversions_shouldMaintainPrecision()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Test conversion between 18 decimals and 6 decimals
     // 100 token0 (18 decimals) vs 200 token1 (normalized to 18 decimals)
@@ -34,9 +34,14 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 100, // Capped at 1%
       token0Dec: 1e18,
-      token1Dec: 1e6
+      token1Dec: 1e6,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     LQ.Action memory action = strategy.determineAction(ctx);
@@ -56,7 +61,9 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
     // Convert collateral back to 18 decimals for comparison
     uint256 collateralOut18 = action.amount1Out * 1e12;
     // Apply incentive multiplier: Y = X * (1 - i)
-    uint256 expectedY = (collateralOut18 * (10000 - ctx.incentiveBps)) / 10000;
+    uint256 expectedY = (collateralOut18 *
+      (10000 - (ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion))) /
+      10000;
     // Allow for small rounding errors in decimal conversion
     assertApproxEqRel(
       action.amountOwedToPool,
@@ -66,7 +73,11 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
     ); // 0.1% tolerance
   }
 
-  function test_decimalPrecision_multipleDecimalCombinations() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_decimalPrecision_multipleDecimalCombinations()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Test multiple decimal combinations
     DecimalTest[4] memory tests = [
       DecimalTest(1e18, 1e6, 1e12), // 18 dec debt, 6 dec collateral
@@ -82,9 +93,14 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
-        incentiveBps: 100, // Capped at 1%
         token0Dec: tests[i].debtDec,
-        token1Dec: tests[i].collateralDec
+        token1Dec: tests[i].collateralDec,
+        incentives: LQ.RebalanceIncentives({
+          liquiditySourceIncentiveBpsExpansion: 50,
+          protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+          liquiditySourceIncentiveBpsContraction: 50,
+          protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+        })
       });
 
       LQ.Action memory action = strategy.determineAction(ctx);
@@ -117,7 +133,7 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
     }
   }
 
-  function test_precision_highDecimalVariations() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_precision_highDecimalVariations() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 50, 50, 50) {
     // Test with high precision decimals (up to 18)
     uint256[4] memory decimals = [uint256(1e6), 1e8, 1e12, 1e18];
 
@@ -131,9 +147,14 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
           oracleNum: 1e18,
           oracleDen: 1e18,
           poolPriceAbove: true,
-          incentiveBps: 100, // Capped at 1%
           token0Dec: decimals[i],
-          token1Dec: decimals[j]
+          token1Dec: decimals[j],
+          incentives: LQ.RebalanceIncentives({
+            liquiditySourceIncentiveBpsExpansion: 50,
+            protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+            liquiditySourceIncentiveBpsContraction: 50,
+            protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+          })
         });
 
         LQ.Action memory action = strategy.determineAction(ctx);
@@ -152,7 +173,7 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
     }
   }
 
-  function test_precision_rounding_consistency() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_precision_rounding_consistency() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 50, 50, 50) {
     // Test that similar inputs produce proportionally similar outputs
     uint256[3] memory baseAmounts = [uint256(100e18), 1000e18, 10000e18];
 
@@ -163,9 +184,14 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
-        incentiveBps: 100,
         token0Dec: 1e18,
-        token1Dec: 1e6
+        token1Dec: 1e6,
+        incentives: LQ.RebalanceIncentives({
+          liquiditySourceIncentiveBpsExpansion: 50,
+          protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+          liquiditySourceIncentiveBpsContraction: 50,
+          protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+        })
       });
 
       LQ.Context memory ctx2 = _createContextWithDecimals({
@@ -174,9 +200,14 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
-        incentiveBps: 100,
         token0Dec: 1e18,
-        token1Dec: 1e6
+        token1Dec: 1e6,
+        incentives: LQ.RebalanceIncentives({
+          liquiditySourceIncentiveBpsExpansion: 50,
+          protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+          liquiditySourceIncentiveBpsContraction: 50,
+          protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+        })
       });
 
       LQ.Action memory action1 = strategy.determineAction(ctx1);

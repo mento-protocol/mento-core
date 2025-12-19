@@ -133,13 +133,15 @@ contract FPMMGettersTest is FPMMBaseTest {
       uint256 reservePriceNumerator,
       uint256 reservePriceDenominator,
       bool reservePriceAboveOraclePrice,
-      bool canBeRebalanced
+      uint16 rebalanceThreshold,
+      uint256 priceDifference
     ) = fpmm.getRebalancingState();
-    assertEq(targetNumerator, (25e17 * 9500) / 10000);
+    assertEq(targetNumerator, 25e17);
     assertEq(targetDenominator, 1e18);
     assertEq(reservePriceNumerator, 200e18);
     assertEq(reservePriceDenominator, 100e18);
     assertEq(reservePriceAboveOraclePrice, false);
-    assertEq(canBeRebalanced, true);
+    assertEq(uint256(rebalanceThreshold), 500);
+    assertEq(priceDifference, 2000);
   }
 }

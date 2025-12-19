@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
+// solhint-disable max-line-length
 pragma solidity ^0.8;
 
 import { Test } from "mento-std/Test.sol";
@@ -128,7 +129,7 @@ contract LiquidityStrategyTypes_Test is Test {
   /* =============== Context Helper Functions =================== */
   /* ============================================================ */
 
-  function _createContext(
+  function _createRebalanceContext(
     address token0,
     address token1,
     uint64 token0Dec,
@@ -136,17 +137,30 @@ contract LiquidityStrategyTypes_Test is Test {
     uint256 oracleNum,
     uint256 oracleDen,
     bool isToken0Debt,
-    uint128 incentiveBps
+    uint16 liquiditySourceIncentiveBpsExpansion,
+    uint16 protocolIncentiveBpsExpansion,
+    uint16 liquiditySourceIncentiveBpsContraction,
+    uint16 protocolIncentiveBpsContraction
   ) internal pure returns (LQ.Context memory ctx) {
     ctx.pool = address(0x1);
+    ctx.reserves = LQ.Reserves({ reserveNum: 100e18, reserveDen: 100e18 });
+    ctx.prices = LQ.Prices({
+      oracleNum: oracleNum,
+      oracleDen: oracleDen,
+      poolPriceAbove: false,
+      rebalanceThreshold: 500
+    });
     ctx.token0 = token0;
     ctx.token1 = token1;
     ctx.token0Dec = token0Dec;
     ctx.token1Dec = token1Dec;
     ctx.isToken0Debt = isToken0Debt;
-    ctx.incentiveBps = incentiveBps;
-    ctx.prices = LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: false, diffBps: 0 });
-    ctx.reserves = LQ.Reserves({ reserveNum: 100e18, reserveDen: 100e18 });
+    ctx.incentives = LQ.RebalanceIncentives({
+      liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction: protocolIncentiveBpsContraction
+    });
   }
 
   /* ============================================================ */
@@ -156,7 +170,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_debtToken_whenToken0IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     address result = harness.debtToken(ctx);
     assertEq(result, token0);
@@ -165,7 +179,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_debtToken_whenToken1IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 25, 25, 25, 25);
 
     address result = harness.debtToken(ctx);
     assertEq(result, token1);
@@ -174,7 +188,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_collateralToken_whenToken0IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     address result = harness.collateralToken(ctx);
     assertEq(result, token1);
@@ -183,7 +197,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_collateralToken_whenToken1IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 25, 25, 25, 25);
 
     address result = harness.collateralToken(ctx);
     assertEq(result, token0);
@@ -192,7 +206,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_tokens_whenToken0IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     (address debtToken, address collateralToken) = harness.tokens(ctx);
     assertEq(debtToken, token0);
@@ -202,7 +216,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_tokens_whenToken1IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 25, 25, 25, 25);
 
     (address debtToken, address collateralToken) = harness.tokens(ctx);
     assertEq(debtToken, token1);
@@ -212,7 +226,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_decimals_whenToken0IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e6, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e6, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     (uint64 debtDec, uint64 collDec) = harness.decimals(ctx);
     assertEq(debtDec, 1e6);
@@ -222,7 +236,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_decimals_whenToken1IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e6, 1e18, 1e18, false, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e6, 1e18, 1e18, false, 25, 25, 25, 25);
 
     (uint64 debtDec, uint64 collDec) = harness.decimals(ctx);
     assertEq(debtDec, 1e6);
@@ -238,7 +252,7 @@ contract LiquidityStrategyTypes_Test is Test {
     address token1 = address(0x200);
     // Oracle price: Po = ON/OD = 2/1 = 2
     // This means: token1 = token0 * 2, or 1 token0 (debt) = 2 token1 (collateral)
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 25, 25, 25, 25);
 
     (uint256 num, uint256 den) = harness.debtToCollateralPrice(ctx);
     // To convert debt to collateral: multiply by num/den = 2/1 = 2
@@ -251,7 +265,7 @@ contract LiquidityStrategyTypes_Test is Test {
     address token1 = address(0x200);
     // Oracle price: Po = ON/OD = 1/2 = 0.5
     // This means: token1 = token0 * 0.5, or 1 token1 (debt) = 2 token0 (collateral)
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 2e18, false, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 2e18, false, 25, 25, 25, 25);
 
     (uint256 num, uint256 den) = harness.debtToCollateralPrice(ctx);
     // To convert debt to collateral: multiply by num/den = 2/1 = 2
@@ -264,7 +278,7 @@ contract LiquidityStrategyTypes_Test is Test {
     address token1 = address(0x200);
     // Oracle price: Po = ON/OD = 2/1 = 2
     // This means: 1 token0 (debt) = 2 token1 (collateral)
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 25, 25, 25, 25);
 
     (uint256 num, uint256 den) = harness.collateralToDebtPrice(ctx);
     // To convert collateral to debt: multiply by num/den = 1/2 = 0.5
@@ -277,7 +291,7 @@ contract LiquidityStrategyTypes_Test is Test {
     address token1 = address(0x200);
     // Oracle price: Po = ON/OD = 1/2 = 0.5
     // This means: 1 token1 (debt) = 2 token0 (collateral)
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 2e18, false, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 2e18, false, 25, 25, 25, 25);
 
     (uint256 num, uint256 den) = harness.collateralToDebtPrice(ctx);
     // To convert collateral to debt: multiply by num/den = 1/2 = 0.5
@@ -292,7 +306,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_convertToDebtToken_sameDecimals_1to1Price() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     uint256 collateralAmount = 100e18;
     uint256 result = harness.convertToDebtToken(ctx, collateralAmount);
@@ -304,7 +318,7 @@ contract LiquidityStrategyTypes_Test is Test {
     address token1 = address(0x200);
     // Po = ON/OD = 2, so 1 debt = 2 collateral
     // Therefore: 100 collateral = 50 debt
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 25, 25, 25, 25);
 
     uint256 collateralAmount = 100e18;
     uint256 result = harness.convertToDebtToken(ctx, collateralAmount);
@@ -317,7 +331,7 @@ contract LiquidityStrategyTypes_Test is Test {
     // Debt (token0) has 6 decimals, collateral (token1) has 18 decimals
     // Price: 1:1
     // 100 collateral (18 dec) = 100 debt (6 dec)
-    LQ.Context memory ctx = _createContext(token0, token1, 1e6, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e6, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     uint256 collateralAmount = 100e18; // 100 with 18 decimals
     uint256 result = harness.convertToDebtToken(ctx, collateralAmount);
@@ -327,7 +341,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_convertToDebtWithFee_custom() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     uint256 collateralAmount = 100e18;
     // Custom 10% fee
@@ -338,7 +352,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_convertToCollateralWithFee_custom() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     uint256 debtAmount = 100e18;
     // Custom: subtract 10%
@@ -349,7 +363,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_conversion_roundTrip_debtToCollateralAndBack() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 0); // No fee
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 0, 0, 0, 0); // No rebalance incentives
 
     uint256 originalDebt = 100e18;
 
@@ -367,11 +381,11 @@ contract LiquidityStrategyTypes_Test is Test {
     address token1 = address(0x200);
 
     // Test with token0 as debt: Po = ON/OD = 2, so 1 debt = 2 collateral
-    LQ.Context memory ctx1 = _createContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 0);
+    LQ.Context memory ctx1 = _createRebalanceContext(token0, token1, 1e18, 1e18, 2e18, 1e18, true, 0, 0, 0, 0);
     uint256 result1 = harness.convertToDebtToken(ctx1, 100e18);
 
     // Test with token1 as debt: Po = ON/OD = 0.5, so 1 debt = 2 collateral
-    LQ.Context memory ctx2 = _createContext(token0, token1, 1e18, 1e18, 1e18, 2e18, false, 0);
+    LQ.Context memory ctx2 = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 2e18, false, 0, 0, 0, 0);
     uint256 result2 = harness.convertToDebtToken(ctx2, 100e18);
 
     // Both should convert 100 collateral to 50 debt (since 1 debt = 2 collateral in both cases)
@@ -386,7 +400,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_newExpansion_whenToken0IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     uint256 expansionAmount = 100e18; // Debt to add
     uint256 collateralPayed = 50e18; // Collateral to receive
@@ -402,7 +416,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_newExpansion_whenToken1IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 25, 25, 25, 25);
 
     uint256 expansionAmount = 100e18;
     uint256 collateralPayed = 50e18;
@@ -418,7 +432,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_newContraction_whenToken0IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, true, 25, 25, 25, 25);
 
     uint256 contractionAmount = 100e18; // Debt to receive from pool
     uint256 collateralReceived = 50e18; // Collateral to send to pool
@@ -434,7 +448,7 @@ contract LiquidityStrategyTypes_Test is Test {
   function test_newContraction_whenToken1IsDebt() public view {
     address token0 = address(0x100);
     address token1 = address(0x200);
-    LQ.Context memory ctx = _createContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 50);
+    LQ.Context memory ctx = _createRebalanceContext(token0, token1, 1e18, 1e18, 1e18, 1e18, false, 25, 25, 25, 25);
 
     uint256 contractionAmount = 100e18;
     uint256 collateralReceived = 50e18;

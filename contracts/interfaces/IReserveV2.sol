@@ -118,6 +118,19 @@ interface IReserveV2 {
   );
 
   /**
+   * @notice Emitted when a stable asset is transferred
+   * @param stableAsset The address of the stable asset
+   * @param to The address to transfer the stable asset to
+   * @param value The amount of stable asset to transfer
+   */
+  event StableAssetTransferred(
+    address indexed reserveManagerSpender,
+    address indexed stableAsset,
+    address indexed to,
+    uint256 value
+  );
+
+  /**
    * @notice Emitted when a collateral asset is transferred by a liquidity strategy spender
    * @param liquidityStrategySpender The address of the liquidity strategy spender
    * @param collateralAsset The address of the collateral asset
@@ -297,4 +310,15 @@ interface IReserveV2 {
    * @return True if the transaction succeeds
    */
   function transferCollateralAsset(address collateralAsset, address to, uint256 value) external returns (bool);
+
+  /**
+   * @notice Transfers stable asset by a reserve manager spender
+   * @dev This function will be used to drain stable assets from the reserve that can accumulate during rebalancing
+   *      as part of the rebalancing liquidity source incentive.
+   * @param stableAsset The address of the stable asset
+   * @param to The address to transfer the stable asset to
+   * @param value The amount of stable asset to transfer
+   * @return True if the transaction succeeds
+   */
+  function transferStableAsset(address stableAsset, address to, uint256 value) external returns (bool);
 }

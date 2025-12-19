@@ -54,10 +54,10 @@ interface IReserveLiquidityStrategy is ILiquidityStrategy {
     address pool,
     address debtToken,
     uint64 cooldown,
-    uint128 liquiditySourceIncentiveBpsExpansion,
-    uint128 protocolIncentiveBpsExpansion,
-    uint128 liquiditySourceIncentiveBpsContraction,
-    uint128 protocolIncentiveBpsContraction,
+    uint16 liquiditySourceIncentiveBpsExpansion,
+    uint16 protocolIncentiveBpsExpansion,
+    uint16 liquiditySourceIncentiveBpsContraction,
+    uint16 protocolIncentiveBpsContraction,
     address protocolFeeRecipient
   ) external;
 

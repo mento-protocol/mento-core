@@ -39,13 +39,38 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
   struct CDPConfig {
     address stabilityPool;
     address collateralRegistry;
-    address systemParams;
-    uint256 stabilityPoolPercentage;
-    uint256 maxIterations;
-    uint128 liquiditySourceIncentiveBpsContraction;
-    uint128 protocolIncentiveBpsContraction;
-    uint128 liquiditySourceIncentiveBpsExpansion;
-    uint128 protocolIncentiveBpsExpansion;
+    uint16 stabilityPoolPercentage;
+    uint16 maxIterations;
+  }
+
+  /**
+   * @notice Parameters for adding a new pool to the CDP strategy
+   * @param pool The address of the FPMM pool to add
+   * @param debtToken The address of the debt token (stable asset)
+   * @param cooldown The cooldown period between rebalances in seconds
+   * @param liquiditySourceIncentiveBpsExpansion The incentive for the liquidity source in basis points for expansion
+   * @param protocolIncentiveBpsExpansion The incentive for the protocol in basis points for expansion
+   * @param liquiditySourceIncentiveBpsContraction The incentive for the liquidity source in basis points for contraction
+   * @param protocolIncentiveBpsContraction The incentive for the protocol in basis points for contraction
+   * @param protocolFeeRecipient The recipient of the protocol fee
+   * @param stabilityPool The address of the stability pool used for swapping collateral to stable
+   * @param collateralRegistry The address of the collateral registry for redemptions
+   * @param stabilityPoolPercentage The percentage of stability pool balance available for rebalancing (in bps)
+   * @param maxIterations The maximum number of iterations for redemption operations
+   */
+  struct AddPoolParams {
+    address pool;
+    address debtToken;
+    uint64 cooldown;
+    uint16 liquiditySourceIncentiveBpsExpansion;
+    uint16 protocolIncentiveBpsExpansion;
+    uint16 liquiditySourceIncentiveBpsContraction;
+    uint16 protocolIncentiveBpsContraction;
+    address protocolFeeRecipient;
+    address stabilityPool;
+    address collateralRegistry;
+    uint16 stabilityPoolPercentage;
+    uint16 maxIterations;
   }
 
   /* ============================================================ */
@@ -54,33 +79,9 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
 
   /**
    * @notice Adds a new liquidity pool to be managed by the CDP strategy
-   * @param pool The address of the FPMM pool to add
-   * @param debtToken The address of the debt token (stable asset)
-   * @param cooldown The cooldown period between rebalances in seconds
-   * @param stabilityPool The address of the stability pool for this debt token
-   * @param collateralRegistry The address of the collateral registry for redemptions
-   * @param systemParams The address of the system params contract for reading redemption beta
-   * @param stabilityPoolPercentage The percentage of stability pool balance to use (in bps)
-   * @param maxIterations The maximum number of iterations for redemption operations
-   * @param liquiditySourceIncentiveBpsContraction The incentive for the liquidity source in basis points for contraction
-   * @param protocolIncentiveBpsContraction The incentive for the protocol in basis points for contraction
-   * @param liquiditySourceIncentiveBpsExpansion The incentive for the liquidity source in basis points for expansion
-   * @param protocolIncentiveBpsExpansion The incentive for the protocol in basis points for expansion
+   * @param params The parameters for adding a pool
    */
-  function addPool(
-    address pool,
-    address debtToken,
-    uint64 cooldown,
-    address stabilityPool,
-    address collateralRegistry,
-    address systemParams,
-    uint256 stabilityPoolPercentage,
-    uint256 maxIterations,
-    uint128 liquiditySourceIncentiveBpsContraction,
-    uint128 protocolIncentiveBpsContraction,
-    uint128 liquiditySourceIncentiveBpsExpansion,
-    uint128 protocolIncentiveBpsExpansion
-  ) external;
+  function addPool(AddPoolParams calldata params) external;
 
   /**
    * @notice Removes a pool from the strategy

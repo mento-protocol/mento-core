@@ -26,10 +26,10 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
   function test_addPool_whenValidParams_shouldAddPool() public fpmmToken0Debt(18, 18) {
     vm.expectEmit(true, true, true, true);
-    emit PoolAdded(address(fpmm), true, 3600, 50);
+    emit PoolAdded(address(fpmm), true, 3600);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     assertTrue(strategy.isPoolRegistered(address(fpmm)));
   }
@@ -37,22 +37,22 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
   function test_addPool_whenPoolIsZero_shouldRevert() public fpmmToken0Debt(18, 18) {
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_MUST_BE_SET.selector);
-    strategy.addPool(address(0), debtToken, 3600, 50);
+    strategy.addPool(address(0), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
   }
 
   function test_addPool_whenPoolAlreadyExists_shouldRevert() public fpmmToken0Debt(18, 18) {
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_ALREADY_EXISTS.selector);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
   }
 
   function test_addPool_whenCalledByNonOwner_shouldRevert() public fpmmToken0Debt(18, 18) {
     vm.prank(notOwner);
     vm.expectRevert();
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
   }
 
   function test_addPool_whenDebtTokenNotInPool_shouldRevert() public fpmmToken0Debt(18, 18) {
@@ -61,22 +61,22 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_DEBT_TOKEN_NOT_IN_POOL.selector);
-    strategy.addPool(address(fpmm), wrongToken, 3600, 50);
+    strategy.addPool(address(fpmm), wrongToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
   }
 
-  function test_addPool_whenDebtTokenNotInPoolandToken1Debt_shouldRevert() public fpmmToken1Debt(18, 18) {
+  function test_addPool_whenDebtTokenNotInPoolAndToken1Debt_shouldRevert() public fpmmToken1Debt(18, 18) {
     // Create a random token that's not in the pool
     address wrongToken = address(new MockERC20("WrongToken", "WT", 18));
 
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_DEBT_TOKEN_NOT_IN_POOL.selector);
-    strategy.addPool(address(fpmm), wrongToken, 3600, 50);
+    strategy.addPool(address(fpmm), wrongToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
   }
 
   function test_removePool_whenPoolExists_shouldRemovePool() public fpmmToken0Debt(18, 18) {
     // Add pool first
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     // Remove it
     vm.expectEmit(true, false, false, false);
@@ -97,7 +97,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
   function test_setRebalanceCooldown_whenPoolExists_shouldUpdateCooldown() public fpmmToken0Debt(18, 18) {
     // Add pool
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     // Update cooldown
     vm.expectEmit(true, false, false, true);
@@ -118,7 +118,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     provideFPMMReserves(100e18, 110e18, true);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -137,7 +137,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     provideFPMMReserves(100e18, 90e18, true);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -157,7 +157,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     provideFPMMReserves(100e18, 110e18, false);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -177,7 +177,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     provideFPMMReserves(100e18, 90e18, false);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -196,7 +196,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     provideFPMMReserves(100e6, 110e18, true); // debt has 6 decimals, collateral has 18
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     (, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -215,7 +215,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     provideFPMMReserves(100e18, 110e18, true);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     // First rebalance
     vm.prank(owner);
@@ -230,12 +230,72 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     strategy.rebalance(address(fpmm));
   }
 
+  function test_rebalance_whenPoolPriceAboveOraclePriceButDifferenceBelowThreshold_shouldRevert()
+    public
+    fpmmToken0Debt(18, 18)
+  {
+    setOracleRate(1e18, 1e18);
+    provideFPMMReserves(100e18, 105e18, true); // threshold is 5% of oracle price
+
+    vm.prank(owner);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+
+    vm.prank(owner);
+    vm.expectRevert(ILiquidityStrategy.LS_POOL_NOT_REBALANCEABLE.selector);
+    strategy.rebalance(address(fpmm));
+  }
+
+  function test_rebalance_whenPoolPriceBelowOraclePriceButDifferenceBelowThreshold_shouldRevert()
+    public
+    fpmmToken0Debt(18, 18)
+  {
+    setOracleRate(1e18, 1e18);
+    provideFPMMReserves(100e18, 95e18, true); // threshold is 5% of oracle price
+
+    vm.prank(owner);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+
+    vm.prank(owner);
+    vm.expectRevert(ILiquidityStrategy.LS_POOL_NOT_REBALANCEABLE.selector);
+    strategy.rebalance(address(fpmm));
+  }
+
+  function test_rebalance_whenPoolPriceAboveOraclePriceButDifferenceAboveThreshold_shouldSucceed()
+    public
+    fpmmToken0Debt(18, 18)
+  {
+    setOracleRate(1e18, 1e18);
+    provideFPMMReserves(100e18, 10501e16, true); // price difference is 5.01% of oracle price
+
+    vm.prank(owner);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+
+    vm.expectEmit(true, true, false, false);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
+    strategy.rebalance(address(fpmm));
+  }
+
+  function test_rebalance_whenPoolPriceBelowOraclePriceButDifferenceAboveThreshold_shouldSucceed()
+    public
+    fpmmToken0Debt(18, 18)
+  {
+    setOracleRate(1e18, 1e18);
+    provideFPMMReserves(100e18, 9499e16, true); // price difference is 5.01% of oracle price
+
+    vm.prank(owner);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+
+    vm.expectEmit(true, true, false, false);
+    emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
+    strategy.rebalance(address(fpmm));
+  }
+
   function test_rebalance_afterCooldown_shouldSucceed() public fpmmToken0Debt(18, 18) {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 110e18, true);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     // First rebalance
     vm.prank(owner);
@@ -246,7 +306,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     vm.warp(block.timestamp + 3601);
 
     // Create new imbalance
-    swapIn(debtToken, 5e18);
+    swapIn(debtToken, 6e18);
 
     // Second rebalance should succeed
     vm.prank(owner);
@@ -258,7 +318,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     provideFPMMReserves(100e18, 110e18, true);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 50); // 0 cooldown
+    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient); // 0 cooldown
 
     // Expect LiquidityMoved event (only checking indexed fields)
     vm.expectEmit(true, true, false, false);
@@ -277,7 +337,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     provideFPMMReserves(100e18, 110e18, true);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 50);
+    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
 
     vm.prank(owner);
     strategy.rebalance(address(fpmm));
@@ -285,13 +345,12 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
   function test_hook_whenCalledFromNonPool_shouldRevert() public fpmmToken0Debt(18, 18) {
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 50);
+    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
 
     // Try to call hook from non-pool address
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: 100e18,
-        incentiveBps: 50,
         dir: LQ.Direction.Expand,
         isToken0Debt: true,
         debtToken: debtToken,
@@ -306,12 +365,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
 
   function test_hook_whenSenderIsNotStrategy_shouldRevert() public fpmmToken0Debt(18, 18) {
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 50);
+    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: 100e18,
-        incentiveBps: 50,
         dir: LQ.Direction.Expand,
         isToken0Debt: true,
         debtToken: debtToken,
@@ -330,7 +388,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     provideFPMMReserves(100e18, 110e18, true);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 50);
+    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
 
     // First transaction - should succeed
     vm.prank(owner);
@@ -343,7 +401,7 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     strategy.clearTransientStorage(address(fpmm));
 
     // Create a new imbalance by swapping tokens
-    swapIn(debtToken, 5e18);
+    swapIn(debtToken, 6e18);
 
     // Second transaction - transient storage should be cleared
     // So the hook check at the start should NOT revert with LS_CAN_ONLY_REBALANCE_ONCE
@@ -395,8 +453,8 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     MockERC20(collToken2).mint(address(strategy), 1000000e18);
 
     vm.startPrank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 50);
-    strategy.addPool(address(fpmm2), debtToken2, 0, 50);
+    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(address(fpmm2), debtToken2, 0, 25, 25, 25, 25, protocolFeeRecipient);
 
     // Should be able to rebalance both pools in the same transaction
     // Each pool tracks its own transient storage flag

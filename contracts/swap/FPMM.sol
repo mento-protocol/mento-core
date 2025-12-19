@@ -17,7 +17,7 @@ import { IFPMMCallee } from "../interfaces/IFPMMCallee.sol";
 import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { TradingLimitsV2 } from "../libraries/TradingLimitsV2.sol";
 import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
-import { console2 as console } from "forge-std/console2.sol";
+
 /**
  * @title Fixed Price Market Maker (FPMM)
  * @author Mento Labs
@@ -289,16 +289,18 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     );
   }
 
+  /// @inheritdoc IFPMM
   function getRebalancingState()
     external
     view
     returns (
-      uint256 targetNumerator,
-      uint256 targetDenominator,
+      uint256 oraclePriceNumerator,
+      uint256 oraclePriceDenominator,
       uint256 reservePriceNumerator,
       uint256 reservePriceDenominator,
       bool reservePriceAboveOraclePrice,
-      bool canBeRebalanced
+      uint16 rebalanceThreshold,
+      uint256 priceDifference
     )
   {
     FPMMStorage storage $ = _getFPMMStorage();
@@ -306,40 +308,23 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     if ($.referenceRateFeedID == address(0)) revert ReferenceRateNotSet();
     if ($.reserve0 == 0 || $.reserve1 == 0) revert ReservesEmpty();
 
-    (uint256 oraclePriceNumerator, uint256 oraclePriceDenominator) = _getRateFeed();
+    (oraclePriceNumerator, oraclePriceDenominator) = _getRateFeed();
 
     // slither-disable-start divide-before-multiply
     reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
     reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
     // slither-disable-end divide-before-multiply
 
-    (uint256 priceDifference, bool _reservePriceAboveOraclePrice) = _calculatePriceDifference(
+    (priceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference(
       oraclePriceNumerator,
       oraclePriceDenominator,
       reservePriceNumerator,
       reservePriceDenominator
     );
-    reservePriceAboveOraclePrice = _reservePriceAboveOraclePrice;
 
-    console.log("priceDifference", priceDifference);
-    console.log("rebalanceThresholdAbove", $.rebalanceThresholdAbove);
-    console.log("rebalanceThresholdBelow", $.rebalanceThresholdBelow);
-    console.log("Oracle Price", oraclePriceNumerator, oraclePriceDenominator);
-    console.log("Reserve Price", reservePriceNumerator, reservePriceDenominator);
-
-    if (_reservePriceAboveOraclePrice && priceDifference >= $.rebalanceThresholdAbove) {
-      targetNumerator =
-        (oraclePriceNumerator * (BASIS_POINTS_DENOMINATOR + $.rebalanceThresholdAbove)) /
-        BASIS_POINTS_DENOMINATOR;
-      targetDenominator = oraclePriceDenominator;
-      canBeRebalanced = true;
-    } else if (!_reservePriceAboveOraclePrice && priceDifference >= $.rebalanceThresholdBelow) {
-      targetNumerator =
-        (oraclePriceNumerator * (BASIS_POINTS_DENOMINATOR - $.rebalanceThresholdBelow)) /
-        BASIS_POINTS_DENOMINATOR;
-      targetDenominator = oraclePriceDenominator;
-      canBeRebalanced = true;
-    }
+    rebalanceThreshold = reservePriceAboveOraclePrice
+      ? uint16($.rebalanceThresholdAbove)
+      : uint16($.rebalanceThresholdBelow);
   }
 
   /// @inheritdoc IRPool
@@ -532,15 +517,15 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
       swapData.reservePriceAboveOraclePrice
     ) = getPrices();
 
+    uint256 threshold = swapData.reservePriceAboveOraclePrice ? $.rebalanceThresholdAbove : $.rebalanceThresholdBelow;
+    if (swapData.initialPriceDifference < threshold) revert PriceDifferenceTooSmall();
+
     swapData.initialReserveValue = _totalValueInToken1Scaled(
       $.reserve0,
       $.reserve1,
       swapData.rateNumerator,
       swapData.rateDenominator
     );
-
-    uint256 threshold = swapData.reservePriceAboveOraclePrice ? $.rebalanceThresholdAbove : $.rebalanceThresholdBelow;
-    if (swapData.initialPriceDifference < threshold) revert PriceDifferenceTooSmall();
 
     if (amount0Out > 0) IERC20($.token0).safeTransfer(msg.sender, amount0Out);
     if (amount1Out > 0) IERC20($.token1).safeTransfer(msg.sender, amount1Out);
@@ -835,13 +820,18 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     // Ensure price difference is smaller than before
     if (newPriceDifference >= swapData.initialPriceDifference) revert PriceDifferenceNotImproved();
-    // we allow the price difference to be moved in the wrong direction but not by more than the rebalance incentive
-    // this is due to the dynamic rebalance fee on redemptions.
+
     // slither-disable-next-line incorrect-equality
-    if (
-      reservePriceAboveOraclePrice != swapData.reservePriceAboveOraclePrice &&
-      newPriceDifference > (swapData.initialPriceDifference * $.rebalanceIncentive) / BASIS_POINTS_DENOMINATOR
-    ) revert PriceDifferenceMovedInWrongDirection();
+    if (reservePriceAboveOraclePrice != swapData.reservePriceAboveOraclePrice)
+      revert PriceDifferenceMovedInWrongDirection();
+
+    // Allow for 1 basis point further than the threshold to account for rounding and precision
+    if (reservePriceAboveOraclePrice && newPriceDifference < $.rebalanceThresholdAbove) {
+      revert PriceDifferenceMovedTooFarFromThresholds();
+    }
+    if (!reservePriceAboveOraclePrice && newPriceDifference < $.rebalanceThresholdBelow) {
+      revert PriceDifferenceMovedTooFarFromThresholds();
+    }
 
     if (swapData.amount0In > 0) {
       uint256 minAmount0In = _convertWithRateAndFee(
@@ -853,7 +843,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
         BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
         BASIS_POINTS_DENOMINATOR
       );
-      if (swapData.amount0In < minAmount0In) revert InsufficientAmount0In();
+      // allow for 10 wei difference due to rounding and precision loss
+      if (swapData.amount0In + 10 < minAmount0In) revert InsufficientAmount0In();
     } else {
       uint256 minAmount1In = _convertWithRateAndFee(
         swapData.amount0Out,
@@ -864,7 +855,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
         BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
         BASIS_POINTS_DENOMINATOR
       );
-      if (swapData.amount1In < minAmount1In) revert InsufficientAmount1In();
+      // allow for 10 wei difference due to rounding and precision loss
+      if (swapData.amount1In + 10 < minAmount1In) revert InsufficientAmount1In();
     }
   }
 

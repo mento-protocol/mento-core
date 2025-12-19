@@ -15,11 +15,11 @@ contract LiquidityStrategyTypesHarness {
   /* =================== Context Functions ====================== */
   /* ============================================================ */
 
-  function newContext(
+  function newRebalanceContext(
     address pool,
     ILiquidityStrategy.PoolConfig memory config
   ) external view returns (LQ.Context memory) {
-    return LQ.newContext(pool, config);
+    return LQ.newRebalanceContext(pool, config);
   }
 
   function debtToken(LQ.Context memory ctx) external pure returns (address) {

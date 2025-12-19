@@ -84,10 +84,10 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
 
   function test_addPool_whenValidParams_shouldAddPool() public fpmmToken0Debt(18, 18) {
     vm.expectEmit(true, true, true, true);
-    emit PoolAdded(address(fpmm), true, 3600, 50);
+    emit PoolAdded(address(fpmm), true, 3600);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     assertTrue(strategy.isPoolRegistered(address(fpmm)));
   }
@@ -95,28 +95,28 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
   function test_addPool_whenPoolIsZero_shouldRevert() public fpmmToken0Debt(18, 18) {
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_MUST_BE_SET.selector);
-    strategy.addPool(address(0), debtToken, 3600, 50);
+    strategy.addPool(address(0), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
   }
 
   function test_addPool_whenPoolAlreadyExists_shouldRevert() public fpmmToken0Debt(18, 18) {
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_ALREADY_EXISTS.selector);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
   }
 
   function test_addPool_whenCalledByNonOwner_shouldRevert() public fpmmToken0Debt(18, 18) {
     vm.prank(notOwner);
     vm.expectRevert();
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
   }
 
   function test_removePool_whenPoolExists_shouldRemovePool() public fpmmToken0Debt(18, 18) {
     // Add pool first
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     // Remove it
     vm.expectEmit(true, false, false, false);
@@ -137,7 +137,7 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
   function test_setRebalanceCooldown_whenPoolExists_shouldUpdateCooldown() public fpmmToken0Debt(18, 18) {
     // Add pool
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 50);
+    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
 
     // Update cooldown
     vm.expectEmit(true, false, false, true);

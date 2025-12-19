@@ -34,33 +34,43 @@ contract LiquidityStrategyDeployer is TestStorage {
 
   function _configureCDPLiquidityStrategy(
     uint64 cooldown,
-    uint32 incentiveBps,
-    uint256 stabilityPoolPercentage,
-    uint256 maxIterations,
-    uint256 troveOwnerRedemptionFee,
-    uint256 protocolRedemptionFee
+    uint16 stabilityPoolPercentage,
+    uint16 maxIterations,
+    uint16 liquiditySourceIncentiveBpsContraction,
+    uint16 protocolIncentiveBpsContraction,
+    uint16 liquiditySourceIncentiveBpsExpansion,
+    uint16 protocolIncentiveBpsExpansion
   ) internal {
     require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
     require($liquity.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquity not deployed");
 
+    ICDPLiquidityStrategy.AddPoolParams memory params = ICDPLiquidityStrategy.AddPoolParams({
+      pool: address($fpmm.fpmmCDP),
+      debtToken: address($tokens.eurm),
+      cooldown: cooldown,
+      liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction: protocolIncentiveBpsContraction,
+      protocolFeeRecipient: $addresses.protocolFeeRecipient,
+      stabilityPool: address($liquity.stabilityPool),
+      collateralRegistry: address($liquity.collateralRegistry),
+      stabilityPoolPercentage: stabilityPoolPercentage,
+      maxIterations: maxIterations
+    });
+
     vm.startPrank($addresses.governance);
-    $liquidityStrategies.cdpLiquidityStrategy.addPool(
-      address($fpmm.fpmmCDP),
-      address($tokens.eurm),
-      cooldown,
-      incentiveBps,
-      address($liquity.stabilityPool),
-      address($liquity.collateralRegistry),
-      address($liquity.systemParams),
-      stabilityPoolPercentage,
-      maxIterations,
-      troveOwnerRedemptionFee,
-      protocolRedemptionFee
-    );
+    $liquidityStrategies.cdpLiquidityStrategy.addPool(params);
     vm.stopPrank();
   }
 
-  function _configureReserveLiquidityStrategy(uint64 cooldown, uint32 incentiveBps) internal {
+  function _configureReserveLiquidityStrategy(
+    uint64 cooldown,
+    uint16 liquiditySourceIncentiveBpsContraction,
+    uint16 protocolIncentiveBpsContraction,
+    uint16 liquiditySourceIncentiveBpsExpansion,
+    uint16 protocolIncentiveBpsExpansion
+  ) internal {
     require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
     require($tokens.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: tokens not deployed");
     vm.startPrank($addresses.governance);
@@ -68,7 +78,11 @@ contract LiquidityStrategyDeployer is TestStorage {
       address($fpmm.fpmmReserve),
       address($tokens.usdm),
       cooldown,
-      incentiveBps
+      liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction,
+      liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion,
+      $addresses.protocolFeeRecipient
     );
     $tokens.usdm.setMinter(address($liquidityStrategies.reserveLiquidityStrategy), true);
     $tokens.usdm.setBurner(address($liquidityStrategies.reserveLiquidityStrategy), true);

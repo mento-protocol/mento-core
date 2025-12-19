@@ -40,14 +40,33 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     );
   }
 
-  modifier addFpmm(uint64 cooldown, uint32 incentiveBps) {
+  modifier addFpmm(
+    uint64 cooldown,
+    uint16 liquiditySourceIncentiveBpsExpansion,
+    uint16 protocolIncentiveBpsExpansion,
+    uint16 liquiditySourceIncentiveBpsContraction,
+    uint16 protocolIncentiveBpsContraction
+  ) {
     // Set FPMM rebalance incentive cap to match or exceed strategy incentive
-    // Note: FPMM has a maximum cap, typically 1000 bps (10%)
-    uint32 fpmmIncentive = incentiveBps > 1000 ? 1000 : incentiveBps;
+    // Note: FPMM has a maximum cap, typically 100 bps (1%)
+    uint32 fpmmIncentive = liquiditySourceIncentiveBpsExpansion + protocolIncentiveBpsExpansion >=
+      liquiditySourceIncentiveBpsContraction + protocolIncentiveBpsContraction
+      ? liquiditySourceIncentiveBpsExpansion + protocolIncentiveBpsExpansion
+      : liquiditySourceIncentiveBpsContraction + protocolIncentiveBpsContraction;
+
     fpmm.setRebalanceIncentive(fpmmIncentive);
 
     vm.startPrank(owner);
-    strategy.addPool(address(fpmm), debtToken, cooldown, incentiveBps);
+    strategy.addPool(
+      address(fpmm),
+      debtToken,
+      cooldown,
+      liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction,
+      protocolFeeRecipient
+    );
     reserve.registerCollateralAsset(collToken);
     reserve.registerStableAsset(debtToken);
     MockERC20(collToken).mint(address(reserve), 1000000e18);
@@ -66,7 +85,7 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @param oracleNum Oracle price numerator
    * @param oracleDen Oracle price denominator
    * @param poolPriceAbove Whether pool price is above oracle price
-   * @param incentiveBps Incentive in basis points
+   * @param incentives The incentives for the rebalance
    */
   function _createContext(
     uint256 reserveDen,
@@ -74,19 +93,10 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 oracleNum,
     uint256 oracleDen,
     bool poolPriceAbove,
-    uint256 incentiveBps
+    LQ.RebalanceIncentives memory incentives
   ) internal view returns (LQ.Context memory) {
     return
-      _createContextWithDecimals(
-        reserveDen,
-        reserveNum,
-        oracleNum,
-        oracleDen,
-        poolPriceAbove,
-        incentiveBps,
-        1e18, // 18 decimals for token0
-        1e18 // 18 decimals for token1
-      );
+      _createContextWithDecimals(reserveDen, reserveNum, oracleNum, oracleDen, poolPriceAbove, 1e18, 1e18, incentives);
   }
 
   /**
@@ -98,21 +108,26 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 oracleNum,
     uint256 oracleDen,
     bool poolPriceAbove,
-    uint256 incentiveBps,
     uint256 token0Dec,
-    uint256 token1Dec
+    uint256 token1Dec,
+    LQ.RebalanceIncentives memory incentives
   ) internal view returns (LQ.Context memory) {
     return
       LQ.Context({
         pool: address(fpmm),
         reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
-        prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
-        incentiveBps: uint128(incentiveBps),
+        prices: LQ.Prices({
+          oracleNum: oracleNum,
+          oracleDen: oracleDen,
+          poolPriceAbove: poolPriceAbove,
+          rebalanceThreshold: 500
+        }),
         token0Dec: uint64(token0Dec),
         token1Dec: uint64(token1Dec),
         token0: debtToken,
         token1: collToken,
-        isToken0Debt: true
+        isToken0Debt: true,
+        incentives: incentives
       });
   }
 
@@ -125,20 +140,25 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 oracleNum,
     uint256 oracleDen,
     bool poolPriceAbove,
-    uint256 incentiveBps,
-    bool isToken0Debt
+    bool isToken0Debt,
+    LQ.RebalanceIncentives memory incentives
   ) internal view returns (LQ.Context memory) {
     return
       LQ.Context({
         pool: address(fpmm),
         reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
-        prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
-        incentiveBps: uint128(incentiveBps),
+        prices: LQ.Prices({
+          oracleNum: oracleNum,
+          oracleDen: oracleDen,
+          poolPriceAbove: poolPriceAbove,
+          rebalanceThreshold: 500
+        }),
         token0Dec: 1e18,
         token1Dec: 1e18,
         token0: isToken0Debt ? debtToken : collToken,
         token1: isToken0Debt ? collToken : debtToken,
-        isToken0Debt: isToken0Debt
+        isToken0Debt: isToken0Debt,
+        incentives: incentives
       });
   }
 

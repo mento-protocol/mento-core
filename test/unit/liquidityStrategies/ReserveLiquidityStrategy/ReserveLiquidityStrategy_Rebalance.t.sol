@@ -7,6 +7,7 @@ import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_Ba
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { MockERC20 } from "../../../utils/mocks/MockERC20.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 
 contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_BaseTest {
   function setUp() public override {
@@ -20,7 +21,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
   function test_rebalance_whenPoolPriceAboveOracle_shouldExpandSuccessfully()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Setup: Pool has 100 debt and 200 collateral (excess collateral)
     provideFPMMReserves(100e18, 200e18, true);
@@ -41,7 +42,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
   function test_rebalance_whenPoolPriceBelowOracle_shouldContractSuccessfully()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Setup: Pool has 200 debt and 100 collateral (excess debt)
     provideFPMMReserves(200e18, 100e18, true);
@@ -70,7 +71,11 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     strategy.rebalance(address(fpmm));
   }
 
-  function test_rebalance_whenPoolPriceEqualsOracle_shouldNotRebalance() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_rebalance_whenPoolPriceEqualsOracle_shouldNotRebalance()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Setup: Pool has balanced reserves at 1:1
     provideFPMMReserves(100e18, 100e18, true);
     // Oracle price is also 1:1 (pool price equals oracle)
@@ -80,11 +85,11 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     MockERC20(collToken).mint(address(reserve), 1000e18);
 
     // Rebalance should not execute any action (no events should be emitted, should revert)
-    vm.expectRevert("OneOutputAmountRequired()");
+    vm.expectRevert(ILiquidityStrategy.LS_POOL_NOT_REBALANCEABLE.selector);
     strategy.rebalance(address(fpmm));
   }
 
-  function test_rebalance_withZeroIncentive_shouldSucceed() public fpmmToken0Debt(18, 18) addFpmm(0, 0) {
+  function test_rebalance_withZeroIncentive_shouldSucceed() public fpmmToken0Debt(18, 18) addFpmm(0, 0, 0, 0, 0) {
     // Setup: Pool has excess collateral
     provideFPMMReserves(100e18, 200e18, true);
     setOracleRate(1e18, 1e18);
@@ -100,7 +105,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     strategy.rebalance(address(fpmm));
   }
 
-  function test_rebalance_withMaxIncentive_shouldSucceed() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_rebalance_withMaxIncentive_shouldSucceed() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 50, 50, 50) {
     // Setup: Pool has excess debt
     provideFPMMReserves(200e18, 100e18, true);
     setOracleRate(1e18, 1e18);
@@ -123,7 +128,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
   function test_rebalance_expansion_shouldMintDebtAndTransferCollateralToReserve()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Setup: Pool has 100 debt and 200 collateral (excess collateral)
     provideFPMMReserves(100e18, 200e18, true);
@@ -150,7 +155,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
   function test_rebalance_contraction_shouldBurnDebtAndTransferCollateralFromReserve()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Setup: Pool has 200 debt and 100 collateral (excess debt)
     provideFPMMReserves(200e18, 100e18, true);
@@ -178,7 +183,11 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
   /* =============== Reversed Token Order Tests ================ */
   /* ============================================================ */
 
-  function test_rebalance_whenToken1IsDebt_shouldExpandCorrectly() public fpmmToken1Debt(18, 18) addFpmm(0, 100) {
+  function test_rebalance_whenToken1IsDebt_shouldExpandCorrectly()
+    public
+    fpmmToken1Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Setup: Pool has 200 collateral (token0) and 100 debt (token1) - excess collateral
     provideFPMMReserves(200e18, 100e18, false);
     // Oracle price 1:1, pool has excess collateral
@@ -195,7 +204,11 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     strategy.rebalance(address(fpmm));
   }
 
-  function test_rebalance_whenToken1IsDebt_shouldContractCorrectly() public fpmmToken1Debt(18, 18) addFpmm(0, 100) {
+  function test_rebalance_whenToken1IsDebt_shouldContractCorrectly()
+    public
+    fpmmToken1Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Setup: Pool has 100 collateral (token0) and 200 debt (token1) - excess debt
     provideFPMMReserves(100e18, 200e18, false);
     // Oracle price 1:1, pool has excess debt
@@ -216,7 +229,11 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
   /* =============== Different Oracle Prices =================== */
   /* ============================================================ */
 
-  function test_rebalance_withHighOraclePrice_shouldContractCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_rebalance_withHighOraclePrice_shouldContractCorrectly()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Setup: Pool has 100 debt and 100 collateral
     provideFPMMReserves(100e18, 100e18, true);
     // Oracle price is 2:1 (2 collateral per 1 debt), pool needs more collateral
@@ -233,7 +250,11 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     strategy.rebalance(address(fpmm));
   }
 
-  function test_rebalance_withLowOraclePrice_shouldExpandCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_rebalance_withLowOraclePrice_shouldExpandCorrectly()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Setup: Pool has 100 debt and 100 collateral
     provideFPMMReserves(100e18, 100e18, true);
     // Oracle price is 1:2 (0.5 collateral per 1 debt), pool has excess collateral
@@ -257,7 +278,7 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
   function test_rebalance_withVerySmallImbalance_shouldRevertDueToThreshold()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Setup: Pool has very small imbalance (100 vs 101) - below FPMM threshold
     provideFPMMReserves(100e18, 101e18, true);
@@ -267,11 +288,15 @@ contract ReserveLiquidityStrategy_RebalanceTest is ReserveLiquidityStrategy_Base
     MockERC20(collToken).mint(address(reserve), 1000e18);
 
     // Should revert due to FPMM threshold (price difference too small)
-    vm.expectRevert("PriceDifferenceTooSmall()");
+    vm.expectRevert(ILiquidityStrategy.LS_POOL_NOT_REBALANCEABLE.selector);
     strategy.rebalance(address(fpmm));
   }
 
-  function test_rebalance_withLargeImbalance_shouldHandleCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_rebalance_withLargeImbalance_shouldHandleCorrectly()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Setup: Pool has large imbalance (100 vs 1000)
     provideFPMMReserves(100e18, 1000e18, true);
     setOracleRate(1e18, 1e18);

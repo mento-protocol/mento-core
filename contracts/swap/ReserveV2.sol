@@ -59,6 +59,11 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
     _;
   }
 
+  modifier onlyStableAsset(address stableAsset) {
+    if (!stableAssets.contains(stableAsset)) revert StableAssetNotRegistered();
+    _;
+  }
+
   modifier onlyOtherReserveAddress(address otherReserveAddress) {
     if (!otherReserveAddresses.contains(otherReserveAddress)) revert OtherReserveAddressNotRegistered();
     _;
@@ -228,7 +233,7 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
     address to,
     uint256 value
   ) external onlyReserveManagerSpender onlyOtherReserveAddress(to) onlyCollateralAsset(collateralAsset) returns (bool) {
-    _transferCollateralAsset(collateralAsset, to, value);
+    _transferAsset(collateralAsset, to, value);
     emit CollateralAssetTransferredReserveManagerSpender(msg.sender, collateralAsset, to, value);
     return true;
   }
@@ -239,8 +244,19 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
     address to,
     uint256 value
   ) external onlyLiquidityStrategySpender onlyCollateralAsset(collateralAsset) returns (bool) {
-    _transferCollateralAsset(collateralAsset, to, value);
+    _transferAsset(collateralAsset, to, value);
     emit CollateralAssetTransferredLiquidityStrategySpender(msg.sender, collateralAsset, to, value);
+    return true;
+  }
+
+  /// @inheritdoc IReserveV2
+  function transferStableAsset(
+    address stableAsset,
+    address to,
+    uint256 value
+  ) external onlyReserveManagerSpender onlyStableAsset(stableAsset) returns (bool) {
+    _transferAsset(stableAsset, to, value);
+    emit StableAssetTransferred(msg.sender, stableAsset, to, value);
     return true;
   }
 
@@ -303,12 +319,12 @@ contract ReserveV2 is IReserveV2, OwnableUpgradeable {
 
   /**
    * @notice Transfers a collateral asset to an address
-   * @param collateralAsset The address of the collateral asset
+   * @param asset The address of the asset to transfer
    * @param to The address to transfer the collateral asset to
-   * @param value The amount of collateral asset to transfer
+   * @param value The amount of asset to transfer
    */
-  function _transferCollateralAsset(address collateralAsset, address to, uint256 value) internal {
-    if (IERC20(collateralAsset).balanceOf(address(this)) < value) revert InsufficientReserveBalance();
-    IERC20(collateralAsset).safeTransfer(to, value);
+  function _transferAsset(address asset, address to, uint256 value) internal {
+    if (IERC20(asset).balanceOf(address(this)) < value) revert InsufficientReserveBalance();
+    IERC20(asset).safeTransfer(to, value);
   }
 }

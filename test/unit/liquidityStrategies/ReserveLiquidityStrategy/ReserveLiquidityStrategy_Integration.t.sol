@@ -11,6 +11,13 @@ import { MockERC20 } from "../../../utils/mocks/MockERC20.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
 
 contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_BaseTest {
+  // Test variations for multiple scenarios test
+  bool[2] internal tokenOrders = [true, false]; // isToken0Debt variations
+  bool[2] internal pricePositions = [true, false]; // poolPriceAbove variations
+
+  uint16[3] internal liquiditySourceIncentiveBps = [uint16(0), 25, 50]; // 0%, 0.25%, 0.5% liquidity source incentive
+  uint16[3] internal protocolIncentiveBps = [uint16(0), 25, 50]; // 0%, 0.25%, 0.5% protocol incentive
+
   function setUp() public override {
     super.setUp();
   }
@@ -19,7 +26,11 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
   /* ================ Token Order Tests ======================== */
   /* ============================================================ */
 
-  function test_determineAction_whenToken1IsDebt_shouldHandleCorrectly() public fpmmToken1Debt(18, 18) addFpmm(0, 100) {
+  function test_determineAction_whenToken1IsDebt_shouldHandleCorrectly()
+    public
+    fpmmToken1Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Test when token1 is debt and token0 is collateral (isToken0Debt = false)
     LQ.Context memory ctx = _createContextWithTokenOrder({
       reserveDen: 100e18, // token0 (collateral) reserves
@@ -27,8 +38,13 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 100, // Capped at 1%
-      isToken0Debt: false // token1 is debt
+      isToken0Debt: false, // token1 is debt
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -48,7 +64,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
   function test_determineAction_whenToken0IsCollateral_shouldHandleExpansionCorrectly()
     public
     fpmmToken1Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Test expansion scenario when token0 is collateral (token1 is debt)
     LQ.Context memory ctx = _createContextWithTokenOrder({
@@ -57,8 +73,13 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 100,
-      isToken0Debt: false // token1 is debt
+      isToken0Debt: false, // token1 is debt
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     LQ.Action memory action = strategy.determineAction(ctx);
@@ -72,7 +93,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
   function test_determineAction_whenToken0IsCollateral_shouldHandleContractionCorrectly()
     public
     fpmmToken1Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Test contraction scenario when token0 is collateral (token1 is debt)
     LQ.Context memory ctx = _createContextWithTokenOrder({
@@ -81,8 +102,13 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true, // Pool has excess debt relative to collateral
-      incentiveBps: 100,
-      isToken0Debt: false // token1 is debt
+      isToken0Debt: false, // token1 is debt
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -100,7 +126,11 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
   /* ============ Token Consistency Tests ====================== */
   /* ============================================================ */
 
-  function test_determineAction_outputConsistency_shouldMatchDirection() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_determineAction_outputConsistency_shouldMatchDirection()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Test that output amounts are consistent with direction
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18,
@@ -108,7 +138,12 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 100 // 1%
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     LQ.Action memory action = strategy.determineAction(ctx);
@@ -123,7 +158,7 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
   function test_determineAction_outputConsistency_withReversedTokenOrder_shouldMatchDirection()
     public
     fpmmToken1Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Test output consistency with reversed token order
     LQ.Context memory ctx = _createContextWithTokenOrder({
@@ -132,8 +167,13 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 100,
-      isToken0Debt: false // token1 is debt
+      isToken0Debt: false, // token1 is debt
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     LQ.Action memory action = strategy.determineAction(ctx);
@@ -148,19 +188,26 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
   function test_determineAction_amountScaling_withDifferentIncentives_shouldBeProportional()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
-    uint256[3] memory incentives = [uint256(0), 50, 100]; // 0%, 0.5%, 1%
+    // total incentives are 0%, 0.5%, 1%
+    uint16[3] memory liquiditySourceIncentiveBps = [uint16(0), 25, 50]; // 0%, 0.25%, 0.5% liquidity source incentive
+    uint16[3] memory protocolIncentiveBps = [uint16(0), 25, 50]; // 0%, 0.25%, 0.5% protocol incentive
 
     LQ.Action memory prevAction;
-    for (uint256 i = 0; i < incentives.length; i++) {
+    for (uint256 i = 0; i < liquiditySourceIncentiveBps.length; i++) {
       LQ.Context memory ctx = _createContext({
         reserveDen: 100e18,
         reserveNum: 150e18,
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
-        incentiveBps: incentives[i]
+        incentives: LQ.RebalanceIncentives({
+          liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBps[i],
+          protocolIncentiveBpsExpansion: protocolIncentiveBps[i],
+          liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBps[i],
+          protocolIncentiveBpsContraction: protocolIncentiveBps[i]
+        })
       });
 
       LQ.Action memory action = strategy.determineAction(ctx);
@@ -182,10 +229,6 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
   /* ============================================================ */
 
   function test_integration_multipleScenarios_withTokenOrderVariations() public {
-    bool[2] memory tokenOrders = [true, false]; // isToken0Debt variations
-    bool[2] memory pricePositions = [true, false]; // poolPriceAbove variations
-    uint256[3] memory incentiveValues = [uint256(0), 50, 100]; // 0%, 0.5%, 1% (capped at FPMM max)
-
     for (uint256 i = 0; i < tokenOrders.length; i++) {
       bool isToken0Debt = tokenOrders[i];
 
@@ -221,33 +264,42 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
 
       // 4. Add this pool to the strategy
       vm.prank(owner);
-      strategy.addPool(address(testFpmm), _debtToken, 0, 100);
+      strategy.addPool(address(testFpmm), _debtToken, 100, 0, 0, 0, 0, protocolFeeRecipient);
 
       // 5. Mock reserve balance for contraction scenarios
       vm.mockCall(_collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
 
       // 6. Now test all combinations for this token order
       for (uint256 j = 0; j < pricePositions.length; j++) {
-        for (uint256 k = 0; k < incentiveValues.length; k++) {
+        for (uint256 k = 0; k < liquiditySourceIncentiveBps.length; k++) {
           // Flip reserves based on poolPriceAbove to ensure mathematically valid scenarios
           // poolPriceAbove=true: reserveNum/reserveDen should be > oracleNum/oracleDen
           // poolPriceAbove=false: reserveNum/reserveDen should be < oracleNum/oracleDen
           bool poolPriceAbove = pricePositions[j];
           uint256 reserveNum = poolPriceAbove ? 180e18 : 120e18;
           uint256 reserveDen = poolPriceAbove ? 120e18 : 180e18;
-          uint128 incentive = uint128(incentiveValues[k]);
 
           // Manually construct the context with proper token addresses
           LQ.Context memory ctx = LQ.Context({
             pool: address(testFpmm),
             reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
-            prices: LQ.Prices({ oracleNum: 1e18, oracleDen: 1e18, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
+            prices: LQ.Prices({
+              oracleNum: 1e18,
+              oracleDen: 1e18,
+              poolPriceAbove: poolPriceAbove,
+              rebalanceThreshold: 500
+            }),
             token0: token0,
             token1: token1,
-            incentiveBps: incentive,
             token0Dec: 1e18,
             token1Dec: 1e18,
-            isToken0Debt: isToken0Debt
+            isToken0Debt: isToken0Debt,
+            incentives: LQ.RebalanceIncentives({
+              liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBps[k],
+              protocolIncentiveBpsExpansion: protocolIncentiveBps[k],
+              liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBps[k],
+              protocolIncentiveBpsContraction: protocolIncentiveBps[k]
+            })
           });
 
           LQ.Action memory action = strategy.determineAction(ctx);

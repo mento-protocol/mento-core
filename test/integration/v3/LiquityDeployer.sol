@@ -295,7 +295,7 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
       vars.collaterals,
       vars.troveManagers,
       systemParamsArray[0],
-      vars.addressesRegistries[0]
+      address($liquidityStrategies.cdpLiquidityStrategy)
     );
     hintHelpers = new HintHelpers(collateralRegistry, systemParamsArray[0]);
     multiTroveGetter = new MultiTroveGetter(collateralRegistry);

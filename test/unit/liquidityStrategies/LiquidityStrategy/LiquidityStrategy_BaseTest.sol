@@ -22,6 +22,8 @@ abstract contract LiquidityStrategy_BaseTest is Test {
   FPMM public fpmm;
   IFPMM.FPMMParams internal defaultFPMMParams;
 
+  uint256 public constant BPS_DENOMINATOR = 10000;
+  address public protocolFeeRecipient = makeAddr("protocolFeeRecipient");
   address public owner = makeAddr("Owner");
   address public notOwner = makeAddr("NotOwner");
   address public debtToken;
@@ -174,7 +176,7 @@ abstract contract LiquidityStrategy_BaseTest is Test {
   /* ======================= Events ============================= */
   /* ============================================================ */
 
-  event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown, uint32 incentiveBps);
+  event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown);
   event PoolRemoved(address indexed pool);
   event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
   event LiquidityMoved(

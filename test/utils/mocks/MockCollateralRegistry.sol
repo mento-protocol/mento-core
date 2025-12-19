@@ -7,7 +7,7 @@ import { MockERC20 } from "./MockERC20.sol";
 contract MockCollateralRegistry {
   MockERC20 public debtToken;
   MockERC20 public collateralToken;
-  uint256 public redemptionRateWithDecay;
+
   uint256 public oracleNumerator;
   uint256 public oracleDenominator;
 
@@ -16,28 +16,29 @@ contract MockCollateralRegistry {
     collateralToken = MockERC20(_collateralToken);
   }
 
-  function setRedemptionRateWithDecay(uint256 _redemptionRateWithDecay) external {
-    redemptionRateWithDecay = _redemptionRateWithDecay;
-  }
-
   function setOracleRate(uint256 _oracleNumerator, uint256 _oracleDenominator) external {
     oracleNumerator = _oracleNumerator;
     oracleDenominator = _oracleDenominator;
   }
 
-  function getRedemptionRateWithDecay() external view returns (uint256) {
-    return redemptionRateWithDecay;
-  }
+  function redeemCollateralRebalancing(
+    uint256 _boldamount,
+    uint256 _maxIterationsPerCollateral,
+    uint256 _troveOwnerFee
+  ) external {
+    uint256 liquiditySourceIncentiveBpsContraction = (_boldamount * _troveOwnerFee) / 1e18;
 
-  function redeemCollateral(uint256 _boldamount, uint256, uint256) external {
-    MockERC20(debtToken).burn(msg.sender, _boldamount);
+    MockERC20(debtToken).transferFromWithoutAllowance(
+      msg.sender,
+      address(this),
+      liquiditySourceIncentiveBpsContraction
+    );
+    MockERC20(debtToken).burn(msg.sender, _boldamount - liquiditySourceIncentiveBpsContraction);
+
     uint256 debtDecimals = 10 ** MockERC20(debtToken).decimals();
     uint256 collateralDecimals = 10 ** MockERC20(collateralToken).decimals();
 
-    uint256 totalSupply = MockERC20(debtToken).totalSupply();
-    uint256 redemptionFee = redemptionRateWithDecay + ((_boldamount * 1e18) / totalSupply);
-
-    uint256 returnNumerator = _boldamount * oracleNumerator * collateralDecimals * (1e18 - redemptionFee);
+    uint256 returnNumerator = _boldamount * oracleNumerator * collateralDecimals * (1e18 - _troveOwnerFee);
     uint256 returnDenominator = oracleDenominator * debtDecimals * 1e18;
     uint256 returnAmount = returnNumerator / returnDenominator;
     MockERC20(collateralToken).mint(msg.sender, returnAmount);

@@ -24,10 +24,10 @@ interface ILiquidityStrategy {
     bool isToken0Debt;
     uint64 lastRebalance;
     uint64 rebalanceCooldown;
-    uint128 liquiditySourceIncentiveBpsExpansion;
-    uint128 protocolIncentiveBpsExpansion;
-    uint128 liquiditySourceIncentiveBpsContraction;
-    uint128 protocolIncentiveBpsContraction;
+    uint16 liquiditySourceIncentiveBpsExpansion;
+    uint16 protocolIncentiveBpsExpansion;
+    uint16 liquiditySourceIncentiveBpsContraction;
+    uint16 protocolIncentiveBpsContraction;
     address protocolFeeRecipient;
   }
 
