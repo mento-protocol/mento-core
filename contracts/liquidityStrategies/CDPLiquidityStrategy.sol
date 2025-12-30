@@ -222,8 +222,8 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   /**
    * @notice Calculates the redemption fee for a CDP pool
    * @dev When both incentives are greater than 0 the the redemption fee is:
-   *      (protocolIncentiveBpsContraction * BPS_DENOMINATOR * BPS_TO_FEE_SCALER) /
-   *      (BPS_DENOMINATOR - liquiditySourceIncentiveBpsContraction)
+   *      (liquiditySourceIncentiveBpsContraction * BPS_DENOMINATOR * BPS_TO_FEE_SCALER) /
+   *      (BPS_DENOMINATOR - protocolIncentiveBpsContraction)
    *       This is necesarry because the liquidity source incentive is a percentage of the
    *       total amount of debt being moved out of the pool and not just the amount minus the protocol incentive.
    * @param liquiditySourceIncentiveBpsContraction The liquidity source incentive in basis points for contraction
@@ -236,8 +236,8 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   ) private pure returns (uint256 redemptionFee) {
     if (protocolIncentiveBpsContraction > 0 && liquiditySourceIncentiveBpsContraction > 0) {
       redemptionFee =
-        (protocolIncentiveBpsContraction * BPS_DENOMINATOR * BPS_TO_FEE_SCALER) /
-        (BPS_DENOMINATOR - liquiditySourceIncentiveBpsContraction);
+        (liquiditySourceIncentiveBpsContraction * BPS_DENOMINATOR * BPS_TO_FEE_SCALER) /
+        (BPS_DENOMINATOR - protocolIncentiveBpsContraction);
     } else {
       redemptionFee = liquiditySourceIncentiveBpsContraction * BPS_TO_FEE_SCALER;
     }
