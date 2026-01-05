@@ -29,6 +29,7 @@ interface IRouter {
   error PoolFactoryDoesNotExist();
   error SameAddresses();
   error ZeroAddress();
+  error InvalidFactoryForLiquidity();
 
   /// @notice Address of FactoryRegistry.sol
   function factoryRegistry() external view returns (address);

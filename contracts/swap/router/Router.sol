@@ -40,6 +40,10 @@ contract Router is IRouter, ERC2771Context {
     if (deadline < block.timestamp) revert Expired();
   }
 
+  function _validateLiquidityFactory(address factory) internal view {
+    if (factory != defaultFactory) revert InvalidFactoryForLiquidity();
+  }
+
   constructor(address _forwarder, address _factoryRegistry, address _factory) ERC2771Context(_forwarder) {
     factoryRegistry = _factoryRegistry;
     defaultFactory = _factory;
@@ -265,6 +269,7 @@ contract Router is IRouter, ERC2771Context {
     Route[] calldata routesB,
     address to
   ) external payable returns (uint256 liquidity) {
+    _validateLiquidityFactory(zapInPool.factory);
     uint256 amountIn = amountInA + amountInB;
     address _tokenIn = tokenIn;
 
@@ -377,6 +382,7 @@ contract Router is IRouter, ERC2771Context {
     Route[] calldata routesA,
     Route[] calldata routesB
   ) external {
+    _validateLiquidityFactory(zapOutPool.factory);
     address tokenA = zapOutPool.tokenA;
     address tokenB = zapOutPool.tokenB;
     _zapOutLiquidity(liquidity, zapOutPool);
@@ -419,6 +425,7 @@ contract Router is IRouter, ERC2771Context {
     Route[] calldata routesA,
     Route[] calldata routesB
   ) external view returns (uint256 amountOutMinA, uint256 amountOutMinB, uint256 amountAMin, uint256 amountBMin) {
+    _validateLiquidityFactory(_factory);
     amountOutMinA = amountInA;
     amountOutMinB = amountInB;
     uint256[] memory amounts;
@@ -442,6 +449,7 @@ contract Router is IRouter, ERC2771Context {
     Route[] calldata routesA,
     Route[] calldata routesB
   ) external view returns (uint256 amountOutMinA, uint256 amountOutMinB, uint256 amountAMin, uint256 amountBMin) {
+    _validateLiquidityFactory(_factory);
     (amountAMin, amountBMin) = quoteRemoveLiquidity(tokenA, tokenB, _factory, liquidity);
     amountOutMinA = amountAMin;
     amountOutMinB = amountBMin;
