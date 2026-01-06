@@ -15,6 +15,9 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   using SafeERC20 for IERC20;
   using LQ for LQ.Context;
 
+  /// @notice Buffer to account for rounding losses in multi-trove Liquity redemptions
+  uint256 public constant REDEMPTION_ROUNDING_BUFFER = 1000;
+
   mapping(address => CDPConfig) private cdpConfigs;
 
   /* ============================================================ */
@@ -228,8 +231,13 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
 
     uint256 maxAmountToRedeem = (totalDebtTokenSupply * redemptionBeta * (maxRedemptionFee - decayedBaseFee)) / 1e18;
 
-    if (targetContractionAmount > maxAmountToRedeem) {
-      contractionAmount = maxAmountToRedeem;
+    // Apply buffer to account for rounding losses in multi-trove redemptions
+    uint256 bufferedMax = maxAmountToRedeem > REDEMPTION_ROUNDING_BUFFER
+      ? maxAmountToRedeem - REDEMPTION_ROUNDING_BUFFER
+      : 0;
+
+    if (targetContractionAmount > bufferedMax) {
+      contractionAmount = bufferedMax;
     } else {
       contractionAmount = targetContractionAmount;
     }

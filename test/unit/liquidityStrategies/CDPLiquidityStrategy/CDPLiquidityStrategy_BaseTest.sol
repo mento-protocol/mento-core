@@ -285,12 +285,11 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     }
     uint256 actualIncentive = ((amountOutInOtherToken - amountIn) * 10_000) / amountOutInOtherToken;
 
-    // Allow 1bp difference due to rounding
-    // we allow 1bp difference due to rounding
+    // Allow 3bp difference due to rounding and REDEMPTION_ROUNDING_BUFFER impact
     if (isCheapContraction) {
       assert(actualIncentive <= expectedIncentiveBps);
     } else {
-      assertApproxEqAbs(actualIncentive, expectedIncentiveBps, 1);
+      assertApproxEqAbs(actualIncentive, expectedIncentiveBps, 3);
     }
   }
 

@@ -41,7 +41,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     LQ.Action memory action = strategy.determineAction(ctx);
 
     // amount out in token 0 := (ON*RD - OD*RN)/(ON*(2-i)) = 808079.298245614035087719
-    uint256 expectedAmount0Out = 808079298245614035087719;
+    uint256 expectedAmount0Out = 808079298245614035086719;
     uint256 expectedAmount1Out = 0;
 
     assertEq(action.dir, LQ.Direction.Contract);
@@ -76,7 +76,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
 
     uint256 expectedAmount0Out = 0;
     // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 3_235_338.342946
-    uint256 expectedAmount1Out = 3235338342946;
+    uint256 expectedAmount1Out = 3235338341946;
 
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, expectedAmount0Out);
@@ -186,7 +186,8 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     // we will redeem an amount that results in a redemption fee equal to incentive.
     // maximum amount that can be redeemed is: totalSupply * redemptionBeta * (incentive - decayedBaseFee) =
     // = 313824673597535714 * 1 * (0.005 - 0.0025) =  784_561_683.993839
-    uint256 expectedAmount0Out = 784561683993839;
+    // Note: reduced by REDEMPTION_ROUNDING_BUFFER (1000 wei) to account for multi-trove rounding losses
+    uint256 expectedAmount0Out = 784561683992839;
     uint256 expectedAmount1Out = 0;
 
     assertEq(action.dir, LQ.Direction.Contract);
@@ -225,7 +226,8 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     // we will redeem an amount that results in a redemption fee equal to incentive.
     // maximum amount that can be redeemed is: totalSupply * redemptionBeta * (incentive - decayedBaseFee) =
     // = 1134145367441758385349674800 * 1 * (0.005 - 0.0025) =  2_835_363.418604395963374187
-    uint256 expectedAmount1Out = 2835363418604395963374187;
+    // Note: reduced by REDEMPTION_ROUNDING_BUFFER (1000 wei) to account for multi-trove rounding losses
+    uint256 expectedAmount1Out = 2835363418604395963373187;
 
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, expectedAmount0Out);

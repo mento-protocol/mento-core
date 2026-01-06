@@ -114,8 +114,9 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     assertGt(reserve1After, reserve1Before, "Collateral reserves should increase");
 
     // Verify contraction was limited by redemption fee
-    uint256 maxRedeemable = (totalSupply * 25) / 10_000; // 0.25% of total supply
-    assertEq(reserve0Before - reserve0After, maxRedeemable, "Should redeem exactly max allowed by fee");
+    // Note: maxRedeemable is reduced by REDEMPTION_ROUNDING_BUFFER (1000 wei) to account for multi-trove rounding losses
+    uint256 maxRedeemable = (totalSupply * 25) / 10_000 - strategy.REDEMPTION_ROUNDING_BUFFER();
+    assertEq(reserve0Before - reserve0After, maxRedeemable, "Should redeem exactly max allowed by fee minus buffer");
     assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
     assertRebalanceAmountIncentives(reserve0Before - reserve0After, reserve1After - reserve1Before, true, false);
   }

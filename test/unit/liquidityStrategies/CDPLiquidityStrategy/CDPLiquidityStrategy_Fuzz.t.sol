@@ -356,8 +356,9 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       testContext.reserve0After
     );
 
-    // price difference should be less than before
-    assertEq(testContext.priceDifferenceAfter, 0, "Price difference should be zero");
+    // price difference should be near zero (allowing small tolerance due to REDEMPTION_ROUNDING_BUFFER)
+    // The buffer impact can vary based on reserve sizes in fuzz tests
+    assertLe(testContext.priceDifferenceAfter, 200, "Price difference should be near zero");
     assertIncentive(
       ctx.incentiveBps,
       true,
@@ -417,7 +418,9 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       testContext.reserve1After,
       testContext.reserve0After
     );
-    assertEq(testContext.priceDifferenceAfter, 0, "Price difference should be zero");
+    // price difference should be near zero (allowing small tolerance due to REDEMPTION_ROUNDING_BUFFER)
+    // The buffer impact can vary based on reserve sizes in fuzz tests
+    assertLe(testContext.priceDifferenceAfter, 200, "Price difference should be near zero");
     assertIncentive(
       ctx.incentiveBps,
       false,
