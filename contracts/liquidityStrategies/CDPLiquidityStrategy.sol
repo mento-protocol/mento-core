@@ -141,6 +141,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     if (cb.dir == LQ.Direction.Expand) {
       uint256 collAmount = amount0Out > 0 ? amount0Out : amount1Out;
 
+      // slither-disable-next-line uninitialized-local
       uint256 protocolIncentive;
       // transfer protocol incentive to protocol fee recipient
       if (config.protocolIncentiveBpsExpansion > 0) {
@@ -158,8 +159,11 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     } else {
       uint256 collateralBalanceBefore = IERC20(cb.collToken).balanceOf(address(this));
       uint256 debtAmount = amount0Out > 0 ? amount0Out : amount1Out;
+
+      // slither-disable-start uninitialized-local
       uint256 redemptionFee;
       uint256 protocolIncentive;
+      // slither-disable-end uninitialized-local
 
       // transfer protocol incentive to protocol fee recipient
       if (config.protocolIncentiveBpsContraction > 0) {
