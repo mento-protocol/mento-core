@@ -266,8 +266,9 @@ contract FPMMTradingLimitsTest is
 
     // Verify limits were updated
     (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
-    assertEq(stateToken0.netflow0, 50_000e15, "Netflow0 for token0 should be 50k");
-    assertEq(stateToken0.netflow1, 50_000e15, "Netflow1 for token0 should be 50k");
+    // netflow for tokenIn is amountIn * (1 - fee)
+    assertEq(stateToken0.netflow0, 49_850e15, "Netflow0 for token0 should be 49.85k");
+    assertEq(stateToken0.netflow1, 49_850e15, "Netflow1 for token0 should be 49.85k");
 
     (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
     assertEq(stateToken1.netflow0, -49_850e15, "Netflow0 for token1 should be -49.85k");
@@ -282,28 +283,31 @@ contract FPMMTradingLimitsTest is
     _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, amount0In, 0, 0, amount1Out);
 
     (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
-    assertEq(stateToken0.netflow0, 50_000e15, "Netflow0 for token0 should be 50k after first swap");
-    assertEq(stateToken0.netflow1, 50_000e15, "Netflow1 for token0 should be 50k after first swap");
+    // netflow for tokenIn is amountIn * (1 - fee)
+    assertEq(stateToken0.netflow0, 49_850e15, "Netflow0 for token0 should be 49.85k after first swap");
+    assertEq(stateToken0.netflow1, 49_850e15, "Netflow1 for token0 should be 49.85k after first swap");
 
     (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
     assertEq(stateToken1.netflow0, -49_850e15, "Netflow0 for token1 should be -49.85k");
     assertEq(stateToken1.netflow1, -49_850e15, "Netflow1 for token1 should be -49.85k");
 
-    // Swap 2: Receive 20k USDC out (netflow = -50k + 20k = -30k)
+    // Swap 2: Receive 20k USDC out
     uint256 amount0Out = 20_000e6;
     uint256 amount1In = 20_100e18;
 
     _transferToFPMMAndSwap($fpmm.fpmmReserve, trader, 0, amount1In, amount0Out, 0);
 
     (, stateToken0) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
-    assertEq(stateToken0.netflow0, 30_000e15, "Netflow0 for token0 should be 30k after bidirectional swaps");
-    assertEq(stateToken0.netflow1, 30_000e15, "Netflow1 for token0 should be 30k after bidirectional swaps");
+    // 49.85k - 20k = 29.85k
+    assertEq(stateToken0.netflow0, 29_850e15, "Netflow0 for token0 should be 29.85k after bidirectional swaps");
+    assertEq(stateToken0.netflow1, 29_850e15, "Netflow1 for token0 should be 29.85k after bidirectional swaps");
 
     (, stateToken1) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
-    // 49.85k - 20.10k = 29.75k
-    assertEq(stateToken1.netflow0, -29_750e15, "Netflow0 for token1 should be -29.94k after bidirectional swaps");
-    // 49.85k - 20.10k = 29.75k
-    assertEq(stateToken1.netflow1, -29_750e15, "Netflow1 for token1 should be -29.95k after bidirectional swaps");
+    // for tokenIn the netflow is amountIn * (1 - fee)
+    // -49.85k + 20.10k * 0.997 = 29810,3
+    assertEq(stateToken1.netflow0, -29_810_3e14, "Netflow0 for token1 should be -29.94k after bidirectional swaps");
+    // -49.85k + 20.10k * 0.997 = 29810,3e15
+    assertEq(stateToken1.netflow1, -29_810_3e14, "Netflow1 for token1 should be -29.95k after bidirectional swaps");
   }
 
   function test_reserveFPMM_netflowTracking_withSmallAmounts_shouldAccountCorrectly() public {
@@ -315,8 +319,10 @@ contract FPMMTradingLimitsTest is
 
     (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token0());
     // accounting in 15 decimals so 1 wei usdc is 1e9 in 15 decimals
-    assertEq(stateToken0.netflow0, 1e9, "Netflow0 for token0 should be 1 wei");
-    assertEq(stateToken0.netflow1, 1e9, "Netflow1 for token0 should be 1 wei");
+    // netflow is amountIn * (1 - fee)
+    // 1e9 * (1 - 0.3%) = 997e6
+    assertEq(stateToken0.netflow0, 997e6, "Netflow0 for token0 should be 997e6");
+    assertEq(stateToken0.netflow1, 997e6, "Netflow1 for token0 should be 997e6");
 
     (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
     // accounting in 15 decimals so usd.m amounts are scaled down by 1e3
@@ -344,15 +350,17 @@ contract FPMMTradingLimitsTest is
 
     (, ITradingLimitsV2.State memory stateToken1After) = $fpmm.fpmmReserve.getTradingLimits($fpmm.fpmmReserve.token1());
     // 1e18 + 999 wei USD.m is scaled down to 15 decimals so 1e15, 999 is dropped
+    // netflow is amountIn * (1 - fee)
+    // 1e15 * (1 - 0.3%) = 997e12
     assertEq(
       stateToken1After.netflow0,
-      stateToken1.netflow0 + 1e15,
-      "Netflow0 for token1 should be the same as before + amount1In / 1e3"
+      stateToken1.netflow0 + 997e12,
+      "Netflow0 for token1 should be netflow0 + 997e12"
     );
     assertEq(
       stateToken1After.netflow1,
-      stateToken1.netflow1 + 1e15,
-      "Netflow1 for token1 should be the same as before + amount1In / 1e3"
+      stateToken1.netflow1 + 997e12,
+      "Netflow1 for token1 should be netflow1 + 997e12"
     );
   }
 
@@ -437,8 +445,10 @@ contract FPMMTradingLimitsTest is
     assertEq(traderBalanceAfter - traderBalanceBefore, amount1Out, "Trader should receive expected amount");
 
     (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
-    assertEq(stateToken0.netflow0, 30_000e15, "Netflow0 for token0 should be 30k");
-    assertEq(stateToken0.netflow1, 30_000e15, "Netflow1 for token0 should be 30k");
+    // netflow is amountIn * (1 - fee)
+    // 30k * (1 - 0.3%) = 29.91k
+    assertEq(stateToken0.netflow0, 29_910e15, "Netflow0 for token0 should be 29.91k");
+    assertEq(stateToken0.netflow1, 29_910e15, "Netflow1 for token0 should be 29.91k");
 
     (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token1());
     assertEq(stateToken1.netflow0, -29_910e15, "Netflow0 for token1 should be -29.91k");
@@ -452,8 +462,8 @@ contract FPMMTradingLimitsTest is
     _transferToFPMMAndSwap($fpmm.fpmmCDP, trader, amount0In, 0, 0, amount1Out);
 
     (, ITradingLimitsV2.State memory stateToken0) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
-    assertEq(stateToken0.netflow0, 30_000e15, "Netflow0 for token0 should be 30k after first swap");
-    assertEq(stateToken0.netflow1, 30_000e15, "Netflow1 for token0 should be 30k after first swap");
+    assertEq(stateToken0.netflow0, 29_910e15, "Netflow0 for token0 should be 30k - fee after first swap");
+    assertEq(stateToken0.netflow1, 29_910e15, "Netflow1 for token0 should be 30k - fee after first swap");
 
     (, ITradingLimitsV2.State memory stateToken1) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token1());
     assertEq(stateToken1.netflow0, -29_910e15, "Netflow0 for token1 should be -29.91k after first swap");
@@ -465,14 +475,15 @@ contract FPMMTradingLimitsTest is
     _transferToFPMMAndSwap($fpmm.fpmmCDP, trader, 0, amount1In, amount0Out, 0);
 
     (, stateToken0) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token0());
-    assertEq(stateToken0.netflow0, 20_000e15, "Netflow0 for token0 should be 20k after bidirectional swaps");
-    assertEq(stateToken0.netflow1, 20_000e15, "Netflow1 for token0 should be 20k after bidirectional swaps");
+    // 29.91k - 10k = 19.91k
+    assertEq(stateToken0.netflow0, 19_910e15, "Netflow0 for token0 should be 19.91k after bidirectional swaps");
+    assertEq(stateToken0.netflow1, 19_910e15, "Netflow1 for token0 should be 19.91k after bidirectional swaps");
 
     (, stateToken1) = $fpmm.fpmmCDP.getTradingLimits($fpmm.fpmmCDP.token1());
-    // -29.91k + 20.10k = -9.81k
-    assertEq(stateToken1.netflow0, -9_810e15, "Netflow0 for token1 should be -9.81k after bidirectional swaps");
-    // -29.91k + 20.10k = -9.81k
-    assertEq(stateToken1.netflow1, -9_810e15, "Netflow1 for token1 should be -9.81k after bidirectional swaps");
+    // -29.91k + 20.10k * (1 - 0.3%) = -9.8703k
+    assertEq(stateToken1.netflow0, -9_870_3e14, "Netflow0 for token1 should be -9.81k after bidirectional swaps");
+    // -29.91k + 20.10k * (1 - 0.3%) = -9.8703k
+    assertEq(stateToken1.netflow1, -9_870_3e14, "Netflow1 for token1 should be -9.81k after bidirectional swaps");
   }
 
   function test_bothPools_configureTradingLimit_onBothTokens_shouldApplyIndependently() public {

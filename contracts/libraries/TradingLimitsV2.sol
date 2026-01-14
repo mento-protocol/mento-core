@@ -35,6 +35,7 @@ library TradingLimitsV2 {
   uint32 private constant TIMESTEP1 = 1 days; // 86400 seconds
   int96 private constant MAX_INT96 = type(int96).max;
   int96 private constant MIN_INT96 = type(int96).min;
+  uint256 private constant BASIS_POINTS_DENOMINATOR = 10000;
 
   /**
    * @notice Validate a trading limit configuration.
@@ -96,6 +97,7 @@ library TradingLimitsV2 {
    * @dev This is the main entry point for applying trading limits. It loads state and config
    * in memory, updates the state, verifies limits, and returns the updated TradingLimits struct.
    * The caller should write the returned struct back to storage.
+   * This function also deducts the fee from the amount in to only track net trading flow for limits.
    * @param self the trading limits (state + config) to apply.
    * @param amountIn amount of token flowing in.
    * @param amountOut amount of token flowing out.
@@ -104,45 +106,47 @@ library TradingLimitsV2 {
   function applyTradingLimits(
     ITradingLimitsV2.TradingLimits memory self,
     uint256 amountIn,
-    uint256 amountOut
+    uint256 amountOut,
+    uint256 feeBps
   ) internal view returns (ITradingLimitsV2.State memory) {
     if (self.config.limit0 == 0 && self.config.limit1 == 0) {
       return self.state;
     }
+    uint256 scaledAmountIn = scaleValue(amountIn, self.config.decimals);
+    uint256 scaledAmountOut = scaleValue(amountOut, self.config.decimals);
 
-    int256 deltaFlow = int256(amountIn) - int256(amountOut);
-    self.state = update(self.state, self.config, deltaFlow);
+    // deducting the fee from the amount in to only track net trading flow for limits.
+    scaledAmountIn = scaledAmountIn - ((scaledAmountIn * feeBps) / (BASIS_POINTS_DENOMINATOR));
+    int256 deltaFlow = int256(scaledAmountIn) - int256(scaledAmountOut);
+
+    if (deltaFlow > MAX_INT96 || deltaFlow < MIN_INT96) revert ITradingLimitsV2.ValueExceedsInt96Bounds();
+    self.state = update(self.state, self.config, int96(deltaFlow));
     verify(self.state, self.config);
     return self.state;
   }
 
   /**
    * @notice Updates a trading limit State in the context of a Config with the deltaFlow provided.
-   * @dev Reverts if the values provided cause overflows.
-   * The deltaFlow is provided in the token's native decimals and is scaled to 15 decimals internally.
-   * Small amounts that scale to 0 are ignored.
    * @param self the trading limit State to update.
    * @param config the trading limit Config for the provided State.
-   * @param _deltaFlow the delta flow to add to the netflow, in the token's native decimals.
+   * @param deltaFlow the delta flow to add to the netflow.
    * @return State the updated state.
    */
   function update(
     ITradingLimitsV2.State memory self,
     ITradingLimitsV2.Config memory config,
-    int256 _deltaFlow
+    int96 deltaFlow
   ) internal view returns (ITradingLimitsV2.State memory) {
-    if (_deltaFlow == 0) {
+    if (deltaFlow == 0) {
       return self;
     }
-
-    int96 scaledDelta = scaleValue(_deltaFlow, config.decimals);
 
     if (config.limit0 > 0) {
       if (block.timestamp > self.lastUpdated0 + TIMESTEP0) {
         self.netflow0 = 0;
         self.lastUpdated0 = uint32(block.timestamp);
       }
-      self.netflow0 = safeAdd(self.netflow0, scaledDelta);
+      self.netflow0 = safeAdd(self.netflow0, deltaFlow);
     }
 
     if (config.limit1 > 0) {
@@ -150,7 +154,7 @@ library TradingLimitsV2 {
         self.netflow1 = 0;
         self.lastUpdated1 = uint32(block.timestamp);
       }
-      self.netflow1 = safeAdd(self.netflow1, scaledDelta);
+      self.netflow1 = safeAdd(self.netflow1, deltaFlow);
     }
 
     return self;
@@ -163,15 +167,12 @@ library TradingLimitsV2 {
    * @param decimals the token's decimal places.
    * @return the scaled value in 15 decimal precision.
    */
-  function scaleValue(int256 value, uint8 decimals) internal pure returns (int96) {
+  function scaleValue(uint256 value, uint8 decimals) internal pure returns (uint256) {
     if (value == 0) return 0;
 
-    int256 scaledValue;
+    uint256 scaledValue = (value * 10 ** INTERNAL_DECIMALS) / 10 ** decimals;
 
-    scaledValue = (value * int256(10 ** INTERNAL_DECIMALS)) / int256(10 ** decimals);
-
-    if (scaledValue > MAX_INT96 || scaledValue < MIN_INT96) revert ITradingLimitsV2.ValueExceedsInt96Bounds();
-    return int96(scaledValue);
+    return scaledValue;
   }
 
   /**

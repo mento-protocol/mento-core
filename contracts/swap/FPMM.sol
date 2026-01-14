@@ -907,6 +907,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
    */
   function _applyTradingLimits(address token, uint256 amountIn, uint256 amountOut) internal {
     FPMMStorage storage $ = _getFPMMStorage();
-    $.tradingLimits[token].state = $.tradingLimits[token].applyTradingLimits(amountIn, amountOut);
+    uint256 totalFee = $.lpFee + $.protocolFee;
+    $.tradingLimits[token].state = $.tradingLimits[token].applyTradingLimits(amountIn, amountOut, totalFee);
   }
 }
