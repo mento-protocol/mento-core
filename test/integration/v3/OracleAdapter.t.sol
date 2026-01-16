@@ -117,8 +117,8 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
 
     uint256 expiryTime = $oracle.sortedOracles.getTokenReportExpirySeconds($addresses.referenceRateFeedCDPFPMM);
-    skip(expiryTime - 1 seconds);
-    // rates are still valid 1 second before expiry
+    skip(expiryTime);
+    // rates are still valid exactly at expiry time
     $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedCDPFPMM);
     $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
 
