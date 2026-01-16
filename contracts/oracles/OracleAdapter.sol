@@ -184,10 +184,11 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     OracleAdapterStorage storage $ = _getStorage();
 
     (numerator, denominator) = $.sortedOracles.medianRate(rateFeedID);
-    if (numerator == 0 || denominator == 0) revert InvalidRate();
 
     numerator = numerator / 1e6;
     denominator = denominator / 1e6;
+
+    if (numerator == 0 || denominator == 0) revert InvalidRate();
   }
 
   function _hasRecentRate(address rateFeedID) private view returns (bool) {
