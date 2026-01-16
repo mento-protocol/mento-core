@@ -144,7 +144,7 @@ contract OracleAdapterTest is Test {
     withFXMarketOpen(true)
     withTradingMode(0)
     withReportExpiry(6 minutes)
-    withMedianTimestamp(blockTs - 6 minutes + 1 seconds)
+    withMedianTimestamp(blockTs - 6 minutes)
   {
     vm.warp(blockTs);
 
@@ -178,7 +178,7 @@ contract OracleAdapterTest is Test {
     withFXMarketOpen(true)
     withTradingMode(0)
     withReportExpiry(6 minutes)
-    withMedianTimestamp(blockTs - 6 minutes + 1 seconds)
+    withMedianTimestamp(blockTs - 6 minutes)
   {
     vm.warp(blockTs);
 
@@ -294,16 +294,20 @@ contract OracleAdapterTest is Test {
     public
     initialized
     withReportExpiry(6 minutes)
-    withMedianTimestamp(blockTs - 6 minutes + 2 seconds)
+    withMedianTimestamp(blockTs - 6 minutes + 1 seconds)
   {
     vm.warp(blockTs);
-
     assertTrue(oracleAdapter.hasRecentRate(referenceRateFeedID));
 
     skip(1);
+    uint256 medianTs = ISortedOracles(sortedOracles).medianTimestamp(referenceRateFeedID);
+    assertTrue(block.timestamp == medianTs + 6 minutes);
     assertTrue(oracleAdapter.hasRecentRate(referenceRateFeedID));
 
     skip(1);
+    assertFalse(oracleAdapter.hasRecentRate(referenceRateFeedID));
+
+    skip(1 minutes);
     assertFalse(oracleAdapter.hasRecentRate(referenceRateFeedID));
   }
 
@@ -314,6 +318,9 @@ contract OracleAdapterTest is Test {
     withMedianTimestamp(blockTs)
   {
     vm.warp(blockTs + 6 minutes - 1 seconds);
+    assertTrue(oracleAdapter.hasRecentRate(referenceRateFeedID));
+
+    skip(1);
     assertTrue(oracleAdapter.hasRecentRate(referenceRateFeedID));
 
     skip(1);

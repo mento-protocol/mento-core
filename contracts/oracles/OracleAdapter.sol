@@ -196,7 +196,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     uint256 reportExpiry = $.sortedOracles.getTokenReportExpirySeconds(rateFeedID);
     uint256 reportTs = $.sortedOracles.medianTimestamp(rateFeedID);
 
-    return reportTs > block.timestamp - reportExpiry;
+    return reportTs >= block.timestamp - reportExpiry;
   }
 
   /**
