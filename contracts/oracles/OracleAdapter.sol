@@ -5,6 +5,7 @@ import { IOracleAdapter } from "../interfaces/IOracleAdapter.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IMarketHoursBreaker } from "../interfaces/IMarketHoursBreaker.sol";
+import { AggregatorV3Interface } from "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol";
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
@@ -42,6 +43,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     address _sortedOracles,
     address _breakerBox,
     address _marketHoursBreaker,
+    address _l2SequencerUptimeFeed,
     address _initialOwner
   ) external initializer {
     __Ownable_init();
@@ -49,6 +51,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     setSortedOracles(_sortedOracles);
     setBreakerBox(_breakerBox);
     setMarketHoursBreaker(_marketHoursBreaker);
+    setL2SequencerUptimeFeed(_l2SequencerUptimeFeed);
 
     transferOwnership(_initialOwner);
   }
@@ -90,6 +93,16 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     emit MarketHoursBreakerUpdated(oldMarketHoursBreaker, _marketHoursBreaker);
   }
 
+  /// @inheritdoc IOracleAdapter
+  function setL2SequencerUptimeFeed(address _l2SequencerUptimeFeed) public onlyOwner {
+    OracleAdapterStorage storage $ = _getStorage();
+
+    address oldL2SequencerUptimeFeed = address($.l2SequencerUptimeFeed);
+    $.l2SequencerUptimeFeed = AggregatorV3Interface(_l2SequencerUptimeFeed);
+
+    emit L2SequencerUptimeFeedUpdated(oldL2SequencerUptimeFeed, _l2SequencerUptimeFeed);
+  }
+
   /* ============================================================ */
   /* ===================== View Functions ======================= */
   /* ============================================================ */
@@ -107,6 +120,11 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   function marketHoursBreaker() external view returns (IMarketHoursBreaker) {
     OracleAdapterStorage storage $ = _getStorage();
     return $.marketHoursBreaker;
+  }
+
+  function l2SequencerUptimeFeed() external view returns (AggregatorV3Interface) {
+    OracleAdapterStorage storage $ = _getStorage();
+    return $.l2SequencerUptimeFeed;
   }
 
   /// @inheritdoc IOracleAdapter
@@ -162,6 +180,17 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     if (_getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL) revert TradingSuspended();
     if (!_hasRecentRate(rateFeedID)) revert NoRecentRate();
     _getOracleRate(rateFeedID);
+  }
+
+  /// @inheritdoc IOracleAdapter
+  function isL2SequencerUp(uint256 since) external view returns (bool) {
+    OracleAdapterStorage storage $ = _getStorage();
+
+    if (address($.l2SequencerUptimeFeed) == address(0)) return true;
+
+    // slither-disable-next-line unused-return
+    (, int256 answer, , uint256 startedAt, ) = $.l2SequencerUptimeFeed.latestRoundData();
+    return answer == 0 && block.timestamp - startedAt > since;
   }
 
   /* ============================================================ */

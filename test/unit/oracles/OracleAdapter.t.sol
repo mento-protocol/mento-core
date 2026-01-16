@@ -10,6 +10,7 @@ import { IBreakerBox } from "contracts/interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "contracts/interfaces/ISortedOracles.sol";
 import { IMarketHoursBreaker } from "contracts/interfaces/IMarketHoursBreaker.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
+import { AggregatorV3Interface } from "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol";
 
 contract OracleAdapterTest is Test {
   OracleAdapter oracleAdapter;
@@ -17,6 +18,7 @@ contract OracleAdapterTest is Test {
   address public sortedOracles = makeAddr("SortedOracles");
   address public breakerBox = makeAddr("BreakerBox");
   address public marketHoursBreaker = makeAddr("MarketHoursBreaker");
+  address public l2SequencerUptimeFeed = makeAddr("l2SequencerUptimeFeed");
   address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
   address public owner = makeAddr("OWNER");
 
@@ -27,7 +29,7 @@ contract OracleAdapterTest is Test {
   }
 
   function test_initialize_shouldSetAllContracts() public {
-    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, owner);
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, l2SequencerUptimeFeed, owner);
 
     assertEq(address(oracleAdapter.sortedOracles()), sortedOracles);
     assertEq(address(oracleAdapter.breakerBox()), breakerBox);
@@ -37,7 +39,7 @@ contract OracleAdapterTest is Test {
 
   function test_initialize_whenCalledTwice_shouldRevert() public initialized {
     vm.expectRevert("Initializable: contract is already initialized");
-    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, owner);
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, l2SequencerUptimeFeed, owner);
   }
 
   function test_sortedOracles_shouldReturnSortedOracles() public initialized {
@@ -113,6 +115,30 @@ contract OracleAdapterTest is Test {
     vm.prank(owner);
     vm.expectRevert(IOracleAdapter.ZeroAddress.selector);
     oracleAdapter.setMarketHoursBreaker(address(0));
+  }
+
+  function test_setL2SequencerUptimeFeed_whenCalledByOwner_shouldUpdateAddress() public initialized {
+    address newL2SequencerUptimeFeed = makeAddr("newL2SequencerUptimeFeed");
+
+    vm.prank(owner);
+    oracleAdapter.setL2SequencerUptimeFeed(newL2SequencerUptimeFeed);
+
+    assertEq(address(oracleAdapter.l2SequencerUptimeFeed()), newL2SequencerUptimeFeed);
+  }
+
+  function test_setL2SequencerUptimeFeed_whenCalledByNotOwner_shouldRevert() public initialized {
+    vm.expectRevert("Ownable: caller is not the owner");
+    vm.prank(makeAddr("NOT_OWNER"));
+    oracleAdapter.setL2SequencerUptimeFeed(l2SequencerUptimeFeed);
+  }
+
+  function test_setL2SequencerUptimeFeed_whenCalledWithZeroAddress_shouldNotRevert() public initialized {
+    assertNotEq(address(oracleAdapter.l2SequencerUptimeFeed()), address(0));
+
+    vm.prank(owner);
+    oracleAdapter.setL2SequencerUptimeFeed(address(0));
+
+    assertEq(address(oracleAdapter.l2SequencerUptimeFeed()), address(0));
   }
 
   function test_getRateIfValid_whenTradingIsSuspended_shouldRevert()
@@ -330,8 +356,66 @@ contract OracleAdapterTest is Test {
     assertFalse(oracleAdapter.hasRecentRate(referenceRateFeedID));
   }
 
+  function test_isL2SequencerUp_whenFeedIsZeroAddress_shouldReturnTrue() public {
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, address(0), owner);
+
+    assertTrue(oracleAdapter.isL2SequencerUp(1 hours));
+  }
+
+  function test_isL2SequencerUp_whenSequencerIsDown_shouldReturnFalse() public initialized withSequencerDown {
+    vm.warp(blockTs);
+
+    assertFalse(oracleAdapter.isL2SequencerUp(1 hours));
+  }
+
+  function test_isL2SequencerUp_whenSequencerIsUpButGracePeriodNotPassed_shouldReturnFalse()
+    public
+    initialized
+    withSequencerUp(blockTs - 59 minutes)
+  {
+    vm.warp(blockTs);
+
+    assertFalse(oracleAdapter.isL2SequencerUp(1 hours));
+  }
+
+  function test_isL2SequencerUp_whenSequencerIsUpAndGracePeriodJustPassed_shouldReturnTrue()
+    public
+    initialized
+    withSequencerUp(blockTs - 59 minutes)
+  {
+    vm.warp(blockTs);
+
+    assertFalse(oracleAdapter.isL2SequencerUp(1 hours));
+
+    skip(1 minutes);
+    assertFalse(oracleAdapter.isL2SequencerUp(1 hours));
+
+    skip(1 seconds);
+    assertTrue(oracleAdapter.isL2SequencerUp(1 hours));
+  }
+
+  function test_isL2SequencerUp_whenSequencerIsUpAndGracePeriodLongPassed_shouldReturnTrue()
+    public
+    initialized
+    withSequencerUp(blockTs - 1 hours - 1 days)
+  {
+    vm.warp(blockTs);
+
+    assertTrue(oracleAdapter.isL2SequencerUp(1 hours));
+  }
+
+  function test_isL2SequencerUp_whenSequencerIsUpExactlyAtGracePeriod_shouldReturnFalse()
+    public
+    initialized
+    withSequencerUp(blockTs - 1 hours)
+  {
+    vm.warp(blockTs);
+
+    assertFalse(oracleAdapter.isL2SequencerUp(1 hours));
+  }
+
   modifier initialized() {
-    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, owner);
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, l2SequencerUptimeFeed, owner);
 
     _;
   }
@@ -376,6 +460,46 @@ contract OracleAdapterTest is Test {
       referenceRateFeedID
     );
     vm.mockCall(breakerBox, tradingModeCalldata, abi.encode(tradingMode));
+
+    _;
+  }
+
+  modifier withSequencerUp(uint256 upSince) {
+    bytes memory latestRoundDataCalldata = abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector);
+
+    int256 sequencerUp = 0;
+
+    vm.mockCall(
+      l2SequencerUptimeFeed,
+      latestRoundDataCalldata,
+      abi.encode(
+        uint80(1), // roundId
+        sequencerUp, // answer (0 = up, 1 = down)
+        uint256(1), // startedAt
+        uint256(upSince), // updatedAt
+        uint80(1) // answeredInRound
+      )
+    );
+
+    _;
+  }
+
+  modifier withSequencerDown() {
+    bytes memory latestRoundDataCalldata = abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector);
+
+    int256 sequencerDown = 1;
+
+    vm.mockCall(
+      l2SequencerUptimeFeed,
+      latestRoundDataCalldata,
+      abi.encode(
+        uint80(1), // roundId
+        sequencerDown, // answer (0 = up, 1 = down)
+        uint256(1), // startedAt
+        uint256(blockTs - 2 hours), // updatedAt
+        uint80(1) // answeredInRound
+      )
+    );
 
     _;
   }
