@@ -5,6 +5,7 @@ import { IOracleAdapter } from "../interfaces/IOracleAdapter.sol";
 import { IBreakerBox } from "../interfaces/IBreakerBox.sol";
 import { ISortedOracles } from "../interfaces/ISortedOracles.sol";
 import { IMarketHoursBreaker } from "../interfaces/IMarketHoursBreaker.sol";
+import { AggregatorV3Interface } from "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol";
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
@@ -42,6 +43,8 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     address _sortedOracles,
     address _breakerBox,
     address _marketHoursBreaker,
+    address _l2SequencerUptimeFeed,
+    uint256 _l2SequencerGracePeriod,
     address _initialOwner
   ) external initializer {
     __Ownable_init();
@@ -49,6 +52,8 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     setSortedOracles(_sortedOracles);
     setBreakerBox(_breakerBox);
     setMarketHoursBreaker(_marketHoursBreaker);
+    setL2SequencerUptimeFeed(_l2SequencerUptimeFeed);
+    setL2SequencerGracePeriod(_l2SequencerGracePeriod);
 
     transferOwnership(_initialOwner);
   }
@@ -90,6 +95,28 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     emit MarketHoursBreakerUpdated(oldMarketHoursBreaker, _marketHoursBreaker);
   }
 
+  /// @inheritdoc IOracleAdapter
+  function setL2SequencerUptimeFeed(address _l2SequencerUptimeFeed) public onlyOwner {
+    if (_l2SequencerUptimeFeed == address(0)) revert ZeroAddress();
+
+    OracleAdapterStorage storage $ = _getStorage();
+    address oldL2SequencerUptimeFeed = address($.l2SequencerUptimeFeed);
+    $.l2SequencerUptimeFeed = AggregatorV3Interface(_l2SequencerUptimeFeed);
+
+    emit L2SequencerUptimeFeedUpdated(oldL2SequencerUptimeFeed, _l2SequencerUptimeFeed);
+  }
+
+  /// @inheritdoc IOracleAdapter
+  function setL2SequencerGracePeriod(uint256 _l2SequencerGracePeriod) public onlyOwner {
+    if (_l2SequencerGracePeriod == 0) revert InvalidL2SequencerGracePeriod();
+
+    OracleAdapterStorage storage $ = _getStorage();
+    uint256 oldSequencerGracePeriod = $.l2SequencerGracePeriod;
+    $.l2SequencerGracePeriod = _l2SequencerGracePeriod;
+
+    emit L2SequencerGracePeriodUpdated(oldSequencerGracePeriod, _l2SequencerGracePeriod);
+  }
+
   /* ============================================================ */
   /* ===================== View Functions ======================= */
   /* ============================================================ */
@@ -107,6 +134,16 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   function marketHoursBreaker() external view returns (IMarketHoursBreaker) {
     OracleAdapterStorage storage $ = _getStorage();
     return $.marketHoursBreaker;
+  }
+
+  function l2SequencerUptimeFeed() external view returns (AggregatorV3Interface) {
+    OracleAdapterStorage storage $ = _getStorage();
+    return $.l2SequencerUptimeFeed;
+  }
+
+  function l2SequencerGracePeriod() external view returns (uint256) {
+    OracleAdapterStorage storage $ = _getStorage();
+    return $.l2SequencerGracePeriod;
   }
 
   /// @inheritdoc IOracleAdapter
@@ -162,6 +199,15 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     if (_getTradingMode(rateFeedID) != TRADING_MODE_BIDIRECTIONAL) revert TradingSuspended();
     if (!_hasRecentRate(rateFeedID)) revert NoRecentRate();
     _getOracleRate(rateFeedID);
+  }
+
+  function ensureL2SequencerUp() external view returns (bool) {
+    OracleAdapterStorage storage $ = _getStorage();
+
+    if (address($.l2SequencerUptimeFeed) == address(0)) return true;
+
+    (, int256 answer, , uint256 lastUpdateTimestamp, ) = $.l2SequencerUptimeFeed.latestRoundData();
+    return answer == 0 && block.timestamp - lastUpdateTimestamp > $.l2SequencerGracePeriod;
   }
 
   /* ============================================================ */
