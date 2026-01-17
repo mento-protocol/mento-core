@@ -25,58 +25,128 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
   /* ============================================================ */
 
   function test_addPool_whenValidParams_shouldAddPool() public fpmmToken0Debt(18, 18) {
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.expectEmit(true, true, true, true);
-    emit PoolAdded(address(fpmm), true, 3600);
+    emit PoolAdded(address(fpmm), params);
 
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     assertTrue(strategy.isPoolRegistered(address(fpmm)));
   }
 
   function test_addPool_whenPoolIsZero_shouldRevert() public fpmmToken0Debt(18, 18) {
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(0),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_MUST_BE_SET.selector);
-    strategy.addPool(address(0), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
   }
 
   function test_addPool_whenPoolAlreadyExists_shouldRevert() public fpmmToken0Debt(18, 18) {
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_ALREADY_EXISTS.selector);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
   }
 
   function test_addPool_whenCalledByNonOwner_shouldRevert() public fpmmToken0Debt(18, 18) {
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(notOwner);
     vm.expectRevert();
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
   }
 
   function test_addPool_whenDebtTokenNotInPool_shouldRevert() public fpmmToken0Debt(18, 18) {
     // Create a random token that's not in the pool
     address wrongToken = address(new MockERC20("WrongToken", "WT", 18));
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      wrongToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_DEBT_TOKEN_NOT_IN_POOL.selector);
-    strategy.addPool(address(fpmm), wrongToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
   }
 
   function test_addPool_whenDebtTokenNotInPoolAndToken1Debt_shouldRevert() public fpmmToken1Debt(18, 18) {
     // Create a random token that's not in the pool
     address wrongToken = address(new MockERC20("WrongToken", "WT", 18));
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      wrongToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_DEBT_TOKEN_NOT_IN_POOL.selector);
-    strategy.addPool(address(fpmm), wrongToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
   }
 
   function test_removePool_whenPoolExists_shouldRemovePool() public fpmmToken0Debt(18, 18) {
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     // Add pool first
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     // Remove it
     vm.expectEmit(true, false, false, false);
@@ -95,9 +165,19 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
   }
 
   function test_setRebalanceCooldown_whenPoolExists_shouldUpdateCooldown() public fpmmToken0Debt(18, 18) {
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     // Add pool
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     // Update cooldown
     vm.expectEmit(true, false, false, true);
@@ -117,8 +197,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Provide liquidity with pool price 10% above oracle (110:100 reserves)
     provideFPMMReserves(100e18, 110e18, true);
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -136,8 +226,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Provide liquidity with pool price 10% below oracle (100:90 reserves)
     provideFPMMReserves(100e18, 90e18, true);
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -156,8 +256,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Provide liquidity with pool price 10% above oracle (110:100 reserves for token0:token1)
     provideFPMMReserves(100e18, 110e18, false);
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -176,8 +286,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Provide liquidity with pool price 10% below oracle (90:100 reserves for token0:token1)
     provideFPMMReserves(100e18, 90e18, false);
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     (LQ.Context memory ctx, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -195,8 +315,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     // Provide liquidity with pool price 10% above oracle
     provideFPMMReserves(100e6, 110e18, true); // debt has 6 decimals, collateral has 18
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     (, LQ.Action memory action) = strategy.determineAction(address(fpmm));
 
@@ -214,8 +344,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 110e18, true);
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     // First rebalance
     vm.prank(owner);
@@ -237,8 +377,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 105e18, true); // threshold is 5% of oracle price
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_NOT_REBALANCEABLE.selector);
@@ -252,8 +402,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 95e18, true); // threshold is 5% of oracle price
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_NOT_REBALANCEABLE.selector);
@@ -267,8 +427,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 10501e16, true); // price difference is 5.01% of oracle price
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     vm.expectEmit(true, true, false, false);
     emit LiquidityMoved(address(fpmm), LQ.Direction.Expand, address(0), 0, address(0), 0);
@@ -282,8 +452,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 9499e16, true); // price difference is 5.01% of oracle price
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     vm.expectEmit(true, true, false, false);
     emit LiquidityMoved(address(fpmm), LQ.Direction.Contract, address(0), 0, address(0), 0);
@@ -294,8 +474,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 110e18, true);
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      3600,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 3600, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     // First rebalance
     vm.prank(owner);
@@ -317,8 +507,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 110e18, true);
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient); // 0 cooldown
+    strategy.addPool(params); // 0 cooldown
 
     // Expect LiquidityMoved event (only checking indexed fields)
     vm.expectEmit(true, true, false, false);
@@ -336,16 +536,36 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 110e18, true);
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     vm.prank(owner);
     strategy.rebalance(address(fpmm));
   }
 
   function test_hook_whenCalledFromNonPool_shouldRevert() public fpmmToken0Debt(18, 18) {
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     // Try to call hook from non-pool address
     bytes memory hookData = abi.encode(
@@ -364,8 +584,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
   }
 
   function test_hook_whenSenderIsNotStrategy_shouldRevert() public fpmmToken0Debt(18, 18) {
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
@@ -387,8 +617,18 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     setOracleRate(1e18, 1e18);
     provideFPMMReserves(100e18, 110e18, true);
 
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
     vm.prank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params);
 
     // First transaction - should succeed
     vm.prank(owner);
@@ -452,9 +692,30 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
     MockERC20(debtToken2).mint(address(strategy), 1000000e18);
     MockERC20(collToken2).mint(address(strategy), 1000000e18);
 
+    ILiquidityStrategy.AddPoolParams memory params1 = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
+    ILiquidityStrategy.AddPoolParams memory params2 = _buildAddPoolParams(
+      address(fpmm2),
+      debtToken2,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
+
     vm.startPrank(owner);
-    strategy.addPool(address(fpmm), debtToken, 0, 25, 25, 25, 25, protocolFeeRecipient);
-    strategy.addPool(address(fpmm2), debtToken2, 0, 25, 25, 25, 25, protocolFeeRecipient);
+    strategy.addPool(params1);
+    strategy.addPool(params2);
 
     // Should be able to rebalance both pools in the same transaction
     // Each pool tracks its own transient storage flag

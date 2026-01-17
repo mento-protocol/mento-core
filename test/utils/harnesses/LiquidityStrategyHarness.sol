@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import { LiquidityStrategy } from "contracts/liquidityStrategies/LiquidityStrategy.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
@@ -62,26 +63,8 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
   /* =============== Public Pool Management Functions =========== */
   /* ============================================================ */
 
-  function addPool(
-    address pool,
-    address debtToken,
-    uint64 cooldown,
-    uint16 liquiditySourceIncentiveBpsExpansion,
-    uint16 protocolIncentiveBpsExpansion,
-    uint16 liquiditySourceIncentiveBpsContraction,
-    uint16 protocolIncentiveBpsContraction,
-    address protocolFeeRecipient
-  ) external onlyOwner {
-    LiquidityStrategy._addPool(
-      pool,
-      debtToken,
-      cooldown,
-      liquiditySourceIncentiveBpsExpansion,
-      protocolIncentiveBpsExpansion,
-      liquiditySourceIncentiveBpsContraction,
-      protocolIncentiveBpsContraction,
-      protocolFeeRecipient
-    );
+  function addPool(ILiquidityStrategy.AddPoolParams calldata params) external onlyOwner {
+    LiquidityStrategy._addPool(params);
   }
 
   function removePool(address pool) external onlyOwner {

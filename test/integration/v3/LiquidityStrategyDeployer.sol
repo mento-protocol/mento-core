@@ -7,6 +7,7 @@ import { CDPLiquidityStrategy } from "contracts/liquidityStrategies/CDPLiquidity
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { ReserveLiquidityStrategy } from "contracts/liquidityStrategies/ReserveLiquidityStrategy.sol";
 import { IReserveLiquidityStrategy } from "contracts/interfaces/IReserveLiquidityStrategy.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ReserveV2 } from "contracts/swap/ReserveV2.sol";
 // solhint-disable-next-line max-line-length
@@ -44,7 +45,7 @@ contract LiquidityStrategyDeployer is TestStorage {
     require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
     require($liquity.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquity not deployed");
 
-    ICDPLiquidityStrategy.AddPoolParams memory params = ICDPLiquidityStrategy.AddPoolParams({
+    ILiquidityStrategy.AddPoolParams memory params = ILiquidityStrategy.AddPoolParams({
       pool: address($fpmm.fpmmCDP),
       debtToken: address($tokens.eurm),
       cooldown: cooldown,
@@ -52,7 +53,9 @@ contract LiquidityStrategyDeployer is TestStorage {
       protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
       liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
       protocolIncentiveBpsContraction: protocolIncentiveBpsContraction,
-      protocolFeeRecipient: $addresses.protocolFeeRecipient,
+      protocolFeeRecipient: $addresses.protocolFeeRecipient
+    });
+    ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address($liquity.stabilityPool),
       collateralRegistry: address($liquity.collateralRegistry),
       stabilityPoolPercentage: stabilityPoolPercentage,
@@ -60,7 +63,7 @@ contract LiquidityStrategyDeployer is TestStorage {
     });
 
     vm.startPrank($addresses.governance);
-    $liquidityStrategies.cdpLiquidityStrategy.addPool(params);
+    $liquidityStrategies.cdpLiquidityStrategy.addPool(params, config);
     vm.stopPrank();
   }
 
@@ -73,17 +76,18 @@ contract LiquidityStrategyDeployer is TestStorage {
   ) internal {
     require($liquidityStrategies.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: liquidity strategies not deployed");
     require($tokens.deployed, "LIQUIDITY_STRATEGY_DEPLOYER: tokens not deployed");
+    ILiquidityStrategy.AddPoolParams memory params = ILiquidityStrategy.AddPoolParams({
+      pool: address($fpmm.fpmmReserve),
+      debtToken: address($tokens.usdm),
+      cooldown: cooldown,
+      liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction: protocolIncentiveBpsContraction,
+      protocolFeeRecipient: $addresses.protocolFeeRecipient
+    });
     vm.startPrank($addresses.governance);
-    $liquidityStrategies.reserveLiquidityStrategy.addPool(
-      address($fpmm.fpmmReserve),
-      address($tokens.usdm),
-      cooldown,
-      liquiditySourceIncentiveBpsContraction,
-      protocolIncentiveBpsContraction,
-      liquiditySourceIncentiveBpsExpansion,
-      protocolIncentiveBpsExpansion,
-      $addresses.protocolFeeRecipient
-    );
+    $liquidityStrategies.reserveLiquidityStrategy.addPool(params);
     $tokens.usdm.setMinter(address($liquidityStrategies.reserveLiquidityStrategy), true);
     $tokens.usdm.setBurner(address($liquidityStrategies.reserveLiquidityStrategy), true);
 

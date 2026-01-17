@@ -12,6 +12,7 @@ import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20
 
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 
 /**
  * @title LiquidityStrategy_BaseTest
@@ -172,11 +173,34 @@ abstract contract LiquidityStrategy_BaseTest is Test {
     assertEq(uint256(expected), uint256(given));
   }
 
+  function _buildAddPoolParams(
+    address pool,
+    address _debtToken,
+    uint64 cooldown,
+    uint16 liquiditySourceIncentiveBpsExpansion,
+    uint16 protocolIncentiveBpsExpansion,
+    uint16 liquiditySourceIncentiveBpsContraction,
+    uint16 protocolIncentiveBpsContraction,
+    address _protocolFeeRecipient
+  ) internal pure returns (ILiquidityStrategy.AddPoolParams memory) {
+    return
+      ILiquidityStrategy.AddPoolParams({
+        pool: pool,
+        debtToken: _debtToken,
+        cooldown: cooldown,
+        liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
+        protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
+        liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
+        protocolIncentiveBpsContraction: protocolIncentiveBpsContraction,
+        protocolFeeRecipient: _protocolFeeRecipient
+      });
+  }
+
   /* ============================================================ */
   /* ======================= Events ============================= */
   /* ============================================================ */
 
-  event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown);
+  event PoolAdded(address indexed pool, ILiquidityStrategy.AddPoolParams params);
   event PoolRemoved(address indexed pool);
   event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
   event LiquidityMoved(

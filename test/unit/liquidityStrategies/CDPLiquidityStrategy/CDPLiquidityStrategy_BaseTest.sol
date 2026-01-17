@@ -7,6 +7,7 @@ import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrate
 import { CDPLiquidityStrategyHarness } from "test/utils/harnesses/CDPLiquidityStrategyHarness.sol";
 
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 
@@ -49,15 +50,17 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     // Deploy stability pool mock
     mockStabilityPool = new MockStabilityPool(debtToken, collToken, mockSystemParams);
 
-    ICDPLiquidityStrategy.AddPoolParams memory params = ICDPLiquidityStrategy.AddPoolParams({
-      pool: address(fpmm),
-      debtToken: debtToken,
-      cooldown: cooldown,
-      liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
-      protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
-      liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
-      protocolIncentiveBpsContraction: protocolIncentiveBpsContraction,
-      protocolFeeRecipient: protocolFeeRecipient,
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      cooldown,
+      liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction,
+      protocolFeeRecipient
+    );
+    ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(mockCollateralRegistry),
       stabilityPoolPercentage: stabilityPoolPercentage,
@@ -66,7 +69,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
 
     // Add pool to strategy with CDP-specific configuration
     vm.prank(owner);
-    strategy.addPool(params);
+    strategy.addPool(params, config);
     _;
   }
 

@@ -9,6 +9,7 @@ import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrat
 import { IReserveV2 } from "contracts/interfaces/IReserveV2.sol";
 import { ReserveV2 } from "contracts/swap/ReserveV2.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 
 contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   ReserveLiquidityStrategyHarness public strategy;
@@ -56,8 +57,7 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
 
     fpmm.setRebalanceIncentive(fpmmIncentive);
 
-    vm.startPrank(owner);
-    strategy.addPool(
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
       address(fpmm),
       debtToken,
       cooldown,
@@ -67,6 +67,9 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       protocolIncentiveBpsContraction,
       protocolFeeRecipient
     );
+
+    vm.startPrank(owner);
+    strategy.addPool(params);
     reserve.registerCollateralAsset(collToken);
     reserve.registerStableAsset(debtToken);
     MockERC20(collToken).mint(address(reserve), 1000000e18);

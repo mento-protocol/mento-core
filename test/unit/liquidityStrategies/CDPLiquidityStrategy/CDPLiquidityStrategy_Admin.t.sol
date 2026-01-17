@@ -6,6 +6,7 @@ pragma solidity ^0.8;
 
 import { CDPLiquidityStrategy_BaseTest } from "./CDPLiquidityStrategy_BaseTest.sol";
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
 
@@ -23,51 +24,55 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
     mockStabilityPool = new MockStabilityPool(debtToken, collToken, mockSystemParams);
 
-    vm.expectEmit(true, true, false, true);
-    emit PoolAdded(address(fpmm), true, 0);
-
-    vm.prank(owner);
-    ICDPLiquidityStrategy.AddPoolParams memory params = ICDPLiquidityStrategy.AddPoolParams({
-      pool: address(fpmm),
-      debtToken: debtToken,
-      cooldown: 0,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      protocolFeeRecipient: protocolFeeRecipient,
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
+    ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(mockCollateralRegistry),
       stabilityPoolPercentage: 9000,
       maxIterations: 100
     });
 
-    strategy.addPool(params);
+    vm.expectEmit(true, true, false, true);
+    emit PoolAdded(address(fpmm), params);
+
+    vm.prank(owner);
+    strategy.addPool(params, config);
 
     // Verify pool is registered
     assertTrue(strategy.isPoolRegistered(address(fpmm)), "Pool should be registered");
 
     // Verify CDP config
-    ICDPLiquidityStrategy.CDPConfig memory config = strategy.getCDPConfig(address(fpmm));
-    assertEq(config.stabilityPool, address(mockStabilityPool), "Stability pool should match");
-    assertEq(config.collateralRegistry, address(mockCollateralRegistry), "Collateral registry should match");
-    assertEq(config.stabilityPoolPercentage, 9000, "Stability pool percentage should match");
-    assertEq(config.maxIterations, 100, "Max iterations should match");
+    ICDPLiquidityStrategy.CDPConfig memory storedConfig = strategy.getCDPConfig(address(fpmm));
+    assertEq(storedConfig.stabilityPool, address(mockStabilityPool), "Stability pool should match");
+    assertEq(storedConfig.collateralRegistry, address(mockCollateralRegistry), "Collateral registry should match");
+    assertEq(storedConfig.stabilityPoolPercentage, 9000, "Stability pool percentage should match");
+    assertEq(storedConfig.maxIterations, 100, "Max iterations should match");
   }
 
   function test_addPool_whenCalledByNonOwner_shouldRevert() public fpmmToken0Debt(18, 18) {
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
     mockStabilityPool = new MockStabilityPool(debtToken, collToken, mockSystemParams);
 
-    ICDPLiquidityStrategy.AddPoolParams memory params = ICDPLiquidityStrategy.AddPoolParams({
-      pool: address(fpmm),
-      debtToken: debtToken,
-      cooldown: 0,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      protocolFeeRecipient: protocolFeeRecipient,
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
+    ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(mockCollateralRegistry),
       stabilityPoolPercentage: 9000,
@@ -76,22 +81,24 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
 
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(notOwner);
-    strategy.addPool(params);
+    strategy.addPool(params, config);
   }
 
   function test_addPool_whenStabilityPoolPercentageIsZero_shouldRevert() public fpmmToken0Debt(18, 18) {
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
     mockStabilityPool = new MockStabilityPool(debtToken, collToken, mockSystemParams);
 
-    ICDPLiquidityStrategy.AddPoolParams memory params = ICDPLiquidityStrategy.AddPoolParams({
-      pool: address(fpmm),
-      debtToken: debtToken,
-      cooldown: 0,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      protocolFeeRecipient: protocolFeeRecipient,
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
+    ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(mockCollateralRegistry),
       stabilityPoolPercentage: 0,
@@ -100,7 +107,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
 
     vm.expectRevert(ICDPLiquidityStrategy.CDPLS_INVALID_STABILITY_POOL_PERCENTAGE.selector);
     vm.prank(owner);
-    strategy.addPool(params);
+    strategy.addPool(params, config);
   }
 
   function test_addPool_whenStabilityPoolPercentageIs10000_shouldRevert() public fpmmToken0Debt(18, 18) {
@@ -108,35 +115,39 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
     mockStabilityPool = new MockStabilityPool(debtToken, collToken, mockSystemParams);
 
     vm.expectRevert(ICDPLiquidityStrategy.CDPLS_INVALID_STABILITY_POOL_PERCENTAGE.selector);
-    ICDPLiquidityStrategy.AddPoolParams memory params = ICDPLiquidityStrategy.AddPoolParams({
-      pool: address(fpmm),
-      debtToken: debtToken,
-      cooldown: 0,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      protocolFeeRecipient: protocolFeeRecipient,
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
+    ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(mockCollateralRegistry),
       stabilityPoolPercentage: 10000,
       maxIterations: 100
     });
     vm.prank(owner);
-    strategy.addPool(params);
+    strategy.addPool(params, config);
   }
 
   function test_addPool_whenCollateralRegistryIsZero_shouldRevert() public fpmmToken0Debt(18, 18) {
     mockStabilityPool = new MockStabilityPool(debtToken, collToken, mockSystemParams);
-    ICDPLiquidityStrategy.AddPoolParams memory params = ICDPLiquidityStrategy.AddPoolParams({
-      pool: address(fpmm),
-      debtToken: debtToken,
-      cooldown: 0,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      protocolFeeRecipient: protocolFeeRecipient,
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
+    ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
       collateralRegistry: address(0),
       stabilityPoolPercentage: 9000,
@@ -145,21 +156,23 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
 
     vm.expectRevert(ICDPLiquidityStrategy.CDPLS_COLLATERAL_REGISTRY_IS_ZERO.selector);
     vm.prank(owner);
-    strategy.addPool(params);
+    strategy.addPool(params, config);
   }
 
   function test_addPool_whenStabilityPoolIsZero_shouldRevert() public fpmmToken0Debt(18, 18) {
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
 
-    ICDPLiquidityStrategy.AddPoolParams memory params = ICDPLiquidityStrategy.AddPoolParams({
-      pool: address(fpmm),
-      debtToken: debtToken,
-      cooldown: 0,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      protocolFeeRecipient: protocolFeeRecipient,
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      0,
+      25,
+      25,
+      25,
+      25,
+      protocolFeeRecipient
+    );
+    ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(0),
       collateralRegistry: address(mockCollateralRegistry),
       stabilityPoolPercentage: 9000,
@@ -168,7 +181,7 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
 
     vm.expectRevert(ICDPLiquidityStrategy.CDPLS_STABILITY_POOL_IS_ZERO.selector);
     vm.prank(owner);
-    strategy.addPool(params);
+    strategy.addPool(params, config);
   }
 
   /* ============================================================ */

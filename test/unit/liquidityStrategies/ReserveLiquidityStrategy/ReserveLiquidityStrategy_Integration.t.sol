@@ -9,6 +9,7 @@ import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrat
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { MockERC20 } from "../../../utils/mocks/MockERC20.sol";
 import { FPMM } from "contracts/swap/FPMM.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 
 contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_BaseTest {
   // Test variations for multiple scenarios test
@@ -263,8 +264,18 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
       vm.stopPrank();
 
       // 4. Add this pool to the strategy
+      ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+        address(testFpmm),
+        _debtToken,
+        100,
+        0,
+        0,
+        0,
+        0,
+        protocolFeeRecipient
+      );
       vm.prank(owner);
-      strategy.addPool(address(testFpmm), _debtToken, 100, 0, 0, 0, 0, protocolFeeRecipient);
+      strategy.addPool(params);
 
       // 5. Mock reserve balance for contraction scenarios
       vm.mockCall(_collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
