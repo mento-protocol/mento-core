@@ -188,6 +188,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
     if (address($.l2SequencerUptimeFeed) == address(0)) return true;
 
+    // slither-disable-next-line unused-return
     (, int256 answer, , uint256 upSince, ) = $.l2SequencerUptimeFeed.latestRoundData();
     return answer == 0 && block.timestamp - upSince > gracePeriod;
   }
