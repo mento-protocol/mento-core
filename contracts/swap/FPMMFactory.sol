@@ -187,7 +187,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @inheritdoc IFPMMFactory
   function setDefaultParams(IFPMM.FPMMParams calldata _defaultParams) public onlyOwner {
-    if (_defaultParams.protocolFee + _defaultParams.lpFee > 100) revert FeeTooHigh();
+    if (_defaultParams.protocolFee + _defaultParams.lpFee > 200) revert FeeTooHigh();
     if (_defaultParams.protocolFeeRecipient == address(0)) revert ZeroAddress();
     if (_defaultParams.rebalanceIncentive > 100) revert RebalanceIncentiveTooHigh();
     if (_defaultParams.rebalanceThresholdAbove > 1000) revert RebalanceThresholdTooHigh();
