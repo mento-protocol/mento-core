@@ -183,14 +183,14 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
   }
 
   /// @inheritdoc IOracleAdapter
-  function isL2SequencerUp(uint256 gracePeriod) external view returns (bool) {
+  function isL2SequencerUp(uint256 since) external view returns (bool) {
     OracleAdapterStorage storage $ = _getStorage();
 
     if (address($.l2SequencerUptimeFeed) == address(0)) return true;
 
     // slither-disable-next-line unused-return
-    (, int256 answer, , uint256 upSince, ) = $.l2SequencerUptimeFeed.latestRoundData();
-    return answer == 0 && block.timestamp - upSince > gracePeriod;
+    (, int256 answer, , uint256 startedAt, ) = $.l2SequencerUptimeFeed.latestRoundData();
+    return answer == 0 && block.timestamp - startedAt > since;
   }
 
   /* ============================================================ */

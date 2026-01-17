@@ -167,11 +167,11 @@ interface IOracleAdapter {
   function ensureRateValid(address rateFeedID) external view;
 
   /**
-   * @notice Checks if the L2 sequencer is up and the grace period has passed
-   * @param gracePeriod The grace period for the L2 sequencer
-   * @return true if the L2 sequencer is up and the grace period has passed, false otherwise
+   * @notice Returns true if the L2 sequencer has been up and operational for at least the specified duration.
+   * @param since The minimum number of seconds the L2 sequencer must have been up (e.g., 1 hours = 3600).
+   * @return up True if the sequencer has been up for at least `since` seconds, false otherwise
    */
-  function isL2SequencerUp(uint256 gracePeriod) external view returns (bool);
+  function isL2SequencerUp(uint256 since) external view returns (bool up);
 
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
