@@ -29,13 +29,7 @@ contract OracleAdapterTest is Test {
   }
 
   function test_initialize_shouldSetAllContracts() public {
-    oracleAdapter.initialize(
-      sortedOracles,
-      breakerBox,
-      marketHoursBreaker,
-      makeAddr("l2SequencerUptimeFeed"),
-      owner
-    );
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, l2SequencerUptimeFeed, owner);
 
     assertEq(address(oracleAdapter.sortedOracles()), sortedOracles);
     assertEq(address(oracleAdapter.breakerBox()), breakerBox);
@@ -45,13 +39,7 @@ contract OracleAdapterTest is Test {
 
   function test_initialize_whenCalledTwice_shouldRevert() public initialized {
     vm.expectRevert("Initializable: contract is already initialized");
-    oracleAdapter.initialize(
-      sortedOracles,
-      breakerBox,
-      marketHoursBreaker,
-      makeAddr("l2SequencerUptimeFeed"),
-      owner
-    );
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, l2SequencerUptimeFeed, owner);
   }
 
   function test_sortedOracles_shouldReturnSortedOracles() public initialized {
@@ -362,13 +350,7 @@ contract OracleAdapterTest is Test {
   }
 
   function test_isL2SequencerUp_whenFeedIsZeroAddress_shouldReturnTrue() public {
-    oracleAdapter.initialize(
-      sortedOracles,
-      breakerBox,
-      marketHoursBreaker,
-      address(0),
-      owner
-    );
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, address(0), owner);
 
     assertTrue(oracleAdapter.isL2SequencerUp(1 hours));
   }
@@ -415,7 +397,6 @@ contract OracleAdapterTest is Test {
     assertTrue(oracleAdapter.isL2SequencerUp(1 hours));
   }
 
-
   function test_isL2SequencerUp_whenSequencerIsUpExactlyAtGracePeriod_shouldReturnFalse()
     public
     initialized
@@ -427,13 +408,7 @@ contract OracleAdapterTest is Test {
   }
 
   modifier initialized() {
-    oracleAdapter.initialize(
-      sortedOracles,
-      breakerBox,
-      marketHoursBreaker,
-      l2SequencerUptimeFeed,
-      owner
-    );
+    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, l2SequencerUptimeFeed, owner);
 
     _;
   }
@@ -483,16 +458,15 @@ contract OracleAdapterTest is Test {
   }
 
   modifier withSequencerUp(uint256 upSince) {
-    bytes memory latestRoundDataCalldata = abi.encodeWithSelector(
-      AggregatorV3Interface.latestRoundData.selector
-    );
+    bytes memory latestRoundDataCalldata = abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector);
 
     int256 sequencerUp = 0;
 
     vm.mockCall(
       l2SequencerUptimeFeed,
       latestRoundDataCalldata,
-      abi.encode(uint80(1), // roundId
+      abi.encode(
+        uint80(1), // roundId
         sequencerUp, // answer (0 = up, 1 = down)
         uint256(1), // startedAt
         uint256(upSince), // updatedAt
@@ -504,16 +478,15 @@ contract OracleAdapterTest is Test {
   }
 
   modifier withSequencerDown() {
-    bytes memory latestRoundDataCalldata = abi.encodeWithSelector(
-      AggregatorV3Interface.latestRoundData.selector
-    );
+    bytes memory latestRoundDataCalldata = abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector);
 
     int256 sequencerDown = 1;
 
     vm.mockCall(
       l2SequencerUptimeFeed,
       latestRoundDataCalldata,
-      abi.encode(uint80(1), // roundId
+      abi.encode(
+        uint80(1), // roundId
         sequencerDown, // answer (0 = up, 1 = down)
         uint256(1), // startedAt
         uint256(blockTs - 2 hours), // updatedAt
