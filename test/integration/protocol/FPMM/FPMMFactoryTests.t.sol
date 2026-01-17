@@ -9,6 +9,8 @@ import { IERC20 } from "contracts/interfaces/IERC20.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { IFPMMFactory } from "contracts/interfaces/IFPMMFactory.sol";
 
+import { TestERC20 } from "test/utils/mocks/TestERC20.sol";
+
 // OpenZeppelin
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
@@ -344,6 +346,18 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
     address address1 = factory.getOrPrecomputeProxyAddress(address(tokenA), address(tokenB));
     address address2 = factory.getOrPrecomputeProxyAddress(address(tokenB), address(tokenA));
     assertEq(address1, address2);
+  }
+
+  function test_getOrPrecomputeProxyAddress_avoidsSimpleSymbolCollision() public {
+    TestERC20 token0 = new TestERC20("Token 0", "USDC");
+    TestERC20 token1 = new TestERC20("Token 1", "EUR");
+    address firstPair = factory.getOrPrecomputeProxyAddress(address(token0), address(token1));
+
+    TestERC20 token2 = new TestERC20("Token 2", "USD");
+    TestERC20 token3 = new TestERC20("Token 3", "CEUR");
+    address secondPair = factory.getOrPrecomputeProxyAddress(address(token2), address(token3));
+
+    assertNotEq(firstPair, secondPair);
   }
 
   // ============ TOKEN SORTING TESTS ============
