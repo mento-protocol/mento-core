@@ -22,8 +22,6 @@ interface IOracleAdapter {
     IMarketHoursBreaker marketHoursBreaker;
     // Contract for checking L2 sequencer status
     AggregatorV3Interface l2SequencerUptimeFeed;
-    // Grace period for the L2 sequencer
-    uint256 l2SequencerGracePeriod;
   }
 
   /// @notice Struct to store info about a rate
@@ -49,8 +47,6 @@ interface IOracleAdapter {
   error NoRecentRate();
   // @notice Thrown when trying to set a zero address as a contract address
   error ZeroAddress();
-  // @notice Thrown when the L2 sequencer grace period is invalid
-  error InvalidL2SequencerGracePeriod();
 
   /* ============================================================ */
   /* ======================== Events ============================ */
@@ -87,13 +83,6 @@ interface IOracleAdapter {
     address indexed newL2SequencerUptimeFeed
   );
 
-  /**
-   * @notice Emitted when the L2 sequencer grace period is updated
-   * @param oldSequencerGracePeriod Previous grace period for the L2 sequencer
-   * @param newSequencerGracePeriod New grace period for the L2 sequencer
-   */
-  event L2SequencerGracePeriodUpdated(uint256 indexed oldSequencerGracePeriod, uint256 indexed newSequencerGracePeriod);
-
   /* ============================================================ */
   /* ====================== View Functions ====================== */
   /* ============================================================ */
@@ -121,12 +110,6 @@ interface IOracleAdapter {
    * @return Address of the L2SequencerUptimeFeed contract
    */
   function l2SequencerUptimeFeed() external view returns (AggregatorV3Interface);
-
-  /**
-   * @notice Returns the grace period for the L2 sequencer
-   * @return uint256 Grace period for the L2 sequencer
-   */
-  function l2SequencerGracePeriod() external view returns (uint256);
 
   /**
    * @notice Returns true if the market is open based on FX market hours
@@ -184,10 +167,11 @@ interface IOracleAdapter {
   function ensureRateValid(address rateFeedID) external view;
 
   /**
-   * @notice Ensures that the L2 sequencer is up and the grace period has passed
-   * @dev Reverts if the L2 sequencer is not up or the grace period has not passed
+   * @notice Checks if the L2 sequencer is up and the grace period has passed
+   * @param gracePeriod The grace period for the L2 sequencer
+   * @return true if the L2 sequencer is up and the grace period has passed, false otherwise
    */
-  function ensureL2SequencerUp() external view returns (bool);
+  function isL2SequencerUp(uint256 gracePeriod) external view returns (bool);
 
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
@@ -199,13 +183,13 @@ interface IOracleAdapter {
    * @param _breakerBox The address of the breaker box contract
    * @param _marketHoursBreaker The address of the market hours breaker contract
    * @param _initialOwner The address to transfer ownership to
+   * @param _l2SequencerUptimeFeed The address of the L2 sequencer uptime feed contract
    */
   function initialize(
     address _sortedOracles,
     address _breakerBox,
     address _marketHoursBreaker,
     address _l2SequencerUptimeFeed,
-    uint256 _sequencerGracePeriod,
     address _initialOwner
   ) external;
 
@@ -232,10 +216,4 @@ interface IOracleAdapter {
    * @param _l2SequencerUptimeFeed The address of the L2 sequencer uptime feed contract
    */
   function setL2SequencerUptimeFeed(address _l2SequencerUptimeFeed) external;
-
-  /**
-   * @notice Sets the grace period for the L2 sequencer
-   * @param _l2SequencerGracePeriod The grace period for the L2 sequencer
-   */
-  function setL2SequencerGracePeriod(uint256 _l2SequencerGracePeriod) external;
 }

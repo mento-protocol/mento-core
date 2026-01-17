@@ -32,7 +32,6 @@ contract OracleAdapterTest is Test {
       breakerBox,
       marketHoursBreaker,
       makeAddr("l2SequencerUptimeFeed"),
-      1 hours,
       owner
     );
 
@@ -49,7 +48,6 @@ contract OracleAdapterTest is Test {
       breakerBox,
       marketHoursBreaker,
       makeAddr("l2SequencerUptimeFeed"),
-      1 hours,
       owner
     );
   }
@@ -343,7 +341,6 @@ contract OracleAdapterTest is Test {
       breakerBox,
       marketHoursBreaker,
       makeAddr("l2SequencerUptimeFeed"),
-      1 hours,
       owner
     );
 

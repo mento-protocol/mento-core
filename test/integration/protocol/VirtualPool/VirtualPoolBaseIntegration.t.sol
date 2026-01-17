@@ -74,7 +74,6 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
       address(breakerBox),
       marketHoursBreaker,
       makeAddr("l2SequencerUptimeFeed"),
-      1 hours,
       governance
     );
     factoryRegistry = new FactoryRegistry(false);
