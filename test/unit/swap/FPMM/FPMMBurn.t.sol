@@ -130,20 +130,44 @@ contract FPMMBurnTest is FPMMBaseTest {
     assertEq(amount1, expectedAmount1);
   }
 
-  function test_burn_whenZeroTokens_shouldRevert()
+  function test_burn_whenOneReserveIsSmallAndLiquidityFractionRoundsDown_shouldTransferOtherToken()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
   {
-    // Try to burn a tiny amount of LP tokens that would result in 0 token0 or token1
-    uint256 tinyLiquidity = 1;
+    // leave only 1 wei of token1 in the pool
+    uint256 amount0In = (200e18 * 10_000) / uint256(10_000 - 30);
+    uint256 amount1Out = fpmm.getAmountOut(amount0In, token0);
 
     vm.startPrank(ALICE);
-    fpmm.transfer(address(fpmm), tinyLiquidity);
-
-    vm.expectRevert(IFPMM.InsufficientLiquidityBurned.selector);
-    fpmm.burn(ALICE);
+    IERC20(token0).transfer(address(fpmm), amount0In);
+    fpmm.swap(0, amount1Out, ALICE, "");
     vm.stopPrank();
+
+    uint256 initialReserve0 = fpmm.reserve0();
+    uint256 initialReserve1 = fpmm.reserve1();
+    assertEq(initialReserve1, 1);
+
+    uint256 liquidity = fpmm.balanceOf(ALICE);
+    uint256 totalSupply = fpmm.totalSupply();
+
+    vm.startPrank(ALICE);
+    fpmm.transfer(address(fpmm), liquidity);
+    (uint256 amount0, uint256 amount1) = fpmm.burn(ALICE);
+    vm.stopPrank();
+
+    assertEq(amount0, (liquidity * initialReserve0) / totalSupply);
+    assertEq(amount1, 0);
+
+    uint256 newReserve0 = fpmm.reserve0();
+    uint256 newReserve1 = fpmm.reserve1();
+    // allow for 1 wei of error due to rounding
+    // reminder in reserves is equal to the MINIMUM_LIQUIDITY share of the total supply
+    assertApproxEqAbs(newReserve0, (initialReserve0 * fpmm.MINIMUM_LIQUIDITY()) / totalSupply, 1);
+    assertEq(newReserve1, 1);
   }
 
   function test_burn_whenMultipleLPHolders_shouldBurnCorrectAmount()
