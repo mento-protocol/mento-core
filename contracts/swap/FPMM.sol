@@ -383,7 +383,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     amount1 = (liquidity * balance1) / _totalSupply;
 
     // slither-disable-next-line incorrect-equality
-    if (amount0 == 0 || amount1 == 0) revert InsufficientLiquidityBurned();
+    if (amount0 == 0 && amount1 == 0) revert InsufficientLiquidityBurned();
 
     _burn(address(this), liquidity);
 
