@@ -312,6 +312,7 @@ abstract contract LiquidityStrategy is
    * @return action The constructed rebalance action
    */
   function _handlePoolPriceAbove(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
+    // slither-disable-start divide-before-multiply
     uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BASIS_POINTS_DENOMINATOR + ctx.prices.rebalanceThreshold)) /
       LQ.BASIS_POINTS_DENOMINATOR;
     uint256 targetDenominator = ctx.prices.oracleDen;
@@ -324,6 +325,7 @@ abstract contract LiquidityStrategy is
     uint256 denominator = (ctx.prices.oracleDen * (LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps) * targetNumerator) /
       (LQ.BASIS_POINTS_DENOMINATOR * ctx.prices.oracleNum) +
       targetDenominator;
+    // slither-disable-end divide-before-multiply
 
     uint256 token1Out = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token1Dec);
 
@@ -359,6 +361,7 @@ abstract contract LiquidityStrategy is
    * @return action The constructed rebalance action
    */
   function _handlePoolPriceBelow(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
+    // slither-disable-start divide-before-multiply
     uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BASIS_POINTS_DENOMINATOR - ctx.prices.rebalanceThreshold)) /
       LQ.BASIS_POINTS_DENOMINATOR;
     uint256 targetDenominator = ctx.prices.oracleDen;
@@ -373,6 +376,7 @@ abstract contract LiquidityStrategy is
       targetDenominator) /
       (LQ.BASIS_POINTS_DENOMINATOR * ctx.prices.oracleDen) +
       targetNumerator;
+    // slither-disable-end divide-before-multiply
 
     uint256 token0Out = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token0Dec);
     uint256 token1In = LQ.convertWithRateScalingAndFee(
