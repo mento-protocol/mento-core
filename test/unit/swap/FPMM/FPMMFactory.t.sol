@@ -203,7 +203,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
 
   function test_initialize_whenDefaultParamsIsInvalid_shouldRevert() public {
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
-    invalidDefaultFpmmParams.lpFee = 101;
+    invalidDefaultFpmmParams.lpFee = 201;
 
     vm.selectFork(celoFork);
     factoryCelo = new FPMMFactory(false);
@@ -437,7 +437,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     );
 
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
-    invalidDefaultFpmmParams.lpFee = 101;
+    invalidDefaultFpmmParams.lpFee = 201;
 
     vm.expectRevert(IFPMMFactory.FeeTooHigh.selector);
     vm.prank(governanceCelo);
@@ -456,7 +456,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     );
 
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
-    invalidDefaultFpmmParams.protocolFee = 101;
+    invalidDefaultFpmmParams.protocolFee = 201;
 
     vm.expectRevert(IFPMMFactory.FeeTooHigh.selector);
     vm.prank(governanceCelo);
@@ -475,8 +475,8 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     );
 
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
-    invalidDefaultFpmmParams.lpFee = 50;
-    invalidDefaultFpmmParams.protocolFee = 51;
+    invalidDefaultFpmmParams.lpFee = 100;
+    invalidDefaultFpmmParams.protocolFee = 101;
 
     vm.expectRevert(IFPMMFactory.FeeTooHigh.selector);
     vm.prank(governanceCelo);
