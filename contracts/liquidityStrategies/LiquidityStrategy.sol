@@ -231,53 +231,40 @@ abstract contract LiquidityStrategy is
   /**
    * @notice Adds a new pool to the strategy's registry
    * @dev Virtual function to allow strategies to extend with additional logic
-   * @param pool The address of the FPMM pool to add
-   * @param debtToken The address of the debt token (determines isToken0Debt)
-   * @param cooldown The cooldown period between rebalances in seconds
-   * @param liquiditySourceIncentiveBpsExpansion The liquidity source incentive in basis points for expansion
-   * @param protocolIncentiveBpsExpansion The protocol incentive in basis points for expansion
-   * @param liquiditySourceIncentiveBpsContraction The liquidity source incentive in basis points for contraction
-   * @param protocolIncentiveBpsContraction The protocol incentive in basis points for contraction
-   * @param protocolFeeRecipient The recipient of the protocol fee
+   * @param params The parameters for adding a pool
    */
-  function _addPool(
-    address pool,
-    address debtToken,
-    uint64 cooldown,
-    uint16 liquiditySourceIncentiveBpsExpansion,
-    uint16 protocolIncentiveBpsExpansion,
-    uint16 liquiditySourceIncentiveBpsContraction,
-    uint16 protocolIncentiveBpsContraction,
-    address protocolFeeRecipient
-  ) internal virtual {
-    if (pool == address(0)) revert LS_POOL_MUST_BE_SET();
-    if (!pools.add(pool)) revert LS_POOL_ALREADY_EXISTS(); // Ensure pool is added
-    bool isToken0Debt = debtToken == IFPMM(pool).token0();
-    if (!isToken0Debt && IFPMM(pool).token1() != debtToken) {
+  function _addPool(AddPoolParams calldata params) internal virtual {
+    if (params.pool == address(0)) revert LS_POOL_MUST_BE_SET();
+    if (!pools.add(params.pool)) revert LS_POOL_ALREADY_EXISTS(); // Ensure pool is added
+    bool isToken0Debt = params.debtToken == IFPMM(params.pool).token0();
+    if (!isToken0Debt && IFPMM(params.pool).token1() != params.debtToken) {
       revert LS_DEBT_TOKEN_NOT_IN_POOL();
     }
-    if (protocolIncentiveBpsExpansion + liquiditySourceIncentiveBpsExpansion > BPS_DENOMINATOR) {
+    if (params.protocolIncentiveBpsExpansion + params.liquiditySourceIncentiveBpsExpansion > BPS_DENOMINATOR) {
       revert LS_INCENTIVE_TOO_HIGH();
     }
-    if (protocolIncentiveBpsContraction + liquiditySourceIncentiveBpsContraction > BPS_DENOMINATOR) {
+    if (params.protocolIncentiveBpsContraction + params.liquiditySourceIncentiveBpsContraction > BPS_DENOMINATOR) {
       revert LS_INCENTIVE_TOO_HIGH();
     }
-    if (protocolIncentiveBpsExpansion + protocolIncentiveBpsContraction > 0 && protocolFeeRecipient == address(0)) {
+    if (
+      params.protocolIncentiveBpsExpansion + params.protocolIncentiveBpsContraction > 0 &&
+      params.protocolFeeRecipient == address(0)
+    ) {
       revert LS_PROTOCOL_FEE_RECIPIENT_REQUIRED();
     }
 
-    poolConfigs[pool] = PoolConfig({
+    poolConfigs[params.pool] = PoolConfig({
       isToken0Debt: isToken0Debt,
       lastRebalance: 0,
-      rebalanceCooldown: cooldown,
-      liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
-      protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
-      liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
-      protocolIncentiveBpsContraction: protocolIncentiveBpsContraction,
-      protocolFeeRecipient: protocolFeeRecipient
+      rebalanceCooldown: params.cooldown,
+      liquiditySourceIncentiveBpsExpansion: params.liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion: params.protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction: params.liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction: params.protocolIncentiveBpsContraction,
+      protocolFeeRecipient: params.protocolFeeRecipient
     });
 
-    emit PoolAdded(pool, isToken0Debt, cooldown);
+    emit PoolAdded(params.pool, params);
   }
 
   /**

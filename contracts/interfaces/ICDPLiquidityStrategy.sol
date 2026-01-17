@@ -43,36 +43,6 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
     uint16 maxIterations;
   }
 
-  /**
-   * @notice Parameters for adding a new pool to the CDP strategy
-   * @param pool The address of the FPMM pool to add
-   * @param debtToken The address of the debt token (stable asset)
-   * @param cooldown The cooldown period between rebalances in seconds
-   * @param liquiditySourceIncentiveBpsExpansion The incentive for the liquidity source in basis points for expansion
-   * @param protocolIncentiveBpsExpansion The incentive for the protocol in basis points for expansion
-   * @param liquiditySourceIncentiveBpsContraction The incentive for the liquidity source in basis points for contraction
-   * @param protocolIncentiveBpsContraction The incentive for the protocol in basis points for contraction
-   * @param protocolFeeRecipient The recipient of the protocol fee
-   * @param stabilityPool The address of the stability pool used for swapping collateral to stable
-   * @param collateralRegistry The address of the collateral registry for redemptions
-   * @param stabilityPoolPercentage The percentage of stability pool balance available for rebalancing (in bps)
-   * @param maxIterations The maximum number of iterations for redemption operations
-   */
-  struct AddPoolParams {
-    address pool;
-    address debtToken;
-    uint64 cooldown;
-    uint16 liquiditySourceIncentiveBpsExpansion;
-    uint16 protocolIncentiveBpsExpansion;
-    uint16 liquiditySourceIncentiveBpsContraction;
-    uint16 protocolIncentiveBpsContraction;
-    address protocolFeeRecipient;
-    address stabilityPool;
-    address collateralRegistry;
-    uint16 stabilityPoolPercentage;
-    uint16 maxIterations;
-  }
-
   /* ============================================================ */
   /* ==================== Mutative Functions ==================== */
   /* ============================================================ */
@@ -80,8 +50,9 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
   /**
    * @notice Adds a new liquidity pool to be managed by the CDP strategy
    * @param params The parameters for adding a pool
+   * @param config The CDP configuration
    */
-  function addPool(AddPoolParams calldata params) external;
+  function addPool(AddPoolParams calldata params, CDPConfig calldata config) external;
 
   /**
    * @notice Removes a pool from the strategy

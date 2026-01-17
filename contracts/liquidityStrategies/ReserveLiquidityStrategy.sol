@@ -49,26 +49,8 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
   /* ============================================================ */
 
   /// @inheritdoc IReserveLiquidityStrategy
-  function addPool(
-    address pool,
-    address debtToken,
-    uint64 cooldown,
-    uint16 liquiditySourceIncentiveBpsExpansion,
-    uint16 protocolIncentiveBpsExpansion,
-    uint16 liquiditySourceIncentiveBpsContraction,
-    uint16 protocolIncentiveBpsContraction,
-    address protocolFeeRecipient
-  ) external onlyOwner {
-    LiquidityStrategy._addPool(
-      pool,
-      debtToken,
-      cooldown,
-      liquiditySourceIncentiveBpsExpansion,
-      protocolIncentiveBpsExpansion,
-      liquiditySourceIncentiveBpsContraction,
-      protocolIncentiveBpsContraction,
-      protocolFeeRecipient
-    );
+  function addPool(AddPoolParams calldata params) external onlyOwner {
+    LiquidityStrategy._addPool(params);
   }
 
   /// @inheritdoc IReserveLiquidityStrategy

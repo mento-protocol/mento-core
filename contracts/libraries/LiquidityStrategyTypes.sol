@@ -140,7 +140,7 @@ library LiquidityStrategyTypes {
         uint256 priceDifference
       ) = fpmm.getRebalancingState();
 
-      if (!(priceDifference > rebalanceThreshold)) revert ILiquidityStrategy.LS_POOL_NOT_REBALANCEABLE();
+      if (priceDifference <= rebalanceThreshold) revert ILiquidityStrategy.LS_POOL_NOT_REBALANCEABLE();
 
       ctx.reserves = Reserves({ reserveNum: reserveNum, reserveDen: reserveDen });
       ctx.prices = Prices({

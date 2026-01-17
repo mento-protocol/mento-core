@@ -9,6 +9,28 @@ interface ILiquidityStrategy {
   /* ============================================================ */
 
   /**
+   * @notice Struct holding the configuration of a pool
+   * @param pool The address of the pool
+   * @param debtToken The address of the debt token
+   * @param cooldown The cooldown period between rebalances in seconds
+   * @param liquiditySourceIncentiveBpsExpansion The incentive for the liquidity source in basis points for expansion
+   * @param protocolIncentiveBpsExpansion The incentive for the protocol in basis points for expansion
+   * @param liquiditySourceIncentiveBpsContraction The incentive for the liquidity source in basis points for contraction
+   * @param protocolIncentiveBpsContraction The incentive for the protocol in basis points for contraction
+   * @param protocolFeeRecipient The recipient of the protocol fee
+   */
+  struct AddPoolParams {
+    address pool;
+    address debtToken;
+    uint64 cooldown;
+    uint16 liquiditySourceIncentiveBpsExpansion;
+    uint16 protocolIncentiveBpsExpansion;
+    uint16 liquiditySourceIncentiveBpsContraction;
+    uint16 protocolIncentiveBpsContraction;
+    address protocolFeeRecipient;
+  }
+
+  /**
    * @notice Struct holding the complete configuration of an FPMM pool,
    *         in the context of liquidity management.
    * @param isToken0Debt Whether token0 is the debt token (true) or token1 is the debt token (false)
@@ -69,7 +91,7 @@ interface ILiquidityStrategy {
   error LS_DEBT_TOKEN_NOT_IN_POOL();
   /// @notice Thrown when trying to add a pool with a protocol fee recipient that is zero address
   error LS_PROTOCOL_FEE_RECIPIENT_REQUIRED();
-  /// @notice Thrown when the incentive is to high for expansion or contraction
+  /// @notice Thrown when the incentive is too high for expansion or contraction
   error LS_INCENTIVE_TOO_HIGH();
 
   /* ============================================================ */
@@ -79,10 +101,9 @@ interface ILiquidityStrategy {
   /**
    * @notice Emitted when a new pool is added to the strategy
    * @param pool The address of the pool
-   * @param isToken0Debt Whether token0 is the debt token
-   * @param cooldown The rebalance cooldown period
+   * @param params The parameters for adding a pool
    */
-  event PoolAdded(address indexed pool, bool isToken0Debt, uint64 cooldown);
+  event PoolAdded(address indexed pool, AddPoolParams params);
 
   /**
    * @notice Emitted when a pool is removed from the strategy

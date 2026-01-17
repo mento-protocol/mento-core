@@ -39,27 +39,14 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   /* ============================================================ */
 
   // @inheritdoc ICDPLiquidityStrategy
-  function addPool(AddPoolParams calldata params) external onlyOwner {
-    if (!(0 < params.stabilityPoolPercentage && params.stabilityPoolPercentage < BPS_DENOMINATOR))
+  function addPool(AddPoolParams calldata params, CDPConfig calldata config) external onlyOwner {
+    if (!(0 < config.stabilityPoolPercentage && config.stabilityPoolPercentage < BPS_DENOMINATOR))
       revert CDPLS_INVALID_STABILITY_POOL_PERCENTAGE();
-    if (params.collateralRegistry == address(0)) revert CDPLS_COLLATERAL_REGISTRY_IS_ZERO();
-    if (params.stabilityPool == address(0)) revert CDPLS_STABILITY_POOL_IS_ZERO();
-    LiquidityStrategy._addPool(
-      params.pool,
-      params.debtToken,
-      params.cooldown,
-      params.liquiditySourceIncentiveBpsExpansion,
-      params.protocolIncentiveBpsExpansion,
-      params.liquiditySourceIncentiveBpsContraction,
-      params.protocolIncentiveBpsContraction,
-      params.protocolFeeRecipient
-    );
-    cdpConfigs[params.pool] = CDPConfig({
-      stabilityPool: params.stabilityPool,
-      collateralRegistry: params.collateralRegistry,
-      stabilityPoolPercentage: params.stabilityPoolPercentage,
-      maxIterations: params.maxIterations
-    });
+    if (config.collateralRegistry == address(0)) revert CDPLS_COLLATERAL_REGISTRY_IS_ZERO();
+    if (config.stabilityPool == address(0)) revert CDPLS_STABILITY_POOL_IS_ZERO();
+
+    LiquidityStrategy._addPool(params);
+    cdpConfigs[params.pool] = config;
   }
 
   /// @inheritdoc ICDPLiquidityStrategy
