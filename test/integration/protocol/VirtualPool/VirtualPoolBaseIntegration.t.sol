@@ -69,7 +69,14 @@ contract VirtualPoolBaseIntegration is ProtocolTest {
     fpmmImplementation = new FPMM(true);
 
     oracleAdapter = new OracleAdapter(false);
-    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), marketHoursBreaker, governance);
+    oracleAdapter.initialize(
+      address(sortedOracles),
+      address(breakerBox),
+      marketHoursBreaker,
+      makeAddr("l2SequencerUptimeFeed"),
+      1 hours,
+      governance
+    );
     factoryRegistry = new FactoryRegistry(false);
     factoryRegistry.initialize(address(fpmmFactory), governance);
     vm.prank(governance);

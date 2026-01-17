@@ -47,7 +47,7 @@ contract FPMMBaseTest is Test {
   function setUp() public virtual {
     fpmm = new FPMM(false);
     oracleAdapter = IOracleAdapter(new OracleAdapter(false));
-    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), address(marketHoursBreaker), owner);
+    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), address(marketHoursBreaker), makeAddr("l2SequencerUptimeFeed"), 1 hours, owner);
 
     vm.prank(fpmm.owner());
 

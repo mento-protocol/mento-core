@@ -27,7 +27,14 @@ contract OracleAdapterTest is Test {
   }
 
   function test_initialize_shouldSetAllContracts() public {
-    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, owner);
+    oracleAdapter.initialize(
+      sortedOracles,
+      breakerBox,
+      marketHoursBreaker,
+      makeAddr("l2SequencerUptimeFeed"),
+      1 hours,
+      owner
+    );
 
     assertEq(address(oracleAdapter.sortedOracles()), sortedOracles);
     assertEq(address(oracleAdapter.breakerBox()), breakerBox);
@@ -37,7 +44,14 @@ contract OracleAdapterTest is Test {
 
   function test_initialize_whenCalledTwice_shouldRevert() public initialized {
     vm.expectRevert("Initializable: contract is already initialized");
-    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, owner);
+    oracleAdapter.initialize(
+      sortedOracles,
+      breakerBox,
+      marketHoursBreaker,
+      makeAddr("l2SequencerUptimeFeed"),
+      1 hours,
+      owner
+    );
   }
 
   function test_sortedOracles_shouldReturnSortedOracles() public initialized {
@@ -324,7 +338,14 @@ contract OracleAdapterTest is Test {
   }
 
   modifier initialized() {
-    oracleAdapter.initialize(sortedOracles, breakerBox, marketHoursBreaker, owner);
+    oracleAdapter.initialize(
+      sortedOracles,
+      breakerBox,
+      marketHoursBreaker,
+      makeAddr("l2SequencerUptimeFeed"),
+      1 hours,
+      owner
+    );
 
     _;
   }

@@ -232,4 +232,10 @@ interface IOracleAdapter {
    * @param _l2SequencerUptimeFeed The address of the L2 sequencer uptime feed contract
    */
   function setL2SequencerUptimeFeed(address _l2SequencerUptimeFeed) external;
+
+  /**
+   * @notice Sets the grace period for the L2 sequencer
+   * @param _l2SequencerGracePeriod The grace period for the L2 sequencer
+   */
+  function setL2SequencerGracePeriod(uint256 _l2SequencerGracePeriod) external;
 }
