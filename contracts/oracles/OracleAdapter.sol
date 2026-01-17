@@ -95,9 +95,8 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
 
   /// @inheritdoc IOracleAdapter
   function setL2SequencerUptimeFeed(address _l2SequencerUptimeFeed) public onlyOwner {
-    if (_l2SequencerUptimeFeed == address(0)) revert ZeroAddress();
-
     OracleAdapterStorage storage $ = _getStorage();
+
     address oldL2SequencerUptimeFeed = address($.l2SequencerUptimeFeed);
     $.l2SequencerUptimeFeed = AggregatorV3Interface(_l2SequencerUptimeFeed);
 
