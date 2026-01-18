@@ -30,6 +30,7 @@ contract OracleAdapterDeployer is TestStorage {
       address($oracle.sortedOracles),
       address($oracle.breakerBox),
       address($oracle.marketHoursBreaker),
+      makeAddr("l2SequencerUptimeFeed"),
       $addresses.governance
     );
 
