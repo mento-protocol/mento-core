@@ -14,8 +14,9 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
   string internal constant _REVERT_REASON = "FeeTooHigh()";
   uint256 internal constant _EXPECTED_FEE = 150;
   uint256 internal constant _ORIGINAL_LP_FEE = 30; // 0.3%
-  uint256 internal constant _MAX_COMBINED_FEE_OLD = 100; // 1% in old implementation
+  uint256 internal constant _MAX_COMBINED_FEE_OLD = 200; // 2% in old implementation
   uint256 internal constant _MAX_COMBINED_FEE_NEW = 300; // 3% in new implementation
+  uint256 internal constant _FEE_TOO_HIGH_FOR_OLD = 250; // Fee that fails with old (200) but works with new (300)
 
   address internal _newFPMMimpl;
   address internal _upgradedFPMM;
@@ -31,15 +32,17 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
 
   // ========== Core Upgrade Tests ==========
   function test_fpmmUpgradeability_upgradeAsProxyAdminOwner() public {
-    _expectNotUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    // With old implementation (max 200), setting fee to 250 should fail
+    _expectNotUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
     _upgrade(_upgradedFPMM, _newFPMMimpl, proxyAdminOwner);
-    _expectUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    // With new implementation (max 300), setting fee to 250 should work
+    _expectUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
   }
 
   function test_fpmmUpgradeability_upgradeAsNotProxyAdminOwner() public {
     vm.expectRevert("Ownable: caller is not the owner");
     _upgrade(_upgradedFPMM, _newFPMMimpl, governance);
-    _expectNotUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    _expectNotUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
   }
 
   // ========== UpgradeAndCall Tests ==========
@@ -48,7 +51,7 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
 
     _upgradeAndCall(_upgradedFPMM, _newFPMMimpl, data, proxyAdminOwner);
     assertEq(_fpmm.lpFee(), _ORIGINAL_LP_FEE, "lpFee changed unexpectedly");
-    _expectUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    _expectUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
   }
 
   function test_fpmmUpgradeability_upgradeAndCallAsNotProxyAdminOwner() public {
@@ -57,7 +60,7 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
     vm.expectRevert("Ownable: caller is not the owner");
     _upgradeAndCall(_upgradedFPMM, _newFPMMimpl, data, governance);
     assertEq(_fpmm.lpFee(), _ORIGINAL_LP_FEE, "lpFee changed unexpectedly");
-    _expectNotUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    _expectNotUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
   }
 
   // ========== Edge Case Tests ==========
@@ -65,7 +68,7 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
     vm.prank(proxyAdminOwner);
     vm.expectRevert();
     proxyAdmin.upgrade(ITransparentUpgradeableProxy(_upgradedFPMM), address(0));
-    _expectNotUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    _expectNotUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
   }
 
   function test_fpmmUpgradeability_upgradeToNonContract() public {
@@ -74,20 +77,20 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
     vm.prank(proxyAdminOwner);
     vm.expectRevert();
     proxyAdmin.upgrade(ITransparentUpgradeableProxy(_upgradedFPMM), nonContract);
-    _expectNotUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    _expectNotUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
   }
 
   function test_fpmmUpgradeability_multipleSequentialUpgrades() public {
     // First upgrade
     _upgrade(_upgradedFPMM, _newFPMMimpl, proxyAdminOwner);
-    _expectUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    _expectUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
 
     // Create another implementation
     address anotherImpl = address(new FPMMAlternativeImplementation(true));
 
     // Second upgrade
     _upgrade(_upgradedFPMM, anotherImpl, proxyAdminOwner);
-    _expectUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    _expectUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
 
     // Verify implementation changed twice
     address finalImpl = proxyAdmin.getProxyImplementation(ITransparentUpgradeableProxy(_upgradedFPMM));
@@ -97,21 +100,21 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
   function test_fpmmUpgradeability_downgrade() public {
     address originalImpl = proxyAdmin.getProxyImplementation(ITransparentUpgradeableProxy(_upgradedFPMM));
 
-    // Upgrade to new implementation and set fee to 150
+    // Upgrade to new implementation and set fee to 250 (works with new, fails with old)
     _upgrade(_upgradedFPMM, _newFPMMimpl, proxyAdminOwner);
-    _expectUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    _expectUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
 
     // Downgrade back to original implementation
     _upgrade(_upgradedFPMM, originalImpl, proxyAdminOwner);
 
-    // Storage is preserved, so fee is still 150, but old impl restricts changes
-    assertEq(_fpmm.lpFee(), _EXPECTED_FEE, "Fee should remain 150 after downgrade");
+    // Storage is preserved, so fee is still 250, but old impl restricts changes
+    assertEq(_fpmm.lpFee(), _FEE_TOO_HIGH_FOR_OLD, "Fee should remain 250 after downgrade");
 
-    // Old implementation should reject fee >= 100, so setting to 50 should work
+    // Old implementation should reject fee > 200, so setting to 50 should work
     _expectUpgraded(_fpmm, 50, _REVERT_REASON);
 
-    // Setting to 150 should fail with old implementation
-    _expectNotUpgraded(_fpmm, _EXPECTED_FEE, _REVERT_REASON);
+    // Setting to 250 should fail with old implementation (exceeds 200 max)
+    _expectNotUpgraded(_fpmm, _FEE_TOO_HIGH_FOR_OLD, _REVERT_REASON);
 
     address currentImpl = proxyAdmin.getProxyImplementation(ITransparentUpgradeableProxy(_upgradedFPMM));
     assertEq(currentImpl, originalImpl, "Implementation should revert to original");
