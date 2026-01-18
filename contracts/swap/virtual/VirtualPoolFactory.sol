@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import { VirtualPool } from "./VirtualPool.sol";
 import { IBiPoolManager } from "contracts/interfaces/IBiPoolManager.sol";
 import { IVirtualPoolFactory } from "contracts/interfaces/IVirtualPoolFactory.sol";
@@ -9,6 +10,8 @@ import { IRPoolFactory } from "contracts/swap/router/interfaces/IRPoolFactory.so
 import { ICreateX } from "contracts/interfaces/ICreateX.sol";
 
 contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
+  using EnumerableSet for EnumerableSet.AddressSet;
+
   // Address of the CREATEX contract.
   address public constant CREATEX = 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed;
 
@@ -16,8 +19,9 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
   // cast keccak $(cast code 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed --rpc-url https://forno.celo.org)
   bytes32 public constant CREATEX_BYTECODE_HASH = 0xbd8a7ea8cfca7b4e5f5041d7d4b17bc317c5ce42cfbc42066a00cf26b43eb53f;
 
-  mapping(address token0 => mapping(address token1 => address poolAddress)) internal _pools;
-  mapping(address pool => bool exists) internal _isPool;
+  mapping(address token0 => mapping(address token1 => address poolAddress)) internal _tokenPairToPool;
+  mapping(address pool => bool deprecated) private _deprecatedPools;
+  EnumerableSet.AddressSet private _deployedPools;
 
   /* ============================================================ */
   /* ======================== Constructor ======================= */
@@ -44,7 +48,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
   function deployVirtualPool(address exchangeProvider, bytes32 exchangeId) external onlyOwner returns (address pool) {
     address broker = IBiPoolManager(exchangeProvider).broker();
     (address token0, address token1, bool sameOrder) = _getExchangeTokens(exchangeProvider, exchangeId);
-    if (_pools[token0][token1] != address(0)) {
+    if (_tokenPairToPool[token0][token1] != address(0)) {
       revert VirtualPoolAlreadyExistsForThisPair();
     }
 
@@ -58,14 +62,26 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
     pool = ICreateX(CREATEX).deployCreate3(salt, poolBytecode);
     assert(pool == expectedPoolAddress);
 
-    _pools[token0][token1] = pool;
-    _pools[token1][token0] = pool;
-    _isPool[pool] = true;
+    _tokenPairToPool[token0][token1] = pool;
+    _tokenPairToPool[token1][token0] = pool;
+    // slither-disable-next-line unused-return
+    _deployedPools.add(pool);
     emit VirtualPoolDeployed(pool, token0, token1);
   }
   // slither-disable-end reentrancy-no-eth
   // slither-disable-end reentrancy-benign
   // slither-disable-end reentrancy-events
+
+  /**
+   * @notice Marks a pool as deprecated.
+   * @param pool The address of the pool to deprecate.
+   */
+  function deprecatePool(address pool) external onlyOwner {
+    if (!_deployedPools.contains(pool)) revert PoolNotFound();
+    if (_deprecatedPools[pool]) revert PoolAlreadyDeprecated();
+    _deprecatedPools[pool] = true;
+    emit PoolDeprecated(pool);
+  }
 
   /* ============================================================ */
   /* ===================== View Functions ======================= */
@@ -75,7 +91,7 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
   /// @inheritdoc IRPoolFactory
   function getOrPrecomputeProxyAddress(address token0, address token1) external view returns (address) {
     // If pool is already deployed, return its address
-    address existingPool = _pools[token0][token1];
+    address existingPool = _tokenPairToPool[token0][token1];
     if (existingPool != address(0)) {
       return existingPool;
     }
@@ -91,12 +107,38 @@ contract VirtualPoolFactory is IRPoolFactory, IVirtualPoolFactory, Ownable {
 
   /// @inheritdoc IRPoolFactory
   function isPool(address pool) external view returns (bool) {
-    return _isPool[pool];
+    return _deployedPools.contains(pool) && !_deprecatedPools[pool];
   }
 
   /// @inheritdoc IRPoolFactory
   function getPool(address token0, address token1) external view returns (address) {
-    return _pools[token0][token1];
+    return _tokenPairToPool[token0][token1];
+  }
+
+  /// @inheritdoc IVirtualPoolFactory
+  function getAllPools() external view returns (address[] memory activePools) {
+    address[] memory allPools = _deployedPools.values();
+    activePools = new address[](allPools.length);
+
+    uint256 activeCount = 0;
+    for (uint256 i = 0; i < allPools.length; i++) {
+      if (!_deprecatedPools[allPools[i]]) {
+        activePools[activeCount] = allPools[i];
+        activeCount++;
+      }
+    }
+
+    // Resize array to actual count
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      mstore(activePools, activeCount)
+    }
+  }
+
+  /// @inheritdoc IVirtualPoolFactory
+  function isPoolDeprecated(address pool) external view returns (bool) {
+    if (!_deployedPools.contains(pool)) revert PoolNotFound();
+    return _deprecatedPools[pool];
   }
 
   /* ============================================================ */
