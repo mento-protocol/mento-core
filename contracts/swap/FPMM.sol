@@ -457,6 +457,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   // solhint-disable code-complexity
   /// @inheritdoc IFPMM
   function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external nonReentrant {
+    _update();
     FPMMStorage storage $ = _getFPMMStorage();
 
     if (!$.liquidityStrategy[msg.sender]) revert NotLiquidityStrategy();
