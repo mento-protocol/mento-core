@@ -68,8 +68,6 @@ contract CDPFPMM_Test_SP_REBALANCE_FRONTRUN is
 
     $tokens.usdm.transfer(address($fpmm.fpmmCDP), 1);
     vm.prank(user);
-    // REBALANCE WILL REVERT WITH RebalanceDirectionInvalid()
-
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
   }
 }
