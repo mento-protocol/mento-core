@@ -469,8 +469,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(IERC20(token0).balanceOf(protocolFeeRecipient), 0);
     assertEq(IERC20(token1).balanceOf(protocolFeeRecipient), 0);
 
-    // There's a small loss of precision here on the lpFee side, so we end up paying slightly less than expected
-    uint256 expectedRepayInT1 = scaledLoan + feeScaled - 1;
+    uint256 expectedRepayInT1 = scaledLoan + feeScaled;
 
     FlashLoanReceiver(flashLoanReceiver).enableRepayExactAmounts(0, expectedRepayInT1 - 1);
     vm.expectRevert(IFPMM.ReserveValueDecreased.selector);

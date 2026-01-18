@@ -80,8 +80,8 @@ interface IFPMM is IRPool {
     uint256 amount1In;
     uint256 amount0Out;
     uint256 amount1Out;
-    uint256 balance0;
-    uint256 balance1;
+    uint256 newReserve0;
+    uint256 newReserve1;
     bool reservePriceAboveOraclePrice;
   }
 

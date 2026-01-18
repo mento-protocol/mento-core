@@ -465,26 +465,24 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     if (data.length > 0) IFPMMCallee(to).hook(msg.sender, amount0Out, amount1Out, data);
 
-    swapData.balance0 = IERC20($.token0).balanceOf(address(this));
-    swapData.balance1 = IERC20($.token1).balanceOf(address(this));
+    swapData.newReserve0 = IERC20($.token0).balanceOf(address(this));
+    swapData.newReserve1 = IERC20($.token1).balanceOf(address(this));
 
-    swapData.amount0In = swapData.balance0 > $.reserve0 - amount0Out
-      ? swapData.balance0 - ($.reserve0 - amount0Out)
+    swapData.amount0In = swapData.newReserve0 > $.reserve0 - amount0Out
+      ? swapData.newReserve0 - ($.reserve0 - amount0Out)
       : 0;
-    swapData.amount1In = swapData.balance1 > $.reserve1 - amount1Out
-      ? swapData.balance1 - ($.reserve1 - amount1Out)
+    swapData.amount1In = swapData.newReserve1 > $.reserve1 - amount1Out
+      ? swapData.newReserve1 - ($.reserve1 - amount1Out)
       : 0;
     // slither-disable-next-line incorrect-equality
     if (swapData.amount0In == 0 && swapData.amount1In == 0) revert InsufficientInputAmount();
 
+    _swapCheck(swapData);
     _transferProtocolFee(swapData.amount0In, swapData.amount1In);
+    _update();
 
     _applyTradingLimits($.token0, swapData.amount0In, swapData.amount0Out);
     _applyTradingLimits($.token1, swapData.amount1In, swapData.amount1Out);
-
-    _update();
-
-    _swapCheck(swapData);
 
     emit Swap(msg.sender, swapData.amount0In, swapData.amount1In, amount0Out, amount1Out, to);
   }
@@ -729,13 +727,13 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     if (fee == 0) return;
 
     if (amount0In > 0) {
-      uint256 feeAmount = (amount0In * fee) / BASIS_POINTS_DENOMINATOR;
-      IERC20($.token0).safeTransfer($.protocolFeeRecipient, feeAmount);
+      uint256 amount0InFee = (amount0In * fee) / BASIS_POINTS_DENOMINATOR;
+      IERC20($.token0).safeTransfer($.protocolFeeRecipient, amount0InFee);
     }
 
     if (amount1In > 0) {
-      uint256 feeAmount = (amount1In * fee) / BASIS_POINTS_DENOMINATOR;
-      IERC20($.token1).safeTransfer($.protocolFeeRecipient, feeAmount);
+      uint256 amount1InFee = (amount1In * fee) / BASIS_POINTS_DENOMINATOR;
+      IERC20($.token1).safeTransfer($.protocolFeeRecipient, amount1InFee);
     }
   }
 
@@ -869,56 +867,26 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     FPMMStorage storage $ = _getFPMMStorage();
 
     uint256 newReserveValue = _totalValueInToken1Scaled(
-      $.reserve0,
-      $.reserve1,
+      swapData.newReserve0,
+      swapData.newReserve1,
       swapData.rateNumerator,
       swapData.rateDenominator
     );
 
-    // TODO: think about rounding here
-    uint256 expectedAmount0In = _convertWithRate(
-      swapData.amount1Out,
-      $.decimals1,
-      $.decimals0,
-      swapData.rateDenominator,
-      swapData.rateNumerator
-    );
+    uint256 totalFeeBps = $.lpFee + $.protocolFee;
 
-    // TODO: think about rounding here
-    uint256 expectedAmount1In = _convertWithRate(
-      swapData.amount0Out,
-      $.decimals0,
-      $.decimals1,
-      swapData.rateNumerator,
-      swapData.rateDenominator
-    );
+    uint256 fee0 = (swapData.amount0Out * totalFeeBps) / (BASIS_POINTS_DENOMINATOR - totalFeeBps);
+    uint256 fee1 = (swapData.amount1Out * totalFeeBps) / (BASIS_POINTS_DENOMINATOR - totalFeeBps);
 
-    uint256 lpFeeBps = $.lpFee;
-    uint256 totalFeeBps = lpFeeBps + $.protocolFee;
-
-    uint256 fee0 = (expectedAmount0In * BASIS_POINTS_DENOMINATOR) /
-      (BASIS_POINTS_DENOMINATOR - totalFeeBps) -
-      expectedAmount0In;
-    uint256 fee1 = (expectedAmount1In * BASIS_POINTS_DENOMINATOR) /
-      (BASIS_POINTS_DENOMINATOR - totalFeeBps) -
-      expectedAmount1In;
-
-    fee0 = totalFeeBps > 0 ? (fee0 * lpFeeBps) / totalFeeBps : 0;
-    fee1 = totalFeeBps > 0 ? (fee1 * lpFeeBps) / totalFeeBps : 0;
-
-    uint256 fee0InToken1 = _convertWithRate(
+    // slither-disable-next-line divide-before-multiply
+    uint256 totalFeeInToken1 = (_convertWithRate(
       fee0,
       $.decimals0,
       $.decimals1,
       swapData.rateNumerator,
       swapData.rateDenominator
-    );
-    uint256 totalFeeInToken1 = fee0InToken1 + fee1;
-    // convert to 18 decimals
-    // slither-disable-next-line divide-before-multiply
-    totalFeeInToken1 = totalFeeInToken1 * (1e18 / $.decimals1);
+    ) + fee1) * (1e18 / $.decimals1);
 
-    // Check the reserve value is not decreased
     uint256 expectedReserveValue = swapData.initialReserveValue + totalFeeInToken1;
     if (newReserveValue < expectedReserveValue) revert ReserveValueDecreased();
   }

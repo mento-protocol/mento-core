@@ -565,4 +565,51 @@ contract FPMMSwapTest is FPMMBaseTest {
     fpmm.swap(0, 997, ALICE, "");
     vm.stopPrank();
   }
+
+  /// forge-config: default.fuzz.runs = 10000
+  function test_fuzz_token0_getAmountOutSwapRelation_withoutDeltaShouldSucceed(
+    uint256 amountIn
+  )
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity_withAmounts(1_000_000_000e18, 10_000_000e18)
+    withOracleRate(255050000000000, 1e18) // USDC/USD rate
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    amountIn = bound(amountIn, 0.0001e18, 9_900_000e18);
+
+    uint256 amountOut = fpmm.getAmountOut(amountIn, token0);
+    deal(token0, ALICE, amountIn);
+
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), amountIn);
+    fpmm.swap(0, amountOut, CHARLIE, "");
+    vm.stopPrank();
+
+    assertEq(IERC20(token1).balanceOf(CHARLIE), amountOut);
+  }
+
+  /// forge-config: default.fuzz.runs = 10000
+  function test_fuzz_token1_getAmountOutSwapRelation_withoutDeltaShouldSucceed(
+    uint256 amountIn
+  )
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity_withAmounts(400_000_000_000e18, 10_000_000e18)
+    withOracleRate(255050000000000, 1e18) // USDC/USD rate
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    amountIn = bound(amountIn, 0.0001e18, 9_900_000e18);
+    uint256 amountOut = fpmm.getAmountOut(amountIn, token1);
+    deal(token1, ALICE, amountIn);
+
+    vm.startPrank(ALICE);
+    IERC20(token1).transfer(address(fpmm), amountIn);
+    fpmm.swap(amountOut, 0, CHARLIE, "");
+    vm.stopPrank();
+
+    assertEq(IERC20(token0).balanceOf(CHARLIE), amountOut);
+  }
 }
