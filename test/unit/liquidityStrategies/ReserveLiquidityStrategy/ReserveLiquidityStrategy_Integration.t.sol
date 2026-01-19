@@ -192,11 +192,11 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
     addFpmm(0, 50, 50, 50, 50)
   {
     // total incentives are 0%, 0.5%, 1%
-    uint16[3] memory liquiditySourceIncentiveBps = [uint16(0), 25, 50]; // 0%, 0.25%, 0.5% liquidity source incentive
-    uint16[3] memory protocolIncentiveBps = [uint16(0), 25, 50]; // 0%, 0.25%, 0.5% protocol incentive
+    uint16[3] memory liquiditySourceIncentiveBpsCustom = [uint16(0), 25, 50]; // 0%, 0.25%, 0.5% liquidity source incentive
+    uint16[3] memory protocolIncentiveBpsCustom = [uint16(0), 25, 50]; // 0%, 0.25%, 0.5% protocol incentive
 
     LQ.Action memory prevAction;
-    for (uint256 i = 0; i < liquiditySourceIncentiveBps.length; i++) {
+    for (uint256 i = 0; i < liquiditySourceIncentiveBpsCustom.length; i++) {
       LQ.Context memory ctx = _createContext({
         reserveDen: 100e18,
         reserveNum: 150e18,
@@ -204,10 +204,10 @@ contract ReserveLiquidityStrategy_IntegrationTest is ReserveLiquidityStrategy_Ba
         oracleDen: 1e18,
         poolPriceAbove: true,
         incentives: LQ.RebalanceIncentives({
-          liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBps[i],
-          protocolIncentiveBpsExpansion: protocolIncentiveBps[i],
-          liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBps[i],
-          protocolIncentiveBpsContraction: protocolIncentiveBps[i]
+          liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsCustom[i],
+          protocolIncentiveBpsExpansion: protocolIncentiveBpsCustom[i],
+          liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsCustom[i],
+          protocolIncentiveBpsContraction: protocolIncentiveBpsCustom[i]
         })
       });
 

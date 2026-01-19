@@ -105,6 +105,17 @@ contract FPMMBaseTest is Test {
     _;
   }
 
+  modifier mintInitialLiquidity_withAmounts(uint256 amount0, uint256 amount1) {
+    deal(token0, address(fpmm), amount0);
+    deal(token1, address(fpmm), amount1);
+
+    vm.startPrank(ALICE);
+    fpmm.mint(ALICE);
+    vm.stopPrank();
+
+    _;
+  }
+
   modifier withFXMarketOpen(bool isFXMarketOpen) {
     bytes memory isFXMarketOpenCalldata = abi.encodeWithSelector(IMarketHoursBreaker.isFXMarketOpen.selector);
     vm.mockCall(marketHoursBreaker, isFXMarketOpenCalldata, abi.encode(isFXMarketOpen));
