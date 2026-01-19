@@ -16,7 +16,11 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   /* ====================== Hook Function ======================= */
   /* ============================================================ */
 
-  function test_hook_whenValidExpansionCallback_shouldExecuteCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_hook_whenValidExpansionCallback_shouldExecuteCorrectly()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     uint256 amountOwedToPool = 100e18;
     uint256 amount0Out = 0;
     uint256 amount1Out = 100e18; // collateral out
@@ -24,7 +28,6 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Expand,
         isToken0Debt: true,
         debtToken: debtToken,
@@ -32,9 +35,11 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
       })
     );
 
-    // Full amount to pool, no incentive splitting
-    // Order: collateral to reserve first, then debt to pool
-    expectERC20Transfer(collToken, address(reserve), amount1Out);
+    // transfer protocol incentive 50bps to protocol fee recipient
+    expectERC20Transfer(collToken, protocolFeeRecipient, (amount1Out * 50) / BPS_DENOMINATOR);
+    // transfer collateral to reserve this includes the liquiditySource incentive since reserve = liquiditySource
+    expectERC20Transfer(collToken, address(reserve), (amount1Out * 9950) / BPS_DENOMINATOR);
+    // mint debt token to pool
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
@@ -43,7 +48,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_whenValidContractionCallback_shouldExecuteCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     uint256 amountOwedToPool = 100e18; // collateral going into pool
     uint256 amount0Out = 100e18; // debt coming out of pool
@@ -52,7 +57,6 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Contract,
         isToken0Debt: true,
         debtToken: debtToken,
@@ -60,17 +64,19 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
       })
     );
 
-    // For contraction:
-    // - Full collateral amount goes to pool from reserve
-    // - Debt comes OUT of pool and gets burned
-
-    expectERC20Burn(debtToken, amount0Out);
+    // transfer protocol incentive 50bps to protocol fee recipient
+    expectERC20Transfer(debtToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
+    // transfer liquidity source incentive 50bps to reserve
+    expectERC20Transfer(debtToken, address(reserve), (amount0Out * 50) / BPS_DENOMINATOR);
+    // burn the remaining debt
+    expectERC20Burn(debtToken, (amount0Out * 9900) / BPS_DENOMINATOR);
+    // transfer collateral to pool
     expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
-  function test_hook_whenUntrustedPool_shouldRevert() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_hook_whenUntrustedPool_shouldRevert() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 50, 50, 50) {
     uint256 amountOwedToPool = 100e18;
     uint256 amount0Out = 0;
     uint256 amount1Out = 100e18;
@@ -78,7 +84,6 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Expand,
         isToken0Debt: true,
         debtToken: debtToken,
@@ -93,7 +98,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
-  function test_hook_whenInvalidSender_shouldRevert() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_hook_whenInvalidSender_shouldRevert() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 50, 50, 50) {
     uint256 amountOwedToPool = 100e18;
     uint256 amount0Out = 0;
     uint256 amount1Out = 100e18;
@@ -101,7 +106,6 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Expand,
         isToken0Debt: true,
         debtToken: debtToken,
@@ -114,7 +118,11 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     strategy.onRebalance(owner, amount0Out, amount1Out, hookData); // Wrong sender (should be strategy)
   }
 
-  function test_hook_whenReversedTokenOrder_shouldHandleCorrectly() public fpmmToken1Debt(18, 18) addFpmm(0, 100) {
+  function test_hook_whenReversedTokenOrder_shouldHandleCorrectly()
+    public
+    fpmmToken1Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     uint256 amountOwedToPool = 100e18;
     uint256 amount0Out = 100e18; // collateral out (token0 is collateral)
     uint256 amount1Out = 0;
@@ -122,15 +130,17 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Expand,
         isToken0Debt: false, // token1 is debt
         debtToken: debtToken,
         collToken: collToken
       })
     );
-
-    expectERC20Transfer(collToken, address(reserve), amount0Out);
+    // transfer protocol incentive 50bps to protocol fee recipient
+    expectERC20Transfer(collToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
+    // transfer collateral to reserve this includes the liquiditySource incentive since reserve = liquiditySource
+    expectERC20Transfer(collToken, address(reserve), (amount0Out * 9950) / BPS_DENOMINATOR);
+    // mint debt token to pool
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
@@ -143,7 +153,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_expansionCallback_whenToken0IsDebt_shouldMintAndTransferCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     uint256 amountOwedToPool = 200e18;
     uint256 amount0Out = 0;
@@ -152,15 +162,17 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Expand,
         isToken0Debt: true,
         debtToken: debtToken,
         collToken: collToken
       })
     );
-
-    expectERC20Transfer(collToken, address(reserve), amount1Out);
+    // transfer protocol incentive 50bps to protocol fee recipient
+    expectERC20Transfer(collToken, protocolFeeRecipient, (amount1Out * 50) / BPS_DENOMINATOR);
+    // transfer collateral to reserve this includes the liquiditySource incentive since reserve = liquiditySource
+    expectERC20Transfer(collToken, address(reserve), amount1Out - ((amount1Out * 50) / BPS_DENOMINATOR));
+    // mint debt token to pool
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
@@ -169,7 +181,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_expansionCallback_whenToken1IsDebt_shouldMintAndTransferCorrectly()
     public
     fpmmToken1Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     uint256 amountOwedToPool = 150e18;
     uint256 amount0Out = 150e18; // collateral out
@@ -178,15 +190,17 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Expand,
         isToken0Debt: false, // token1 is debt
         debtToken: debtToken,
         collToken: collToken
       })
     );
-
-    expectERC20Transfer(collToken, address(reserve), amount0Out);
+    // transfer protocol incentive 50bps to protocol fee recipient
+    expectERC20Transfer(collToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
+    // transfer collateral to reserve this includes the liquiditySource incentive since reserve = liquiditySource
+    expectERC20Transfer(collToken, address(reserve), amount0Out - ((amount0Out * 50) / BPS_DENOMINATOR));
+    // mint debt token to pool
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
@@ -199,7 +213,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_contractionCallback_whenToken0IsDebt_shouldBurnAndTransferCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     uint256 amountOwedToPool = 90e18; // collateral going into pool
     uint256 amount0Out = 90e18; // debt out
@@ -208,15 +222,19 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Contract,
         isToken0Debt: true,
         debtToken: debtToken,
         collToken: collToken
       })
     );
-
-    expectERC20Burn(debtToken, amount0Out);
+    // transfer protocol incentive 50bps to protocol fee recipient
+    expectERC20Transfer(debtToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
+    // transfer liquidity source incentive 50bps to reserve
+    expectERC20Transfer(debtToken, address(reserve), (amount0Out * 50) / BPS_DENOMINATOR);
+    // burn the remaining debt
+    expectERC20Burn(debtToken, (amount0Out * 9900) / BPS_DENOMINATOR);
+    // transfer collateral to pool
     expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
@@ -225,7 +243,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_contractionCallback_whenToken1IsDebt_shouldBurnAndTransferCorrectly()
     public
     fpmmToken1Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     uint256 amountOwedToPool = 75e18; // collateral going into pool
     uint256 amount0Out = 0;
@@ -234,15 +252,19 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Contract,
         isToken0Debt: false, // token1 is debt
         debtToken: debtToken,
         collToken: collToken
       })
     );
-
-    expectERC20Burn(debtToken, amount1Out);
+    // transfer protocol incentive 50bps to protocol fee recipient
+    expectERC20Transfer(debtToken, protocolFeeRecipient, (amount1Out * 50) / BPS_DENOMINATOR);
+    // transfer liquidity source incentive 50bps to reserve
+    expectERC20Transfer(debtToken, address(reserve), (amount1Out * 50) / BPS_DENOMINATOR);
+    // burn the remaining debt
+    expectERC20Burn(debtToken, (amount1Out * 9900) / BPS_DENOMINATOR);
+    // transfer collateral to pool
     expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
@@ -251,7 +273,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_contractionCallback_whenReserveTransferFails_shouldRevert()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     uint256 amountOwedToPool = 60e18; // collateral going into pool
     uint256 amount0Out = 60e18; // debt out
@@ -260,7 +282,6 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 100,
         dir: LQ.Direction.Contract,
         isToken0Debt: true,
         debtToken: debtToken,
@@ -280,7 +301,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   /* ==================== Edge Case Tests ====================== */
   /* ============================================================ */
 
-  function test_hook_withZeroIncentive_shouldExecuteCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 0) {
+  function test_hook_withZeroIncentive_shouldExecuteCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 0, 0, 0, 0) {
     uint256 amountOwedToPool = 100e18;
     uint256 amount0Out = 0;
     uint256 amount1Out = 100e18; // collateral out
@@ -288,7 +309,6 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 0,
         dir: LQ.Direction.Expand,
         isToken0Debt: true,
         debtToken: debtToken,
@@ -303,7 +323,11 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
-  function test_hook_withMaxIncentive_shouldExecuteCorrectly() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_hook_withMaxIncentive_shouldExecuteCorrectly()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     uint256 amountOwedToPool = 1e18; // collateral going into pool
     uint256 amount0Out = 1e18; // debt out
     uint256 amount1Out = 0;
@@ -311,7 +335,6 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     bytes memory hookData = abi.encode(
       LQ.CallbackData({
         amountOwedToPool: amountOwedToPool,
-        incentiveBps: 10000, // 100% = 10000 bps
         dir: LQ.Direction.Contract,
         isToken0Debt: true,
         debtToken: debtToken,
@@ -319,8 +342,13 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
       })
     );
 
-    // Full amount goes to pool
-    expectERC20Burn(debtToken, amount0Out);
+    // transfer protocol incentive 50bps to protocol fee recipient
+    expectERC20Transfer(debtToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
+    // transfer liquidity source incentive 50bps to reserve
+    expectERC20Transfer(debtToken, address(reserve), (amount0Out * 50) / BPS_DENOMINATOR);
+    // burn the remaining debt
+    expectERC20Burn(debtToken, (amount0Out * 9900) / BPS_DENOMINATOR);
+    // transfer collateral to pool
     expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);

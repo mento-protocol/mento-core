@@ -118,4 +118,30 @@ contract FPMMGettersTest is FPMMBaseTest {
     assertEq(priceDifference, 0);
     assertEq(reservePriceAboveOraclePrice, false);
   }
+
+  function test_getPrices2_whenReferenceRateSet_shouldReturnCorrectData()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(25e23, 1e24)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    (
+      uint256 targetNumerator,
+      uint256 targetDenominator,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      bool reservePriceAboveOraclePrice,
+      uint16 rebalanceThreshold,
+      uint256 priceDifference
+    ) = fpmm.getRebalancingState();
+    assertEq(targetNumerator, 25e17);
+    assertEq(targetDenominator, 1e18);
+    assertEq(reservePriceNumerator, 200e18);
+    assertEq(reservePriceDenominator, 100e18);
+    assertEq(reservePriceAboveOraclePrice, false);
+    assertEq(uint256(rebalanceThreshold), 500);
+    assertEq(priceDifference, 2000);
+  }
 }

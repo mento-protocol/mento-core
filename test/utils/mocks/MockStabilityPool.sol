@@ -3,15 +3,20 @@ pragma solidity 0.8.24;
 
 import { MockERC20 } from "./MockERC20.sol";
 
+import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
+
 contract MockStabilityPool {
   address public debtToken;
   address public collToken;
   uint256 public MIN_BOLD_AFTER_REBALANCE;
   uint256 internal totalBoldDeposits;
 
-  constructor(address _debtToken, address _collToken) {
+  ISystemParams public systemParams;
+
+  constructor(address _debtToken, address _collToken, address _systemParams) {
     debtToken = _debtToken;
     collToken = _collToken;
+    systemParams = ISystemParams(_systemParams);
   }
 
   function setMIN_BOLD_AFTER_REBALANCE(uint256 _MIN_BOLD_AFTER_REBALANCE) external {

@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import { LiquidityStrategy } from "contracts/liquidityStrategies/LiquidityStrategy.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
@@ -62,8 +63,8 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
   /* =============== Public Pool Management Functions =========== */
   /* ============================================================ */
 
-  function addPool(address pool, address debtToken, uint64 cooldown, uint32 incentiveBps) external onlyOwner {
-    LiquidityStrategy._addPool(pool, debtToken, cooldown, incentiveBps);
+  function addPool(ILiquidityStrategy.AddPoolParams calldata params) external onlyOwner {
+    LiquidityStrategy._addPool(params);
   }
 
   function removePool(address pool) external onlyOwner {
@@ -85,7 +86,9 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
       collateralToPay = ctx.convertToCollateralWithFee(
         debtToExpand,
         LQ.BASIS_POINTS_DENOMINATOR,
-        LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps
+        LQ.BASIS_POINTS_DENOMINATOR -
+          ctx.incentives.liquiditySourceIncentiveBpsExpansion -
+          ctx.incentives.protocolIncentiveBpsExpansion
       );
     } else {
       debtToExpand = idealDebtToExpand;

@@ -16,10 +16,10 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
   /* ============= Expansion Token 0 Debt Tests ================ */
   /* ============================================================ */
 
-  function test_determineAction_whenToken0DebtPoolPriceAboveAndEnoughLiquidity_shouldExpandToOraclePrice()
+  function test_determineAction_whenToken0DebtPoolPriceAboveAndEnoughLiquidity_shouldExpandToRebalanceThreshold()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 9000)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
   {
     // Setup: Pool price above oracle (excess collateral scenario for token0 debt)
     LQ.Context memory ctx = _createContextWithTokenOrder({
@@ -28,8 +28,13 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 50,
-      isToken0Debt: true
+      isToken0Debt: true,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
 
     // Set stability pool balance high enough to cover full expansion
@@ -45,7 +50,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     );
 
     assertTrue(poolPriceAboveBefore, "Pool price should be above oracle");
-    assertGt(priceDiffBefore, 0, "Price difference should be positive");
+    assertGt(priceDiffBefore, 500, "Price difference should be greater than rebalance threshold");
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
@@ -65,22 +70,21 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       reserve0After
     );
 
-    assertEq(priceDiffAfter, 0, "Price difference should be zero after expansion");
+    assertEq(priceDiffAfter, 500, "Price difference should be equal to rebalance threshold");
     assertIncentive(
-      ctx.incentiveBps,
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
       false,
       action.amount1Out,
       action.amountOwedToPool,
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
+      ctx.prices.oracleDen
     );
   }
 
   function test_determineAction_whenToken0DebtPoolPriceAboveAndInsufficientLiquidity_shouldExpandPartially()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 9000)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
   {
     // Setup: Pool price above oracle but stability pool has limited funds
     LQ.Context memory ctx = _createContextWithTokenOrder({
@@ -89,8 +93,13 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 50,
-      isToken0Debt: true
+      isToken0Debt: true,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
 
     setMockSystemParamsMinBoldAfterRebalance(1e18);
@@ -106,7 +115,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     );
 
     assertTrue(poolPriceAboveBefore, "Pool price should be above oracle");
-    assertGt(priceDiffBefore, 0, "Price difference should be positive");
+    assertGt(priceDiffBefore, 500, "Price difference should be greater than rebalance threshold");
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
@@ -127,17 +136,21 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     // Price should improve but not reach zero due to limited liquidity
     assertLt(priceDiffAfter, priceDiffBefore, "Price difference should decrease");
-    assertGt(priceDiffAfter, 0, "Price difference should still be positive (partial expansion)");
+    assertGt(
+      priceDiffAfter,
+      500,
+      "Price difference should still be greater than rebalance threshold (partial expansion)"
+    );
   }
 
   /* ============================================================ */
   /* ============= Expansion Token 1 Debt Tests ================= */
   /* ============================================================ */
 
-  function test_determineAction_whenToken1DebtPoolPriceBelowAndEnoughLiquidity_shouldExpandToOraclePrice()
+  function test_determineAction_whenToken1DebtPoolPriceBelowAndEnoughLiquidity_shouldExpandToRebalanceThreshold()
     public
     fpmmToken1Debt(6, 18)
-    addFpmm(0, 50, 9000)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
   {
     uint256 reserve0 = 1_300_000 * 1e18; // usdm
     uint256 reserve1 = 1_000_000 * 1e6; // eurm
@@ -149,8 +162,13 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 50,
-      isToken0Debt: false
+      isToken0Debt: false,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
 
     // Set stability pool balance high enough to cover full expansion
@@ -166,7 +184,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     );
 
     assertFalse(poolPriceAboveBefore, "Pool price should be below oracle");
-    assertGt(priceDiffBefore, 0, "Price difference should be positive");
+    assertGt(priceDiffBefore, 500, "Price difference should be greater than rebalance threshold");
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
@@ -179,29 +197,29 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
     uint256 reserve1After = ctx.reserves.reserveNum + action.amountOwedToPool * 1e12;
 
-    (uint256 priceDiffAfter, ) = calculatePriceDifference(
+    (uint256 priceDiffAfter, bool poolPriceAboveAfter) = calculatePriceDifference(
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
       reserve1After,
       reserve0After
     );
 
-    assertEq(priceDiffAfter, 0, "Price difference should be zero after expansion");
+    assertEq(priceDiffAfter, 500, "Price difference should be at rebalance threshold after expansion");
+    assertFalse(poolPriceAboveAfter, "Pool price should be still below oracle");
     assertIncentive(
-      ctx.incentiveBps,
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
       true,
       action.amount0Out,
       action.amountOwedToPool * 1e12,
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
+      ctx.prices.oracleDen
     );
   }
 
   function test_determineAction_whenToken1DebtPoolPriceBelowAndInsufficientLiquidity_shouldExpandPartially()
     public
     fpmmToken1Debt(6, 18)
-    addFpmm(0, 50, 9000)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
   {
     uint256 reserve0 = 1_300_000 * 1e18; // usdm
     uint256 reserve1 = 1_000_000 * 1e6; // eurm
@@ -212,8 +230,13 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 50,
-      isToken0Debt: false
+      isToken0Debt: false,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
     setMockSystemParamsMinBoldAfterRebalance(1e6);
     uint256 limitedBalance = calculateTargetStabilityPoolBalance(0.6e18, ctx);
@@ -227,7 +250,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     );
 
     assertFalse(poolPriceAboveBefore, "Pool price should be below oracle");
-    assertGt(priceDiffBefore, 0, "Price difference should be positive");
+    assertGt(priceDiffBefore, 500, "Price difference should be greater than rebalance threshold");
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
@@ -240,7 +263,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     uint256 reserve0After = ctx.reserves.reserveDen - action.amount0Out;
     uint256 reserve1After = ctx.reserves.reserveNum + action.amountOwedToPool * 1e12;
 
-    (uint256 priceDiffAfter, ) = calculatePriceDifference(
+    (uint256 priceDiffAfter, bool poolPriceAboveAfter) = calculatePriceDifference(
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
       reserve1After,
@@ -249,7 +272,20 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
 
     // Price should improve but not reach zero due to limited liquidity
     assertLt(priceDiffAfter, priceDiffBefore, "Price difference should decrease");
-    assertGt(priceDiffAfter, 0, "Price difference should still be positive (partial expansion)");
+    assertFalse(poolPriceAboveAfter, "Pool price should be still below oracle");
+    assertGt(
+      priceDiffAfter,
+      500,
+      "Price difference should still be greater than rebalance threshold (partial expansion)"
+    );
+    assertIncentive(
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
+      true,
+      action.amount0Out,
+      action.amountOwedToPool * 1e12,
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen
+    );
   }
 
   /* ============================================================ */
@@ -259,7 +295,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
   function test_determineAction_whenStabilityPoolAtMinimum_shouldNotExpand()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 9000)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
   {
     // Setup: Pool needs expansion but stability pool is at minimum
     LQ.Context memory ctx = _createContext({
@@ -268,7 +304,12 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 50
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
 
     // Set stability pool balance exactly at minimum
@@ -284,7 +325,7 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
   function test_determineAction_whenStabilityPoolPercentageLimitsExpansion_shouldExpandToLimit()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 5000) // 50% stability pool percentage
+    addFpmm(0, 5000, 100, 25, 25, 25, 25) // 50% stability pool percentage
   {
     // Setup: Large stability pool but limited by percentage
     LQ.Context memory ctx = _createContext({
@@ -293,11 +334,16 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 50
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
 
     // Set large stability pool balance
-    setStabilityPoolBalance(debtToken, 10_000_000e18);
+    setStabilityPoolBalance(debtToken, 400_000e18);
     setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     LQ.Action memory action = strategy.determineAction(ctx);
@@ -305,8 +351,8 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
     assertEq(action.dir, LQ.Direction.Expand, "Should expand");
 
     // The expansion should be limited by the 50% stability pool percentage
-    uint256 maxAllowed = (10_000_000e18 * 5000) / 10_000;
-    assertLe(action.amountOwedToPool, maxAllowed, "Expansion should respect stability pool percentage limit");
+    uint256 maxAllowed = (400_000e18 * 5000) / 10_000;
+    assertEq(action.amountOwedToPool, maxAllowed, "Expansion should respect stability pool percentage limit");
   }
 
   /* ---------- Determine Action Math Tests ---------- */
@@ -315,10 +361,10 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
   /* ================ Expansion Full liquidity ================== */
   /* ============================================================ */
 
-  function test_whenToken0DebtPoolPriceAboveAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToOraclePrice()
+  function test_whenToken0DebtPoolPriceAboveAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToRebalanceThreshold()
     public
     fpmmToken0Debt(18, 6)
-    addFpmm(0, 50, 9000)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
   {
     LQ.Context memory ctx = _createContextWithTokenOrder({
       reserveDen: 1_000_000e18,
@@ -326,29 +372,60 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 999884980000000000,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 50,
-      isToken0Debt: true
+      isToken0Debt: true,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
+
+    (uint256 priceDiffBefore, bool poolPriceAboveBefore) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum,
+      ctx.reserves.reserveDen
+    );
+    assertTrue(poolPriceAboveBefore, "Pool price should be above oracle");
+    assertGt(priceDiffBefore, 500, "Price difference should be greater than rebalance threshold");
 
     // enough to cover the full expansion
     setStabilityPoolBalance(debtToken, 1_000_000e18);
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    // amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 250684.220551
-    uint256 expectedAmount1Out = 250684220551;
+    // amount out in token1 := (RN * TD - TN * RD) / (TD + TN * (1 - i) * OD/ON) = 220134.867832
+    uint256 expectedAmount1Out = 220134867832;
     uint256 expectedAmount0Out = 0;
-    // input amount in token 0 := (amountOut * OD * (1-i))/ON = 249459.492279046935978576
-    uint256 expectedAmountOwedToPool = 249459492279046935978576;
+    // input amount in token 0 := (amountOut * OD * (1-i))/ON = 219059.389703843736106526
+    uint256 expectedAmountOwedToPool = 219059389703843736106526;
+
+    (uint256 priceDiffAfter, bool poolPriceAboveAfter) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum - action.amount1Out * (1e18 / ctx.token1Dec),
+      ctx.reserves.reserveDen + action.amountOwedToPool
+    );
+    assertTrue(poolPriceAboveAfter, "Pool price should be above oracle");
+    assertEq(priceDiffAfter, 500, "Price difference should be equal to rebalance threshold");
 
     assertEq(action.amount1Out, expectedAmount1Out);
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertIncentive(
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
+      false,
+      action.amount1Out * (1e18 / ctx.token1Dec),
+      action.amountOwedToPool,
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen
+    );
   }
 
-  function test_whenToken1DebtPoolPriceBelowAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToOraclePrice()
+  function test_whenToken1DebtPoolPriceBelowAndEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceBackToRebalanceThreshold()
     public
     fpmmToken1Debt(6, 18)
-    addFpmm(0, 50, 9000)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
   {
     uint256 reserve0 = 1_300_000 * 1e18; // usdm
     uint256 reserve1 = 1_000_000 * 1e6; // eurm
@@ -358,34 +435,64 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 863549230000000000,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 50,
-      isToken0Debt: false
+      isToken0Debt: false,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
 
     // enough to cover the full expansion
     setStabilityPoolBalance(debtToken, 1_000_000 * 1e6);
+    (uint256 priceDiffBefore, bool poolPriceAboveBefore) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum,
+      ctx.reserves.reserveDen
+    );
+    assertFalse(poolPriceAboveBefore, "Pool price should be below oracle");
+    assertGt(priceDiffBefore, 500, "Price difference should be greater than rebalance threshold");
+
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    // amount out in token 0 := (ON*RD-OD*RN)/(ON*(2-i)) = 71172.145133890686084197
-    uint256 expectedAmount0Out = 71172145133890686084197;
+    // amount out in token 0 := (TN * RD - RN * TD) / (TN + TD * (1 - i) * ON/OD) = 39582.740124479135597930
+    uint256 expectedAmount0Out = 39582740124479135597930;
     uint256 expectedAmount1Out = 0;
-    // input amount in token 1 := (amountOut * ON * (1-i))/OD = 61153.347872
+    // input amount in token 1 := (amountOut * OD * (1-i))/ON = 34010.736532
+    uint256 expectedAmountOwedToPool = 34010736532;
 
-    uint256 expectedAmountOwedToPool = 61153347872;
+    (uint256 priceDiffAfter, bool poolPriceAboveAfter) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum + action.amountOwedToPool * (1e18 / ctx.token1Dec),
+      ctx.reserves.reserveDen - action.amount0Out
+    );
+    assertFalse(poolPriceAboveAfter, "Pool price should be below oracle");
+    assertEq(priceDiffAfter, 500, "Price difference should be equal to rebalance threshold");
 
     assertEq(action.amount1Out, expectedAmount1Out);
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertIncentive(
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
+      true,
+      action.amount0Out,
+      action.amountOwedToPool * (1e18 / ctx.token1Dec),
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen
+    );
   }
 
   /* ============================================================ */
   /* ============== Expansion Partial liquidity ================= */
   /* ============================================================ */
 
-  function test_determineAction_whenToken0DebtPoolPriceAboveAndNotEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceCloserToOraclePrice()
+  function test_determineAction_whenToken0DebtPoolPriceAboveAndNotEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceCloserToRebalanceThreshold()
     public
     fpmmToken0Debt(18, 6)
-    addFpmm(0, 50, 9000)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
   {
     uint256 reserve0 = 1_000_000 * 1e18; // usdfx
     uint256 reserve1 = 1_500_000 * 1e6; // usdc
@@ -396,34 +503,64 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 999884980000000000, // USDC/USD rate
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 50,
-      isToken0Debt: true
+      isToken0Debt: true,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
 
     // enough to cover 90% of the target amount
     uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.9e18, ctx);
     setStabilityPoolBalance(debtToken, stabilityPoolBalance);
-    LQ.Action memory action = strategy.determineAction(ctx);
+    (uint256 priceDiffBefore, bool poolPriceAboveBefore) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum,
+      ctx.reserves.reserveDen
+    );
+    assertTrue(poolPriceAboveBefore, "Pool price should be above oracle");
+    assertGt(priceDiffBefore, 500, "Price difference should be greater than rebalance threshold");
 
-    // target amount out in token 1 := (OD*RN - ON*RD)/(OD*(2-i)) = 250684.220551
+    LQ.Action memory action = strategy.determineAction(ctx);
+    (uint256 priceDiffAfter, bool poolPriceAboveAfter) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum - action.amount1Out * (1e18 / ctx.token1Dec),
+      ctx.reserves.reserveDen + action.amountOwedToPool
+    );
+    assertTrue(poolPriceAboveAfter, "Pool price should be above oracle");
+    assertGt(priceDiffAfter, 500, "Price difference should be greater than rebalance threshold (partial expansion)");
+
+    // target amount out in token1 := (RN * TD - TN * RD) / (TD + TN * (1 - i) * OD/ON) = 220134.867832
     // since we only have limited liquidity:
-    // amount out in token 1 := (224513.5430511422423807184 * ON * 1) / (OD * (1-i)) = 225615.798495
-    uint256 expectedAmount1Out = 225615798495;
+    // amount out in token1 := (197153450733459362495873 * ON * 1) / (OD * (1-i)) = 198121.381048
+    uint256 expectedAmount1Out = 198121381048;
     uint256 expectedAmount0Out = 0;
-    // input amount in token 0 := (amountOut * OD * (1-i))/ON = 249459.492279046935978576
-    // available stability pool balance = 249459.492279046935978576 * 0.9 = 224513.5430511422423807184
-    uint256 expectedAmountOwedToPool = 224513543051142242380718;
+    // target input amount in token 0 := (amountOut * OD * (1-i))/ON = 219059.389703843736106526
+    // available stability pool balance = 219059389703843736106526 * 0.9 = 197153.450733459362495873
+    uint256 expectedAmountOwedToPool = 197153450733459362495873;
 
     // since we only have liquidity for 90% of the target amount, the input amount should be 90% of the target amount
     assertEq(action.amount1Out, expectedAmount1Out);
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertIncentive(
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
+      false,
+      action.amount1Out * (1e18 / ctx.token1Dec),
+      action.amountOwedToPool,
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen
+    );
   }
 
-  function test_determineAction_whenToken1DebtPoolPriceBelowAndNotEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceCloserToOraclePrice()
+  function test_determineAction_whenToken1DebtPoolPriceBelowAndNotEnoughLiquidityInStabilityPool_shouldExpandAndBringPriceCloserToRebalanceThreshold()
     public
     fpmmToken1Debt(6, 18)
-    addFpmm(0, 50, 9000)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
   {
     uint256 reserve0 = 1_300_000 * 1e18; // usdm
     uint256 reserve1 = 1_000_000 * 1e6; // eurm
@@ -434,26 +571,58 @@ contract CDPLiquidityStrategy_ActionExpansionTest is CDPLiquidityStrategy_BaseTe
       oracleNum: 863549230000000000, // USD/EUR rate
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 50,
-      isToken0Debt: false
+      isToken0Debt: false,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25,
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25
+      })
     });
 
     // enough to cover 90% of the target amount
     uint256 stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.9e18, ctx);
     setStabilityPoolBalance(debtToken, stabilityPoolBalance);
+
+    (uint256 priceDiffBefore, bool poolPriceAboveBefore) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum,
+      ctx.reserves.reserveDen
+    );
+    assertFalse(poolPriceAboveBefore, "Pool price should be below oracle");
+    assertGt(priceDiffBefore, 500, "Price difference should be greater than rebalance threshold");
+
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    // amount out in token 0 := (ON*RD-OD*RN)/(ON*(2-i)) = 71172.145133890686084197
+    (uint256 priceDiffAfter, bool poolPriceAboveAfter) = calculatePriceDifference(
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen,
+      ctx.reserves.reserveNum + action.amountOwedToPool * (1e18 / ctx.token0Dec),
+      ctx.reserves.reserveDen - action.amount0Out
+    );
+    assertFalse(poolPriceAboveAfter, "Pool price should be below oracle");
+    assertGt(priceDiffAfter, 500, "Price difference should be greater than rebalance threshold (partial expansion)");
+
+    // amount out in token 0 := (RN * TD - TN * RD) / (TD + TN * (1 - i) * OD/ON) = 39582.740124479135597930
     // since we only have limited liquidity:
-    // amount out in token 0 := (55038013084 * OD * 1) / (ON * (1-i)) = 64054.930619381539786439
-    uint256 expectedAmount0Out = 64054930619381539786439;
+    // amount out in token 0 := (30609.662878 * OD * 1) / (ON * (1-i)) = 35624.466111094772123904
+    uint256 expectedAmount0Out = 35624466111094772123904;
     uint256 expectedAmount1Out = 0;
-    // input amount in token 1 := (amountOut * ON * (1-i))/OD = 61153.347872
-    // available stability pool balance =  61153.347872 * 0.9 = 55038.013084
-    uint256 expectedAmountOwedToPool = 55038013084;
+    // target input amount in token 1 := (amountOut * ON * (1-i))/OD = 34010.736532
+    // available stability pool balance =  34010.736532 * 0.9 = 30609.662878
+    uint256 expectedAmountOwedToPool = 30609662878;
 
     assertEq(action.amount1Out, expectedAmount1Out);
     assertEq(action.amount0Out, expectedAmount0Out);
     assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
+    assertIncentive(
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
+      true,
+      action.amount0Out,
+      action.amountOwedToPool * (1e18 / ctx.token1Dec),
+      ctx.prices.oracleNum,
+      ctx.prices.oracleDen
+    );
   }
 }

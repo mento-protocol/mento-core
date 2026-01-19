@@ -41,12 +41,9 @@ interface IReserveLiquidityStrategy is ILiquidityStrategy {
 
   /**
    * @notice Adds a new liquidity pool to be managed by the strategy
-   * @param pool The address of the FPMM pool to add
-   * @param debtToken The address of the debt token (stable asset)
-   * @param cooldown The cooldown period between rebalances in seconds
-   * @param incentiveBps The rebalance incentive in basis points
+   * @param params The parameters for adding a pool
    */
-  function addPool(address pool, address debtToken, uint64 cooldown, uint32 incentiveBps) external;
+  function addPool(AddPoolParams calldata params) external;
 
   /**
    * @notice Removes a pool from the strategy

@@ -60,6 +60,13 @@ contract MockERC20 is IERC20 {
     return true;
   }
 
+  function transferFromWithoutAllowance(address from, address to, uint256 amount) external returns (bool) {
+    balanceOf[from] -= amount;
+    balanceOf[to] += amount;
+    emit Transfer(from, to, amount);
+    return true;
+  }
+
   function mint(address to, uint256 amount) external {
     emit MintCalled(msg.sender, to, amount);
     balanceOf[to] += amount;

@@ -39,9 +39,8 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
   struct CDPConfig {
     address stabilityPool;
     address collateralRegistry;
-    address systemParams;
-    uint256 stabilityPoolPercentage;
-    uint256 maxIterations;
+    uint16 stabilityPoolPercentage;
+    uint16 maxIterations;
   }
 
   /* ============================================================ */
@@ -50,27 +49,10 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
 
   /**
    * @notice Adds a new liquidity pool to be managed by the CDP strategy
-   * @param pool The address of the FPMM pool to add
-   * @param debtToken The address of the debt token (stable asset)
-   * @param cooldown The cooldown period between rebalances in seconds
-   * @param incentiveBps The rebalance incentive in basis points
-   * @param stabilityPool The address of the stability pool for this debt token
-   * @param collateralRegistry The address of the collateral registry for redemptions
-   * @param systemParams The address of the system params contract for reading redemption beta
-   * @param stabilityPoolPercentage The percentage of stability pool balance to use (in bps)
-   * @param maxIterations The maximum number of iterations for redemption operations
+   * @param params The parameters for adding a pool
+   * @param config The CDP configuration
    */
-  function addPool(
-    address pool,
-    address debtToken,
-    uint64 cooldown,
-    uint32 incentiveBps,
-    address stabilityPool,
-    address collateralRegistry,
-    address systemParams,
-    uint256 stabilityPoolPercentage,
-    uint256 maxIterations
-  ) external;
+  function addPool(AddPoolParams calldata params, CDPConfig calldata config) external;
 
   /**
    * @notice Removes a pool from the strategy

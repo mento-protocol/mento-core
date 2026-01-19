@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-
+// solhint-disable max-line-length
 pragma solidity 0.8.24;
 
 import { TokenDeployer } from "test/integration/v3/TokenDeployer.sol";
@@ -18,26 +18,68 @@ abstract contract CDPFPMM_BaseTest is
   LiquityDeployer
 {
   address reserveMultisig = makeAddr("reserveMultisig");
+}
+
+contract CDPFPMM_Token0Debt_Test is CDPFPMM_BaseTest {
+  function setUp() public {
+    _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
+    _deployOracleAdapter();
+    _deployMentoV2();
+    _deployLiquidityStrategies();
+    _deployFPMM({ invertCDPFPMMRate: true, invertReserveFPMMRate: false });
+    _deployLiquity();
+    _configureCDPLiquidityStrategy({
+      cooldown: 60,
+      stabilityPoolPercentage: 9000, // 90%
+      maxIterations: 100,
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25,
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25
+    });
+    _configureReserveLiquidityStrategy({
+      cooldown: 0,
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25,
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25
+    });
+    // skip 20 days to allow the base rate to decay
+    skip(20 days);
+    _refreshOracleRates();
+    _checkSetup();
+  }
 
   function test_expansion() public {
     // Price is 2:1
     _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
-    _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // EUR.m
+    _mintCDPDebtToken(reserveMultisig, 15_000_000e18); // EUR.m
 
     _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 3_000_000e18, 10_000_000e18);
 
     vm.prank(reserveMultisig);
-    $liquity.stabilityPool.provideToSP(5_000_000e18, false);
+    $liquity.stabilityPool.provideToSP(10_000_000e18, false);
+
+    FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+    assertTrue(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be above oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
+    );
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
     (uint256 fpmmDebtAfter, uint256 fpmmCollAfter) = _fpmmReserves($fpmm.fpmmCDP);
+    FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
+    assertTrue(pricesAfter.reservePriceAboveOraclePrice, "Reserve price should be still above oracle price");
+    assertEq(pricesAfter.priceDifference, 500, "Expansion should always rebalance perfectly towards the threshold");
 
-    // amountGivenToPool: 4500000000000000000000000
-    // debt = 3_000_000e18 + 4500000000000000000000000
-    // coll = 10_000_000e18 - 4500000000000000000000000 / 2 * 9950 / 10_000
-    assertEq(fpmmDebtAfter, 3_000_000e18 + 4500000000000000000000000);
-    assertEq(fpmmCollAfter, 10_000_000e18 - uint256((4500000000000000000000000 / 2) * 10000) / 9950);
+    // amountTakenFromPool: 4120308106125443208216163
+    // debt = 3_000_000e18 + 4120308106125443208216163 * 2 * 9950 / 10000
+    // coll = 10_000_000e18 - 4120308106125443208216163
+    assertEq(fpmmCollAfter, 10_000_000e18 - 4120308106125443208216163);
+    assertEq(fpmmDebtAfter, 3_000_000e18 + uint256(4120308106125443208216163 * 2 * 9950) / 10000);
   }
 
   function test_clampedExpansion() public {
@@ -50,18 +92,32 @@ abstract contract CDPFPMM_BaseTest is
     vm.prank(reserveMultisig);
     $liquity.stabilityPool.provideToSP(500_000e18, false);
 
+    FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+    assertTrue(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be above oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
+    );
+
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
     (uint256 fpmmDebtAfter, uint256 fpmmCollAfter) = _fpmmReserves($fpmm.fpmmCDP);
+    FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
+    assertTrue(pricesAfter.reservePriceAboveOraclePrice, "Reserve price should be still above oracle price");
+    assertGt(
+      pricesAfter.priceDifference,
+      500,
+      "Price difference should be more then then threshold away from oracle price due to clamping"
+    );
 
-    // amountGivenToPool: 450000000000000000000000
+    // amountGivenToPool: 450000000000000000000000 (clamped)
     // debt = 3_000_000e18 + 450000000000000000000000
     // coll = 10_000_000e18 - 450000000000000000000000 / 2 * 9950 / 10_000
     assertEq(fpmmDebtAfter, 3_000_000e18 + 450000000000000000000000);
     assertEq(fpmmCollAfter, 10_000_000e18 - uint256((450000000000000000000000 / 2) * 10000) / 9950);
   }
 
-  /// forge-config: default.fuzz.runs = 10000
   function testFuzz_expansionIntegrationTest(uint256 fpmmDebt, uint256 fpmmColl, uint256 spDebt) public {
     fpmmDebt = bound(fpmmDebt, 3000e18, 100_000_000e18);
     fpmmColl = bound(fpmmColl, (fpmmDebt * 25) / 10, 1_000_000_000e18);
@@ -72,6 +128,13 @@ abstract contract CDPFPMM_BaseTest is
 
     _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, fpmmDebt, fpmmColl);
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+
+    assertTrue(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be above oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
+    );
 
     // bound spDebt to be at least 1% of fpmmColl and at most the total fpmm collateral reserve
     spDebt = bound(spDebt, $liquity.systemParams.MIN_BOLD_AFTER_REBALANCE() + (fpmmColl * 5) / 100, fpmmColl);
@@ -86,6 +149,9 @@ abstract contract CDPFPMM_BaseTest is
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
     FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
+    assertTrue(pricesAfter.reservePriceAboveOraclePrice, "Reserve price should be still above oracle price");
+    assertLt(pricesAfter.priceDifference, pricesBefore.priceDifference, "Expansion should reduce price difference");
+
     uint256 spDebtBalanceAfter = $tokens.eurm.balanceOf(address($liquity.stabilityPool));
     uint256 spCollBalanceAfter = $tokens.usdm.balanceOf(address($liquity.stabilityPool));
 
@@ -101,40 +167,21 @@ abstract contract CDPFPMM_BaseTest is
       assertLt(pricesAfter.priceDifference, pricesBefore.priceDifference, "Expansion should reduce price difference");
     }
 
-    bool isDebtToken0 = $fpmm.fpmmCDP.token0() == address($tokens.eurm);
-    if (isDebtToken0) {
-      assertGt(
-        pricesAfter.reservePriceDenominator,
-        pricesBefore.reservePriceDenominator,
-        "There should be more of asset0 (debt)"
-      );
-      assertLt(
-        pricesAfter.reservePriceNumerator,
-        pricesBefore.reservePriceNumerator,
-        "There should be less of asset1 (coll)"
-      );
-      assertEq(
-        pricesAfter.reservePriceDenominator - pricesBefore.reservePriceDenominator,
-        spDebtBalanceBefore - spDebtBalanceAfter,
-        "Debt should move from SP to Pool"
-      );
-    } else {
-      assertLt(
-        pricesAfter.reservePriceDenominator,
-        pricesBefore.reservePriceDenominator,
-        "There should be less of asset0 (coll)"
-      );
-      assertGt(
-        pricesAfter.reservePriceNumerator,
-        pricesBefore.reservePriceNumerator,
-        "There should be more of asset1 (debt)"
-      );
-      assertEq(
-        pricesAfter.reservePriceNumerator - pricesBefore.reservePriceNumerator,
-        spDebtBalanceBefore - spDebtBalanceAfter,
-        "Debt should move from SP to Pool"
-      );
-    }
+    assertGt(
+      pricesAfter.reservePriceDenominator,
+      pricesBefore.reservePriceDenominator,
+      "There should be more of asset0 (debt)"
+    );
+    assertLt(
+      pricesAfter.reservePriceNumerator,
+      pricesBefore.reservePriceNumerator,
+      "There should be less of asset1 (coll)"
+    );
+    assertEq(
+      pricesAfter.reservePriceDenominator - pricesBefore.reservePriceDenominator,
+      spDebtBalanceBefore - spDebtBalanceAfter,
+      "Debt should move from SP to Pool"
+    );
   }
 
   function test_targetContraction() public {
@@ -147,96 +194,45 @@ abstract contract CDPFPMM_BaseTest is
 
     FPMMPrices memory pricesBeforeRebalance = _snapshotPrices($fpmm.fpmmCDP);
 
-    // Debt amount to redeem :=  (ON*RD - OD*RN)/(ON*(2-i)) = 2005012531328320802005012
-    uint256 expectedDebtToRedeem = 2005012531328320802005012;
+    uint256 expectedDebtToRedeem = 1799485861182519280205655;
 
-    uint256 expectedCollInflow;
-    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
-      expectedCollInflow =
-        (expectedDebtToRedeem * (1e18 - 0.005e18) * pricesBeforeRebalance.oraclePriceNumerator) /
-        (pricesBeforeRebalance.oraclePriceDenominator * 1e18);
-    } else {
-      expectedCollInflow =
-        (expectedDebtToRedeem * (1e18 - 0.005e18) * pricesBeforeRebalance.oraclePriceDenominator) /
-        (pricesBeforeRebalance.oraclePriceNumerator * 1e18);
-    }
+    uint256 expectedCollInflow = uint256(
+      expectedDebtToRedeem * (1e18 - 0.005e18) * pricesBeforeRebalance.oraclePriceNumerator
+    ) / (pricesBeforeRebalance.oraclePriceDenominator * 1e18);
 
-    uint256 targetSupply = (expectedDebtToRedeem * 1e18) / (0.0025e18);
-    _mintCDPDebtToken(makeAddr("alice"), targetSupply - $tokens.eurm.totalSupply());
-
-    $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
-
-    FPMMPrices memory pricesAfterRebalance = _snapshotPrices($fpmm.fpmmCDP);
-    // base rate has decayed to min 0.25% so the amount redeemed is equal to 0.25% of the total supply.
-    // in order for the total redemption fee to be equal to the incentive( 0.50%)
-
-    uint256 reserveDebtOutflow;
-    uint256 reserveCollInflow;
-    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
-      reserveDebtOutflow = pricesBeforeRebalance.reservePriceDenominator - pricesAfterRebalance.reservePriceDenominator;
-      reserveCollInflow = pricesAfterRebalance.reservePriceNumerator - pricesBeforeRebalance.reservePriceNumerator;
-    } else {
-      reserveDebtOutflow = pricesBeforeRebalance.reservePriceNumerator - pricesAfterRebalance.reservePriceNumerator;
-      reserveCollInflow = pricesAfterRebalance.reservePriceDenominator - pricesBeforeRebalance.reservePriceDenominator;
-    }
-
-    assertEq(pricesAfterRebalance.priceDifference, 0);
-    assertEq(reserveDebtOutflow, expectedDebtToRedeem);
-    assertEq(reserveCollInflow, expectedCollInflow);
-  }
-
-  function test_clampedContraction() public {
-    // Price is 2:1
-    _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
-    _openDemoTroves(11_000_000e18, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e14, reserveMultisig, 10);
-
-    // price is 10:3 below oracle price
-    _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 10_000_000e18, 3_000_000e18);
-
-    FPMMPrices memory pricesBeforeRebalance = _snapshotPrices($fpmm.fpmmCDP);
-
-    uint256 expectedDebtToRedeem = ($tokens.eurm.totalSupply() * 25) / 10_000;
-
-    uint256 expectedRedemptionFee = $liquity.collateralRegistry.getRedemptionRateForRedeemedAmount(
-      expectedDebtToRedeem
+    FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+    assertFalse(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be below oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
     );
 
-    uint256 expectedCollInflow;
-    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
-      expectedCollInflow =
-        (expectedDebtToRedeem * (1e18 - expectedRedemptionFee) * pricesBeforeRebalance.oraclePriceNumerator) /
-        (pricesBeforeRebalance.oraclePriceDenominator * 1e18);
-    } else {
-      expectedCollInflow =
-        (expectedDebtToRedeem * (1e18 - expectedRedemptionFee) * pricesBeforeRebalance.oraclePriceDenominator) /
-        (pricesBeforeRebalance.oraclePriceNumerator * 1e18);
-    }
-
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
     FPMMPrices memory pricesAfterRebalance = _snapshotPrices($fpmm.fpmmCDP);
 
-    // base rate has decayed to min 0.25% so the amount redeemed is equal to 0.25% of the total supply.
-    // in order for the total redemption fee to be equal to the incentive( 0.50%)
-    uint256 reserveDebtOutflow;
-    uint256 reserveCollInflow;
-    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
-      reserveDebtOutflow = pricesBeforeRebalance.reservePriceDenominator - pricesAfterRebalance.reservePriceDenominator;
-      reserveCollInflow = pricesAfterRebalance.reservePriceNumerator - pricesBeforeRebalance.reservePriceNumerator;
-    } else {
-      reserveDebtOutflow = pricesBeforeRebalance.reservePriceNumerator - pricesAfterRebalance.reservePriceNumerator;
-      reserveCollInflow = pricesAfterRebalance.reservePriceDenominator - pricesBeforeRebalance.reservePriceDenominator;
-    }
+    uint256 reserveDebtOutflow = pricesBeforeRebalance.reservePriceDenominator -
+      pricesAfterRebalance.reservePriceDenominator;
+    uint256 reserveCollInflow = pricesAfterRebalance.reservePriceNumerator -
+      pricesBeforeRebalance.reservePriceNumerator;
 
+    assertApproxEqAbs(
+      pricesAfterRebalance.priceDifference,
+      500,
+      1,
+      "Price difference should be at the threshold with 1 Bps wiggle room due to rounding"
+    );
     assertEq(reserveDebtOutflow, expectedDebtToRedeem);
-    // allow for 1 wei difference due to rounding errors from calculating expected collateral inflow:
-    //  based on debt to redeem vs iterating over touched troves and calculating collateral received from each trove.
-    assertApproxEqAbs(reserveCollInflow, expectedCollInflow, 1);
-    assertLt(pricesAfterRebalance.priceDifference, pricesBeforeRebalance.priceDifference);
+    assertApproxEqAbs(
+      reserveCollInflow,
+      expectedCollInflow,
+      1,
+      "Coll inflow should be equal to the expected coll inflow with 1 wei difference due to rounding when hitting multiple troves"
+    );
   }
 
-  /// forge-config: default.fuzz.runs = 10000
-  function testFuzz_contractionIntegrationTest(uint256 fpmmDebt, uint256 fpmmColl, uint256 targetSupply) public {
+  function testFuzz_contractionIntegrationTest(uint256 fpmmDebt, uint256 fpmmColl) public {
     fpmmColl = bound(fpmmColl, 300e18, 100_000_000e18);
     fpmmDebt = bound(fpmmDebt, (fpmmColl * 25) / 10, 1_000_000_000e18);
 
@@ -245,68 +241,36 @@ abstract contract CDPFPMM_BaseTest is
     _openDemoTroves(fpmmDebt, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e14, reserveMultisig, 10); // eur.m
 
     _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, fpmmDebt, fpmmColl);
+
     FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
-
-    // bound targetSupply to allow for at least 20% of debt reserve to be redeemed
-    uint256 supplyLowerBound = (((fpmmDebt * 20) / 100) * 1e18) /
-      (50 * 1e14 - $liquity.collateralRegistry.getRedemptionRateWithDecay());
-    uint256 supplyUpperBound = (((fpmmDebt * 80) / 100) * 1e18) /
-      (50 * 1e14 - $liquity.collateralRegistry.getRedemptionRateWithDecay());
-    targetSupply = bound(targetSupply, supplyLowerBound, supplyUpperBound);
-
-    _mintCDPDebtToken(reserveMultisig, targetSupply - $tokens.eurm.totalSupply());
+    assertFalse(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be below oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
+    );
 
     $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
 
     FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
+    assertFalse(pricesAfter.reservePriceAboveOraclePrice, "Reserve price should be still below oracle price");
+    assertApproxEqAbs(
+      pricesAfter.priceDifference,
+      500,
+      1,
+      "Price difference should be at the threshold with 1 Bps wiggle room due to rounding"
+    );
 
-    assertLt(pricesAfter.priceDifference, pricesBefore.priceDifference);
-
-    if ($fpmm.fpmmCDP.token0() == address($tokens.eurm)) {
-      assertLt(
-        pricesAfter.reservePriceDenominator,
-        pricesBefore.reservePriceDenominator,
-        "There should be less of asset0 (debt)"
-      );
-      assertGt(
-        pricesAfter.reservePriceNumerator,
-        pricesBefore.reservePriceNumerator,
-        "There should be more of asset1 (coll)"
-      );
-    } else {
-      assertLt(
-        pricesAfter.reservePriceNumerator,
-        pricesBefore.reservePriceNumerator,
-        "There should be less of asset1 (debt)"
-      );
-      assertGt(
-        pricesAfter.reservePriceDenominator,
-        pricesBefore.reservePriceDenominator,
-        "There should be more of asset0 (coll)"
-      );
-    }
-  }
-}
-
-contract CDPFPMM_Token0Debt_Test is CDPFPMM_BaseTest {
-  function setUp() public {
-    _deployTokens({ isCollateralTokenToken0: false, isDebtTokenToken0: true });
-    _deployOracleAdapter();
-    _deployMentoV2();
-    _deployLiquidityStrategies();
-    _deployFPMM({ invertCDPFPMMRate: true, invertReserveFPMMRate: false });
-    _deployLiquity();
-    _configureCDPLiquidityStrategy({
-      cooldown: 60,
-      incentiveBps: 50,
-      stabilityPoolPercentage: 9000, // 90%
-      maxIterations: 100
-    });
-    _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
-    // skip 20 days to allow the base rate to decay
-    skip(20 days);
-    _refreshOracleRates();
-    _checkSetup();
+    assertLt(
+      pricesAfter.reservePriceDenominator,
+      pricesBefore.reservePriceDenominator,
+      "There should be less of asset0 (debt)"
+    );
+    assertGt(
+      pricesAfter.reservePriceNumerator,
+      pricesBefore.reservePriceNumerator,
+      "There should be more of asset1 (coll)"
+    );
   }
 
   function _checkSetup() internal {
@@ -325,15 +289,253 @@ contract CDPFPMM_Token1Debt_Test is CDPFPMM_BaseTest {
     _deployLiquity();
     _configureCDPLiquidityStrategy({
       cooldown: 60,
-      incentiveBps: 50,
       stabilityPoolPercentage: 9000, // 90%
-      maxIterations: 100
+      maxIterations: 100,
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25,
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25
     });
-    _configureReserveLiquidityStrategy({ cooldown: 0, incentiveBps: 50 });
+    _configureReserveLiquidityStrategy({
+      cooldown: 0,
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25,
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25
+    });
     // skip 20 days to allow the base rate to decay
     skip(20 days);
     _refreshOracleRates();
     _checkSetup();
+  }
+
+  function test_expansion() public {
+    // Price is 2:1
+    _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
+    _mintCDPDebtToken(reserveMultisig, 15_000_000e18); // EUR.m
+
+    _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 3_000_000e18, 10_000_000e18);
+
+    vm.prank(reserveMultisig);
+    $liquity.stabilityPool.provideToSP(10_000_000e18, false);
+
+    FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+    assertFalse(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be below oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
+    );
+
+    $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
+
+    (uint256 fpmmDebtAfter, uint256 fpmmCollAfter) = _fpmmReserves($fpmm.fpmmCDP);
+    FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
+    assertFalse(pricesAfter.reservePriceAboveOraclePrice, "Reserve price should be still below oracle price");
+    assertEq(pricesAfter.priceDifference, 500, "Expansion should always rebalance perfectly towards the threshold");
+
+    // amountTakenFromPool: 4113110539845758354755784
+    // debt = 3_000_000e18 + 4113110539845758354755784 * 2 * 9950 / 10000
+    // coll = 10_000_000e18 - 4113110539845758354755784
+    assertEq(fpmmCollAfter, 10_000_000e18 - 4113110539845758354755784);
+    assertEq(fpmmDebtAfter, 3_000_000e18 + uint256(4113110539845758354755784 * 2 * 9950) / 10000);
+  }
+  function test_clampedExpansion() public {
+    // Price is 2:1
+    _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
+    _mintCDPDebtToken(reserveMultisig, 10_000_000e18); // EUR.m
+
+    _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 3_000_000e18, 10_000_000e18);
+
+    vm.prank(reserveMultisig);
+    $liquity.stabilityPool.provideToSP(500_000e18, false);
+
+    FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+    assertFalse(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be below oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
+    );
+
+    $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
+
+    (uint256 fpmmDebtAfter, uint256 fpmmCollAfter) = _fpmmReserves($fpmm.fpmmCDP);
+    FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
+    assertFalse(pricesAfter.reservePriceAboveOraclePrice, "Reserve price should be still below oracle price");
+    assertGt(
+      pricesAfter.priceDifference,
+      500,
+      "Price difference should be more then then threshold away from oracle price due to clamping"
+    );
+
+    // amountGivenToPool: 450000000000000000000000 (clamped)
+    // debt = 3_000_000e18 + 450000000000000000000000
+    // coll = 10_000_000e18 - 450000000000000000000000 / 2 * 9950 / 10_000
+    assertEq(fpmmDebtAfter, 3_000_000e18 + 450000000000000000000000);
+    assertEq(fpmmCollAfter, 10_000_000e18 - uint256((450000000000000000000000 / 2) * 10000) / 9950);
+  }
+
+  function testFuzz_expansionIntegrationTest(uint256 fpmmDebt, uint256 fpmmColl, uint256 spDebt) public {
+    fpmmDebt = bound(fpmmDebt, 3000e18, 100_000_000e18);
+    fpmmColl = bound(fpmmColl, (fpmmDebt * 25) / 10, 1_000_000_000e18);
+
+    _mintCDPCollToken(reserveMultisig, fpmmColl); // USD.m
+
+    _openDemoTroves(fpmmDebt, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e14, reserveMultisig, 10); // eur.m
+
+    _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, fpmmDebt, fpmmColl);
+    FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+
+    assertFalse(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be below oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
+    );
+
+    // bound spDebt to be at least 1% of fpmmColl and at most the total fpmm collateral reserve
+    spDebt = bound(spDebt, $liquity.systemParams.MIN_BOLD_AFTER_REBALANCE() + (fpmmColl * 5) / 100, fpmmColl);
+
+    _mintCDPDebtToken(reserveMultisig, spDebt); // EUR.m
+    vm.prank(reserveMultisig);
+    $liquity.stabilityPool.provideToSP(spDebt, false);
+
+    uint256 spDebtBalanceBefore = $tokens.eurm.balanceOf(address($liquity.stabilityPool));
+    uint256 spCollBalanceBefore = $tokens.usdm.balanceOf(address($liquity.stabilityPool));
+
+    $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
+
+    FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
+    assertFalse(pricesAfter.reservePriceAboveOraclePrice, "Reserve price should be still below oracle price");
+    assertLt(pricesAfter.priceDifference, pricesBefore.priceDifference, "Expansion should reduce price difference");
+
+    uint256 spDebtBalanceAfter = $tokens.eurm.balanceOf(address($liquity.stabilityPool));
+    uint256 spCollBalanceAfter = $tokens.usdm.balanceOf(address($liquity.stabilityPool));
+
+    assertGt(spCollBalanceAfter, spCollBalanceBefore, "SP should have more coll token");
+    assertLt(spDebtBalanceAfter, spDebtBalanceBefore, "SP should have less debt token");
+
+    uint256 minDebtLeftInSPPercentage = (spDebt * 9000) / 10000; // spool percentage is 90%
+    uint256 minDebtLeftInSPHardFloor = $liquity.systemParams.MIN_BOLD_AFTER_REBALANCE();
+
+    if (spDebtBalanceAfter > minDebtLeftInSPPercentage && spDebtBalanceAfter > minDebtLeftInSPHardFloor) {
+      assertEq(pricesAfter.priceDifference, 0, "Expansion should be perfect, if we have more debt left in the SP");
+    } else {
+      assertLt(pricesAfter.priceDifference, pricesBefore.priceDifference, "Expansion should reduce price difference");
+    }
+
+    assertLt(
+      pricesAfter.reservePriceDenominator,
+      pricesBefore.reservePriceDenominator,
+      "There should be less of asset0 (coll)"
+    );
+    assertGt(
+      pricesAfter.reservePriceNumerator,
+      pricesBefore.reservePriceNumerator,
+      "There should be more of asset1 (debt)"
+    );
+    assertEq(
+      pricesAfter.reservePriceNumerator - pricesBefore.reservePriceNumerator,
+      spDebtBalanceBefore - spDebtBalanceAfter,
+      "Debt should move from SP to Pool"
+    );
+  }
+
+  function test_targetContraction() public {
+    // Price is 2:1
+    _mintCDPCollToken(reserveMultisig, 10_000_000e18); // USD.m
+    _openDemoTroves(11_000_000e18, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e14, reserveMultisig, 10);
+
+    // price is 10:3 below oracle price
+    _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, 10_000_000e18, 3_000_000e18);
+
+    FPMMPrices memory pricesBeforeRebalance = _snapshotPrices($fpmm.fpmmCDP);
+
+    uint256 expectedDebtToRedeem = 1809512165301381586991074;
+
+    uint256 expectedCollInflow = uint256(
+      expectedDebtToRedeem * (1e18 - 0.005e18) * pricesBeforeRebalance.oraclePriceDenominator
+    ) / (pricesBeforeRebalance.oraclePriceNumerator * 1e18);
+
+    FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+    assertTrue(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be above oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
+    );
+
+    $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
+
+    FPMMPrices memory pricesAfterRebalance = _snapshotPrices($fpmm.fpmmCDP);
+    assertTrue(pricesAfterRebalance.reservePriceAboveOraclePrice, "Reserve price should be still above oracle price");
+    assertApproxEqAbs(
+      pricesAfterRebalance.priceDifference,
+      500,
+      1,
+      "Price difference should be at the threshold with 1 Bps wiggle room due to rounding"
+    );
+
+    uint256 reserveDebtOutflow = pricesBeforeRebalance.reservePriceNumerator -
+      pricesAfterRebalance.reservePriceNumerator;
+    uint256 reserveCollInflow = pricesAfterRebalance.reservePriceDenominator -
+      pricesBeforeRebalance.reservePriceDenominator;
+
+    assertApproxEqAbs(
+      pricesAfterRebalance.priceDifference,
+      500,
+      1,
+      "Price difference should be at the threshold with 1 Bps wiggle room due to rounding"
+    );
+    assertEq(reserveDebtOutflow, expectedDebtToRedeem);
+    assertApproxEqAbs(
+      reserveCollInflow,
+      expectedCollInflow,
+      1,
+      "Coll inflow should be equal to the expected coll inflow with 1 wei difference due to rounding when hitting multiple troves"
+    );
+  }
+
+  function testFuzz_contractionIntegrationTest(uint256 fpmmDebt, uint256 fpmmColl) public {
+    fpmmColl = bound(fpmmColl, 300e18, 100_000_000e18);
+    fpmmDebt = bound(fpmmDebt, (fpmmColl * 25) / 10, 1_000_000_000e18);
+
+    _mintCDPCollToken(reserveMultisig, fpmmColl); // USD.m
+
+    _openDemoTroves(fpmmDebt, $liquity.systemParams.MIN_ANNUAL_INTEREST_RATE(), 1e14, reserveMultisig, 10); // eur.m
+
+    _provideLiquidityToFPMM($fpmm.fpmmCDP, reserveMultisig, fpmmDebt, fpmmColl);
+
+    FPMMPrices memory pricesBefore = _snapshotPrices($fpmm.fpmmCDP);
+    assertTrue(pricesBefore.reservePriceAboveOraclePrice, "Reserve price should be above oracle price");
+    assertGt(
+      pricesBefore.priceDifference,
+      500,
+      "Reserve price should be more then then threshold away from oracle price"
+    );
+
+    $liquidityStrategies.cdpLiquidityStrategy.rebalance(address($fpmm.fpmmCDP));
+
+    FPMMPrices memory pricesAfter = _snapshotPrices($fpmm.fpmmCDP);
+    assertTrue(pricesAfter.reservePriceAboveOraclePrice, "Reserve price should be still above oracle price");
+    assertApproxEqAbs(
+      pricesAfter.priceDifference,
+      500,
+      1,
+      "Price difference should be at the threshold with 1 Bps wiggle room due to rounding"
+    );
+
+    assertLt(
+      pricesAfter.reservePriceNumerator,
+      pricesBefore.reservePriceNumerator,
+      "There should be less of asset1 (debt)"
+    );
+    assertGt(
+      pricesAfter.reservePriceDenominator,
+      pricesBefore.reservePriceDenominator,
+      "There should be more of asset0 (coll)"
+    );
   }
 
   function _checkSetup() internal {

@@ -119,10 +119,12 @@ interface IFPMM is IRPool {
   error OneOutputAmountRequired();
   // @notice Throw when trying to rebalance when the price difference is too small
   error PriceDifferenceTooSmall();
-  // @notice Throw when the price difference doesnt improve after rebalance
+  // @notice Throw when the price difference doesn't improve after rebalance
   error PriceDifferenceNotImproved();
   // @notice Throw when a rebalance operation moves the price difference in the wrong direction
   error PriceDifferenceMovedInWrongDirection();
+  // @notice Throw when trying to rebalance and price is moved to far from thesholds
+  error PriceDifferenceMovedTooFarFromThresholds();
   // @notice Throw when trying to rebalance with an insufficient amount of token0 input
   error InsufficientAmount0In();
   // @notice Throw when trying to rebalance with an insufficient amount of token1 input
@@ -366,6 +368,29 @@ interface IFPMM is IRPool {
       uint256 reservePriceDenominator,
       uint256 priceDifference,
       bool reservePriceAboveOraclePrice
+    );
+
+  /**
+   * @notice Gets the rebalancing state of the pool
+   * @return oraclePriceNumerator The numerator of the oracle price.
+   * @return oraclePriceDenominator The denominator of the oracle price.
+   * @return reservePriceNumerator The numerator of the pool reserve price.
+   * @return reservePriceDenominator The denominator of the pool reserve price.
+   * @return reservePriceAboveOraclePrice Whether the pool reserve price is above the oracle price.
+   * @return rebalanceThreshold The rebalance threshold in basis points.
+   * @return priceDifference The price difference between the oracle and pool reserve prices in basis points.
+   */
+  function getRebalancingState()
+    external
+    view
+    returns (
+      uint256 oraclePriceNumerator,
+      uint256 oraclePriceDenominator,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      bool reservePriceAboveOraclePrice,
+      uint16 rebalanceThreshold,
+      uint256 priceDifference
     );
 
   /**

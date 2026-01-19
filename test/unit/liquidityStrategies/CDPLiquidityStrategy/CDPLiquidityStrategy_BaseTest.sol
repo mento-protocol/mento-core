@@ -7,6 +7,7 @@ import { LiquidityStrategy_BaseTest } from "../LiquidityStrategy/LiquidityStrate
 import { CDPLiquidityStrategyHarness } from "test/utils/harnesses/CDPLiquidityStrategyHarness.sol";
 
 import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
+import { ILiquidityStrategy } from "contracts/interfaces/ILiquidityStrategy.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 import { IERC20 } from "contracts/interfaces/IERC20.sol";
 
@@ -14,7 +15,6 @@ import { MockStabilityPool } from "test/utils/mocks/MockStabilityPool.sol";
 import { MockCollateralRegistry } from "test/utils/mocks/MockCollateralRegistry.sol";
 
 import { ISystemParams } from "bold/src/Interfaces/ISystemParams.sol";
-
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
@@ -32,57 +32,50 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
 
     // Create mock SystemParams address
     mockSystemParams = makeAddr("SystemParams");
-    // Mock REDEMPTION_BETA to return 1 (default value)
-    mockRedemptionBeta(1);
     setMockSystemParamsMinBoldAfterRebalance(0);
   }
 
-  modifier addFpmm(uint64 cooldown, uint32 incentiveBps, uint256 stabilityPoolPercentage) {
+  modifier addFpmm(
+    uint64 cooldown,
+    uint16 stabilityPoolPercentage,
+    uint16 maxIterations,
+    uint16 liquiditySourceIncentiveBpsContraction,
+    uint16 protocolIncentiveBpsContraction,
+    uint16 liquiditySourceIncentiveBpsExpansion,
+    uint16 protocolIncentiveBpsExpansion
+  ) {
     // Deploy collateral registry mock
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
 
     // Deploy stability pool mock
-    mockStabilityPool = new MockStabilityPool(debtToken, collToken);
+    mockStabilityPool = new MockStabilityPool(debtToken, collToken, mockSystemParams);
 
-    // Add pool to strategy with CDP-specific configuration
-    vm.prank(owner);
-    strategy.addPool(
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
       address(fpmm),
       debtToken,
       cooldown,
-      incentiveBps,
-      address(mockStabilityPool),
-      address(mockCollateralRegistry),
-      mockSystemParams,
-      stabilityPoolPercentage,
-      100 // maxIterations
+      liquiditySourceIncentiveBpsExpansion,
+      protocolIncentiveBpsExpansion,
+      liquiditySourceIncentiveBpsContraction,
+      protocolIncentiveBpsContraction,
+      protocolFeeRecipient
     );
+    ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
+      stabilityPool: address(mockStabilityPool),
+      collateralRegistry: address(mockCollateralRegistry),
+      stabilityPoolPercentage: stabilityPoolPercentage,
+      maxIterations: maxIterations
+    });
+
+    // Add pool to strategy with CDP-specific configuration
+    vm.prank(owner);
+    strategy.addPool(params, config);
     _;
   }
 
   /* ============================================================ */
   /* ================= Helper Functions ========================= */
   /* ============================================================ */
-
-  /**
-   * @notice Mock the collateral registry redemption rate with decay
-   * @param redemptionRate The redemption rate (base rate) in 18 decimals
-   */
-  function mockRedemptionRateWithDecay(uint256 redemptionRate) internal {
-    mockCollateralRegistry.setRedemptionRateWithDecay(redemptionRate);
-  }
-
-  /**
-   * @notice Mock the system params redemption beta
-   * @param redemptionBeta The redemption beta value
-   */
-  function mockRedemptionBeta(uint256 redemptionBeta) internal {
-    vm.mockCall(
-      mockSystemParams,
-      abi.encodeWithSelector(ISystemParams.REDEMPTION_BETA.selector),
-      abi.encode(redemptionBeta)
-    );
-  }
 
   /**
    * @notice Mock the collateral registry oracle rate
@@ -122,7 +115,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @param oracleNum Oracle price numerator
    * @param oracleDen Oracle price denominator
    * @param poolPriceAbove Whether pool price is above oracle price
-   * @param incentiveBps Incentive in basis points
+   * @param incentives The incentives for the rebalance
    */
   function _createContext(
     uint256 reserveDen,
@@ -130,7 +123,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 oracleNum,
     uint256 oracleDen,
     bool poolPriceAbove,
-    uint256 incentiveBps
+    LQ.RebalanceIncentives memory incentives
   ) internal view returns (LQ.Context memory) {
     return
       _createContextWithDecimals(
@@ -139,9 +132,9 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         oracleNum,
         oracleDen,
         poolPriceAbove,
-        incentiveBps,
         1e18, // 18 decimals for token0
-        1e18 // 18 decimals for token1
+        1e18, // 18 decimals for token1
+        incentives
       );
   }
 
@@ -154,21 +147,26 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 oracleNum,
     uint256 oracleDen,
     bool poolPriceAbove,
-    uint256 incentiveBps,
     uint256 token0Dec,
-    uint256 token1Dec
+    uint256 token1Dec,
+    LQ.RebalanceIncentives memory incentives
   ) internal view returns (LQ.Context memory) {
     return
       LQ.Context({
         pool: address(fpmm),
         reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
-        prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
-        incentiveBps: uint128(incentiveBps),
-        token0Dec: uint64(token0Dec),
-        token1Dec: uint64(token1Dec),
+        prices: LQ.Prices({
+          oracleNum: oracleNum,
+          oracleDen: oracleDen,
+          poolPriceAbove: poolPriceAbove,
+          rebalanceThreshold: 500
+        }),
         token0: debtToken,
         token1: collToken,
-        isToken0Debt: true
+        token0Dec: uint64(token0Dec),
+        token1Dec: uint64(token1Dec),
+        isToken0Debt: true,
+        incentives: incentives
       });
   }
 
@@ -181,8 +179,8 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 oracleNum,
     uint256 oracleDen,
     bool poolPriceAbove,
-    uint256 incentiveBps,
-    bool isToken0Debt
+    bool isToken0Debt,
+    LQ.RebalanceIncentives memory incentives
   ) internal view returns (LQ.Context memory) {
     uint256 token0Dec = 10 ** (isToken0Debt ? IERC20(debtToken).decimals() : IERC20(collToken).decimals());
     uint256 token1Dec = 10 ** (isToken0Debt ? IERC20(collToken).decimals() : IERC20(debtToken).decimals());
@@ -190,13 +188,18 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       LQ.Context({
         pool: address(fpmm),
         reserves: LQ.Reserves({ reserveNum: reserveNum, reserveDen: reserveDen }),
-        prices: LQ.Prices({ oracleNum: oracleNum, oracleDen: oracleDen, poolPriceAbove: poolPriceAbove, diffBps: 0 }),
-        incentiveBps: uint128(incentiveBps),
-        token0Dec: uint64(token0Dec),
-        token1Dec: uint64(token1Dec),
+        prices: LQ.Prices({
+          oracleNum: oracleNum,
+          oracleDen: oracleDen,
+          poolPriceAbove: poolPriceAbove,
+          rebalanceThreshold: 500
+        }),
         token0: isToken0Debt ? debtToken : collToken,
         token1: isToken0Debt ? collToken : debtToken,
-        isToken0Debt: isToken0Debt
+        token0Dec: uint64(token0Dec),
+        token1Dec: uint64(token1Dec),
+        isToken0Debt: isToken0Debt,
+        incentives: incentives
       });
   }
 
@@ -274,8 +277,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 amountOut,
     uint256 amountIn,
     uint256 oracleNum,
-    uint256 oracleDen,
-    bool isCheapContraction
+    uint256 oracleDen
   ) internal {
     uint256 amountOutInOtherToken;
     if (isToken0Out) {
@@ -284,14 +286,11 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       amountOutInOtherToken = (amountOut * oracleDen) / oracleNum;
     }
     uint256 actualIncentive = ((amountOutInOtherToken - amountIn) * 10_000) / amountOutInOtherToken;
-
     // Allow 1bp difference due to rounding
-    // we allow 1bp difference due to rounding
-    if (isCheapContraction) {
-      assert(actualIncentive <= expectedIncentiveBps);
-    } else {
-      assertApproxEqAbs(actualIncentive, expectedIncentiveBps, 1);
-    }
+    assertTrue(
+      actualIncentive == expectedIncentiveBps || actualIncentive == expectedIncentiveBps - 1,
+      "Incentive should be equal to expected incentive or 1 bps less"
+    );
   }
 
   /**
@@ -345,14 +344,8 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @param amountTakenOut Amount of the token taken out
    * @param amountAdded Amount of the token added
    * @param isToken0Out True if the token taken out is token0, false otherwise
-   * @param isCheapContraction True if the rebalance is a cheap contraction (contraction with less than 50bps)
    */
-  function assertRebalanceAmountIncentives(
-    uint256 amountTakenOut,
-    uint256 amountAdded,
-    bool isToken0Out,
-    bool isCheapContraction
-  ) public {
+  function assertRebalanceAmountIncentives(uint256 amountTakenOut, uint256 amountAdded, bool isToken0Out) public {
     (uint256 rateNumerator, uint256 rateDenominator, , , , ) = fpmm.getPrices();
 
     uint256 token0Scaler = 10 ** MockERC20(fpmm.token0()).decimals();
@@ -366,13 +359,18 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     }
     uint256 bpsDifference = ((amountTakenOut - amountInInTokenOut) * 10_000) / amountTakenOut;
 
-    // 50 bps is the max but for contractions the amount can be less depending on the redemption rate
-    if (isCheapContraction) {
-      assertTrue(bpsDifference < 50); // 0.5%
-    } else {
-      // we allow for a difference of 1 due to rounding when token decimals differ
-      assertApproxEqAbs(bpsDifference, 50, 1); // 0.5%
-    }
+    // we allow for a difference of 1 due to rounding when token decimals differ
+    assertApproxEqAbs(bpsDifference, 50, 1); // 0.5%
+  }
+
+  function assertIncentive(
+    uint256 amountTakenOut,
+    uint256 incentiveRecipientBalanceDifference,
+    uint256 incentiveBps
+  ) public {
+    uint256 incentive = (amountTakenOut * incentiveBps) / 10_000;
+    // allowing 1000 wei difference due to rounding
+    assertApproxEqAbs(incentiveRecipientBalanceDifference, incentive, 1000);
   }
 
   function convertWithRateAndScale(
@@ -395,14 +393,22 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   ) internal view returns (uint256 desiredStabilityPoolBalance) {
     uint256 targetStabilityPoolBalance;
 
+    uint256 totalIncentiveBps = ctx.incentives.liquiditySourceIncentiveBpsExpansion +
+      ctx.incentives.protocolIncentiveBpsExpansion;
+
     if (ctx.prices.poolPriceAbove) {
-      uint256 numerator = ctx.prices.oracleDen *
-        ctx.reserves.reserveNum -
-        ctx.prices.oracleNum *
-        ctx.reserves.reserveDen;
-      uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+      uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BASIS_POINTS_DENOMINATOR + ctx.prices.rebalanceThreshold)) /
         LQ.BASIS_POINTS_DENOMINATOR;
-      uint256 amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token1Dec, numerator, denominator);
+      uint256 targetDenominator = ctx.prices.oracleDen;
+
+      uint256 numerator = targetDenominator * ctx.reserves.reserveNum - targetNumerator * ctx.reserves.reserveDen;
+      uint256 denominator = (ctx.prices.oracleDen *
+        (LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps) *
+        targetNumerator) /
+        (LQ.BASIS_POINTS_DENOMINATOR * ctx.prices.oracleNum) +
+        targetDenominator;
+
+      uint256 amountOut = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token1Dec);
 
       targetStabilityPoolBalance = LQ.convertWithRateScalingAndFee(
         amountOut,
@@ -410,18 +416,22 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         ctx.token0Dec,
         ctx.prices.oracleDen,
         ctx.prices.oracleNum,
-        LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+        LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps,
         LQ.BASIS_POINTS_DENOMINATOR
       );
     } else {
-      uint256 numerator = ctx.prices.oracleNum *
-        ctx.reserves.reserveDen -
-        ctx.prices.oracleDen *
-        ctx.reserves.reserveNum;
-      uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
+      uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BASIS_POINTS_DENOMINATOR - ctx.prices.rebalanceThreshold)) /
         LQ.BASIS_POINTS_DENOMINATOR;
+      uint256 targetDenominator = ctx.prices.oracleDen;
 
-      uint256 amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token0Dec, numerator, denominator);
+      uint256 numerator = targetNumerator * ctx.reserves.reserveDen - targetDenominator * ctx.reserves.reserveNum;
+      uint256 denominator = (ctx.prices.oracleNum *
+        (LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps) *
+        targetDenominator) /
+        (LQ.BASIS_POINTS_DENOMINATOR * ctx.prices.oracleDen) +
+        targetNumerator;
+
+      uint256 amountOut = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token0Dec);
 
       targetStabilityPoolBalance = LQ.convertWithRateScalingAndFee(
         amountOut,
@@ -429,7 +439,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         ctx.token1Dec,
         ctx.prices.oracleNum,
         ctx.prices.oracleDen,
-        LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps,
+        LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps,
         LQ.BASIS_POINTS_DENOMINATOR
       );
     }
@@ -444,48 +454,19 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   }
 
   /**
-   * @notice Calculate the target supply such that the redemption fraction is equal to the target fraction
-   * @param targetFraction the redemption fraction to target
-   * @return targetSupply
+   * @notice Expect an ERC20 transfer event from the strategy
+   * @param token The token address
+   * @param to The recipient address
+   * @param amount The amount to be transferred
    */
-  function calculateTargetSupply(
-    uint256 targetFraction,
-    LQ.Context memory ctx
-  ) internal view returns (uint256 targetSupply) {
-    uint256 amountOut;
-    if (ctx.prices.poolPriceAbove) {
-      uint256 numerator = ctx.prices.oracleDen *
-        ctx.reserves.reserveNum -
-        ctx.prices.oracleNum *
-        ctx.reserves.reserveDen;
-      uint256 denominator = (ctx.prices.oracleDen * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
-        LQ.BASIS_POINTS_DENOMINATOR;
-      amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token1Dec, numerator, denominator);
-    } else {
-      uint256 numerator = ctx.prices.oracleNum *
-        ctx.reserves.reserveDen -
-        ctx.prices.oracleDen *
-        ctx.reserves.reserveNum;
-      uint256 denominator = (ctx.prices.oracleNum * (2 * LQ.BASIS_POINTS_DENOMINATOR - ctx.incentiveBps)) /
-        LQ.BASIS_POINTS_DENOMINATOR;
-
-      amountOut = LQ.convertWithRateScaling(1, 1e18, ctx.token0Dec, numerator, denominator);
-    }
-
-    targetSupply = (amountOut * 1e18) / targetFraction;
+  function expectERC20Transfer(address token, address to, uint256 amount) internal {
+    vm.expectEmit(true, true, false, true, token);
+    emit Transfer(address(strategy), to, amount);
   }
 
-  function calculatedExpectedCollateralReceivedFromRedemption(
-    uint256 debtAmount,
-    LQ.Context memory ctx
-  ) internal view returns (uint256 expectedCollateralReceived) {
-    address debtToken = ctx.isToken0Debt ? ctx.token0 : ctx.token1;
-    uint256 baseFee = mockCollateralRegistry.getRedemptionRateWithDecay();
+  /* ============================================================ */
+  /* ======================= Events ============================= */
+  /* ============================================================ */
 
-    uint256 redemptionFee = baseFee + ((debtAmount * 1e18) / IERC20(debtToken).totalSupply());
-
-    expectedCollateralReceived = LQ.convertToCollateralWithFee(ctx, debtAmount, 1e18 - redemptionFee, 1e18);
-
-    return expectedCollateralReceived;
-  }
+  event Transfer(address indexed from, address indexed to, uint256 value);
 }

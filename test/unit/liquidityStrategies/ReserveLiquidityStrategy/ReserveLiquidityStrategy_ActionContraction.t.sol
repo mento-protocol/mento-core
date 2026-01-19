@@ -19,7 +19,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
   function test_determineAction_whenPoolPriceBelowOracle_shouldReturnContractAction()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Pool has excess token0: 200 token0 vs 100 token1 at 1:1 oracle price
     LQ.Context memory ctx = _createContext({
@@ -28,7 +28,12 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 100 // 1%
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.05% + 0.05% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.05% + 0.05% = 1% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -45,7 +50,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
   function test_determineAction_whenPoolPriceBelowOracleWithDifferentDecimals_shouldHandleCorrectly()
     public
     fpmmToken0Debt(18, 6)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Test with 6 decimal token1 and 18 decimal token0
     // Reserves are normalized to 18 decimals: 100 token1 = 100e18 normalized
@@ -55,9 +60,14 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 100,
       token0Dec: 1e18,
-      token1Dec: 1e6
+      token1Dec: 1e6,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.05% + 0.05% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.05% + 0.05% = 1% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -78,7 +88,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
   function test_determineAction_whenPoolPriceBelowOracleWithNotEnoughBalance_shouldReturnCorrectAmounts()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50)
+    addFpmm(0, 25, 25, 25, 25)
   {
     LQ.Context memory ctx = _createContext({
       reserveDen: 300e18, // token0 reserves
@@ -86,7 +96,12 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 50
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 25,
+        protocolIncentiveBpsExpansion: 25, // 0.025% + 0.025% = 0.5% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 25,
+        protocolIncentiveBpsContraction: 25 // 0.025% + 0.025% = 0.5% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -94,10 +109,10 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
-    // Y = (1e18 * 300e18 - 1e18 * 100e18) / (1e18 * 2)
-    // Y = 200e18 / 2 = 100e18 (token0 debt to remove)
-    // X = Y * (ON/OD) * (1 - i) = 100e18 * (1e18/1e18) * 1 = 100e18 (token1 collateral to add)
+    // Formula: Y = (TN*RD - TD*RN) / (TN + TD * (1 - i) * ON/OD)
+    // Y = (95e16 * 300e18 - 1e18 * 100e18) / (95e16 + 1e18 * (1 - 0.005) * 1e18/1e18)
+    // Y = 95115681233933161953
+    // X = Y * (ON/OD) * (1 - i) = 95115681233933161953 (token1 collateral to add)
     // but we have at most 50e18 in the reserve, so we clamp collateral to that
     // and calculate deby as 50e18 * 1e18/1e18 * 10000/9950 = 50251256281407035175
     assertEq(action.amount0Out, 50251256281407035175, "Should calculate correct debt out");
@@ -107,7 +122,7 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
   function test_determineAction_whenPoolPriceBelowOracleWithZeroIncentive_shouldReturnCorrectAmounts()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 0)
+    addFpmm(0, 0, 0, 0, 0)
   {
     LQ.Context memory ctx = _createContext({
       reserveDen: 200e18, // token0 reserves
@@ -115,7 +130,12 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 0
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 0,
+        protocolIncentiveBpsExpansion: 0, // 0% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 0,
+        protocolIncentiveBpsContraction: 0 // 0% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -123,19 +143,19 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
-    // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 2)
-    // Y = 100e18 / 2 = 50e18 (token0 debt to remove)
-    assertEq(action.amount0Out, 50e18, "Should calculate correct debt out");
-    // X = Y * (ON/OD) * (1 - i) = 50e18 * (1e18/1e18) * 1 = 50e18 (token1 collateral to add)
+    // Formula: Y = (TN*RD - TD*RN) / (TN + TD * (1 - i) * ON/OD)
+    // Y = (95e16 * 200e18 - 1e18 * 100e18) / (95e16 + 1e18 * 1 * 1e18/1e18)
+    // Y = 46153846153846153846
+    assertEq(action.amount0Out, 46153846153846153846, "Should calculate correct debt out");
+    // X = Y * (ON/OD) * (1 - i) = 46153846153846153846 (token1 collateral to add)
     // In contraction: collateral flows in
-    assertEq(action.amountOwedToPool, 50e18, "Should calculate correct collateral input amount");
+    assertEq(action.amountOwedToPool, 46153846153846153846, "Should calculate correct collateral input amount");
   }
 
   function test_determineAction_whenPoolPriceBelowOracleWithMaxIncentive_shouldReturnCorrectAmounts()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     LQ.Context memory ctx = _createContext({
       reserveDen: 200e18, // token0 reserves
@@ -143,7 +163,12 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 10000 // 100%
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 5000,
+        protocolIncentiveBpsExpansion: 5000, // 50% + 50% = 100% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 5000,
+        protocolIncentiveBpsContraction: 5000 // 50% + 50% = 100% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -151,11 +176,11 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
-    // Formula: Y = (ON * RD - OD * RN) / (ON * (2 - i))
-    // Y = (1e18 * 200e18 - 1e18 * 100e18) / (1e18 * 1)
-    // Y = 100e18 / 1 = 100e18 (token0 debt to remove)
-    assertEq(action.amount0Out, 100e18, "Should calculate correct debt out");
-    // X = Y * (ON/OD) * (1 - i) = 100e18 * (1e18/1e18) * 0 = 0 (token1 collateral to add)
+    // Formula: Y = (TN*RD - TD*RN) / (TN + TD * (1 - i) * ON/OD)
+    // Y = (95e16 * 200e18 - 1e18 * 100e18) / (95e16 + 1e18 * 0 * 1e18/1e18)
+    // Y = 94736842105263157894
+    assertEq(action.amount0Out, 94736842105263157894, "Should calculate correct debt out");
+    // X = Y * (ON/OD) * (1 - i) = 0 (token1 collateral to add)
     // With 100% incentive, collateral in becomes zero
     assertEq(action.amountOwedToPool, 0, "Should have zero collateral in with 100% incentive");
   }
@@ -167,17 +192,22 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
   function test_formulaValidation_whenPPLessThanOP_shouldFollowExactFormula()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 0)
+    addFpmm(0, 0, 0, 0, 0)
   {
-    // PP < OP: Y = (ON * RD - OD * RN) / (ON * (2 - i))
-    // Test with specific values that give clean division: RN=100, RD=500, ON=2, OD=1, i=0
+    // PP < OP: Y = (TN*RD - TD*RN) / (TN + TD * (1 - i) * ON/OD)
+    // Test with specific values that give clean division: RN=100, RD=500, ON=2, OD=1, i=0, TN=1.9e18, TD=1e18
     LQ.Context memory ctx = _createContext({
       reserveDen: 500e18, // RD (token0)
       reserveNum: 100e18, // RN (token1)
       oracleNum: 2e18, // ON
       oracleDen: 1e18, // OD
       poolPriceAbove: false,
-      incentiveBps: 0 // 0% for clean calculation
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 0,
+        protocolIncentiveBpsExpansion: 0, // 0% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 0,
+        protocolIncentiveBpsContraction: 0 // 0% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -186,32 +216,44 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
     LQ.Action memory action = strategy.determineAction(ctx);
 
     // Manual calculation:
-    // Y = (2e18 * 500e18 - 1e18 * 100e18) / (2e18 * 2)
-    // Y = (1000e18 - 100e18) / 4e18 = 900e18 / 4e18 = 225e18 (debt out)
-    uint256 expectedY = 225e18;
+    // Formula: Y = (TN*RD - TD*RN) / (TN + TD * (1 - i) * ON/OD)
+    // Y = (1.9e18 * 500e18 - 1e18 * 100e18) / (1.9e18 + 1e18 * (1 - 0) * 2e18/1e18)
+    // Y = 217.948717948717948717e18
+    uint256 expectedY = 217948717948717948717;
     assertEq(action.amount0Out, expectedY, "Y calculation should match formula (debt out)");
     // For PP < OP, token1 flows in via amountOwedToPool and token0 flows out
 
-    // X = Y * (ON/OD) * (1 - i) = 225e18 * (2e18/1e18) * 1 = 450e18 (collateral in)
-    uint256 expectedX = 450e18;
+    // X = Y * (ON/OD) * (1 - i) = 217948717948717948717 * 2e18/1e18 * 1 = 435897435897435897434 (collateral in)
+    uint256 expectedX = 435897435897435897434;
     assertEq(action.amountOwedToPool, expectedX, "X should equal Y * (ON/OD) * (1 - i)");
   }
 
-  function test_YRelationship_shouldAlwaysHoldForContraction() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
+  function test_YRelationship_shouldAlwaysHoldForContraction()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 50, 50, 50, 50)
+  {
     // Test X = Y * (ON/OD) * (1 - i) relationship for contraction (PP < OP)
-    uint256[3] memory incentives = [uint256(0), 100, 100]; // Capped at 1%
+    uint16[3] memory liquiditySourceIncentiveBps = [uint16(0), 50, 50]; // 0%, 0.5%, 0.5% liquidity source incentive
+    uint16[3] memory protocolIncentiveBps = [uint16(0), 50, 50]; // 0%, 0.5%, 0.5% protocol incentive
+    // total incentives are 0%, 1%, 1%
 
     // Mock reserve to have collateral balance for contraction
     vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(10000e18));
 
-    for (uint256 i = 0; i < incentives.length; i++) {
+    for (uint256 i = 0; i < liquiditySourceIncentiveBps.length; i++) {
       LQ.Context memory ctx = _createContext({
         reserveDen: 450e18, // token0 reserves
         reserveNum: 150e18, // token1 reserves
         oracleNum: 3e18,
         oracleDen: 2e18,
         poolPriceAbove: false,
-        incentiveBps: incentives[i]
+        incentives: LQ.RebalanceIncentives({
+          liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBps[i],
+          protocolIncentiveBpsExpansion: protocolIncentiveBps[i],
+          liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBps[i],
+          protocolIncentiveBpsContraction: protocolIncentiveBps[i]
+        })
       });
 
       LQ.Action memory action = strategy.determineAction(ctx);
@@ -219,7 +261,8 @@ contract ReserveLiquidityStrategy_ActionContractionTest is ReserveLiquidityStrat
       if (action.amount0Out > 0) {
         // X/Y should equal (ON/OD) * (1 - i) (X is amountOwedToPool, Y is amount0Out) within precision limits
         uint256 calculatedRatio = (action.amountOwedToPool * ctx.prices.oracleDen) / action.amount0Out;
-        uint256 expectedRatio = (ctx.prices.oracleNum * (10000 - incentives[i])) / 10000;
+        uint256 expectedRatio = (ctx.prices.oracleNum *
+          (10000 - (liquiditySourceIncentiveBps[i] + protocolIncentiveBps[i]))) / 10000;
         // Allow for rounding errors (1 wei difference)
         assertApproxEqAbs(calculatedRatio, expectedRatio, 1, "X/Y ratio should approximately equal (ON/OD) * (1 - i)");
       }

@@ -30,10 +30,10 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     reserve0 = bound(reserve0, 100e18, 100_000_000e18);
 
     if (poolPriceAbove) {
-      uint256 reserve1LowerBound = (reserve0 * oracleNumerator * 111) / (oracleDenominator * 100);
+      uint256 reserve1LowerBound = (reserve0 * oracleNumerator * 106) / (oracleDenominator * 100);
       reserve1 = bound(reserve1, reserve1LowerBound, reserve1LowerBound * 5);
     } else {
-      uint256 reserve1UpperBound = (reserve0 * oracleNumerator * 89) / (oracleDenominator * 100);
+      uint256 reserve1UpperBound = (reserve0 * oracleNumerator * 94) / (oracleDenominator * 100);
 
       reserve1 = bound(reserve1, (reserve1UpperBound * 1) / 5, reserve1UpperBound);
     }
@@ -44,7 +44,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       oracleNum: oracleNumerator,
       oracleDen: oracleDenominator,
       poolPriceAbove: poolPriceAbove,
-      diffBps: 200
+      rebalanceThreshold: 500 // 5%
     });
     _;
   }
@@ -70,7 +70,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     uint256 oracleNumerator,
     uint256 reserve0,
     uint256 reserve1
-  ) public fpmmToken0Debt(18, 18) _boundFuzzParams(oracleNumerator, reserve0, reserve1, true) addFpmm(0, 50, 9000) {
+  )
+    public
+    fpmmToken0Debt(18, 18)
+    _boundFuzzParams(oracleNumerator, reserve0, reserve1, true)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+  {
     FuzzTestContext memory testContext;
 
     ctx.pool = address(fpmm);
@@ -79,7 +84,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token0Dec = 1e18;
     ctx.token1Dec = 1e18;
     ctx.isToken0Debt = true;
-    ctx.incentiveBps = 50;
+    ctx.incentives = LQ.RebalanceIncentives({
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25,
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25
+    });
 
     // enough to cover the full expansion
     testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(1e18, ctx);
@@ -92,7 +102,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.reserves.reserveDen
     );
     assertTrue(testContext.reservePriceAboveOraclePriceBefore);
-    assertTrue(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
+    assertTrue(testContext.priceDifferenceBefore > 500, "Price difference should be greater than rebalance threshold"); // at least 5% above the oracle price
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
@@ -110,15 +120,15 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       testContext.reserve1After,
       testContext.reserve0After
     );
-    assertEq(testContext.priceDifferenceAfter, 0, "Price difference should be zero");
+    // Allow for 1 basis point difference due to rounding and precision
+    assertApproxEqAbs(testContext.priceDifferenceAfter, 500, 1, "Price difference should be at rebalance threshold");
     assertIncentive(
-      ctx.incentiveBps,
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
       false,
       action.amount1Out,
       action.amountOwedToPool,
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
+      ctx.prices.oracleDen
     );
   }
 
@@ -127,7 +137,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     uint256 oracleNumerator,
     uint256 reserve0,
     uint256 reserve1
-  ) public fpmmToken0Debt(18, 6) _boundFuzzParams(oracleNumerator, reserve0, reserve1, false) addFpmm(0, 50, 9000) {
+  )
+    public
+    fpmmToken0Debt(18, 6)
+    _boundFuzzParams(oracleNumerator, reserve0, reserve1, false)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+  {
     FuzzTestContext memory testContext;
     ctx.pool = address(fpmm);
     ctx.token0 = collToken;
@@ -135,7 +150,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token0Dec = 1e6;
     ctx.token1Dec = 1e18;
     ctx.isToken0Debt = false;
-    ctx.incentiveBps = 50;
+    ctx.incentives = LQ.RebalanceIncentives({
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25, // total expansion incentive is 0,5%
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25 // total contraction incentive is 0,5%
+    });
 
     testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(1e18, ctx);
     setStabilityPoolBalance(debtToken, testContext.stabilityPoolBalance);
@@ -147,7 +167,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.reserves.reserveDen
     );
     assertFalse(testContext.reservePriceAboveOraclePriceBefore);
-    assertGt(testContext.priceDifferenceBefore, 999); // at least 10% above the oracle price
+    assertGt(testContext.priceDifferenceBefore, 500, "Price difference should be greater than rebalance threshold"); // at least 5% above the oracle price
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
@@ -165,15 +185,14 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       testContext.reserve1After,
       testContext.reserve0After
     );
-    assertEq(testContext.priceDifferenceAfter, 0, "Price difference should be zero");
+    assertApproxEqAbs(testContext.priceDifferenceAfter, 500, 1, "Price difference should be at rebalance threshold");
     assertIncentive(
-      ctx.incentiveBps,
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
       true,
       action.amount0Out * (1e18 / ctx.token0Dec),
       action.amountOwedToPool,
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
+      ctx.prices.oracleDen
     );
   }
 
@@ -186,7 +205,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     uint256 oracleNumerator,
     uint256 reserve0,
     uint256 reserve1
-  ) public fpmmToken0Debt(6, 18) _boundFuzzParams(oracleNumerator, reserve0, reserve1, true) addFpmm(0, 50, 9000) {
+  )
+    public
+    fpmmToken0Debt(6, 18)
+    _boundFuzzParams(oracleNumerator, reserve0, reserve1, true)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+  {
     FuzzTestContext memory testContext;
 
     ctx.pool = address(fpmm);
@@ -195,7 +219,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token0Dec = 1e6;
     ctx.token1Dec = 1e18;
     ctx.isToken0Debt = true;
-    ctx.incentiveBps = 50;
+    ctx.incentives = LQ.RebalanceIncentives({
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25,
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25
+    });
 
     // enough to cover the full expansion
     testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.9e18, ctx); // stability pool holds 90% of target amount to rebalance fully
@@ -207,8 +236,8 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.reserves.reserveNum,
       ctx.reserves.reserveDen
     );
-    assert(testContext.reservePriceAboveOraclePriceBefore);
-    assert(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
+    assertTrue(testContext.reservePriceAboveOraclePriceBefore);
+    assertGt(testContext.priceDifferenceBefore, 500, "Price difference should be greater than rebalance threshold"); // at least 5% above the oracle price
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
@@ -226,19 +255,18 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       testContext.reserve1After,
       testContext.reserve0After
     );
-    // price difference should be greater than 0
+    // price difference should be less than before
     assertLt(testContext.priceDifferenceAfter, testContext.priceDifferenceBefore);
-    assertGt(testContext.priceDifferenceAfter, 0);
+    assertGt(testContext.priceDifferenceAfter, 500, "Price difference should be greater than rebalance threshold");
     // reserve price should be still above oracle price
     assertTrue(testContext.reservePriceAboveOraclePriceAfter);
     assertIncentive(
-      ctx.incentiveBps,
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
       false,
       action.amount1Out,
       action.amountOwedToPool * (1e18 / ctx.token0Dec),
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
+      ctx.prices.oracleDen
     );
   }
 
@@ -247,7 +275,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     uint256 oracleNumerator,
     uint256 reserve0,
     uint256 reserve1
-  ) public fpmmToken0Debt(6, 18) _boundFuzzParams(oracleNumerator, reserve0, reserve1, false) addFpmm(0, 50, 9000) {
+  )
+    public
+    fpmmToken0Debt(6, 18)
+    _boundFuzzParams(oracleNumerator, reserve0, reserve1, false)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+  {
     FuzzTestContext memory testContext;
     ctx.pool = address(fpmm);
     ctx.token0 = collToken;
@@ -255,7 +288,12 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token0Dec = 1e18;
     ctx.token1Dec = 1e6;
     ctx.isToken0Debt = false;
-    ctx.incentiveBps = 50;
+    ctx.incentives = LQ.RebalanceIncentives({
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25,
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25
+    });
 
     testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.8e18, ctx); // stability pool holds 90% of target amount to rebalance fully
     setStabilityPoolBalance(debtToken, testContext.stabilityPoolBalance);
@@ -266,8 +304,8 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       ctx.reserves.reserveNum,
       ctx.reserves.reserveDen
     );
-    assert(!testContext.reservePriceAboveOraclePriceBefore);
-    assert(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
+    assertFalse(testContext.reservePriceAboveOraclePriceBefore);
+    assertGt(testContext.priceDifferenceBefore, 500, "Price difference should be greater than rebalance threshold"); // at least 5% above the oracle price
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
@@ -287,17 +325,16 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     );
     // price difference should be less than before
     assertLt(testContext.priceDifferenceAfter, testContext.priceDifferenceBefore);
-    assertGt(testContext.priceDifferenceAfter, 0);
+    assertGt(testContext.priceDifferenceAfter, 500, "Price difference should be greater than rebalance threshold");
     // reserve price should still be below oracle price
     assertFalse(testContext.reservePriceAboveOraclePriceAfter);
     assertIncentive(
-      ctx.incentiveBps,
+      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
       true,
       action.amount0Out,
       action.amountOwedToPool * (1e18 / ctx.token1Dec),
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
+      ctx.prices.oracleDen
     );
   }
 
@@ -306,20 +343,30 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
   // /* ============================================================ */
 
   /// forge-config: default.fuzz.runs = 10000
-  function test_FUZZ_whenToken0DebtPoolPriceBelowAndRedemptionFeeEqualToIncentive_shouldContractAndBringPriceBackToOraclePrice(
+  function test_FUZZ_whenToken0DebtPoolPriceBelowThreshold_shouldContractAndBringPriceBackToThreshold(
     uint256 oracleNumerator,
     uint256 reserve0,
     uint256 reserve1
-  ) public fpmmToken0Debt(18, 6) _boundFuzzParams(oracleNumerator, reserve0, reserve1, false) addFpmm(0, 50, 9000) {
+  )
+    public
+    fpmmToken0Debt(18, 8)
+    _boundFuzzParams(oracleNumerator, reserve0, reserve1, false)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+  {
     FuzzTestContext memory testContext;
 
     ctx.pool = address(fpmm);
     ctx.token0 = debtToken;
     ctx.token1 = collToken;
     ctx.token0Dec = 1e18;
-    ctx.token1Dec = 1e6;
+    ctx.token1Dec = 1e8;
     ctx.isToken0Debt = true;
-    ctx.incentiveBps = 50;
+    ctx.incentives = LQ.RebalanceIncentives({
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25,
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25
+    });
 
     (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -329,25 +376,17 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     );
 
     assertFalse(testContext.reservePriceAboveOraclePriceBefore);
-    assertGt(testContext.priceDifferenceBefore, 999); // at least 10% above the oracle price
-
-    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    // ensure redemption fractions is below 0.25% resulting in total redemption fee less than 0.5%
-    uint256 totalSupply = calculateTargetSupply(0.0025 * 1e18, ctx);
-    setDebtTokenTotalSupply(totalSupply);
+    assertGt(testContext.priceDifferenceBefore, 500, "Price difference should be greater than rebalance threshold"); // at least 5% above the oracle price
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(action.dir, LQ.Direction.Contract);
     assertGt(action.amount0Out, 0);
     assertEq(action.amount1Out, 0);
-    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
-
-    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
-    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount0Out, ctx);
+    assertGt(action.amountOwedToPool, 0);
 
     testContext.reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    testContext.reserve1After = ctx.reserves.reserveNum + expectedCollateralReceived * (1e18 / ctx.token1Dec);
+    testContext.reserve1After = ctx.reserves.reserveNum + action.amountOwedToPool * (1e18 / ctx.token1Dec);
 
     (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -356,16 +395,20 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       testContext.reserve0After
     );
 
-    // price difference should be less than before
-    assertEq(testContext.priceDifferenceAfter, 0, "Price difference should be zero");
+    // price difference should be approximately equal to rebalance threshold
+    assertApproxEqAbs(
+      testContext.priceDifferenceAfter,
+      500,
+      1,
+      "Price difference should be approximately equal to rebalance threshold"
+    );
     assertIncentive(
-      ctx.incentiveBps,
+      ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction,
       true,
       action.amount0Out,
-      expectedCollateralReceived * (1e18 / ctx.token1Dec),
+      action.amountOwedToPool * (1e18 / ctx.token1Dec),
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
+      ctx.prices.oracleDen
     );
   }
 
@@ -374,16 +417,26 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     uint256 oracleNumerator,
     uint256 reserve0,
     uint256 reserve1
-  ) public fpmmToken1Debt(6, 18) _boundFuzzParams(oracleNumerator, reserve0, reserve1, true) addFpmm(0, 50, 9000) {
+  )
+    public
+    fpmmToken1Debt(8, 18)
+    _boundFuzzParams(oracleNumerator, reserve0, reserve1, true)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+  {
     FuzzTestContext memory testContext;
 
     ctx.pool = address(fpmm);
     ctx.token0 = collToken;
     ctx.token1 = debtToken;
     ctx.token0Dec = 1e18;
-    ctx.token1Dec = 1e6;
+    ctx.token1Dec = 1e8;
     ctx.isToken0Debt = false;
-    ctx.incentiveBps = 50;
+    ctx.incentives = LQ.RebalanceIncentives({
+      liquiditySourceIncentiveBpsExpansion: 25,
+      protocolIncentiveBpsExpansion: 25,
+      liquiditySourceIncentiveBpsContraction: 25,
+      protocolIncentiveBpsContraction: 25
+    });
 
     (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
       ctx.prices.oracleNum,
@@ -393,22 +446,15 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     );
 
     assert(testContext.reservePriceAboveOraclePriceBefore);
-    assert(testContext.priceDifferenceBefore >= 999); // at least 10% above the oracle price
-
-    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(0.0025 * 1e18, ctx);
-    setDebtTokenTotalSupply(totalSupply);
+    assert(testContext.priceDifferenceBefore >= 500); // at least 5% above the oracle price
 
     LQ.Action memory action = strategy.determineAction(ctx);
     assertEq(action.dir, LQ.Direction.Contract);
     assertEq(action.amount0Out, 0);
     assertGt(action.amount1Out, 0);
-    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
+    assertGt(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
 
-    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
-    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount1Out, ctx);
-
-    testContext.reserve0After = ctx.reserves.reserveDen + expectedCollateralReceived;
+    testContext.reserve0After = ctx.reserves.reserveDen + action.amountOwedToPool;
     testContext.reserve1After = ctx.reserves.reserveNum - action.amount1Out * (1e18 / ctx.token1Dec);
 
     (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
@@ -417,264 +463,19 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       testContext.reserve1After,
       testContext.reserve0After
     );
-    assertEq(testContext.priceDifferenceAfter, 0, "Price difference should be zero");
+    assertApproxEqAbs(
+      testContext.priceDifferenceAfter,
+      500,
+      1,
+      "Price difference should be approximately equal to rebalance threshold"
+    );
     assertIncentive(
-      ctx.incentiveBps,
+      ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction,
       false,
       action.amount1Out * (1e18 / ctx.token1Dec),
-      expectedCollateralReceived,
+      action.amountOwedToPool,
       ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
-    );
-  }
-
-  // /* ============================================================ */
-  // /* ============== Contraction non-target liquidity ============ */
-  // /* ============================================================ */
-
-  /// forge-config: default.fuzz.runs = 10000
-  function test_FUZZ_whenToken0DebtPoolPriceBelowAndRedemptionFeeLessIncentive_shouldContractAndBringPriceAboveOraclePrice(
-    uint256 oracleNumerator,
-    uint256 reserve0,
-    uint256 reserve1
-  ) public fpmmToken0Debt(18, 6) _boundFuzzParams(oracleNumerator, reserve0, reserve1, false) addFpmm(0, 50, 9000) {
-    FuzzTestContext memory testContext;
-
-    ctx.pool = address(fpmm);
-    ctx.token0 = debtToken;
-    ctx.token1 = collToken;
-    ctx.token0Dec = 1e18;
-    ctx.token1Dec = 1e6;
-    ctx.isToken0Debt = true;
-    ctx.incentiveBps = 50;
-
-    (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.reserves.reserveNum,
-      ctx.reserves.reserveDen
-    );
-
-    assertFalse(testContext.reservePriceAboveOraclePriceBefore);
-    assertGt(testContext.priceDifferenceBefore, 999); // at least 10% above the oracle price
-
-    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(0.001 * 1e18, ctx); // 0.1% resulting in redemption fee beeing 0.25% + 0.1% = 0.35%
-    setDebtTokenTotalSupply(totalSupply);
-
-    LQ.Action memory action = strategy.determineAction(ctx);
-    assertEq(uint256(action.dir), uint256(LQ.Direction.Contract));
-    assertGt(action.amount0Out, 0);
-    assertEq(action.amount1Out, 0);
-    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
-
-    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
-    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount0Out, ctx);
-
-    testContext.reserve0After = ctx.reserves.reserveDen - action.amount0Out;
-    testContext.reserve1After = ctx.reserves.reserveNum + expectedCollateralReceived * (1e18 / ctx.token1Dec);
-
-    (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      testContext.reserve1After,
-      testContext.reserve0After
-    );
-    assertGe(testContext.priceDifferenceAfter, 0, "Price difference should be greater than or equal to zero");
-    assertTrue(testContext.reservePriceAboveOraclePriceAfter);
-    assertIncentive(
-      ctx.incentiveBps,
-      true,
-      action.amount0Out,
-      expectedCollateralReceived * (1e18 / ctx.token1Dec),
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      true
-    );
-  }
-
-  // /// forge-config: default.fuzz.runs = 10000
-  function test_FUZZ_whenToken0DebtPoolPriceBelowAndRedemptionFeeMoreThanIncentive_shouldContractAndBringPriceCloserToOraclePrice(
-    uint256 oracleNumerator,
-    uint256 reserve0,
-    uint256 reserve1
-  ) public fpmmToken0Debt(6, 18) _boundFuzzParams(oracleNumerator, reserve0, reserve1, false) addFpmm(0, 50, 9000) {
-    FuzzTestContext memory testContext;
-
-    ctx.pool = address(fpmm);
-    ctx.token0 = debtToken;
-    ctx.token1 = collToken;
-    ctx.token0Dec = 1e6;
-    ctx.token1Dec = 1e18;
-    ctx.isToken0Debt = true;
-    ctx.incentiveBps = 50;
-
-    (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.reserves.reserveNum,
-      ctx.reserves.reserveDen
-    );
-
-    assertFalse(testContext.reservePriceAboveOraclePriceBefore);
-    assertGt(testContext.priceDifferenceBefore, 999); // at least 10% above the oracle price
-
-    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(0.003 * 1e18, ctx); // 0.3% resulting in redemption fee beeing 0.25% + 0.3% = 0.55%
-    setDebtTokenTotalSupply(totalSupply);
-
-    LQ.Action memory action = strategy.determineAction(ctx);
-    assertEq(action.dir, LQ.Direction.Contract);
-    assertGt(action.amount0Out, 0);
-    assertEq(action.amount1Out, 0);
-    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
-
-    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
-    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount0Out, ctx);
-
-    testContext.reserve0After = ctx.reserves.reserveDen - action.amount0Out * (1e18 / ctx.token0Dec);
-    testContext.reserve1After = ctx.reserves.reserveNum + expectedCollateralReceived;
-
-    (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      testContext.reserve1After,
-      testContext.reserve0After
-    );
-
-    assertGe(testContext.priceDifferenceAfter, 0, "Price difference should be greater than or equal to zero");
-    assertFalse(testContext.reservePriceAboveOraclePriceAfter);
-    assertIncentive(
-      ctx.incentiveBps,
-      true,
-      action.amount0Out * (1e18 / ctx.token0Dec),
-      expectedCollateralReceived,
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
-    );
-  }
-
-  /// forge-config: default.fuzz.runs = 10000
-  function test_FUZZ_whenToken1DebtPoolPriceAboveAndRedemptionFeeLessIncentive_shouldContractAndBringPriceBelowOraclePrice(
-    uint256 oracleNumerator,
-    uint256 reserve0,
-    uint256 reserve1
-  ) public fpmmToken1Debt(6, 18) _boundFuzzParams(oracleNumerator, reserve0, reserve1, true) addFpmm(0, 50, 9000) {
-    FuzzTestContext memory testContext;
-
-    ctx.pool = address(fpmm);
-    ctx.token0 = collToken;
-    ctx.token1 = debtToken;
-    ctx.token0Dec = 1e6;
-    ctx.token1Dec = 1e18;
-    ctx.isToken0Debt = false;
-    ctx.incentiveBps = 50;
-
-    (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.reserves.reserveNum,
-      ctx.reserves.reserveDen
-    );
-
-    assertTrue(testContext.reservePriceAboveOraclePriceBefore);
-    assertGt(testContext.priceDifferenceBefore, 999); // at least 10% above the oracle price
-
-    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(0.001 * 1e18, ctx); // 0.1% resulting in redemption fee beeing 0.25% + 0.1% = 0.35%
-    setDebtTokenTotalSupply(totalSupply);
-
-    LQ.Action memory action = strategy.determineAction(ctx);
-    assertEq(action.dir, LQ.Direction.Contract);
-    assertEq(action.amount0Out, 0);
-    assertGt(action.amount1Out, 0);
-    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
-
-    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
-    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount1Out, ctx);
-
-    testContext.reserve0After = ctx.reserves.reserveDen + expectedCollateralReceived * (1e18 / ctx.token0Dec);
-    testContext.reserve1After = ctx.reserves.reserveNum - action.amount1Out;
-
-    (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      testContext.reserve1After,
-      testContext.reserve0After
-    );
-    assertGe(testContext.priceDifferenceAfter, 0, "Price difference should be greater than or equal to zero");
-    assertFalse(testContext.reservePriceAboveOraclePriceAfter);
-    assertIncentive(
-      ctx.incentiveBps,
-      false,
-      action.amount1Out,
-      expectedCollateralReceived * (1e18 / ctx.token0Dec),
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      true
-    );
-  }
-
-  // /// forge-config: default.fuzz.runs = 10000
-  function test_FUZZ_whenToken1DebtPoolPriceAboveAndRedemptionFeeMoreThanIncentive_shouldContractAndBringPriceCloserToOraclePrice(
-    uint256 oracleNumerator,
-    uint256 reserve0,
-    uint256 reserve1
-  ) public fpmmToken1Debt(6, 18) _boundFuzzParams(oracleNumerator, reserve0, reserve1, true) addFpmm(0, 50, 9000) {
-    FuzzTestContext memory testContext;
-
-    ctx.pool = address(fpmm);
-    ctx.token0 = collToken;
-    ctx.token1 = debtToken;
-    ctx.token0Dec = 1e6;
-    ctx.token1Dec = 1e18;
-    ctx.isToken0Debt = false;
-    ctx.incentiveBps = 50;
-
-    (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      ctx.reserves.reserveNum,
-      ctx.reserves.reserveDen
-    );
-
-    assertTrue(testContext.reservePriceAboveOraclePriceBefore);
-    assertGt(testContext.priceDifferenceBefore, 999); // at least 10% above the oracle price
-
-    mockRedemptionRateWithDecay(0.0025 * 1e18); // 0.25%
-    uint256 totalSupply = calculateTargetSupply(0.003 * 1e18, ctx); // 0.3% resulting in redemption fee beeing 0.25% + 0.3% = 0.55%
-    setDebtTokenTotalSupply(totalSupply);
-
-    LQ.Action memory action = strategy.determineAction(ctx);
-    assertEq(action.dir, LQ.Direction.Contract);
-    assertEq(action.amount0Out, 0);
-    assertGt(action.amount1Out, 0);
-    assertEq(action.amountOwedToPool, 0); // expected to always be 0 because can't calculate precise amount of collateral to receive from redemption
-
-    // this value can be off by a few wei due to rounding errors from calculating expected collateral received from redemption.
-    uint256 expectedCollateralReceived = calculatedExpectedCollateralReceivedFromRedemption(action.amount1Out, ctx);
-
-    testContext.reserve0After = ctx.reserves.reserveDen + expectedCollateralReceived * (1e18 / ctx.token0Dec);
-    testContext.reserve1After = ctx.reserves.reserveNum - action.amount1Out * (1e18 / ctx.token1Dec);
-
-    (testContext.priceDifferenceAfter, testContext.reservePriceAboveOraclePriceAfter) = calculatePriceDifference(
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      testContext.reserve1After,
-      testContext.reserve0After
-    );
-    assertLt(testContext.priceDifferenceAfter, testContext.priceDifferenceBefore);
-    assertTrue(testContext.reservePriceAboveOraclePriceAfter);
-    assertIncentive(
-      ctx.incentiveBps,
-      false,
-      action.amount1Out,
-      expectedCollateralReceived * (1e18 / ctx.token0Dec),
-      ctx.prices.oracleNum,
-      ctx.prices.oracleDen,
-      false
+      ctx.prices.oracleDen
     );
   }
 }

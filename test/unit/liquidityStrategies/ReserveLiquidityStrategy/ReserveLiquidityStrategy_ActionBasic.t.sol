@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
+// solhint-disable max-line-length
 pragma solidity ^0.8;
 
 import { ReserveLiquidityStrategy_BaseTest } from "./ReserveLiquidityStrategy_BaseTest.sol";
@@ -19,7 +20,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
   function test_determineAction_whenOraclePriceHigh_shouldHandleCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Oracle price is 2:1 (2 token1 per 1 token0)
     // Pool has 100 token0 and 100 token1, so it needs more token1
@@ -29,7 +30,12 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
       oracleNum: 2e18, // 2 token1 per token0
       oracleDen: 1e18,
       poolPriceAbove: false, // Pool price below oracle (needs more token1)
-      incentiveBps: 100
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.05% + 0.05% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.05% + 0.05% = 1% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -45,7 +51,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
   function test_determineAction_whenOraclePriceLow_shouldHandleCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Oracle price is 1:2 (0.5 token1 per 1 token0)
     // Pool has 100 token0 and 100 token1, so it has excess token1
@@ -55,7 +61,12 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
       oracleNum: 1e18, // 0.5 token1 per token0
       oracleDen: 2e18,
       poolPriceAbove: true, // Pool price above oracle (excess token1)
-      incentiveBps: 100
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     LQ.Action memory action = strategy.determineAction(ctx);
@@ -69,60 +80,23 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
   /* ================= Balance Tests ============================ */
   /* ============================================================ */
 
-  function test_determineAction_whenPoolPriceEqualsOraclePrice_shouldNotAct()
+  function test_determineAction_whenZeroReserves_shouldNotAct()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
-    // Scenario: Pool price equals oracle price
-    // With 100 token0 and 100 token1 at 1:1 oracle price, pool price = oracle price
-    LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,
-      reserveNum: 100e18,
-      oracleNum: 1e18,
-      oracleDen: 1e18,
-      poolPriceAbove: false, // Pool price equals oracle price, not above
-      incentiveBps: 100
-    });
-
-    // Mock reserve balance (even though no action should occur)
-    vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
-
-    LQ.Action memory action = strategy.determineAction(ctx);
-
-    assertEq(action.amount1Out, 0, "No token1 should flow out");
-    assertEq(action.amount0Out, 0, "No token0 should flow out");
-    assertEq(action.amountOwedToPool, 0, "No input amount should be set");
-  }
-
-  function test_determineAction_whenPoolPriceEqualsOracle_shouldNotAct() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
-    // Pool price equals oracle price: 100 token0 vs 100 token1 at 1:1 oracle price
-    LQ.Context memory ctx = _createContext({
-      reserveDen: 100e18,
-      reserveNum: 100e18,
-      oracleNum: 1e18,
-      oracleDen: 1e18,
-      poolPriceAbove: false,
-      incentiveBps: 100
-    });
-
-    // Mock reserve balance (even though no action should occur)
-    vm.mockCall(collToken, abi.encodeWithSelector(IERC20.balanceOf.selector, address(reserve)), abi.encode(1000e18));
-
-    LQ.Action memory action = strategy.determineAction(ctx);
-
-    assertEq(action.amount0Out, 0, "No token0 should flow out");
-    assertEq(action.amountOwedToPool, 0, "No input amount should be set");
-  }
-
-  function test_determineAction_whenZeroReserves_shouldNotAct() public fpmmToken0Debt(18, 18) addFpmm(0, 100) {
     LQ.Context memory ctx = _createContext({
       reserveDen: 0, // token0 reserves
       reserveNum: 0, // token1 reserves
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 100
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     LQ.Action memory action = strategy.determineAction(ctx);
@@ -135,7 +109,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
   function test_determineAction_whenZeroToken0Reserve_shouldHandleCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     LQ.Context memory ctx = _createContext({
       reserveDen: 0, // token0 reserves
@@ -143,7 +117,12 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 100
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     LQ.Action memory action = strategy.determineAction(ctx);
@@ -155,7 +134,7 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
   function test_determineAction_whenZeroToken1Reserve_shouldHandleCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
@@ -163,7 +142,12 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: false,
-      incentiveBps: 100
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     // Mock reserve to have collateral balance for contraction
@@ -182,40 +166,60 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
   function test_determineAction_withRealisticPriceDifference_shouldReturnProportionalAmounts()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
-    // This simulates a real scenario where pool price deviates by 2%
+    // This simulates a real scenario where pool price deviates by 6%
 
-    // Set reserves to create a 2% price difference
-    // Pool price = reserveNum/reserveDen = 102/100 = 1.02
+    // Set reserves to create a 6% price difference threshold is 5%
+    // Pool price = reserveNum/reserveDen = 106/100 = 1.06
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
-      reserveNum: 102e18, // token1 reserves (2% more to create price difference)
+      reserveNum: 106e18, // token1 reserves (6% more to create price difference)
       oracleNum: 1e18,
       oracleDen: 1e18,
       poolPriceAbove: true,
-      incentiveBps: 100 // 1%
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveBpsExpansion: 50,
+        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
+        liquiditySourceIncentiveBpsContraction: 50,
+        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+      })
     });
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
     assertEq(action.dir, LQ.Direction.Expand, "Should expand");
 
-    // With 2% difference and 1% incentive, amounts should be reasonable
-    // X = (1e18 * 102e18 - 1e18 * 100e18) / (1e18 * (20000 - 100) / 10000)
-    // X = 2e18 / 1.99 ≈ 1.005e18
-    assertApproxEqRel(action.amount1Out, 1.005e18, 1e16, "Token1 out should be approximately 1.005e18");
-    assertApproxEqRel(action.amountOwedToPool, 1.005e18, 1e16, "Token0 in should be approximately 1.005e18");
+    // With 6% difference and 1% incentive, amounts should be reasonable
+    // with 5% threshold, we rebalance to the threshold 1.05
+    // X = (106e18 * 1e18 - 1.05e18 * 100e18) / (1 * 0.99 * 1.05e18 + 1e18)
+    // X = 0.490316253983819563e18
+    assertApproxEqRel(
+      action.amount1Out,
+      490316253983819563,
+      1e16,
+      "Token1 out should be approximately 0.490316253983819563e18"
+    );
+    // Y = X * 1/1 * (1 - i) = 0.490316253983819563e18 * 0.99 = 0.48541309144398136737e18
+    assertApproxEqRel(
+      action.amountOwedToPool,
+      485413091443981367,
+      1e16,
+      "Token0 in should be approximately 0.485413091443981367e18"
+    );
   }
 
   function test_determineAction_withMultipleRealisticScenarios_shouldHandleCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 100)
+    addFpmm(0, 50, 50, 50, 50)
   {
     // Test multiple realistic price deviations with appropriate incentives
-    uint256[3] memory priceDiffs = [uint256(101e18), 105e18, 110e18]; // 1%, 5%, 10% above
-    uint256[3] memory incentives = [uint256(50), 100, 100]; // 0.5%, 1%, 1% incentives (capped at 1%)
+    uint256[3] memory priceDiffs = [uint256(1051e17), 1071e17, 1101e17]; // 5.1%, 7.1%, 10.1% above
+
+    // total incentives are 0.5%, 1%, 1%
+    uint16[3] memory liquiditySourceIncentiveBps = [uint16(25), uint16(50), uint16(50)]; // 0.25%, 0.5%, 0.5% liquidity source incentive
+    uint16[3] memory protocolIncentiveBps = [uint16(25), uint16(50), uint16(50)]; // 0.25%, 0.5%, 0.5% protocol incentive
 
     LQ.Action memory prevAction;
     for (uint256 i = 0; i < priceDiffs.length; i++) {
@@ -225,7 +229,12 @@ contract ReserveLiquidityStrategy_ActionBasicTest is ReserveLiquidityStrategy_Ba
         oracleNum: 1e18,
         oracleDen: 1e18,
         poolPriceAbove: true,
-        incentiveBps: incentives[i]
+        incentives: LQ.RebalanceIncentives({
+          liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBps[i],
+          protocolIncentiveBpsExpansion: protocolIncentiveBps[i],
+          liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBps[i],
+          protocolIncentiveBpsContraction: protocolIncentiveBps[i]
+        })
       });
 
       LQ.Action memory action = strategy.determineAction(ctx);
