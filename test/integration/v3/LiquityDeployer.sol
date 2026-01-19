@@ -501,6 +501,8 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
     feed.initialize(
       address($oracle.adapter),
       address($addresses.referenceRateFeedCDPFPMM),
+      false,
+      20 minutes,
       borrowerOperationsAddress,
       address($addresses.watchdog),
       address($addresses.governance)

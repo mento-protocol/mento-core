@@ -727,13 +727,13 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     if (fee == 0) return;
 
     if (amount0In > 0) {
-      uint256 amount0InFee = (amount0In * fee) / BASIS_POINTS_DENOMINATOR;
-      IERC20($.token0).safeTransfer($.protocolFeeRecipient, amount0InFee);
+      uint256 feeAmount = (amount0In * fee) / BASIS_POINTS_DENOMINATOR;
+      IERC20($.token0).safeTransfer($.protocolFeeRecipient, feeAmount);
     }
 
     if (amount1In > 0) {
-      uint256 amount1InFee = (amount1In * fee) / BASIS_POINTS_DENOMINATOR;
-      IERC20($.token1).safeTransfer($.protocolFeeRecipient, amount1InFee);
+      uint256 feeAmount = (amount1In * fee) / BASIS_POINTS_DENOMINATOR;
+      IERC20($.token1).safeTransfer($.protocolFeeRecipient, feeAmount);
     }
   }
 
