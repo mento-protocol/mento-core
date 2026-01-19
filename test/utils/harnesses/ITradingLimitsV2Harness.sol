@@ -8,6 +8,13 @@ interface ITradingLimitsV2Harness {
 
   function verify(ITradingLimitsV2.State memory state, ITradingLimitsV2.Config memory config) external pure;
 
+  function applyTradingLimits(
+    ITradingLimitsV2.TradingLimits memory self,
+    uint256 amountIn,
+    uint256 amountOut,
+    uint256 feeBps
+  ) external view returns (ITradingLimitsV2.State memory);
+
   function reset(
     ITradingLimitsV2.State memory state,
     ITradingLimitsV2.Config memory config
@@ -16,10 +23,10 @@ interface ITradingLimitsV2Harness {
   function update(
     ITradingLimitsV2.State memory state,
     ITradingLimitsV2.Config memory config,
-    int256 deltaFlow
+    int96 deltaFlow
   ) external view returns (ITradingLimitsV2.State memory);
 
-  function scaleValue(int256 value, uint8 decimals) external pure returns (int96);
+  function scaleValue(uint256 value, uint8 decimals) external pure returns (uint256);
 
   function safeAdd(int96 a, int96 b) external pure returns (int96);
 }
