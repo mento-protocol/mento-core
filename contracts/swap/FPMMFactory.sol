@@ -187,7 +187,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
 
   /// @inheritdoc IFPMMFactory
   function setDefaultParams(IFPMM.FPMMParams calldata _defaultParams) public onlyOwner {
-    if (_defaultParams.protocolFee + _defaultParams.lpFee > 100) revert FeeTooHigh();
+    if (_defaultParams.protocolFee + _defaultParams.lpFee > 200) revert FeeTooHigh();
     if (_defaultParams.protocolFeeRecipient == address(0)) revert ZeroAddress();
     if (_defaultParams.rebalanceIncentive > 100) revert RebalanceIncentiveTooHigh();
     if (_defaultParams.rebalanceThresholdAbove > 1000) revert RebalanceThresholdTooHigh();
@@ -411,7 +411,7 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
   // slither-disable-start encode-packed-collision
   function _computeProxyAddressAndSalt(address token0, address token1) internal view returns (address, bytes32) {
     bytes11 customSalt = bytes11(
-      uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), IERC20(token1).symbol()))))
+      uint88(uint256(keccak256(abi.encodePacked(IERC20(token0).symbol(), "/", IERC20(token1).symbol()))))
     );
     bytes32 salt = bytes32(abi.encodePacked(address(this), hex"00", customSalt));
     bytes32 guardedSalt = _efficientHash({ a: bytes32(uint256(uint160(address(this)))), b: salt });

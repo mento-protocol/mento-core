@@ -57,13 +57,13 @@ contract FPMMAdminTest is FPMMBaseTest {
   {
     vm.prank(owner);
     vm.expectRevert(IFPMM.FeeTooHigh.selector);
-    fpmm.setLPFee(101);
+    fpmm.setLPFee(201);
 
     vm.startPrank(owner);
     fpmm.setProtocolFee(10);
 
     vm.expectRevert(IFPMM.FeeTooHigh.selector);
-    fpmm.setLPFee(91);
+    fpmm.setLPFee(191);
     vm.stopPrank();
   }
 
@@ -113,13 +113,13 @@ contract FPMMAdminTest is FPMMBaseTest {
 
     vm.prank(owner);
     vm.expectRevert(IFPMM.FeeTooHigh.selector);
-    fpmm.setProtocolFee(101);
+    fpmm.setProtocolFee(201);
 
     vm.startPrank(owner);
     fpmm.setLPFee(10);
 
     vm.expectRevert(IFPMM.FeeTooHigh.selector);
-    fpmm.setProtocolFee(91);
+    fpmm.setProtocolFee(191);
     vm.stopPrank();
   }
 

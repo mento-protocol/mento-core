@@ -421,7 +421,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     amount1 = (liquidity * balance1) / _totalSupply;
 
     // slither-disable-next-line incorrect-equality
-    if (amount0 == 0 || amount1 == 0) revert InsufficientLiquidityBurned();
+    if (amount0 == 0 && amount1 == 0) revert InsufficientLiquidityBurned();
 
     _burn(address(this), liquidity);
 
@@ -495,6 +495,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   // solhint-disable code-complexity
   /// @inheritdoc IFPMM
   function rebalance(uint256 amount0Out, uint256 amount1Out, bytes calldata data) external nonReentrant {
+    _update();
     FPMMStorage storage $ = _getFPMMStorage();
 
     if (!$.liquidityStrategy[msg.sender]) revert NotLiquidityStrategy();
@@ -562,7 +563,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function setLPFee(uint256 _lpFee) public virtual onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    if (_lpFee + $.protocolFee > 100) revert FeeTooHigh(); // Max 1% combined
+    if (_lpFee + $.protocolFee > 200) revert FeeTooHigh(); // Max 2% combined
 
     uint256 oldFee = $.lpFee;
     $.lpFee = _lpFee;
@@ -574,7 +575,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     FPMMStorage storage $ = _getFPMMStorage();
 
     if (_protocolFee > 0 && $.protocolFeeRecipient == address(0)) revert ProtocolFeeRecipientRequired();
-    if (_protocolFee + $.lpFee > 100) revert FeeTooHigh(); // Max 1% combined
+    if (_protocolFee + $.lpFee > 200) revert FeeTooHigh(); // Max 2% combined
 
     uint256 oldFee = $.protocolFee;
     $.protocolFee = _protocolFee;
@@ -952,6 +953,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
    */
   function _applyTradingLimits(address token, uint256 amountIn, uint256 amountOut) internal {
     FPMMStorage storage $ = _getFPMMStorage();
-    $.tradingLimits[token].state = $.tradingLimits[token].applyTradingLimits(amountIn, amountOut);
+    uint256 totalFee = $.lpFee + $.protocolFee;
+    $.tradingLimits[token].state = $.tradingLimits[token].applyTradingLimits(amountIn, amountOut, totalFee);
   }
 }

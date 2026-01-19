@@ -117,8 +117,8 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
 
     uint256 expiryTime = $oracle.sortedOracles.getTokenReportExpirySeconds($addresses.referenceRateFeedCDPFPMM);
-    skip(expiryTime - 1 seconds);
-    // rates are still valid 1 second before expiry
+    skip(expiryTime);
+    // rates are still valid exactly at expiry time
     $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedCDPFPMM);
     $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
 
@@ -132,6 +132,19 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     _refreshOracleRates(); // back to normal after new reports
     $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedCDPFPMM);
     $oracle.adapter.ensureRateValid($addresses.referenceRateFeedReserveFPMM);
+  }
+
+  function test_oracleAdapter_whenRateIsZero_reverts() public {
+    _deployOracleAdapter();
+
+    vm.startPrank($addresses.governance);
+    // disable breaker so that a smaller update doesn't trip it
+    $oracle.breakerBox.toggleBreaker(address($oracle.medianDeltaBreaker), $addresses.referenceRateFeedCDPFPMM, false);
+    vm.stopPrank();
+
+    _reportCDPFPMMRate(1e6 - 1);
+    vm.expectRevert(IOracleAdapter.InvalidRate.selector);
+    $oracle.adapter.getFXRateIfValid($addresses.referenceRateFeedCDPFPMM);
   }
 
   function test_oracleAdapter_revertsWhenNoRatesWereEverReported() public {
@@ -156,7 +169,7 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     return rate * 1e6;
   }
 
-  function assertCDPFPMMRateEqual(uint256 expectedNumerator, uint256 expectedDenominator) internal {
+  function assertCDPFPMMRateEqual(uint256 expectedNumerator, uint256 expectedDenominator) internal view {
     (uint256 actualNumerator, uint256 actualDenominator) = $oracle.adapter.getFXRateIfValid(
       $addresses.referenceRateFeedCDPFPMM
     );
@@ -164,7 +177,7 @@ contract OracleAdapterIntegrationTest is OracleAdapterDeployer {
     assertEq(actualDenominator, expectedDenominator);
   }
 
-  function assertReserveFPMMRateEqual(uint256 expectedNumerator, uint256 expectedDenominator) internal {
+  function assertReserveFPMMRateEqual(uint256 expectedNumerator, uint256 expectedDenominator) internal view {
     (uint256 actualNumerator, uint256 actualDenominator) = $oracle.adapter.getFXRateIfValid(
       $addresses.referenceRateFeedReserveFPMM
     );

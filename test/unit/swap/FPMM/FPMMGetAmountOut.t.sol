@@ -173,9 +173,9 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
     assertEq(fpmm.getAmountOut(amountIn, token0), amountIn); // No fee as of now
 
     vm.prank(owner);
-    fpmm.setProtocolFee(100); // Max fee of 100bps / 1%
+    fpmm.setProtocolFee(200); // Max fee of 200bps / 2%
 
-    assertEq(fpmm.getAmountOut(amountIn, token0), 99e18);
+    assertEq(fpmm.getAmountOut(amountIn, token0), 98e18);
   }
 
   function test_getAmountOut_whenMarketIsClosed_shouldRevert()

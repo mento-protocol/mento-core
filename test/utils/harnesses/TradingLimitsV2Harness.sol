@@ -9,6 +9,7 @@ import { ITradingLimitsV2Harness } from "./ITradingLimitsV2Harness.sol";
 contract TradingLimitsV2Harness is ITradingLimitsV2Harness {
   using TradingLimitsV2 for ITradingLimitsV2.State;
   using TradingLimitsV2 for ITradingLimitsV2.Config;
+  using TradingLimitsV2 for ITradingLimitsV2.TradingLimits;
 
   function validate(ITradingLimitsV2.Config memory config) public pure {
     return config.validate();
@@ -16,6 +17,15 @@ contract TradingLimitsV2Harness is ITradingLimitsV2Harness {
 
   function verify(ITradingLimitsV2.State memory state, ITradingLimitsV2.Config memory config) public pure {
     return state.verify(config);
+  }
+
+  function applyTradingLimits(
+    ITradingLimitsV2.TradingLimits memory self,
+    uint256 amountIn,
+    uint256 amountOut,
+    uint256 feeBps
+  ) public view returns (ITradingLimitsV2.State memory) {
+    return self.applyTradingLimits(amountIn, amountOut, feeBps);
   }
 
   function reset(
@@ -28,12 +38,12 @@ contract TradingLimitsV2Harness is ITradingLimitsV2Harness {
   function update(
     ITradingLimitsV2.State memory state,
     ITradingLimitsV2.Config memory config,
-    int256 deltaFlow
+    int96 deltaFlow
   ) public view returns (ITradingLimitsV2.State memory) {
     return state.update(config, deltaFlow);
   }
 
-  function scaleValue(int256 value, uint8 decimals) public pure returns (int96) {
+  function scaleValue(uint256 value, uint8 decimals) public pure returns (uint256) {
     return TradingLimitsV2.scaleValue(value, decimals);
   }
 

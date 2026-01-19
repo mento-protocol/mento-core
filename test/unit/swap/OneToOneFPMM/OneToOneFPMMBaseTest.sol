@@ -27,6 +27,7 @@ contract OneToOneFPMMBaseTest is Test {
   address public sortedOracles = makeAddr("SortedOracles");
   address public breakerBox = makeAddr("BreakerBox");
   address public marketHoursBreaker = makeAddr("MarketHoursBreaker");
+  address public l2SequencerUptimeFeed = makeAddr("l2SequencerUptimeFeed");
   address public referenceRateFeedID = makeAddr("REFERENCE_RATE_FEED");
   address public owner = makeAddr("OWNER");
   address public protocolFeeRecipient = makeAddr("PROTOCOL_FEE_RECIPIENT");
@@ -47,7 +48,13 @@ contract OneToOneFPMMBaseTest is Test {
   function setUp() public virtual {
     fpmm = new OneToOneFPMM(false);
     oracleAdapter = IOracleAdapter(new OracleAdapter(false));
-    oracleAdapter.initialize(address(sortedOracles), address(breakerBox), address(marketHoursBreaker), owner);
+    oracleAdapter.initialize(
+      address(sortedOracles),
+      address(breakerBox),
+      address(marketHoursBreaker),
+      address(l2SequencerUptimeFeed),
+      owner
+    );
 
     vm.prank(fpmm.owner());
 

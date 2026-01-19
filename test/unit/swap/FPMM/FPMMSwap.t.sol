@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase
+// solhint-disable func-name-mixedcase, max-line-length
 pragma solidity ^0.8;
 
 import { FPMMBaseTest } from "./FPMMBaseTest.sol";
@@ -7,6 +7,7 @@ import { IOracleAdapter } from "contracts/interfaces/IOracleAdapter.sol";
 import { IERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/IERC20.sol";
 import { IFPMM } from "contracts/interfaces/IFPMM.sol";
 import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
+import { FlashLoanReceiver } from "./helpers/FlashLoanReceiver.sol";
 
 contract FPMMSwapTest is FPMMBaseTest {
   function setUp() public override {
@@ -399,13 +400,15 @@ contract FPMMSwapTest is FPMMBaseTest {
     withFXMarketOpen(true)
     withRecentRate(true)
   {
-    // Configure both L0 and L1 limits
+    // Configure both L0 and L1 limits for both tokens
     vm.prank(owner);
     fpmm.configureTradingLimit(token0, 100e18, 1000e18);
+    vm.prank(owner);
+    fpmm.configureTradingLimit(token1, 100e18, 1000e18);
 
     // Swap within both limits should succeed
-    // Trading limits track netflow: amountOut - amountIn
-    // For this swap: amountIn = 50, amountOut = 0, so netflow = 50 (positive = inflow)
+    // Trading limits track netflow: amountOut - amountIn - fee
+    // For this swap: amountIn = 50, amountOut = 0, fee = 30bps, so netflow = 50 *(1-30bps) = 50 * 0.997 = 49.85e15 (positive = inflow)
     uint256 amount0In = 50e18;
     uint256 amount1Out = 49.85e18;
 
@@ -419,8 +422,12 @@ contract FPMMSwapTest is FPMMBaseTest {
     // Verify limits were updated
     // Netflow = amountIn - amountOut = 50 - 0 = 50 (scaled to 15 decimals)
     (, ITradingLimitsV2.State memory state) = fpmm.getTradingLimits(token0);
-    assertEq(state.netflow0, 50e15);
-    assertEq(state.netflow1, 50e15);
+    assertEq(state.netflow0, 49.85e15);
+    assertEq(state.netflow1, 49.85e15);
+
+    (, ITradingLimitsV2.State memory state1) = fpmm.getTradingLimits(token1);
+    assertEq(state1.netflow0, -49.85e15);
+    assertEq(state1.netflow1, -49.85e15);
   }
 
   function test_swap_whenL0ResetsAfter5Minutes_shouldAllowMoreSwaps()
@@ -467,9 +474,11 @@ contract FPMMSwapTest is FPMMBaseTest {
     withFXMarketOpen(true)
     withRecentRate(true)
   {
+    // Configure only L1 limit (no L0) for both tokens
     vm.prank(owner);
-    // Configure only L1 limit (no L0)
     fpmm.configureTradingLimit(token1, 0, 80e18);
+    vm.prank(owner);
+    fpmm.configureTradingLimit(token0, 0, 80e18);
 
     // First swap: 60 tokens (within L1 limit)
     uint256 amount1In = 60e18;
@@ -478,6 +487,14 @@ contract FPMMSwapTest is FPMMBaseTest {
     vm.startPrank(ALICE);
     IERC20(token1).transfer(address(fpmm), amount1In);
     fpmm.swap(amount0Out, 0, CHARLIE, "");
+
+    (, ITradingLimitsV2.State memory state1) = fpmm.getTradingLimits(token1);
+    (, ITradingLimitsV2.State memory state0) = fpmm.getTradingLimits(token0);
+
+    // netflow for incoming token1 should deduct fee of 30bps
+    assertEq(state1.netflow1, 59.82e15, "netflow1 should be 59.82e15");
+    // netflow of outgoing token0 should be equal to amountOut
+    assertEq(state0.netflow1, -59.82e15, "netflow0 should be -59.82e15");
 
     // Second swap: 30 more tokens (total 90, exceeds 80 limit)
     uint256 amount1In2 = 30e18;
@@ -489,9 +506,63 @@ contract FPMMSwapTest is FPMMBaseTest {
     vm.stopPrank();
 
     // Verify only L1 is tracked (netflow0 should be 0)
-    // Netflow = amountIn - amountOut = 60 - 0 = 60 (positive because token1 is coming in)
-    (, ITradingLimitsV2.State memory state) = fpmm.getTradingLimits(token1);
-    assertEq(state.netflow0, 0); // L0 not configured
-    assertEq(state.netflow1, 60e15); // L1 configured
+    // Netflow = amountIn - fee - amountOut = 60 *(1-30bps) - 0 = 60 *(0.997) - 0 = 59.82e15 (positive because token1 is coming in)
+    (, state1) = fpmm.getTradingLimits(token1);
+    assertEq(state1.netflow0, 0); // L0 not configured
+    assertEq(state1.netflow1, 59.82e15); // L1 configured
+
+    (, state0) = fpmm.getTradingLimits(token0);
+    assertEq(state0.netflow0, 0); // L0 not configured
+    assertEq(state0.netflow1, -59.82e15); // L1  configured
+  }
+
+  function test_swap_whenL0AndL1Configured_shouldTrackBothLimitsOnFlashLoans()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    mintInitialLiquidity(18, 18)
+    withOracleRate(1e18, 1e18)
+    withFXMarketOpen(true)
+    withRecentRate(true)
+  {
+    // Configure both L0 and L1 limits for both tokens
+    vm.prank(owner);
+    fpmm.configureTradingLimit(token0, 49.85e18, 1000e18);
+    vm.prank(owner);
+    fpmm.configureTradingLimit(token1, 49.85e18, 1000e18);
+
+    // first swap 50 tokens1 for 49.85 tokens0 to hit both L0 limits
+    uint256 amount0In = 50e18;
+    uint256 amount1Out = 49.85e18;
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), amount0In);
+    fpmm.swap(0, amount1Out, CHARLIE, "");
+    vm.stopPrank();
+
+    // verify limits are hit
+    (, ITradingLimitsV2.State memory state0) = fpmm.getTradingLimits(token0);
+    (, ITradingLimitsV2.State memory state1) = fpmm.getTradingLimits(token1);
+    assertEq(state0.netflow0, 49.85e15);
+    assertEq(state1.netflow1, -49.85e15);
+
+    // flash loan should succeed because net 0 only fee
+    FlashLoanReceiver flashLoanReceiver = new FlashLoanReceiver(address(fpmm), token0, token1);
+
+    // flashloan amount would exceed the L0 limit based on the amounts
+    uint256 flashLoanAmount = 100e18;
+    uint256 flashloanReturnAmount = (flashLoanAmount * 10_000) / (10_000 - 30);
+
+    // deal tokens to flash loan receiver
+    deal(token1, address(flashLoanReceiver), flashloanReturnAmount);
+    flashLoanReceiver.setRepayBehavior(true, 0, 0);
+    flashLoanReceiver.enableRepayExactAmounts(0, flashloanReturnAmount);
+    bytes memory customData = abi.encode("Custom flash loan data");
+    fpmm.swap(0, flashLoanAmount, address(flashLoanReceiver), customData);
+
+    // verify swap in same direction would fail because of L0 limit
+    vm.startPrank(ALICE);
+    IERC20(token0).transfer(address(fpmm), 1000);
+    vm.expectRevert(ITradingLimitsV2.L0LimitExceeded.selector);
+    fpmm.swap(0, 997, ALICE, "");
+    vm.stopPrank();
   }
 }
