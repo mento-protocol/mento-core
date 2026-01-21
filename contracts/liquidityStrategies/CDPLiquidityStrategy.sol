@@ -14,6 +14,10 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   using SafeERC20 for IERC20;
   using LQ for LQ.Context;
 
+  /// @dev Tolerance for the redemption operation which is
+  /// subsidized by this contract.
+  uint256 public immutable REDEMPTION_SHORTFALL_TOLERANCE;
+
   mapping(address => CDPConfig) private cdpConfigs;
 
   /* ============================================================ */
@@ -24,7 +28,9 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
    * @notice Disables initializers on implementation contracts.
    * @param disable Set to true to disable initializers (for proxy pattern).
    */
-  constructor(bool disable) LiquidityStrategy(disable) {}
+  constructor(bool disable, uint256 _redemptionShortfallTolerance) LiquidityStrategy(disable) {
+    REDEMPTION_SHORTFALL_TOLERANCE = _redemptionShortfallTolerance;
+  }
 
   /**
    * @notice Initializes the CDPLiquidityStrategy contract
@@ -175,16 +181,21 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
       uint256 collateralBalanceAfter = IERC20(cb.collToken).balanceOf(address(this));
       uint256 collateralReceived = collateralBalanceAfter - collateralBalanceBefore;
 
-      // If the collateral received is greater than the amount owed to the pool,
-      // transfer the difference to the protocol fee recipient and transfer the amount owed to the pool to the pool
-      // this can happen due to the precision loss on the redemption fee calculation vs bps for the incentive
-      if (collateralReceived > cb.amountOwedToPool) {
-        // Transfer the difference to the protocol fee recipient
-        IERC20(cb.collToken).safeTransfer(config.protocolFeeRecipient, collateralReceived - cb.amountOwedToPool);
-        IERC20(cb.collToken).safeTransfer(pool, cb.amountOwedToPool);
-      } else {
-        IERC20(cb.collToken).safeTransfer(pool, collateralReceived);
+      // @dev Redemption may return slightly more or less collateral than expected due to
+      // precision loss. Surplus is kept to offset future shortfalls; shortfalls are
+      // subsidized from contract balance (up to REDEMPTION_SHORTFALL_TOLERANCE).
+      if (collateralReceived < cb.amountOwedToPool) {
+        uint256 shortfall = cb.amountOwedToPool - collateralReceived;
+        if (shortfall > REDEMPTION_SHORTFALL_TOLERANCE) {
+          revert CDPLS_REDEMPTION_SHORTFALL_TOO_LARGE(shortfall);
+        }
+        if (IERC20(cb.collToken).balanceOf(address(this)) < cb.amountOwedToPool) {
+          revert CDPLS_OUT_OF_FUNDS_FOR_REDEMPTION_SUBSIDY();
+        }
+        emit RedemptionShortfallSubsidized(pool, shortfall);
       }
+
+      IERC20(cb.collToken).safeTransfer(pool, cb.amountOwedToPool);
     }
   }
 

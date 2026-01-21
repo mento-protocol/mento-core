@@ -113,7 +113,7 @@ contract LiquidityStrategyDeployer is TestStorage {
   }
 
   function _deployCDPLiquidityStrategy() private {
-    CDPLiquidityStrategy implementation = new CDPLiquidityStrategy(true);
+    CDPLiquidityStrategy implementation = new CDPLiquidityStrategy(true, 1e5);
 
     bytes memory initData = abi.encodeWithSelector(CDPLiquidityStrategy.initialize.selector, $addresses.governance);
 
