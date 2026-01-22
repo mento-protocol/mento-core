@@ -23,6 +23,17 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
   error CDPLS_COLLATERAL_REGISTRY_IS_ZERO();
   /// @notice Thrown when the stability pool address is zero
   error CDPLS_STABILITY_POOL_IS_ZERO();
+  /// @notice The shortfall between expected and actual redemption exceeds tolerance
+  error CDPLS_REDEMPTION_SHORTFALL_TOO_LARGE(uint256 shortfall);
+  /// @notice The contract doesn't have enough funds left to subsidize redemption
+  error CDPLS_OUT_OF_FUNDS_FOR_REDEMPTION_SUBSIDY();
+
+  /* ============================================================ */
+  /* ======================== Events ============================ */
+  /* ============================================================ */
+
+  /// @notice Emitted when the contract subsidizes a redemption shortfall
+  event RedemptionShortfallSubsidized(address indexed pool, uint256 shortfall);
 
   /* ============================================================ */
   /* ======================= Structs ============================ */

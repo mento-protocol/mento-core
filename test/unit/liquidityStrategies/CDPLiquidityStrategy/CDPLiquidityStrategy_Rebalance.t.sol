@@ -6,6 +6,7 @@ pragma solidity ^0.8;
 
 import { CDPLiquidityStrategy_BaseTest } from "./CDPLiquidityStrategy_BaseTest.sol";
 import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
+import { ICDPLiquidityStrategy } from "contracts/interfaces/ICDPLiquidityStrategy.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
@@ -404,5 +405,99 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     assertGt(reserve1After, reserve1Before, "Debt reserves should increase");
     assertReserveValueIncentives(reserve0Before, reserve1Before, reserve0After, reserve1After);
     assertRebalanceAmountIncentives(reserve0Before - reserve0After, reserve1After - reserve1Before, true);
+  }
+
+  /* ============================================================ */
+  /* ========== Redemption Rounding Edge Case Tests ============= */
+  /* ============================================================ */
+
+  function test_rebalance_whenRedemptionShortfallExceedsTolerance_shouldRevert()
+    public
+    fpmmToken0Debt(12, 18)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+  {
+    // COP/USD rate: 1 USD = ~3920 COP
+    uint256 oracleNum = 255050000000000;
+    uint256 oracleDen = 1e18;
+
+    // Setup: Provide initial reserves
+    provideFPMMReserves(3_920_799_843e12, 1_000_000e18, true);
+    setOracleRate(oracleNum, oracleDen);
+    mockCollateralRegistryOracleRate(oracleNum, oracleDen);
+
+    // Debalance FPMM to trigger contraction
+    swapIn(debtToken, 784_150_001e12);
+
+    // Set shortfall to exceed tolerance (1e5)
+    mockCollateralRegistry.setRedemptionShortfall(1e6);
+
+    // Should revert with CDPLS_REDEMPTION_SHORTFALL_TOO_LARGE (exact shortfall depends on calculation)
+    vm.expectPartialRevert(ICDPLiquidityStrategy.CDPLS_REDEMPTION_SHORTFALL_TOO_LARGE.selector);
+    strategy.rebalance(address(fpmm));
+  }
+
+  function test_rebalance_whenRedemptionShortfallWithinToleranceAndEnoughFunds_shouldSucceed()
+    public
+    fpmmToken0Debt(12, 18)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+  {
+    // COP/USD rate: 1 USD = ~3920 COP
+    uint256 oracleNum = 255050000000000;
+    uint256 oracleDen = 1e18;
+
+    // Setup: Provide initial reserves
+    provideFPMMReserves(3_920_799_843e12, 1_000_000e18, true);
+    setOracleRate(oracleNum, oracleDen);
+    mockCollateralRegistryOracleRate(oracleNum, oracleDen);
+
+    // Debalance FPMM to trigger contraction
+    swapIn(debtToken, 784_150_001e12);
+
+    // Set shortfall within tolerance (1e5)
+    mockCollateralRegistry.setRedemptionShortfall(1e4);
+
+    uint256 reserve1Before = fpmm.reserve1();
+
+    // Expect the RedemptionShortfallSubsidized event
+    // Shortfall is 9465 (not 1e4) due to fee calculations affecting the redemption amount
+    vm.expectEmit(true, true, true, true);
+    emit ICDPLiquidityStrategy.RedemptionShortfallSubsidized(address(fpmm), 9465);
+
+    // Should succeed
+    strategy.rebalance(address(fpmm));
+
+    uint256 reserve1After = fpmm.reserve1();
+    // Verify that collateral was added to the pool
+    assertGt(reserve1After, reserve1Before, "Collateral reserves should increase");
+  }
+
+  function test_rebalance_whenRedemptionShortfallWithinToleranceButNotEnoughFunds_shouldRevert()
+    public
+    fpmmToken0Debt(12, 18)
+    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+  {
+    // COP/USD rate: 1 USD = ~3920 COP
+    uint256 oracleNum = 255050000000000;
+    uint256 oracleDen = 1e18;
+
+    // Setup: Provide initial reserves
+    provideFPMMReserves(3_920_799_843e12, 1_000_000e18, true);
+    setOracleRate(oracleNum, oracleDen);
+    mockCollateralRegistryOracleRate(oracleNum, oracleDen);
+
+    // Debalance FPMM to trigger contraction
+    swapIn(debtToken, 784_150_001e12);
+
+    // Set shortfall within tolerance
+    mockCollateralRegistry.setRedemptionShortfall(1e4);
+
+    // Drain the strategy's collateral balance so it can't subsidize
+    uint256 strategyCollBalance = IERC20(collToken).balanceOf(address(strategy));
+    vm.prank(address(strategy));
+    IERC20(collToken).transfer(address(1), strategyCollBalance);
+
+    // Should revert with CDPLS_OUT_OF_FUNDS_FOR_REDEMPTION_SUBSIDY
+    vm.expectRevert(ICDPLiquidityStrategy.CDPLS_OUT_OF_FUNDS_FOR_REDEMPTION_SUBSIDY.selector);
+    strategy.rebalance(address(fpmm));
   }
 }

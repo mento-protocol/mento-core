@@ -11,6 +11,9 @@ contract MockCollateralRegistry {
   uint256 public oracleNumerator;
   uint256 public oracleDenominator;
 
+  /// @notice Amount of collateral to withhold from redemption (simulates rounding loss)
+  uint256 public redemptionShortfall;
+
   constructor(address _debtToken, address _collateralToken) {
     debtToken = MockERC20(_debtToken);
     collateralToken = MockERC20(_collateralToken);
@@ -19,6 +22,11 @@ contract MockCollateralRegistry {
   function setOracleRate(uint256 _oracleNumerator, uint256 _oracleDenominator) external {
     oracleNumerator = _oracleNumerator;
     oracleDenominator = _oracleDenominator;
+  }
+
+  /// @notice Set the redemption shortfall to simulate rounding loss
+  function setRedemptionShortfall(uint256 _shortfall) external {
+    redemptionShortfall = _shortfall;
   }
 
   function redeemCollateralRebalancing(
@@ -41,6 +49,12 @@ contract MockCollateralRegistry {
     uint256 returnNumerator = _boldamount * oracleNumerator * collateralDecimals * (1e18 - _troveOwnerFee);
     uint256 returnDenominator = oracleDenominator * debtDecimals * 1e18;
     uint256 returnAmount = returnNumerator / returnDenominator;
+
+    // Apply shortfall to simulate rounding loss
+    if (redemptionShortfall > 0 && returnAmount > redemptionShortfall) {
+      returnAmount -= redemptionShortfall;
+    }
+
     MockERC20(collateralToken).mint(msg.sender, returnAmount);
   }
 }

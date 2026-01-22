@@ -46,7 +46,7 @@ contract LiquidityStrategyUpgradeabilityTest is
     address oldImplementation = _getCDPLiquidityStrategyImplementation();
     assertNotEq(oldImplementation, address(0), "Current implementation should exist");
 
-    CDPLiquidityStrategy newImplementation = new CDPLiquidityStrategy(true);
+    CDPLiquidityStrategy newImplementation = new CDPLiquidityStrategy(true, 1e5);
     assertNotEq(address(newImplementation), oldImplementation, "New implementation should be different from old");
 
     _upgradeCDPLiquidityStrategy(address(newImplementation));
@@ -94,7 +94,7 @@ contract LiquidityStrategyUpgradeabilityTest is
    * @notice Test that only governance can upgrade through ProxyAdmin
    */
   function test_upgrade_whenCalledByNonGovernance_shouldRevert() public {
-    CDPLiquidityStrategy newImplementation = new CDPLiquidityStrategy(true);
+    CDPLiquidityStrategy newImplementation = new CDPLiquidityStrategy(true, 1e5);
 
     address attacker = makeAddr("attacker");
     vm.prank(attacker);
