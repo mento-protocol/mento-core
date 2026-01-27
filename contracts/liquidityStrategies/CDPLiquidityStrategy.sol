@@ -144,7 +144,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
 
       // swap collateral for debt in stability pool
       address stabilityPool = cdpConfigs[pool].stabilityPool;
-      IERC20(cb.collToken).safeApprove(stabilityPool, collAmount);
+      IERC20(cb.collToken).safeApprove(stabilityPool, collAmount - protocolIncentive);
       IStabilityPool(stabilityPool).swapCollateralForStable(collAmount - protocolIncentive, cb.amountOwedToPool);
 
       // Transfer debt to FPMM
