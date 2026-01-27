@@ -842,7 +842,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
         BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
         BASIS_POINTS_DENOMINATOR
       );
-      // allow for 10 wei difference due to rounding and precision loss
       if (swapData.amount0In < minAmount0In) revert InsufficientAmount0In();
     } else {
       uint256 minAmount1In = _convertWithRateAndFee(
@@ -854,7 +853,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
         BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
         BASIS_POINTS_DENOMINATOR
       );
-      // allow for 10 wei difference due to rounding and precision loss
       if (swapData.amount1In < minAmount1In) revert InsufficientAmount1In();
     }
   }
