@@ -26,9 +26,8 @@ import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
  * to internal pricing.
  * @dev Invariants of the pool:
  * 1. Swap does not decrease the total value of the pool
- * 2. Rebalance does not decrease the reserve value more than the rebalance incentive
- * 3. Rebalance moves the price difference towards 0
- * 4. Rebalance can change the direction of the price difference but not by more than the rebalance incentive
+ * 2. Rebalance reduces the price difference while keeping the same direction
+ * 3. Rebalance keeps the price difference at or above the configured threshold
  */
 contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
@@ -796,9 +795,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /**
-   * @notice Rebalance checks to ensure the price difference is smaller than before,
-   * the direction of the price difference is not changed,
-   * and the reserve value is not decreased more than the rebalance incentive
+   * @notice Rebalance checks: price difference improves, direction is preserved,
+   * price difference does not move past the configured threshold.
    * @param swapData Swap data
    * @return newPriceDifference New price difference
    */
