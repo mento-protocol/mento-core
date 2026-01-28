@@ -364,9 +364,16 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     biPoolManager.setSpread(0x0, 0);
   }
 
+  function test_setSpread_whenExchangeDoesNotExist_shouldRevert() public {
+    vm.expectRevert("invalid exchangeId");
+    biPoolManager.setSpread(0x0, 0.1 * 1e24);
+  }
+
   function test_setSpread_whenSpreadIsGreaterThanOne_shouldRevert() public {
+    mockOracleRate(address(cUSD), 1e24);
+    bytes32 exchangeId = createExchange(cUSD, bridgedUSDC);
     vm.expectRevert("spread must be <= 1");
-    biPoolManager.setSpread(0x0, 1e24 + 1);
+    biPoolManager.setSpread(exchangeId, 1e24 + 1);
   }
 
   function test_setSpread_whenCallerIsOwner_shouldUpdateAndEmit() public {
