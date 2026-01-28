@@ -44,6 +44,7 @@ contract BiPoolManagerTest is Test {
   event BucketsUpdated(bytes32 indexed exchangeId, uint256 bucket0, uint256 bucket1);
   event BreakerBoxUpdated(address newBreakerBox);
   event PricingModulesUpdated(bytes32[] newIdentifiers, address[] newAddresses);
+  event SpreadUpdated(bytes32 indexed exchangeId, uint256 spread);
 
   /* ------------------------------------------- */
 
@@ -355,6 +356,33 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     emit PricingModulesUpdated(newIdentifiers, newPricingModules);
 
     biPoolManager.setPricingModules(newIdentifiers, newPricingModules);
+  }
+
+  function test_setSpread_whenSenderIsNotOwner_shouldRevert() public {
+    changePrank(notDeployer);
+    vm.expectRevert("Ownable: caller is not the owner");
+    biPoolManager.setSpread(0x0, 0);
+  }
+
+  function test_setSpread_whenSpreadIsGreaterThanOne_shouldRevert() public {
+    vm.expectRevert("spread must be <= 1");
+    biPoolManager.setSpread(0x0, 1e24 + 1);
+  }
+
+  function test_setSpread_whenCallerIsOwner_shouldUpdateAndEmit() public {
+    mockOracleRate(address(cUSD), 1e24);
+    createExchange(cUSD, bridgedUSDC);
+
+    bytes32 exchangeId = keccak256(abi.encodePacked(cUSD.symbol(), bridgedUSDC.symbol(), constantProduct.name()));
+    FixidityLib.Fraction memory currentSpread = biPoolManager.getPoolExchange(exchangeId).config.spread;
+    require(FixidityLib.equals(currentSpread, FixidityLib.wrap(0.1 * 1e24)), "Current spread is not 0.1");
+
+    vm.expectEmit(true, true, true, true);
+    emit SpreadUpdated(exchangeId, 0.5 * 1e24);
+    biPoolManager.setSpread(exchangeId, 0.5 * 1e24);
+
+    FixidityLib.Fraction memory newSpread = biPoolManager.getPoolExchange(exchangeId).config.spread;
+    require(FixidityLib.equals(newSpread, FixidityLib.wrap(0.5 * 1e24)), "New spread is not 0.5");
   }
 
   /* ---------- Getters ---------- */

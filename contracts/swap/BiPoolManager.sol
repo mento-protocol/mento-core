@@ -233,6 +233,14 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
     emit PricingModulesUpdated(identifiers, modules);
   }
 
+  function setSpread(bytes32 exchangeId, uint256 spread) external onlyOwner {
+    FixidityLib.Fraction memory newSpread = FixidityLib.wrap(spread);
+    require(newSpread.lte(FixidityLib.fixed1()), "spread must be <= 1");
+
+    exchanges[exchangeId].config.spread = newSpread;
+    emit SpreadUpdated(exchangeId, spread);
+  }
+
   /**
    * @notice Creates a new exchange using the given parameters.
    * @param _exchange the PoolExchange to create.
