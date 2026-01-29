@@ -392,6 +392,45 @@ contract BiPoolManagerTest_initilizerSettersGetters is BiPoolManagerTest {
     require(FixidityLib.equals(newSpread, FixidityLib.wrap(0.5 * 1e24)), "New spread is not 0.5");
   }
 
+  function test_setSpread_whenSpreadIsZero_shouldUpdate() public {
+    mockOracleRate(address(cUSD), 1e24);
+    bytes32 exchangeId = createExchange(cUSD, bridgedUSDC);
+
+    vm.expectEmit(true, true, true, true);
+    emit SpreadUpdated(exchangeId, 0);
+    biPoolManager.setSpread(exchangeId, 0);
+
+    FixidityLib.Fraction memory newSpread = biPoolManager.getPoolExchange(exchangeId).config.spread;
+    require(FixidityLib.equals(newSpread, FixidityLib.wrap(0)), "Spread should be 0");
+  }
+
+  function test_setSpread_whenSpreadIsExactlyOne_shouldUpdate() public {
+    mockOracleRate(address(cUSD), 1e24);
+    bytes32 exchangeId = createExchange(cUSD, bridgedUSDC);
+
+    vm.expectEmit(true, true, true, true);
+    emit SpreadUpdated(exchangeId, 1e24);
+    biPoolManager.setSpread(exchangeId, 1e24);
+
+    FixidityLib.Fraction memory newSpread = biPoolManager.getPoolExchange(exchangeId).config.spread;
+    require(FixidityLib.equals(newSpread, FixidityLib.wrap(1e24)), "Spread should be 1");
+  }
+
+  function test_setSpread_whenSettingSameSpread_shouldEmitAndSucceed() public {
+    mockOracleRate(address(cUSD), 1e24);
+    bytes32 exchangeId = createExchange(cUSD, bridgedUSDC);
+
+    // Initial spread is 0.1 * 1e24 from createExchange
+    uint256 currentSpreadValue = 0.1 * 1e24;
+
+    vm.expectEmit(true, true, true, true);
+    emit SpreadUpdated(exchangeId, currentSpreadValue);
+    biPoolManager.setSpread(exchangeId, currentSpreadValue);
+
+    FixidityLib.Fraction memory newSpread = biPoolManager.getPoolExchange(exchangeId).config.spread;
+    require(FixidityLib.equals(newSpread, FixidityLib.wrap(currentSpreadValue)), "Spread should remain 0.1");
+  }
+
   /* ---------- Getters ---------- */
 
   function test_getPoolExchange_whenExchangeDoesNotExist_shouldRevert() public {
