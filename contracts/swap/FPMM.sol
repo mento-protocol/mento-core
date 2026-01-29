@@ -28,6 +28,7 @@ import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
  * 1. Swap does not decrease the total value of the pool
  * 2. Rebalance reduces the price difference while keeping the same direction
  * 3. Rebalance keeps the price difference at or above the configured threshold
+ * 4. Rebalance does not decrease the reserve value more than the rebalance incentive
  */
 contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
@@ -518,13 +519,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     uint256 threshold = swapData.reservePriceAboveOraclePrice ? $.rebalanceThresholdAbove : $.rebalanceThresholdBelow;
     if (swapData.initialPriceDifference < threshold) revert PriceDifferenceTooSmall();
 
-    swapData.initialReserveValue = _totalValueInToken1Scaled(
-      $.reserve0,
-      $.reserve1,
-      swapData.rateNumerator,
-      swapData.rateDenominator
-    );
-
     if (amount0Out > 0) IERC20($.token0).safeTransfer(msg.sender, amount0Out);
     if (amount1Out > 0) IERC20($.token1).safeTransfer(msg.sender, amount1Out);
 
@@ -795,7 +789,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
   /**
    * @notice Rebalance checks: price difference improves, direction is preserved,
-   * price difference does not move past the configured threshold.
+   * price difference does not move past the configured threshold,
+   * and the reserve value is not decreased more than the rebalance incentive
    * @param swapData Swap data
    * @return newPriceDifference New price difference
    */
