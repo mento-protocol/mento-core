@@ -762,7 +762,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     FPMMStorage storage $ = _getFPMMStorage();
 
     (rateNumerator, rateDenominator) = $.oracleAdapter.getFXRateIfValid($.referenceRateFeedID);
-    assert(rateDenominator == 1e18); // denominator from sorted oracles should always be 1e18
 
     if ($.invertRateFeed) {
       (rateNumerator, rateDenominator) = (rateDenominator, rateNumerator);
