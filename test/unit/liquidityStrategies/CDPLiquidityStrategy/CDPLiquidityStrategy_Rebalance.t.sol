@@ -37,7 +37,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     swapIn(debtToken, 784_150_001e12);
 
     // Snapshot before rebalance
-    (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveBefore, , uint256 priceDiffBefore) = fpmm.getRebalancingState();
     uint256 reserve0Before = fpmm.reserve0();
     uint256 reserve1Before = fpmm.reserve1();
     uint256 protocolFeeRecipientBalanceBefore = IERC20(debtToken).balanceOf(address(protocolFeeRecipient));
@@ -53,7 +53,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     strategy.rebalance(address(fpmm));
 
     // Snapshot after rebalance
-    (, , , , uint256 priceDiffAfter, bool poolPriceAboveAfter) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveAfter, , uint256 priceDiffAfter) = fpmm.getRebalancingState();
     uint256 reserve0After = fpmm.reserve0();
     uint256 reserve1After = fpmm.reserve1();
     uint256 protocolFeeRecipientBalanceAfter = IERC20(debtToken).balanceOf(address(protocolFeeRecipient));
@@ -101,7 +101,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     swapIn(debtToken, 5_000e18);
 
     // Snapshot before rebalance
-    (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveBefore, , uint256 priceDiffBefore) = fpmm.getRebalancingState();
     uint256 reserve0Before = fpmm.reserve0();
     uint256 reserve1Before = fpmm.reserve1();
     uint256 protocolFeeRecipientBalanceBefore = IERC20(debtToken).balanceOf(address(protocolFeeRecipient));
@@ -115,7 +115,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     strategy.rebalance(address(fpmm));
 
     // Snapshot after rebalance
-    (, , , , uint256 priceDiffAfter, bool poolPriceAboveAfter) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveAfter, , uint256 priceDiffAfter) = fpmm.getRebalancingState();
     uint256 reserve0After = fpmm.reserve0();
     uint256 reserve1After = fpmm.reserve1();
     uint256 protocolFeeRecipientBalanceAfter = IERC20(debtToken).balanceOf(address(protocolFeeRecipient));
@@ -164,7 +164,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     // Snapshot before rebalance
-    (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveBefore, , uint256 priceDiffBefore) = fpmm.getRebalancingState();
     uint256 reserve0Before = fpmm.reserve0();
     uint256 reserve1Before = fpmm.reserve1();
     uint256 stabilityPoolDebtBefore = IERC20(debtToken).balanceOf(address(mockStabilityPool));
@@ -181,7 +181,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     strategy.rebalance(address(fpmm));
 
     // Snapshot after rebalance
-    (, , , , uint256 priceDiffAfter, bool poolPriceAboveAfter) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveAfter, , uint256 priceDiffAfter) = fpmm.getRebalancingState();
     uint256 reserve0After = fpmm.reserve0();
     uint256 reserve1After = fpmm.reserve1();
     uint256 stabilityPoolDebtAfter = IERC20(debtToken).balanceOf(address(mockStabilityPool));
@@ -232,7 +232,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     // Snapshot before rebalance
-    (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveBefore, , uint256 priceDiffBefore) = fpmm.getRebalancingState();
     uint256 reserve0Before = fpmm.reserve0();
     uint256 reserve1Before = fpmm.reserve1();
     uint256 stabilityPoolDebtBefore = IERC20(debtToken).balanceOf(address(mockStabilityPool));
@@ -248,7 +248,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     strategy.rebalance(address(fpmm));
 
     // Snapshot after rebalance
-    (, , , , uint256 priceDiffAfter, bool poolPriceAboveAfter) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveAfter, , uint256 priceDiffAfter) = fpmm.getRebalancingState();
     uint256 reserve0After = fpmm.reserve0();
     uint256 reserve1After = fpmm.reserve1();
     uint256 stabilityPoolDebtAfter = IERC20(debtToken).balanceOf(address(mockStabilityPool));
@@ -302,7 +302,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     // Snapshot before rebalance
-    (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveBefore, , uint256 priceDiffBefore) = fpmm.getRebalancingState();
     uint256 reserve0Before = fpmm.reserve0();
     uint256 reserve1Before = fpmm.reserve1();
     uint256 stabilityPoolDebtBefore = IERC20(debtToken).balanceOf(address(mockStabilityPool));
@@ -318,7 +318,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     strategy.rebalance(address(fpmm));
 
     // Snapshot after rebalance
-    (, , , , uint256 priceDiffAfter, bool poolPriceAboveAfter) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveAfter, , uint256 priceDiffAfter) = fpmm.getRebalancingState();
     uint256 reserve0After = fpmm.reserve0();
     uint256 reserve1After = fpmm.reserve1();
     uint256 stabilityPoolDebtAfter = IERC20(debtToken).balanceOf(address(mockStabilityPool));
@@ -365,7 +365,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     setMockSystemParamsMinBoldAfterRebalance(1e18);
 
     // Snapshot before rebalance
-    (, , , , uint256 priceDiffBefore, bool poolPriceAboveBefore) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveBefore, , uint256 priceDiffBefore) = fpmm.getRebalancingState();
     uint256 reserve0Before = fpmm.reserve0();
     uint256 reserve1Before = fpmm.reserve1();
     uint256 stabilityPoolDebtBefore = IERC20(debtToken).balanceOf(address(mockStabilityPool));
@@ -381,7 +381,7 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
     strategy.rebalance(address(fpmm));
 
     // Snapshot after rebalance
-    (, , , , uint256 priceDiffAfter, bool poolPriceAboveAfter) = fpmm.getPrices();
+    (, , , , bool poolPriceAboveAfter, , uint256 priceDiffAfter) = fpmm.getRebalancingState();
     uint256 reserve0After = fpmm.reserve0();
     uint256 reserve1After = fpmm.reserve1();
     uint256 stabilityPoolDebtAfter = IERC20(debtToken).balanceOf(address(mockStabilityPool));

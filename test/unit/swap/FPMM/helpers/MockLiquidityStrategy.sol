@@ -66,7 +66,7 @@ contract MockLiquidityStrategy is ILiquidityStrategyHook {
 
     (uint256 dec0, uint256 dec1, , , , ) = fpmm.metadata();
 
-    (uint256 oraclePriceNumerator, uint256 oraclePriceDenominator, , , , ) = fpmm.getPrices();
+    (uint256 oraclePriceNumerator, uint256 oraclePriceDenominator, , , , , ) = fpmm.getRebalancingState();
 
     // Calculate amounts needed for rebalancing
     uint256 token0ToAdd;

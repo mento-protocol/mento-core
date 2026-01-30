@@ -271,7 +271,7 @@ contract ReserveFPMM_Token0Debt_Test is ReserveFPMM_BaseTest {
     _provideLiquidityToFPMM($fpmm.fpmmReserve, reserveMultisig, fpmmDebt, fpmmColl);
     $liquidityStrategies.reserveLiquidityStrategy.rebalance(address($fpmm.fpmmReserve));
 
-    (, , , , uint256 priceDifference, bool reservePriceAboveOraclePrice) = $fpmm.fpmmReserve.getPrices();
+    (, , , , bool reservePriceAboveOraclePrice, , uint256 priceDifference) = $fpmm.fpmmReserve.getRebalancingState();
 
     // amountTakenFromPool: 2323022374373
     // reserve0 = 10_000_000e6 - 2323022374373

@@ -75,9 +75,10 @@ contract FPMMRebalanceTest is FPMMBaseTest {
       uint256 oraclePriceDenominator,
       uint256 reservePriceNumerator,
       uint256 reservePriceDenominator,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
+      bool reservePriceAboveOraclePrice,
+      ,
+      uint256 priceDifference
+    ) = fpmm.getRebalancingState();
     assertEq(oraclePriceNumerator, 1.2e18);
     assertEq(oraclePriceDenominator, 1e18);
     assertEq(reservePriceNumerator, 200e18);
@@ -256,9 +257,10 @@ contract FPMMRebalanceTest is FPMMBaseTest {
       uint256 oraclePriceDenominator,
       uint256 reservePriceNumerator,
       uint256 reservePriceDenominator,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
+      bool reservePriceAboveOraclePrice,
+      ,
+      uint256 priceDifference
+    ) = fpmm.getRebalancingState();
 
     assertEq(oraclePriceNumerator, 1.2e18);
     assertEq(oraclePriceDenominator, 1e18);
@@ -300,9 +302,10 @@ contract FPMMRebalanceTest is FPMMBaseTest {
       uint256 oraclePriceDenominator,
       uint256 reservePriceNumerator,
       uint256 reservePriceDenominator,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
+      bool reservePriceAboveOraclePrice,
+      ,
+      uint256 priceDifference
+    ) = fpmm.getRebalancingState();
     assertEq(oraclePriceNumerator, 3e18);
     assertEq(oraclePriceDenominator, 1e18);
     assertEq(reservePriceNumerator, 200e18);
@@ -342,9 +345,10 @@ contract FPMMRebalanceTest is FPMMBaseTest {
       uint256 oraclePriceDenominator,
       uint256 reservePriceNumerator,
       uint256 reservePriceDenominator,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
+      bool reservePriceAboveOraclePrice,
+      ,
+      uint256 priceDifference
+    ) = fpmm.getRebalancingState();
     assertEq(oraclePriceNumerator, 1.2e18);
     assertEq(oraclePriceDenominator, 1e18);
     assertEq(reservePriceNumerator, 200e18);

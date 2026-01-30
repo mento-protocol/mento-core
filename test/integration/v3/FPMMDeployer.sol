@@ -147,9 +147,10 @@ contract FPMMDeployer is TestStorage, CreateXHelper {
       prices.oraclePriceDenominator,
       prices.reservePriceNumerator,
       prices.reservePriceDenominator,
-      prices.priceDifference,
-      prices.reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
+      prices.reservePriceAboveOraclePrice,
+      ,
+      prices.priceDifference
+    ) = fpmm.getRebalancingState();
   }
 
   function _configureTradingLimits(IFPMM fpmm, address token, uint256 limit0, uint256 limit1) internal {
