@@ -15,7 +15,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -42,7 +42,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -70,7 +70,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     withProtocolFee(20, protocolFeeRecipient)
     mintInitialLiquidity(18, 18)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -101,7 +101,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(6, 18)
     mintInitialLiquidity(6, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -128,7 +128,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withTradingMode(TRADING_MODE_DISABLED)
     withFXMarketOpen(true)
     withRecentRate(true)
@@ -141,7 +141,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(false)
     withRecentRate(true)
   {
@@ -162,7 +162,7 @@ contract OneToOneFPMMSwapTest is OneToOneFPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(false)
   {

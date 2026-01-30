@@ -17,8 +17,8 @@ contract FPMMGettersTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
   {
-    uint256 amount0 = 100e18;
-    uint256 amount1 = 200e18;
+    uint256 amount0 = 100_000e18;
+    uint256 amount1 = 200_000e18;
 
     (uint256 reserve0, uint256 reserve1, uint256 blockTimestampLast) = fpmm.getReserves();
 
@@ -36,8 +36,8 @@ contract FPMMGettersTest is FPMMBaseTest {
 
     assertEq(dec0, 1e18);
     assertEq(dec1, 1e6);
-    assertEq(r0, 100e18);
-    assertEq(r1, 200e6);
+    assertEq(r0, 100_000e18);
+    assertEq(r1, 200_000e6);
     assertEq(t0, token0);
     assertEq(t1, token1);
   }
@@ -56,7 +56,7 @@ contract FPMMGettersTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -74,7 +74,7 @@ contract FPMMGettersTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -99,8 +99,8 @@ contract FPMMGettersTest is FPMMBaseTest {
     uint256 expectedOraclePriceNumerator = 2e18;
     uint256 expectedOraclePriceDenominator = 1e18;
 
-    uint256 expectedReservePriceNumerator = 200e18;
-    uint256 expectedReservePriceDenominator = 100e18;
+    uint256 expectedReservePriceNumerator = 200_000e18;
+    uint256 expectedReservePriceDenominator = 100_000e18;
 
     (
       uint256 oraclePriceNumerator,
@@ -138,8 +138,8 @@ contract FPMMGettersTest is FPMMBaseTest {
     ) = fpmm.getRebalancingState();
     assertEq(targetNumerator, 25e17);
     assertEq(targetDenominator, 1e18);
-    assertEq(reservePriceNumerator, 200e18);
-    assertEq(reservePriceDenominator, 100e18);
+    assertEq(reservePriceNumerator, 200_000e18);
+    assertEq(reservePriceDenominator, 100_000e18);
     assertEq(reservePriceAboveOraclePrice, false);
     assertEq(uint256(rebalanceThreshold), 500);
     assertEq(priceDifference, 2000);

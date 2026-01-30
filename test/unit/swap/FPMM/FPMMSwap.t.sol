@@ -42,7 +42,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -57,7 +57,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -83,7 +83,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     withProtocolFee(20, protocolFeeRecipient)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -112,7 +112,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -138,7 +138,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     withProtocolFee(70, protocolFeeRecipient)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -165,7 +165,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -184,7 +184,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -214,7 +214,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -251,13 +251,13 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1234e18, 5678e18)
+    withOracleRate(1234e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 amountIn = 100e18;
 
-    uint256 expectedAmountOut = 21667805565339908418; // (100e18 * 1234e18 / 5678e18) * (997 / 1000)
+    uint256 expectedAmountOut = 123029800000000000000000; // (100e18 * 1234e18 / 1e18) * (997 / 1000)
 
     vm.startPrank(ALICE);
     IERC20(token0).transfer(address(fpmm), amountIn);
@@ -271,7 +271,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -299,7 +299,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withTradingMode(TRADING_MODE_DISABLED)
     withFXMarketOpen(true)
     withRecentRate(true)
@@ -312,7 +312,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(false)
     withRecentRate(true)
   {
@@ -324,7 +324,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(false)
   {
@@ -336,7 +336,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -366,7 +366,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -396,7 +396,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -434,7 +434,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -470,7 +470,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -520,7 +520,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -573,7 +573,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity_withAmounts(1_000_000_000e18, 10_000_000e18)
-    withOracleRate(255050000000000, 1e18) // USDC/USD rate
+    withOracleRate(255050000000000000000, 1e24) // USDC/USD rate
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -597,7 +597,7 @@ contract FPMMSwapTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity_withAmounts(400_000_000_000e18, 10_000_000e18)
-    withOracleRate(255050000000000, 1e18) // USDC/USD rate
+    withOracleRate(255050000000000000000, 1e24) // USDC/USD rate
     withFXMarketOpen(true)
     withRecentRate(true)
   {

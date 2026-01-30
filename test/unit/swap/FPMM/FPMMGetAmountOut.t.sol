@@ -25,7 +25,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenRateIsOneToOne_shouldReturnCorrectAmount()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -42,7 +42,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenLPFeeChanges_shouldRespectLPFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(10e18, 100e18)
+    withOracleRate(1e23, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -64,19 +64,19 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenUsingExchangeRate_shouldConvertCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(6481420000000000000000, 1e24) // JPY/USD rate
     withFXMarketOpen(true)
     withRecentRate(true)
   {
     uint256 amountIn = 100e18;
 
     // token0 to token1: should get approximately double (minus fee)
-    uint256 expectedAmountOut = 199.4e18; // (100e18 - 0.3% fee) * 2
+    uint256 expectedAmountOut = 646197574000000000; // 100e18 * 6481420000000000 / 1e18 * (997 / 1000)
     uint256 amountOut = fpmm.getAmountOut(amountIn, token0);
     assertEq(amountOut, expectedAmountOut);
 
     // token1 to token0: should get approximately half (minus fee)
-    expectedAmountOut = 49.85e18; // (100e18 - 0.3% fee) / 2
+    expectedAmountOut = 15382431627637153586714; // // 100e18 * 1e18 / 6481420000000000 * (997 / 1000)
     amountOut = fpmm.getAmountOut(amountIn, token1);
     assertEq(amountOut, expectedAmountOut);
   }
@@ -84,7 +84,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenTokensHaveDifferentDecimals_shouldHandleConversion()
     public
     initializeFPMM_withDecimalTokens(18, 6)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -104,7 +104,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenTokensHaveDifferentDecimalsAndExchangeRate_shouldConvertCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 6)
-    withOracleRate(10e18, 100e18)
+    withOracleRate(1e23, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -124,7 +124,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenUsingComplexRates_shouldCalculateCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(1234e18, 5678e18)
+    withOracleRate(7736000000000000000000, 1e24) // KES/USD rate
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -132,19 +132,19 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
 
     // token0 to token1
     uint256 amountOutToken0 = fpmm.getAmountOut(amountIn, token0);
-    uint256 expectedAmountOutToken0 = 216678055653399084184; // (1000e18 * 1234e18 / 5678e18) * (997 / 1000)
+    uint256 expectedAmountOutToken0 = 7712792000000000000; // (1000e18 * 7736000000000000 / 1e18) * (997 / 1000)
     assertEq(amountOutToken0, expectedAmountOutToken0);
 
     // token1 to token0
     uint256 amountOutToken1 = fpmm.getAmountOut(amountIn, token1);
-    uint256 expectedAmountOutToken1 = 4587492706645056726094; // (1000e18 *  1234e18 / 5678e18) * (997 / 1000)
+    uint256 expectedAmountOutToken1 = 128877973112719751809720; // (1000e18 * 1e18 / 7736000000000000) * (997 / 1000)
     assertEq(amountOutToken1, expectedAmountOutToken1);
   }
 
   function test_getAmountOut_whenProtocolFeeEnabled_shouldCalculateCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withProtocolFee(20, protocolFeeRecipient)
     withFXMarketOpen(true)
     withRecentRate(true)
@@ -161,7 +161,7 @@ contract FPMMGetAmountOutTest is FPMMBaseTest {
   function test_getAmountOut_whenLPFeeDisabledAndProtocolFeeEnabled_shouldCalculateCorrectly()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withProtocolFeeRecipient(protocolFeeRecipient)
     withFXMarketOpen(true)
     withRecentRate(true)

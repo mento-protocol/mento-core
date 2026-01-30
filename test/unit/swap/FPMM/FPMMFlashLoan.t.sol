@@ -49,7 +49,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -69,8 +69,8 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(FlashLoanReceiver(flashLoanReceiver).receivedData(), customData);
 
     // Verify FPMM reserves increased by the extra repaid amount
-    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
-    assertEq(fpmm.reserve1(), 200e18); // Unchanged
+    assertEq(fpmm.reserve0(), 100_000e18 + swapFee0); // Initial 100e18 + fee
+    assertEq(fpmm.reserve1(), 200_000e18); // Unchanged
   }
 
   function test_swap_whenBorrowingToken0WithProtocolFee_shouldCorrectlyHandleFees()
@@ -79,7 +79,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     mintInitialLiquidity(18, 18)
     withProtocolFee(20, protocolFeeRecipient)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -108,7 +108,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 2e18)
+    withOracleRate(5e23, 1e24)
     withProtocolFee(20, protocolFeeRecipient)
     withFXMarketOpen(true)
     withRecentRate(true)
@@ -151,7 +151,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     mintInitialLiquidity(18, 18)
     withProtocolFee(20, protocolFeeRecipient)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -188,7 +188,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -208,8 +208,8 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(FlashLoanReceiver(flashLoanReceiver).receivedData(), customData);
 
     // Verify FPMM reserves increased by the extra repaid amount
-    assertEq(fpmm.reserve0(), 100e18); // Unchanged
-    assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
+    assertEq(fpmm.reserve0(), 100_000e18); // Unchanged
+    assertEq(fpmm.reserve1(), 200_000e18 + swapFee1); // Initial 200e18 + fee
   }
 
   function test_swap_whenBorrowingToken1WithProtocolFee_shouldCorrectlyHandleFees()
@@ -218,7 +218,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     mintInitialLiquidity(18, 18)
     withProtocolFee(70, protocolFeeRecipient)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -247,7 +247,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -269,8 +269,8 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(FlashLoanReceiver(flashLoanReceiver).receivedData(), customData);
 
     // Verify FPMM reserves increased by the extra repaid amount
-    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial 100e18 + fee
-    assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial 200e18 + fee
+    assertEq(fpmm.reserve0(), 100_000e18 + swapFee0); // Initial 100e18 + fee
+    assertEq(fpmm.reserve1(), 200_000e18 + swapFee1); // Initial 200e18 + fee
   }
 
   function test_swap_whenBorrowingBothTokensWithProtocolFee_shouldCorrectlyHandleFees()
@@ -279,7 +279,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     mintInitialLiquidity(18, 18)
     withProtocolFee(20, protocolFeeRecipient)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -312,7 +312,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -331,7 +331,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -352,7 +352,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withProtocolFee(20, protocolFeeRecipient)
     withFXMarketOpen(true)
     withRecentRate(true)
@@ -373,7 +373,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -392,7 +392,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -416,8 +416,8 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(FlashLoanReceiver(flashLoanReceiver).amount1Received(), maxToken1Amount);
 
     // Verify FPMM reserves increased by the extra repaid amount
-    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial + fee
-    assertEq(fpmm.reserve1(), 200e18 + swapFee1); // Initial + fee
+    assertEq(fpmm.reserve0(), 100_000e18 + swapFee0); // Initial + fee
+    assertEq(fpmm.reserve1(), 200_000e18 + swapFee1); // Initial + fee
   }
 
   function test_swap_whenTokensHaveDifferentDecimals_shouldHandleCorrectly()
@@ -425,7 +425,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
     setupFlashLoanReceiver(18, 6, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -442,8 +442,8 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     assertEq(FlashLoanReceiver(flashLoanReceiver).amount0Received(), flashLoanAmount0);
     assertEq(FlashLoanReceiver(flashLoanReceiver).amount1Received(), flashLoanAmount1);
 
-    assertEq(fpmm.reserve0(), 100e18 + swapFee0); // Initial + fee
-    assertEq(fpmm.reserve1(), 200e6 + swapFee1); // Initial + fee
+    assertEq(fpmm.reserve0(), 100_000e18 + swapFee0); // Initial + fee
+    assertEq(fpmm.reserve1(), 200_000e6 + swapFee1); // Initial + fee
   }
 
   function test_swap_whenLoanRepaidInTokenWithDifferentDecimals_shouldHandleCorrectly()
@@ -451,7 +451,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
     setupFlashLoanReceiver(18, 6, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withProtocolFee(20, protocolFeeRecipient)
     withFXMarketOpen(true)
     withRecentRate(true)
@@ -489,7 +489,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
     setupFlashLoanReceiver(18, 6, ReceiverType.FlashLoanReceiver)
-    withOracleRate(1e18, 2.5e18)
+    withOracleRate(4e23, 1e24)
     withProtocolFee(20, protocolFeeRecipient)
     withFXMarketOpen(true)
     withRecentRate(true)
@@ -527,7 +527,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupFlashLoanReceiver(18, 18, ReceiverType.ReentrancyExploiter)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -544,7 +544,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupMockExchange(1.2e18) // rate = 1:1.2, 18 decimals
-    withOracleRate(1e18, 1e18) // rate = 1:1
+    withOracleRate(1e24, 1e24) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
     withFXMarketOpen(true)
     withRecentRate(true)
@@ -563,8 +563,8 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     uint256 expectedProfit = token1FromExchange - token1ToRepay; // 10e18
     assertEq(profit1, expectedProfit, "Unexpected profit amount");
 
-    assertEq(fpmm.reserve0(), 100e18 - 50e18, "Reserve0 should be decreased by loan amount");
-    assertEq(fpmm.reserve1(), 200e18 + 50e18, "Reserve1 should increase by loan amount");
+    assertEq(fpmm.reserve0(), 100_000e18 - 50e18, "Reserve0 should be decreased by loan amount");
+    assertEq(fpmm.reserve1(), 200_000e18 + 50e18, "Reserve1 should increase by loan amount");
   }
 
   function test_swap_whenPerformingArbitrageToken1ToToken0_shouldGenerateProfit()
@@ -572,7 +572,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupMockExchange(0.8e18) // rate = 1:0.8
-    withOracleRate(1e18, 1e18) // rate = 1:1
+    withOracleRate(1e24, 1e24) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
     withFXMarketOpen(true)
     withRecentRate(true)
@@ -591,8 +591,8 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     uint256 expectedProfit = token0FromExchange - token0ToRepay; // 12.5e18
     assertEq(profit0, expectedProfit, "Unexpected profit amount");
 
-    assertEq(fpmm.reserve0(), 100e18 + flashLoanAmount, "Reserve0 should increase by loan amount");
-    assertEq(fpmm.reserve1(), 200e18 - flashLoanAmount, "Reserve1 should decrease by loan amount");
+    assertEq(fpmm.reserve0(), 100_000e18 + flashLoanAmount, "Reserve0 should increase by loan amount");
+    assertEq(fpmm.reserve1(), 200_000e18 - flashLoanAmount, "Reserve1 should decrease by loan amount");
   }
 
   function test_swap_whenMarketConditionsChange_shouldHandleCorrectly()
@@ -600,7 +600,7 @@ contract FPMMFlashLoanTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupMockExchange(1.2e18)
-    withOracleRate(1e18, 1e18) // rate = 1:1
+    withOracleRate(1e24, 1e24) // rate = 1:1
     setupFlashLoanReceiver(18, 18, ReceiverType.ArbitrageFlashLoanReceiver)
     withFXMarketOpen(true)
     withRecentRate(true)

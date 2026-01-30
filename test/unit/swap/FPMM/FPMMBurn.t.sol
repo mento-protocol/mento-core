@@ -134,14 +134,15 @@ contract FPMMBurnTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
     // leave only 1 wei of token1 in the pool
-    uint256 amount0In = (200e18 * 10_000) / uint256(10_000 - 30);
+    uint256 amount0In = (200_000e18 * 10_000) / uint256(10_000 - 30);
     uint256 amount1Out = fpmm.getAmountOut(amount0In, token0);
 
+    deal(token0, ALICE, amount0In);
     vm.startPrank(ALICE);
     IERC20(token0).transfer(address(fpmm), amount0In);
     fpmm.swap(0, amount1Out, ALICE, "");
@@ -176,8 +177,8 @@ contract FPMMBurnTest is FPMMBaseTest {
     mintInitialLiquidity(18, 18)
   {
     vm.startPrank(BOB);
-    IERC20(token0).transfer(address(fpmm), 50e18);
-    IERC20(token1).transfer(address(fpmm), 100e18);
+    IERC20(token0).transfer(address(fpmm), 50_000e18);
+    IERC20(token1).transfer(address(fpmm), 100_000e18);
     uint256 bobLiquidity = fpmm.mint(BOB);
     vm.stopPrank();
 

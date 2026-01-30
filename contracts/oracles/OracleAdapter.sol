@@ -213,6 +213,7 @@ contract OracleAdapter is IOracleAdapter, OwnableUpgradeable {
     OracleAdapterStorage storage $ = _getStorage();
 
     (numerator, denominator) = $.sortedOracles.medianRate(rateFeedID);
+    assert(denominator == 1e24); // denominator from sorted oracles should always be 1e24
 
     numerator = numerator / 1e6;
     denominator = denominator / 1e6;
