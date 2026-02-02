@@ -26,9 +26,9 @@ import { ITradingLimitsV2 } from "../interfaces/ITradingLimitsV2.sol";
  * to internal pricing.
  * @dev Invariants of the pool:
  * 1. Swap does not decrease the total value of the pool
- * 2. Rebalance does not decrease the reserve value more than the rebalance incentive
- * 3. Rebalance moves the price difference towards 0
- * 4. Rebalance can change the direction of the price difference but not by more than the rebalance incentive
+ * 2. Rebalance reduces the price difference while keeping the same direction
+ * 3. Rebalance keeps the price difference at or above the configured threshold
+ * 4. Rebalance does not decrease the reserve value more than the rebalance incentive
  */
 contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20;
@@ -519,13 +519,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     uint256 threshold = swapData.reservePriceAboveOraclePrice ? $.rebalanceThresholdAbove : $.rebalanceThresholdBelow;
     if (swapData.initialPriceDifference < threshold) revert PriceDifferenceTooSmall();
 
-    swapData.initialReserveValue = _totalValueInToken1Scaled(
-      $.reserve0,
-      $.reserve1,
-      swapData.rateNumerator,
-      swapData.rateDenominator
-    );
-
     if (amount0Out > 0) IERC20($.token0).safeTransfer(msg.sender, amount0Out);
     if (amount1Out > 0) IERC20($.token1).safeTransfer(msg.sender, amount1Out);
 
@@ -795,8 +788,8 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /**
-   * @notice Rebalance checks to ensure the price difference is smaller than before,
-   * the direction of the price difference is not changed,
+   * @notice Rebalance checks: price difference improves, direction is preserved,
+   * price difference does not move past the configured threshold,
    * and the reserve value is not decreased more than the rebalance incentive
    * @param swapData Swap data
    * @return newPriceDifference New price difference
@@ -842,7 +835,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
         BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
         BASIS_POINTS_DENOMINATOR
       );
-      // allow for 10 wei difference due to rounding and precision loss
       if (swapData.amount0In < minAmount0In) revert InsufficientAmount0In();
     } else {
       uint256 minAmount1In = _convertWithRateAndFee(
@@ -854,7 +846,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
         BASIS_POINTS_DENOMINATOR - $.rebalanceIncentive,
         BASIS_POINTS_DENOMINATOR
       );
-      // allow for 10 wei difference due to rounding and precision loss
       if (swapData.amount1In < minAmount1In) revert InsufficientAmount1In();
     }
   }

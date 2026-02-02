@@ -211,6 +211,24 @@ contract CDPLiquidityStrategy_RebalanceTest is CDPLiquidityStrategy_BaseTest {
       protocolFeeRecipientBalanceAfter - protocolFeeRecipientBalanceBefore,
       25
     );
+
+    uint256 leftoverAllowance = IERC20(collToken).allowance(address(strategy), address(mockStabilityPool));
+    assertEq(leftoverAllowance, 0, "Leftover allowance should be 0");
+
+    // Verify that a second expansion is possible
+    uint256 collAmountForSecondRebalance = 100_000e6;
+    deal(collToken, address(strategy), collAmountForSecondRebalance);
+    bytes memory callbackData = abi.encode(
+      LQ.CallbackData({
+        amountOwedToPool: 50_000e12, // debt to return to pool
+        dir: LQ.Direction.Expand,
+        isToken0Debt: true,
+        debtToken: debtToken,
+        collToken: collToken
+      })
+    );
+    vm.prank(address(fpmm));
+    strategy.onRebalance(address(strategy), collAmountForSecondRebalance, 0, callbackData);
   }
 
   function test_rebalance_whenToken0DebtPoolPriceAboveAndLimitedStabilityPoolFunds_shouldExpandPartially()
