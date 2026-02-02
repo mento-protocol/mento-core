@@ -349,28 +349,6 @@ interface IFPMM is IRPool {
   function liquidityStrategy(address strategy) external view returns (bool);
 
   /**
-   * @notice Gets current oracle and reserve prices
-   * @return oraclePriceNumerator The numerator of the oracle price.
-   * @return oraclePriceDenominator The denominator of the oracle price.
-   * @return reservePriceNumerator The numerator of the pool reserve price.
-   * @return reservePriceDenominator The denominator of the pool reserve price.
-   * @return priceDifference The price difference between the oracle and pool reserve prices in basis points.
-   * @return reservePriceAboveOraclePrice Whether the pool reserve price is above the oracle price.
-   * @dev The prices are returned in 18 decimals.
-   */
-  function getPrices()
-    external
-    view
-    returns (
-      uint256 oraclePriceNumerator,
-      uint256 oraclePriceDenominator,
-      uint256 reservePriceNumerator,
-      uint256 reservePriceDenominator,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    );
-
-  /**
    * @notice Gets the rebalancing state of the pool
    * @return oraclePriceNumerator The numerator of the oracle price.
    * @return oraclePriceDenominator The denominator of the oracle price.

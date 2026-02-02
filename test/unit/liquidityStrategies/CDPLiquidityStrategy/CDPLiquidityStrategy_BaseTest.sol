@@ -306,7 +306,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     uint256 reserve0After,
     uint256 reserve1After
   ) public {
-    (uint256 rateNumerator, uint256 rateDenominator, , , , ) = fpmm.getPrices();
+    (uint256 rateNumerator, uint256 rateDenominator, , , , , ) = fpmm.getRebalancingState();
 
     uint256 token0Scaler = 10 ** MockERC20(fpmm.token0()).decimals();
     uint256 token1Scaler = 10 ** MockERC20(fpmm.token1()).decimals();
@@ -346,7 +346,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @param isToken0Out True if the token taken out is token0, false otherwise
    */
   function assertRebalanceAmountIncentives(uint256 amountTakenOut, uint256 amountAdded, bool isToken0Out) public {
-    (uint256 rateNumerator, uint256 rateDenominator, , , , ) = fpmm.getPrices();
+    (uint256 rateNumerator, uint256 rateDenominator, , , , , ) = fpmm.getRebalancingState();
 
     uint256 token0Scaler = 10 ** MockERC20(fpmm.token0()).decimals();
     uint256 token1Scaler = 10 ** MockERC20(fpmm.token1()).decimals();

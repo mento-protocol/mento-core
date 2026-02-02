@@ -87,7 +87,7 @@ contract FPMMGettersTest is FPMMBaseTest {
     assertEq(actualOut, expectedOut);
   }
 
-  function test_getPrices_whenReferenceRateSet_shouldReturnCorrectPrices()
+  function test_getRebalancingState_whenReferenceRateSet_shouldReturnCorrectPrices()
     public
     initializeFPMM_withDecimalTokens(18, 6)
     mintInitialLiquidity(18, 6)
@@ -107,19 +107,21 @@ contract FPMMGettersTest is FPMMBaseTest {
       uint256 oraclePriceDenominator,
       uint256 reservePriceNumerator,
       uint256 reservePriceDenominator,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    ) = fpmm.getPrices();
+      bool reservePriceAboveOraclePrice,
+      uint16 rebalanceThreshold,
+      uint256 priceDifference
+    ) = fpmm.getRebalancingState();
 
     assertEq(oraclePriceNumerator, expectedOraclePriceNumerator);
     assertEq(oraclePriceDenominator, expectedOraclePriceDenominator);
     assertEq(reservePriceNumerator, expectedReservePriceNumerator);
     assertEq(reservePriceDenominator, expectedReservePriceDenominator);
-    assertEq(priceDifference, 0);
     assertEq(reservePriceAboveOraclePrice, false);
+    assertEq(rebalanceThreshold, 500);
+    assertEq(priceDifference, 0);
   }
 
-  function test_getPrices2_whenReferenceRateSet_shouldReturnCorrectData()
+  function test_getRebalancingState_whenReferenceRateSet_shouldReturnCorrectData()
     public
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)

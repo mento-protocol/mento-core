@@ -248,48 +248,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /// @inheritdoc IFPMM
-  function getPrices()
-    public
-    view
-    returns (
-      uint256 oraclePriceNumerator,
-      uint256 oraclePriceDenominator,
-      uint256 reservePriceNumerator,
-      uint256 reservePriceDenominator,
-      uint256 priceDifference,
-      bool reservePriceAboveOraclePrice
-    )
-  {
-    FPMMStorage storage $ = _getFPMMStorage();
-
-    if ($.referenceRateFeedID == address(0)) revert ReferenceRateNotSet();
-    if ($.reserve0 == 0 || $.reserve1 == 0) revert ReservesEmpty();
-
-    (oraclePriceNumerator, oraclePriceDenominator) = _getRateFeed();
-
-    // slither-disable-start divide-before-multiply
-    reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
-    reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
-    // slither-disable-end divide-before-multiply
-
-    (priceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference(
-      oraclePriceNumerator,
-      oraclePriceDenominator,
-      reservePriceNumerator,
-      reservePriceDenominator
-    );
-
-    return (
-      oraclePriceNumerator,
-      oraclePriceDenominator,
-      reservePriceNumerator,
-      reservePriceDenominator,
-      priceDifference,
-      reservePriceAboveOraclePrice
-    );
-  }
-
-  /// @inheritdoc IFPMM
   function getRebalancingState()
     external
     view
@@ -303,28 +261,15 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
       uint256 priceDifference
     )
   {
-    FPMMStorage storage $ = _getFPMMStorage();
-
-    if ($.referenceRateFeedID == address(0)) revert ReferenceRateNotSet();
-    if ($.reserve0 == 0 || $.reserve1 == 0) revert ReservesEmpty();
-
-    (oraclePriceNumerator, oraclePriceDenominator) = _getRateFeed();
-
-    // slither-disable-start divide-before-multiply
-    reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
-    reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
-    // slither-disable-end divide-before-multiply
-
-    (priceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference(
+    (
       oraclePriceNumerator,
       oraclePriceDenominator,
       reservePriceNumerator,
-      reservePriceDenominator
-    );
-
-    rebalanceThreshold = reservePriceAboveOraclePrice
-      ? uint16($.rebalanceThresholdAbove)
-      : uint16($.rebalanceThresholdBelow);
+      reservePriceDenominator,
+      reservePriceAboveOraclePrice,
+      rebalanceThreshold,
+      priceDifference
+    ) = _getRebalancingState();
   }
 
   /// @inheritdoc IRPool
@@ -506,17 +451,17 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     swapData.amount0Out = amount0Out;
     swapData.amount1Out = amount1Out;
-
+    uint256 threshold;
     (
       swapData.rateNumerator,
       swapData.rateDenominator,
       ,
       ,
-      swapData.initialPriceDifference,
-      swapData.reservePriceAboveOraclePrice
-    ) = getPrices();
+      swapData.reservePriceAboveOraclePrice,
+      threshold,
+      swapData.initialPriceDifference
+    ) = _getRebalancingState();
 
-    uint256 threshold = swapData.reservePriceAboveOraclePrice ? $.rebalanceThresholdAbove : $.rebalanceThresholdBelow;
     if (swapData.initialPriceDifference < threshold) revert PriceDifferenceTooSmall();
 
     if (amount0Out > 0) IERC20($.token0).safeTransfer(msg.sender, amount0Out);
@@ -880,6 +825,43 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     uint256 expectedReserveValue = swapData.initialReserveValue + totalFeeInToken1;
     if (newReserveValue < expectedReserveValue) revert ReserveValueDecreased();
+  }
+
+  function _getRebalancingState()
+    internal
+    view
+    returns (
+      uint256 oraclePriceNumerator,
+      uint256 oraclePriceDenominator,
+      uint256 reservePriceNumerator,
+      uint256 reservePriceDenominator,
+      bool reservePriceAboveOraclePrice,
+      uint16 rebalanceThreshold,
+      uint256 priceDifference
+    )
+  {
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    if ($.referenceRateFeedID == address(0)) revert ReferenceRateNotSet();
+    if ($.reserve0 == 0 || $.reserve1 == 0) revert ReservesEmpty();
+
+    (oraclePriceNumerator, oraclePriceDenominator) = _getRateFeed();
+
+    // slither-disable-start divide-before-multiply
+    reservePriceNumerator = $.reserve1 * (1e18 / $.decimals1);
+    reservePriceDenominator = $.reserve0 * (1e18 / $.decimals0);
+    // slither-disable-end divide-before-multiply
+
+    (priceDifference, reservePriceAboveOraclePrice) = _calculatePriceDifference(
+      oraclePriceNumerator,
+      oraclePriceDenominator,
+      reservePriceNumerator,
+      reservePriceDenominator
+    );
+
+    rebalanceThreshold = reservePriceAboveOraclePrice
+      ? uint16($.rebalanceThresholdAbove)
+      : uint16($.rebalanceThresholdBelow);
   }
 
   function _convertWithRate(
