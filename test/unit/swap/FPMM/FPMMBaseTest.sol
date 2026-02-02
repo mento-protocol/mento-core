@@ -71,10 +71,10 @@ contract FPMMBaseTest is Test {
 
     fpmm.initialize(token0, token1, address(oracleAdapter), referenceRateFeedID, false, owner, defaultFpmmParams);
 
-    deal(token0, ALICE, 1_000 * 10 ** decimals0);
-    deal(token1, ALICE, 1_000 * 10 ** decimals1);
-    deal(token0, BOB, 1_000 * 10 ** decimals0);
-    deal(token1, BOB, 1_000 * 10 ** decimals1);
+    deal(token0, ALICE, 300_000 * 10 ** decimals0);
+    deal(token1, ALICE, 300_000 * 10 ** decimals1);
+    deal(token0, BOB, 300_000 * 10 ** decimals0);
+    deal(token1, BOB, 300_000 * 10 ** decimals1);
 
     _;
   }
@@ -97,8 +97,8 @@ contract FPMMBaseTest is Test {
 
   modifier mintInitialLiquidity(uint8 decimals0, uint8 decimals1) {
     vm.startPrank(ALICE);
-    IERC20(token0).transfer(address(fpmm), 100 * 10 ** decimals0);
-    IERC20(token1).transfer(address(fpmm), 200 * 10 ** decimals1);
+    IERC20(token0).transfer(address(fpmm), 100_000 * 10 ** decimals0);
+    IERC20(token1).transfer(address(fpmm), 200_000 * 10 ** decimals1);
     fpmm.mint(ALICE);
     vm.stopPrank();
 

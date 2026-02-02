@@ -154,7 +154,7 @@ contract OracleAdapterTest is Test {
   function test_getRateIfValid_whenValid_shouldNotRevert()
     public
     initialized
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withTradingMode(0)
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs)
@@ -166,7 +166,7 @@ contract OracleAdapterTest is Test {
   function test_getRateIfValid_whenNoRecentRate_shouldRevert()
     public
     initialized
-    withOracleRate(1e20, 1e18)
+    withOracleRate(1e26, 1e24)
     withFXMarketOpen(true)
     withTradingMode(0)
     withReportExpiry(6 minutes)
@@ -200,7 +200,7 @@ contract OracleAdapterTest is Test {
   function test_getFXRateIfValid_whenNoRecentRate_shouldRevert()
     public
     initialized
-    withOracleRate(1e20, 1e18)
+    withOracleRate(1e26, 1e24)
     withFXMarketOpen(true)
     withTradingMode(0)
     withReportExpiry(6 minutes)
@@ -219,7 +219,7 @@ contract OracleAdapterTest is Test {
   function test_getRate_returnsCorrectRateInfo_whenAllChecksValid()
     public
     initialized
-    withOracleRate(1e20, 1e18)
+    withOracleRate(1e26, 1e24)
     withFXMarketOpen(true)
     withTradingMode(0)
     withReportExpiry(6 minutes)
@@ -229,8 +229,8 @@ contract OracleAdapterTest is Test {
 
     IOracleAdapter.RateInfo memory rateInfo = oracleAdapter.getRate(referenceRateFeedID);
 
-    assertEq(rateInfo.numerator, 1e14);
-    assertEq(rateInfo.denominator, 1e12);
+    assertEq(rateInfo.numerator, 1e20);
+    assertEq(rateInfo.denominator, 1e18);
     assertEq(rateInfo.tradingMode, 0);
     assertEq(rateInfo.isRecent, true);
     assertEq(rateInfo.isFXMarketOpen, true);
@@ -239,7 +239,7 @@ contract OracleAdapterTest is Test {
   function test_getRate_returnsCorrectRateInfo_whenSomeChecksInvalid()
     public
     initialized
-    withOracleRate(1e20, 1e18)
+    withOracleRate(1e26, 1e24)
     withFXMarketOpen(false)
     withTradingMode(1)
     withReportExpiry(6 minutes)
@@ -248,8 +248,8 @@ contract OracleAdapterTest is Test {
     vm.warp(blockTs);
 
     IOracleAdapter.RateInfo memory rateInfo = oracleAdapter.getRate(referenceRateFeedID);
-    assertEq(rateInfo.numerator, 1e14);
-    assertEq(rateInfo.denominator, 1e12);
+    assertEq(rateInfo.numerator, 1e20);
+    assertEq(rateInfo.denominator, 1e18);
     assertEq(rateInfo.tradingMode, 1);
     assertEq(rateInfo.isRecent, false);
     assertEq(rateInfo.isFXMarketOpen, false);
@@ -286,7 +286,7 @@ contract OracleAdapterTest is Test {
   function test_ensureRateValid_whenValid_shouldNotRevert()
     public
     initialized
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withTradingMode(0)
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs)
@@ -298,7 +298,7 @@ contract OracleAdapterTest is Test {
   function test_ensureRateValid_whenRateIsZero_shouldRevert()
     public
     initialized
-    withOracleRate(0, 0)
+    withOracleRate(0, 1e24)
     withTradingMode(0)
     withReportExpiry(6 minutes)
     withMedianTimestamp(blockTs)

@@ -24,8 +24,8 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     vm.prank(fpmm.owner());
     fpmm.setLiquidityStrategy(address(liquidityStrategy), true);
 
-    deal(token0, address(liquidityStrategy), 1000 * 10 ** decimals0);
-    deal(token1, address(liquidityStrategy), 1000 * 10 ** decimals1);
+    deal(token0, address(liquidityStrategy), 100_000 * 10 ** decimals0);
+    deal(token1, address(liquidityStrategy), 100_000 * 10 ** decimals1);
     _;
   }
 
@@ -47,7 +47,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
     // Set a small price difference
-    withOracleRate(2.01e18, 1e18)
+    withOracleRate(2.01e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -80,8 +80,8 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     ) = fpmm.getPrices();
     assertEq(oraclePriceNumerator, 1.2e18);
     assertEq(oraclePriceDenominator, 1e18);
-    assertEq(reservePriceNumerator, 200e18);
-    assertEq(reservePriceDenominator, 100e18);
+    assertEq(reservePriceNumerator, 200_000e18);
+    assertEq(reservePriceDenominator, 100_000e18);
     assertEq(priceDifference, 6666);
     assertEq(reservePriceAboveOraclePrice, true);
 
@@ -119,12 +119,12 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    withOracleRate(1.5e18, 1e18) // Big difference to meet threshold
+    withOracleRate(1.5e24, 1e24) // Big difference to meet threshold
     withFXMarketOpen(true)
     withRecentRate(true)
   {
     // Try to rebalance - should fail because price isn't improved
-    uint256 rebalanceAmount = 20e18;
+    uint256 rebalanceAmount = 1e18;
     vm.expectRevert(IFPMM.PriceDifferenceNotImproved.selector);
     liquidityStrategy.executeRebalance(rebalanceAmount, 0);
   }
@@ -134,11 +134,11 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    withOracleRate(1.5e18, 1e18)
+    withOracleRate(1.5e24, 1e24)
   {
     // Try to rebalance with too large amounts
-    uint256 tooLargeAmount0 = 101e18; // More than reserve0
-    uint256 tooLargeAmount1 = 201e18; // More than reserve1
+    uint256 tooLargeAmount0 = 100_000e18 + 1; // More than reserve0
+    uint256 tooLargeAmount1 = 200_000e18 + 1; // More than reserve1
 
     vm.expectRevert(IFPMM.InsufficientLiquidity.selector);
     liquidityStrategy.executeRebalance(tooLargeAmount0, 0);
@@ -195,7 +195,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    withOracleRate(3e18, 1e18) // Oracle rate: 1 token0 = 3 token1
+    withOracleRate(3e24, 1e24) // Oracle rate: 1 token0 = 3 token1
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -207,7 +207,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     // Borrow 17 token0 and exchange it for 51 token1
     // 251 / 83 = 3.024  Price moved from low to high
     // Should revert because price moved in wrong direction
-    uint256 rebalanceAmount = 17e18;
+    uint256 rebalanceAmount = 17_000e18;
     vm.expectRevert(IFPMM.PriceDifferenceMovedInWrongDirection.selector);
     liquidityStrategy.executeRebalance(rebalanceAmount, 0);
   }
@@ -217,7 +217,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    withOracleRate(1.2e18, 1e18)
+    withOracleRate(1.2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -232,7 +232,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     initializeFPMM_withDecimalTokens(18, 18)
     mintInitialLiquidity(18, 18)
     setupRebalancer(18, 18)
-    withOracleRate(1.2e18, 1e18)
+    withOracleRate(1.2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -262,8 +262,8 @@ contract FPMMRebalanceTest is FPMMBaseTest {
 
     assertEq(oraclePriceNumerator, 1.2e18);
     assertEq(oraclePriceDenominator, 1e18);
-    assertEq(reservePriceNumerator, 200e18);
-    assertEq(reservePriceDenominator, 100e18);
+    assertEq(reservePriceNumerator, 200_000e18);
+    assertEq(reservePriceDenominator, 100_000e18);
     // (2-1.2)/1.2 = 66.66% in bps
     assertEq(priceDifference, 6666);
     assertEq(reservePriceAboveOraclePrice, true);
@@ -305,8 +305,8 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     ) = fpmm.getPrices();
     assertEq(oraclePriceNumerator, 3e18);
     assertEq(oraclePriceDenominator, 1e18);
-    assertEq(reservePriceNumerator, 200e18);
-    assertEq(reservePriceDenominator, 100e18);
+    assertEq(reservePriceNumerator, 200_000e18);
+    assertEq(reservePriceDenominator, 100_000e18);
     // (3-2)/3 = 33.33% in bps
     assertEq(priceDifference, 3333);
     assertEq(reservePriceAboveOraclePrice, false);
@@ -347,8 +347,8 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     ) = fpmm.getPrices();
     assertEq(oraclePriceNumerator, 1.2e18);
     assertEq(oraclePriceDenominator, 1e18);
-    assertEq(reservePriceNumerator, 200e18);
-    assertEq(reservePriceDenominator, 100e18);
+    assertEq(reservePriceNumerator, 200_000e18);
+    assertEq(reservePriceDenominator, 100_000e18);
     // (2-1.2)/1.2 = 66.66% in bps
     assertEq(priceDifference, 6666);
     assertEq(reservePriceAboveOraclePrice, true);
@@ -381,7 +381,7 @@ contract FPMMRebalanceTest is FPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 6)
     setupRebalancer(18, 6)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {

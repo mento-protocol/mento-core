@@ -25,7 +25,7 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
   function test_getAmountOut_whenRateIsAlways1to1_shouldReturnCorrectAmount()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -43,7 +43,7 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
   function test_getAmountOut_whenLPFeeChanges_shouldRespectLPFee()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(10e18, 100e18)
+    withOracleRate(1e23, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -66,7 +66,7 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
   function test_getAmountOut_whenTokensHaveDifferentDecimals_shouldHandleConversionAt1to1()
     public
     initializeFPMM_withDecimalTokens(18, 6)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -88,7 +88,7 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
     public
     initializeFPMM_withDecimalTokens(18, 18)
     withProtocolFee(20, protocolFeeRecipient)
-    withOracleRate(2e18, 1e18)
+    withOracleRate(2e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -103,7 +103,7 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
   function test_getAmountOut_whenLargeAmounts_shouldMaintain1to1Ratio()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(5e18, 1e18)
+    withOracleRate(5e24, 1e24)
     withFXMarketOpen(true)
     withRecentRate(true)
   {
@@ -130,7 +130,7 @@ contract OneToOneFPMMGetAmountOutTest is OneToOneFPMMBaseTest {
   function test_getAmountOut_whenMarketIsClosed_shouldStillWork()
     public
     initializeFPMM_withDecimalTokens(18, 18)
-    withOracleRate(1e18, 1e18)
+    withOracleRate(1e24, 1e24)
     withFXMarketOpen(false)
     withRecentRate(true)
   {
