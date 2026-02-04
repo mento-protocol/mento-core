@@ -762,7 +762,6 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
     if (reservePriceAboveOraclePrice != swapData.reservePriceAboveOraclePrice)
       revert PriceDifferenceMovedInWrongDirection();
 
-    // Allow for 1 basis point further than the threshold to account for rounding and precision
     if (reservePriceAboveOraclePrice && newPriceDifference < $.rebalanceThresholdAbove) {
       revert PriceDifferenceMovedTooFarFromThresholds();
     }
