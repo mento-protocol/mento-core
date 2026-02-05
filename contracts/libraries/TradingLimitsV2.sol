@@ -23,8 +23,8 @@ import { ITradingLimitsV2 } from "contracts/interfaces/ITradingLimitsV2.sol";
  *
  * Key differences from V1:
  * 1. Netflows are stored with 15 decimals of precision internally
- * 2. No rounding of small amounts to 1 unit. For tokens with more than 15 decimals
- *    the amount is scaled down to 15 decimals.
+ * 2. Small amounts are no longer rounded up to 1 full token. For tokens with more than 15 decimals,
+ *    amounts smaller than 10^(decimals-15) truncate to zero and are untracked
  * 3. Larger data types: int96 for netflows, int120 for limits
  * 4. Removed global limit functionality
  * 5. Fixed timeframes: 5 minutes for L0, 1 day for L1
