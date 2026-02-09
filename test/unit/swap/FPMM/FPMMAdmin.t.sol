@@ -159,6 +159,19 @@ contract FPMMAdminTest is FPMMBaseTest {
     fpmm.setRebalanceThresholds(10, 10);
   }
 
+  function test_setRebalanceThresholds_whenThresholdTooHigh_shouldRevert()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+  {
+    vm.prank(owner);
+    vm.expectRevert(IFPMM.RebalanceThresholdTooHigh.selector);
+    fpmm.setRebalanceThresholds(10001, 10);
+
+    vm.prank(owner);
+    vm.expectRevert(IFPMM.RebalanceThresholdTooHigh.selector);
+    fpmm.setRebalanceThresholds(10, 10001);
+  }
+
   function test_setLiquidityStrategy_whenNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert("Ownable: caller is not the owner");
