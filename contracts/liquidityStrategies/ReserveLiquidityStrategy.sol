@@ -94,13 +94,12 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
     if (collateralBalance == 0) revert RLS_RESERVE_OUT_OF_COLLATERAL();
 
     if (collateralBalance < idealCollateralToReceive) {
-      collateralToReceive = collateralBalance;
-      debtToContract = ctx.convertToDebtWithFee(
-        collateralBalance,
-        BPS_DENOMINATOR,
-        BPS_DENOMINATOR -
-          (ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction)
+      uint256 combinedFees = LQ.combineFees(
+        ctx.incentives.protocolIncentiveContraction,
+        ctx.incentives.liquiditySourceIncentiveContraction
       );
+      collateralToReceive = collateralBalance;
+      debtToContract = ctx.convertToDebtWithFee(collateralBalance, LQ.FEE_DENOMINATOR, combinedFees);
     } else {
       collateralToReceive = idealCollateralToReceive;
       debtToContract = idealDebtToContract;
@@ -135,23 +134,12 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
       uint256 protocolIncentive,
       uint256 liquiditySourceIncentive
     ) = cb.dir == LQ.Direction.Expand
-        ? (
-          cb.collToken,
-          cb.debtToken,
-          config.protocolIncentiveBpsExpansion,
-          config.liquiditySourceIncentiveBpsExpansion
-        )
-        : (
-          cb.debtToken,
-          cb.collToken,
-          config.protocolIncentiveBpsContraction,
-          config.liquiditySourceIncentiveBpsContraction
-        );
-
+        ? (cb.collToken, cb.debtToken, config.protocolIncentiveExpansion, config.liquiditySourceIncentiveExpansion)
+        : (cb.debtToken, cb.collToken, config.protocolIncentiveContraction, config.liquiditySourceIncentiveContraction);
     uint256 amountToTransferToReserve = amount0Out > 0 ? amount0Out : amount1Out;
-    uint256 liquiditySourceIncentiveAmount = (amountToTransferToReserve * liquiditySourceIncentive) / BPS_DENOMINATOR;
-    uint256 protocolIncentiveAmount = (amountToTransferToReserve * protocolIncentive) / BPS_DENOMINATOR;
-
+    uint256 protocolIncentiveAmount = (amountToTransferToReserve * protocolIncentive) / LQ.FEE_DENOMINATOR;
+    uint256 liquiditySourceIncentiveAmount = ((amountToTransferToReserve - protocolIncentiveAmount) *
+      liquiditySourceIncentive) / LQ.FEE_DENOMINATOR;
     if (cb.dir == LQ.Direction.Expand) {
       // Expansion: Pool price > oracle price
       // Reserve provides debt to pool, receives collateral from pool

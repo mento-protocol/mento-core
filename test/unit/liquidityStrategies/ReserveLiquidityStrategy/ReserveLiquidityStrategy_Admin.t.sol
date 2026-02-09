@@ -87,11 +87,11 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
       address(fpmm),
       debtToken,
       3600,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     vm.expectEmit(true, true, true, true);
     emit PoolAdded(address(fpmm), params);
@@ -107,11 +107,11 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
       address(0),
       debtToken,
       3600,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_MUST_BE_SET.selector);
@@ -123,11 +123,11 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
       address(fpmm),
       debtToken,
       3600,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -142,11 +142,11 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
       address(fpmm),
       debtToken,
       3600,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     vm.prank(notOwner);
     vm.expectRevert();
@@ -158,11 +158,11 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
       address(fpmm),
       debtToken,
       3600,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     // Add pool first
     vm.prank(owner);
@@ -189,11 +189,11 @@ contract ReserveLiquidityStrategy_AdminTest is ReserveLiquidityStrategy_BaseTest
       address(fpmm),
       debtToken,
       3600,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     // Add pool
     vm.prank(owner);

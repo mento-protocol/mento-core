@@ -29,11 +29,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.expectEmit(true, true, true, true);
     emit PoolAdded(address(fpmm), params);
@@ -49,11 +49,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(0),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_POOL_MUST_BE_SET.selector);
@@ -65,11 +65,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -84,11 +84,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(notOwner);
     vm.expectRevert();
@@ -103,11 +103,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       wrongToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_DEBT_TOKEN_NOT_IN_POOL.selector);
@@ -122,11 +122,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       wrongToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     vm.expectRevert(ILiquidityStrategy.LS_DEBT_TOKEN_NOT_IN_POOL.selector);
@@ -138,11 +138,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     // Add pool first
     vm.prank(owner);
@@ -169,11 +169,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     // Add pool
     vm.prank(owner);
@@ -201,11 +201,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -230,11 +230,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -260,11 +260,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -290,11 +290,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -319,11 +319,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -348,11 +348,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -381,11 +381,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -406,11 +406,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -431,11 +431,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -456,11 +456,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -478,11 +478,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       3600,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -511,11 +511,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params); // 0 cooldown
@@ -540,11 +540,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -558,11 +558,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -588,11 +588,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -621,11 +621,11 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     vm.prank(owner);
     strategy.addPool(params);
@@ -696,21 +696,21 @@ contract LiquidityStrategy_Test is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
     ILiquidityStrategy.AddPoolParams memory params2 = _buildAddPoolParams(
       address(fpmm2),
       debtToken2,
       0,
-      25,
-      25,
-      25,
-      25,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      0.002506265664160401e18,
+      0.0025e18,
+      0.002506265664160401e18,
+      0.0025e18
     );
 
     vm.startPrank(owner);

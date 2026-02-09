@@ -28,11 +28,11 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
@@ -66,11 +66,11 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
@@ -92,11 +92,11 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
@@ -119,11 +119,11 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
@@ -141,11 +141,11 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
@@ -166,11 +166,11 @@ contract CDPLiquidityStrategy_AdminTest is CDPLiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       0,
+      protocolFeeRecipient,
       25,
       25,
       25,
-      25,
-      protocolFeeRecipient
+      25
     );
     ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(0),

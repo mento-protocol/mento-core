@@ -42,18 +42,21 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   }
 
   modifier addFpmm(
-    uint64 cooldown,
-    uint16 liquiditySourceIncentiveBpsExpansion,
-    uint16 protocolIncentiveBpsExpansion,
-    uint16 liquiditySourceIncentiveBpsContraction,
-    uint16 protocolIncentiveBpsContraction
+    uint32 cooldown,
+    uint64 liquiditySourceIncentiveExpansion,
+    uint64 protocolIncentiveExpansion,
+    uint64 liquiditySourceIncentiveContraction,
+    uint64 protocolIncentiveContraction
   ) {
     // Set FPMM rebalance incentive cap to match or exceed strategy incentive
     // Note: FPMM has a maximum cap, typically 100 bps (1%)
-    uint32 fpmmIncentive = liquiditySourceIncentiveBpsExpansion + protocolIncentiveBpsExpansion >=
-      liquiditySourceIncentiveBpsContraction + protocolIncentiveBpsContraction
-      ? liquiditySourceIncentiveBpsExpansion + protocolIncentiveBpsExpansion
-      : liquiditySourceIncentiveBpsContraction + protocolIncentiveBpsContraction;
+    uint64 fpmmIncentive = liquiditySourceIncentiveExpansion + protocolIncentiveExpansion >=
+      liquiditySourceIncentiveContraction + protocolIncentiveContraction
+      ? liquiditySourceIncentiveExpansion + protocolIncentiveExpansion
+      : liquiditySourceIncentiveContraction + protocolIncentiveContraction;
+
+    // Convert from basis points to bps
+    fpmmIncentive = fpmmIncentive / 1e14;
 
     fpmm.setRebalanceIncentive(fpmmIncentive);
 
@@ -61,11 +64,41 @@ contract ReserveLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       cooldown,
-      liquiditySourceIncentiveBpsExpansion,
-      protocolIncentiveBpsExpansion,
-      liquiditySourceIncentiveBpsContraction,
-      protocolIncentiveBpsContraction,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      liquiditySourceIncentiveExpansion,
+      protocolIncentiveExpansion,
+      liquiditySourceIncentiveContraction,
+      protocolIncentiveContraction
+    );
+
+    vm.startPrank(owner);
+    strategy.addPool(params);
+    reserve.registerCollateralAsset(collToken);
+    reserve.registerStableAsset(debtToken);
+    MockERC20(collToken).mint(address(reserve), 1000000e18);
+    vm.stopPrank();
+    _;
+  }
+
+  modifier addFpmmWithIncentive(
+    uint32 cooldown,
+    uint16 rebalanceIncentive,
+    uint64 liquiditySourceIncentiveExpansion,
+    uint64 protocolIncentiveExpansion,
+    uint64 liquiditySourceIncentiveContraction,
+    uint64 protocolIncentiveContraction
+  ) {
+    fpmm.setRebalanceIncentive(rebalanceIncentive);
+
+    ILiquidityStrategy.AddPoolParams memory params = _buildAddPoolParams(
+      address(fpmm),
+      debtToken,
+      cooldown,
+      protocolFeeRecipient,
+      liquiditySourceIncentiveExpansion,
+      protocolIncentiveExpansion,
+      liquiditySourceIncentiveContraction,
+      protocolIncentiveContraction
     );
 
     vm.startPrank(owner);

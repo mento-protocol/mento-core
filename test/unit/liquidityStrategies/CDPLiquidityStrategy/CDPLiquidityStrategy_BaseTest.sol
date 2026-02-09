@@ -36,13 +36,13 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   }
 
   modifier addFpmm(
-    uint64 cooldown,
+    uint32 cooldown,
     uint16 stabilityPoolPercentage,
     uint16 maxIterations,
-    uint16 liquiditySourceIncentiveBpsContraction,
-    uint16 protocolIncentiveBpsContraction,
-    uint16 liquiditySourceIncentiveBpsExpansion,
-    uint16 protocolIncentiveBpsExpansion
+    uint64 liquiditySourceIncentiveContraction,
+    uint64 protocolIncentiveContraction,
+    uint64 liquiditySourceIncentiveExpansion,
+    uint64 protocolIncentiveExpansion
   ) {
     // Deploy collateral registry mock
     mockCollateralRegistry = new MockCollateralRegistry(debtToken, collToken);
@@ -54,11 +54,11 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       address(fpmm),
       debtToken,
       cooldown,
-      liquiditySourceIncentiveBpsExpansion,
-      protocolIncentiveBpsExpansion,
-      liquiditySourceIncentiveBpsContraction,
-      protocolIncentiveBpsContraction,
-      protocolFeeRecipient
+      protocolFeeRecipient,
+      liquiditySourceIncentiveExpansion,
+      protocolIncentiveExpansion,
+      liquiditySourceIncentiveContraction,
+      protocolIncentiveContraction
     );
     ICDPLiquidityStrategy.CDPConfig memory config = ICDPLiquidityStrategy.CDPConfig({
       stabilityPool: address(mockStabilityPool),
@@ -264,7 +264,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
 
   /**
    * @notice Assert that the incentive is within expected bounds
-   * @param expectedIncentiveBps Expected incentive in basis points
+   * @param expectedIncentive Expected incentive
    * @param isToken0Out Whether token0 is flowing out (true) or token1 (false)
    * @param amountOut Amount of token flowing out
    * @param amountIn Amount of token flowing in
@@ -272,7 +272,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
    * @param oracleDen Oracle price denominator
    */
   function assertIncentive(
-    uint256 expectedIncentiveBps,
+    uint256 expectedIncentive,
     bool isToken0Out,
     uint256 amountOut,
     uint256 amountIn,
@@ -285,12 +285,9 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     } else {
       amountOutInOtherToken = (amountOut * oracleDen) / oracleNum;
     }
-    uint256 actualIncentive = ((amountOutInOtherToken - amountIn) * 10_000) / amountOutInOtherToken;
-    // Allow 1bp difference due to rounding
-    assertTrue(
-      actualIncentive == expectedIncentiveBps || actualIncentive == expectedIncentiveBps - 1,
-      "Incentive should be equal to expected incentive or 1 bps less"
-    );
+    uint256 actualIncentive = (amountIn * LQ.FEE_DENOMINATOR) / amountOutInOtherToken;
+    // Allow 0.01% difference due to rounding and different token decimals
+    assertApproxEqRel(actualIncentive, expectedIncentive, 0.0001e18, "Incentive should be equal to expected incentive");
   }
 
   /**
@@ -363,14 +360,26 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
     assertApproxEqAbs(bpsDifference, 50, 1); // 0.5%
   }
 
-  function assertIncentive(
+  function assertProtocolIncentive(
     uint256 amountTakenOut,
-    uint256 incentiveRecipientBalanceDifference,
-    uint256 incentiveBps
+    uint256 protocolIncentiveRecipientBalanceDiff,
+    uint256 protocolIncentive
   ) public {
-    uint256 incentive = (amountTakenOut * incentiveBps) / 10_000;
+    uint256 incentive = (amountTakenOut * protocolIncentive) / 1e18;
     // allowing 1000 wei difference due to rounding
-    assertApproxEqAbs(incentiveRecipientBalanceDifference, incentive, 1000);
+    assertApproxEqAbs(protocolIncentiveRecipientBalanceDiff, incentive, 1000);
+  }
+
+  function assertLiquiditySourceIncentive(
+    uint256 amountTakenOut,
+    uint256 liquiditySourceIncentiveRecipientBalanceDiff,
+    uint256 liquiditySourceIncentive,
+    uint256 protocolIncentive
+  ) public {
+    uint256 amountTakenOutAfterProtocolIncentive = amountTakenOut - ((amountTakenOut * protocolIncentive) / 1e18);
+    uint256 incentive = (amountTakenOutAfterProtocolIncentive * liquiditySourceIncentive) / 1e18;
+    // allowing 1000 wei difference due to rounding
+    assertApproxEqAbs(liquiditySourceIncentiveRecipientBalanceDiff, incentive, 1000);
   }
 
   function convertWithRateAndScale(
@@ -393,19 +402,21 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
   ) internal view returns (uint256 desiredStabilityPoolBalance) {
     uint256 targetStabilityPoolBalance;
 
-    uint256 totalIncentiveBps = ctx.incentives.liquiditySourceIncentiveBpsExpansion +
-      ctx.incentives.protocolIncentiveBpsExpansion;
-
     if (ctx.prices.poolPriceAbove) {
-      uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BASIS_POINTS_DENOMINATOR + ctx.prices.rebalanceThreshold)) /
-        LQ.BASIS_POINTS_DENOMINATOR;
+      uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BPS_DENOMINATOR + ctx.prices.rebalanceThreshold)) /
+        LQ.BPS_DENOMINATOR;
       uint256 targetDenominator = ctx.prices.oracleDen;
 
+      uint256 combinedFees = ctx.isToken0Debt
+        ? LQ.combineFees(ctx.incentives.protocolIncentiveExpansion, ctx.incentives.liquiditySourceIncentiveExpansion)
+        : LQ.combineFees(
+          ctx.incentives.protocolIncentiveContraction,
+          ctx.incentives.liquiditySourceIncentiveContraction
+        );
+
       uint256 numerator = targetDenominator * ctx.reserves.reserveNum - targetNumerator * ctx.reserves.reserveDen;
-      uint256 denominator = (ctx.prices.oracleDen *
-        (LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps) *
-        targetNumerator) /
-        (LQ.BASIS_POINTS_DENOMINATOR * ctx.prices.oracleNum) +
+      uint256 denominator = (ctx.prices.oracleDen * combinedFees * targetNumerator) /
+        (LQ.FEE_DENOMINATOR * ctx.prices.oracleNum) +
         targetDenominator;
 
       uint256 amountOut = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token1Dec);
@@ -416,19 +427,24 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         ctx.token0Dec,
         ctx.prices.oracleDen,
         ctx.prices.oracleNum,
-        LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps,
-        LQ.BASIS_POINTS_DENOMINATOR
+        combinedFees,
+        LQ.FEE_DENOMINATOR
       );
     } else {
-      uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BASIS_POINTS_DENOMINATOR - ctx.prices.rebalanceThreshold)) /
-        LQ.BASIS_POINTS_DENOMINATOR;
+      uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BPS_DENOMINATOR - ctx.prices.rebalanceThreshold)) /
+        LQ.BPS_DENOMINATOR;
       uint256 targetDenominator = ctx.prices.oracleDen;
 
+      uint256 combinedFees = ctx.isToken0Debt
+        ? LQ.combineFees(
+          ctx.incentives.protocolIncentiveContraction,
+          ctx.incentives.liquiditySourceIncentiveContraction
+        )
+        : LQ.combineFees(ctx.incentives.protocolIncentiveExpansion, ctx.incentives.liquiditySourceIncentiveExpansion);
+
       uint256 numerator = targetNumerator * ctx.reserves.reserveDen - targetDenominator * ctx.reserves.reserveNum;
-      uint256 denominator = (ctx.prices.oracleNum *
-        (LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps) *
-        targetDenominator) /
-        (LQ.BASIS_POINTS_DENOMINATOR * ctx.prices.oracleDen) +
+      uint256 denominator = (ctx.prices.oracleNum * combinedFees * targetDenominator) /
+        (LQ.FEE_DENOMINATOR * ctx.prices.oracleDen) +
         targetNumerator;
 
       uint256 amountOut = LQ.scaleFromTo(numerator, denominator, 1e18, ctx.token0Dec);
@@ -439,14 +455,14 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         ctx.token1Dec,
         ctx.prices.oracleNum,
         ctx.prices.oracleDen,
-        LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps,
-        LQ.BASIS_POINTS_DENOMINATOR
+        combinedFees,
+        LQ.FEE_DENOMINATOR
       );
     }
     desiredStabilityPoolBalance = (targetStabilityPoolBalance * stabilityPoolPercentage) / 1e18;
     ICDPLiquidityStrategy.CDPConfig memory config = strategy.getCDPConfig(ctx.pool);
     uint256 a = mockStabilityPool.MIN_BOLD_AFTER_REBALANCE() + desiredStabilityPoolBalance;
-    uint256 b = (desiredStabilityPoolBalance * LQ.BASIS_POINTS_DENOMINATOR + config.stabilityPoolPercentage - 1) /
+    uint256 b = (desiredStabilityPoolBalance * LQ.BPS_DENOMINATOR + config.stabilityPoolPercentage - 1) /
       config.stabilityPoolPercentage;
 
     // take the higher of the two

@@ -28,9 +28,6 @@ abstract contract LiquidityStrategy is
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using SafeERC20 for IERC20;
 
-  uint256 public constant BPS_TO_FEE_SCALER = 1e14;
-  uint256 public constant BPS_DENOMINATOR = 10_000;
-
   /* ============================================================ */
   /* ==================== State Variables ======================= */
   /* ============================================================ */
@@ -69,7 +66,7 @@ abstract contract LiquidityStrategy is
   /* ============================================================ */
 
   /// @inheritdoc ILiquidityStrategy
-  function setRebalanceCooldown(address pool, uint64 cooldown) external onlyOwner {
+  function setRebalanceCooldown(address pool, uint32 cooldown) external onlyOwner {
     _ensurePool(pool);
     poolConfigs[pool].rebalanceCooldown = cooldown;
     emit RebalanceCooldownSet(pool, cooldown);
@@ -107,7 +104,7 @@ abstract contract LiquidityStrategy is
       })
     );
 
-    poolConfigs[pool].lastRebalance = uint64(block.timestamp);
+    poolConfigs[pool].lastRebalance = uint32(block.timestamp);
     IFPMM(pool).rebalance(action.amount0Out, action.amount1Out, hookData);
     if (!_getHookCalled(pool)) {
       revert LS_HOOK_NOT_CALLED();
@@ -240,14 +237,21 @@ abstract contract LiquidityStrategy is
     if (!isToken0Debt && IFPMM(params.pool).token1() != params.debtToken) {
       revert LS_DEBT_TOKEN_NOT_IN_POOL();
     }
-    if (params.protocolIncentiveBpsExpansion + params.liquiditySourceIncentiveBpsExpansion > BPS_DENOMINATOR) {
-      revert LS_INCENTIVE_TOO_HIGH();
-    }
-    if (params.protocolIncentiveBpsContraction + params.liquiditySourceIncentiveBpsContraction > BPS_DENOMINATOR) {
+
+    if (
+      LQ.FEE_DENOMINATOR <= params.protocolIncentiveExpansion ||
+      LQ.FEE_DENOMINATOR <= params.liquiditySourceIncentiveExpansion
+    ) {
       revert LS_INCENTIVE_TOO_HIGH();
     }
     if (
-      params.protocolIncentiveBpsExpansion + params.protocolIncentiveBpsContraction > 0 &&
+      LQ.FEE_DENOMINATOR <= params.protocolIncentiveContraction ||
+      LQ.FEE_DENOMINATOR <= params.liquiditySourceIncentiveContraction
+    ) {
+      revert LS_INCENTIVE_TOO_HIGH();
+    }
+    if (
+      params.protocolIncentiveExpansion + params.protocolIncentiveContraction > 0 &&
       params.protocolFeeRecipient == address(0)
     ) {
       revert LS_PROTOCOL_FEE_RECIPIENT_REQUIRED();
@@ -257,10 +261,10 @@ abstract contract LiquidityStrategy is
       isToken0Debt: isToken0Debt,
       lastRebalance: 0,
       rebalanceCooldown: params.cooldown,
-      liquiditySourceIncentiveBpsExpansion: params.liquiditySourceIncentiveBpsExpansion,
-      protocolIncentiveBpsExpansion: params.protocolIncentiveBpsExpansion,
-      liquiditySourceIncentiveBpsContraction: params.liquiditySourceIncentiveBpsContraction,
-      protocolIncentiveBpsContraction: params.protocolIncentiveBpsContraction,
+      liquiditySourceIncentiveExpansion: params.liquiditySourceIncentiveExpansion,
+      protocolIncentiveExpansion: params.protocolIncentiveExpansion,
+      liquiditySourceIncentiveContraction: params.liquiditySourceIncentiveContraction,
+      protocolIncentiveContraction: params.protocolIncentiveContraction,
       protocolFeeRecipient: params.protocolFeeRecipient
     });
 
@@ -306,24 +310,24 @@ abstract contract LiquidityStrategy is
    * @dev Calculates expansion or contraction amounts based on token order:
    *      The formula is:
    *      amountOut = (targetDenominator * reserveNum - targetNumerator * reserveDen) /
-   *      (targetNumerator * (1 - totalIncentiveBps) * oracleDen/oracleNum + targetDenominator)
-   *      AmountOwedToPool = amountOut * oracleDen/oracleNum * (1 - totalIncentiveBps)
+   *      (targetNumerator * ((1-protocolIncentive) * (1-liquiditySourceIncentive)) * oracleDen/oracleNum + targetDenominator)
+   *      AmountOwedToPool = amountOut * oracleDen/oracleNum * ((1-protocolIncentive) * (1-liquiditySourceIncentive))
    * @param ctx The liquidity context containing pool state and configuration
    * @return action The constructed rebalance action
    */
   function _handlePoolPriceAbove(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
     // slither-disable-start divide-before-multiply
-    uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BASIS_POINTS_DENOMINATOR + ctx.prices.rebalanceThreshold)) /
-      LQ.BASIS_POINTS_DENOMINATOR;
+    uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BPS_DENOMINATOR + ctx.prices.rebalanceThreshold)) /
+      LQ.BPS_DENOMINATOR;
     uint256 targetDenominator = ctx.prices.oracleDen;
 
-    uint256 totalIncentiveBps = ctx.isToken0Debt
-      ? ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion
-      : ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction;
+    uint256 combinedFees = ctx.isToken0Debt
+      ? LQ.combineFees(ctx.incentives.protocolIncentiveExpansion, ctx.incentives.liquiditySourceIncentiveExpansion)
+      : LQ.combineFees(ctx.incentives.protocolIncentiveContraction, ctx.incentives.liquiditySourceIncentiveContraction);
 
     uint256 numerator = targetDenominator * ctx.reserves.reserveNum - targetNumerator * ctx.reserves.reserveDen;
-    uint256 denominator = (ctx.prices.oracleDen * (LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps) * targetNumerator) /
-      (LQ.BASIS_POINTS_DENOMINATOR * ctx.prices.oracleNum) +
+    uint256 denominator = (ctx.prices.oracleDen * combinedFees * targetNumerator) /
+      (LQ.FEE_DENOMINATOR * ctx.prices.oracleNum) +
       targetDenominator;
     // slither-disable-end divide-before-multiply
 
@@ -335,10 +339,9 @@ abstract contract LiquidityStrategy is
       ctx.token0Dec,
       ctx.prices.oracleDen,
       ctx.prices.oracleNum,
-      LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps,
-      LQ.BASIS_POINTS_DENOMINATOR
+      combinedFees,
+      LQ.FEE_DENOMINATOR
     );
-
     if (ctx.isToken0Debt) {
       // ON/OD < RN/RD => Pool price > Oracle price
       // Expansion: add debt (token0) to pool, take collateral (token1) from pool
@@ -355,26 +358,24 @@ abstract contract LiquidityStrategy is
    * @dev Calculates contraction or expansion amounts based on token order:
    *      The formula is:
    *      amountOut = (targetNumerator * reserveDen - targetDenominator * reserveNum) /
-   *      (targetNumerator + targetDenominator * (1 - totalIncentiveBps) * oracleNum/oracleDen)
-   *      AmountOwedToPool = amountOut * oracleNum/oracleDen * (1 - totalIncentiveBps)
+   *      (targetNumerator + targetDenominator * ((1-protocolIncentive) * (1-liquiditySourceIncentive)) * oracleNum/oracleDen)
+   *      AmountOwedToPool = amountOut * oracleNum/oracleDen * ((1-protocolIncentive) * (1-liquiditySourceIncentive))
    * @param ctx The liquidity context containing pool state and configuration
    * @return action The constructed rebalance action
    */
   function _handlePoolPriceBelow(LQ.Context memory ctx) internal view returns (LQ.Action memory action) {
     // slither-disable-start divide-before-multiply
-    uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BASIS_POINTS_DENOMINATOR - ctx.prices.rebalanceThreshold)) /
-      LQ.BASIS_POINTS_DENOMINATOR;
+    uint256 targetNumerator = (ctx.prices.oracleNum * (LQ.BPS_DENOMINATOR - ctx.prices.rebalanceThreshold)) /
+      LQ.BPS_DENOMINATOR;
     uint256 targetDenominator = ctx.prices.oracleDen;
 
-    uint256 totalIncentiveBps = ctx.isToken0Debt
-      ? ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction
-      : ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion;
+    uint256 combinedFees = ctx.isToken0Debt
+      ? LQ.combineFees(ctx.incentives.protocolIncentiveContraction, ctx.incentives.liquiditySourceIncentiveContraction)
+      : LQ.combineFees(ctx.incentives.protocolIncentiveExpansion, ctx.incentives.liquiditySourceIncentiveExpansion);
 
     uint256 numerator = targetNumerator * ctx.reserves.reserveDen - targetDenominator * ctx.reserves.reserveNum;
-    uint256 denominator = (ctx.prices.oracleNum *
-      (LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps) *
-      targetDenominator) /
-      (LQ.BASIS_POINTS_DENOMINATOR * ctx.prices.oracleDen) +
+    uint256 denominator = (ctx.prices.oracleNum * combinedFees * targetDenominator) /
+      (LQ.FEE_DENOMINATOR * ctx.prices.oracleDen) +
       targetNumerator;
     // slither-disable-end divide-before-multiply
 
@@ -385,8 +386,8 @@ abstract contract LiquidityStrategy is
       ctx.token1Dec,
       ctx.prices.oracleNum,
       ctx.prices.oracleDen,
-      LQ.BASIS_POINTS_DENOMINATOR - totalIncentiveBps,
-      LQ.BASIS_POINTS_DENOMINATOR
+      combinedFees,
+      LQ.FEE_DENOMINATOR
     );
 
     if (ctx.isToken0Debt) {

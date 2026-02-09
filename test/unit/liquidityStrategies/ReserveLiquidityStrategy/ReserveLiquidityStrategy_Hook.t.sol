@@ -19,7 +19,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_whenValidExpansionCallback_shouldExecuteCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
   {
     uint256 amountOwedToPool = 100e18;
     uint256 amount0Out = 0;
@@ -35,10 +35,12 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
       })
     );
 
-    // transfer protocol incentive 50bps to protocol fee recipient
-    expectERC20Transfer(collToken, protocolFeeRecipient, (amount1Out * 50) / BPS_DENOMINATOR);
-    // transfer collateral to reserve this includes the liquiditySource incentive since reserve = liquiditySource
-    expectERC20Transfer(collToken, address(reserve), (amount1Out * 9950) / BPS_DENOMINATOR);
+    // transfer protocol incentive 0.5% of amount1Out to protocol fee recipient
+    uint256 protocolIncentive = (amount1Out * 0.005e18) / 1e18;
+    // transfer liquidity source incentive to reserve is amountOut minus protocol incentive
+    uint256 liquiditySourceIncentive = (amount1Out - protocolIncentive);
+    expectERC20Transfer(collToken, protocolFeeRecipient, protocolIncentive);
+    expectERC20Transfer(collToken, address(reserve), liquiditySourceIncentive);
     // mint debt token to pool
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
@@ -48,7 +50,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_whenValidContractionCallback_shouldExecuteCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
   {
     uint256 amountOwedToPool = 100e18; // collateral going into pool
     uint256 amount0Out = 100e18; // debt coming out of pool
@@ -64,19 +66,27 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
       })
     );
 
-    // transfer protocol incentive 50bps to protocol fee recipient
-    expectERC20Transfer(debtToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
-    // transfer liquidity source incentive 50bps to reserve
-    expectERC20Transfer(debtToken, address(reserve), (amount0Out * 50) / BPS_DENOMINATOR);
+    // transfer protocol incentive 0.5% of amount0Out to protocol fee recipient
+    uint256 protocolIncentive = (amount0Out * 0.005e18) / 1e18;
+    // transfer liquidity source incentive to reserve is amount0Out minus protocol incentive
+    // times liquidity source incentive. The rest is burned.
+    uint256 liquiditySourceIncentive = ((amount0Out - protocolIncentive) * 0.005e18) / 1e18;
+
+    expectERC20Transfer(debtToken, protocolFeeRecipient, protocolIncentive);
+    expectERC20Transfer(debtToken, address(reserve), liquiditySourceIncentive);
     // burn the remaining debt
-    expectERC20Burn(debtToken, (amount0Out * 9900) / BPS_DENOMINATOR);
+    expectERC20Burn(debtToken, amount0Out - protocolIncentive - liquiditySourceIncentive);
     // transfer collateral to pool
     expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
-  function test_hook_whenUntrustedPool_shouldRevert() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 50, 50, 50) {
+  function test_hook_whenUntrustedPool_shouldRevert()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
+  {
     uint256 amountOwedToPool = 100e18;
     uint256 amount0Out = 0;
     uint256 amount1Out = 100e18;
@@ -98,7 +108,11 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
     strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
   }
 
-  function test_hook_whenInvalidSender_shouldRevert() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 50, 50, 50) {
+  function test_hook_whenInvalidSender_shouldRevert()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
+  {
     uint256 amountOwedToPool = 100e18;
     uint256 amount0Out = 0;
     uint256 amount1Out = 100e18;
@@ -121,7 +135,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_whenReversedTokenOrder_shouldHandleCorrectly()
     public
     fpmmToken1Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
   {
     uint256 amountOwedToPool = 100e18;
     uint256 amount0Out = 100e18; // collateral out (token0 is collateral)
@@ -136,10 +150,14 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
         collToken: collToken
       })
     );
-    // transfer protocol incentive 50bps to protocol fee recipient
-    expectERC20Transfer(collToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
-    // transfer collateral to reserve this includes the liquiditySource incentive since reserve = liquiditySource
-    expectERC20Transfer(collToken, address(reserve), (amount0Out * 9950) / BPS_DENOMINATOR);
+
+    // transfer protocol incentive 0.5% of amount0Out to protocol fee recipient
+    uint256 protocolIncentive = (amount0Out * 0.005e18) / 1e18;
+    // transfer liquidity source incentive to reserve is amount0Out minus protocol incentive
+    uint256 liquiditySourceIncentive = amount0Out - protocolIncentive;
+
+    expectERC20Transfer(collToken, protocolFeeRecipient, protocolIncentive);
+    expectERC20Transfer(collToken, address(reserve), liquiditySourceIncentive);
     // mint debt token to pool
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
@@ -153,7 +171,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_expansionCallback_whenToken0IsDebt_shouldMintAndTransferCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
   {
     uint256 amountOwedToPool = 200e18;
     uint256 amount0Out = 0;
@@ -168,10 +186,13 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
         collToken: collToken
       })
     );
-    // transfer protocol incentive 50bps to protocol fee recipient
-    expectERC20Transfer(collToken, protocolFeeRecipient, (amount1Out * 50) / BPS_DENOMINATOR);
-    // transfer collateral to reserve this includes the liquiditySource incentive since reserve = liquiditySource
-    expectERC20Transfer(collToken, address(reserve), amount1Out - ((amount1Out * 50) / BPS_DENOMINATOR));
+    // transfer protocol incentive 0.5% of amount1Out to protocol fee recipient
+    uint256 protocolIncentive = (amount1Out * 0.005e18) / 1e18;
+    // transfer liquidity source incentive to reserve is amount1Out minus protocol incentive
+    uint256 liquiditySourceIncentive = amount1Out - protocolIncentive;
+
+    expectERC20Transfer(collToken, protocolFeeRecipient, protocolIncentive);
+    expectERC20Transfer(collToken, address(reserve), liquiditySourceIncentive);
     // mint debt token to pool
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
@@ -181,7 +202,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_expansionCallback_whenToken1IsDebt_shouldMintAndTransferCorrectly()
     public
     fpmmToken1Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
   {
     uint256 amountOwedToPool = 150e18;
     uint256 amount0Out = 150e18; // collateral out
@@ -196,10 +217,13 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
         collToken: collToken
       })
     );
-    // transfer protocol incentive 50bps to protocol fee recipient
+    // transfer protocol incentive 0.5% of amount0Out to protocol fee recipient
+    uint256 protocolIncentive = (amount0Out * 0.005e18) / 1e18;
+    // transfer liquidity source incentive to reserve is amount0Out minus protocol incentive
+    uint256 liquiditySourceIncentive = amount0Out - protocolIncentive;
+
     expectERC20Transfer(collToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
-    // transfer collateral to reserve this includes the liquiditySource incentive since reserve = liquiditySource
-    expectERC20Transfer(collToken, address(reserve), amount0Out - ((amount0Out * 50) / BPS_DENOMINATOR));
+    expectERC20Transfer(collToken, address(reserve), liquiditySourceIncentive);
     // mint debt token to pool
     expectERC20Mint(debtToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
@@ -213,7 +237,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_contractionCallback_whenToken0IsDebt_shouldBurnAndTransferCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
   {
     uint256 amountOwedToPool = 90e18; // collateral going into pool
     uint256 amount0Out = 90e18; // debt out
@@ -228,12 +252,16 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
         collToken: collToken
       })
     );
-    // transfer protocol incentive 50bps to protocol fee recipient
-    expectERC20Transfer(debtToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
-    // transfer liquidity source incentive 50bps to reserve
-    expectERC20Transfer(debtToken, address(reserve), (amount0Out * 50) / BPS_DENOMINATOR);
+    // transfer protocol incentive 0.5% of amount0Out to protocol fee recipient
+    uint256 protocolIncentive = (amount0Out * 0.005e18) / 1e18;
+    // transfer liquidity source incentive to reserve is amount0Out minus protocol incentive
+    // times liquidity source incentive. The rest is burned.
+    uint256 liquiditySourceIncentive = ((amount0Out - protocolIncentive) * 0.005e18) / 1e18;
+
+    expectERC20Transfer(debtToken, protocolFeeRecipient, protocolIncentive);
+    expectERC20Transfer(debtToken, address(reserve), liquiditySourceIncentive);
     // burn the remaining debt
-    expectERC20Burn(debtToken, (amount0Out * 9900) / BPS_DENOMINATOR);
+    expectERC20Burn(debtToken, amount0Out - protocolIncentive - liquiditySourceIncentive);
     // transfer collateral to pool
     expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
@@ -243,7 +271,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_contractionCallback_whenToken1IsDebt_shouldBurnAndTransferCorrectly()
     public
     fpmmToken1Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
   {
     uint256 amountOwedToPool = 75e18; // collateral going into pool
     uint256 amount0Out = 0;
@@ -258,12 +286,16 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
         collToken: collToken
       })
     );
-    // transfer protocol incentive 50bps to protocol fee recipient
-    expectERC20Transfer(debtToken, protocolFeeRecipient, (amount1Out * 50) / BPS_DENOMINATOR);
-    // transfer liquidity source incentive 50bps to reserve
-    expectERC20Transfer(debtToken, address(reserve), (amount1Out * 50) / BPS_DENOMINATOR);
+    // transfer protocol incentive 0.5% of amount1Out to protocol fee recipient
+    uint256 protocolIncentive = (amount1Out * 0.005e18) / 1e18;
+    // transfer liquidity source incentive to reserve is amount1Out minus protocol incentive
+    // times liquidity source incentive. The rest is burned.
+    uint256 liquiditySourceIncentive = ((amount1Out - protocolIncentive) * 0.005e18) / 1e18;
+
+    expectERC20Transfer(debtToken, protocolFeeRecipient, protocolIncentive);
+    expectERC20Transfer(debtToken, address(reserve), liquiditySourceIncentive);
     // burn the remaining debt
-    expectERC20Burn(debtToken, (amount1Out * 9900) / BPS_DENOMINATOR);
+    expectERC20Burn(debtToken, amount1Out - protocolIncentive - liquiditySourceIncentive);
     // transfer collateral to pool
     expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));
@@ -273,7 +305,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_contractionCallback_whenReserveTransferFails_shouldRevert()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
   {
     uint256 amountOwedToPool = 60e18; // collateral going into pool
     uint256 amount0Out = 60e18; // debt out
@@ -326,7 +358,7 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
   function test_hook_withMaxIncentive_shouldExecuteCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
   {
     uint256 amountOwedToPool = 1e18; // collateral going into pool
     uint256 amount0Out = 1e18; // debt out
@@ -342,12 +374,16 @@ contract ReserveLiquidityStrategy_HookTest is ReserveLiquidityStrategy_BaseTest 
       })
     );
 
-    // transfer protocol incentive 50bps to protocol fee recipient
-    expectERC20Transfer(debtToken, protocolFeeRecipient, (amount0Out * 50) / BPS_DENOMINATOR);
-    // transfer liquidity source incentive 50bps to reserve
-    expectERC20Transfer(debtToken, address(reserve), (amount0Out * 50) / BPS_DENOMINATOR);
+    // transfer protocol incentive 0.5% of amount0Out to protocol fee recipient
+    uint256 protocolIncentive = (amount0Out * 0.005e18) / 1e18;
+    // transfer liquidity source incentive to reserve is amount0Out minus protocol incentive
+    // times liquidity source incentive. The rest is burned.
+    uint256 liquiditySourceIncentive = ((amount0Out - protocolIncentive) * 0.005e18) / 1e18;
+
+    expectERC20Transfer(debtToken, protocolFeeRecipient, protocolIncentive);
+    expectERC20Transfer(debtToken, address(reserve), liquiditySourceIncentive);
     // burn the remaining debt
-    expectERC20Burn(debtToken, (amount0Out * 9900) / BPS_DENOMINATOR);
+    expectERC20Burn(debtToken, amount0Out - protocolIncentive - liquiditySourceIncentive);
     // transfer collateral to pool
     expectReserveTransfer(address(strategy), collToken, address(fpmm), amountOwedToPool);
     vm.prank(address(fpmm));

@@ -17,7 +17,8 @@ library LiquidityStrategyTypes {
   /* ====================== Constants =========================== */
   /* ============================================================ */
 
-  uint256 public constant BASIS_POINTS_DENOMINATOR = 10_000;
+  uint256 public constant FEE_DENOMINATOR = 1e18;
+  uint256 public constant BPS_DENOMINATOR = 10_000;
 
   /* ============================================================ */
   /* ======================= Enums ============================== */
@@ -55,10 +56,10 @@ library LiquidityStrategyTypes {
   }
 
   struct RebalanceIncentives {
-    uint16 liquiditySourceIncentiveBpsExpansion;
-    uint16 protocolIncentiveBpsExpansion;
-    uint16 liquiditySourceIncentiveBpsContraction;
-    uint16 protocolIncentiveBpsContraction;
+    uint64 liquiditySourceIncentiveExpansion;
+    uint64 protocolIncentiveExpansion;
+    uint64 liquiditySourceIncentiveContraction;
+    uint64 protocolIncentiveContraction;
   }
 
   /// @notice Read-only context with shared data
@@ -121,10 +122,10 @@ library LiquidityStrategyTypes {
 
       // Set incentive from FPMM
       ctx.incentives = RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: config.liquiditySourceIncentiveBpsExpansion,
-        protocolIncentiveBpsExpansion: config.protocolIncentiveBpsExpansion,
-        liquiditySourceIncentiveBpsContraction: config.liquiditySourceIncentiveBpsContraction,
-        protocolIncentiveBpsContraction: config.protocolIncentiveBpsContraction
+        liquiditySourceIncentiveExpansion: config.liquiditySourceIncentiveExpansion,
+        protocolIncentiveExpansion: config.protocolIncentiveExpansion,
+        liquiditySourceIncentiveContraction: config.liquiditySourceIncentiveContraction,
+        protocolIncentiveContraction: config.protocolIncentiveContraction
       });
     }
 
@@ -445,22 +446,18 @@ library LiquidityStrategyTypes {
   }
 
   /**
-   * @notice Multiplies an amount by basis points
-   * @param amount The amount to multiply
-   * @param bps The basis points (out of 10,000)
-   * @return The amount scaled by basis points
+   * @notice Calculates the combined fees for a given protocol and liquidity source fee
+   * @dev The combined fees are calculated by multiplying the two fees.
+   *      This is necessary because the protocolFee is a percentage of the total amount of debt being moved out of the pool
+   *      while the liquiditySourceFee is a percentage of the amount being swapped against the liquidity source.
+   *      The liquiditySourceFee is applied to the amount after the deduction of the protocol fee.
+   * @param protocolFee The protocol fee
+   * @param liquiditySourceFee The liquidity source fee
+   * @return combinedFee The combined fees
    */
-  function mulBps(uint256 amount, uint256 bps) internal pure returns (uint256) {
-    return (amount * bps) / BASIS_POINTS_DENOMINATOR;
+  function combineFees(uint64 protocolFee, uint64 liquiditySourceFee) internal pure returns (uint256 combinedFee) {
+    combinedFee = ((FEE_DENOMINATOR - protocolFee) * (FEE_DENOMINATOR - liquiditySourceFee)) / FEE_DENOMINATOR;
   }
 
-  /**
-   * @notice Calculates the incentive amount from an input and incentive rate
-   * @param amount The base amount
-   * @param incentiveBps The incentive rate in basis points
-   * @return The incentive amount
-   */
-  function incentiveAmount(uint256 amount, uint256 incentiveBps) internal pure returns (uint256) {
-    return mulBps(amount, incentiveBps);
-  }
+  // /**
 }

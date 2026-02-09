@@ -85,10 +85,8 @@ contract LiquidityStrategyHarness is LiquidityStrategy {
       debtToExpand = maxExpansionAmount;
       collateralToPay = ctx.convertToCollateralWithFee(
         debtToExpand,
-        LQ.BASIS_POINTS_DENOMINATOR,
-        LQ.BASIS_POINTS_DENOMINATOR -
-          ctx.incentives.liquiditySourceIncentiveBpsExpansion -
-          ctx.incentives.protocolIncentiveBpsExpansion
+        LQ.FEE_DENOMINATOR,
+        LQ.combineFees(ctx.incentives.liquiditySourceIncentiveExpansion, ctx.incentives.protocolIncentiveExpansion)
       );
     } else {
       debtToExpand = idealDebtToExpand;

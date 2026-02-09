@@ -8,6 +8,7 @@ import { LiquidityStrategyDeployer } from "test/integration/v3/LiquidityStrategy
 import { FPMMDeployer } from "test/integration/v3/FPMMDeployer.sol";
 import { LiquityDeployer } from "test/integration/v3/LiquityDeployer.sol";
 import { MentoV2Deployer } from "test/integration/v3/MentoV2Deployer.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
 
 abstract contract ReserveFPMM_BaseTest is
   TokenDeployer,
@@ -36,10 +37,10 @@ contract ReserveFPMM_Token1Debt_Test is ReserveFPMM_BaseTest {
 
     _configureReserveLiquidityStrategy({
       cooldown: 0,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18,
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18
     });
 
     _checkSetup();
@@ -218,11 +219,11 @@ contract ReserveFPMM_Token1Debt_Test is ReserveFPMM_BaseTest {
       pricesBefore.reservePriceNumerator,
       "There should be less of asset1 (debt)"
     );
-    assertApproxEqAbs(
-      pricesBefore.reservePriceNumerator - pricesAfter.reservePriceNumerator,
-      usdmTotalSupplyDelta + ((pricesBefore.reservePriceNumerator - pricesAfter.reservePriceNumerator) * 50) / 10000,
-      1,
-      "Burned amount should equal reserve delta minus the fees"
+    assertApproxEqRel(
+      (usdmTotalSupplyDelta * 1e18) / (pricesBefore.reservePriceNumerator - pricesAfter.reservePriceNumerator),
+      LQ.combineFees(0.0025e18, 0.002506265664160401e18),
+      0.0000001e18, // 0.00001%
+      "Minted amount should equal reserve delta minus the fees"
     );
     assertTrue(pricesAfter.reservePriceAboveOraclePrice, "Reserve price should be still above oracle price");
     assertEq(pricesAfter.priceDifference, 500, "Reserve price should be back to the threshold away from oracle price");
@@ -253,10 +254,10 @@ contract ReserveFPMM_Token0Debt_Test is ReserveFPMM_BaseTest {
 
     _configureReserveLiquidityStrategy({
       cooldown: 0,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18,
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18
     });
 
     _checkSetup();
@@ -435,12 +436,11 @@ contract ReserveFPMM_Token0Debt_Test is ReserveFPMM_BaseTest {
       pricesBefore.reservePriceNumerator,
       "There should be more of asset1 (coll)"
     );
-    assertApproxEqAbs(
-      pricesBefore.reservePriceDenominator - pricesAfter.reservePriceDenominator,
-      usdmTotalSupplyDelta +
-        ((pricesBefore.reservePriceDenominator - pricesAfter.reservePriceDenominator) * 50) /
-        10000,
-      1,
+
+    assertApproxEqRel(
+      (usdmTotalSupplyDelta * 1e18) / (pricesBefore.reservePriceDenominator - pricesAfter.reservePriceDenominator),
+      LQ.combineFees(0.0025e18, 0.002506265664160401e18),
+      0.0000001e18, // 0.00001%
       "Burned amount should equal reserve delta minus the fees"
     );
 

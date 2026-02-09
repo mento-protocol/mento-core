@@ -88,40 +88,11 @@ contract LiquidityStrategyTypes_Test is Test {
   }
 
   /* ============================================================ */
-  /* =================== BPS Functions Tests ==================== */
-  /* ============================================================ */
-
-  function test_mulBps_100percent() public view {
-    uint256 amount = 100e18;
-    uint256 result = harness.mulBps(amount, 10000); // 100% = 10000 bps
-    assertEq(result, amount);
-  }
-
-  function test_mulBps_50percent() public view {
-    uint256 amount = 100e18;
-    uint256 result = harness.mulBps(amount, 5000); // 50% = 5000 bps
-    assertEq(result, 50e18);
-  }
-
-  function test_mulBps_1percent() public view {
-    uint256 amount = 100e18;
-    uint256 result = harness.mulBps(amount, 100); // 1% = 100 bps
-    assertEq(result, 1e18);
-  }
-
-  function test_incentiveAmount_shouldCalculateCorrectly() public view {
-    uint256 inputAmount = 1000e18;
-    uint256 incentiveBps = 50; // 0.5%
-    uint256 result = harness.incentiveAmount(inputAmount, incentiveBps);
-    assertEq(result, 5e18); // 0.5% of 1000 = 5
-  }
-
-  /* ============================================================ */
   /* ================= Constants Tests ========================== */
   /* ============================================================ */
 
-  function test_BASIS_POINTS_DENOMINATOR_shouldBe10000() public view {
-    uint256 bps = harness.BASIS_POINTS_DENOMINATOR();
+  function test_BPS_DENOMINATOR_shouldBe10000() public view {
+    uint256 bps = harness.BPS_DENOMINATOR();
     assertEq(bps, 10000);
   }
 
@@ -137,10 +108,10 @@ contract LiquidityStrategyTypes_Test is Test {
     uint256 oracleNum,
     uint256 oracleDen,
     bool isToken0Debt,
-    uint16 liquiditySourceIncentiveBpsExpansion,
-    uint16 protocolIncentiveBpsExpansion,
-    uint16 liquiditySourceIncentiveBpsContraction,
-    uint16 protocolIncentiveBpsContraction
+    uint64 liquiditySourceIncentiveExpansion,
+    uint64 protocolIncentiveExpansion,
+    uint64 liquiditySourceIncentiveContraction,
+    uint64 protocolIncentiveContraction
   ) internal pure returns (LQ.Context memory ctx) {
     ctx.pool = address(0x1);
     ctx.reserves = LQ.Reserves({ reserveNum: 100e18, reserveDen: 100e18 });
@@ -156,10 +127,10 @@ contract LiquidityStrategyTypes_Test is Test {
     ctx.token1Dec = token1Dec;
     ctx.isToken0Debt = isToken0Debt;
     ctx.incentives = LQ.RebalanceIncentives({
-      liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
-      protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
-      liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
-      protocolIncentiveBpsContraction: protocolIncentiveBpsContraction
+      liquiditySourceIncentiveExpansion: liquiditySourceIncentiveExpansion,
+      protocolIncentiveExpansion: protocolIncentiveExpansion,
+      liquiditySourceIncentiveContraction: liquiditySourceIncentiveContraction,
+      protocolIncentiveContraction: protocolIncentiveContraction
     });
   }
 
