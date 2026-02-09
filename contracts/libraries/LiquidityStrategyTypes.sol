@@ -458,6 +458,4 @@ library LiquidityStrategyTypes {
   function combineFees(uint64 protocolFee, uint64 liquiditySourceFee) internal pure returns (uint256 combinedFee) {
     combinedFee = ((FEE_DENOMINATOR - protocolFee) * (FEE_DENOMINATOR - liquiditySourceFee)) / FEE_DENOMINATOR;
   }
-
-  // /**
 }
