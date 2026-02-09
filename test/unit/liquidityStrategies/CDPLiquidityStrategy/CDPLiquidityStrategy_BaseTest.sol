@@ -407,7 +407,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         LQ.BPS_DENOMINATOR;
       uint256 targetDenominator = ctx.prices.oracleDen;
 
-      uint256 combinedFees = ctx.isToken0Debt
+      uint256 combinedFee = ctx.isToken0Debt
         ? LQ.combineFees(ctx.incentives.protocolIncentiveExpansion, ctx.incentives.liquiditySourceIncentiveExpansion)
         : LQ.combineFees(
           ctx.incentives.protocolIncentiveContraction,
@@ -415,7 +415,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         );
 
       uint256 numerator = targetDenominator * ctx.reserves.reserveNum - targetNumerator * ctx.reserves.reserveDen;
-      uint256 denominator = (ctx.prices.oracleDen * combinedFees * targetNumerator) /
+      uint256 denominator = (ctx.prices.oracleDen * combinedFee * targetNumerator) /
         (LQ.FEE_DENOMINATOR * ctx.prices.oracleNum) +
         targetDenominator;
 
@@ -427,7 +427,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         ctx.token0Dec,
         ctx.prices.oracleDen,
         ctx.prices.oracleNum,
-        combinedFees,
+        combinedFee,
         LQ.FEE_DENOMINATOR
       );
     } else {
@@ -435,7 +435,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         LQ.BPS_DENOMINATOR;
       uint256 targetDenominator = ctx.prices.oracleDen;
 
-      uint256 combinedFees = ctx.isToken0Debt
+      uint256 combinedFee = ctx.isToken0Debt
         ? LQ.combineFees(
           ctx.incentives.protocolIncentiveContraction,
           ctx.incentives.liquiditySourceIncentiveContraction
@@ -443,7 +443,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         : LQ.combineFees(ctx.incentives.protocolIncentiveExpansion, ctx.incentives.liquiditySourceIncentiveExpansion);
 
       uint256 numerator = targetNumerator * ctx.reserves.reserveDen - targetDenominator * ctx.reserves.reserveNum;
-      uint256 denominator = (ctx.prices.oracleNum * combinedFees * targetDenominator) /
+      uint256 denominator = (ctx.prices.oracleNum * combinedFee * targetDenominator) /
         (LQ.FEE_DENOMINATOR * ctx.prices.oracleDen) +
         targetNumerator;
 
@@ -455,7 +455,7 @@ contract CDPLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
         ctx.token1Dec,
         ctx.prices.oracleNum,
         ctx.prices.oracleDen,
-        combinedFees,
+        combinedFee,
         LQ.FEE_DENOMINATOR
       );
     }

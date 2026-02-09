@@ -96,12 +96,12 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     if (idealDebtToExpand > availableDebtToken) {
       debtToExpand = availableDebtToken;
 
-      uint256 combinedFees = LQ.combineFees(
+      uint256 combinedFee = LQ.combineFees(
         ctx.incentives.protocolIncentiveExpansion,
         ctx.incentives.liquiditySourceIncentiveExpansion
       );
 
-      collateralToPay = ctx.convertToCollateralWithFee(debtToExpand, LQ.FEE_DENOMINATOR, combinedFees);
+      collateralToPay = ctx.convertToCollateralWithFee(debtToExpand, LQ.FEE_DENOMINATOR, combinedFee);
     } else {
       debtToExpand = idealDebtToExpand;
       collateralToPay = idealCollateralToPay;

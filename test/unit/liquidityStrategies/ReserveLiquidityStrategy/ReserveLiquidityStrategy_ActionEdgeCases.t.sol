@@ -160,7 +160,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
     LQ.Action memory action = strategy.determineAction(ctx);
 
     assertGt(action.amount1Out, 0, "Should have valid token1 out");
-    // Formula: X = (RN * TD - TN * RD) / (TD + TN * combinedFees * OD / ON*FEE_DENOMINATOR)
+    // Formula: X = (RN * TD - TN * RD) / (TD + TN * combinedFee * OD / ON*FEE_DENOMINATOR)
     // X = (200e18 * 1e18 - 1.05e18 * 100e18) / (1e18 + (1.05e18 * 1 * 1e18)/( 1e18 * 1e18))
     // X ≈ 94.999999999999999905e18
     assertEq(
