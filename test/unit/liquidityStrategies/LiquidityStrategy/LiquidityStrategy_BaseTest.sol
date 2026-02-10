@@ -176,23 +176,23 @@ abstract contract LiquidityStrategy_BaseTest is Test {
   function _buildAddPoolParams(
     address pool,
     address _debtToken,
-    uint64 cooldown,
-    uint16 liquiditySourceIncentiveBpsExpansion,
-    uint16 protocolIncentiveBpsExpansion,
-    uint16 liquiditySourceIncentiveBpsContraction,
-    uint16 protocolIncentiveBpsContraction,
-    address _protocolFeeRecipient
+    uint32 cooldown,
+    address _protocolFeeRecipient,
+    uint64 liquiditySourceIncentiveExpansion,
+    uint64 protocolIncentiveExpansion,
+    uint64 liquiditySourceIncentiveContraction,
+    uint64 protocolIncentiveContraction
   ) internal pure returns (ILiquidityStrategy.AddPoolParams memory) {
     return
       ILiquidityStrategy.AddPoolParams({
         pool: pool,
         debtToken: _debtToken,
         cooldown: cooldown,
-        liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBpsExpansion,
-        protocolIncentiveBpsExpansion: protocolIncentiveBpsExpansion,
-        liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBpsContraction,
-        protocolIncentiveBpsContraction: protocolIncentiveBpsContraction,
-        protocolFeeRecipient: _protocolFeeRecipient
+        protocolFeeRecipient: _protocolFeeRecipient,
+        liquiditySourceIncentiveExpansion: liquiditySourceIncentiveExpansion,
+        protocolIncentiveExpansion: protocolIncentiveExpansion,
+        liquiditySourceIncentiveContraction: liquiditySourceIncentiveContraction,
+        protocolIncentiveContraction: protocolIncentiveContraction
       });
   }
 
@@ -202,7 +202,7 @@ abstract contract LiquidityStrategy_BaseTest is Test {
 
   event PoolAdded(address indexed pool, ILiquidityStrategy.AddPoolParams params);
   event PoolRemoved(address indexed pool);
-  event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
+  event RebalanceCooldownSet(address indexed pool, uint32 cooldown);
   event LiquidityMoved(
     address indexed pool,
     LQ.Direction indexed direction,

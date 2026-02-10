@@ -130,19 +130,11 @@ contract LiquidityStrategyTypesHarness {
     return LQ.convertWithRateScalingAndFee(amount, fromDec, toDec, oracleNum, oracleDen, incentiveNum, incentiveDen);
   }
 
-  function mulBps(uint256 amount, uint256 bps) external pure returns (uint256) {
-    return LQ.mulBps(amount, bps);
-  }
-
-  function incentiveAmount(uint256 amount, uint256 incentiveBps) external pure returns (uint256) {
-    return LQ.incentiveAmount(amount, incentiveBps);
-  }
-
   /* ============================================================ */
   /* ================= Constant Accessors ======================= */
   /* ============================================================ */
 
-  function BASIS_POINTS_DENOMINATOR() external pure returns (uint256) {
-    return LQ.BASIS_POINTS_DENOMINATOR;
+  function BPS_DENOMINATOR() external pure returns (uint256) {
+    return LQ.BPS_DENOMINATOR;
   }
 }

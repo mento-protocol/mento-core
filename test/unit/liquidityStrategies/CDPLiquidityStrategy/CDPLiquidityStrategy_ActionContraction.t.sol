@@ -19,7 +19,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
   function test_determineAction_whenToken0DebtPoolPriceBelowRebalanceThreshold_shouldContractAndBringPriceBackToRebalanceThreshold()
     public
     fpmmToken0Debt(18, 6)
-    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+    addFpmm(0, 9000, 100, 0.002506265664160401e18, 0.0025e18, 0.002506265664160401e18, 0.0025e18)
   {
     uint256 reserve0 = 7_089_031 * 1e18; // brl.m 1.3Mio in $
     uint256 reserve1 = 1_000_000 * 1e6; // usd.m 1Mio in $
@@ -32,10 +32,10 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
       poolPriceAbove: false,
       isToken0Debt: true,
       incentives: LQ.RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: 25,
-        protocolIncentiveBpsExpansion: 25,
-        liquiditySourceIncentiveBpsContraction: 25,
-        protocolIncentiveBpsContraction: 25
+        liquiditySourceIncentiveExpansion: 0.0025e18,
+        protocolIncentiveExpansion: 0.0025e18,
+        liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+        protocolIncentiveContraction: 0.0025e18
       })
     });
 
@@ -72,7 +72,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     assertEq(action.amount1Out, expectedAmount1Out);
     assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
     assertIncentive(
-      ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction,
+      LQ.combineFees(ctx.incentives.liquiditySourceIncentiveContraction, ctx.incentives.protocolIncentiveContraction),
       true,
       expectedAmount0Out,
       expectedAmountOwedToPool * (1e18 / ctx.token1Dec),
@@ -84,7 +84,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
   function test_determineAction_whenToken1DebtPoolPriceAboveRebalanceThreshold_shouldContractAndBringPriceBackToRebalanceThreshold()
     public
     fpmmToken1Debt(6, 18)
-    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+    addFpmm(0, 9000, 100, 0.002506265664160401e18, 0.0025e18, 0.0025e18, 0.0025e18)
   {
     uint256 reserve0 = 10_000_000 * 1e18; // usd.m
     uint256 reserve1 = 14_500_000 * 1e6; // chf.m
@@ -97,10 +97,10 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
       poolPriceAbove: true,
       isToken0Debt: false,
       incentives: LQ.RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: 25,
-        protocolIncentiveBpsExpansion: 25,
-        liquiditySourceIncentiveBpsContraction: 25,
-        protocolIncentiveBpsContraction: 25
+        liquiditySourceIncentiveExpansion: 0.0025e18,
+        protocolIncentiveExpansion: 0.0025e18,
+        liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+        protocolIncentiveContraction: 0.0025e18
       })
     });
 
@@ -135,7 +135,7 @@ contract CDPLiquidityStrategy_ActionContractionTest is CDPLiquidityStrategy_Base
     assertEq(action.amount1Out, expectedAmount1Out);
     assertEq(action.amountOwedToPool, expectedAmountOwedToPool);
     assertIncentive(
-      ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction,
+      LQ.combineFees(ctx.incentives.liquiditySourceIncentiveContraction, ctx.incentives.protocolIncentiveContraction),
       false,
       expectedAmount1Out * (1e18 / ctx.token1Dec),
       expectedAmountOwedToPool,

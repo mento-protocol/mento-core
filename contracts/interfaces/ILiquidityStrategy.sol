@@ -13,21 +13,21 @@ interface ILiquidityStrategy {
    * @param pool The address of the pool
    * @param debtToken The address of the debt token
    * @param cooldown The cooldown period between rebalances in seconds
-   * @param liquiditySourceIncentiveBpsExpansion The incentive for the liquidity source in basis points for expansion
-   * @param protocolIncentiveBpsExpansion The incentive for the protocol in basis points for expansion
-   * @param liquiditySourceIncentiveBpsContraction The incentive for the liquidity source in basis points for contraction
-   * @param protocolIncentiveBpsContraction The incentive for the protocol in basis points for contraction
    * @param protocolFeeRecipient The recipient of the protocol fee
+   * @param liquiditySourceIncentiveExpansion The incentive for the liquidity source in for expansion
+   * @param protocolIncentiveExpansion The incentive for the protocol in for expansion
+   * @param liquiditySourceIncentiveContraction The incentive for the liquidity source in for contraction
+   * @param protocolIncentiveContraction The incentive for the protocol in for contraction
    */
   struct AddPoolParams {
     address pool;
     address debtToken;
-    uint64 cooldown;
-    uint16 liquiditySourceIncentiveBpsExpansion;
-    uint16 protocolIncentiveBpsExpansion;
-    uint16 liquiditySourceIncentiveBpsContraction;
-    uint16 protocolIncentiveBpsContraction;
+    uint32 cooldown;
     address protocolFeeRecipient;
+    uint64 liquiditySourceIncentiveExpansion;
+    uint64 protocolIncentiveExpansion;
+    uint64 liquiditySourceIncentiveContraction;
+    uint64 protocolIncentiveContraction;
   }
 
   /**
@@ -36,21 +36,21 @@ interface ILiquidityStrategy {
    * @param isToken0Debt Whether token0 is the debt token (true) or token1 is the debt token (false)
    * @param lastRebalance The timestamp of the last rebalance for this pool
    * @param rebalanceCooldown The cooldown period that must pass before the next rebalance
-   * @param liquiditySourceIncentiveBpsExpansion The incentive for the liquidity source in basis points for expansion
-   * @param protocolIncentiveBpsExpansion The incentive for the protocol in basis points for expansion
-   * @param liquiditySourceIncentiveBpsContraction The incentive for the liquidity source in basis points for contraction
-   * @param protocolIncentiveBpsContraction The incentive for the protocol in basis points for contraction
    * @param protocolFeeRecipient The recipient of the protocol fee
+   * @param liquiditySourceIncentiveExpansion The incentive for the liquidity source in for expansion
+   * @param protocolIncentiveExpansion The incentive for the protocol in for expansion
+   * @param liquiditySourceIncentiveContraction The incentive for the liquidity source in for contraction
+   * @param protocolIncentiveContraction The incentive for the protocol in for contraction
    */
   struct PoolConfig {
     bool isToken0Debt;
-    uint64 lastRebalance;
-    uint64 rebalanceCooldown;
-    uint16 liquiditySourceIncentiveBpsExpansion;
-    uint16 protocolIncentiveBpsExpansion;
-    uint16 liquiditySourceIncentiveBpsContraction;
-    uint16 protocolIncentiveBpsContraction;
+    uint32 lastRebalance;
+    uint32 rebalanceCooldown;
     address protocolFeeRecipient;
+    uint64 liquiditySourceIncentiveExpansion;
+    uint64 protocolIncentiveExpansion;
+    uint64 liquiditySourceIncentiveContraction;
+    uint64 protocolIncentiveContraction;
   }
 
   /* ============================================================ */
@@ -116,7 +116,7 @@ interface ILiquidityStrategy {
    * @param pool The address of the pool
    * @param cooldown The new cooldown period
    */
-  event RebalanceCooldownSet(address indexed pool, uint64 cooldown);
+  event RebalanceCooldownSet(address indexed pool, uint32 cooldown);
 
   /**
    * @notice Emitted when liquidity is moved during rebalance
@@ -145,7 +145,7 @@ interface ILiquidityStrategy {
    * @param pool The address of the pool to update.
    * @param cooldown The new cooldown period for the pool.
    */
-  function setRebalanceCooldown(address pool, uint64 cooldown) external;
+  function setRebalanceCooldown(address pool, uint32 cooldown) external;
 
   /**
    * @notice Executes a rebalance for the specified pool using its configured policy pipeline.

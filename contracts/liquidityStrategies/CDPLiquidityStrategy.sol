@@ -46,7 +46,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
 
   // @inheritdoc ICDPLiquidityStrategy
   function addPool(AddPoolParams calldata params, CDPConfig calldata config) external onlyOwner {
-    if (!(0 < config.stabilityPoolPercentage && config.stabilityPoolPercentage < BPS_DENOMINATOR))
+    if (!(0 < config.stabilityPoolPercentage && config.stabilityPoolPercentage < LQ.BPS_DENOMINATOR))
       revert CDPLS_INVALID_STABILITY_POOL_PERCENTAGE();
     if (config.collateralRegistry == address(0)) revert CDPLS_COLLATERAL_REGISTRY_IS_ZERO();
     if (config.stabilityPool == address(0)) revert CDPLS_STABILITY_POOL_IS_ZERO();
@@ -96,12 +96,12 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     if (idealDebtToExpand > availableDebtToken) {
       debtToExpand = availableDebtToken;
 
-      collateralToPay = ctx.convertToCollateralWithFee(
-        debtToExpand,
-        BPS_DENOMINATOR,
-        BPS_DENOMINATOR -
-          (ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion)
+      uint256 combinedFee = LQ.combineFees(
+        ctx.incentives.protocolIncentiveExpansion,
+        ctx.incentives.liquiditySourceIncentiveExpansion
       );
+
+      collateralToPay = ctx.convertToCollateralWithFee(debtToExpand, LQ.FEE_DENOMINATOR, combinedFee);
     } else {
       debtToExpand = idealDebtToExpand;
       collateralToPay = idealCollateralToPay;
@@ -131,14 +131,15 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
   ) internal override {
     PoolConfig memory config = poolConfigs[pool];
 
+    // slither-disable-next-line uninitialized-local
+    uint256 protocolIncentive;
+
     if (cb.dir == LQ.Direction.Expand) {
       uint256 collAmount = amount0Out > 0 ? amount0Out : amount1Out;
 
-      // slither-disable-next-line uninitialized-local
-      uint256 protocolIncentive;
       // transfer protocol incentive to protocol fee recipient
-      if (config.protocolIncentiveBpsExpansion > 0) {
-        protocolIncentive = (collAmount * config.protocolIncentiveBpsExpansion) / BPS_DENOMINATOR;
+      if (config.protocolIncentiveExpansion > 0) {
+        protocolIncentive = (collAmount * config.protocolIncentiveExpansion) / LQ.FEE_DENOMINATOR;
         _transferRebalanceIncentive(cb.collToken, protocolIncentive, config.protocolFeeRecipient);
       }
 
@@ -153,29 +154,18 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
       uint256 collateralBalanceBefore = IERC20(cb.collToken).balanceOf(address(this));
       uint256 debtAmount = amount0Out > 0 ? amount0Out : amount1Out;
 
-      // slither-disable-start uninitialized-local
-      uint256 redemptionFee;
-      uint256 protocolIncentive;
-      // slither-disable-end uninitialized-local
-
       // transfer protocol incentive to protocol fee recipient
-      if (config.protocolIncentiveBpsContraction > 0) {
-        protocolIncentive = (debtAmount * config.protocolIncentiveBpsContraction) / BPS_DENOMINATOR;
+      if (config.protocolIncentiveContraction > 0) {
+        protocolIncentive = (debtAmount * config.protocolIncentiveContraction) / LQ.FEE_DENOMINATOR;
         _transferRebalanceIncentive(cb.debtToken, protocolIncentive, config.protocolFeeRecipient);
       }
-
-      // calculate redemption fee
-      redemptionFee = _calculateRedemptionFee(
-        config.liquiditySourceIncentiveBpsContraction,
-        config.protocolIncentiveBpsContraction
-      );
 
       address collateralRegistry = cdpConfigs[pool].collateralRegistry;
       uint256 maxIterations = cdpConfigs[pool].maxIterations;
       ICollateralRegistry(collateralRegistry).redeemCollateralRebalancing(
         debtAmount - protocolIncentive,
         maxIterations,
-        redemptionFee
+        config.liquiditySourceIncentiveContraction
       );
 
       uint256 collateralBalanceAfter = IERC20(cb.collToken).balanceOf(address(this));
@@ -215,34 +205,9 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     uint256 stabilityPoolMinBalance = stabilityPool.systemParams().MIN_BOLD_AFTER_REBALANCE();
     if (stabilityPoolBalance <= stabilityPoolMinBalance) revert CDPLS_STABILITY_POOL_BALANCE_TOO_LOW();
 
-    uint256 targetDebtToExtract = (stabilityPoolBalance * cdpConfig.stabilityPoolPercentage) / BPS_DENOMINATOR;
+    uint256 targetDebtToExtract = (stabilityPoolBalance * cdpConfig.stabilityPoolPercentage) / LQ.BPS_DENOMINATOR;
     uint256 maxDebtExtractable = stabilityPoolBalance - stabilityPoolMinBalance;
 
     availableAmount = targetDebtToExtract > maxDebtExtractable ? maxDebtExtractable : targetDebtToExtract;
-  }
-
-  /**
-   * @notice Calculates the redemption fee for a CDP pool
-   * @dev When both incentives are greater than 0 the the redemption fee is:
-   *      (liquiditySourceIncentiveBpsContraction * BPS_DENOMINATOR * BPS_TO_FEE_SCALER) /
-   *      (BPS_DENOMINATOR - protocolIncentiveBpsContraction)
-   *       This is necesarry because the liquidity source incentive is a percentage of the
-   *       total amount of debt being moved out of the pool and not just the amount minus the protocol incentive.
-   * @param liquiditySourceIncentiveBpsContraction The liquidity source incentive in basis points for contraction
-   * @param protocolIncentiveBpsContraction The protocol incentive in basis points for contraction
-   * @return redemptionFee The redemption fee in basis points
-   */
-  function _calculateRedemptionFee(
-    uint16 liquiditySourceIncentiveBpsContraction,
-    uint16 protocolIncentiveBpsContraction
-  ) private pure returns (uint256 redemptionFee) {
-    if (protocolIncentiveBpsContraction > 0 && liquiditySourceIncentiveBpsContraction > 0) {
-      redemptionFee =
-        (liquiditySourceIncentiveBpsContraction * BPS_DENOMINATOR * BPS_TO_FEE_SCALER) /
-        (BPS_DENOMINATOR - protocolIncentiveBpsContraction);
-    } else {
-      redemptionFee = liquiditySourceIncentiveBpsContraction * BPS_TO_FEE_SCALER;
-    }
-    return redemptionFee;
   }
 }

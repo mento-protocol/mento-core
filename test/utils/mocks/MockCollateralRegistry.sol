@@ -34,14 +34,10 @@ contract MockCollateralRegistry {
     uint256 _maxIterationsPerCollateral,
     uint256 _troveOwnerFee
   ) external {
-    uint256 liquiditySourceIncentiveBpsContraction = (_boldamount * _troveOwnerFee) / 1e18;
+    uint256 liquiditySourceIncentiveContraction = (_boldamount * _troveOwnerFee) / 1e18;
 
-    MockERC20(debtToken).transferFromWithoutAllowance(
-      msg.sender,
-      address(this),
-      liquiditySourceIncentiveBpsContraction
-    );
-    MockERC20(debtToken).burn(msg.sender, _boldamount - liquiditySourceIncentiveBpsContraction);
+    MockERC20(debtToken).transferFromWithoutAllowance(msg.sender, address(this), liquiditySourceIncentiveContraction);
+    MockERC20(debtToken).burn(msg.sender, _boldamount - liquiditySourceIncentiveContraction);
 
     uint256 debtDecimals = 10 ** MockERC20(debtToken).decimals();
     uint256 collateralDecimals = 10 ** MockERC20(collateralToken).decimals();

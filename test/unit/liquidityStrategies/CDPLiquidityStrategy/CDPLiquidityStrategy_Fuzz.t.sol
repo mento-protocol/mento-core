@@ -74,7 +74,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     public
     fpmmToken0Debt(18, 18)
     _boundFuzzParams(oracleNumerator, reserve0, reserve1, true)
-    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+    addFpmm(0, 9000, 100, 0.002506265664160401e18, 0.0025e18, 0.002506265664160401e18, 0.0025e18)
   {
     FuzzTestContext memory testContext;
 
@@ -85,10 +85,10 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token1Dec = 1e18;
     ctx.isToken0Debt = true;
     ctx.incentives = LQ.RebalanceIncentives({
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18,
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18
     });
 
     // enough to cover the full expansion
@@ -123,7 +123,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     // Allow for 1 basis point difference due to rounding and precision
     assertApproxEqAbs(testContext.priceDifferenceAfter, 500, 1, "Price difference should be at rebalance threshold");
     assertIncentive(
-      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
+      LQ.combineFees(ctx.incentives.liquiditySourceIncentiveExpansion, ctx.incentives.protocolIncentiveExpansion),
       false,
       action.amount1Out,
       action.amountOwedToPool,
@@ -141,7 +141,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     public
     fpmmToken0Debt(18, 6)
     _boundFuzzParams(oracleNumerator, reserve0, reserve1, false)
-    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+    addFpmm(0, 9000, 100, 0.002506265664160401e18, 0.0025e18, 0.002506265664160401e18, 0.0025e18)
   {
     FuzzTestContext memory testContext;
     ctx.pool = address(fpmm);
@@ -151,10 +151,10 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token1Dec = 1e18;
     ctx.isToken0Debt = false;
     ctx.incentives = LQ.RebalanceIncentives({
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25, // total expansion incentive is 0,5%
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25 // total contraction incentive is 0,5%
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18,
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18
     });
 
     testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(1e18, ctx);
@@ -187,7 +187,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     );
     assertApproxEqAbs(testContext.priceDifferenceAfter, 500, 1, "Price difference should be at rebalance threshold");
     assertIncentive(
-      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
+      LQ.combineFees(ctx.incentives.liquiditySourceIncentiveExpansion, ctx.incentives.protocolIncentiveExpansion),
       true,
       action.amount0Out * (1e18 / ctx.token0Dec),
       action.amountOwedToPool,
@@ -209,7 +209,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     public
     fpmmToken0Debt(6, 18)
     _boundFuzzParams(oracleNumerator, reserve0, reserve1, true)
-    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+    addFpmm(0, 9000, 100, 0.002506265664160401e18, 0.0025e18, 0.002506265664160401e18, 0.0025e18)
   {
     FuzzTestContext memory testContext;
 
@@ -220,10 +220,10 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token1Dec = 1e18;
     ctx.isToken0Debt = true;
     ctx.incentives = LQ.RebalanceIncentives({
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18,
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18
     });
 
     // enough to cover the full expansion
@@ -261,7 +261,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     // reserve price should be still above oracle price
     assertTrue(testContext.reservePriceAboveOraclePriceAfter);
     assertIncentive(
-      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
+      LQ.combineFees(ctx.incentives.liquiditySourceIncentiveExpansion, ctx.incentives.protocolIncentiveExpansion),
       false,
       action.amount1Out,
       action.amountOwedToPool * (1e18 / ctx.token0Dec),
@@ -279,7 +279,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     public
     fpmmToken0Debt(6, 18)
     _boundFuzzParams(oracleNumerator, reserve0, reserve1, false)
-    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+    addFpmm(0, 9000, 100, 0.002506265664160401e18, 0.0025e18, 0.002506265664160401e18, 0.0025e18)
   {
     FuzzTestContext memory testContext;
     ctx.pool = address(fpmm);
@@ -289,10 +289,10 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token1Dec = 1e6;
     ctx.isToken0Debt = false;
     ctx.incentives = LQ.RebalanceIncentives({
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18,
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18
     });
 
     testContext.stabilityPoolBalance = calculateTargetStabilityPoolBalance(0.8e18, ctx); // stability pool holds 90% of target amount to rebalance fully
@@ -329,7 +329,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     // reserve price should still be below oracle price
     assertFalse(testContext.reservePriceAboveOraclePriceAfter);
     assertIncentive(
-      ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion,
+      LQ.combineFees(ctx.incentives.liquiditySourceIncentiveExpansion, ctx.incentives.protocolIncentiveExpansion),
       true,
       action.amount0Out,
       action.amountOwedToPool * (1e18 / ctx.token1Dec),
@@ -351,7 +351,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     public
     fpmmToken0Debt(18, 8)
     _boundFuzzParams(oracleNumerator, reserve0, reserve1, false)
-    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+    addFpmm(0, 9000, 100, 0.002506265664160401e18, 0.0025e18, 0.002506265664160401e18, 0.0025e18)
   {
     FuzzTestContext memory testContext;
 
@@ -362,10 +362,10 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token1Dec = 1e8;
     ctx.isToken0Debt = true;
     ctx.incentives = LQ.RebalanceIncentives({
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18,
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18
     });
 
     (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
@@ -403,7 +403,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       "Price difference should be approximately equal to rebalance threshold"
     );
     assertIncentive(
-      ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction,
+      LQ.combineFees(ctx.incentives.liquiditySourceIncentiveContraction, ctx.incentives.protocolIncentiveContraction),
       true,
       action.amount0Out,
       action.amountOwedToPool * (1e18 / ctx.token1Dec),
@@ -421,7 +421,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     public
     fpmmToken1Debt(8, 18)
     _boundFuzzParams(oracleNumerator, reserve0, reserve1, true)
-    addFpmm(0, 9000, 100, 25, 25, 25, 25)
+    addFpmm(0, 9000, 100, 0.002506265664160401e18, 0.0025e18, 0.002506265664160401e18, 0.0025e18)
   {
     FuzzTestContext memory testContext;
 
@@ -432,10 +432,10 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
     ctx.token1Dec = 1e8;
     ctx.isToken0Debt = false;
     ctx.incentives = LQ.RebalanceIncentives({
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18,
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18
     });
 
     (testContext.priceDifferenceBefore, testContext.reservePriceAboveOraclePriceBefore) = calculatePriceDifference(
@@ -470,7 +470,7 @@ contract CDPLiquidityStrategy_FuzzTest is CDPLiquidityStrategy_BaseTest {
       "Price difference should be approximately equal to rebalance threshold"
     );
     assertIncentive(
-      ctx.incentives.liquiditySourceIncentiveBpsContraction + ctx.incentives.protocolIncentiveBpsContraction,
+      LQ.combineFees(ctx.incentives.liquiditySourceIncentiveContraction, ctx.incentives.protocolIncentiveContraction),
       false,
       action.amount1Out * (1e18 / ctx.token1Dec),
       action.amountOwedToPool,

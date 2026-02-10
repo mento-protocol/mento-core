@@ -20,7 +20,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
   function test_determineAction_whenVerySmallAmounts_shouldHandleRounding()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     // Test with very small amounts that might cause rounding issues
     LQ.Context memory ctx = _createContext({
@@ -30,10 +30,10 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
       oracleDen: 1e18,
       poolPriceAbove: true,
       incentives: LQ.RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: 50,
-        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
-        liquiditySourceIncentiveBpsContraction: 50,
-        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+        liquiditySourceIncentiveExpansion: 0.005e18,
+        protocolIncentiveExpansion: 0.005025125628140703e18, // 0.5% * 0.5025125628140703% = 1% total expansion incentive
+        liquiditySourceIncentiveContraction: 0.005e18,
+        protocolIncentiveContraction: 0.005025125628140703e18 // 0.5% * 0.5025125628140703% = 1% total contraction incentive
       })
     });
 
@@ -47,7 +47,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
   function test_determineAction_whenVeryLargeAmounts_shouldNotOverflow()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     // Test with large but realistic amounts (1 trillion tokens with 18 decimals = 1e30)
     uint256 largeAmount = 1e30;
@@ -59,10 +59,10 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
       oracleDen: 1e18,
       poolPriceAbove: true,
       incentives: LQ.RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: 50,
-        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
-        liquiditySourceIncentiveBpsContraction: 50,
-        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+        liquiditySourceIncentiveExpansion: 0.005e18,
+        protocolIncentiveExpansion: 0.005025125628140703e18, // 0.5% * 0.5025125628140703% = 1% total expansion incentive
+        liquiditySourceIncentiveContraction: 0.005e18,
+        protocolIncentiveContraction: 0.005025125628140703e18 // 0.5% * 0.5025125628140703% = 1% total contraction incentive
       })
     });
 
@@ -83,7 +83,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
   function test_determineAction_whenOraclePriceVerySmall_shouldHandleCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
@@ -92,10 +92,10 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
       oracleDen: 1e18,
       poolPriceAbove: true,
       incentives: LQ.RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: 50,
-        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
-        liquiditySourceIncentiveBpsContraction: 50,
-        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+        liquiditySourceIncentiveExpansion: 0.005e18,
+        protocolIncentiveExpansion: 0.005025125628140703e18, // 0.5% * 0.5025125628140703% = 1% total expansion incentive
+        liquiditySourceIncentiveContraction: 0.005e18,
+        protocolIncentiveContraction: 0.005025125628140703e18 // 0.5% * 0.5025125628140703% = 1% total contraction incentive
       })
     });
 
@@ -108,7 +108,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
   function test_determineAction_whenOraclePriceVeryLarge_shouldHandleCorrectly()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     LQ.Context memory ctx = _createContext({
       reserveDen: 100e18, // token0 reserves
@@ -117,10 +117,10 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
       oracleDen: 1, // Very small denominator (large price)
       poolPriceAbove: false,
       incentives: LQ.RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: 50,
-        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
-        liquiditySourceIncentiveBpsContraction: 50,
-        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+        liquiditySourceIncentiveExpansion: 0.005e18,
+        protocolIncentiveExpansion: 0.005025125628140703e18, // 0.5% * 0.5025125628140703% = 1% total expansion incentive
+        liquiditySourceIncentiveContraction: 0.005e18,
+        protocolIncentiveContraction: 0.005025125628140703e18 // 0.5% * 0.5025125628140703% = 1% total contraction incentive
       })
     });
 
@@ -140,7 +140,7 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
   function test_determineAction_whenIncentiveNearlyMaximum_shouldNotCauseDivisionByZero()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     // Test with incentive very close to maximum (9999 bps = 99.99%, just below 100%)
     LQ.Context memory ctx = _createContext({
@@ -150,33 +150,33 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
       oracleDen: 1e18,
       poolPriceAbove: true,
       incentives: LQ.RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: 5000,
-        protocolIncentiveBpsExpansion: 4999, // 50% + 49.99% = 99.99% total expansion incentive
-        liquiditySourceIncentiveBpsContraction: 5000,
-        protocolIncentiveBpsContraction: 4999 // 50% + 49.99% = 99.99% total contraction incentive
+        liquiditySourceIncentiveExpansion: 0.999999999e18,
+        protocolIncentiveExpansion: 0.999999999e18, // 0.99% * 0.99% = 99.99% total expansion incentive
+        liquiditySourceIncentiveContraction: 0.999999999e18,
+        protocolIncentiveContraction: 0.999999999e18 // 0.99% * 0.99% = 99.99% total contraction incentive
       })
     });
 
     LQ.Action memory action = strategy.determineAction(ctx);
 
     assertGt(action.amount1Out, 0, "Should have valid token1 out");
-    // Formula: X = (RN * TD - TN * RD) / (TD + TN * (1 - i) * OD/ON)
-    // X = (200e18 * 1e18 - 1.05e18 * 100e18) / (1e18 + 1.05e18 * (1 - 0.9999) * 1e18/1e18)
-    // X ≈ 94.990026047265037171e18
+    // Formula: X = (RN * TD - TN * RD) / (TD + TN * combinedFee * OD / ON*FEE_DENOMINATOR)
+    // X = (200e18 * 1e18 - 1.05e18 * 100e18) / (1e18 + (1.05e18 * 1 * 1e18)/( 1e18 * 1e18))
+    // X ≈ 94.999999999999999905e18
     assertEq(
       action.amount1Out,
-      94990026047265037171,
+      94999999999999999905,
       "Should calculate correct collateral out with near-max incentive"
     );
 
-    // Y = X * (1 - i) = X * 0.0001 ≈ 0.01e18
-    assertEq(action.amountOwedToPool, 9499002604726503, "Should have very small amount owed with 99.99% incentive");
+    // Y = X * 1/1e18 ≈ 94
+    assertEq(action.amountOwedToPool, 94, "Should have very small amount owed with 99.99% incentive");
   }
 
   function test_edgeCase_whenIncentiveAt10000_shouldReturnZeroAmountOwed()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     // Test with incentive at exactly 10000 bps (100%) - maximum valid value
     // With 100% incentive, Y = X * (1 - 1) = 0
@@ -187,10 +187,10 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
       oracleDen: 1e18,
       poolPriceAbove: true,
       incentives: LQ.RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: 5000,
-        protocolIncentiveBpsExpansion: 5000, // 50% + 50% = 100% total expansion incentive
-        liquiditySourceIncentiveBpsContraction: 5000,
-        protocolIncentiveBpsContraction: 5000 // 50% + 50% = 100% total contraction incentive
+        liquiditySourceIncentiveExpansion: 1e18, // 100% incentive
+        protocolIncentiveExpansion: 0,
+        liquiditySourceIncentiveContraction: 1e18, // 100% incentive
+        protocolIncentiveContraction: 0
       })
     });
 
@@ -205,14 +205,14 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
   function test_edgeCase_veryHighIncentive_shouldHandleGracefully()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     // Test various high incentive values (90%-99.9%)
     // total incentives are 90%, 99%, 99.9%
-    uint16[3] memory liquiditySourceIncentiveBps = [uint16(5000), 5000, 5000]; // 50%, 50%, 50% liquidity source incentive
-    uint16[3] memory protocolIncentiveBps = [uint16(4000), 4000, 4000]; // 40%, 49%, 49.9% protocol incentive
+    uint64[3] memory liquiditySourceIncentive = [0.9e18, 0.99e18, 0.999e18];
+    uint64[3] memory protocolIncentive = [0.999e18, 0.9999e18, 0.99999e18];
 
-    for (uint256 i = 0; i < liquiditySourceIncentiveBps.length; i++) {
+    for (uint256 i = 0; i < liquiditySourceIncentive.length; i++) {
       LQ.Context memory ctx = _createContext({
         reserveDen: 10e18, // token0 reserves
         reserveNum: 20e18, // token1 reserves
@@ -220,10 +220,10 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
         oracleDen: 1e18,
         poolPriceAbove: true,
         incentives: LQ.RebalanceIncentives({
-          liquiditySourceIncentiveBpsExpansion: liquiditySourceIncentiveBps[i],
-          protocolIncentiveBpsExpansion: protocolIncentiveBps[i],
-          liquiditySourceIncentiveBpsContraction: liquiditySourceIncentiveBps[i],
-          protocolIncentiveBpsContraction: protocolIncentiveBps[i]
+          liquiditySourceIncentiveExpansion: liquiditySourceIncentive[i],
+          protocolIncentiveExpansion: protocolIncentive[i],
+          liquiditySourceIncentiveContraction: liquiditySourceIncentive[i],
+          protocolIncentiveContraction: protocolIncentive[i]
         })
       });
 
@@ -238,7 +238,8 @@ contract ReserveLiquidityStrategy_ActionEdgeCasesTest is ReserveLiquidityStrateg
         if (action.amount1Out > 0) {
           uint256 expectedY = (action.amount1Out *
             ctx.prices.oracleDen *
-            (10000 - (liquiditySourceIncentiveBps[i] + protocolIncentiveBps[i]))) / (ctx.prices.oracleNum * 10000);
+            (LQ.combineFees(liquiditySourceIncentive[i], protocolIncentive[i]))) /
+            (ctx.prices.oracleNum * LQ.FEE_DENOMINATOR);
           assertApproxEqAbs(
             action.amountOwedToPool,
             expectedY,

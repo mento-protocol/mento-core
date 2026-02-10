@@ -38,17 +38,17 @@ contract IntegrationTest is
       cooldown: 60,
       stabilityPoolPercentage: 9000, // 90%
       maxIterations: 100,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18,
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18
     });
     _configureReserveLiquidityStrategy({
       cooldown: 0,
-      liquiditySourceIncentiveBpsContraction: 25,
-      protocolIncentiveBpsContraction: 25,
-      liquiditySourceIncentiveBpsExpansion: 25,
-      protocolIncentiveBpsExpansion: 25
+      liquiditySourceIncentiveContraction: 0.002506265664160401e18,
+      protocolIncentiveContraction: 0.0025e18,
+      liquiditySourceIncentiveExpansion: 0.002506265664160401e18,
+      protocolIncentiveExpansion: 0.0025e18
     });
 
     _checkSetup();

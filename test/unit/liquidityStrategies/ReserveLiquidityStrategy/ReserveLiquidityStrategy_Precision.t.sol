@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility
+// solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, max-line-length
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 pragma solidity ^0.8;
 
@@ -24,7 +24,7 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
   function test_determineAction_whenDecimalConversions_shouldMaintainPrecision()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     // Test conversion between 18 decimals and 6 decimals
     // 100 token0 (18 decimals) vs 200 token1 (normalized to 18 decimals)
@@ -37,10 +37,10 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
       token0Dec: 1e18,
       token1Dec: 1e6,
       incentives: LQ.RebalanceIncentives({
-        liquiditySourceIncentiveBpsExpansion: 50,
-        protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
-        liquiditySourceIncentiveBpsContraction: 50,
-        protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+        liquiditySourceIncentiveExpansion: 0.005e18,
+        protocolIncentiveExpansion: 0.005025125628140703e18, // 0.5% * 0.5025125628140703% = 1% total expansion incentive
+        liquiditySourceIncentiveContraction: 0.005e18,
+        protocolIncentiveContraction: 0.005025125628140703e18 // 0.5% * 0.5025125628140703% = 1% total contraction incentive
       })
     });
 
@@ -60,15 +60,15 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
     // Verify Y = X * OD/ON * (1 - i) relationship holds across decimal conversions
     // Convert collateral back to 18 decimals for comparison
     uint256 collateralOut18 = action.amount1Out * 1e12;
-    // Apply incentive multiplier: Y = X * (1 - i)
+    // Apply incentive multiplier: Y = X * (1 - i) with i = 0.005e18 * 0.005025125628140703e18 = 0.01e18
     uint256 expectedY = (collateralOut18 *
-      (10000 - (ctx.incentives.liquiditySourceIncentiveBpsExpansion + ctx.incentives.protocolIncentiveBpsExpansion))) /
-      10000;
+      (LQ.combineFees(ctx.incentives.liquiditySourceIncentiveExpansion, ctx.incentives.protocolIncentiveExpansion))) /
+      LQ.FEE_DENOMINATOR;
     // Allow for small rounding errors in decimal conversion
     assertApproxEqRel(
       action.amountOwedToPool,
       expectedY,
-      1e15,
+      0.0000000000001e18,
       "Y should approximately equal X * (1 - i) when oracle ratio is 1:1"
     ); // 0.1% tolerance
   }
@@ -76,7 +76,7 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
   function test_decimalPrecision_multipleDecimalCombinations()
     public
     fpmmToken0Debt(18, 18)
-    addFpmm(0, 50, 50, 50, 50)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     // Test multiple decimal combinations
     DecimalTest[4] memory tests = [
@@ -96,10 +96,10 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
         token0Dec: tests[i].debtDec,
         token1Dec: tests[i].collateralDec,
         incentives: LQ.RebalanceIncentives({
-          liquiditySourceIncentiveBpsExpansion: 50,
-          protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
-          liquiditySourceIncentiveBpsContraction: 50,
-          protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+          liquiditySourceIncentiveExpansion: 50,
+          protocolIncentiveExpansion: 0.005025125628140703e18, // 0.5% * 0.5025125628140703% = 1% total expansion incentive
+          liquiditySourceIncentiveContraction: 0.005e18,
+          protocolIncentiveContraction: 0.005025125628140703e18 // 0.5% * 0.5025125628140703% = 1% total contraction incentive
         })
       });
 
@@ -133,7 +133,11 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
     }
   }
 
-  function test_precision_highDecimalVariations() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 50, 50, 50) {
+  function test_precision_highDecimalVariations()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
+  {
     // Test with high precision decimals (up to 18)
     uint256[4] memory decimals = [uint256(1e6), 1e8, 1e12, 1e18];
 
@@ -150,10 +154,10 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
           token0Dec: decimals[i],
           token1Dec: decimals[j],
           incentives: LQ.RebalanceIncentives({
-            liquiditySourceIncentiveBpsExpansion: 50,
-            protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
-            liquiditySourceIncentiveBpsContraction: 50,
-            protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+            liquiditySourceIncentiveExpansion: 0.005e18,
+            protocolIncentiveExpansion: 0.005025125628140703e18, // 0.5% * 0.5025125628140703% = 1% total expansion incentive
+            liquiditySourceIncentiveContraction: 0.005e18,
+            protocolIncentiveContraction: 0.005025125628140703e18 // 0.5% * 0.5025125628140703% = 1% total contraction incentive
           })
         });
 
@@ -173,7 +177,11 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
     }
   }
 
-  function test_precision_rounding_consistency() public fpmmToken0Debt(18, 18) addFpmm(0, 50, 50, 50, 50) {
+  function test_precision_rounding_consistency()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
+  {
     // Test that similar inputs produce proportionally similar outputs
     uint256[3] memory baseAmounts = [uint256(100e18), 1000e18, 10000e18];
 
@@ -187,10 +195,10 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
         token0Dec: 1e18,
         token1Dec: 1e6,
         incentives: LQ.RebalanceIncentives({
-          liquiditySourceIncentiveBpsExpansion: 50,
-          protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
-          liquiditySourceIncentiveBpsContraction: 50,
-          protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+          liquiditySourceIncentiveExpansion: 0.005e18,
+          protocolIncentiveExpansion: 0.005025125628140703e18, // 0.5% * 0.5025125628140703% = 1% total expansion incentive
+          liquiditySourceIncentiveContraction: 0.005e18,
+          protocolIncentiveContraction: 0.005025125628140703e18 // 0.5% * 0.5025125628140703% = 1% total contraction incentive
         })
       });
 
@@ -203,10 +211,10 @@ contract ReserveLiquidityStrategy_PrecisionTest is ReserveLiquidityStrategy_Base
         token0Dec: 1e18,
         token1Dec: 1e6,
         incentives: LQ.RebalanceIncentives({
-          liquiditySourceIncentiveBpsExpansion: 50,
-          protocolIncentiveBpsExpansion: 50, // 0.5% + 0.5% = 1% total expansion incentive
-          liquiditySourceIncentiveBpsContraction: 50,
-          protocolIncentiveBpsContraction: 50 // 0.5% + 0.5% = 1% total contraction incentive
+          liquiditySourceIncentiveExpansion: 0.005e18,
+          protocolIncentiveExpansion: 0.005025125628140703e18, // 0.5% * 0.5025125628140703% = 1% total expansion incentive
+          liquiditySourceIncentiveContraction: 0.005e18,
+          protocolIncentiveContraction: 0.005025125628140703e18 // 0.5% * 0.5025125628140703% = 1% total contraction incentive
         })
       });
 
