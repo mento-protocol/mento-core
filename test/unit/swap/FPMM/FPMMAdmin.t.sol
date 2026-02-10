@@ -169,7 +169,7 @@ contract FPMMAdminTest is FPMMBaseTest {
 
     vm.prank(owner);
     vm.expectRevert(IFPMM.RebalanceThresholdTooHigh.selector);
-    fpmm.setRebalanceThresholds(10, 10001);
+    fpmm.setRebalanceThresholds(10, 5001);
   }
 
   function test_setLiquidityStrategy_whenNotOwner_shouldRevert() public {

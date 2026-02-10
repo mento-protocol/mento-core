@@ -543,8 +543,9 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function setRebalanceThresholds(uint256 _rebalanceThresholdAbove, uint256 _rebalanceThresholdBelow) public onlyOwner {
     FPMMStorage storage $ = _getFPMMStorage();
 
-    if (_rebalanceThresholdAbove > 10000) revert RebalanceThresholdTooHigh(); // Max 100%
-    if (_rebalanceThresholdBelow > 10000) revert RebalanceThresholdTooHigh(); // Max 100%
+    // Rebalance thresholds should enforce 1/3 vs 2/3 token reserve values
+    if (_rebalanceThresholdAbove > 10000) revert RebalanceThresholdTooHigh();
+    if (_rebalanceThresholdBelow > 5000) revert RebalanceThresholdTooHigh();
     uint256 oldThresholdAbove = $.rebalanceThresholdAbove;
     uint256 oldThresholdBelow = $.rebalanceThresholdBelow;
     $.rebalanceThresholdAbove = _rebalanceThresholdAbove;
