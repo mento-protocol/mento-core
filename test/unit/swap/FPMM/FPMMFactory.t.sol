@@ -67,6 +67,7 @@ contract FPMMFactoryTest is Test {
       lpFee: 30,
       protocolFee: 0,
       protocolFeeRecipient: makeAddr("protocolFeeRecipientCelo"),
+      feeSetter: address(0),
       rebalanceIncentive: 50,
       rebalanceThresholdAbove: 500,
       rebalanceThresholdBelow: 500
@@ -85,6 +86,7 @@ contract FPMMFactoryTest is Test {
       lpFee: 50,
       protocolFee: 0,
       protocolFeeRecipient: makeAddr("protocolFeeRecipientOp"),
+      feeSetter: address(0),
       rebalanceIncentive: 25,
       rebalanceThresholdAbove: 250,
       rebalanceThresholdBelow: 250
@@ -95,6 +97,7 @@ contract FPMMFactoryTest is Test {
     assertEq(expected.lpFee, actual.lpFee);
     assertEq(expected.protocolFee, actual.protocolFee);
     assertEq(expected.protocolFeeRecipient, actual.protocolFeeRecipient);
+    assertEq(expected.feeSetter, actual.feeSetter);
     assertEq(expected.rebalanceIncentive, actual.rebalanceIncentive);
     assertEq(expected.rebalanceThresholdAbove, actual.rebalanceThresholdAbove);
     assertEq(expected.rebalanceThresholdBelow, actual.rebalanceThresholdBelow);
@@ -574,6 +577,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
       lpFee: 10,
       protocolFee: 20,
       protocolFeeRecipient: makeAddr("New Protocol Fee Recipient"),
+      feeSetter: address(0),
       rebalanceIncentive: 30,
       rebalanceThresholdAbove: 250,
       rebalanceThresholdBelow: 250
@@ -974,6 +978,7 @@ contract FPMMFactoryTest_DeployFPMMCustom is FPMMFactoryTest_DeployFPMM {
       lpFee: 39,
       protocolFee: 22,
       protocolFeeRecipient: makeAddr("Custom Protocol Fee Recipient"),
+      feeSetter: address(0),
       rebalanceIncentive: 30,
       rebalanceThresholdAbove: 123,
       rebalanceThresholdBelow: 456

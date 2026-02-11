@@ -52,6 +52,8 @@ interface IFPMM is IRPool {
     mapping(address => bool) liquidityStrategy;
     // Trading limits per token
     mapping(address => ITradingLimitsV2.TradingLimits) tradingLimits;
+    // address allowed to set fees (in addition to owner)
+    address feeSetter;
   }
 
   /// @notice Struct containing the initialization parameters for the FPMM contract
@@ -62,6 +64,8 @@ interface IFPMM is IRPool {
     uint256 protocolFee;
     // recipient of the protocol fee
     address protocolFeeRecipient;
+    // address allowed to set fees (optional)
+    address feeSetter;
     // incentive percentage for rebalancing the pool
     uint256 rebalanceIncentive;
     // threshold for rebalancing the pool when reserve price > oracle price
@@ -99,6 +103,8 @@ interface IFPMM is IRPool {
   error ZeroAddress();
   // @notice Throw when trying to set a protocol fee without a protocol fee recipient
   error ProtocolFeeRecipientRequired();
+  // @notice Throw when a non-fee setter tries to update fees
+  error NotFeeSetter();
   // @notice Throw when trying to set a fee that is too high
   error FeeTooHigh();
   // @notice Throw when trying to mint less than the minimum liquidity
@@ -186,6 +192,13 @@ interface IFPMM is IRPool {
    * @param newRecipient New recipient of the protocol fee
    */
   event ProtocolFeeRecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
+
+  /**
+   * @notice Emitted when the fee setter is updated
+   * @param oldFeeSetter Previous fee setter
+   * @param newFeeSetter New fee setter
+   */
+  event FeeSetterUpdated(address indexed oldFeeSetter, address indexed newFeeSetter);
 
   /**
    * @notice Emitted when the rebalance incentive is updated
@@ -324,6 +337,12 @@ interface IFPMM is IRPool {
   function protocolFeeRecipient() external view returns (address);
 
   /**
+   * @notice Returns the fee setter address
+   * @return Fee setter address
+   */
+  function feeSetter() external view returns (address);
+
+  /**
    * @notice Returns the slippage allowed for rebalance operations in basis points
    * @return Rebalance incentive in basis points
    */
@@ -446,6 +465,12 @@ interface IFPMM is IRPool {
    * @param _protocolFeeRecipient The recipient of the protocol fee
    */
   function setProtocolFeeRecipient(address _protocolFeeRecipient) external;
+
+  /**
+   * @notice Sets the fee setter address
+   * @param _feeSetter The fee setter (optional)
+   */
+  function setFeeSetter(address _feeSetter) external;
 
   /**
    * @notice Sets rebalance incentive

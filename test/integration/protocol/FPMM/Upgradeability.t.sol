@@ -276,10 +276,10 @@ contract UpgradeabilityTest is FPMMBaseIntegration {
 
     vm.startPrank(notOwner);
 
-    vm.expectRevert("Ownable: caller is not the owner");
+    vm.expectRevert(IFPMM.NotFeeSetter.selector);
     _fpmm.setLPFee(100);
 
-    vm.expectRevert("Ownable: caller is not the owner");
+    vm.expectRevert(IFPMM.NotFeeSetter.selector);
     _fpmm.setRebalanceIncentive(100);
 
     vm.expectRevert("Ownable: caller is not the owner");
