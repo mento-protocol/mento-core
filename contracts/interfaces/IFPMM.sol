@@ -42,6 +42,8 @@ interface IFPMM is IRPool {
     uint256 protocolFee;
     // recipient of the protocol fee
     address protocolFeeRecipient;
+    // address allowed to set fees (in addition to owner)
+    address feeSetter;
     // incentive percentage for rebalancing the pool
     uint256 rebalanceIncentive;
     // threshold for rebalancing the pool when reserve price > oracle price
@@ -52,8 +54,6 @@ interface IFPMM is IRPool {
     mapping(address => bool) liquidityStrategy;
     // Trading limits per token
     mapping(address => ITradingLimitsV2.TradingLimits) tradingLimits;
-    // address allowed to set fees (in addition to owner)
-    address feeSetter;
   }
 
   /// @notice Struct containing the initialization parameters for the FPMM contract
