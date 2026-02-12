@@ -208,6 +208,7 @@ contract FPMMFactoryTests is FPMMBaseIntegration {
       lpFee: 5,
       protocolFee: 6,
       protocolFeeRecipient: makeAddr("customProtocolFeeRecipient"),
+      feeSetter: address(0),
       rebalanceIncentive: 30,
       rebalanceThresholdAbove: 123,
       rebalanceThresholdBelow: 456

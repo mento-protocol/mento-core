@@ -41,6 +41,7 @@ abstract contract LiquidityStrategy_BaseTest is Test {
       lpFee: 30,
       protocolFee: 0,
       protocolFeeRecipient: makeAddr("protocolFeeRecipient"),
+      feeSetter: address(0),
       rebalanceIncentive: 50,
       rebalanceThresholdAbove: 500,
       rebalanceThresholdBelow: 500

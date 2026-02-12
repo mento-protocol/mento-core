@@ -70,6 +70,12 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   /* ==================== Initialization ======================== */
   /* ============================================================ */
 
+  modifier onlyFeeSetter() {
+    FPMMStorage storage $ = _getFPMMStorage();
+    if (msg.sender != owner() && msg.sender != $.feeSetter) revert NotFeeSetter();
+    _;
+  }
+
   /// @inheritdoc IFPMM
   function initialize(
     address _token0,
@@ -101,6 +107,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
 
     $.decimals0 = 10 ** token0Decimals;
     $.decimals1 = 10 ** token1Decimals;
+    $.feeSetter = _params.feeSetter;
 
     setLPFee(_params.lpFee);
     setProtocolFeeRecipient(_params.protocolFeeRecipient);
@@ -221,6 +228,12 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   function protocolFeeRecipient() external view returns (address) {
     FPMMStorage storage $ = _getFPMMStorage();
     return $.protocolFeeRecipient;
+  }
+
+  /// @inheritdoc IFPMM
+  function feeSetter() external view returns (address) {
+    FPMMStorage storage $ = _getFPMMStorage();
+    return $.feeSetter;
   }
 
   /// @inheritdoc IFPMM
@@ -496,7 +509,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   /* ============================================================ */
 
   /// @inheritdoc IFPMM
-  function setLPFee(uint256 _lpFee) public virtual onlyOwner {
+  function setLPFee(uint256 _lpFee) public virtual onlyFeeSetter {
     FPMMStorage storage $ = _getFPMMStorage();
 
     if (_lpFee + $.protocolFee > 200) revert FeeTooHigh(); // Max 2% combined
@@ -507,7 +520,7 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /// @inheritdoc IFPMM
-  function setProtocolFee(uint256 _protocolFee) public onlyOwner {
+  function setProtocolFee(uint256 _protocolFee) public onlyFeeSetter {
     FPMMStorage storage $ = _getFPMMStorage();
 
     if (_protocolFee > 0 && $.protocolFeeRecipient == address(0)) revert ProtocolFeeRecipientRequired();
@@ -530,7 +543,16 @@ contract FPMM is IRPool, IFPMM, ReentrancyGuardUpgradeable, ERC20Upgradeable, Ow
   }
 
   /// @inheritdoc IFPMM
-  function setRebalanceIncentive(uint256 _rebalanceIncentive) public onlyOwner {
+  function setFeeSetter(address _feeSetter) public onlyOwner {
+    FPMMStorage storage $ = _getFPMMStorage();
+
+    address oldFeeSetter = $.feeSetter;
+    $.feeSetter = _feeSetter;
+    emit FeeSetterUpdated(oldFeeSetter, _feeSetter);
+  }
+
+  /// @inheritdoc IFPMM
+  function setRebalanceIncentive(uint256 _rebalanceIncentive) public onlyFeeSetter {
     FPMMStorage storage $ = _getFPMMStorage();
 
     if (_rebalanceIncentive > 100) revert RebalanceIncentiveTooHigh(); // Max 1%

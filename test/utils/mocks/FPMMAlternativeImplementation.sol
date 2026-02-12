@@ -6,7 +6,7 @@ import { FPMM } from "contracts/swap/FPMM.sol";
 contract FPMMAlternativeImplementation is FPMM {
   constructor(bool disable) FPMM(disable) {}
 
-  function setLPFee(uint256 _lpFee) public override onlyOwner {
+  function setLPFee(uint256 _lpFee) public override onlyFeeSetter {
     FPMMStorage storage $ = _getFPMMStorage();
 
     if (_lpFee + $.protocolFee > 300) revert FeeTooHigh();

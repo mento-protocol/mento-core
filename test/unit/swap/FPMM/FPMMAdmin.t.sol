@@ -10,6 +10,7 @@ contract FPMMAdminTest is FPMMBaseTest {
   event LPFeeUpdated(uint256 oldFee, uint256 newFee);
   event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
   event ProtocolFeeRecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
+  event FeeSetterUpdated(address indexed oldFeeSetter, address indexed newFeeSetter);
   event ReferenceRateFeedIDUpdated(address indexed oldRateFeedID, address indexed newRateFeedID);
   event OracleAdapterUpdated(address indexed oldOracleAdapter, address indexed newOracleAdapter);
   event LiquidityStrategyUpdated(address indexed strategy, bool status);
@@ -18,6 +19,7 @@ contract FPMMAdminTest is FPMMBaseTest {
 
   address public notOwner = makeAddr("NOT_OWNER");
   address public feeRecipient = makeAddr("FEE_RECIPIENT");
+  address public feeSetter = makeAddr("FEE_SETTER");
 
   function setUp() public override {
     super.setUp();
@@ -26,7 +28,7 @@ contract FPMMAdminTest is FPMMBaseTest {
 
   function test_setLPFee_whenNotOwner_shouldRevert() public {
     vm.prank(notOwner);
-    vm.expectRevert("Ownable: caller is not the owner");
+    vm.expectRevert(IFPMM.NotFeeSetter.selector);
     fpmm.setLPFee(10);
   }
 
@@ -69,7 +71,7 @@ contract FPMMAdminTest is FPMMBaseTest {
 
   function test_setProtocolFee_whenNotOwner_shouldRevert() public {
     vm.prank(notOwner);
-    vm.expectRevert("Ownable: caller is not the owner");
+    vm.expectRevert(IFPMM.NotFeeSetter.selector);
     fpmm.setProtocolFee(10);
   }
 
@@ -147,9 +149,65 @@ contract FPMMAdminTest is FPMMBaseTest {
     fpmm.setProtocolFeeRecipient(address(0));
   }
 
-  function test_setRebalanceIncentive_whenNotOwner_shouldRevert() public {
+  function test_setFeeSetter_whenNotOwner_shouldRevert() public {
     vm.prank(notOwner);
     vm.expectRevert("Ownable: caller is not the owner");
+    fpmm.setFeeSetter(feeSetter);
+  }
+
+  function test_setFeeSetter_whenOwner_shouldSetFeeSetter() public initializeFPMM_withDecimalTokens(18, 18) {
+    vm.prank(owner);
+    vm.expectEmit();
+    emit FeeSetterUpdated(address(0), feeSetter);
+    fpmm.setFeeSetter(feeSetter);
+
+    assertEq(fpmm.feeSetter(), feeSetter);
+  }
+
+  function test_setLPFee_whenFeeSetter_shouldSetLPFee()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withProtocolFeeRecipient(feeRecipient)
+  {
+    vm.prank(owner);
+    fpmm.setFeeSetter(feeSetter);
+
+    vm.prank(feeSetter);
+    fpmm.setLPFee(50);
+
+    assertEq(fpmm.lpFee(), 50);
+  }
+
+  function test_setProtocolFee_whenFeeSetter_shouldSetProtocolFee()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+    withProtocolFeeRecipient(feeRecipient)
+  {
+    vm.prank(owner);
+    fpmm.setFeeSetter(feeSetter);
+
+    vm.prank(feeSetter);
+    fpmm.setProtocolFee(50);
+
+    assertEq(fpmm.protocolFee(), 50);
+  }
+
+  function test_setRebalanceIncentive_whenFeeSetter_shouldSetRebalanceIncentive()
+    public
+    initializeFPMM_withDecimalTokens(18, 18)
+  {
+    vm.prank(owner);
+    fpmm.setFeeSetter(feeSetter);
+
+    vm.prank(feeSetter);
+    fpmm.setRebalanceIncentive(10);
+
+    assertEq(fpmm.rebalanceIncentive(), 10);
+  }
+
+  function test_setRebalanceIncentive_whenNotOwner_shouldRevert() public {
+    vm.prank(notOwner);
+    vm.expectRevert(IFPMM.NotFeeSetter.selector);
     fpmm.setRebalanceIncentive(10);
   }
 
