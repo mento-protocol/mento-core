@@ -536,7 +536,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     );
 
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
-    invalidDefaultFpmmParams.rebalanceThresholdAbove = 1001;
+    invalidDefaultFpmmParams.rebalanceThresholdAbove = 10001;
 
     vm.expectRevert(IFPMMFactory.RebalanceThresholdTooHigh.selector);
     vm.prank(governanceCelo);
@@ -555,7 +555,7 @@ contract FPMMFactoryTest_InitializerSettersGetters is FPMMFactoryTest {
     );
 
     IFPMM.FPMMParams memory invalidDefaultFpmmParams = defaultFpmmParamsCelo;
-    invalidDefaultFpmmParams.rebalanceThresholdBelow = 1001;
+    invalidDefaultFpmmParams.rebalanceThresholdBelow = 5001;
 
     vm.expectRevert(IFPMMFactory.RebalanceThresholdTooHigh.selector);
     vm.prank(governanceCelo);

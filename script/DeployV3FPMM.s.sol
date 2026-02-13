@@ -99,6 +99,7 @@ contract DeployV3FPMM is Script {
       lpFee: 30,
       protocolFee: 0,
       protocolFeeRecipient: deployer,
+      feeSetter: address(0),
       rebalanceIncentive: 50,
       rebalanceThresholdAbove: 500,
       rebalanceThresholdBelow: 500
