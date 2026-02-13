@@ -190,8 +190,8 @@ contract FPMMFactory is IFPMMFactory, OwnableUpgradeable {
     if (_defaultParams.protocolFee + _defaultParams.lpFee > 200) revert FeeTooHigh();
     if (_defaultParams.protocolFeeRecipient == address(0)) revert ZeroAddress();
     if (_defaultParams.rebalanceIncentive > 100) revert RebalanceIncentiveTooHigh();
-    if (_defaultParams.rebalanceThresholdAbove > 1000) revert RebalanceThresholdTooHigh();
-    if (_defaultParams.rebalanceThresholdBelow > 1000) revert RebalanceThresholdTooHigh();
+    if (_defaultParams.rebalanceThresholdAbove > 10000) revert RebalanceThresholdTooHigh();
+    if (_defaultParams.rebalanceThresholdBelow > 5000) revert RebalanceThresholdTooHigh();
 
     FPMMFactoryStorage storage $ = _getFPMMStorage();
     $.defaultParams = _defaultParams;
