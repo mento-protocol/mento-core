@@ -347,7 +347,7 @@ contract LiquityDeployer is TestStorage, LiquityHelpers {
       minAnnualInterestRate: DECIMAL_PRECISION / 200 // MIN_ANNUAL_INTEREST_RATE (0.5%)
     });
     ISystemParams.RedemptionParams memory redemptionParams = ISystemParams.RedemptionParams({
-      redemptionFeeFloor: DECIMAL_PRECISION / 400, // REDEMPTION_FEE_FLOOR (0.5%)
+      redemptionFeeFloor: DECIMAL_PRECISION / 200, // REDEMPTION_FEE_FLOOR (0.5%)
       initialBaseRate: DECIMAL_PRECISION, // INITIAL_BASE_RATE (100%)
       redemptionMinuteDecayFactor: 998076443575628800, // REDEMPTION_MINUTE_DECAY_FACTOR
       redemptionBeta: 1 // REDEMPTION_BETA

@@ -446,16 +446,21 @@ library LiquidityStrategyTypes {
   }
 
   /**
-   * @notice Calculates the combined fee for a given protocol and liquidity source fee
-   * @dev The combined fee is calculated by multiplying the two fees.
+   * @notice Calculates the combined fee multiplier for a given protocol and liquidity source fee
+   * @dev The combined fee multiplier is the remaining fraction after both fees: (1 - protocolFee) * (1 - liquiditySourceFee)
    *      This is necessary because the protocolFee is a percentage of the total amount of debt being moved out of the pool
    *      while the liquiditySourceFee is a percentage of the amount being swapped against the liquidity source.
    *      The liquiditySourceFee is applied to the amount after the deduction of the protocol fee.
    * @param protocolFee The protocol fee
    * @param liquiditySourceFee The liquidity source fee
-   * @return combinedFee The combined fee
+   * @return combinedFeeMultiplier The remaining fraction after both fees are applied
    */
-  function combineFees(uint64 protocolFee, uint64 liquiditySourceFee) internal pure returns (uint256 combinedFee) {
-    combinedFee = ((FEE_DENOMINATOR - protocolFee) * (FEE_DENOMINATOR - liquiditySourceFee)) / FEE_DENOMINATOR;
+  function combineFees(
+    uint64 protocolFee,
+    uint64 liquiditySourceFee
+  ) internal pure returns (uint256 combinedFeeMultiplier) {
+    combinedFeeMultiplier =
+      ((FEE_DENOMINATOR - protocolFee) * (FEE_DENOMINATOR - liquiditySourceFee)) /
+      FEE_DENOMINATOR;
   }
 }

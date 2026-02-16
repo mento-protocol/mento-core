@@ -94,12 +94,12 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
     if (collateralBalance == 0) revert RLS_RESERVE_OUT_OF_COLLATERAL();
 
     if (collateralBalance < idealCollateralToReceive) {
-      uint256 combinedFee = LQ.combineFees(
+      uint256 combinedFeeMultiplier = LQ.combineFees(
         ctx.incentives.protocolIncentiveContraction,
         ctx.incentives.liquiditySourceIncentiveContraction
       );
       collateralToReceive = collateralBalance;
-      debtToContract = ctx.convertToDebtWithFee(collateralBalance, LQ.FEE_DENOMINATOR, combinedFee);
+      debtToContract = ctx.convertToDebtWithFee(collateralBalance, LQ.FEE_DENOMINATOR, combinedFeeMultiplier);
     } else {
       collateralToReceive = idealCollateralToReceive;
       debtToContract = idealDebtToContract;
