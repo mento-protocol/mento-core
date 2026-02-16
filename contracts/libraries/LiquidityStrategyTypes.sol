@@ -455,7 +455,12 @@ library LiquidityStrategyTypes {
    * @param liquiditySourceFee The liquidity source fee
    * @return combinedFeeMultiplier The remaining fraction after both fees are applied
    */
-  function combineFees(uint64 protocolFee, uint64 liquiditySourceFee) internal pure returns (uint256 combinedFeeMultiplier) {
-    combinedFeeMultiplier = ((FEE_DENOMINATOR - protocolFee) * (FEE_DENOMINATOR - liquiditySourceFee)) / FEE_DENOMINATOR;
+  function combineFees(
+    uint64 protocolFee,
+    uint64 liquiditySourceFee
+  ) internal pure returns (uint256 combinedFeeMultiplier) {
+    combinedFeeMultiplier =
+      ((FEE_DENOMINATOR - protocolFee) * (FEE_DENOMINATOR - liquiditySourceFee)) /
+      FEE_DENOMINATOR;
   }
 }
