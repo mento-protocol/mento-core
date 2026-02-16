@@ -99,6 +99,7 @@ abstract contract BaseForkTest is Test {
     rateFeedDependenciesCount[toRateFeed("EUROCXOF")] = 2;
     rateFeedDependenciesCount[toRateFeed("USDCEUR")] = 1;
     rateFeedDependenciesCount[toRateFeed("USDCBRL")] = 1;
+    rateFeedDependenciesCount[toRateFeed("relayed:XOFUSD")] = 1;
   }
 
   // TODO: Broker setup can be removed after the Broker changes have been deployed to Mainnet
@@ -129,7 +130,8 @@ abstract contract BaseForkTest is Test {
   }
 
   function transferCeloFromReserve(address to, uint256 amount) internal {
-    vm.prank(address(mentoReserve));
+    vm.startPrank(address(mentoReserve));
     IERC20(lookup("GoldToken")).transfer(to, amount);
+    vm.stopPrank();
   }
 }

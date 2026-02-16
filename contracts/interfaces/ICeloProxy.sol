@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // slither-disable-start naming-convention
-pragma solidity >=0.5.17 <0.8.19;
+pragma solidity >=0.5.17 <0.9;
 
 interface ICeloProxy {
   function _getImplementation() external view returns (address);

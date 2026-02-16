@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.5.13;
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -56,10 +56,10 @@ contract BreakerBox is IBreakerBox, Ownable {
    * @param _rateFeedIDs rateFeedIDs to be added.
    * @param _sortedOracles The address of the Celo sorted oracles contract.
    */
-  constructor(address[] memory _rateFeedIDs, ISortedOracles _sortedOracles) public {
-    _transferOwnership(msg.sender);
+  constructor(address[] memory _rateFeedIDs, ISortedOracles _sortedOracles, address owner) public {
     setSortedOracles(_sortedOracles);
     addRateFeeds(_rateFeedIDs);
+    _transferOwnership(owner);
   }
 
   /* ==================== Mutative Functions ==================== */

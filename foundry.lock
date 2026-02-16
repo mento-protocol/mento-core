@@ -1,0 +1,38 @@
+{
+  "lib/BokkyPooBahsDateTimeLibrary": {
+    "rev": "1dc26f977c57a6ba3ed6d7c53cafdb191e7e59ae"
+  },
+  "lib/bold": {
+    "rev": "a813768d5997d317869903e4d05b45b765088ca0"
+  },
+  "lib/forge-std": {
+    "rev": "035de35f5e366c8d6ed142aec4ccb57fe2dd87d4"
+  },
+  "lib/foundry-chainlink-toolkit": {
+    "rev": "d610ec9ef54c325de7de1a5622c19933b2ae26cf"
+  },
+  "lib/mento-std": {
+    "rev": "cae988de9b03b6ab4811900c3c781ccbf8b8beaf"
+  },
+  "lib/openzeppelin-contracts": {
+    "rev": "58a3368215581509d05bd3ec4d53cd381c9bb40e"
+  },
+  "lib/openzeppelin-contracts-next": {
+    "rev": "0a25c1940ca220686588c4af3ec526f725fe2582"
+  },
+  "lib/openzeppelin-contracts-upgradeable": {
+    "rev": "58fa0f81c4036f1a3b616fdffad2fd27e5d5ce21"
+  },
+  "lib/openzeppelin-contracts-v4.9.5": {
+    "rev": "bd325d56b4c62c9c5c1aff048c37c6bb18ac0290"
+  },
+  "lib/prb-math": {
+    "branch": {
+      "name": "\"release-v4\"",
+      "rev": "ee5eab46d64893a4c6215369316c01275b971d64"
+    }
+  },
+  "lib/safe-contracts": {
+    "rev": "186a21a74b327f17fc41217a927dea7064f74604"
+  }
+}

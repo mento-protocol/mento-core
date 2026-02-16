@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.5.13;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
@@ -42,15 +42,16 @@ contract ValueDeltaBreaker is IBreaker, WithCooldown, WithThreshold, Ownable {
     ISortedOracles _sortedOracles,
     address[] memory rateFeedIDs,
     uint256[] memory rateChangeThresholds,
-    uint256[] memory cooldownTimes
+    uint256[] memory cooldownTimes,
+    address owner
   ) public {
-    _transferOwnership(msg.sender);
     setSortedOracles(_sortedOracles);
 
     _setDefaultCooldownTime(_defaultCooldownTime);
     _setDefaultRateChangeThreshold(_defaultRateChangeThreshold);
     _setRateChangeThresholds(rateFeedIDs, rateChangeThresholds);
     _setCooldownTimes(rateFeedIDs, cooldownTimes);
+    _transferOwnership(owner);
   }
 
   /* ==================== Restricted Functions ==================== */

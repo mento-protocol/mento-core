@@ -17,7 +17,9 @@ import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 /**
  * @title BiPoolExchangeManager
+ * @author Mento Labs
  * @notice An exchange manager that manages asset exchanges consisting of two assets
+ * @dev Mento V2
  */
 contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Ownable {
   using FixidityLib for FixidityLib.Fraction;
@@ -231,6 +233,16 @@ contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Owna
       pricingModules[identifiers[i]] = modules[i];
     }
     emit PricingModulesUpdated(identifiers, modules);
+  }
+
+  function setSpread(bytes32 exchangeId, uint256 spread) external onlyOwner {
+    require(exchanges[exchangeId].asset0 != address(0), "invalid exchangeId");
+
+    FixidityLib.Fraction memory newSpread = FixidityLib.wrap(spread);
+    require(newSpread.lte(FixidityLib.fixed1()), "spread must be <= 1");
+
+    exchanges[exchangeId].config.spread = newSpread;
+    emit SpreadUpdated(exchangeId, spread);
   }
 
   /**
