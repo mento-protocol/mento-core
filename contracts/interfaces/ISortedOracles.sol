@@ -11,6 +11,8 @@ interface ISortedOracles {
     Equal
   }
 
+  function isOracle(address, address) external view returns (bool);
+
   function addOracle(address, address) external;
 
   function removeOracle(address, address, uint256) external;
@@ -40,6 +42,8 @@ interface ISortedOracles {
   function initialize(uint256) external;
 
   function setBreakerBox(IBreakerBox) external;
+
+  function reportExpirySeconds() external view returns (uint256);
 
   function getTokenReportExpirySeconds(address token) external view returns (uint256);
 

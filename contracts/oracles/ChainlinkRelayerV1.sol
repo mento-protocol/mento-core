@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 // solhint-disable immutable-vars-naming
-pragma solidity 0.8.18;
+pragma solidity 0.8.19;
 
 import "../interfaces/IChainlinkRelayer.sol";
 import "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol";

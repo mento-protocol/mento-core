@@ -43,7 +43,8 @@ contract EXOFIntegrationTest is ProtocolTest {
           sortedOracles,
           rateFeed,
           rateChangeThreshold,
-          cooldownTime
+          cooldownTime,
+          address(this)
         )
       )
     );

@@ -17,7 +17,9 @@ import { FixidityLib } from "celo/contracts/common/FixidityLib.sol";
 
 /**
  * @title BiPoolExchangeManager
+ * @author Mento Labs
  * @notice An exchange manager that manages asset exchanges consisting of two assets
+ * @dev Mento V2
  */
 contract BiPoolManager is IExchangeProvider, IBiPoolManager, Initializable, Ownable {
   using FixidityLib for FixidityLib.Fraction;
