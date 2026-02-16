@@ -447,7 +447,7 @@ library LiquidityStrategyTypes {
 
   /**
    * @notice Calculates the combined fee multiplier for a given protocol and liquidity source fee
-   * @dev The combined fee multiplier is the remaining fraction after both fees: (1 - protocolFee) * (1 - liquiditySourceFee).
+   * @dev The combined fee multiplier is the remaining fraction after both fees: (1 - protocolFee) * (1 - liquiditySourceFee)
    *      This is necessary because the protocolFee is a percentage of the total amount of debt being moved out of the pool
    *      while the liquiditySourceFee is a percentage of the amount being swapped against the liquidity source.
    *      The liquiditySourceFee is applied to the amount after the deduction of the protocol fee.
