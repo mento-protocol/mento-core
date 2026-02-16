@@ -113,6 +113,13 @@ interface IBiPoolManager {
   event PricingModulesUpdated(bytes32[] newIdentifiers, address[] newAddresses);
 
   /**
+   * @notice Emitted when the spread for a specified exchange is updated.
+   * @param exchangeId The id of the exchange
+   * @param spread The new spread
+   */
+  event SpreadUpdated(bytes32 indexed exchangeId, uint256 spread);
+
+  /**
    * @notice Retrieves the pool with the specified exchangeId.
    * @param exchangeId The id of the pool to be retrieved.
    * @return exchange The PoolExchange with that ID.
@@ -222,6 +229,8 @@ interface IBiPoolManager {
   function setSortedOracles(ISortedOracles newSortedOracles) external;
 
   function setBreakerBox(IBreakerBox newBreakerBox) external;
+
+  function setSpread(bytes32 exchangeId, uint256 spread) external;
 
   /// @notice IOwnable:
   function transferOwnership(address newOwner) external;

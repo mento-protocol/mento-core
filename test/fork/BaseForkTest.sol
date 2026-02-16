@@ -99,6 +99,7 @@ abstract contract BaseForkTest is Test {
     rateFeedDependenciesCount[toRateFeed("EUROCXOF")] = 2;
     rateFeedDependenciesCount[toRateFeed("USDCEUR")] = 1;
     rateFeedDependenciesCount[toRateFeed("USDCBRL")] = 1;
+    rateFeedDependenciesCount[toRateFeed("relayed:XOFUSD")] = 1;
   }
 
   // TODO: Broker setup can be removed after the Broker changes have been deployed to Mainnet
