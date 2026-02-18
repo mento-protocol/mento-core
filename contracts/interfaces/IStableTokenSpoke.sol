@@ -13,7 +13,7 @@ interface IStableTokenSpoke is IERC20PermitUpgradeable {
    * @notice Initializes a StableTokenSpoke.
    * @param _name The name of the stable token (English)
    * @param _symbol A short symbol identifying the token (e.g. "cUSD")
-   * @param _initialOwner The address that will own the contract.
+   * @param _initialOwner The address that will be the owner of the contract.
    * @param initialBalanceAddresses Array of addresses with an initial balance.
    * @param initialBalanceValues Array of balance values corresponding to initialBalanceAddresses.
    * @param _minters The addresses that are allowed to mint.
