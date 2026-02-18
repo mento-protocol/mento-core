@@ -28,6 +28,21 @@ interface IStableTokenSpoke is IERC20PermitUpgradeable {
     address[] calldata _minters,
     address[] calldata _burners
   ) external;
+
+  /**
+   * @notice Checks if an address is a minter.
+   * @param account The address to check.
+   * @return bool True if the address is a minter, false otherwise.
+   */
+  function isMinter(address account) external view returns (bool);
+
+  /**
+   * @notice Checks if an address is a burner.
+   * @param account The address to check.
+   * @return bool True if the address is a burner, false otherwise.
+   */
+  function isBurner(address account) external view returns (bool);
+
   /**
    * @notice Sets the minter role for an address.
    * @param _minter The address of the minter.
