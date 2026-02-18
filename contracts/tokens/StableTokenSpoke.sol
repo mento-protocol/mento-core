@@ -66,6 +66,7 @@ contract StableTokenSpoke is ERC20PermitUpgradeable, OwnableUpgradeable, IStable
   function initialize(
     string memory name,
     string memory symbol,
+    address _initialOwner,
     address[] memory initialBalanceAddresses,
     uint256[] memory initialBalanceValues,
     address[] memory _minters,
@@ -73,7 +74,7 @@ contract StableTokenSpoke is ERC20PermitUpgradeable, OwnableUpgradeable, IStable
   ) public initializer {
     __ERC20_init(name, symbol);
     __EIP712_init_unchained(name, "3");
-    _transferOwnership(_msgSender());
+    _transferOwnership(_initialOwner);
 
     require(initialBalanceAddresses.length == initialBalanceValues.length, "Array length mismatch");
     for (uint256 i = 0; i < initialBalanceAddresses.length; i += 1) {
