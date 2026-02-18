@@ -44,4 +44,7 @@ interface IFactoryRegistry {
 
   /// @notice Get the length of the poolFactories array
   function poolFactoriesLength() external view returns (uint256);
+
+  /// @dev The protocol will always have a usable poolFactory.
+  function fallbackPoolFactory() external view returns (address);
 }
