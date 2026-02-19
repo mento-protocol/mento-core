@@ -18,6 +18,7 @@ contract StableTokenSpokeTest is Test {
   address _minter2 = makeAddr("minter2");
   address _burner1 = makeAddr("burner1");
   address _burner2 = makeAddr("burner2");
+  address _initialOwner = makeAddr("initialOwner");
 
   StableTokenSpoke private _token;
 
@@ -34,6 +35,7 @@ contract StableTokenSpokeTest is Test {
     _token.initialize(
       "cUSD",
       "cUSD",
+      _initialOwner,
       addresses(_holder0, _holder1, _burner1, _minter1),
       uints(1000, 1000, 1000, 0),
       minters,
@@ -44,6 +46,7 @@ contract StableTokenSpokeTest is Test {
     assertEq(_token.isMinter(_minter2), true);
     assertEq(_token.isBurner(_burner1), true);
     assertEq(_token.isBurner(_burner2), true);
+    assertEq(_token.owner(), _initialOwner);
   }
 
   function test_initializers_disabled() public {
@@ -54,7 +57,7 @@ contract StableTokenSpokeTest is Test {
     address[] memory emptyRoles = new address[](0);
 
     vm.expectRevert(bytes("Initializable: contract is already initialized"));
-    disabledToken.initialize("cUSD", "cUSD", emptyAddresses, emptyBalances, emptyRoles, emptyRoles);
+    disabledToken.initialize("cUSD", "cUSD", _initialOwner, emptyAddresses, emptyBalances, emptyRoles, emptyRoles);
   }
 
   function test_initialize_shouldMintInitialBalances_setRolesAndTransferOwnership() public {
@@ -62,11 +65,12 @@ contract StableTokenSpokeTest is Test {
     assertEq(_token.balanceOf(_holder1), 1000);
     assertEq(_token.balanceOf(_burner1), 1000);
 
-    assertEq(_token.owner(), address(this));
+    assertEq(_token.owner(), _initialOwner);
   }
 
   function test_setMinter_whenCalledByOwner_shouldSetMinterAndEmitEvent() public {
     address newMinter = makeAddr("newMinter");
+    vm.startPrank(_initialOwner);
     vm.expectEmit(true, true, true, true);
     emit MinterUpdated(newMinter, true);
     _token.setMinter(newMinter, true);
@@ -76,6 +80,7 @@ contract StableTokenSpokeTest is Test {
     emit MinterUpdated(newMinter, false);
     _token.setMinter(newMinter, false);
     assertEq(_token.isMinter(newMinter), false);
+    vm.stopPrank();
   }
 
   function test_setMinter_whenCalledByNotOwner_shouldRevert() public {
@@ -87,6 +92,7 @@ contract StableTokenSpokeTest is Test {
 
   function test_setBurner_whenCalledByOwner_shouldSetBurnerAndEmitEvent() public {
     address newBurner = makeAddr("newBurner");
+    vm.startPrank(_initialOwner);
     vm.expectEmit(true, true, true, true);
     emit BurnerUpdated(newBurner, true);
     _token.setBurner(newBurner, true);
@@ -96,6 +102,7 @@ contract StableTokenSpokeTest is Test {
     emit BurnerUpdated(newBurner, false);
     _token.setBurner(newBurner, false);
     assertEq(_token.isBurner(newBurner), false);
+    vm.stopPrank();
   }
 
   function test_setBurner_whenCalledByNotOwner_shouldRevert() public {

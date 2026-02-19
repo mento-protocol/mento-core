@@ -13,6 +13,7 @@ interface IStableTokenSpoke is IERC20PermitUpgradeable {
    * @notice Initializes a StableTokenSpoke.
    * @param _name The name of the stable token (English)
    * @param _symbol A short symbol identifying the token (e.g. "cUSD")
+   * @param _initialOwner The address that will be the owner of the contract.
    * @param initialBalanceAddresses Array of addresses with an initial balance.
    * @param initialBalanceValues Array of balance values corresponding to initialBalanceAddresses.
    * @param _minters The addresses that are allowed to mint.
@@ -21,11 +22,27 @@ interface IStableTokenSpoke is IERC20PermitUpgradeable {
   function initialize(
     string calldata _name,
     string calldata _symbol,
+    address _initialOwner,
     address[] calldata initialBalanceAddresses,
     uint256[] calldata initialBalanceValues,
     address[] calldata _minters,
     address[] calldata _burners
   ) external;
+
+  /**
+   * @notice Checks if an address is a minter.
+   * @param account The address to check.
+   * @return bool True if the address is a minter, false otherwise.
+   */
+  function isMinter(address account) external view returns (bool);
+
+  /**
+   * @notice Checks if an address is a burner.
+   * @param account The address to check.
+   * @return bool True if the address is a burner, false otherwise.
+   */
+  function isBurner(address account) external view returns (bool);
+
   /**
    * @notice Sets the minter role for an address.
    * @param _minter The address of the minter.
