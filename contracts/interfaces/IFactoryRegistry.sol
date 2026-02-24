@@ -31,6 +31,9 @@ interface IFactoryRegistry {
   /// @param poolFactory .
   function unapprove(address poolFactory) external;
 
+  /// @dev The protocol will always have a usable poolFactory.
+  function fallbackPoolFactory() external view returns (address);
+
   /// @notice Get all PoolFactories approved by the registry
   /// @dev The same PoolFactory address cannot be used twice
   /// @return Array of PoolFactory addresses

@@ -13,7 +13,7 @@ import { EnumerableSetUpgradeable } from "openzeppelin-contracts-upgradeable/con
 contract FactoryRegistry is IFactoryRegistry, OwnableUpgradeable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-  /// @dev The protocol will always have a usable poolFactory.
+  /// @inheritdoc IFactoryRegistry
   address public fallbackPoolFactory;
 
   /// @dev Array of poolFactories used to create a gauge and votingRewards
