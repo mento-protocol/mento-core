@@ -40,6 +40,13 @@ interface IReserveLiquidityStrategy is ILiquidityStrategy {
   /* ============================================================ */
 
   /**
+   * @notice Initializes the ReserveLiquidityStrategy contract
+   * @param _initialOwner The initial owner of the contract
+   * @param _reserve The Mento Protocol Reserve contract address
+   */
+  function initialize(address _initialOwner, address _reserve) external;
+
+  /**
    * @notice Adds a new liquidity pool to be managed by the strategy
    * @param params The parameters for adding a pool
    */

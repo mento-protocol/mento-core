@@ -32,11 +32,7 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
    */
   constructor(bool disable) LiquidityStrategy(disable) {}
 
-  /**
-   * @notice Initializes the ReserveLiquidityStrategy contract
-   * @param _initialOwner The initial owner of the contract
-   * @param _reserve The Mento Protocol Reserve contract address
-   */
+  /// @inheritdoc IReserveLiquidityStrategy
   function initialize(address _initialOwner, address _reserve) public initializer {
     __LiquidityStrategy_init(_initialOwner);
     if (_reserve == address(0)) revert RLS_INVALID_RESERVE();
