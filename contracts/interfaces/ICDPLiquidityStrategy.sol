@@ -59,6 +59,12 @@ interface ICDPLiquidityStrategy is ILiquidityStrategy {
   /* ============================================================ */
 
   /**
+   * @notice Initializes the CDPLiquidityStrategy contract
+   * @param _initialOwner The initial owner of the contract
+   */
+  function initialize(address _initialOwner) external;
+
+  /**
    * @notice Adds a new liquidity pool to be managed by the CDP strategy
    * @param params The parameters for adding a pool
    * @param config The CDP configuration
