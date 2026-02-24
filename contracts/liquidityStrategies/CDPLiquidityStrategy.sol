@@ -32,10 +32,7 @@ contract CDPLiquidityStrategy is ICDPLiquidityStrategy, LiquidityStrategy {
     REDEMPTION_SHORTFALL_TOLERANCE = _redemptionShortfallTolerance;
   }
 
-  /**
-   * @notice Initializes the CDPLiquidityStrategy contract
-   * @param _initialOwner The initial owner of the contract
-   */
+  // @inheritdoc ICDPLiquidityStrategy
   function initialize(address _initialOwner) public initializer {
     __LiquidityStrategy_init(_initialOwner);
   }
