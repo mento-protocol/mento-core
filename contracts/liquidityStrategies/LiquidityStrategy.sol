@@ -33,7 +33,7 @@ abstract contract LiquidityStrategy is
   /* ============================================================ */
 
   EnumerableSetUpgradeable.AddressSet private pools;
-  mapping(address => PoolConfig) internal poolConfigs;
+  mapping(address => PoolConfig) public poolConfigs;
 
   /* ============================================================ */
   /* ======================= Constructor ======================== */
