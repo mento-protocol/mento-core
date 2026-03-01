@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // solhint-disable func-name-mixedcase, var-name-mixedcase, state-visibility, max-line-length
 // solhint-disable const-name-snakecase, max-states-count, contract-name-camelcase
 
@@ -7,7 +7,7 @@ import { Test } from "forge-std/Test.sol";
 import { ERC20 } from "openzeppelin-contracts-next/contracts/token/ERC20/ERC20.sol";
 import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
 
-import { BancorExchangeProvider } from "contracts/goodDollar/BancorExchangeProvider.sol";
+import { BancorExchangeProvider, BondingCurve } from "contracts/goodDollar/BancorExchangeProvider.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
 import { IReserve } from "contracts/interfaces/IReserve.sol";
@@ -513,7 +513,7 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
     poolExchange1.tokenSupply = 0;
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
 
-    vm.expectRevert("ERR_INVALID_SUPPLY");
+    vm.expectRevert(abi.encodeWithSelector(BondingCurve.InvalidInput.selector));
     bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
       tokenIn: address(token),
@@ -524,7 +524,7 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
 
   function test_getAmountIn_whenTokenInIsTokenAndAmountOutLargerThanReserveBalance_shouldRevert() public {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    vm.expectRevert("ERR_INVALID_AMOUNT");
+    vm.expectRevert(abi.encodeWithSelector(BondingCurve.AmountOutOfBound.selector));
     bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
       tokenIn: address(token),
@@ -577,7 +577,7 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
     poolExchange1.tokenSupply = 0;
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
 
-    vm.expectRevert("ERR_INVALID_SUPPLY");
+    vm.expectRevert(abi.encodeWithSelector(BondingCurve.InvalidInput.selector));
     bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,
       tokenIn: address(reserveToken),
@@ -1107,7 +1107,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
   function test_getAmountOut_whenTokenInIsReserveAssetAndTokenSupplyIsZero_shouldRevert() public {
     poolExchange1.tokenSupply = 0;
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
-    vm.expectRevert("ERR_INVALID_SUPPLY");
+    vm.expectRevert(abi.encodeWithSelector(BondingCurve.InvalidInput.selector));
     bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
       tokenIn: address(reserveToken),

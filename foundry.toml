@@ -4,6 +4,7 @@ out = "out"
 test = "test"
 libs = ["lib"]
 script = "script"
+evm_version = "osaka"
 auto_detect_solc = true
 bytecode_hash = "none"
 fuzz_runs = 256

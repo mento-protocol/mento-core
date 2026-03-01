@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
 import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
@@ -8,17 +8,20 @@ import { IReserve } from "contracts/interfaces/IReserve.sol";
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
-import { BancorFormula } from "contracts/goodDollar/BancorFormula.sol";
+import { BondingCurve } from "solidity-math-utils/project/contracts/BondingCurve.sol";
 import { UD60x18, unwrap, wrap } from "prb/math/UD60x18.sol";
 
 /**
  * @title BancorExchangeProvider
  * @notice Provides exchange functionality for Bancor pools.
  */
-contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, BancorFormula, OwnableUpgradeable {
+contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, OwnableUpgradeable {
   /* ========================================================= */
   /* ==================== State Variables ==================== */
   /* ========================================================= */
+
+  // MAX_WEIGHT is used for BPS calculations in GoodDollarExchangeProvider
+  uint32 public constant MAX_WEIGHT = 1e8;
 
   // Address of the broker contract.
   address public broker;
@@ -58,7 +61,6 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
   function _initialize(address _broker, address _reserve) internal onlyInitializing {
     __Ownable_init();
 
-    BancorFormula.init();
     setBroker(_broker);
     setReserve(_reserve);
   }
@@ -384,9 +386,21 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     uint256 scaledAmountOut
   ) internal view verifyExchangeTokens(tokenIn, tokenOut, exchange) returns (uint256 scaledAmountIn) {
     if (tokenIn == exchange.reserveAsset) {
-      scaledAmountIn = fundCost(exchange.tokenSupply, exchange.reserveBalance, exchange.reserveRatio, scaledAmountOut);
+      scaledAmountIn = BondingCurve.mintCost(
+        exchange.tokenSupply,
+        exchange.reserveBalance,
+        exchange.reserveRatio,
+        MAX_WEIGHT,
+        scaledAmountOut
+      );
     } else {
-      scaledAmountIn = saleCost(exchange.tokenSupply, exchange.reserveBalance, exchange.reserveRatio, scaledAmountOut);
+      scaledAmountIn = BondingCurve.burnCost(
+        exchange.tokenSupply,
+        exchange.reserveBalance,
+        exchange.reserveRatio,
+        MAX_WEIGHT,
+        scaledAmountOut
+      );
     }
   }
 
@@ -405,17 +419,19 @@ contract BancorExchangeProvider is IExchangeProvider, IBancorExchangeProvider, B
     uint256 scaledAmountIn
   ) internal view verifyExchangeTokens(tokenIn, tokenOut, exchange) returns (uint256 scaledAmountOut) {
     if (tokenIn == exchange.reserveAsset) {
-      scaledAmountOut = purchaseTargetAmount(
+      scaledAmountOut = BondingCurve.mintGain(
         exchange.tokenSupply,
         exchange.reserveBalance,
         exchange.reserveRatio,
+        MAX_WEIGHT,
         scaledAmountIn
       );
     } else {
-      scaledAmountOut = saleTargetAmount(
+      scaledAmountOut = BondingCurve.burnGain(
         exchange.tokenSupply,
         exchange.reserveBalance,
         exchange.reserveRatio,
+        MAX_WEIGHT,
         scaledAmountIn
       );
     }

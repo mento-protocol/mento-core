@@ -30,7 +30,7 @@ contract BancorExchangeProviderForkTest is BaseForkTest {
     reserveToken = ERC20(address(mentoReserve.collateralAssets(0))); // == CELO
     swapToken = ERC20(this.lookup("StableToken")); // == cUSD
 
-    // Deploy and initialize BancorExchangeProvider (includes BancorFormula as part of init)
+    // Deploy and initialize BancorExchangeProvider
     setUpBancorExchangeProvider();
   }
 

@@ -2147,6 +2147,11 @@ solhint@5.0.3:
   optionalDependencies:
     prettier "^2.8.3"
 
+solidity-math-utils@3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/solidity-math-utils/-/solidity-math-utils-3.0.0.tgz#9a3bb5a42119fb55c8fd19eecef6e604ce58dee7"
+  integrity sha512-bRWybeSXMwx603xVyJwVviYH6rk3GXadlVuFmKlMjk+KhGqd1Z2nL1izm85n3n8ngE0YH5tlrwK37QVdDTNAvA==
+
 spdx-correct@^3.0.0:
   version "3.1.1"
   resolved "https://registry.npmjs.org/spdx-correct/-/spdx-correct-3.1.1.tgz"
