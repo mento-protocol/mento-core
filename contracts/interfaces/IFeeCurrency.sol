@@ -1,4 +1,4 @@
-pragma solidity ^0.8.13;
+pragma solidity ^0.8;
 
 /**
  * @notice This interface should be implemented for tokens which are supposed to
