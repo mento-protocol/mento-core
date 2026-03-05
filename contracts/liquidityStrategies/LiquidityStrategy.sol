@@ -78,6 +78,7 @@ abstract contract LiquidityStrategy is
 
   /// @inheritdoc ILiquidityStrategy
   function rebalance(address pool) external virtual nonReentrant {
+    _beforeRebalance(pool);
     _ensurePool(pool);
     if (_getHookCalled(pool)) {
       revert LS_CAN_ONLY_REBALANCE_ONCE(pool);
@@ -172,6 +173,14 @@ abstract contract LiquidityStrategy is
   /* =========================================================== */
   /* ==================== Virtual Functions ==================== */
   /* =========================================================== */
+  /**
+   * @notice Hook called at the start of rebalance() before any logic executes
+   * @dev Override to perform setup when rebalance is called (e.g. storing msg.sender)
+   * @param pool The address of the pool being rebalanced
+   */
+  // solhint-disable-next-line no-empty-blocks
+  function _beforeRebalance(address pool) internal virtual {}
+
   /**
    * @notice Handles the rebalance callback from the FPMM pool
    * @dev Must be implemented by concrete strategies to source liquidity
@@ -473,7 +482,7 @@ abstract contract LiquidityStrategy is
    * @param pool The address of the pool being checked
    * @return hookCalled True if the hook was called for this pool in the current transaction
    */
-  function _getHookCalled(address pool) private view returns (bool hookCalled) {
+  function _getHookCalled(address pool) internal view returns (bool hookCalled) {
     bytes32 key = bytes32(uint256(uint160(pool)));
     // solhint-disable-next-line no-inline-assembly
     assembly {

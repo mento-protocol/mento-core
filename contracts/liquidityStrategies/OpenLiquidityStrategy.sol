@@ -6,9 +6,7 @@ import { IERC20Upgradeable as IERC20 } from "openzeppelin-contracts-upgradeable/
 import { SafeERC20Upgradeable as SafeERC20 } from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import { LiquidityStrategy } from "./LiquidityStrategy.sol";
-import { ILiquidityStrategy } from "../interfaces/ILiquidityStrategy.sol";
 import { IOpenLiquidityStrategy } from "../interfaces/IOpenLiquidityStrategy.sol";
-import { IFPMM } from "../interfaces/IFPMM.sol";
 import { LiquidityStrategyTypes as LQ } from "../libraries/LiquidityStrategyTypes.sol";
 
 /**
@@ -54,56 +52,18 @@ contract OpenLiquidityStrategy is IOpenLiquidityStrategy, LiquidityStrategy {
     LiquidityStrategy._removePool(pool);
   }
 
-  function rebalance(address pool) external override(ILiquidityStrategy, LiquidityStrategy) nonReentrant {
-    _setRebalancer(_msgSender());
-
-    _ensurePool(pool);
-    if (_isHookCalled(pool)) {
-      revert LS_CAN_ONLY_REBALANCE_ONCE(pool);
-    }
-
-    PoolConfig memory config = poolConfigs[pool];
-    // Skip cooldown check for first rebalance (lastRebalance == 0)
-    if (config.lastRebalance > 0 && block.timestamp < config.lastRebalance + config.rebalanceCooldown) {
-      revert LS_COOLDOWN_ACTIVE();
-    }
-
-    LQ.Context memory ctx = LQ.newRebalanceContext(pool, config);
-    LQ.Action memory action = _determineAction(ctx);
-
-    (address debtToken, address collToken) = ctx.tokens();
-
-    bytes memory hookData = abi.encode(
-      LQ.CallbackData({
-        amountOwedToPool: action.amountOwedToPool,
-        dir: action.dir,
-        isToken0Debt: ctx.isToken0Debt,
-        debtToken: debtToken,
-        collToken: collToken
-      })
-    );
-
-    poolConfigs[pool].lastRebalance = uint32(block.timestamp);
-    IFPMM(pool).rebalance(action.amount0Out, action.amount1Out, hookData);
-    if (!_isHookCalled(pool)) {
-      revert LS_HOOK_NOT_CALLED();
-    }
-
-    // slither-disable-start incorrect-equality
-    emit LiquidityMoved({
-      pool: pool,
-      direction: action.dir,
-      tokenGivenToPool: action.dir == LQ.Direction.Expand ? debtToken : collToken,
-      amountGivenToPool: action.amountOwedToPool,
-      tokenTakenFromPool: action.dir == LQ.Direction.Expand ? collToken : debtToken,
-      amountTakenFromPool: action.amount0Out + action.amount1Out // only one is positive
-    });
-    // slither-disable-end incorrect-equality
-  }
-
   /* =========================================================== */
   /* ==================== Virtual Functions ==================== */
   /* =========================================================== */
+
+  /**
+   * @notice Stores the caller as the rebalancer before rebalance logic executes
+   * @param pool The address of the pool being rebalanced (unused)
+   */
+  function _beforeRebalance(address pool) internal override {
+    (pool); // silence unused parameter warning
+    _setRebalancer(_msgSender());
+  }
 
   /**
    * @notice Clamps expansion amounts based on the rebalancer's debt token balance
@@ -238,20 +198,6 @@ contract OpenLiquidityStrategy is IOpenLiquidityStrategy, LiquidityStrategy {
     // solhint-disable-next-line no-inline-assembly
     assembly {
       rebalancer := tload(slot)
-    }
-  }
-
-  /**
-   * @notice Checks if the hook was called for a pool in the current transaction
-   * @dev Mirrors LiquidityStrategy._getHookCalled (which is private) using the same key derivation
-   * @param pool The address of the pool being checked
-   * @return called True if the hook was called for this pool
-   */
-  function _isHookCalled(address pool) private view returns (bool called) {
-    bytes32 key = bytes32(uint256(uint160(pool)));
-    // solhint-disable-next-line no-inline-assembly
-    assembly {
-      called := tload(key)
     }
   }
 }
