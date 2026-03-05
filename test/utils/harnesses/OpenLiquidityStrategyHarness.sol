@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity 0.8.24;
+
+import { OpenLiquidityStrategy } from "contracts/liquidityStrategies/OpenLiquidityStrategy.sol";
+import { LiquidityStrategyTypes as LQ } from "contracts/libraries/LiquidityStrategyTypes.sol";
+
+/**
+ * @title OpenLiquidityStrategyHarness
+ * @notice Test harness that exposes internal methods for testing
+ */
+contract OpenLiquidityStrategyHarness is OpenLiquidityStrategy {
+  constructor(address _initialOwner) OpenLiquidityStrategy(false) {
+    initialize(_initialOwner);
+  }
+
+  /**
+   * @notice Exposes the internal _determineAction method for testing
+   * @param ctx The liquidity context
+   * @return action The determined rebalance action
+   */
+  function determineAction(LQ.Context memory ctx) external view returns (LQ.Action memory action) {
+    return _determineAction(ctx);
+  }
+
+  /**
+   * @notice Sets the rebalancer address in transient storage for testing
+   * @dev Mirrors the private _setRebalancer using the same storage slot
+   * @param rebalancer The address to set as rebalancer
+   */
+  function setRebalancerForTesting(address rebalancer) external {
+    bytes32 slot = keccak256("OpenLiquidityStrategy.rebalancer");
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      tstore(slot, rebalancer)
+    }
+  }
+}
