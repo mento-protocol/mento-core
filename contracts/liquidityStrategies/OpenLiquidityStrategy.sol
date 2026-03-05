@@ -209,6 +209,7 @@ contract OpenLiquidityStrategy is IOpenLiquidityStrategy, LiquidityStrategy {
     // Transfer remaining tokens to rebalancer (includes liquidity source incentive)
     IERC20(tokenFromPool).safeTransfer(rebalancer, amountFromPool - protocolIncentiveAmount);
     // Pull tokens from rebalancer and send to pool
+    // slither-disable-next-line arbitrary-send-erc20
     IERC20(tokenToPool).safeTransferFrom(rebalancer, pool, cb.amountOwedToPool);
   }
 
