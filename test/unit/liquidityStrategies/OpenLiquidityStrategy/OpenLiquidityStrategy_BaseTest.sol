@@ -34,7 +34,7 @@ contract OpenLiquidityStrategy_BaseTest is LiquidityStrategy_BaseTest {
       ? liquiditySourceIncentiveExpansion + protocolIncentiveExpansion
       : liquiditySourceIncentiveContraction + protocolIncentiveContraction;
 
-    // Convert from basis points to bps
+    // Convert from 1e18-denominated to bps
     fpmmIncentive = fpmmIncentive / 1e14;
 
     fpmm.setRebalanceIncentive(fpmmIncentive);

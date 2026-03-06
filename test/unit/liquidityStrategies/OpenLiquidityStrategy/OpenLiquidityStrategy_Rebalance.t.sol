@@ -22,7 +22,7 @@ contract OpenLiquidityStrategy_RebalanceTest is OpenLiquidityStrategy_BaseTest {
   function test_rebalance_whenPoolPriceAboveOracle_shouldExpandSuccessfully()
     public
     fpmmToken0Debt(18, 18)
-    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 50, 0.005025125628140703e18)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
   {
     // Setup: Pool has 100 debt and 200 collateral (excess collateral)
     provideFPMMReserves(100e18, 200e18, true);

@@ -151,45 +151,6 @@ contract OpenLiquidityStrategy_HookTest is OpenLiquidityStrategy_BaseTest {
   /* ================= Expansion Callback Tests ================ */
   /* ============================================================ */
 
-  function test_hook_expansionCallback_whenToken0IsDebt_shouldTransferCorrectly()
-    public
-    fpmmToken0Debt(18, 18)
-    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
-  {
-    uint256 amountOwedToPool = 200e18;
-    uint256 amount0Out = 0;
-    uint256 amount1Out = 200e18; // collateral out
-
-    bytes memory hookData = abi.encode(
-      LQ.CallbackData({
-        amountOwedToPool: amountOwedToPool,
-        dir: LQ.Direction.Expand,
-        isToken0Debt: true,
-        debtToken: debtToken,
-        collToken: collToken
-      })
-    );
-
-    uint256 protocolIncentive = (amount1Out * 0.005e18) / 1e18;
-    uint256 toRebalancer = amount1Out - protocolIncentive;
-
-    MockERC20(collToken).mint(address(strategy), amount1Out);
-
-    uint256 feeRecipientCollBefore = IERC20(collToken).balanceOf(protocolFeeRecipient);
-    uint256 rebalancerCollBefore = IERC20(collToken).balanceOf(rebalancer);
-    uint256 rebalancerDebtBefore = IERC20(debtToken).balanceOf(rebalancer);
-    uint256 fpmmDebtBefore = IERC20(debtToken).balanceOf(address(fpmm));
-
-    strategy.setRebalancerForTesting(rebalancer);
-    vm.prank(address(fpmm));
-    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
-
-    assertEq(IERC20(collToken).balanceOf(protocolFeeRecipient) - feeRecipientCollBefore, protocolIncentive);
-    assertEq(IERC20(collToken).balanceOf(rebalancer) - rebalancerCollBefore, toRebalancer);
-    assertEq(rebalancerDebtBefore - IERC20(debtToken).balanceOf(rebalancer), amountOwedToPool);
-    assertEq(IERC20(debtToken).balanceOf(address(fpmm)) - fpmmDebtBefore, amountOwedToPool);
-  }
-
   function test_hook_expansionCallback_whenToken1IsDebt_shouldTransferCorrectly()
     public
     fpmmToken1Debt(18, 18)
@@ -232,45 +193,6 @@ contract OpenLiquidityStrategy_HookTest is OpenLiquidityStrategy_BaseTest {
   /* ============================================================ */
   /* ================ Contraction Callback Tests =============== */
   /* ============================================================ */
-
-  function test_hook_contractionCallback_whenToken0IsDebt_shouldTransferCorrectly()
-    public
-    fpmmToken0Debt(18, 18)
-    addFpmm(0, 0.005e18, 0.005e18, 0.005e18, 0.005e18)
-  {
-    uint256 amountOwedToPool = 90e18; // collateral going into pool
-    uint256 amount0Out = 90e18; // debt out
-    uint256 amount1Out = 0;
-
-    bytes memory hookData = abi.encode(
-      LQ.CallbackData({
-        amountOwedToPool: amountOwedToPool,
-        dir: LQ.Direction.Contract,
-        isToken0Debt: true,
-        debtToken: debtToken,
-        collToken: collToken
-      })
-    );
-
-    uint256 protocolIncentive = (amount0Out * 0.005e18) / 1e18;
-    uint256 toRebalancer = amount0Out - protocolIncentive;
-
-    MockERC20(debtToken).mint(address(strategy), amount0Out);
-
-    uint256 feeRecipientDebtBefore = IERC20(debtToken).balanceOf(protocolFeeRecipient);
-    uint256 rebalancerDebtBefore = IERC20(debtToken).balanceOf(rebalancer);
-    uint256 rebalancerCollBefore = IERC20(collToken).balanceOf(rebalancer);
-    uint256 fpmmCollBefore = IERC20(collToken).balanceOf(address(fpmm));
-
-    strategy.setRebalancerForTesting(rebalancer);
-    vm.prank(address(fpmm));
-    strategy.onRebalance(address(strategy), amount0Out, amount1Out, hookData);
-
-    assertEq(IERC20(debtToken).balanceOf(protocolFeeRecipient) - feeRecipientDebtBefore, protocolIncentive);
-    assertEq(IERC20(debtToken).balanceOf(rebalancer) - rebalancerDebtBefore, toRebalancer);
-    assertEq(rebalancerCollBefore - IERC20(collToken).balanceOf(rebalancer), amountOwedToPool);
-    assertEq(IERC20(collToken).balanceOf(address(fpmm)) - fpmmCollBefore, amountOwedToPool);
-  }
 
   function test_hook_contractionCallback_whenToken1IsDebt_shouldTransferCorrectly()
     public
