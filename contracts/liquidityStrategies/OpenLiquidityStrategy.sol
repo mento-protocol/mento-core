@@ -58,10 +58,8 @@ contract OpenLiquidityStrategy is IOpenLiquidityStrategy, LiquidityStrategy {
 
   /**
    * @notice Stores the caller as the rebalancer before rebalance logic executes
-   * @param pool The address of the pool being rebalanced (unused)
    */
-  function _beforeRebalance(address pool) internal override {
-    (pool); // silence unused parameter warning
+  function _beforeRebalance(address /* pool */) internal override {
     _setRebalancer(_msgSender());
   }
 
