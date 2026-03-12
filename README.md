@@ -38,6 +38,14 @@ forge build
 forge test
 ```
 
+## Security
+
+Mento Core is a DeFi protocol managing stablecoins and reserves. Security is a top priority.
+
+- **Audit reports:** See the [/audits](./audits/README.md) directory for a list of external security reviews.
+- **Reporting vulnerabilities:** Do **not** open public GitHub issues for security bugs. Email **security@mento.org** with a description, reproduction steps, and impact assessment. We will respond promptly.
+- **Bug bounty:** If a bug bounty programme is available, details will be posted at [mento.org](https://mento.org) and linked here.
+
 #### Slither
 
 Install slither, if not installed.
