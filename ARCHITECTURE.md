@@ -1,197 +1,208 @@
-# Mento Core Architecture
+# Mento Core — Architecture
 
-Mento is a decentralized multi-currency stablecoin platform and onchain FX infrastructure. This document provides a high-level map of the contract system for new contributors and auditors.
+This document describes the contract subsystems, key interaction flows, upgradeability patterns, and recommended entry points for `mento-core`.
 
-## System Overview
-
-Mento enables users to swap between a reserve asset (e.g., CELO) and Mento-issued stablecoins (e.g., USDm, EURm, BRLm) using oracle-driven AMMs. The protocol maintains a shared reserve of collateral assets and enforces circuit breakers to halt trading during price anomalies.
-
-The system is going multi-chain, with cross-chain stable token spokes (`StableTokenSpoke`) alongside the original Celo-native hub contracts.
+For a higher-level product overview, see the [Mento documentation](https://docs.mento.org/mento/mento-protocol/readme).
 
 ---
 
-## Contract Subsystems
+## 1. System Overview
 
-### 1. Broker / Exchange Providers — Swap Routing
+`mento-core` implements the on-chain infrastructure for Mento — a decentralized, multi-currency stablecoin platform and FX-rate settlement layer built initially on Celo and expanding multi-chain.
 
-**Location:** `contracts/swap/`
-
-The **Broker** (`Broker.sol`) is the main entry point for all token swaps. It:
-- Routes swap requests to registered exchange providers
-- Enforces per-pair trading limits via the `TradingLimits` library
-- Executes minting/burning of stable tokens through the reserve
-
-**Exchange Providers** implement the actual AMM pricing:
-
-| Contract | Description |
-|---|---|
-| `BiPoolManager.sol` | V1: Virtual two-asset pools with spread-based pricing using SortedOracles |
-| `FPMM.sol` | V2: Fixed Price Market Maker — oracle-based AMM with pool rebalancing |
-| `FPMMFactory.sol` | Factory for deploying FPMM pool instances |
-| `BancorExchangeProvider.sol` | Bancor-formula AMM for the GoodDollar integration |
-| `GoodDollarExchangeProvider.sol` | Extends BancorExchangeProvider with expansion controller and DAO Avatar access |
-
-The `Router.sol` provides a multi-hop swap path through compatible exchange providers.
-
-**Liquidity Strategies** (`contracts/liquidityStrategies/`) govern pool rebalancing:
-- `OpenLiquidityStrategy` — rebalances by swapping via FPMM
-- `ReserveLiquidityStrategy` — rebalances by drawing from the Reserve
-- `CDPLiquidityStrategy` — rebalances using a CDP system for collateral
+The protocol lets users swap between collateral assets and stable tokens at oracle-determined FX rates, subject to circuit breakers and trading limits enforced in smart contracts. Stable tokens are minted or burned through the **Broker** based on pool reserves. Governance is handled by a fully on-chain DAO (MentoToken + MentoGovernor + TimelockController).
 
 ---
 
-### 2. Oracle / Relayers
+## 2. Contract Subsystems
 
-**Location:** `contracts/oracles/`
+### 2.1 Broker / Exchange Providers (Swap routing)
 
-| Contract | Description |
-|---|---|
-| `ChainlinkRelayerV1.sol` | Bridges Chainlink aggregator feeds to SortedOracles. Supports up to 4 feeds, rate inversion, and composite rates (e.g., CELO/PHP = CELO/USD / PHP/USD). One instance per rate feed. |
-| `ChainlinkRelayerFactory.sol` | Factory for deploying ChainlinkRelayerV1 instances |
-| `OracleAdapter.sol` | Unified price interface consumed by FPMM and liquidity strategies. Aggregates SortedOracles + BreakerBox. Checks L2 sequencer uptime on Arbitrum/Optimism. |
-| `BreakerBox.sol` | Circuit breaker registry. Maintains a list of breakers per rate feed and returns a trading mode (bidirectional / sell-only / buy-only / halted). |
+| Contract | Location | Role |
+|----------|----------|------|
+| `Broker.sol` | `contracts/swap/Broker.sol` | Main swap entry point. Routes swaps through registered exchange providers, enforces trading limits, and mints/burns stable tokens. |
+| `BrokerProxy.sol` | `contracts/swap/BrokerProxy.sol` | Celo Proxy wrapper for Broker. |
+| `BiPoolManager.sol` | `contracts/swap/BiPoolManager.sol` | Manages two-token (bi-directional) exchange pools. Implements `IExchangeProvider`. Reads from BreakerBox to apply circuit breakers. |
+| `FPMM.sol` | `contracts/swap/FPMM.sol` | Fixed Product Market Maker (constant-product AMM) pool implementation. |
+| `FPMMFactory.sol` | `contracts/swap/FPMMFactory.sol` | Factory for creating FPMM pool instances. |
+| `Router.sol` | `contracts/swap/router/Router.sol` | Higher-level router that composes multi-hop swaps across pools. |
+| `VirtualPool.sol` | `contracts/swap/virtual/VirtualPool.sol` | Abstraction for virtual (off-chain liquidity backed) pools. |
+| `ConstantProductPricingModule.sol` | `contracts/swap/` | Constant-product pricing math (Uniswap V2 style). |
+| `ConstantSumPricingModule.sol` | `contracts/swap/` | Constant-sum pricing math (for pegged pairs). |
 
-**Breaker types** (`contracts/oracles/breakers/`):
-- `MedianDeltaBreaker` — triggers on large relative price deviations
-- `ValueDeltaBreaker` — triggers on absolute value changes
-- `MarketHoursBreaker` — halts trading outside defined market hours
+**GoodDollar Exchange Providers:**
 
----
-
-### 3. Tokens
-
-**Location:** `contracts/tokens/`, `contracts/governance/`
-
-| Contract | Description |
-|---|---|
-| `StableTokenV2.sol` | Primary ERC20 stable asset with ERC20Permit support. Multiple currency deployments (USDm, EURm, BRLm, etc.) each have their own proxy. |
-| `StableTokenV3.sol` | Extended stable token with additional features |
-| `StableTokenSpoke.sol` | Cross-chain stable token for multi-chain deployments |
-| `TempStable.sol` | Temporary stable token used during migrations or bootstrapping |
-| `MentoToken.sol` | Governance token (MENTO). ERC20Burnable, 1B total supply. Locking and Emission contracts have transfer permission when paused. Not upgradeable. |
-
-Each stable currency has a corresponding proxy contract (e.g., `StableTokenAUDProxy.sol`, `StableTokenEURProxy.sol`) to allow independent deployments sharing the same implementation.
+| Contract | Location | Role |
+|----------|----------|------|
+| `BancorExchangeProvider.sol` | `contracts/goodDollar/` | Bancor-formula AMM for GoodDollar expansion. |
+| `BancorFormula.sol` | `contracts/goodDollar/` | Pure math library implementing the Bancor bonding curve. |
+| `GoodDollarExchangeProvider.sol` | `contracts/goodDollar/` | GoodDollar-specific exchange provider wired to the expansion controller. |
+| `GoodDollarExpansionController.sol` | `contracts/goodDollar/` | Controls GoodDollar token supply expansion via the exchange provider. |
 
 ---
 
-### 4. Governance
+### 2.2 Oracle / Relayers (Price feeds and circuit breakers)
 
-**Location:** `contracts/governance/`
-
-| Contract | Description |
-|---|---|
-| `MentoGovernor.sol` | OpenZeppelin Governor with voting power from locked MENTO tokens. 7-day voting period, 2% quorum, 10,000 MENTO proposal threshold. |
-| `TimelockController.sol` | 2-day delay timelock. Queues and executes approved governance proposals. Roles: PROPOSER (Governor), EXECUTOR (anyone after delay). |
-| `Locking.sol` | Token locking with cliff+slope vesting schedule. Locked MENTO earns voting power. Supports delegation and relocking. |
-| `MentoToken.sol` | Governance token (see Tokens above) |
-| `Emission.sol` | Controls ongoing token emission schedule |
-| `Airgrab.sol` | Merkle-based airdrop distribution |
-| `GovernanceFactory.sol` | Deploys the entire governance system in one transaction (MentoToken, Locking, Emission, Airgrab, TimelockController, MentoGovernor, ProxyAdmin). Pre-calculates contract addresses by nonce for verification. |
+| Contract | Location | Role |
+|----------|----------|------|
+| `BreakerBox.sol` | `contracts/oracles/BreakerBox.sol` | Aggregates oracle rate data and evaluates circuit breakers. BiPoolManager consults it before allowing a swap. |
+| `ChainlinkRelayerV1.sol` | `contracts/oracles/ChainlinkRelayerV1.sol` | Reads from a Chainlink price feed and relays the result into the Mento oracle system (SortedOracles). |
+| `ChainlinkRelayerFactory.sol` | `contracts/oracles/ChainlinkRelayerFactory.sol` | Factory for deploying new `ChainlinkRelayerV1` instances. |
+| `OracleAdapter.sol` | `contracts/oracles/OracleAdapter.sol` | Adapts raw oracle prices for consumption by exchange providers. |
+| `MedianDeltaBreaker.sol` | `contracts/oracles/breakers/` | Circuit breaker that trips when price deviates too far from a recent median. |
+| `ValueDeltaBreaker.sol` | `contracts/oracles/breakers/` | Circuit breaker based on absolute value deviation. |
+| `MarketHoursBreaker.sol` | `contracts/oracles/breakers/` | Circuit breaker that restricts trading to defined market hours. |
 
 ---
 
-### 5. Reserve
+### 2.3 Tokens (Stable assets)
 
-**Location:** `contracts/swap/`
-
-| Contract | Description |
-|---|---|
-| `Reserve.sol` | V1: Manages protocol collateral. Handles stable token lists, collateral asset lists, Tobin tax, daily spending limits, and asset allocation weights. |
-| `ReserveV2.sol` | Modern reserve with cleaner API. Two spender roles: LiquidityStrategySpender (unrestricted destination) and ReserveManagerSpender (inter-reserve transfers). No Tobin tax or registry dependency. |
+| Contract | Location | Role |
+|----------|----------|------|
+| `StableTokenV2.sol` | `contracts/tokens/StableTokenV2.sol` | Core ERC-20 stable token with mint/burn capability. Base for all Mento stable currencies (cUSD, cEUR, cREAL, etc.). |
+| `StableTokenV3.sol` | `contracts/tokens/StableTokenV3.sol` | Enhanced V3 stable token with additional features. |
+| `StableTokenSpoke.sol` | `contracts/tokens/StableTokenSpoke.sol` | Bridge-compatible spoke token for cross-chain deployments. |
+| `TempStable.sol` | `contracts/tokens/TempStable.sol` | Temporary stub used during new stable-token deployment bootstrapping. |
+| `StableToken*Proxy.sol` | `contracts/tokens/` | Per-currency Celo Proxy wrappers (15+ currencies: AUD, BRL, CAD, CHF, COP, EUR, GBP, GHS, INR, JPY, KES, NGN, PSO, XOF, ZAR). |
 
 ---
 
-## Key Interaction Flows
+### 2.4 Governance (DAO)
 
-### Swap Flow
+| Contract | Location | Role |
+|----------|----------|------|
+| `MentoToken.sol` | `contracts/governance/MentoToken.sol` | ERC-20 governance token (MENTO). Supports locking for voting power. |
+| `MentoGovernor.sol` | `contracts/governance/MentoGovernor.sol` | On-chain governance executor (OpenZeppelin Governor). Proposals pass through the timelock. |
+| `TimelockController.sol` | `contracts/governance/TimelockController.sol` | Timelock that delays execution of governance decisions. |
+| `Locking.sol` | `contracts/governance/locking/Locking.sol` | Vote escrow — lock MENTO to receive time-weighted voting power. |
+| `Emission.sol` | `contracts/governance/Emission.sol` | Controls the MENTO emission schedule. |
+| `Airgrab.sol` | `contracts/governance/Airgrab.sol` | Merkle-proof airdrop for initial token distribution. |
+| `GovernanceFactory.sol` | `contracts/governance/GovernanceFactory.sol` | Deploys the full governance stack atomically. |
+
+---
+
+### 2.5 Reserve
+
+| Contract | Location | Role |
+|----------|----------|------|
+| `Reserve.sol` | `contracts/swap/Reserve.sol` | Holds collateral assets backing the stable tokens. Broker calls into Reserve to transfer collateral during swaps. |
+| `ReserveV2.sol` | `contracts/swap/ReserveV2.sol` | Extended reserve with additional asset management and strategy support. |
+
+---
+
+### 2.6 Liquidity Strategies
+
+| Contract | Location | Role |
+|----------|----------|------|
+| `CDPLiquidityStrategy.sol` | `contracts/liquidityStrategies/` | CDP (Collateralized Debt Position) based liquidity provisioning. |
+| `OpenLiquidityStrategy.sol` | `contracts/liquidityStrategies/` | Open market rebalancing strategy that allows direct rebalancing calls. |
+| `ReserveLiquidityStrategy.sol` | `contracts/liquidityStrategies/` | Reserve-backed liquidity provisioning. |
+
+---
+
+## 3. Key Interaction Flows
+
+### 3.1 Swap Flow
 
 ```
-User calls Broker.swapIn(tokenIn, tokenOut, amount)
-  │
-  ├─ Broker looks up exchange provider for the pair
-  │
-  ├─ ExchangeProvider (FPMM or BiPoolManager) called
-  │     └─ FPMM queries OracleAdapter for price
-  │           └─ OracleAdapter checks BreakerBox (circuit breakers)
-  │
-  ├─ Broker enforces TradingLimits for the pair
-  │
-  └─ Token transfer:
-       - tokenIn burned (if stable) or transferred to Reserve
-       - tokenOut minted (if stable) or transferred from Reserve
+User
+ │
+ ▼
+Broker.swap(exchangeProvider, exchangeId, tokenIn, tokenOut, amountIn, minAmountOut)
+ │
+ ├─► TradingLimits.update()          [check & update per-pool limits]
+ │
+ ├─► IExchangeProvider(BiPoolManager).swap()
+ │     │
+ │     ├─► BreakerBox.checkAndSetBreakers()   [oracle circuit breaker check]
+ │     │     └─► MedianDeltaBreaker / ValueDeltaBreaker / MarketHoursBreaker
+ │     │
+ │     └─► PricingModule.getAmountOut()       [constant-product / constant-sum math]
+ │
+ ├─► Reserve.transferOut(tokenIn)    [pull collateral from user → reserve]
+ │
+ └─► StableToken.mint(tokenOut)      [mint stable token → user]
+     OR Reserve.transferIn(tokenOut) [transfer stable → collateral]
 ```
 
-### Oracle Update Flow
+### 3.2 Oracle Update Flow
 
 ```
-Chainlink network updates aggregator price
-  │
-  ├─ ChainlinkRelayerV1.relay() called (permissionlessly)
-  │     └─ Validates timestamp spread across feeds
-  │     └─ Computes composite rate if needed
-  │     └─ Reports to SortedOracles
-  │
-  ├─ BreakerBox breakers evaluate new rate
-  │     └─ MedianDeltaBreaker / ValueDeltaBreaker / MarketHoursBreaker
-  │     └─ Update trading mode for the rate feed
-  │
-  └─ OracleAdapter reflects new rate and trading mode
-        └─ Consumed by FPMM, liquidity strategies, and BiPoolManager
+Chainlink Feed (off-chain)
+ │
+ ▼
+ChainlinkRelayerV1.relay()
+ │
+ └─► SortedOracles.report(rateFeedId, price, ...)   [Celo oracle contract]
+       │
+       └─► BreakerBox (consulted lazily on next swap)
+             └─► Breakers evaluate deviation / market hours
 ```
 
-### Governance Proposal Flow
+### 3.3 Governance Proposal Flow
 
 ```
-MENTO holder calls Locking.lock(amount, slope, cliff)
-  │
-  └─ Voting power accrues week-by-week per vesting schedule
-
-Holder calls MentoGovernor.propose(targets, values, calldatas, description)
-  │
-  └─ Voting period opens (7 days)
-
-Voters call MentoGovernor.castVote(proposalId, support)
-  │
-  └─ After voting period: if quorum met and FOR > AGAINST
-
-MentoGovernor.queue(proposalId)
-  │
-  └─ TimelockController queues execution (2-day delay)
-
-After delay: MentoGovernor.execute(proposalId)
-  │
-  └─ TimelockController calls target contracts
+MENTO Holder
+ │
+ ▼ lock MENTO
+Locking.lock()   →   voting power accrues
+ │
+ ▼
+MentoGovernor.propose(targets, values, calldatas, description)
+ │
+ ▼ (voting period passes, quorum reached, vote succeeds)
+MentoGovernor.queue()
+ │
+ └─► TimelockController.schedule(...)   [delay enforced here]
+       │
+       ▼ (timelock delay elapses)
+TimelockController.execute(...)
+ │
+ └─► target.call(calldata)              [e.g. Broker.addExchangeProvider, Reserve.addToken]
 ```
 
 ---
 
-## Upgradeability Notes
+## 4. Upgradeability Notes
 
-| Pattern | Used By |
-|---|---|
-| **Celo Proxy** (custom, non-OZ) | `Broker`, `BiPoolManager`, `Reserve` (V1 contracts) |
-| **OpenZeppelin TransparentUpgradeableProxy** | `FPMM`, `FPMMFactory`, `MentoGovernor`, `Locking`, `ReserveV2`, `LiquidityStrategy` variants |
-| **ERC-7201 namespaced storage** | `FPMM`, `LiquidityStrategy` — avoids storage collisions in upgradeable contracts |
-| **Non-upgradeable (direct deployment)** | `MentoToken`, `ChainlinkRelayerV1` |
+Two proxy patterns are used in `mento-core`:
 
-All upgradeable contracts use `Initializable` and `_disableInitializers()` in their constructors to prevent implementation contract initialization.
+### 4.1 Celo Proxy Pattern
+
+Most protocol contracts use a lightweight `Proxy.sol` inherited from Celo's contract suite. Proxy ownership is managed separately and upgrade calls go through the proxy's `_setImplementation` / `_transferOwnership` functions.
+
+**Contracts using Celo Proxy:**
+- `BrokerProxy` → `Broker`
+- `BiPoolManagerProxy` → `BiPoolManager`
+- `ReserveProxy` → `Reserve`
+- All `StableToken*Proxy` contracts (15+ currencies)
+
+### 4.2 Transparent Upgradeable Proxy (OpenZeppelin)
+
+Some newer contracts use OpenZeppelin's `TransparentUpgradeableProxy`, managed by a `ProxyAdmin`.
+
+**Contracts using Transparent Proxy:**
+- `FPMMProxy` → `FPMM`
+- `ChainlinkRelayerFactoryProxy` → `ChainlinkRelayerFactory`
+
+### 4.3 Non-upgradeable Contracts
+
+Governance contracts (`MentoToken`, `MentoGovernor`, `TimelockController`, `Locking`) are **not upgradeable** — they are deployed directly without proxies. Changes require governance to deploy a new instance and migrate.
 
 ---
 
-## Entry Points
+## 5. Entry Points — Where to Start Reading
 
-**Start here depending on your focus area:**
+| Goal | Start here |
+|------|-----------|
+| Understand swap mechanics | `contracts/swap/Broker.sol` |
+| Understand AMM pricing | `contracts/swap/FPMM.sol`, `ConstantProductPricingModule.sol` |
+| Understand oracle circuit breakers | `contracts/oracles/BreakerBox.sol` |
+| Understand Chainlink price relay | `contracts/oracles/ChainlinkRelayerV1.sol` |
+| Understand stable token minting | `contracts/tokens/StableTokenV2.sol` |
+| Understand governance voting | `contracts/governance/MentoGovernor.sol`, `Locking.sol` |
+| Understand reserve collateral | `contracts/swap/Reserve.sol` |
+| Understand GoodDollar integration | `contracts/goodDollar/BancorExchangeProvider.sol` |
+| Understand multi-hop routing | `contracts/swap/router/Router.sol` |
+| See all interfaces | `contracts/interfaces/` |
 
-| Area | Start With |
-|---|---|
-| Swap / AMM | `contracts/interfaces/IBroker.sol` → `contracts/swap/FPMM.sol` |
-| Oracle system | `contracts/oracles/OracleAdapter.sol` → `contracts/oracles/BreakerBox.sol` |
-| Governance | `contracts/governance/GovernanceFactory.sol` → `contracts/governance/locking/Locking.sol` |
-| Token issuance | `contracts/tokens/StableTokenV2.sol` → `contracts/swap/ReserveV2.sol` |
-| Pool rebalancing | `contracts/liquidityStrategies/LiquidityStrategy.sol` |
-| GoodDollar integration | `contracts/goodDollar/GoodDollarExchangeProvider.sol` |
-| Deployment scripts | `contracts/governance/deployers/` |
-
-**Solidity versions:** Legacy contracts use `^0.5.13`; modern contracts use `^0.8.18–0.8.24`.
-
-**Testing:** All tests are in `test/` and run with Foundry (`forge test --no-match-contract ForkTest` for unit tests only, as fork tests require RPC access).
