@@ -584,6 +584,20 @@ contract ChainlinkRelayerV1Test_relay_double is ChainlinkRelayerV1Test_relay_sin
     relayer.relay();
   }
 
+  function test_revertsWhenOldestFeedIsExpiredButNewestIsNot() public {
+    // Feed 0: 700s old (expired, > expirySeconds=600)
+    // Feed 1: 400s old (not expired, < expirySeconds=600)
+    // Spread: 300s (== maxTimestampSpread=300, within limit)
+    // Without the fix, only newestChainlinkTs is checked and this would
+    // silently relay stale price data from feed 0.
+    uint256 oldTs = block.timestamp - 700;
+    uint256 newTs = block.timestamp - 400;
+    mockAggregator0.setRoundData(aggregatorPrice0, oldTs);
+    mockAggregator1.setRoundData(aggregatorPrice1, newTs);
+    vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
   function test_revertsWhenTimestampSpreadTooLarge() public virtual {
     mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
     vm.warp(block.timestamp + 301);

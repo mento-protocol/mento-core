@@ -225,7 +225,7 @@ contract ChainlinkRelayerV1 is IChainlinkRelayer {
       revert TimestampNotNew();
     }
 
-    if (isTimestampExpired(newestChainlinkTs)) {
+    if (isTimestampExpired(oldestChainlinkTs)) {
       revert ExpiredTimestamp();
     }
 
