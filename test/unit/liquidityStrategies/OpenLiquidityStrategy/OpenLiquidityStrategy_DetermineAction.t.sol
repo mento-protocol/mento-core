@@ -239,4 +239,131 @@ contract OpenLiquidityStrategy_DetermineActionTest is OpenLiquidityStrategy_Base
     assertEq(uint8(action.dir), uint8(LQ.Direction.Contract));
     assertTrue(action.amountOwedToPool > 0);
   }
+
+  /* ============================================================ */
+  /* ===== determineAction from address(0) returns ideal ======== */
+  /* ============================================================ */
+
+  function test_determineAction_expansion_whenCallerIsAddressZero_shouldReturnIdealAmounts()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
+  {
+    provideFPMMReserves(100e18, 200e18, true);
+    setOracleRate(1e18, 1e18);
+
+    // address(0) should return ideal (unclamped) amounts
+    vm.prank(address(0));
+    (, LQ.Action memory idealAction) = strategy.determineAction(address(fpmm));
+
+    assertEq(uint8(idealAction.dir), uint8(LQ.Direction.Expand));
+    assertTrue(idealAction.amount1Out > 0, "Should have collateral out");
+    assertTrue(idealAction.amountOwedToPool > 0, "Should owe debt to pool");
+  }
+
+  function test_determineAction_contraction_whenCallerIsAddressZero_shouldReturnIdealAmounts()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
+  {
+    provideFPMMReserves(200e18, 100e18, true);
+    setOracleRate(1e18, 1e18);
+
+    vm.prank(address(0));
+    (, LQ.Action memory idealAction) = strategy.determineAction(address(fpmm));
+
+    assertEq(uint8(idealAction.dir), uint8(LQ.Direction.Contract));
+    assertTrue(idealAction.amount0Out > 0, "Should have debt out");
+    assertTrue(idealAction.amountOwedToPool > 0, "Should owe collateral to pool");
+  }
+
+  function test_determineAction_expansion_addressZeroReturnsIdeal_greaterOrEqualToClampedAmounts()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
+  {
+    // Large imbalance so clamping is likely to kick in for limited callers
+    provideFPMMReserves(100e18, 1000e18, true);
+    setOracleRate(1e18, 1e18);
+
+    // Ideal amounts from address(0)
+    vm.prank(address(0));
+    (, LQ.Action memory idealAction) = strategy.determineAction(address(fpmm));
+
+    // Clamped amounts from a caller with limited debt
+    address limitedCaller = makeAddr("LimitedDebtCaller2");
+    MockERC20(debtToken).mint(limitedCaller, 1e18);
+    vm.prank(limitedCaller);
+    (, LQ.Action memory clampedAction) = strategy.determineAction(address(fpmm));
+
+    // Ideal amounts should be >= clamped amounts
+    assertTrue(idealAction.amountOwedToPool >= clampedAction.amountOwedToPool, "Ideal debt owed should be >= clamped");
+    assertTrue(idealAction.amount1Out >= clampedAction.amount1Out, "Ideal collateral out should be >= clamped");
+  }
+
+  function test_determineAction_contraction_addressZeroReturnsIdeal_greaterOrEqualToClampedAmounts()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
+  {
+    // Large imbalance so clamping is likely to kick in for limited callers
+    provideFPMMReserves(1000e18, 100e18, true);
+    setOracleRate(1e18, 1e18);
+
+    // Ideal amounts from address(0)
+    vm.prank(address(0));
+    (, LQ.Action memory idealAction) = strategy.determineAction(address(fpmm));
+
+    // Clamped amounts from a caller with limited collateral
+    address limitedCaller = makeAddr("LimitedCollCaller2");
+    MockERC20(collToken).mint(limitedCaller, 1e18);
+    vm.prank(limitedCaller);
+    (, LQ.Action memory clampedAction) = strategy.determineAction(address(fpmm));
+
+    assertTrue(
+      idealAction.amountOwedToPool >= clampedAction.amountOwedToPool,
+      "Ideal collateral owed should be >= clamped"
+    );
+    assertTrue(idealAction.amount0Out >= clampedAction.amount0Out, "Ideal debt out should be >= clamped");
+  }
+
+  function test_determineAction_expansion_addressZeroMatchesSufficientBalance()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
+  {
+    provideFPMMReserves(100e18, 200e18, true);
+    setOracleRate(1e18, 1e18);
+
+    // address(0) ideal amounts
+    vm.prank(address(0));
+    (, LQ.Action memory idealAction) = strategy.determineAction(address(fpmm));
+
+    // Rebalancer has plenty of tokens, so should also get ideal amounts
+    vm.prank(rebalancer);
+    (, LQ.Action memory rebalancerAction) = strategy.determineAction(address(fpmm));
+
+    assertEq(idealAction.amountOwedToPool, rebalancerAction.amountOwedToPool, "Ideal should match sufficient balance");
+    assertEq(idealAction.amount1Out, rebalancerAction.amount1Out, "Collateral out should match");
+    assertEq(idealAction.amount0Out, rebalancerAction.amount0Out, "Debt out should match");
+  }
+
+  function test_determineAction_contraction_addressZeroMatchesSufficientBalance()
+    public
+    fpmmToken0Debt(18, 18)
+    addFpmmWithIncentive(0, 100, 0.005e18, 0.005025125628140703e18, 0.005e18, 0.005025125628140703e18)
+  {
+    provideFPMMReserves(200e18, 100e18, true);
+    setOracleRate(1e18, 1e18);
+
+    vm.prank(address(0));
+    (, LQ.Action memory idealAction) = strategy.determineAction(address(fpmm));
+
+    vm.prank(rebalancer);
+    (, LQ.Action memory rebalancerAction) = strategy.determineAction(address(fpmm));
+
+    assertEq(idealAction.amountOwedToPool, rebalancerAction.amountOwedToPool, "Ideal should match sufficient balance");
+    assertEq(idealAction.amount0Out, rebalancerAction.amount0Out, "Debt out should match");
+    assertEq(idealAction.amount1Out, rebalancerAction.amount1Out, "Collateral out should match");
+  }
 }
