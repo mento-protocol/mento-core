@@ -77,8 +77,10 @@ contract OpenLiquidityStrategy is IOpenLiquidityStrategy, LiquidityStrategy {
     uint256 idealDebtToExpand,
     uint256 idealCollateralToPay
   ) internal view override returns (uint256 debtToExpand, uint256 collateralToPay) {
+    // If the caller is the zero address, return the ideal amounts used for external view call to determineAction
+    if (msg.sender == address(0)) return (idealDebtToExpand, idealCollateralToPay);
     address debtToken = ctx.debtToken();
-    uint256 debtBalance = IERC20(debtToken).balanceOf(_getRebalancer());
+    uint256 debtBalance = IERC20(debtToken).balanceOf(msg.sender);
 
     // slither-disable-next-line incorrect-equality
     if (debtBalance == 0) revert OLS_OUT_OF_DEBT();
@@ -112,8 +114,10 @@ contract OpenLiquidityStrategy is IOpenLiquidityStrategy, LiquidityStrategy {
     uint256 idealDebtToContract,
     uint256 idealCollateralToReceive
   ) internal view override returns (uint256 debtToContract, uint256 collateralToReceive) {
+    // If the caller is the zero address, return the ideal amounts used for external view call to determineAction
+    if (msg.sender == address(0)) return (idealDebtToContract, idealCollateralToReceive);
     address collateralToken = ctx.collateralToken();
-    uint256 collateralBalance = IERC20(collateralToken).balanceOf(_getRebalancer());
+    uint256 collateralBalance = IERC20(collateralToken).balanceOf(msg.sender);
 
     // slither-disable-next-line incorrect-equality
     if (collateralBalance == 0) revert OLS_OUT_OF_COLLATERAL();
