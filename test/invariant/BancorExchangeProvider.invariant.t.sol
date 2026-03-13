@@ -67,8 +67,8 @@ contract BancorExchangeProviderInvariantTest is Test {
       tokenAddress: address(token),
       tokenSupply: 300_000 * 1e18,
       reserveBalance: 60_000 * 1e18,
-      reserveRatio: uint32(MAX_WEIGHT * 20 / 100), // 20%
-      exitContribution: uint32(MAX_WEIGHT * 1 / 100) // 1%
+      reserveRatio: uint32((MAX_WEIGHT * 20) / 100), // 20%
+      exitContribution: uint32((MAX_WEIGHT * 1) / 100) // 1%
     });
 
     vm.prank(provider.owner());
