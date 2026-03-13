@@ -590,6 +590,8 @@ contract ChainlinkRelayerV1Test_relay_double is ChainlinkRelayerV1Test_relay_sin
     // Spread: 300s (== maxTimestampSpread=300, within limit)
     // Without the fix, only newestChainlinkTs is checked and this would
     // silently relay stale price data from feed 0.
+    // Advance time so subtracting 700 from block.timestamp does not underflow.
+    vm.warp(block.timestamp + 1000);
     uint256 oldTs = block.timestamp - 700;
     uint256 newTs = block.timestamp - 400;
     mockAggregator0.setRoundData(aggregatorPrice0, oldTs);
