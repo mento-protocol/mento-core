@@ -18,14 +18,11 @@
          +-----------------+   +--------------------+
                  ^                       ^
                  |                       |
-    +-------------------------+  +-------------------------+
-    | Alfajores_ChainForkTest |  | Alfajores_P0E00_...     |
-    +-------------------------+  +-------------------------+
     +--------------------+       +-------------------------+
-    | Celo_ChainForkTest |       | Alfajores_P0E01_...     |
+    | Celo_ChainForkTest |       | Celo_P0E00_...          |
     +--------------------+       +-------------------------+
                                  +-------------------------+
-                                 | Celo_P0E00_...          |
+                                 | Celo_P0E01_...          |
                                  +-------------------------+
 ```
 
@@ -41,17 +38,17 @@ These contracts are abstract and need to be extended by instance specific contra
 This happens in `ForkTests.t.sol`. For example:
 
 ```solidity
-contract Alfajores_ChainForkTest is ChainForkTest(ALFAJORES_ID, 1, uints(14)) {}
+contract Celo_ChainForkTest is ChainForkTest(CELO_ID, 1, uints(19)) {}
 ```
 
-This represents a ChainForkTest for Alfajores, with the expectation that there's a single exchange provider,
-and it has 14 exchanges. If the expectations change this will fail and need to be updated.
+This represents a ChainForkTest for Celo, with the expectation that there's a single exchange provider,
+and it has 19 exchanges. If the expectations change this will fail and need to be updated.
 
 ```solidity
-contract Alfajores_P0E00_ExchangeForkTest is ExchangeForkTest(ALFAJORES_ID, 0, 0) {}
+contract Celo_P0E00_ExchangeForkTest is ExchangeForkTest(CELO_ID, 0, 0) {}
 ```
 
-This represents an ExchangeForkTest for the 0th exchange of the 0th exchange provider on Alfajores.
+This represents an ExchangeForkTest for the 0th exchange of the 0th exchange provider on Celo.
 These tests contracts need to be added manually when we add more pairs or exchange providers, but the
 assertions at chain level gives us the heads up when this changes.
 
