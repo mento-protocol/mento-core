@@ -86,6 +86,8 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
   ) internal view override returns (uint256 debtToContract, uint256 collateralToReceive) {
     address collateralToken = ctx.collateralToken();
 
+    // Invariant: stable-first classification here must mirror _transferToPool so
+    // dual-registered tokens (stable + collateral) follow the mint path, not reserve transfer semantics.
     if (reserve.isStableAsset(collateralToken)) {
       // Stable assets are minted, so no reserve balance constraint
       return (idealDebtToContract, idealCollateralToReceive);

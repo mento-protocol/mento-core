@@ -256,6 +256,41 @@ contract ReserveLiquidityStrategy_StableStableClampTest is ReserveLiquidityStrat
     assertEq(action.amountOwedToPool, 46153846153846153846, "Collateral in should match formula exactly");
   }
 
+  function test_contraction_stableStable_whenToken1IsDebt_shouldNotClamp()
+    public
+    fpmmToken1Debt(18, 18)
+    addFpmmStableStable(0, 0, 0, 0, 0)
+  {
+    // Reversed token order: token1 is debt and token0 is collateral.
+    LQ.Context memory ctx = _createContextWithTokenOrder({
+      reserveDen: 100e18,
+      reserveNum: 300e18,
+      oracleNum: 1e18,
+      oracleDen: 1e18,
+      poolPriceAbove: true,
+      isToken0Debt: false,
+      incentives: LQ.RebalanceIncentives({
+        liquiditySourceIncentiveExpansion: 0,
+        protocolIncentiveExpansion: 0,
+        liquiditySourceIncentiveContraction: 0,
+        protocolIncentiveContraction: 0
+      })
+    });
+
+    LQ.Action memory action = strategy.determineAction(ctx);
+
+    // Formula: Y = (TD*RN - TN*RD) / (TN * (1 - i) * OD/ON + TD)
+    // TN = 1.05e18, TD = 1e18, RN = 300e18, RD = 100e18, OD/ON = 1, i = 0
+    // Y = (1e18 * 300e18 - 1.05e18 * 100e18) / (1.05e18 + 1e18)
+    // Y = (300e36 - 105e36) / 2.05e18 = 195e36 / 2.05e18 = 95121951219512195121
+    uint256 expectedDebtOut = 95121951219512195121;
+
+    assertEq(action.dir, LQ.Direction.Contract, "Should contract when token1 debt is in excess");
+    assertEq(action.amount0Out, 0, "No collateral should flow out during contraction");
+    assertEq(action.amount1Out, expectedDebtOut, "Debt out should be ideal (unclamped)");
+    assertEq(action.amountOwedToPool, expectedDebtOut, "Collateral in should be ideal (unclamped)");
+  }
+
   /* ============================================================ */
   /* ====== Dual-Registered Token (stable + collateral) ========= */
   /* ============================================================ */
