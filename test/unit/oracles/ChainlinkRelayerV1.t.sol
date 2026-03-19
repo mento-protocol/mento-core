@@ -584,7 +584,7 @@ contract ChainlinkRelayerV1Test_relay_double is ChainlinkRelayerV1Test_relay_sin
     relayer.relay();
   }
 
-  function test_revertsWhenOldestFeedIsExpiredButNewestIsNot() public {
+  function test_revertsWhenOldestFeedIsExpiredButNewestIsNot() public virtual {
     // Feed 0: 700s old (expired, > expirySeconds=600)
     // Feed 1: 400s old (not expired, < expirySeconds=600)
     // Spread: 300s (== maxTimestampSpread=300, within limit)
@@ -671,6 +671,19 @@ contract ChainlinkRelayerV1Test_relay_triple is ChainlinkRelayerV1Test_relay_dou
     relayer.relay();
   }
 
+  function test_revertsWhenOldestFeedIsExpiredButNewestIsNot() public virtual override {
+    // Same scenario as relay_double but also sets aggregator2 to avoid
+    // spurious TimestampSpreadTooHigh from aggregator2's stale setUp timestamp.
+    vm.warp(block.timestamp + 1000);
+    uint256 oldTs = block.timestamp - 700;
+    uint256 newTs = block.timestamp - 400;
+    mockAggregator0.setRoundData(aggregatorPrice0, oldTs);
+    mockAggregator1.setRoundData(aggregatorPrice1, newTs);
+    mockAggregator2.setRoundData(aggregatorPrice2, newTs);
+    vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
   function test_revertsWhenTimestampSpreadTooLarge() public virtual override {
     mockAggregator0.setRoundData(aggregatorPrice0, block.timestamp);
     vm.warp(block.timestamp + 301);
@@ -743,6 +756,20 @@ contract ChainlinkRelayerV1Test_relay_full is ChainlinkRelayerV1Test_relay_tripl
     mockAggregator2.setRoundData(aggregatorPrice3, block.timestamp + 1);
 
     vm.warp(block.timestamp + expirySeconds + 1);
+    vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
+    relayer.relay();
+  }
+
+  function test_revertsWhenOldestFeedIsExpiredButNewestIsNot() public override {
+    // Same scenario as relay_double but also sets aggregators 2 and 3 to avoid
+    // spurious TimestampSpreadTooHigh from their stale setUp timestamps.
+    vm.warp(block.timestamp + 1000);
+    uint256 oldTs = block.timestamp - 700;
+    uint256 newTs = block.timestamp - 400;
+    mockAggregator0.setRoundData(aggregatorPrice0, oldTs);
+    mockAggregator1.setRoundData(aggregatorPrice1, newTs);
+    mockAggregator2.setRoundData(aggregatorPrice2, newTs);
+    mockAggregator3.setRoundData(aggregatorPrice3, newTs);
     vm.expectRevert(EXPIRED_TIMESTAMP_ERROR);
     relayer.relay();
   }
