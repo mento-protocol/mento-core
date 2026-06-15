@@ -27,6 +27,8 @@ overrides:
         contracts/interfaces/*.sol,
         contracts/libraries/TradingLimits.sol,
         contracts/oracles/Chainlink*.sol,
+        contracts/oracles/DataStreams*.sol,
+        contracts/oracles/breakers/MedianDeltaBreakerV2.sol,
         contracts/swap/Broker.sol,
         contracts/tokens/patched/*.sol,
         contracts/tokens/StableTokenV2.sol,
