@@ -1,0 +1,14 @@
+{
+  "pinBlock": 0,
+  "rateFeedId": "0x0000000000000000000000000000000000000000",
+  "description": "CELO/USD",
+  "maxTimestampSpread": 0,
+  "maxStaleness": 120,
+  "legs": [
+    {
+      "feedId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "invert": false,
+      "signedReport": "0x"
+    }
+  ]
+}

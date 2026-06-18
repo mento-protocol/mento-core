@@ -16,7 +16,10 @@ gas_limit = 9223372036854775807
 
 allow_paths = ["node_modules/@celo"]
 
-fs_permissions = [{ access = "read", path = "out" }]
+fs_permissions = [
+  { access = "read", path = "out" },
+  { access = "read", path = "./fixtures" },
+]
 
 [profile.ci]
 fuzz_runs = 1_000
