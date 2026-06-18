@@ -69,14 +69,15 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
   /* =========================================================== */
 
   /**
-   * @notice Clamps contraction amounts based on Reserve's collateral balance
-   * @dev Reserve has unlimited minting capacity for expansions so no clamping needed
-   *      For contractions, checks Reserve collateral balance and adjusts if insufficient
+   * @notice Clamps contraction amounts based on how the collateral side is sourced
+   * @dev If the collateral token is registered as a stable asset, it is minted during contraction
+   *      so the ideal amounts can be used without clamping.
+   *      If it is registered as a collateral asset, the amount is clamped to the Reserve's balance.
    * @param ctx The liquidity context containing pool state and configuration
    * @param idealDebtToContract The calculated ideal amount of debt tokens to receive from pool
    * @param idealCollateralToReceive The calculated ideal amount of collateral to add to pool
    * @return debtToContract The actual debt amount to contract (may be less than ideal)
-   * @return collateralToReceive The actual collateral amount to send (adjusted if balance insufficient)
+   * @return collateralToReceive The actual collateral amount to send (adjusted if Reserve balance is insufficient)
    */
   function _clampContraction(
     LQ.Context memory ctx,
@@ -84,24 +85,34 @@ contract ReserveLiquidityStrategy is IReserveLiquidityStrategy, LiquidityStrateg
     uint256 idealCollateralToReceive
   ) internal view override returns (uint256 debtToContract, uint256 collateralToReceive) {
     address collateralToken = ctx.collateralToken();
-    uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(reserve));
 
-    // slither-disable-next-line incorrect-equality
-    if (collateralBalance == 0) revert RLS_RESERVE_OUT_OF_COLLATERAL();
+    // Invariant: stable-first classification here must mirror _transferToPool so
+    // dual-registered tokens (stable + collateral) follow the mint path, not reserve transfer semantics.
+    if (reserve.isStableAsset(collateralToken)) {
+      // Stable assets are minted, so no reserve balance constraint
+      return (idealDebtToContract, idealCollateralToReceive);
+    } else if (reserve.isCollateralAsset(collateralToken)) {
+      uint256 collateralBalance = IERC20(collateralToken).balanceOf(address(reserve));
 
-    if (collateralBalance < idealCollateralToReceive) {
-      uint256 combinedFeeMultiplier = LQ.combineFees(
-        ctx.incentives.protocolIncentiveContraction,
-        ctx.incentives.liquiditySourceIncentiveContraction
-      );
-      collateralToReceive = collateralBalance;
-      debtToContract = ctx.convertToDebtWithFee(collateralBalance, LQ.FEE_DENOMINATOR, combinedFeeMultiplier);
+      // slither-disable-next-line incorrect-equality
+      if (collateralBalance == 0) revert RLS_RESERVE_OUT_OF_COLLATERAL();
+
+      if (collateralBalance < idealCollateralToReceive) {
+        uint256 combinedFeeMultiplier = LQ.combineFees(
+          ctx.incentives.protocolIncentiveContraction,
+          ctx.incentives.liquiditySourceIncentiveContraction
+        );
+        collateralToReceive = collateralBalance;
+        debtToContract = ctx.convertToDebtWithFee(collateralBalance, LQ.FEE_DENOMINATOR, combinedFeeMultiplier);
+      } else {
+        collateralToReceive = idealCollateralToReceive;
+        debtToContract = idealDebtToContract;
+      }
+
+      return (debtToContract, collateralToReceive);
     } else {
-      collateralToReceive = idealCollateralToReceive;
-      debtToContract = idealDebtToContract;
+      revert RLS_TOKEN_IN_NOT_SUPPORTED();
     }
-
-    return (debtToContract, collateralToReceive);
   }
 
   /* ============================================================ */
