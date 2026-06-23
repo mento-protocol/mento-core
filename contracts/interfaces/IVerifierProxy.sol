@@ -5,8 +5,6 @@ pragma solidity ^0.8.19;
  * @notice Minimal interface for the Chainlink Data Streams VerifierProxy.
  * @dev On Celo mainnet s_feeManager() returns address(0), so parameterPayload
  *      should be empty bytes and no fee is required.
- *      Celo mainnet address: 0x57A97148C1fa50f35F0639f380077017D8893b6b
- *      Celo Alfajores address: 0xfa58eE98c9d56A3e6e903f300BE8C60Bf031808D
  */
 interface IVerifierProxy {
   /**
