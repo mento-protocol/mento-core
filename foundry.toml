@@ -18,7 +18,6 @@ allow_paths = ["node_modules/@celo"]
 
 fs_permissions = [
   { access = "read", path = "out" },
-  { access = "read", path = "./fixtures" },
 ]
 
 [profile.ci]
