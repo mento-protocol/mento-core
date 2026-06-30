@@ -267,6 +267,33 @@ contract MedianDeltaBreakerV2Test_slew is MedianDeltaBreakerV2Test {
     bool tripped = moveAfter(3600, 105e22); // +5% over 1h; crypto allowed = min(20%, 1%+10%) = 11% → allow
     assertFalse(tripped);
   }
+
+  // M1 regression: BreakerBox.checkAndSetBreakers is permissionless, so a griefer can call
+  // shouldTrigger at a chosen cadence. A no-op call (median unchanged) must NOT advance the anchor,
+  // otherwise Δt could be pinned near zero, shrinking the allowance toward baseJump and false-tripping
+  // the breaker on the next genuine move (a DoS-toward-halt vector). The anchor advances only on a
+  // distinct median, so Δt accrues real time regardless of how often the breaker is poked.
+  function test_noOpSpamDoesNotShrinkAllowance() public {
+    seed(FIX1); // anchor (FIX1, t0)
+    uint256 t0 = breaker.lastReportTime(rateFeedId);
+
+    // Griefer spams the breaker with the median unchanged over 2000s.
+    for (uint256 i = 0; i < 4; i++) {
+      vm.warp(block.timestamp + 500);
+      assertFalse(trigger(), "unchanged median must never trip");
+      assertEq(breaker.lastReportTime(rateFeedId), t0, "no-op must not advance the time anchor");
+      assertEq(breaker.lastMedian(rateFeedId), FIX1, "no-op must not move the median anchor");
+    }
+
+    // A genuine +1% move now lands at t0+2000. The allowance accrued the full 2000s
+    // (min(5%, 0.5% + ~1.11%) ≈ 1.61%), so +1% is in-band and does not trip. Had the no-op calls
+    // advanced the anchor, Δt would be ~0, leaving only baseJump (0.5%) and this move would trip.
+    setMedian(101e22); // +1% vs anchor
+    assertFalse(trigger(), "in-band move must not trip after no-op spam");
+    // The real move advances the anchor.
+    assertEq(breaker.lastMedian(rateFeedId), 101e22);
+    assertEq(breaker.lastReportTime(rateFeedId), t0 + 2000);
+  }
 }
 
 contract MedianDeltaBreakerV2Test_admin is MedianDeltaBreakerV2Test {

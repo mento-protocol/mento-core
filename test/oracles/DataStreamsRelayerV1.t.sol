@@ -366,6 +366,16 @@ contract DataStreamsRelayerV1Test_relay is DataStreamsRelayerV1Test {
     relay(wrap(r));
   }
 
+  // L2: a future-dated observationsTimestamp must revert with a clear FutureReport(), not an opaque
+  // arithmetic underflow on `block.timestamp - obsTs`.
+  function test_relay_futureObsTs_reverts() public {
+    setUpRelayer(1, 0);
+    uint32 obsTs = uint32(block.timestamp + 1);
+    bytes memory r = buildReport(feedId0, obsTs, uint32(block.timestamp + 1000), 5e17);
+    vm.expectRevert(abi.encodeWithSignature("FutureReport()"));
+    relay(wrap(r));
+  }
+
   // ----- spread: == maxTimestampSpread accepts, +1 reverts -----
 
   function test_relay_spread_boundary_accepts() public {

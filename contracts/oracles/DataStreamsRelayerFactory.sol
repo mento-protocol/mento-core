@@ -108,6 +108,12 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
 
   /**
    * @notice Deploys a new DataStreamsRelayerV1 contract.
+   * @dev Relayers are immutable per config: the CREATE2 address is derived from the constructor
+   *      args (rateFeedId, description, spread, staleness, legs). Two relayers with byte-identical
+   *      params therefore collide at the same address. Reconfiguring a feed via redeployRelayer must
+   *      change at least one arg; redeploying with identical params after removeRelayer reverts
+   *      ContractAlreadyExists (the old contract still has code at that address). You cannot "reset"
+   *      a relayer to byte-identical params — vary a param (e.g. the description) to get a new one.
    * @param rateFeedId The rate feed ID for which the relayer will report.
    * @param rateFeedDescription Human-readable description of the rate feed, i.e. "USD/CHF".
    * @param maxTimestampSpread Max difference in seconds between the earliest and latest

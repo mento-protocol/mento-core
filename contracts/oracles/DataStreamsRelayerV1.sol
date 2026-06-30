@@ -143,6 +143,9 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
    */
   error ReportTooStale();
 
+  /// @notice Used when a report's observationsTimestamp is in the future relative to block.timestamp.
+  error FutureReport();
+
   /**
    * @notice Used when the spread between the earliest and latest observationsTimestamp
    * across all legs is above the maximum allowed.
@@ -296,6 +299,10 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
 
     if (reportFeedId != leg.feedId) revert WrongFeedId(legIndex, leg.feedId, reportFeedId);
     if (price <= 0) revert InvalidPrice();
+    // A future-dated observation would underflow the staleness subtraction below (0.8.x checked
+    // math) and revert opaquely; reject it explicitly with a clear error instead.
+    // solhint-disable-next-line not-rely-on-time
+    if (obsTs > block.timestamp) revert FutureReport();
     // solhint-disable-next-line not-rely-on-time
     if (block.timestamp > expiresAt) revert ExpiredSignature();
     // solhint-disable-next-line not-rely-on-time
@@ -342,6 +349,12 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
    *
    * We read only slots 0, 2, 5, and 6 via assembly. Schema-specific trailing
    * fields (bid/ask, marketStatus) are ignored, making this decoder version-agnostic.
+   *
+   * Confirmed against reality: an eth_call to the live Celo mainnet VerifierProxy 2.0.0
+   * (0x57A97148C1fa50f35F0639f380077017D8893b6b, s_feeManager() == address(0)) with a real
+   * EUR/USD V4 report returned the bare report struct (slot 0 == feedId, not an envelope),
+   * decoding to the expected price/timestamps at these offsets. So verify()/verifyBulk() return
+   * the report struct directly and the V3/V4 first-7-field assumption holds for V4 FX feeds.
    * @param report The ABI-encoded verified report bytes.
    * @return feedId The Data Streams feedId (bytes32 stream identifier).
    * @return observationsTimestamp When the DON observed the price (unix seconds).
@@ -370,6 +383,13 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
    *     We restrain this path by only computing lesser and greater keys when there is
    *     at most one report from a different oracle.
    *     We also attempt to expire reports in order to get back to the happy path.
+   *
+   *   DUAL-RUN OPERATIONAL CONSTRAINT: this only tolerates a feed with at most two reporters
+   *   total, at most one of which is foreign to this relayer. During the push->pull migration a
+   *   feed may briefly carry both the legacy push ChainlinkRelayer and this pull relayer; that is
+   *   fine (numRates == 2, one is self). But if a migrating feed still has any *third* legacy
+   *   oracle, numRates > 2 reverts TooManyExistingReports() and the write path is dead. Before
+   *   enabling the pull relayer on a feed, confirm it has no leftover third oracle.
    * @param rate The rate to report.
    */
   function reportRate(uint256 rate) internal {

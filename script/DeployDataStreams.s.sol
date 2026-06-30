@@ -120,6 +120,7 @@ contract DeployDataStreams is Script {
     address deployer = msg.sender;
     Globals memory g = _loadGlobals(deployer);
     FeedConfig[] memory feeds = _loadFeeds();
+    _warnPlaceholders(g, feeds);
 
     console.log("=== Data Streams Phase-1 Deployment (DP1) ===");
     console.log("Deployer:       ", deployer);
@@ -331,6 +332,48 @@ contract DeployDataStreams is Script {
 
   function _tbdFeedId(string memory label) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked("TBD:feedId:", label));
+  }
+
+  // ============ Placeholder / unvetted-param warning ============
+
+  /**
+   * @notice Prints a loud warning for any config still on its built-in placeholder, so an operator
+   *         cannot silently ship the obviously-fake addresses or the unvetted economic defaults.
+   * @dev The breaker economics (baseJump/slewPerSecond/maxJump/cooldown/maxStaleness) are non-zero,
+   *      plausible-looking B10 placeholders: a run without DS_* env vars set will use them. They
+   *      MUST be vetted before mainnet. Addresses/feedIds (B1/B5/B13/B4) fall back to non-zero
+   *      `_tbdAddr`/`_tbdFeedId` sentinels that are detected and flagged here.
+   */
+  function _warnPlaceholders(Globals memory g, FeedConfig[] memory feeds) internal view {
+    bool anyPlaceholder = false;
+    if (g.sortedOracles == _tbdAddr("sortedOracles")) {
+      console.log("  [!] DS_SORTED_ORACLES unset -> TBD placeholder (B5):", g.sortedOracles);
+      anyPlaceholder = true;
+    }
+    if (g.verifierProxy == _tbdAddr("verifierProxy")) {
+      console.log("  [!] DS_VERIFIER_PROXY unset -> TBD placeholder (B1):", g.verifierProxy);
+      anyPlaceholder = true;
+    }
+    if (g.breakerBox == _tbdAddr("breakerBox")) {
+      console.log("  [!] DS_BREAKER_BOX unset -> TBD placeholder:", g.breakerBox);
+      anyPlaceholder = true;
+    }
+    for (uint256 i = 0; i < feeds.length; i++) {
+      if (feeds[i].rateFeedId == _tbdAddr(string.concat("rateFeed:", feeds[i].description))) {
+        console.log(string.concat("  [!] rateFeedId unset -> TBD placeholder (B13): ", feeds[i].description));
+        anyPlaceholder = true;
+      }
+    }
+
+    if (anyPlaceholder) {
+      console.log("==================== WARNING ====================");
+      console.log("One or more addresses/feedIds are TBD placeholders (env vars unset).");
+      console.log("This is fine for a dry run; DO NOT broadcast to mainnet like this.");
+    }
+    console.log("==================== WARNING ====================");
+    console.log("Breaker economics (baseJump/slew/maxJump/cooldown/maxStaleness) use built-in");
+    console.log("B10 defaults unless DS_* env vars override them. Vet these before mainnet.");
+    console.log("================================================\n");
   }
 
   // ============ Summary ============

@@ -222,8 +222,14 @@ contract MedianDeltaBreakerV2 is IBreaker, Ownable {
   /**
    * @notice Resets a rate feed's tracking anchor so the next report re-seeds.
    * @param rateFeedID The targeted rate feed.
-   * @dev Should be called when the breaker is disabled / re-enabled for a feed so it does
-   *      not compare a fresh report against a stale anchor (see plan §2.3 assumption b).
+   * @dev REQUIRED operational step: this breaker has no hook into BreakerBox.toggleBreaker (the
+   *      external 0.5.13 BreakerBox), so it cannot auto-clear its anchor when a feed's breaker is
+   *      disabled. After re-enabling a feed whose breaker was previously disabled, the owner MUST
+   *      call this before the feed resumes — otherwise the first post-re-enable report is compared
+   *      against a stale (lastMedian, lastReportTime). A legitimate drift larger than maxJump that
+   *      accumulated during the disabled window would false-trip on re-enable. Clearing the anchor
+   *      makes the next report re-seed instead (see plan §2.3 assumption b). Initial wiring needs no
+   *      reset: a never-seen feed already has a zero anchor and seeds on first call.
    */
   function resetBreakerState(address rateFeedID) external onlyOwner {
     if (rateFeedID == address(0)) revert RateFeedAddressMustBeSet();
@@ -300,8 +306,12 @@ contract MedianDeltaBreakerV2 is IBreaker, Ownable {
 
   /**
    * @notice Checks whether the latest median moved faster than the time-normalized allowance.
-   * @dev Mutates the per-feed anchor (lastMedian/lastReportTime) on every call, exactly once
-   *      per report (BreakerBox calls either shouldTrigger or shouldReset, never both).
+   * @dev Advances the per-feed anchor (lastMedian/lastReportTime) only when the median actually
+   *      moves. Δt is measured from the last *distinct* median, not from the last call: BreakerBox's
+   *      `checkAndSetBreakers` is permissionless, so advancing the anchor on every (possibly no-op)
+   *      call would let anyone pin Δt near zero and shrink the slew allowance toward baseJump
+   *      (a DoS-toward-halt / cadence-griefing vector). Anchoring on median change makes the
+   *      allowance independent of caller cadence.
    * @param rateFeedID The rate feed to check.
    * @return triggerBreaker True if the breaker should trip.
    */
@@ -327,9 +337,14 @@ contract MedianDeltaBreakerV2 is IBreaker, Ownable {
     (uint256 baseJump, uint256 slewPerSecond, uint256 maxJump) = getSlewParameters(rateFeedID);
     uint256 allowed = calculateAllowed(baseJump, slewPerSecond, maxJump, deltaT);
 
-    lastMedian[rateFeedID] = currentMedian;
-    // solhint-disable-next-line not-rely-on-time
-    lastReportTime[rateFeedID] = block.timestamp;
+    // Only advance the anchor when the median changed. A no-op call (median unchanged) leaves
+    // lastReportTime untouched so Δt keeps accruing real time and the allowance cannot be
+    // squeezed by a chosen call cadence. relDelta == 0 in that case, so this never trips.
+    if (currentMedian != prev) {
+      lastMedian[rateFeedID] = currentMedian;
+      // solhint-disable-next-line not-rely-on-time
+      lastReportTime[rateFeedID] = block.timestamp;
+    }
 
     return relDelta > allowed;
   }
