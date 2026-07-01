@@ -33,8 +33,8 @@ contract DataStreamsRelayerFactoryTest is Test {
   string aDescription = "CELO/PHP";
   uint256 maxStaleness = 600;
 
-  bytes32 feedId0 = keccak256("CELO/USD");
-  bytes32 feedId1 = keccak256("PHP/USD");
+  bytes32 feedId0 = 0x0003000000000000000000000000000000000000000000000000000000000001; // CELO/USD (V3)
+  bytes32 feedId1 = 0x0003000000000000000000000000000000000000000000000000000000000002; // PHP/USD (V3)
 
   bytes constant NOT_ALLOWED_ERROR = abi.encodeWithSignature("NotAllowed()");
 

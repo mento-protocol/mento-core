@@ -68,7 +68,7 @@ contract DataStreamsRelayerNegativePath is DataStreamsForkBase {
 
   ISortedOracles sortedOracles;
   address rateFeedId = makeAddr("CELO/USD");
-  bytes32 feedId0 = keccak256("CELO/USD");
+  bytes32 feedId0 = 0x0003000000000000000000000000000000000000000000000000000000000001; // CELO/USD (V3)
   uint256 maxStaleness = 600;
 
   function setUp() public {
@@ -150,7 +150,7 @@ contract DataStreamsRelayerNegativePath is DataStreamsForkBase {
     MockVerifierProxy verifier = new MockVerifierProxy();
     DataStreamsRelayerV1 relayer = _deployRelayer(address(verifier));
 
-    bytes32 wrong = keccak256("WRONG/USD");
+    bytes32 wrong = 0x00030000000000000000000000000000000000000000000000000000000000ff; // valid V3 prefix, unknown feed
     bytes memory report = _buildReport(wrong, uint32(block.timestamp), uint32(block.timestamp + 1000), 5e17);
 
     vm.expectRevert(abi.encodeWithSignature("WrongFeedId(uint256,bytes32,bytes32)", uint256(0), feedId0, wrong));

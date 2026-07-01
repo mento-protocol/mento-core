@@ -51,10 +51,11 @@ contract DataStreamsRelayerV1Test is Test {
   address rateFeedId = makeAddr("CELO/PHP");
   address caller = makeAddr("caller");
 
-  bytes32 feedId0 = keccak256("CELO/USD");
-  bytes32 feedId1 = keccak256("PHP/USD");
-  bytes32 feedId2 = keccak256("USD/EUR");
-  bytes32 feedId3 = keccak256("GBP/USD");
+  // V3 (0x0003, Crypto Advanced) feedIds — buildReport() below produces the V3 report layout.
+  bytes32 feedId0 = 0x0003000000000000000000000000000000000000000000000000000000000001; // CELO/USD
+  bytes32 feedId1 = 0x0003000000000000000000000000000000000000000000000000000000000002; // PHP/USD
+  bytes32 feedId2 = 0x0003000000000000000000000000000000000000000000000000000000000003; // USD/EUR
+  bytes32 feedId3 = 0x0003000000000000000000000000000000000000000000000000000000000004; // GBP/USD
 
   bool invert0 = false;
   bool invert1 = true;
@@ -123,6 +124,46 @@ contract DataStreamsRelayerV1Test is Test {
   function wrap(bytes memory a) internal pure returns (bytes[] memory arr) {
     arr = new bytes[](1);
     arr[0] = a;
+  }
+
+  /// @notice Build a V8-shaped (0x0008 / RWA-forex) report. V8 inserts a uint64 lastUpdateTimestamp
+  ///         at slot 6, so the (mid) price is at slot 7 — the decoder must read that slot for V8.
+  function buildReportV8(
+    bytes32 feedId,
+    uint32 observationsTimestamp,
+    uint32 expiresAt,
+    int192 midPrice
+  ) internal pure returns (bytes memory) {
+    return
+      abi.encode(
+        feedId, // slot 0
+        uint32(0), // slot 1 validFromTimestamp
+        observationsTimestamp, // slot 2
+        uint192(0), // slot 3 nativeFee
+        uint192(0), // slot 4 linkFee
+        expiresAt, // slot 5
+        uint64(0), // slot 6 lastUpdateTimestamp (V8-specific)
+        midPrice, // slot 7 midPrice
+        uint32(2) // slot 8 marketStatus
+      );
+  }
+
+  /// @notice Deploy a single-leg relayer for an arbitrary feedId (to exercise per-schema decoding).
+  function setUpRelayerWithFeed(bytes32 feedId) internal {
+    IDataStreamsRelayer.StreamLeg[] memory legs = new IDataStreamsRelayer.StreamLeg[](1);
+    legs[0] = IDataStreamsRelayer.StreamLeg(feedId, false);
+    relayer = IDataStreamsRelayer(
+      new DataStreamsRelayerV1(
+        rateFeedId,
+        "SCHEMA",
+        address(sortedOracles),
+        address(verifierProxy),
+        0,
+        maxStaleness,
+        legs
+      )
+    );
+    sortedOracles.addOracle(rateFeedId, address(relayer));
   }
 }
 
@@ -291,7 +332,7 @@ contract DataStreamsRelayerV1Test_relay is DataStreamsRelayerV1Test {
 
   function test_relay_revertsOnWrongFeedId() public {
     setUpRelayer(1, 0);
-    bytes32 wrong = keccak256("WRONG/USD");
+    bytes32 wrong = 0x00030000000000000000000000000000000000000000000000000000000000ff; // valid V3 prefix, unknown feed
     vm.expectRevert(abi.encodeWithSignature("WrongFeedId(uint256,bytes32,bytes32)", uint256(0), feedId0, wrong));
     relay(wrap(freshReport(wrong, 5e17)));
   }
@@ -300,7 +341,7 @@ contract DataStreamsRelayerV1Test_relay is DataStreamsRelayerV1Test {
     setUpRelayer(2, 300);
     bytes[] memory reports = new bytes[](2);
     reports[0] = freshReport(feedId0, 5e17);
-    bytes32 wrong = keccak256("WRONG/USD");
+    bytes32 wrong = 0x00030000000000000000000000000000000000000000000000000000000000ff; // valid V3 prefix, unknown feed
     reports[1] = freshReport(wrong, 2e16);
     vm.expectRevert(abi.encodeWithSignature("WrongFeedId(uint256,bytes32,bytes32)", uint256(1), feedId1, wrong));
     relay(reports);
@@ -330,6 +371,25 @@ contract DataStreamsRelayerV1Test_relay is DataStreamsRelayerV1Test {
     setUpRelayer(1, 0);
     vm.expectRevert(REPORT_TOO_SHORT_ERROR);
     relay(wrap(hex"deadbeef"));
+  }
+
+  // ----- per-schema decode: V8 reads the price from slot 7 -----
+
+  function test_relay_v8_decodesPriceFromSlot7() public {
+    bytes32 feedIdV8 = 0x0008000000000000000000000000000000000000000000000000000000000001;
+    setUpRelayerWithFeed(feedIdV8);
+    int192 midPrice = 1138170000000000000; // 1.13817 in 1e18
+    relay(wrap(buildReportV8(feedIdV8, uint32(block.timestamp), uint32(block.timestamp + 1000), midPrice)));
+    // A V3 decoder would have read slot 6 (lastUpdateTimestamp) here; slot 7 is the real price.
+    assertEq(median(), uint256(uint192(midPrice)) * 1e6);
+    assertEq(relayer.lastObservationsTimestamp(), block.timestamp);
+  }
+
+  function test_relay_unsupportedSchema_reverts() public {
+    bytes32 feedIdV9 = 0x0009000000000000000000000000000000000000000000000000000000000001; // V9, not allowlisted
+    setUpRelayerWithFeed(feedIdV9);
+    vm.expectRevert(abi.encodeWithSignature("UnsupportedSchema(uint16)", uint16(9)));
+    relay(wrap(freshReport(feedIdV9, 5e17)));
   }
 
   // ----- staleness: expiresAt + maxStaleness boundaries -----

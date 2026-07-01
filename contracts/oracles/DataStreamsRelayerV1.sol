@@ -161,6 +161,9 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
   /// @notice Used when the decoded report payload is shorter than the minimum expected length.
   error ReportTooShort();
 
+  /// @notice Used when a report's schema version (feedId prefix) is not one the relayer can decode.
+  error UnsupportedSchema(uint16 version);
+
   /**
    * @notice Used when trying to recover from a lesser/greater revert and there are
    * too many existing reports in SortedOracles.
@@ -335,9 +338,8 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
 
   /**
    * @notice Decodes the fields needed by the relayer from an ABI-encoded verified report.
-   * @dev The verified report returned by VerifierProxy.verifyBulk() is an ABI-encoded
-   * struct. The first seven 32-byte slots are common across all Data Streams schema
-   * versions (V3, V4, ...):
+   * @dev The verified report returned by VerifierProxy.verifyBulk() is an ABI-encoded struct. The
+   * first six 32-byte slots are common across the schemas the relayer accepts:
    *
    *   slot 0 (bytes   0-31): bytes32 feedId
    *   slot 1 (bytes  32-63): uint32  validFromTimestamp
@@ -345,16 +347,21 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
    *   slot 3 (bytes 96-127): uint192 nativeFee
    *   slot 4 (bytes 128-159): uint192 linkFee
    *   slot 5 (bytes 160-191): uint32  expiresAt
-   *   slot 6 (bytes 192-223): int192  price (mid)
    *
-   * We read only slots 0, 2, 5, and 6 via assembly. Schema-specific trailing
-   * fields (bid/ask, marketStatus) are ignored, making this decoder version-agnostic.
+   * The price sits at a schema-dependent slot (the feedId's first two bytes are the schema version):
+   *   V3 (0x0003, Crypto Advanced): price    at slot 6 (offset 224)
+   *   V8 (0x0008, RWA/forex):       midPrice at slot 7 (offset 256) — V8 inserts a uint64
+   *                                 lastUpdateTimestamp at slot 6, shifting the price down one slot.
+   *
+   * Any other schema reverts UnsupportedSchema rather than reading a wrong slot (e.g. V5 slot 6 is a
+   * rate, V9 is navPerShare) and silently writing a corrupted price. Extend the allowlist deliberately
+   * if a new stream type is added.
    *
    * Confirmed against reality: an eth_call to the live Celo mainnet VerifierProxy 2.0.0
-   * (0x57A97148C1fa50f35F0639f380077017D8893b6b, s_feeManager() == address(0)) with a real
-   * EUR/USD V4 report returned the bare report struct (slot 0 == feedId, not an envelope),
-   * decoding to the expected price/timestamps at these offsets. So verify()/verifyBulk() return
-   * the report struct directly and the V3/V4 first-7-field assumption holds for V4 FX feeds.
+   * (0x57A97148C1fa50f35F0639f380077017D8893b6b, s_feeManager() == address(0)) with a real forex
+   * report returned the bare report struct (slot 0 == feedId, not an envelope), decoding to the
+   * expected price/timestamps at these offsets. So verify()/verifyBulk() return the report struct
+   * directly.
    * @param report The ABI-encoded verified report bytes.
    * @return feedId The Data Streams feedId (bytes32 stream identifier).
    * @return observationsTimestamp When the DON observed the price (unix seconds).
@@ -364,13 +371,29 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
   function decodeReport(
     bytes memory report
   ) internal pure returns (bytes32 feedId, uint32 observationsTimestamp, uint32 expiresAt, int192 price) {
+    // Must at least hold the common prefix + the slot-6 price (the V3 minimum).
     if (report.length < 224) revert ReportTooShort();
     // solhint-disable-next-line no-inline-assembly
     assembly {
       feedId := mload(add(report, 32))
+    }
+
+    uint16 schemaVersion = uint16(bytes2(feedId));
+    uint256 priceOffset;
+    if (schemaVersion == 3) {
+      priceOffset = 224; // slot 6
+    } else if (schemaVersion == 8) {
+      if (report.length < 256) revert ReportTooShort(); // V8 price is at slot 7
+      priceOffset = 256;
+    } else {
+      revert UnsupportedSchema(schemaVersion);
+    }
+
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
       observationsTimestamp := mload(add(report, 96))
       expiresAt := mload(add(report, 192))
-      price := mload(add(report, 224))
+      price := mload(add(report, priceOffset))
     }
   }
 
