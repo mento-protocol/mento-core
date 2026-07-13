@@ -1,6 +1,9 @@
 # Migration Plan — Mento V3 Oracles → Chainlink Data Streams (pull-based)
 
-**Status:** Agreed design for the Mento V3 → Chainlink Data Streams migration.
+**Status:** Agreed design for the Mento V3 → Chainlink Data Streams migration. Implemented for
+Chainlink (V3 crypto + V8 forex). **Next evolution:** generalizing this Chainlink-specific path to be
+provider-agnostic (Pyth, RedStone, …) via a shared on-chain adapter + SDK data-source interface — see
+[provider-agnostic-oracle-design.md](./provider-agnostic-oracle-design.md).
 **Author:** generated audit + design draft.
 **Repo audited:** `mento-core` @ branch `main`, HEAD `0e07807 Mento V3 🎉 (#701)`.
 **Scope:** Replace the push-based `ChainlinkRelayerV1` oracle path with a **keeperless** pull-based Chainlink Data Streams path for the pairs Chainlink actually covers, keeping push relayers for the rest. Updates happen **only at swap time** (verify-on-swap); there is no Mento-operated keeper. Recovery runs through a **permissionless `relay()`**. The `MedianDeltaBreaker` EMA is replaced with a **time-normalized slew-rate breaker** that does not depend on a regular reporting cadence.

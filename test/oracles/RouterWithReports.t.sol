@@ -9,8 +9,8 @@ import { Test } from "mento-std/Test.sol";
 import { RouterWithReports } from "contracts/swap/router/RouterWithReports.sol";
 import { IRouter } from "contracts/swap/router/interfaces/IRouter.sol";
 import { IERC20 } from "contracts/swap/router/interfaces/IERC20.sol";
-import { IDataStreamsRelayer } from "contracts/interfaces/IDataStreamsRelayer.sol";
-import { IDataStreamsRelayerFactory } from "contracts/interfaces/IDataStreamsRelayerFactory.sol";
+import { IPullOracleRelayer } from "contracts/interfaces/IPullOracleRelayer.sol";
+import { IPullOracleRelayerFactory } from "contracts/interfaces/IPullOracleRelayerFactory.sol";
 import { MockVerifierProxy } from "test/utils/mocks/MockVerifierProxy.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
@@ -93,7 +93,7 @@ contract RouterWithReportsTest is Test {
 
   ISortedOracles sortedOracles;
   MockVerifierProxy verifier;
-  IDataStreamsRelayerFactory dsFactory;
+  IPullOracleRelayerFactory dsFactory;
   MockFactoryRegistry registry;
   MockRPoolFactory poolFactory;
   RouterWithReports router;
@@ -102,14 +102,14 @@ contract RouterWithReportsTest is Test {
   MockERC20 tokenB;
   MockERC20 tokenC;
 
-  // Feed 1: A/B
+  // Feed 1: A/B (V3-prefixed feedId — the Chainlink adapter's schema gate requires 0x0003/0x0008)
   address rateFeed1 = makeAddr("A/B");
-  bytes32 feedId1 = keccak256("A/B");
+  bytes32 feedId1 = 0x0003000000000000000000000000000000000000000000000000000000000001;
   MockOracleConsumerPool pool1;
 
   // Feed 2: B/C
   address rateFeed2 = makeAddr("B/C");
-  bytes32 feedId2 = keccak256("B/C");
+  bytes32 feedId2 = 0x0003000000000000000000000000000000000000000000000000000000000002;
   MockOracleConsumerPool pool2;
 
   uint256 amountIn = 1e18;
@@ -124,9 +124,11 @@ contract RouterWithReportsTest is Test {
     sortedOracles.setTokenReportExpiry(rateFeed2, 3600);
 
     verifier = new MockVerifierProxy(); // echo: signed payload == verified report
+    // The adapter is 0.8.19-pinned (like the factory), so deploy via artifact rather than importing.
+    address adapter = deployCode("ChainlinkDataStreamsAdapter", abi.encode(address(verifier)));
 
-    dsFactory = IDataStreamsRelayerFactory(deployCode("DataStreamsRelayerFactory", abi.encode(false)));
-    dsFactory.initialize(address(sortedOracles), address(verifier), address(this));
+    dsFactory = IPullOracleRelayerFactory(deployCode("PullOracleRelayerFactory", abi.encode(false)));
+    dsFactory.initialize(address(sortedOracles), adapter, address(this));
 
     tokenA = new MockERC20("A", "A", 18);
     tokenB = new MockERC20("B", "B", 18);
@@ -155,8 +157,8 @@ contract RouterWithReportsTest is Test {
   }
 
   function _deployRelayer(address rateFeedId, string memory desc, bytes32 feedId) internal {
-    IDataStreamsRelayer.StreamLeg[] memory legs = new IDataStreamsRelayer.StreamLeg[](1);
-    legs[0] = IDataStreamsRelayer.StreamLeg(feedId, false);
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](1);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId, false);
     address relayer = dsFactory.deployRelayer(rateFeedId, desc, 0, staleness, legs);
     sortedOracles.addOracle(rateFeedId, relayer);
   }
@@ -181,10 +183,16 @@ contract RouterWithReportsTest is Test {
     routes[0] = IRouter.Route(from, to, address(0)); // factory address(0) => default pool factory
   }
 
-  function _wrap1(bytes memory r) internal pure returns (bytes[][] memory perHop) {
-    perHop = new bytes[][](1);
-    perHop[0] = new bytes[](1);
-    perHop[0][0] = r;
+  /// @notice Builds the opaque Chainlink-adapter updateData blob for a single-report bundle.
+  function _updateData(bytes32 feedId, int192 price) internal view returns (bytes memory) {
+    bytes[] memory reports = new bytes[](1);
+    reports[0] = _report(feedId, price);
+    return abi.encode(reports);
+  }
+
+  function _hop1(bytes memory updateData) internal pure returns (bytes[] memory perHop) {
+    perHop = new bytes[](1);
+    perHop[0] = updateData;
   }
 
   // ---- the JIT ordering: ingest writes the rate, then the swap reads it fresh ----
@@ -200,7 +208,7 @@ contract RouterWithReportsTest is Test {
       _route(address(tokenA), address(tokenB)),
       address(this),
       block.timestamp,
-      _wrap1(_report(feedId1, 5e17))
+      _hop1(_updateData(feedId1, 5e17))
     );
 
     // ingest wrote a fresh median...
@@ -223,9 +231,8 @@ contract RouterWithReportsTest is Test {
   }
 
   function test_emptyHop_skipsIngest_revertsStale() public {
-    // An empty per-hop bundle must NOT ingest; the rate stays stale and the swap reverts.
-    bytes[][] memory perHop = new bytes[][](1);
-    perHop[0] = new bytes[](0);
+    // An empty per-hop blob must NOT ingest; the rate stays stale and the swap reverts.
+    bytes[] memory perHop = new bytes[](1); // default entry = empty bytes
     vm.expectRevert(STALE_RATE_ERROR);
     router.swapExactTokensForTokensWithReports(
       amountIn,
@@ -240,10 +247,8 @@ contract RouterWithReportsTest is Test {
   }
 
   function test_reportsLengthMismatch_reverts() public {
-    bytes[][] memory perHop = new bytes[][](2); // 2 bundles for a 1-hop route
-    perHop[0] = new bytes[](1);
-    perHop[0][0] = _report(feedId1, 5e17);
-    perHop[1] = new bytes[](0);
+    bytes[] memory perHop = new bytes[](2); // 2 blobs for a 1-hop route
+    perHop[0] = _updateData(feedId1, 5e17);
     vm.expectRevert(abi.encodeWithSignature("ReportsLengthMismatch()"));
     router.swapExactTokensForTokensWithReports(
       amountIn,
@@ -255,21 +260,36 @@ contract RouterWithReportsTest is Test {
     );
   }
 
+  function test_overfundedFee_reverts() public {
+    // All current-provider fees are 0, so any msg.value must revert FeeMismatch (exact match,
+    // no refunds — see _ingestUpdates).
+    vm.deal(address(this), 1 ether);
+    vm.expectRevert(abi.encodeWithSignature("FeeMismatch()"));
+    router.swapExactTokensForTokensWithReports{ value: 1 }(
+      amountIn,
+      amountIn,
+      _route(address(tokenA), address(tokenB)),
+      address(this),
+      block.timestamp,
+      _hop1(_updateData(feedId1, 5e17))
+    );
+  }
+
   function test_factoryNotSet_reverts() public {
     RouterWithReports noFactoryRouter = new RouterWithReports(
       address(0),
       address(registry),
       address(poolFactory),
-      address(0) // no DataStreamsRelayerFactory
+      address(0) // no PullOracleRelayerFactory
     );
-    vm.expectRevert(abi.encodeWithSignature("DataStreamsRelayerFactoryNotSet()"));
+    vm.expectRevert(abi.encodeWithSignature("PullOracleRelayerFactoryNotSet()"));
     noFactoryRouter.swapExactTokensForTokensWithReports(
       amountIn,
       amountIn,
       _route(address(tokenA), address(tokenB)),
       address(this),
       block.timestamp,
-      _wrap1(_report(feedId1, 5e17))
+      _hop1(_updateData(feedId1, 5e17))
     );
   }
 
@@ -280,11 +300,9 @@ contract RouterWithReportsTest is Test {
     routes[0] = IRouter.Route(address(tokenA), address(tokenB), address(0));
     routes[1] = IRouter.Route(address(tokenB), address(tokenC), address(0));
 
-    bytes[][] memory perHop = new bytes[][](2);
-    perHop[0] = new bytes[](1);
-    perHop[0][0] = _report(feedId1, 5e17);
-    perHop[1] = new bytes[](1);
-    perHop[1][0] = _report(feedId2, 8e17);
+    bytes[] memory perHop = new bytes[](2);
+    perHop[0] = _updateData(feedId1, 5e17);
+    perHop[1] = _updateData(feedId2, 8e17);
 
     uint256 balBefore = tokenC.balanceOf(address(this));
     router.swapExactTokensForTokensWithReports(amountIn, amountIn, routes, address(this), block.timestamp, perHop);

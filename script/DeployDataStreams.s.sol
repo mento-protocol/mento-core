@@ -3,14 +3,15 @@ pragma solidity 0.8.19;
 
 import { Script, console } from "forge-std/Script.sol";
 
-// Data Streams contracts
-import { DataStreamsRelayerFactory } from "contracts/oracles/DataStreamsRelayerFactory.sol";
-import { DataStreamsRelayerFactoryProxy } from "contracts/oracles/DataStreamsRelayerFactoryProxy.sol";
-import { DataStreamsRelayerFactoryProxyAdmin } from "contracts/oracles/DataStreamsRelayerFactoryProxyAdmin.sol";
+// Pull-oracle contracts
+import { PullOracleRelayerFactory } from "contracts/oracles/PullOracleRelayerFactory.sol";
+import { PullOracleRelayerFactoryProxy } from "contracts/oracles/PullOracleRelayerFactoryProxy.sol";
+import { PullOracleRelayerFactoryProxyAdmin } from "contracts/oracles/PullOracleRelayerFactoryProxyAdmin.sol";
+import { ChainlinkDataStreamsAdapter } from "contracts/oracles/adapters/ChainlinkDataStreamsAdapter.sol";
 
 // Interfaces
-import { IDataStreamsRelayer } from "contracts/interfaces/IDataStreamsRelayer.sol";
-import { IDataStreamsRelayerFactory } from "contracts/interfaces/IDataStreamsRelayerFactory.sol";
+import { IPullOracleRelayer } from "contracts/interfaces/IPullOracleRelayer.sol";
+import { IPullOracleRelayerFactory } from "contracts/interfaces/IPullOracleRelayerFactory.sol";
 
 // Breakers
 import { MedianDeltaBreakerV2 } from "contracts/oracles/breakers/MedianDeltaBreakerV2.sol";
@@ -44,7 +45,7 @@ interface IBreakerBoxMin {
  *     --broadcast
  *
  * This is the Phase-1 deploy for the Chainlink Data Streams oracle path (task DP1). It
- * deploys the DataStreamsRelayerFactory behind a transparent proxy, one DataStreamsRelayerV1
+ * deploys the PullOracleRelayerFactory behind a transparent proxy, one PullOracleRelayerV1
  * per Phase-1 rateFeedId (via the factory's CREATE2 path), and MedianDeltaBreakerV2, then
  * wires the breaker into the existing BreakerBox.
  *
@@ -75,7 +76,7 @@ contract DeployDataStreams is Script {
     string description;
     uint256 maxTimestampSpread;
     uint256 maxStaleness;
-    IDataStreamsRelayer.StreamLeg[] legs;
+    IPullOracleRelayer.OracleLeg[] legs;
     uint256 baseJump;
     uint256 slewPerSecond;
     uint256 maxJump;
@@ -109,9 +110,10 @@ contract DeployDataStreams is Script {
   }
 
   // ============ Deployed Contracts ============
-  DataStreamsRelayerFactoryProxyAdmin public proxyAdmin;
-  DataStreamsRelayerFactoryProxy public factoryProxy;
-  IDataStreamsRelayerFactory public factory;
+  ChainlinkDataStreamsAdapter public chainlinkAdapter;
+  PullOracleRelayerFactoryProxyAdmin public proxyAdmin;
+  PullOracleRelayerFactoryProxy public factoryProxy;
+  IPullOracleRelayerFactory public factory;
   MedianDeltaBreakerV2 public breakerV2;
   address[] public relayers;
   string[] public relayerDescriptions;
@@ -156,24 +158,30 @@ contract DeployDataStreams is Script {
   // ============ Deploy Steps ============
 
   function _deployFactory(Globals memory g) internal {
+    // Provider adapter: isolates all Chainlink Data Streams specifics (VerifierProxy, report
+    // schemas) behind the IPullOracleAdapter interface the factory/relayers consume.
+    chainlinkAdapter = new ChainlinkDataStreamsAdapter(g.verifierProxy);
+    vm.label(address(chainlinkAdapter), "ChainlinkDataStreamsAdapter");
+    console.log("ChainlinkDataStreamsAdapter:", address(chainlinkAdapter));
+
     // The implementation has its initializer disabled; the proxy is the live instance.
-    DataStreamsRelayerFactory impl = new DataStreamsRelayerFactory(true);
-    vm.label(address(impl), "DataStreamsRelayerFactory Implementation");
+    PullOracleRelayerFactory impl = new PullOracleRelayerFactory(true);
+    vm.label(address(impl), "PullOracleRelayerFactory Implementation");
     console.log("Factory Implementation:", address(impl));
 
-    proxyAdmin = new DataStreamsRelayerFactoryProxyAdmin();
-    vm.label(address(proxyAdmin), "DataStreamsRelayerFactory ProxyAdmin");
+    proxyAdmin = new PullOracleRelayerFactoryProxyAdmin();
+    vm.label(address(proxyAdmin), "PullOracleRelayerFactory ProxyAdmin");
     console.log("Factory ProxyAdmin:    ", address(proxyAdmin));
 
     bytes memory initData = abi.encodeWithSelector(
-      IDataStreamsRelayerFactory.initialize.selector,
+      IPullOracleRelayerFactory.initialize.selector,
       g.sortedOracles,
-      g.verifierProxy,
+      address(chainlinkAdapter),
       g.relayerDeployer
     );
-    factoryProxy = new DataStreamsRelayerFactoryProxy(address(impl), address(proxyAdmin), initData);
-    factory = IDataStreamsRelayerFactory(address(factoryProxy));
-    vm.label(address(factoryProxy), "DataStreamsRelayerFactory");
+    factoryProxy = new PullOracleRelayerFactoryProxy(address(impl), address(proxyAdmin), initData);
+    factory = IPullOracleRelayerFactory(address(factoryProxy));
+    vm.label(address(factoryProxy), "PullOracleRelayerFactory");
     console.log("Factory (proxy):       ", address(factoryProxy));
   }
 
@@ -200,7 +208,7 @@ contract DeployDataStreams is Script {
 
       relayers.push(deployed);
       relayerDescriptions.push(f.description);
-      vm.label(deployed, string.concat("DataStreamsRelayer ", f.description));
+      vm.label(deployed, string.concat("PullOracleRelayer ", f.description));
       console.log(string.concat("Relayer [", f.description, "]:"), deployed);
     }
   }
@@ -293,8 +301,8 @@ contract DeployDataStreams is Script {
 
   // Single-leg crypto feed: CELO/USD.
   function _celoUsd() internal view returns (FeedConfig memory f) {
-    IDataStreamsRelayer.StreamLeg[] memory legs = new IDataStreamsRelayer.StreamLeg[](1);
-    legs[0] = IDataStreamsRelayer.StreamLeg(vm.envOr("DS_FEEDID_CELO_USD", _tbdFeedId("CELO/USD")), false);
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](1);
+    legs[0] = IPullOracleRelayer.OracleLeg(vm.envOr("DS_FEEDID_CELO_USD", _tbdFeedId("CELO/USD")), false);
 
     f.rateFeedId = vm.envOr("DS_RATEFEED_CELO_USD", _tbdAddr("rateFeed:CELO/USD"));
     f.description = "CELO/USD";
@@ -309,9 +317,9 @@ contract DeployDataStreams is Script {
 
   // Two-leg cross-rate: CELO/PHP = CELO/USD * inverse(PHP/USD).
   function _celoPhp() internal view returns (FeedConfig memory f) {
-    IDataStreamsRelayer.StreamLeg[] memory legs = new IDataStreamsRelayer.StreamLeg[](2);
-    legs[0] = IDataStreamsRelayer.StreamLeg(vm.envOr("DS_FEEDID_CELO_USD", _tbdFeedId("CELO/USD")), false);
-    legs[1] = IDataStreamsRelayer.StreamLeg(vm.envOr("DS_FEEDID_PHP_USD", _tbdFeedId("PHP/USD")), true);
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](2);
+    legs[0] = IPullOracleRelayer.OracleLeg(vm.envOr("DS_FEEDID_CELO_USD", _tbdFeedId("CELO/USD")), false);
+    legs[1] = IPullOracleRelayer.OracleLeg(vm.envOr("DS_FEEDID_PHP_USD", _tbdFeedId("PHP/USD")), true);
 
     f.rateFeedId = vm.envOr("DS_RATEFEED_CELO_PHP", _tbdAddr("rateFeed:CELO/PHP"));
     f.description = "CELO/PHP";

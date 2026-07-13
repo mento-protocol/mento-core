@@ -2,8 +2,8 @@
 // solhint-disable immutable-vars-naming
 pragma solidity 0.8.19;
 
-import { IDataStreamsRelayer } from "../interfaces/IDataStreamsRelayer.sol";
-import { IVerifierProxy } from "../interfaces/IVerifierProxy.sol";
+import { IPullOracleRelayer } from "../interfaces/IPullOracleRelayer.sol";
+import { IPullOracleAdapter } from "../interfaces/IPullOracleAdapter.sol";
 import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 
 /**
@@ -26,16 +26,15 @@ interface ISortedOraclesMin {
 }
 
 /**
- * @title DataStreamsRelayerV1
- * @notice The DataStreamsRelayerV1 relays rate feed data from one or more Chainlink
- * Data Streams reports to the SortedOracles contract. A separate instance should be
- * deployed for each rate feed.
- * @dev Mirrors ChainlinkRelayerV1 in structure: same CREATE2 deployment via factory,
- * same immutable leg storage pattern (up to 4), same reportRate() logic for writing
- * to SortedOracles. The source differs — instead of reading latestRoundData() from
- * Chainlink push aggregators, this contract accepts caller-supplied signed reports,
- * verifies them on-chain via IVerifierProxy.verifyBulk(), decodes the price, and
- * writes the composed rate.
+ * @title PullOracleRelayerV1
+ * @notice The PullOracleRelayerV1 relays rate feed data from one or more pull-oracle price updates
+ * to the SortedOracles contract. A separate instance should be deployed for each rate feed.
+ * @dev Mirrors ChainlinkRelayerV1 in structure: same CREATE2 deployment via factory, same immutable
+ * leg storage pattern (up to 4), same reportRate() logic for writing to SortedOracles. The source
+ * differs — instead of reading latestRoundData() from Chainlink push aggregators, this contract
+ * accepts a caller-supplied provider update blob, verifies it via the configured IPullOracleAdapter
+ * (Chainlink Data Streams, Pyth, RedStone, ...), and writes the composed rate. All provider
+ * specifics live in the adapter; this contract only sees normalized (price, obsTs, expiry) tuples.
  *
  * relay() is permissionless: it is called by the swap transaction itself (as a
  * state-changing pre-step before the view oracle read), by arbitrageurs, or by the
@@ -46,7 +45,7 @@ interface ISortedOraclesMin {
  *   == lastObservationsTimestamp → idempotent no-op, emits ReportSkippedIdempotent.
  *   < lastObservationsTimestamp → reverts StaleReport.
  */
-contract DataStreamsRelayerV1 is IDataStreamsRelayer {
+contract PullOracleRelayerV1 is IPullOracleRelayer {
   /**
    * @notice The number of digits after the decimal point in FixidityLib values,
    * as used by SortedOracles.
@@ -60,8 +59,8 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
   /// @notice The address of the SortedOracles contract to report to.
   address public immutable sortedOracles;
 
-  /// @notice The address of the Chainlink Data Streams VerifierProxy.
-  address public immutable verifierProxy;
+  /// @notice The IPullOracleAdapter that verifies provider update blobs for this relayer.
+  address public immutable adapter;
 
   /**
    * @notice Maximum spread allowed between the oldest and newest leg
@@ -77,14 +76,14 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
   uint256 public immutable maxStaleness;
 
   /**
-   * @dev We store an array of up to four StreamLeg structs in the following
-   * immutable variables. feedId<i> stores the i-th StreamLeg.feedId member.
-   * invert<i> stores the i-th StreamLeg.invert member. legCount stores the
+   * @dev We store an array of up to four OracleLeg structs in the following
+   * immutable variables. feedId<i> stores the i-th OracleLeg.feedId member.
+   * invert<i> stores the i-th OracleLeg.invert member. legCount stores the
    * length of the array. These are built back up into an in-memory array in
    * the buildLegArray function.
    */
 
-  /// @notice The Data Streams feedIds this contract fetches data from.
+  /// @notice The provider feedIds this contract relays data for.
   bytes32 private immutable feedId0;
   bytes32 private immutable feedId1;
   bytes32 private immutable feedId2;
@@ -122,19 +121,14 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
   /// @notice Used when a leg's feedId is bytes32(0).
   error InvalidFeedId();
 
-  /// @notice Used when signedReports.length does not match legCount.
-  error LegCountMismatch();
+  /// @notice Used when the adapter's response arrays are not aligned to the leg count.
+  error AdapterResponseMismatch();
 
-  /**
-   * @notice Used when a verified report's feedId does not match the feedId
-   * configured for that leg position.
-   */
-  error WrongFeedId(uint256 legIndex, bytes32 expected, bytes32 got);
-
-  /// @notice Used when a negative or zero price is decoded from a report.
+  /// @notice Used when the adapter returns a zero price (defense in depth; adapters must revert
+  /// on non-positive prices themselves).
   error InvalidPrice();
 
-  /// @notice Used when block.timestamp exceeds a report's DON-signed expiresAt field.
+  /// @notice Used when block.timestamp exceeds a report's expiry.
   error ExpiredSignature();
 
   /**
@@ -158,12 +152,6 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
    */
   error StaleReport();
 
-  /// @notice Used when the decoded report payload is shorter than the minimum expected length.
-  error ReportTooShort();
-
-  /// @notice Used when a report's schema version (feedId prefix) is not one the relayer can decode.
-  error UnsupportedSchema(uint16 version);
-
   /**
    * @notice Used when trying to recover from a lesser/greater revert and there are
    * too many existing reports in SortedOracles.
@@ -175,26 +163,26 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
    * @param _rateFeedId ID of the rate feed this relayer instance relays for.
    * @param _rateFeedDescription The human-readable description of the reported rate feed.
    * @param _sortedOracles Address of the SortedOracles contract to relay to.
-   * @param _verifierProxy Address of the Chainlink Data Streams VerifierProxy.
+   * @param _adapter Address of the IPullOracleAdapter that verifies update blobs.
    * @param _maxTimestampSpread Max difference in seconds between the earliest and
    *        latest observationsTimestamp across all legs. Must be 0 for single-leg relayers.
    * @param _maxStaleness Max age in seconds of a report's observationsTimestamp
    *        relative to block.timestamp.
-   * @param _legs Array of StreamLeg structs defining the price composition path.
+   * @param _legs Array of OracleLeg structs defining the price composition path.
    */
   constructor(
     address _rateFeedId,
     string memory _rateFeedDescription,
     address _sortedOracles,
-    address _verifierProxy,
+    address _adapter,
     uint256 _maxTimestampSpread,
     uint256 _maxStaleness,
-    StreamLeg[] memory _legs
+    OracleLeg[] memory _legs
   ) {
     rateFeedId = _rateFeedId;
     rateFeedDescription = _rateFeedDescription;
     sortedOracles = _sortedOracles;
-    verifierProxy = _verifierProxy;
+    adapter = _adapter;
     maxTimestampSpread = _maxTimestampSpread;
     maxStaleness = _maxStaleness;
 
@@ -205,7 +193,7 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
       revert InvalidMaxTimestampSpread();
     }
 
-    StreamLeg[] memory legs = new StreamLeg[](4);
+    OracleLeg[] memory legs = new OracleLeg[](4);
     for (uint256 i = 0; i < _legs.length; i++) {
       if (_legs[i].feedId == bytes32(0)) revert InvalidFeedId();
       legs[i] = _legs[i];
@@ -222,28 +210,25 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
   }
 
   /**
-   * @notice Get the Data Streams legs and their invert settings.
-   * @return An array of StreamLeg segments that compose the price path.
+   * @notice Get the oracle legs and their invert settings.
+   * @return An array of OracleLeg segments that compose the price path.
    */
-  function getLegs() external view returns (StreamLeg[] memory) {
+  function getLegs() external view returns (OracleLeg[] memory) {
     return buildLegArray();
   }
 
   /**
-   * @notice Verifies signed Data Streams reports and writes the composed rate to SortedOracles.
-   * @dev Calls verifyBulk on the VerifierProxy to authenticate each report, then decodes
-   * and validates the price per leg (feedId binding, expiry, staleness, positive price).
-   * Legs are multiplied together with optional inversion to produce a composed rate.
-   * On completion, SortedOracles.report() triggers BreakerBox.checkAndSetBreakers()
-   * as a side effect.
-   * @param signedReports Signed report payloads from the Data Streams API, one per leg in leg order.
-   * @param parameterPayload Fee parameter payload forwarded to the VerifierProxy. Empty bytes on Celo.
+   * @notice Verifies a provider update blob and writes the composed rate to SortedOracles.
+   * @dev Delegates verification + decoding to the configured IPullOracleAdapter, then validates
+   * freshness per leg (expiry, staleness, future-timestamp) and the cross-leg spread. Legs are
+   * multiplied together with optional inversion to produce a composed rate. On completion,
+   * SortedOracles.report() triggers BreakerBox.checkAndSetBreakers() as a side effect.
+   * msg.value is forwarded to the adapter to cover provider verification fees (0 for fee-less
+   * providers, which reject a non-zero value).
+   * @param updateData Provider-specific update blob covering all legs, in leg order.
    */
-  function relay(bytes[] calldata signedReports, bytes calldata parameterPayload) external {
-    if (signedReports.length != legCount) revert LegCountMismatch();
-
-    bytes[] memory verifiedReports = IVerifierProxy(verifierProxy).verifyBulk(signedReports, parameterPayload);
-    (UD60x18 composedRate, uint256 compositeObs) = composeRate(verifiedReports);
+  function relay(bytes calldata updateData) external payable {
+    (UD60x18 composedRate, uint256 compositeObs) = composeRate(updateData);
 
     if (compositeObs < lastObservationsTimestamp) revert StaleReport();
     if (compositeObs == lastObservationsTimestamp) {
@@ -258,27 +243,36 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
   }
 
   /**
-   * @notice Decodes and validates each verified report, then composes the legs into a single rate.
-   * @dev Enforces the per-leg invariants (feedId binding, positive price, signature expiry, staleness)
+   * @notice Verifies the update blob via the adapter and composes the legs into a single rate.
+   * @dev Enforces the per-leg invariants (positive price, expiry, staleness, future-timestamp)
    * and the cross-leg maxTimestampSpread. The composite observationsTimestamp is the oldest leg's,
    * so the weakest (least fresh) leg defines the freshness of the whole composite.
-   * @param verifiedReports The ABI-encoded verified reports from the VerifierProxy, in leg order.
+   * @param updateData Provider-specific update blob covering all legs.
    * @return composedRate The product of all legs (each optionally inverted), as a UD60x18 value.
    * @return compositeObs The oldest leg observationsTimestamp across all legs.
    */
-  function composeRate(
-    bytes[] memory verifiedReports
-  ) internal view returns (UD60x18 composedRate, uint256 compositeObs) {
-    StreamLeg[] memory legs = buildLegArray();
+  function composeRate(bytes calldata updateData) internal returns (UD60x18 composedRate, uint256 compositeObs) {
+    OracleLeg[] memory legs = buildLegArray();
+    bytes32[] memory feedIds = new bytes32[](legCount);
+    for (uint256 i = 0; i < legCount; i++) {
+      feedIds[i] = legs[i].feedId;
+    }
+
+    (uint256[] memory prices, uint256[] memory observationsTimestamps, uint256[] memory expiries) = IPullOracleAdapter(
+      adapter
+    ).verify{ value: msg.value }(feedIds, updateData);
+    if (prices.length != legCount || observationsTimestamps.length != legCount || expiries.length != legCount)
+      revert AdapterResponseMismatch();
+
     composedRate = ud(1e18);
     uint256 oldestObs = type(uint256).max;
     uint256 newestObs = 0;
 
     for (uint256 i = 0; i < legCount; i++) {
-      (UD60x18 legPrice, uint256 observationsTimestamp) = decodeAndValidateLeg(legs[i], i, verifiedReports[i]);
+      UD60x18 legPrice = validateLeg(legs[i], prices[i], observationsTimestamps[i], expiries[i]);
       composedRate = composedRate.mul(legPrice);
-      if (observationsTimestamp < oldestObs) oldestObs = observationsTimestamp;
-      if (observationsTimestamp > newestObs) newestObs = observationsTimestamp;
+      if (observationsTimestamps[i] < oldestObs) oldestObs = observationsTimestamps[i];
+      if (observationsTimestamps[i] > newestObs) newestObs = observationsTimestamps[i];
     }
 
     if (newestObs - oldestObs > maxTimestampSpread) revert TimestampSpreadTooHigh();
@@ -286,114 +280,53 @@ contract DataStreamsRelayerV1 is IDataStreamsRelayer {
   }
 
   /**
-   * @notice Decodes a single verified report, validates it against its leg, and returns the leg price.
-   * @param leg The expected StreamLeg (feedId binding + invert flag) for this position.
-   * @param legIndex The leg's index, used for the WrongFeedId error.
-   * @param verifiedReport The ABI-encoded verified report for this leg.
+   * @notice Validates a single leg's normalized observation and returns the (optionally inverted)
+   * leg price.
+   * @dev The adapter guarantees feedId binding and price positivity; this enforces the relayer's
+   * uniform freshness policy on top (the single place staleness rules live, across providers).
+   * @param leg The OracleLeg (invert flag) for this position.
+   * @param price The adapter-normalized price (1e18 fixed-point).
+   * @param observationsTimestamp When the provider observed this leg's price (unix seconds).
+   * @param expiresAt Hard report expiry (unix seconds; type(uint32).max when the provider has none).
    * @return legPrice The (optionally inverted) price as a UD60x18 value.
-   * @return observationsTimestamp When the DON observed this leg's price (unix seconds).
    */
-  function decodeAndValidateLeg(
-    StreamLeg memory leg,
-    uint256 legIndex,
-    bytes memory verifiedReport
-  ) internal view returns (UD60x18 legPrice, uint256 observationsTimestamp) {
-    (bytes32 reportFeedId, uint32 obsTs, uint32 expiresAt, int192 price) = decodeReport(verifiedReport);
-
-    if (reportFeedId != leg.feedId) revert WrongFeedId(legIndex, leg.feedId, reportFeedId);
-    if (price <= 0) revert InvalidPrice();
+  function validateLeg(
+    OracleLeg memory leg,
+    uint256 price,
+    uint256 observationsTimestamp,
+    uint256 expiresAt
+  ) internal view returns (UD60x18 legPrice) {
+    if (price == 0) revert InvalidPrice();
     // A future-dated observation would underflow the staleness subtraction below (0.8.x checked
     // math) and revert opaquely; reject it explicitly with a clear error instead.
     // solhint-disable-next-line not-rely-on-time
-    if (obsTs > block.timestamp) revert FutureReport();
+    if (observationsTimestamp > block.timestamp) revert FutureReport();
     // solhint-disable-next-line not-rely-on-time
     if (block.timestamp > expiresAt) revert ExpiredSignature();
     // solhint-disable-next-line not-rely-on-time
-    if (block.timestamp - obsTs > maxStaleness) revert ReportTooStale();
+    if (block.timestamp - observationsTimestamp > maxStaleness) revert ReportTooStale();
 
-    legPrice = ud(uint256(uint192(price)));
+    legPrice = ud(price);
     if (leg.invert) legPrice = legPrice.inv();
-    observationsTimestamp = obsTs;
   }
 
   /**
    * @notice Compose immutable variables into an in-memory array for better handling.
-   * @return legs An array of StreamLeg structs.
+   * @return legs An array of OracleLeg structs.
    */
-  function buildLegArray() internal view returns (StreamLeg[] memory legs) {
-    legs = new StreamLeg[](legCount);
+  function buildLegArray() internal view returns (OracleLeg[] memory legs) {
+    legs = new OracleLeg[](legCount);
     unchecked {
-      legs[0] = StreamLeg(feedId0, invert0);
+      legs[0] = OracleLeg(feedId0, invert0);
       if (legCount > 1) {
-        legs[1] = StreamLeg(feedId1, invert1);
+        legs[1] = OracleLeg(feedId1, invert1);
         if (legCount > 2) {
-          legs[2] = StreamLeg(feedId2, invert2);
+          legs[2] = OracleLeg(feedId2, invert2);
           if (legCount > 3) {
-            legs[3] = StreamLeg(feedId3, invert3);
+            legs[3] = OracleLeg(feedId3, invert3);
           }
         }
       }
-    }
-  }
-
-  /**
-   * @notice Decodes the fields needed by the relayer from an ABI-encoded verified report.
-   * @dev The verified report returned by VerifierProxy.verifyBulk() is an ABI-encoded struct. The
-   * first six 32-byte slots are common across the schemas the relayer accepts:
-   *
-   *   slot 0 (bytes   0-31): bytes32 feedId
-   *   slot 1 (bytes  32-63): uint32  validFromTimestamp
-   *   slot 2 (bytes  64-95): uint32  observationsTimestamp
-   *   slot 3 (bytes 96-127): uint192 nativeFee
-   *   slot 4 (bytes 128-159): uint192 linkFee
-   *   slot 5 (bytes 160-191): uint32  expiresAt
-   *
-   * The price sits at a schema-dependent slot (the feedId's first two bytes are the schema version):
-   *   V3 (0x0003, Crypto Advanced): price    at slot 6 (offset 224)
-   *   V8 (0x0008, RWA/forex):       midPrice at slot 7 (offset 256) — V8 inserts a uint64
-   *                                 lastUpdateTimestamp at slot 6, shifting the price down one slot.
-   *
-   * Any other schema reverts UnsupportedSchema rather than reading a wrong slot (e.g. V5 slot 6 is a
-   * rate, V9 is navPerShare) and silently writing a corrupted price. Extend the allowlist deliberately
-   * if a new stream type is added.
-   *
-   * Confirmed against reality: an eth_call to the live Celo mainnet VerifierProxy 2.0.0
-   * (0x57A97148C1fa50f35F0639f380077017D8893b6b, s_feeManager() == address(0)) with a real forex
-   * report returned the bare report struct (slot 0 == feedId, not an envelope), decoding to the
-   * expected price/timestamps at these offsets. So verify()/verifyBulk() return the report struct
-   * directly.
-   * @param report The ABI-encoded verified report bytes.
-   * @return feedId The Data Streams feedId (bytes32 stream identifier).
-   * @return observationsTimestamp When the DON observed the price (unix seconds).
-   * @return expiresAt Hard DON-signed expiry (unix seconds).
-   * @return price Mid price in 1e18 fixed-point (int192).
-   */
-  function decodeReport(
-    bytes memory report
-  ) internal pure returns (bytes32 feedId, uint32 observationsTimestamp, uint32 expiresAt, int192 price) {
-    // Must at least hold the common prefix + the slot-6 price (the V3 minimum).
-    if (report.length < 224) revert ReportTooShort();
-    // solhint-disable-next-line no-inline-assembly
-    assembly {
-      feedId := mload(add(report, 32))
-    }
-
-    uint16 schemaVersion = uint16(bytes2(feedId));
-    uint256 priceOffset;
-    if (schemaVersion == 3) {
-      priceOffset = 224; // slot 6
-    } else if (schemaVersion == 8) {
-      if (report.length < 256) revert ReportTooShort(); // V8 price is at slot 7
-      priceOffset = 256;
-    } else {
-      revert UnsupportedSchema(schemaVersion);
-    }
-
-    // solhint-disable-next-line no-inline-assembly
-    assembly {
-      observationsTimestamp := mload(add(report, 96))
-      expiresAt := mload(add(report, 192))
-      price := mload(add(report, priceOffset))
     }
   }
 

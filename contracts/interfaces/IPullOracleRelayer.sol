@@ -3,17 +3,18 @@ pragma solidity >=0.5.13 <0.9;
 pragma experimental ABIEncoderV2;
 
 /**
- * @notice Interface for a Chainlink Data Streams pull-oracle relayer.
- * @dev Mirrors IChainlinkRelayer but legs are Data Streams feedIds (bytes32)
- *      rather than Chainlink aggregator addresses.
+ * @notice Interface for a provider-agnostic pull-oracle relayer.
+ * @dev Mirrors IChainlinkRelayer in role, but legs are provider feedIds (bytes32) rather than
+ *      Chainlink aggregator addresses, and verification is delegated to an IPullOracleAdapter
+ *      (Chainlink Data Streams, Pyth, RedStone, ...).
  */
-interface IDataStreamsRelayer {
+interface IPullOracleRelayer {
   /**
    * @notice A single leg in the price composition path.
-   * @custom:member feedId The Chainlink Data Streams feedId (bytes32 stream identifier).
+   * @custom:member feedId The provider feed identifier (bytes32) for this leg.
    * @custom:member invert Whether to invert this leg's price, e.g. convert USD/JPY to JPY/USD.
    */
-  struct StreamLeg {
+  struct OracleLeg {
     bytes32 feedId;
     bool invert;
   }
@@ -27,8 +28,8 @@ interface IDataStreamsRelayer {
   /// @notice Address of the SortedOracles contract this relayer reports to.
   function sortedOracles() external view returns (address);
 
-  /// @notice Address of the Chainlink Data Streams VerifierProxy.
-  function verifierProxy() external view returns (address);
+  /// @notice The IPullOracleAdapter that verifies update blobs for this relayer's provider.
+  function adapter() external view returns (address);
 
   /// @notice Maximum allowed spread between the oldest and newest leg observationsTimestamp.
   function maxTimestampSpread() external view returns (uint256);
@@ -39,17 +40,19 @@ interface IDataStreamsRelayer {
   /// @notice The composite observationsTimestamp of the last accepted relay call.
   function lastObservationsTimestamp() external view returns (uint256);
 
-  /// @notice Returns the ordered StreamLeg array defining the price composition path.
-  function getLegs() external view returns (StreamLeg[] memory);
+  /// @notice Returns the ordered OracleLeg array defining the price composition path.
+  function getLegs() external view returns (OracleLeg[] memory);
 
   /**
-   * @notice Verifies signed Data Streams reports and writes the composed rate to SortedOracles.
+   * @notice Verifies a provider update blob via the adapter and writes the composed rate to
+   *         SortedOracles.
    * @dev Permissionless — callable by anyone (swap tx, arbitrageur, dapp, integrator).
    *      Idempotent: re-submitting the same observationsTimestamp is a no-op, not a revert.
-   * @param signedReports Signed report payloads from the Data Streams API, one per leg in leg order.
-   * @param parameterPayload Fee parameter payload forwarded to the VerifierProxy. Empty bytes on Celo.
+   *      Payable: msg.value is forwarded to the adapter to cover provider verification fees
+   *      (0 for fee-less providers).
+   * @param updateData Provider-specific update blob covering all legs (opaque; see the adapter).
    */
-  function relay(bytes[] calldata signedReports, bytes calldata parameterPayload) external;
+  function relay(bytes calldata updateData) external payable;
 
   /**
    * @notice Emitted on a successful relay that writes a new rate to SortedOracles.

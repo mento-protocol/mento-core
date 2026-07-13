@@ -3,4 +3,4 @@ pragma solidity ^0.8.18;
 
 import { ProxyAdmin } from "openzeppelin-contracts-next/contracts/proxy/transparent/ProxyAdmin.sol";
 
-contract DataStreamsRelayerFactoryProxyAdmin is ProxyAdmin {}
+contract PullOracleRelayerFactoryProxyAdmin is ProxyAdmin {}

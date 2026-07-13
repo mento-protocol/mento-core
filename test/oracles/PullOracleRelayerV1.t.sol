@@ -6,8 +6,9 @@ pragma solidity ^0.8.19;
 import { Test } from "mento-std/Test.sol";
 
 import { MockVerifierProxy } from "test/utils/mocks/MockVerifierProxy.sol";
-import { IDataStreamsRelayer } from "contracts/interfaces/IDataStreamsRelayer.sol";
-import { DataStreamsRelayerV1 } from "contracts/oracles/DataStreamsRelayerV1.sol";
+import { ChainlinkDataStreamsAdapter } from "contracts/oracles/adapters/ChainlinkDataStreamsAdapter.sol";
+import { IPullOracleRelayer } from "contracts/interfaces/IPullOracleRelayer.sol";
+import { PullOracleRelayerV1 } from "contracts/oracles/PullOracleRelayerV1.sol";
 
 import { UD60x18, ud, intoUint256 } from "prb/math/UD60x18.sol";
 
@@ -27,7 +28,7 @@ interface ISortedOracles {
   function getRates(address rateFeedId) external returns (address[] memory, uint256[] memory, uint256[] memory);
 }
 
-contract DataStreamsRelayerV1Test is Test {
+contract PullOracleRelayerV1Test is Test {
   // Errors
   bytes constant NO_LEGS_ERROR = abi.encodeWithSignature("NoLegs()");
   bytes constant TOO_MANY_LEGS_ERROR = abi.encodeWithSignature("TooManyLegs()");
@@ -46,7 +47,8 @@ contract DataStreamsRelayerV1Test is Test {
 
   ISortedOracles sortedOracles;
   MockVerifierProxy verifierProxy;
-  IDataStreamsRelayer relayer;
+  ChainlinkDataStreamsAdapter adapter;
+  IPullOracleRelayer relayer;
 
   address rateFeedId = makeAddr("CELO/PHP");
   address caller = makeAddr("caller");
@@ -71,21 +73,22 @@ contract DataStreamsRelayerV1Test is Test {
     sortedOracles.initialize(expirySeconds);
     sortedOracles.setTokenReportExpiry(rateFeedId, expirySeconds);
     verifierProxy = new MockVerifierProxy();
+    adapter = new ChainlinkDataStreamsAdapter(address(verifierProxy));
   }
 
   function setUpRelayer(uint256 legCount, uint256 maxTimestampSpread) internal {
-    IDataStreamsRelayer.StreamLeg[] memory legs = new IDataStreamsRelayer.StreamLeg[](legCount);
-    legs[0] = IDataStreamsRelayer.StreamLeg(feedId0, invert0);
-    if (legCount > 1) legs[1] = IDataStreamsRelayer.StreamLeg(feedId1, invert1);
-    if (legCount > 2) legs[2] = IDataStreamsRelayer.StreamLeg(feedId2, invert2);
-    if (legCount > 3) legs[3] = IDataStreamsRelayer.StreamLeg(feedId3, invert3);
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](legCount);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId0, invert0);
+    if (legCount > 1) legs[1] = IPullOracleRelayer.OracleLeg(feedId1, invert1);
+    if (legCount > 2) legs[2] = IPullOracleRelayer.OracleLeg(feedId2, invert2);
+    if (legCount > 3) legs[3] = IPullOracleRelayer.OracleLeg(feedId3, invert3);
 
-    relayer = IDataStreamsRelayer(
-      new DataStreamsRelayerV1(
+    relayer = IPullOracleRelayer(
+      new PullOracleRelayerV1(
         rateFeedId,
         "CELO/PHP",
         address(sortedOracles),
-        address(verifierProxy),
+        address(adapter),
         maxTimestampSpread,
         maxStaleness,
         legs
@@ -150,89 +153,81 @@ contract DataStreamsRelayerV1Test is Test {
 
   /// @notice Deploy a single-leg relayer for an arbitrary feedId (to exercise per-schema decoding).
   function setUpRelayerWithFeed(bytes32 feedId) internal {
-    IDataStreamsRelayer.StreamLeg[] memory legs = new IDataStreamsRelayer.StreamLeg[](1);
-    legs[0] = IDataStreamsRelayer.StreamLeg(feedId, false);
-    relayer = IDataStreamsRelayer(
-      new DataStreamsRelayerV1(
-        rateFeedId,
-        "SCHEMA",
-        address(sortedOracles),
-        address(verifierProxy),
-        0,
-        maxStaleness,
-        legs
-      )
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](1);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId, false);
+    relayer = IPullOracleRelayer(
+      new PullOracleRelayerV1(rateFeedId, "SCHEMA", address(sortedOracles), address(adapter), 0, maxStaleness, legs)
     );
     sortedOracles.addOracle(rateFeedId, address(relayer));
   }
 }
 
-contract DataStreamsRelayerV1Test_constructor is DataStreamsRelayerV1Test {
+contract PullOracleRelayerV1Test_constructor is PullOracleRelayerV1Test {
   function test_constructorRevertsWhenNoLegs() public {
     vm.expectRevert(NO_LEGS_ERROR);
-    new DataStreamsRelayerV1(
+    new PullOracleRelayerV1(
       rateFeedId,
       "CELO/PHP",
       address(sortedOracles),
-      address(verifierProxy),
+      address(adapter),
       0,
       maxStaleness,
-      new IDataStreamsRelayer.StreamLeg[](0)
+      new IPullOracleRelayer.OracleLeg[](0)
     );
   }
 
   function test_constructorRevertsWhenTooManyLegs() public {
     vm.expectRevert(TOO_MANY_LEGS_ERROR);
-    new DataStreamsRelayerV1(
+    new PullOracleRelayerV1(
       rateFeedId,
       "CELO/PHP",
       address(sortedOracles),
-      address(verifierProxy),
+      address(adapter),
       300,
       maxStaleness,
-      new IDataStreamsRelayer.StreamLeg[](5)
+      new IPullOracleRelayer.OracleLeg[](5)
     );
   }
 
   function test_constructorRevertsWhenInvalidFeedId() public {
     vm.expectRevert(INVALID_FEED_ID_ERROR);
-    new DataStreamsRelayerV1(
+    new PullOracleRelayerV1(
       rateFeedId,
       "CELO/PHP",
       address(sortedOracles),
-      address(verifierProxy),
+      address(adapter),
       0,
       maxStaleness,
-      new IDataStreamsRelayer.StreamLeg[](1) // feedId == bytes32(0)
+      new IPullOracleRelayer.OracleLeg[](1) // feedId == bytes32(0)
     );
   }
 
   function test_constructorRevertsWhenSpreadZeroButMultipleLegs() public {
-    IDataStreamsRelayer.StreamLeg[] memory legs = new IDataStreamsRelayer.StreamLeg[](2);
-    legs[0] = IDataStreamsRelayer.StreamLeg(feedId0, false);
-    legs[1] = IDataStreamsRelayer.StreamLeg(feedId1, false);
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](2);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId0, false);
+    legs[1] = IPullOracleRelayer.OracleLeg(feedId1, false);
     vm.expectRevert(INVALID_MAX_TIMESTAMP_SPREAD_ERROR);
-    new DataStreamsRelayerV1(rateFeedId, "X", address(sortedOracles), address(verifierProxy), 0, maxStaleness, legs);
+    new PullOracleRelayerV1(rateFeedId, "X", address(sortedOracles), address(adapter), 0, maxStaleness, legs);
   }
 
   function test_constructorRevertsWhenSpreadPositiveButSingleLeg() public {
-    IDataStreamsRelayer.StreamLeg[] memory legs = new IDataStreamsRelayer.StreamLeg[](1);
-    legs[0] = IDataStreamsRelayer.StreamLeg(feedId0, false);
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](1);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId0, false);
     vm.expectRevert(INVALID_MAX_TIMESTAMP_SPREAD_ERROR);
-    new DataStreamsRelayerV1(rateFeedId, "X", address(sortedOracles), address(verifierProxy), 300, maxStaleness, legs);
+    new PullOracleRelayerV1(rateFeedId, "X", address(sortedOracles), address(adapter), 300, maxStaleness, legs);
   }
 
   function test_constructorSetsImmutables() public {
     setUpRelayer(2, 300);
     assertEq(relayer.rateFeedId(), rateFeedId);
     assertEq(relayer.sortedOracles(), address(sortedOracles));
-    assertEq(relayer.verifierProxy(), address(verifierProxy));
+    assertEq(relayer.adapter(), address(adapter));
     assertEq(relayer.maxTimestampSpread(), 300);
     assertEq(relayer.maxStaleness(), maxStaleness);
     assertEq(relayer.rateFeedDescription(), "CELO/PHP");
     assertEq(relayer.lastObservationsTimestamp(), 0);
 
-    IDataStreamsRelayer.StreamLeg[] memory legs = relayer.getLegs();
+    IPullOracleRelayer.OracleLeg[] memory legs = relayer.getLegs();
     assertEq(legs.length, 2);
     assertEq(legs[0].feedId, feedId0);
     assertEq(legs[0].invert, invert0);
@@ -241,10 +236,10 @@ contract DataStreamsRelayerV1Test_constructor is DataStreamsRelayerV1Test {
   }
 }
 
-contract DataStreamsRelayerV1Test_relay is DataStreamsRelayerV1Test {
+contract PullOracleRelayerV1Test_relay is PullOracleRelayerV1Test {
   function relay(bytes[] memory reports) internal {
     vm.prank(caller);
-    relayer.relay(reports, "");
+    relayer.relay(abi.encode(reports));
   }
 
   function median() internal returns (uint256 m) {
@@ -273,10 +268,10 @@ contract DataStreamsRelayerV1Test_relay is DataStreamsRelayerV1Test {
 
   function test_relay_singleLeg_invert() public {
     // invert leg0 by reconfiguring with an inverted single leg
-    IDataStreamsRelayer.StreamLeg[] memory legs = new IDataStreamsRelayer.StreamLeg[](1);
-    legs[0] = IDataStreamsRelayer.StreamLeg(feedId0, true);
-    relayer = IDataStreamsRelayer(
-      new DataStreamsRelayerV1(rateFeedId, "X", address(sortedOracles), address(verifierProxy), 0, maxStaleness, legs)
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](1);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId0, true);
+    relayer = IPullOracleRelayer(
+      new PullOracleRelayerV1(rateFeedId, "X", address(sortedOracles), address(adapter), 0, maxStaleness, legs)
     );
     sortedOracles.addOracle(rateFeedId, address(relayer));
 
@@ -482,7 +477,7 @@ contract DataStreamsRelayerV1Test_relay is DataStreamsRelayerV1Test {
     vm.expectEmit(false, false, false, true);
     emit ReportSkippedIdempotent(t0);
     vm.prank(caller);
-    relayer.relay(wrap(buildReport(feedId0, t0, uint32(block.timestamp + 1000), 9e17)), "");
+    relayer.relay(abi.encode(wrap(buildReport(feedId0, t0, uint32(block.timestamp + 1000), 9e17))));
 
     assertEq(median(), medianBefore); // unchanged
     assertEq(relayer.lastObservationsTimestamp(), t0);

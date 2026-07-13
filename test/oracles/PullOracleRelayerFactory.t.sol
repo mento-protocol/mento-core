@@ -6,9 +6,10 @@ pragma solidity ^0.8.19;
 import { Test } from "mento-std/Test.sol";
 
 import { MockVerifierProxy } from "test/utils/mocks/MockVerifierProxy.sol";
-import { IDataStreamsRelayerFactory } from "contracts/interfaces/IDataStreamsRelayerFactory.sol";
-import { IDataStreamsRelayer } from "contracts/interfaces/IDataStreamsRelayer.sol";
-import { DataStreamsRelayerFactory } from "contracts/oracles/DataStreamsRelayerFactory.sol";
+import { IPullOracleRelayerFactory } from "contracts/interfaces/IPullOracleRelayerFactory.sol";
+import { IPullOracleRelayer } from "contracts/interfaces/IPullOracleRelayer.sol";
+import { PullOracleRelayerFactory } from "contracts/oracles/PullOracleRelayerFactory.sol";
+import { ChainlinkDataStreamsAdapter } from "contracts/oracles/adapters/ChainlinkDataStreamsAdapter.sol";
 
 interface ISortedOracles {
   function initialize(uint256) external;
@@ -20,10 +21,11 @@ interface ISortedOracles {
   function medianRate(address) external returns (uint256, uint256);
 }
 
-contract DataStreamsRelayerFactoryTest is Test {
-  IDataStreamsRelayerFactory factory;
+contract PullOracleRelayerFactoryTest is Test {
+  IPullOracleRelayerFactory factory;
   ISortedOracles sortedOracles;
   MockVerifierProxy verifierProxy;
+  ChainlinkDataStreamsAdapter adapter;
 
   address owner = makeAddr("owner");
   address relayerDeployer = makeAddr("relayerDeployer");
@@ -43,21 +45,22 @@ contract DataStreamsRelayerFactoryTest is Test {
     sortedOracles = ISortedOracles(deployCode("SortedOracles", abi.encode(true)));
     sortedOracles.initialize(3600);
     verifierProxy = new MockVerifierProxy();
+    adapter = new ChainlinkDataStreamsAdapter(address(verifierProxy));
 
-    factory = IDataStreamsRelayerFactory(new DataStreamsRelayerFactory(false));
+    factory = IPullOracleRelayerFactory(new PullOracleRelayerFactory(false));
     vm.prank(owner);
-    factory.initialize(address(sortedOracles), address(verifierProxy), relayerDeployer);
+    factory.initialize(address(sortedOracles), address(adapter), relayerDeployer);
   }
 
-  function oneLeg() internal view returns (IDataStreamsRelayer.StreamLeg[] memory legs) {
-    legs = new IDataStreamsRelayer.StreamLeg[](1);
-    legs[0] = IDataStreamsRelayer.StreamLeg(feedId0, false);
+  function oneLeg() internal view returns (IPullOracleRelayer.OracleLeg[] memory legs) {
+    legs = new IPullOracleRelayer.OracleLeg[](1);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId0, false);
   }
 
-  function twoLegs() internal view returns (IDataStreamsRelayer.StreamLeg[] memory legs) {
-    legs = new IDataStreamsRelayer.StreamLeg[](2);
-    legs[0] = IDataStreamsRelayer.StreamLeg(feedId0, false);
-    legs[1] = IDataStreamsRelayer.StreamLeg(feedId1, true);
+  function twoLegs() internal view returns (IPullOracleRelayer.OracleLeg[] memory legs) {
+    legs = new IPullOracleRelayer.OracleLeg[](2);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId0, false);
+    legs[1] = IPullOracleRelayer.OracleLeg(feedId1, true);
   }
 
   function deployOneLeg() internal returns (address) {
@@ -86,15 +89,15 @@ contract DataStreamsRelayerFactoryTest is Test {
   }
 }
 
-contract DataStreamsRelayerFactoryTest_initialize is DataStreamsRelayerFactoryTest {
+contract PullOracleRelayerFactoryTest_initialize is PullOracleRelayerFactoryTest {
   function test_setsConfig() public view {
     assertEq(factory.sortedOracles(), address(sortedOracles));
-    assertEq(factory.verifierProxy(), address(verifierProxy));
+    assertEq(factory.adapter(), address(adapter));
     assertEq(factory.relayerDeployer(), relayerDeployer);
   }
 }
 
-contract DataStreamsRelayerFactoryTest_deploy is DataStreamsRelayerFactoryTest {
+contract PullOracleRelayerFactoryTest_deploy is PullOracleRelayerFactoryTest {
   function test_deploy_onlyDeployer() public {
     vm.prank(nonDeployer);
     vm.expectRevert(NOT_ALLOWED_ERROR);
@@ -110,9 +113,9 @@ contract DataStreamsRelayerFactoryTest_deploy is DataStreamsRelayerFactoryTest {
 
   function test_deploy_forwardsConfigToRelayer() public {
     address deployed = deployOneLeg();
-    IDataStreamsRelayer relayer = IDataStreamsRelayer(deployed);
+    IPullOracleRelayer relayer = IPullOracleRelayer(deployed);
     assertEq(relayer.sortedOracles(), address(sortedOracles));
-    assertEq(relayer.verifierProxy(), address(verifierProxy));
+    assertEq(relayer.adapter(), address(adapter));
     assertEq(relayer.maxStaleness(), maxStaleness);
     assertEq(relayer.rateFeedId(), aRateFeed);
   }
@@ -140,7 +143,7 @@ contract DataStreamsRelayerFactoryTest_deploy is DataStreamsRelayerFactoryTest {
   }
 }
 
-contract DataStreamsRelayerFactoryTest_removeRedeploy is DataStreamsRelayerFactoryTest {
+contract PullOracleRelayerFactoryTest_removeRedeploy is PullOracleRelayerFactoryTest {
   function test_remove() public {
     deployOneLeg();
     vm.prank(relayerDeployer);
@@ -162,26 +165,26 @@ contract DataStreamsRelayerFactoryTest_removeRedeploy is DataStreamsRelayerFacto
     // Same salt + same constructor args except legs/spread ⇒ different init code ⇒ different address.
     assertTrue(first != second);
     assertEq(factory.getRelayer(aRateFeed), second);
-    assertEq(IDataStreamsRelayer(second).getLegs().length, 2);
+    assertEq(IPullOracleRelayer(second).getLegs().length, 2);
   }
 }
 
-contract DataStreamsRelayerFactoryTest_ingest is DataStreamsRelayerFactoryTest {
+contract PullOracleRelayerFactoryTest_ingest is PullOracleRelayerFactoryTest {
   function test_ingest_routesToRelayerAndWrites() public {
     address relayer = deployOneLeg();
     sortedOracles.addOracle(aRateFeed, relayer);
 
     int192 price = 5e17;
     vm.prank(makeAddr("anyone"));
-    factory.ingest(aRateFeed, wrap(buildReport(feedId0, price)), "");
+    factory.ingest(aRateFeed, abi.encode(wrap(buildReport(feedId0, price))));
 
     (uint256 median, ) = sortedOracles.medianRate(aRateFeed);
     assertEq(median, uint256(uint192(price)) * 1e6);
-    assertEq(IDataStreamsRelayer(relayer).lastObservationsTimestamp(), block.timestamp);
+    assertEq(IPullOracleRelayer(relayer).lastObservationsTimestamp(), block.timestamp);
   }
 
   function test_ingest_revertsWhenNoRelayer() public {
     vm.expectRevert(abi.encodeWithSignature("NoRelayerForRateFeedId(address)", aRateFeed));
-    factory.ingest(aRateFeed, wrap(buildReport(feedId0, 5e17)), "");
+    factory.ingest(aRateFeed, abi.encode(wrap(buildReport(feedId0, 5e17))));
   }
 }

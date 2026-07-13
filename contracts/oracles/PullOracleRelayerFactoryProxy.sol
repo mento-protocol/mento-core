@@ -2,11 +2,9 @@
 pragma solidity ^0.8.18;
 
 // solhint-disable max-line-length
-import {
-  TransparentUpgradeableProxy
-} from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { TransparentUpgradeableProxy } from "openzeppelin-contracts-next/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-contract DataStreamsRelayerFactoryProxy is TransparentUpgradeableProxy {
+contract PullOracleRelayerFactoryProxy is TransparentUpgradeableProxy {
   constructor(
     address _logic,
     address admin_,

@@ -2,28 +2,29 @@
 pragma solidity 0.8.19;
 
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import { DataStreamsRelayerV1 } from "./DataStreamsRelayerV1.sol";
-import { IDataStreamsRelayer } from "../interfaces/IDataStreamsRelayer.sol";
-import { IDataStreamsRelayerFactory } from "../interfaces/IDataStreamsRelayerFactory.sol";
+import { PullOracleRelayerV1 } from "./PullOracleRelayerV1.sol";
+import { IPullOracleRelayer } from "../interfaces/IPullOracleRelayer.sol";
+import { IPullOracleRelayerFactory } from "../interfaces/IPullOracleRelayerFactory.sol";
 
 /**
- * @title DataStreamsRelayerFactory
- * @notice The DataStreamsRelayerFactory creates and keeps track of DataStreamsRelayerV1 instances.
+ * @title PullOracleRelayerFactory
+ * @notice The PullOracleRelayerFactory creates and keeps track of PullOracleRelayerV1 instances.
  * @dev Mirrors ChainlinkRelayerFactory in structure, with the following additions:
- *      - Stores verifierProxy address, which is forwarded to every deployed relayer.
- *      - deployRelayer() accepts StreamLeg[] and maxStaleness instead of ChainlinkAggregator[].
- *      - ingest() is a permissionless router: rateFeedId → relayer → relay(signedReports).
+ *      - Stores the IPullOracleAdapter address, which is forwarded to every deployed relayer
+ *        (all provider specifics — Chainlink Data Streams, Pyth, RedStone — live in the adapter).
+ *      - deployRelayer() accepts OracleLeg[] and maxStaleness instead of ChainlinkAggregator[].
+ *      - ingest() is a permissionless router: rateFeedId → relayer → relay(updateData).
  *        This is the entry point called as a state-changing pre-step in swap transactions.
  */
-contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgradeable {
+contract PullOracleRelayerFactory is IPullOracleRelayerFactory, OwnableUpgradeable {
   /// @notice Address of the SortedOracles contract deployed relayers will report to.
   address public sortedOracles;
 
-  /// @notice Address of the Chainlink Data Streams VerifierProxy.
-  address public verifierProxy;
+  /// @notice The IPullOracleAdapter forwarded to every relayer this factory deploys.
+  address public adapter;
 
   /// @notice Maps a rate feed ID to the relayer contract most recently deployed by this contract.
-  mapping(address rateFeedId => DataStreamsRelayerV1 relayer) public deployedRelayers;
+  mapping(address rateFeedId => PullOracleRelayerV1 relayer) public deployedRelayers;
 
   /**
    * @notice List of rate feed IDs for which a relayer has been deployed.
@@ -86,13 +87,13 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
   /**
    * @notice Initializes the factory.
    * @param _sortedOracles The SortedOracles instance deployed relayers should report to.
-   * @param _verifierProxy The Chainlink Data Streams VerifierProxy address.
+   * @param _adapter The IPullOracleAdapter forwarded to every deployed relayer.
    * @param _relayerDeployer Initial deployer address (in addition to owner).
    */
-  function initialize(address _sortedOracles, address _verifierProxy, address _relayerDeployer) external initializer {
+  function initialize(address _sortedOracles, address _adapter, address _relayerDeployer) external initializer {
     __Ownable_init();
     sortedOracles = _sortedOracles;
-    verifierProxy = _verifierProxy;
+    adapter = _adapter;
     relayerDeployer = _relayerDeployer;
   }
 
@@ -107,7 +108,7 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
   }
 
   /**
-   * @notice Deploys a new DataStreamsRelayerV1 contract.
+   * @notice Deploys a new PullOracleRelayerV1 contract.
    * @dev Relayers are immutable per config: the CREATE2 address is derived from the constructor
    *      args (rateFeedId, description, spread, staleness, legs). Two relayers with byte-identical
    *      params therefore collide at the same address. Reconfiguring a feed via redeployRelayer must
@@ -119,7 +120,7 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
    * @param maxTimestampSpread Max difference in seconds between the earliest and latest
    *        observationsTimestamp across all legs. Must be 0 for single-leg relayers.
    * @param maxStaleness Max age in seconds of a report's observationsTimestamp relative to block.timestamp.
-   * @param legs Array of StreamLeg structs defining the price composition path.
+   * @param legs Array of OracleLeg structs defining the price composition path.
    * @return relayerAddress The address of the newly deployed relayer contract.
    */
   function deployRelayer(
@@ -127,7 +128,7 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
     string calldata rateFeedDescription,
     uint256 maxTimestampSpread,
     uint256 maxStaleness,
-    IDataStreamsRelayer.StreamLeg[] calldata legs
+    IPullOracleRelayer.OracleLeg[] calldata legs
   ) public onlyDeployer returns (address relayerAddress) {
     if (address(deployedRelayers[rateFeedId]) != address(0)) revert RelayerForFeedExists(rateFeedId);
 
@@ -140,11 +141,11 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
     );
     if (expectedAddress.code.length > 0) revert ContractAlreadyExists(expectedAddress, rateFeedId);
 
-    DataStreamsRelayerV1 relayer = new DataStreamsRelayerV1{ salt: _getSalt() }(
+    PullOracleRelayerV1 relayer = new PullOracleRelayerV1{ salt: _getSalt() }(
       rateFeedId,
       rateFeedDescription,
       sortedOracles,
-      verifierProxy,
+      adapter,
       maxTimestampSpread,
       maxStaleness,
       legs
@@ -188,7 +189,7 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
    * @param maxTimestampSpread Max difference in seconds between the earliest and latest
    *        observationsTimestamp across all legs. Must be 0 for single-leg relayers.
    * @param maxStaleness Max age in seconds of a report's observationsTimestamp relative to block.timestamp.
-   * @param legs Array of StreamLeg structs defining the price composition path.
+   * @param legs Array of OracleLeg structs defining the price composition path.
    * @return relayerAddress The address of the newly deployed relayer contract.
    */
   function redeployRelayer(
@@ -196,25 +197,25 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
     string calldata rateFeedDescription,
     uint256 maxTimestampSpread,
     uint256 maxStaleness,
-    IDataStreamsRelayer.StreamLeg[] calldata legs
+    IPullOracleRelayer.OracleLeg[] calldata legs
   ) external onlyDeployer returns (address relayerAddress) {
     removeRelayer(rateFeedId);
     return deployRelayer(rateFeedId, rateFeedDescription, maxTimestampSpread, maxStaleness, legs);
   }
 
   /**
-   * @notice Routes signed reports to the registered relayer for a given rateFeedId.
-   * @dev Permissionless. Resolves rateFeedId → relayer → relay(signedReports).
+   * @notice Routes a provider update blob to the registered relayer for a given rateFeedId.
+   * @dev Permissionless. Resolves rateFeedId → relayer → relay(updateData), forwarding msg.value
+   *      to cover provider verification fees (0 for fee-less providers).
    *      Called as a state-changing pre-step in swap transactions before the view oracle read.
    *      Also callable standalone by arbitrageurs or recovery bots to refresh a stale feed.
-   * @param rateFeedId The Mento rateFeedId whose relayer should receive the reports.
-   * @param signedReports Signed report payloads from the Data Streams API, one per leg in leg order.
-   * @param parameterPayload Fee parameter payload forwarded to the VerifierProxy. Empty bytes on Celo.
+   * @param rateFeedId The Mento rateFeedId whose relayer should receive the update.
+   * @param updateData Provider-specific update blob covering all of the relayer's legs.
    */
-  function ingest(address rateFeedId, bytes[] calldata signedReports, bytes calldata parameterPayload) external {
-    DataStreamsRelayerV1 relayer = deployedRelayers[rateFeedId];
+  function ingest(address rateFeedId, bytes calldata updateData) external payable {
+    PullOracleRelayerV1 relayer = deployedRelayers[rateFeedId];
     if (address(relayer) == address(0)) revert NoRelayerForRateFeedId(rateFeedId);
-    relayer.relay(signedReports, parameterPayload);
+    relayer.relay{ value: msg.value }(updateData);
   }
 
   /**
@@ -246,7 +247,7 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
    * @param maxTimestampSpread Max difference in seconds between the earliest and latest
    *        observationsTimestamp across all legs.
    * @param maxStaleness Max age in seconds of a report's observationsTimestamp relative to block.timestamp.
-   * @param legs Array of StreamLeg structs defining the price composition path.
+   * @param legs Array of OracleLeg structs defining the price composition path.
    * @dev See https://eips.ethereum.org/EIPS/eip-1014.
    */
   function computeRelayerAddress(
@@ -254,7 +255,7 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
     string calldata rateFeedDescription,
     uint256 maxTimestampSpread,
     uint256 maxStaleness,
-    IDataStreamsRelayer.StreamLeg[] calldata legs
+    IPullOracleRelayer.OracleLeg[] calldata legs
   ) public view returns (address) {
     bytes32 salt = _getSalt();
     return
@@ -268,12 +269,12 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
                 salt,
                 keccak256(
                   abi.encodePacked(
-                    type(DataStreamsRelayerV1).creationCode,
+                    type(PullOracleRelayerV1).creationCode,
                     abi.encode(
                       rateFeedId,
                       rateFeedDescription,
                       sortedOracles,
-                      verifierProxy,
+                      adapter,
                       maxTimestampSpread,
                       maxStaleness,
                       legs
@@ -289,12 +290,12 @@ contract DataStreamsRelayerFactory is IDataStreamsRelayerFactory, OwnableUpgrade
 
   /**
    * @notice Returns the salt used for CREATE2 deployment of relayer contracts.
-   * @return salt The `bytes32` constant `keccak256("mento.dataStreamsRelayer")`.
+   * @return salt The `bytes32` constant `keccak256("mento.pullOracleRelayer")`.
    * @dev We're using CREATE2 and all the data we want to use for address
    *      generation is included in the init code and constructor arguments, so a
    *      constant salt is enough.
    */
   function _getSalt() internal pure returns (bytes32 salt) {
-    return keccak256("mento.dataStreamsRelayer");
+    return keccak256("mento.pullOracleRelayer");
   }
 }
