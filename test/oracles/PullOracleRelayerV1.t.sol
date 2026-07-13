@@ -6,6 +6,7 @@ pragma solidity ^0.8.19;
 import { Test } from "mento-std/Test.sol";
 
 import { MockVerifierProxy } from "test/utils/mocks/MockVerifierProxy.sol";
+import { MockPullOracleAdapter } from "test/utils/mocks/MockPullOracleAdapter.sol";
 import { ChainlinkDataStreamsAdapter } from "contracts/oracles/adapters/ChainlinkDataStreamsAdapter.sol";
 import { IPullOracleRelayer } from "contracts/interfaces/IPullOracleRelayer.sol";
 import { PullOracleRelayerV1 } from "contracts/oracles/PullOracleRelayerV1.sol";
@@ -494,5 +495,78 @@ contract PullOracleRelayerV1Test_relay is PullOracleRelayerV1Test {
 
     assertEq(relayer.lastObservationsTimestamp(), t1);
     assertEq(median(), uint256(uint192(int192(6e17))) * 1e6);
+  }
+}
+
+/// @notice Exercises the relayer<->adapter seam the real ChainlinkDataStreamsAdapter cannot reach:
+///         defense-in-depth guards against a misbehaving adapter, and the payable fee-forwarding path.
+contract PullOracleRelayerV1Test_adapterSeam is PullOracleRelayerV1Test {
+  MockPullOracleAdapter mockAdapter;
+
+  function setUpMockRelayer() internal {
+    mockAdapter = new MockPullOracleAdapter();
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](1);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId0, false);
+    relayer = IPullOracleRelayer(
+      new PullOracleRelayerV1(rateFeedId, "MOCK", address(sortedOracles), address(mockAdapter), 0, maxStaleness, legs)
+    );
+    sortedOracles.addOracle(rateFeedId, address(relayer));
+  }
+
+  function median() internal returns (uint256 m) {
+    (m, ) = sortedOracles.medianRate(rateFeedId);
+  }
+
+  function test_relay_adapterResponseMismatch_reverts() public {
+    setUpMockRelayer();
+    // Adapter returns 2 prices for a 1-leg relayer: the alignment guard must catch it.
+    uint256[] memory prices = new uint256[](2);
+    prices[0] = 5e17;
+    prices[1] = 6e17;
+    uint256[] memory obs = new uint256[](2);
+    obs[0] = block.timestamp;
+    obs[1] = block.timestamp;
+    uint256[] memory exps = new uint256[](2);
+    exps[0] = block.timestamp + 1000;
+    exps[1] = block.timestamp + 1000;
+    mockAdapter.setResponse(prices, obs, exps);
+
+    vm.expectRevert(abi.encodeWithSignature("AdapterResponseMismatch()"));
+    relayer.relay(hex"01");
+  }
+
+  function test_relay_zeroPriceFromAdapter_reverts() public {
+    setUpMockRelayer();
+    // Adapters must revert on non-positive prices themselves; if a buggy one returns 0,
+    // the relayer's own InvalidPrice defense must still catch it.
+    uint256[] memory prices = new uint256[](1); // defaults to 0
+    uint256[] memory obs = new uint256[](1);
+    obs[0] = block.timestamp;
+    uint256[] memory exps = new uint256[](1);
+    exps[0] = block.timestamp + 1000;
+    mockAdapter.setResponse(prices, obs, exps);
+
+    vm.expectRevert(abi.encodeWithSignature("InvalidPrice()"));
+    relayer.relay(hex"01");
+  }
+
+  function test_relay_forwardsValueToAdapter() public {
+    setUpMockRelayer();
+    mockAdapter.setFee(5);
+    vm.deal(address(this), 1 ether);
+
+    relayer.relay{ value: 5 }(hex"01");
+
+    assertEq(mockAdapter.lastReceivedValue(), 5, "adapter must receive the forwarded fee");
+    assertEq(median(), uint256(5e17) * 1e6, "rate must be written after a paid verify");
+  }
+
+  function test_relay_wrongValue_revertsInAdapter() public {
+    setUpMockRelayer();
+    mockAdapter.setFee(5);
+    vm.deal(address(this), 1 ether);
+
+    vm.expectRevert(abi.encodeWithSignature("FeeNotCovered(uint256,uint256)", uint256(5), uint256(4)));
+    relayer.relay{ value: 4 }(hex"01");
   }
 }

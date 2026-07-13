@@ -12,6 +12,7 @@ import { IERC20 } from "contracts/swap/router/interfaces/IERC20.sol";
 import { IPullOracleRelayer } from "contracts/interfaces/IPullOracleRelayer.sol";
 import { IPullOracleRelayerFactory } from "contracts/interfaces/IPullOracleRelayerFactory.sol";
 import { MockVerifierProxy } from "test/utils/mocks/MockVerifierProxy.sol";
+import { MockPullOracleAdapter } from "test/utils/mocks/MockPullOracleAdapter.sol";
 import { MockERC20 } from "test/utils/mocks/MockERC20.sol";
 
 interface ISortedOracles {
@@ -312,5 +313,60 @@ contract RouterWithReportsTest is Test {
     assertEq(m1, uint256(uint192(int192(5e17))) * 1e6, "feed 1 not ingested");
     assertEq(m2, uint256(uint192(int192(8e17))) * 1e6, "feed 2 not ingested");
     assertEq(tokenC.balanceOf(address(this)) - balBefore, amountIn, "multi-hop output not received");
+  }
+
+  // ---- nonzero verification fees: the full payable chain router -> ingest -> relay -> adapter ----
+
+  /// @notice Wires a second factory/router pair around a fee-charging MockPullOracleAdapter for
+  ///         the same tokenA/tokenB pool (fresh factory, so no relayer clash with setUp's).
+  function _feeSetup(uint256 fee) internal returns (RouterWithReports feeRouter, MockPullOracleAdapter mockAdapter) {
+    mockAdapter = new MockPullOracleAdapter();
+    mockAdapter.setFee(fee);
+
+    IPullOracleRelayerFactory feeFactory = IPullOracleRelayerFactory(
+      deployCode("PullOracleRelayerFactory", abi.encode(false))
+    );
+    feeFactory.initialize(address(sortedOracles), address(mockAdapter), address(this));
+
+    IPullOracleRelayer.OracleLeg[] memory legs = new IPullOracleRelayer.OracleLeg[](1);
+    legs[0] = IPullOracleRelayer.OracleLeg(feedId1, false);
+    address feeRelayer = feeFactory.deployRelayer(rateFeed1, "A/B (fee)", 0, staleness, legs);
+    sortedOracles.addOracle(rateFeed1, feeRelayer);
+
+    feeRouter = new RouterWithReports(address(0), address(registry), address(poolFactory), address(feeFactory));
+    tokenA.approve(address(feeRouter), type(uint256).max);
+    vm.deal(address(this), 1 ether);
+  }
+
+  function test_feeForwarding_exactValueSucceeds() public {
+    (RouterWithReports feeRouter, MockPullOracleAdapter mockAdapter) = _feeSetup(5);
+
+    uint256 balBefore = tokenB.balanceOf(address(this));
+    feeRouter.swapExactTokensForTokensWithReports{ value: 5 }(
+      amountIn,
+      amountIn,
+      _route(address(tokenA), address(tokenB)),
+      address(this),
+      block.timestamp,
+      _hop1(hex"01")
+    );
+
+    assertEq(mockAdapter.lastReceivedValue(), 5, "adapter must receive the exact per-hop fee");
+    assertEq(tokenB.balanceOf(address(this)) - balBefore, amountIn, "paid-fee swap output not received");
+  }
+
+  function test_underfundedFee_reverts() public {
+    (RouterWithReports feeRouter, ) = _feeSetup(5);
+
+    // remaining -= fee underflows (checked math) when msg.value is below the fee sum.
+    vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+    feeRouter.swapExactTokensForTokensWithReports{ value: 4 }(
+      amountIn,
+      amountIn,
+      _route(address(tokenA), address(tokenB)),
+      address(this),
+      block.timestamp,
+      _hop1(hex"01")
+    );
   }
 }
