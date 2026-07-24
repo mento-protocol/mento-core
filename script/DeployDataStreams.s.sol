@@ -275,7 +275,7 @@ contract DeployDataStreams is Script {
 
   // ============ Config Loading (env var > TBD placeholder) ============
 
-  function _loadGlobals(address deployer) internal view returns (Globals memory g) {
+  function _loadGlobals(address deployer) internal view virtual returns (Globals memory g) {
     g.sortedOracles = vm.envOr("DS_SORTED_ORACLES", _tbdAddr("sortedOracles")); // B5
     g.verifierProxy = vm.envOr("DS_VERIFIER_PROXY", _tbdAddr("verifierProxy")); // B1
     g.breakerBox = vm.envOr("DS_BREAKER_BOX", _tbdAddr("breakerBox"));
@@ -293,7 +293,7 @@ contract DeployDataStreams is Script {
    *         feed and a two-leg cross-rate. Every value is env-overridable; defaults are TBD
    *         placeholders. Extend once B4 (feedIds), B13 (rateFeedIds) and B10 (params) land.
    */
-  function _loadFeeds() internal view returns (FeedConfig[] memory feeds) {
+  function _loadFeeds() internal view virtual returns (FeedConfig[] memory feeds) {
     feeds = new FeedConfig[](2);
     feeds[0] = _celoUsd();
     feeds[1] = _celoPhp();
